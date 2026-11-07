@@ -5209,6 +5209,185 @@
     "copyAria": "Copy class name {{name}}"
   },
   "hq": {
+    "route": {
+      "aria": "Route with {{n}} steps",
+      "zoomGroup": "Route zoom",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "fit": "Fit route",
+      "legend": "Legend",
+      "legendAria": "Show and hide actions",
+      "shared": "{{place}} also serves the Nachschub \"{{name}}\"",
+      "open": "Place open"
+    },
+    "slots": {
+      "aria": "Nachschub slots",
+      "finished": "done",
+      "einsaetze": "{{n}} Einsätze",
+      "einsatzOne": "1 Einsatz",
+      "delete": "Delete \"{{name}}\"",
+      "newAria": "New Nachschub in slot {{n}}",
+      "free": "Slot {{n}}",
+      "archive": "Archive",
+      "archiveAria": "Archive, {{n}} Nachschübe",
+      "introTitle": "No Nachschub yet",
+      "introText": "Tap a plus and take things from your wishlist with you. They become a Nachschub with Einsätze that you work through step by step in Jetzt."
+    },
+    "remove": {
+      "titleRemove": "Delete \"{{name}}\"?",
+      "titleEmpty": "Empty \"{{name}}\"?",
+      "msgRemove": "The Nachschub goes away. Open positions: {{n}}.",
+      "msgEmpty": "The Nachschub stays, its open positions leave it. Open positions: {{n}}.",
+      "back": "Open positions back onto the wishlist",
+      "backOn": "They are counted up on the wishlist.",
+      "backOff": "They are dropped for good.",
+      "confirmRemove": "Delete",
+      "confirmEmpty": "Empty"
+    },
+    "archive": {
+      "slotFree": "A slot is free, you can bring a Nachschub back.",
+      "empty": "Nothing in the archive yet. A finished Nachschub moves here by itself and frees its slot.",
+      "reactivate": "Reactivate",
+      "close": "Close"
+    },
+    "flow": {
+      "titleNew": "New Nachschub",
+      "titleEdit": "Edit Nachschub",
+      "slotOf": "Slot {{n}} of {{max}}",
+      "stepsAria": "Steps",
+      "step": {
+        "1": "Select",
+        "2": "Summary",
+        "3": "Einsätze"
+      },
+      "emptyWish": "Your wishlist is empty.",
+      "emptyHint": "Put things on the wishlist first, then you can take them into a Nachschub here.",
+      "fillWish": "Fill the wishlist",
+      "all": "Take everything",
+      "none": "Take nothing",
+      "picked": "{{n}} positions · {{p}} pieces",
+      "group": {
+        "ships": "Ships and vehicles",
+        "items": "Items",
+        "materials": "Material",
+        "blueprint": "Blueprint"
+      },
+      "qtyOf": "Quantity of {{name}}",
+      "less": "Take fewer",
+      "more": "Take more",
+      "nameLabel": "Name of the Nachschub",
+      "sumTitle": "In this Nachschub",
+      "alreadyIn": "Already in the Nachschub",
+      "forBp": "for {{name}}",
+      "removeLine": "Take \"{{name}}\" out of the Nachschub",
+      "sumEmpty": "Nothing selected yet.",
+      "stays": "Stays on the wishlist",
+      "staysNothing": "Nothing, everything moves into the Nachschub.",
+      "einsaetze": "Einsätze",
+      "einsatzCount": "{{n}} Einsätze · {{s}} steps",
+      "noNewLines": "No new positions, so no new Einsätze.",
+      "noLines": "Nothing selected.",
+      "matsTitle": "How do you get the material?",
+      "methodOf": "How to get {{name}}",
+      "splitOf": "Split of {{name}}",
+      "lessBuy": "Buy less, mine more",
+      "moreBuy": "Buy more, mine less",
+      "splitHint": "Buying and mining can be split: bought amount on the left, mined amount on the right.",
+      "stepsCount": "{{n}} steps",
+      "craftLast": "comes last, needs the others",
+      "gets": "you get",
+      "purpose": "Material for {{names}}",
+      "haveEinsaetze": "Already planned",
+      "back": "Back",
+      "next": "Next",
+      "create": "Create Nachschub",
+      "saveEdit": "Save"
+    },
+    "panel": {
+      "renameAria": "New name of the Nachschub",
+      "rename": "Change name",
+      "positions": "positions",
+      "edit": "Edit",
+      "run": "Run in Jetzt",
+      "empty": "Empty",
+      "noEinsaetze": "This Nachschub has no Einsätze yet.",
+      "noEinsaetzeHint": "The positions turn into Einsätze: buy, mine, missions, crafting last.",
+      "proposeEinsaetze": "Propose Einsätze",
+      "einsaetze": "Einsätze",
+      "stepsTotal": "{{n}} steps",
+      "steps": "{{done}}/{{n}} steps",
+      "gets": "you get",
+      "route": "Route",
+      "places": "{{n}} places"
+    },
+    "run": {
+      "aria": "Nachschub that Jetzt runs",
+      "for": "for",
+      "stepOf": "Step {{n}} of {{total}}",
+      "switch": "Switch Nachschub",
+      "emptyTitle": "No Nachschub in progress",
+      "toPlanen": "Go to Planen",
+      "finish": "Step done",
+      "sharedStop": "This place also serves \"{{name}}\".",
+      "doneKicker": "All ticked off",
+      "allDone": "All steps of this Einsatz are done.",
+      "allDoneHint": "Pick another Einsatz of the Nachschub or switch the Nachschub.",
+      "einsaetze": "Einsätze of this Nachschub"
+    },
+    "ticker": {
+      "app": "SCC App",
+      "on": "connected",
+      "off": "off",
+      "none": "no event yet",
+      "ago": {
+        "now": "just now",
+        "minutes": "{{n}} min ago",
+        "hours": "{{n}} h ago",
+        "days": "{{n}} days ago"
+      }
+    },
+    "bestand": {
+      "title": "Bestand",
+      "tabsAria": "Areas of the Bestand",
+      "tab": {
+        "inventar": "Inventar",
+        "hangar": "Hangar",
+        "sammlung": "Sammlung"
+      },
+      "search": "Search the Inventar",
+      "menu": "Page menu",
+      "reset": "Reset in-game stock",
+      "resetTitle": "Reset in-game stock?",
+      "resetMessage": "Every place that the game or the search wrote is removed. Entries you made by hand stay. This cannot be undone.",
+      "resetConfirm": "Reset",
+      "filter": "Filter the Inventar",
+      "all": "All",
+      "used": "Recently used up",
+      "used48": "last 48 h",
+      "catchUp": "Catch up",
+      "catchUpAll": "Catch up on all",
+      "catchUpOne": "\"{{name}}\" to the wishlist",
+      "addItem": "Add an entry by hand",
+      "addShip": "Add a ship",
+      "addShipLabel": "Name of the ship",
+      "addBlueprint": "Add a blueprint",
+      "addBlueprintLabel": "Name of the blueprint",
+      "origin": {
+        "pledge": "Pledge",
+        "ingame": "In-game",
+        "loan": "Loaner"
+      },
+      "blueprint": "Blueprint",
+      "ruf": "Reputation",
+      "rufEmptyTitle": "No data source yet",
+      "rufEmptyText": "Appears as soon as the SCC App reports your reputation or you enter it by hand.",
+      "pager": "Pages",
+      "range": "{{from}}–{{to}} of {{total}}",
+      "prev": "Previous page",
+      "next": "Next page",
+      "hintWish": "on the wishlist: {{n}}",
+      "hintNachschub": "in the Nachschub \"{{name}}\""
+    },
     "nachschub": {
       "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
       "nothingPicked": "Pick at least one item from the wishlist.",
@@ -5232,7 +5411,8 @@
         "nothingWished": "Nothing on the wishlist.",
         "fulfilled": "Ticked off the wishlist.",
         "added": "Added to the Nachschub.",
-        "lineRemoved": "Position removed."
+        "lineRemoved": "Position removed.",
+        "edited": "Nachschub saved."
       },
       "rec": {
         "reason": {
@@ -5480,6 +5660,11 @@
       }
     },
     "plan": {
+      "mode": {
+        "label": "View of Planen",
+        "nachschub": "Nachschub",
+        "classic": "Selection and route"
+      },
       "switch": {
         "label": "View",
         "what": "What I need",

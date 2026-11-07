@@ -5209,6 +5209,185 @@
     "copyAria": "Klassenname {{name}} kopieren"
   },
   "hq": {
+    "route": {
+      "aria": "Route mit {{n}} Schritten",
+      "zoomGroup": "Zoom der Route",
+      "zoomIn": "Hineinzoomen",
+      "zoomOut": "Herauszoomen",
+      "fit": "Route einpassen",
+      "legend": "Legende",
+      "legendAria": "Aktionen ein- und ausblenden",
+      "shared": "{{place}} dient auch dem Nachschub „{{name}}“",
+      "open": "Ort offen"
+    },
+    "slots": {
+      "aria": "Nachschub-Slots",
+      "finished": "fertig",
+      "einsaetze": "{{n}} Einsätze",
+      "einsatzOne": "1 Einsatz",
+      "delete": "„{{name}}“ löschen",
+      "newAria": "Neuer Nachschub in Slot {{n}}",
+      "free": "Slot {{n}}",
+      "archive": "Archiv",
+      "archiveAria": "Archiv, {{n}} Nachschübe",
+      "introTitle": "Noch kein Nachschub",
+      "introText": "Tippe auf ein Plus und nimm Dinge von deiner Wunschliste mit. Aus ihnen wird ein Nachschub mit Einsätzen, die du in Jetzt Schritt für Schritt abarbeitest."
+    },
+    "remove": {
+      "titleRemove": "„{{name}}“ löschen?",
+      "titleEmpty": "„{{name}}“ leeren?",
+      "msgRemove": "Der Nachschub verschwindet. Offene Positionen: {{n}}.",
+      "msgEmpty": "Der Nachschub bleibt, seine offenen Positionen verlassen ihn. Offene Positionen: {{n}}.",
+      "back": "Offene Positionen zurück auf die Wunschliste",
+      "backOn": "Sie werden auf der Wunschliste hochgezählt.",
+      "backOff": "Sie werden ganz verworfen.",
+      "confirmRemove": "Löschen",
+      "confirmEmpty": "Leeren"
+    },
+    "archive": {
+      "slotFree": "Ein Platz ist frei, du kannst einen Nachschub zurückholen.",
+      "empty": "Noch nichts im Archiv. Ein fertiger Nachschub rutscht von selbst hierher und macht seinen Platz frei.",
+      "reactivate": "Wieder aktivieren",
+      "close": "Schließen"
+    },
+    "flow": {
+      "titleNew": "Neuer Nachschub",
+      "titleEdit": "Nachschub bearbeiten",
+      "slotOf": "Slot {{n}} von {{max}}",
+      "stepsAria": "Schritte",
+      "step": {
+        "1": "Auswählen",
+        "2": "Zusammenfassung",
+        "3": "Einsätze"
+      },
+      "emptyWish": "Deine Wunschliste ist leer.",
+      "emptyHint": "Lege zuerst Dinge auf die Wunschliste, dann kannst du sie hier in einen Nachschub übernehmen.",
+      "fillWish": "Wunschliste füllen",
+      "all": "Alles übernehmen",
+      "none": "Nichts übernehmen",
+      "picked": "{{n}} Positionen · {{p}} Stück",
+      "group": {
+        "ships": "Schiffe und Fahrzeuge",
+        "items": "Gegenstände",
+        "materials": "Material",
+        "blueprint": "Blaupause"
+      },
+      "qtyOf": "Menge von {{name}}",
+      "less": "Weniger mitnehmen",
+      "more": "Mehr mitnehmen",
+      "nameLabel": "Name des Nachschubs",
+      "sumTitle": "In diesem Nachschub",
+      "alreadyIn": "Schon im Nachschub",
+      "forBp": "für {{name}}",
+      "removeLine": "„{{name}}“ aus dem Nachschub nehmen",
+      "sumEmpty": "Noch nichts ausgewählt.",
+      "stays": "Bleibt auf der Wunschliste",
+      "staysNothing": "Nichts, alles wandert in den Nachschub.",
+      "einsaetze": "Einsätze",
+      "einsatzCount": "{{n}} Einsätze · {{s}} Schritte",
+      "noNewLines": "Keine neuen Positionen, deshalb keine neuen Einsätze.",
+      "noLines": "Nichts ausgewählt.",
+      "matsTitle": "Wie besorgst du das Material?",
+      "methodOf": "Beschaffung von {{name}}",
+      "splitOf": "Aufteilung von {{name}}",
+      "lessBuy": "Weniger kaufen, mehr abbauen",
+      "moreBuy": "Mehr kaufen, weniger abbauen",
+      "splitHint": "Kaufen und Abbauen lassen sich teilen: links gekaufte, rechts abgebaute Menge.",
+      "stepsCount": "{{n}} Schritte",
+      "craftLast": "kommt zuletzt, braucht die anderen",
+      "gets": "bekommst du",
+      "purpose": "Material für {{names}}",
+      "haveEinsaetze": "Schon geplant",
+      "back": "Zurück",
+      "next": "Weiter",
+      "create": "Nachschub anlegen",
+      "saveEdit": "Speichern"
+    },
+    "panel": {
+      "renameAria": "Neuer Name des Nachschubs",
+      "rename": "Namen ändern",
+      "positions": "Positionen",
+      "edit": "Bearbeiten",
+      "run": "In Jetzt ausführen",
+      "empty": "Leeren",
+      "noEinsaetze": "Dieser Nachschub hat noch keine Einsätze.",
+      "noEinsaetzeHint": "Aus den Positionen entstehen Einsätze: kaufen, abbauen, Missionen, am Ende das Craften.",
+      "proposeEinsaetze": "Einsätze vorschlagen",
+      "einsaetze": "Einsätze",
+      "stepsTotal": "{{n}} Schritte",
+      "steps": "{{done}}/{{n}} Schritte",
+      "gets": "bekommst du",
+      "route": "Route",
+      "places": "{{n}} Orte"
+    },
+    "run": {
+      "aria": "Nachschub, den Jetzt bedient",
+      "for": "für",
+      "stepOf": "Schritt {{n}} von {{total}}",
+      "switch": "Nachschub wechseln",
+      "emptyTitle": "Kein Nachschub in Arbeit",
+      "toPlanen": "Zu Planen",
+      "finish": "Schritt erledigt",
+      "sharedStop": "Dieser Ort dient auch „{{name}}“.",
+      "doneKicker": "Alles abgehakt",
+      "allDone": "Alle Schritte dieses Einsatzes sind erledigt.",
+      "allDoneHint": "Wähle einen anderen Einsatz des Nachschubs oder wechsle den Nachschub.",
+      "einsaetze": "Einsätze dieses Nachschubs"
+    },
+    "ticker": {
+      "app": "SCC-App",
+      "on": "verbunden",
+      "off": "aus",
+      "none": "noch kein Ereignis",
+      "ago": {
+        "now": "gerade eben",
+        "minutes": "vor {{n}} Min.",
+        "hours": "vor {{n}} Std.",
+        "days": "vor {{n}} Tagen"
+      }
+    },
+    "bestand": {
+      "title": "Bestand",
+      "tabsAria": "Bereiche des Bestands",
+      "tab": {
+        "inventar": "Inventar",
+        "hangar": "Hangar",
+        "sammlung": "Sammlung"
+      },
+      "search": "Im Inventar suchen",
+      "menu": "Seitenmenü",
+      "reset": "Ingame-Bestand zurücksetzen",
+      "resetTitle": "Ingame-Bestand zurücksetzen?",
+      "resetMessage": "Alle Orte, die das Spiel oder die Suche geschrieben haben, werden entfernt. Von Hand angelegte Einträge bleiben. Das lässt sich nicht rückgängig machen.",
+      "resetConfirm": "Zurücksetzen",
+      "filter": "Inventar filtern",
+      "all": "Alle",
+      "used": "Kürzlich aufgebraucht",
+      "used48": "letzte 48 Std.",
+      "catchUp": "Nachholen",
+      "catchUpAll": "Alles nachholen",
+      "catchUpOne": "„{{name}}“ auf die Wunschliste",
+      "addItem": "Eintrag von Hand anlegen",
+      "addShip": "Schiff anlegen",
+      "addShipLabel": "Name des Schiffs",
+      "addBlueprint": "Blaupause anlegen",
+      "addBlueprintLabel": "Name der Blaupause",
+      "origin": {
+        "pledge": "Pledge",
+        "ingame": "Ingame",
+        "loan": "Leihschiff"
+      },
+      "blueprint": "Blaupause",
+      "ruf": "Ruf",
+      "rufEmptyTitle": "Noch keine Datenquelle",
+      "rufEmptyText": "Erscheint, sobald die SCC-App deinen Ruf meldet oder du ihn von Hand einträgst.",
+      "pager": "Seiten",
+      "range": "{{from}}–{{to}} von {{total}}",
+      "prev": "Vorherige Seite",
+      "next": "Nächste Seite",
+      "hintWish": "auf der Wunschliste: {{n}}",
+      "hintNachschub": "im Nachschub „{{name}}“"
+    },
     "nachschub": {
       "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
       "nothingPicked": "Wähle mindestens einen Gegenstand von der Wunschliste.",
@@ -5232,7 +5411,8 @@
         "nothingWished": "Nichts auf der Wunschliste.",
         "fulfilled": "Von der Wunschliste abgehakt.",
         "added": "Zum Nachschub hinzugefügt.",
-        "lineRemoved": "Position entfernt."
+        "lineRemoved": "Position entfernt.",
+        "edited": "Nachschub gespeichert."
       },
       "rec": {
         "reason": {
@@ -5480,6 +5660,11 @@
       }
     },
     "plan": {
+      "mode": {
+        "label": "Ansicht von Planen",
+        "nachschub": "Nachschub",
+        "classic": "Auswahl und Route"
+      },
       "switch": {
         "label": "Ansicht",
         "what": "Was brauche ich",

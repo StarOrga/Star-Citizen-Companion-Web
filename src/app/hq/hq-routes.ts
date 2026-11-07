@@ -44,6 +44,32 @@ export function hqListTabOf(v: string | null | undefined): HqListTab | null {
   return v === 'wish' || v === 'nachschub' ? v : null;
 }
 
+/**
+ * HQ Bestand (page `inventar`) deep links - the contract for the header quick access ("Gesamtes Inventar") and the Codex
+ * search ("Inventar" node): `/hq?bestand=inventar&cat=weapons&focus=<className>#inventar`.
+ *   `bestand` - the tab: `inventar` (default) | `hangar` | `sammlung`
+ *   `cat`     - Inventar filter, a stock category (`weapons` | `armor` | `materials` | `other`); carried from the page type
+ *   `focus`   - a class name (or name) to bring on screen and mark in that tab
+ */
+export const HQ_STOCK_TAB_PARAM = 'bestand';
+export const HQ_STOCK_CAT_PARAM = 'cat';
+export const HQ_STOCK_FOCUS_PARAM = 'focus';
+export const HQ_STOCK_TABS = ['inventar', 'hangar', 'sammlung'] as const;
+export type HqStockTab = (typeof HQ_STOCK_TABS)[number];
+
+export function hqStockTabOf(v: string | null | undefined): HqStockTab | null {
+  return (HQ_STOCK_TABS as readonly string[]).includes(v ?? '') ? (v as HqStockTab) : null;
+}
+
+/** The link to HQ Bestand: `[routerLink]="l.commands" [fragment]="l.fragment" [queryParams]="l.queryParams"`. */
+export function hqStockLink(opts: { tab?: HqStockTab; cat?: string | null; focus?: string | null } = {}): HqPageLink {
+  const q: Record<string, string> = {};
+  if (opts.tab) q[HQ_STOCK_TAB_PARAM] = opts.tab;
+  if (opts.cat) q[HQ_STOCK_CAT_PARAM] = opts.cat;
+  if (opts.focus) q[HQ_STOCK_FOCUS_PARAM] = opts.focus;
+  return { commands: [HQ_ROOT], fragment: 'inventar', queryParams: q };
+}
+
 export function hqPage(page: HqPageId): HqPageLink {
   return { commands: [HQ_ROOT], fragment: page === 'start' ? undefined : page };
 }

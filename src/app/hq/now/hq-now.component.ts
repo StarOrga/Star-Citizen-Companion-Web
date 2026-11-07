@@ -12,19 +12,31 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
+import { RouterLink } from '@angular/router';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScStepComponent } from '../../shared/step/sc-step.component';
+import { type Einsatz, type EinsatzStep, HqEinsatzService } from '../data/hq-einsatz.service';
+import { hqPage } from '../hq-routes';
+import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
+import { NachschubService } from '../nachschub/nachschub.service';
+import { NACHSCHUB_ICON_PATHS } from '../nachschub/step-icons';
+import { routeFilterKey } from '../plan/route/route-filter.store';
+import { HqRouteGraphicComponent, type RouteSharedStop } from '../plan/route/route-graphic.component';
+import type { RouteGraphStep } from '../plan/route/route-layout';
 import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
 import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqNowFriendsComponent } from './hq-now-friends.component';
 import { HqLiveService } from './hq-live.service';
 import { eventLabel, formatLocationName, isGameLive, presenceAt, readContracts, readLocation, readShip, readZones } from './hq-live.util';
-import { HQ_NOW_PATH } from './hq-now-path';
+import { HQ_NOW_PATH, currentEinsatz } from './hq-now-path';
 import { HqMissionsPopoverComponent } from './hq-missions-popover.component';
 
 export const TOAST_MS = 6000;
 const PREVIEW = 3;
 const PRESENCE_TICK_MS = 30_000;
+/** Steps shown after the next one. */
+const UPCOMING = 4;
 
 /**
  * HQ page "Jetzt": where you are (location anchor), what is next (main path), active missions
@@ -34,115 +46,160 @@ const PRESENCE_TICK_MS = 30_000;
 @Component({
   selector: 'sc-hq-now',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, ScStepComponent, HqMissionsPopoverComponent, HqLogDialogComponent, HqAppLaunchComponent, HqNowFriendsComponent],
+  imports: [
+    TranslatePipe,
+    DatePipe,
+    RouterLink,
+    ScActionDirective,
+    ScStepComponent,
+    HqMissionsPopoverComponent,
+    HqLogDialogComponent,
+    HqAppLaunchComponent,
+    HqNowFriendsComponent,
+    HqRouteGraphicComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 class="page-title" id="hq-now-title">{{ 'hq.pages.jetzt' | translate }}</h2>
-    <sc-hq-now-friends />
+    <header class="phead">
+      <h2 class="page-title" id="hq-now-title">{{ 'hq.pages.jetzt' | translate }}</h2>
+      @if (nachschub(); as n) {
+        <div class="run" role="group" [attr.aria-label]="'hq.run.aria' | translate">
+          <span class="run-ic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg></span>
+          <span class="run-t"><small>{{ 'hq.run.for' | translate }}</small><b>{{ n.name }}</b></span>
+          @if (activeEinsatz(); as e) {
+            <span class="run-e">E{{ activeIndex() + 1 }} · {{ e.title }} · {{ 'hq.run.stepOf' | translate: { n: shownStep(), total: total() } }}</span>
+          }
+          @if (switchable().length > 1) {
+            <span class="sw">
+              <button type="button" scAction tier="secondary" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">{{ 'hq.run.switch' | translate }}</button>
+              @if (menuOpen()) {
+                <ul class="menu" role="menu" (keydown.escape)="menuOpen.set(false)">
+                  @for (m of switchable(); track m.id) {
+                    <li role="none">
+                      <button type="button" role="menuitemradio" [attr.aria-checked]="m.id === n.id" (click)="choose(m.id)">
+                        <span class="mn">{{ m.name }}</span><small>{{ m.done }}/{{ m.total }}</small>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </span>
+          }
+        </div>
+      }
+      <span class="phead-r">
+        <sc-hq-now-friends />
+        @if (live.loaded() && live.state()) { <sc-hq-missions-popover [contracts]="contracts()" /> }
+      </span>
+    </header>
 
     @if (!live.loaded()) {
       <p class="muted" role="status">{{ 'hq.now.loading' | translate }}</p>
     } @else if (live.error() && !live.state()) {
-      <p class="err" role="alert">{{ live.error()! | translate }}</p>
-      <button type="button" class="btn" (click)="live.refresh()">{{ 'hq.now.retry' | translate }}</button>
-    } @else if (!live.state()) {
-      <section class="connect">
-        <span class="connect-title">{{ (appConnected() ? 'hq.now.connect.syncOffTitle' : 'hq.now.connect.title') | translate }}</span>
-        <span class="muted">{{ (appConnected() ? 'hq.now.connect.syncOffHint' : 'hq.now.connect.hint') | translate }}</span>
-        <div class="explain" role="group" [attr.aria-label]="'hq.now.connect.explain.aria' | translate">
-          <p class="explain-what">{{ 'hq.now.connect.explain.what' | translate }}</p>
-          <ul class="explain-list">
-            <li>{{ 'hq.now.connect.explain.e1' | translate }}</li>
-            <li>{{ 'hq.now.connect.explain.e2' | translate }}</li>
-            <li>{{ 'hq.now.connect.explain.e3' | translate }}</li>
-          </ul>
-        </div>
-        <sc-hq-app-launch class="connect-go" />
-      </section>
-    } @else {
-      <div class="top">
-        <section class="anchor" aria-labelledby="hq-now-anchor">
-          <span class="eyebrow" id="hq-now-anchor">{{ (gameLive() ? 'hq.now.anchor.label' : 'hq.now.anchor.lastSeen') | translate }}</span>
-          @if (location(); as loc) {
-            <p class="where">
-              @if (loc.system) { <span class="sys">{{ loc.system }}</span><span class="sep" aria-hidden="true"> › </span> }
-              <span class="place">{{ placeName(loc.name) }}</span>
-            </p>
-          } @else {
-            <p class="where unknown">{{ 'hq.now.anchor.unknown' | translate }}</p>
-          }
-          @if (ship(); as s) {
-            <p class="ship">{{ 'hq.now.anchor.ship' | translate }} <b class="ship-name">{{ s }}</b></p>
-          }
-          @if (gameLive()) {
-            <p class="zones">
-              <span class="zones-label">{{ 'hq.now.zone.label' | translate }}</span>
-              @if (zones(); as list) {
-                @for (z of list; track z) {
-                  <span class="zone" [class.warn]="z === 'restricted' || z === 'commDown'">{{ 'hq.now.zone.' + z | translate }}</span>
-                }
-              } @else {
-                <span class="zone unknown">{{ 'hq.now.zone.unknown' | translate }}</span>
-              }
-            </p>
-          }
-          @if (lastSignal(); as at) {
-            <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</p>
-          }
-        </section>
-        <sc-hq-missions-popover [contracts]="contracts()" />
-      </div>
+      <p class="err" role="alert">{{ live.error()! | translate }}
+        <button type="button" scAction tier="secondary" (click)="live.refresh()">{{ 'hq.now.retry' | translate }}</button>
+      </p>
+    }
 
-      <section class="path" aria-labelledby="hq-now-path">
-        <h3 id="hq-now-path" class="h">{{ 'hq.now.path.title' | translate }}</h3>
-        @if (path().length === 0) {
-          <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
+    <div class="now">
+      <section class="panel mapcol" [attr.aria-label]="'hq.panel.route' | translate">
+        @if (graphSteps().length) {
+          <sc-hq-route-graphic class="map" [steps]="graphSteps()" [current]="nextStep()?.ord ?? null" [filterKey]="filterKey()"
+                               [openLabel]="'hq.route.open' | translate" [shared]="sharedStops()" (sharedPick)="choose($event.nachschubId)" />
         } @else {
-          <div role="list">
-            <sc-step
-              class="next"
-              [kind]="path()[0].kind"
-              [label]="path()[0].label"
-              [qty]="path()[0].qty"
-              [location]="path()[0].location"
-            />
-            <div class="trail">
-              @for (s of path().slice(1, 5); track $index) {
-                <sc-step [kind]="s.kind" [label]="s.label" [qty]="s.qty" [location]="s.location" />
-              }
-            </div>
+          <div class="empty">
+            <p class="e-title">{{ 'hq.run.emptyTitle' | translate }}</p>
+            <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
+            <a scAction tier="secondary" [routerLink]="planen.commands" [fragment]="planen.fragment">{{ 'hq.run.toPlanen' | translate }}</a>
           </div>
         }
       </section>
-    }
 
-    @if (live.loaded() && live.state()) {
-      <section class="log" aria-labelledby="hq-now-log">
-        <div class="log-head">
-          <h3 id="hq-now-log" class="h">{{ 'hq.now.log.title' | translate }}</h3>
-          @if (live.events().length > PREVIEW) {
-            <button type="button" class="btn" (click)="logOpen.set(true)">{{ 'hq.log.showAll' | translate }}</button>
+      <section class="panel stepcol" [attr.aria-label]="'hq.now.path.title' | translate">
+        @if (nextStep(); as st) {
+          <p class="kicker">{{ 'hq.run.stepOf' | translate: { n: shownStep(), total: total() } }}@if (st.location) { · {{ st.location }} }</p>
+          <h3 class="now-h">{{ 'hq.step.kind.' + st.kind | translate }}: {{ st.label }}@if (st.qty !== null) { <b class="mono"> ×{{ st.qty }}</b> }</h3>
+          <div class="cta">
+            <button type="button" scAction tier="primary" (click)="finish(st.ord)">{{ 'hq.run.finish' | translate }}</button>
+            @if (lastDone(); as ld) {
+              <button type="button" scAction tier="secondary" (click)="undoLast(ld.ord)">{{ 'hq.log.undo' | translate }}</button>
+            }
+          </div>
+          @if (otherNachschubAt(st.location); as other) {
+            <p class="shared">
+              <svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg>
+              {{ 'hq.run.sharedStop' | translate: { name: other } }}
+            </p>
+          }
+          <div class="trail" role="list" [attr.aria-label]="'hq.now.path.title' | translate">
+            @for (s of upcoming(); track s.ord) {
+              <sc-step [kind]="s.kind" [label]="s.label" [qty]="s.qty" [location]="s.location" />
+            }
+          </div>
+        } @else if (graphSteps().length) {
+          <p class="kicker">{{ 'hq.run.doneKicker' | translate }}</p>
+          <h3 class="now-h">{{ 'hq.run.allDone' | translate }}</h3>
+          <p class="muted">{{ 'hq.run.allDoneHint' | translate }}</p>
+          <a scAction tier="secondary" [routerLink]="planen.commands" [fragment]="planen.fragment">{{ 'hq.run.toPlanen' | translate }}</a>
+        } @else {
+          <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
+        }
+
+        @if (bundle().length > 1) {
+          <div class="etabs" role="group" [attr.aria-label]="'hq.run.einsaetze' | translate">
+            @for (e of bundle(); track e.id; let i = $index) {
+              <button type="button" class="etab" [attr.aria-pressed]="e.id === activeEinsatz()?.id" [class.fin]="e.status === 'done'" (click)="pickEinsatz(e.id)">
+                <b>E{{ i + 1 }}</b><span>{{ e.title }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        <div class="anchor" aria-live="polite">
+          @if (live.state()) {
+            <span class="a-label">{{ (gameLive() ? 'hq.now.anchor.label' : 'hq.now.anchor.lastSeen') | translate }}</span>
+            @if (location(); as loc) {
+              <b class="a-where">@if (loc.system) { {{ loc.system }} › }{{ placeName(loc.name) }}</b>
+            } @else {
+              <b class="a-where unknown">{{ 'hq.now.anchor.unknown' | translate }}</b>
+            }
+            @if (lastSignal(); as at) { <small>{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</small> }
+          } @else if (live.loaded() && !live.error()) {
+            <span class="a-label">{{ (appConnected() ? 'hq.now.connect.syncOffTitle' : 'hq.now.connect.title') | translate }}</span>
+            <small>{{ (appConnected() ? 'hq.now.connect.syncOffHint' : 'hq.now.connect.hint') | translate }}</small>
+            <sc-hq-app-launch class="connect-go" />
           }
         </div>
-        @if (preview().length === 0) {
-          <p class="muted">{{ 'hq.log.empty' | translate }}</p>
-        } @else {
-          <ul>
-            @for (ev of preview(); track ev.id; let first = $first) {
-              <li [attr.data-log-first]="first ? '' : null" [class.undone]="ev.undone">
-                <time class="mono muted" [attr.datetime]="ev.at">{{ ev.at | date: 'shortTime' }}</time>
-                <span class="text">{{ label(ev).key | translate: label(ev).params }}</span>
-                @if (ev.undone) {
-                  <span class="muted">{{ 'hq.log.undone' | translate }}</span>
-                } @else if (live.undoable(ev)) {
-                  <button type="button" class="btn" (click)="live.undo(ev.id)">{{ 'hq.log.undo' | translate }}</button>
+
+        @if (live.loaded() && live.state()) {
+          <div class="log" aria-labelledby="hq-now-log">
+            <div class="log-head">
+              <h3 id="hq-now-log" class="h">{{ 'hq.now.log.title' | translate }}</h3>
+              @if (live.events().length > PREVIEW) {
+                <button type="button" scAction tier="secondary" (click)="logOpen.set(true)">{{ 'hq.log.showAll' | translate }}</button>
+              }
+            </div>
+            @if (preview().length === 0) {
+              <p class="muted">{{ 'hq.log.empty' | translate }}</p>
+            } @else {
+              <ul>
+                @for (ev of preview(); track ev.id; let first = $first) {
+                  <li [attr.data-log-first]="first ? '' : null" [class.undone]="ev.undone">
+                    <time class="mono muted" [attr.datetime]="ev.at">{{ ev.at | date: 'shortTime' }}</time>
+                    <span class="text">{{ label(ev).key | translate: label(ev).params }}</span>
+                    @if (ev.undone) {
+                      <span class="muted">{{ 'hq.log.undone' | translate }}</span>
+                    } @else if (live.undoable(ev)) {
+                      <button type="button" class="btn" (click)="live.undo(ev.id)">{{ 'hq.log.undo' | translate }}</button>
+                    }
+                  </li>
                 }
-              </li>
+              </ul>
             }
-          </ul>
+          </div>
         }
       </section>
-    }
+    </div>
 
     @if (live.toast(); as t) {
       <div #toast class="toast" role="status">
@@ -157,54 +214,67 @@ const PRESENCE_TICK_MS = 30_000;
   `,
   styles: [
     `
-      :host { display: block; }
-      .page-title { margin: 0 0 var(--sc-space-4, 16px); font: 600 1.6rem / 1.2 var(--sc-font-display); }
-      .muted { color: var(--sc-fg-2); }
-      .err { color: var(--sc-danger); }
-      .top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sc-space-3, 12px); }
-      .anchor {
-        flex: 1; min-width: 0; padding: var(--sc-space-4, 16px) var(--sc-space-5, 20px); border: 1px solid var(--sc-accent);
-        border-left-width: 4px; border-radius: var(--sc-radius, 10px); background: var(--sc-surface-2, var(--sc-surface));
-      }
-      .eyebrow { font-size: max(0.75rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-fg-2); }
-      .where { margin: var(--sc-space-1, 4px) 0 0; font: 600 clamp(1.5rem, 4vw, 2.2rem) / 1.15 var(--sc-font-display); overflow-wrap: anywhere; }
-      .where .sys, .where .sep { color: var(--sc-fg-2); font-weight: 400; }
-      .where.unknown { color: var(--sc-fg-2); font-size: 1.2rem; }
-      .ship { margin: var(--sc-space-2, 8px) 0 0; color: var(--sc-fg-2); }
-      .zones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px); margin: var(--sc-space-2, 8px) 0 0; color: var(--sc-fg-2); }
-      .zone { padding: 2px var(--sc-space-2, 8px); border: 1px solid var(--sc-accent); border-radius: 999px; color: var(--sc-fg); font-size: max(0.8125rem, var(--sc-fs-floor)); }
-      .zone.warn { border-color: var(--sc-warning); color: var(--sc-warning); }
-      .zone.unknown { border-color: var(--sc-border); color: var(--sc-fg-2); }
-      .h { margin: var(--sc-space-5, 20px) 0 var(--sc-space-2, 8px); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
-      .next { font-size: 1.25rem; padding: var(--sc-space-3, 12px) 0; }
-      .trail { opacity: 0.55; padding-left: var(--sc-space-4, 16px); border-left: 2px dashed var(--sc-border); }
+      :host { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); height: var(--hq-page-h, auto); min-height: 0; }
+      .phead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-3, 12px); flex: none; }
+      .page-title { margin: 0; font: 600 1.6rem / 1.2 var(--sc-font-display); }
+      .phead-r { display: inline-flex; align-items: center; gap: var(--sc-space-3, 12px); margin-left: auto; }
+      .muted { color: var(--sc-fg-2); margin: 0; }
+      .err { color: var(--sc-danger); margin: 0; display: flex; align-items: center; gap: var(--sc-space-3, 12px); }
+      .run { position: relative; display: flex; align-items: center; gap: var(--sc-space-3, 12px); padding: 4px var(--sc-space-3, 12px) 4px 6px; border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); border-radius: 12px; background: color-mix(in srgb, var(--sc-accent) 7%, var(--sc-bg-0)); min-width: 0; }
+      .run-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); }
+      .run-ic svg, .shared svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .run-t { display: grid; line-height: 1.15; min-width: 0; }
+      .run-t small { color: var(--sc-fg-2); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+      .run-t b { font: 700 0.95rem var(--sc-font-display, inherit); overflow-wrap: anywhere; }
+      .run-e { color: var(--sc-fg-1); font-size: 0.82rem; }
+      .sw { position: relative; }
+      .menu { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; min-width: 240px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--sc-border); border-radius: 10px; background: var(--sc-bg-1); box-shadow: 0 12px 32px rgb(0 0 0 / 0.5); }
+      .menu li { display: block; padding: 0; border: 0; }
+      .menu button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 36px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--sc-fg); font: inherit; text-align: start; cursor: pointer; }
+      .menu button:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+      .menu button[aria-checked='true'] { color: var(--sc-accent); }
+      .menu button:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      .now { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: var(--sc-space-3, 12px); }
+      .panel { min-height: 0; min-width: 0; border: 1px solid var(--sc-border); border-radius: 14px; background: color-mix(in srgb, var(--sc-bg-1) 92%, transparent); }
+      .mapcol { display: flex; flex-direction: column; padding: var(--sc-space-2, 8px); }
+      .map { flex: 1; min-height: 0; }
+      .empty { flex: 1; display: grid; align-content: center; justify-items: center; gap: var(--sc-space-2, 8px); text-align: center; padding: var(--sc-space-4, 16px); }
+      .e-title { margin: 0; font-weight: 600; }
+      .stepcol { display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); padding: var(--sc-space-3, 12px) var(--sc-space-4, 16px); overflow-y: auto; }
+      .kicker { margin: 0; font: 600 0.72rem var(--sc-font-display, inherit); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
+      .now-h { margin: 0; font: 600 1.35rem / 1.25 var(--sc-font-display, inherit); overflow-wrap: anywhere; }
+      .cta { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
+      .shared { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--sc-fg-2); font-size: 0.82rem; }
+      .shared svg { width: 16px; height: 16px; color: var(--sc-accent); }
+      .trail { opacity: 0.8; padding-left: var(--sc-space-3, 12px); border-left: 2px dashed var(--sc-border); }
+      .etabs { display: flex; flex-wrap: wrap; gap: 6px; }
+      .etab { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 32px; padding: 0 10px; border: 1px solid var(--sc-border); border-radius: 999px; background: transparent; color: var(--sc-fg-2); font: inherit; font-size: 0.8rem; cursor: pointer; }
+      .etab b { color: var(--sc-accent); font-family: var(--sc-font-display, inherit); }
+      .etab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14ch; }
+      .etab[aria-pressed='true'] { color: var(--sc-fg); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+      .etab.fin { text-decoration: line-through; }
+      .etab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .anchor { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: auto; padding-top: var(--sc-space-2, 8px); border-top: 1px solid var(--sc-border); font-size: 0.85rem; }
+      .a-label { color: var(--sc-fg-2); letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.72rem; }
+      .a-where { font: 600 0.95rem var(--sc-font-display, inherit); }
+      .a-where.unknown { color: var(--sc-fg-2); font-weight: 400; }
+      .anchor small { color: var(--sc-fg-2); }
+      .connect-go { flex-basis: 100%; }
+      .h { margin: 0; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
       .log-head { display: flex; align-items: center; justify-content: space-between; }
       ul { list-style: none; margin: 0; padding: 0; }
-      li { display: flex; align-items: center; gap: var(--sc-space-3, 12px); padding: var(--sc-space-2, 8px) 0; border-bottom: 1px solid var(--sc-border); }
+      li { display: flex; align-items: center; gap: var(--sc-space-3, 12px); padding: 4px 0; border-bottom: 1px solid var(--sc-border); font-size: 0.85rem; }
       li.undone .text { text-decoration: line-through; color: var(--sc-fg-2); }
       .text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-      .btn {
-        min-height: 44px; padding: 0 var(--sc-space-3, 12px); border-radius: var(--sc-radius, 10px); border: 1px solid var(--sc-border);
-        background: transparent; color: var(--sc-fg); cursor: pointer; font: inherit;
-      }
+      .btn { min-height: 32px; padding: 0 var(--sc-space-3, 12px); border-radius: var(--sc-radius, 10px); border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg); cursor: pointer; font: inherit; font-size: 0.8rem; }
       .btn:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
-      .connect {
-        display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); padding: var(--sc-space-5, 20px); color: var(--sc-fg);
-        border: 1px dashed var(--sc-accent); border-radius: var(--sc-radius, 10px);
-      }
-      .connect-title { font-weight: 600; font-size: 1.15rem; color: var(--sc-accent); }
-      .fresh { margin: var(--sc-space-1, 4px) 0 0; color: var(--sc-fg-2); font-size: 0.8125rem; }
-      .explain { margin-top: var(--sc-space-3, 12px); color: var(--sc-fg-2); font-size: 0.9rem; }
-      .explain-what { margin: 0 0 var(--sc-space-1, 4px); }
-      .explain-list { list-style: disc; margin: 0; padding-left: var(--sc-space-5, 20px); }
-      .explain-list li { display: list-item; padding: 0; border: 0; }
-      .connect-go { margin-top: var(--sc-space-3, 12px); }
       .toast {
         position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: var(--sc-float-bottom, 16px);
         display: flex; align-items: center; gap: var(--sc-space-3, 12px); max-width: min(480px, calc(100vw - 2 * var(--sc-space-3, 12px)));
         padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: var(--sc-radius, 10px);
         background: var(--sc-surface, #111); box-shadow: 0 8px 28px rgb(0 0 0 / 0.45);
       }
+      @media (max-width: 1023px) { .now { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(260px, 46svh) auto; } }
       @media (max-width: 760px) {
         .toast { left: var(--sc-fab-clear-inline, 12px); right: var(--sc-fab-clear-inline, 12px); transform: none; max-width: none; }
       }
@@ -217,6 +287,102 @@ export class HqNowComponent {
   private readonly pathSig = inject(HQ_NOW_PATH);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly toastEl = viewChild<ElementRef<HTMLElement>>('toast');
+
+  private readonly focus = inject(NachschubFocusService);
+  private readonly ns = inject(NachschubService);
+  private readonly einsatzSvc = inject(HqEinsatzService);
+
+  readonly tray = NACHSCHUB_ICON_PATHS;
+  readonly planen = hqPage('planen');
+  readonly menuOpen = signal(false);
+  private readonly pickedEinsatz = signal<string | null>(null);
+
+  /** The Nachschub Jetzt serves (the one in focus in Planen). */
+  readonly nachschub = computed(() => this.focus.selected());
+  /** Its Einsatz bundle; without a Nachschub bundle the current loose Einsatz (planned the older way) still runs here. */
+  readonly bundle = computed<Einsatz[]>(() => {
+    const n = this.nachschub();
+    const own = n ? this.einsatzSvc.ofPackage(n.id) : [];
+    if (own.length) return own;
+    const loose = currentEinsatz(this.einsatzSvc.upcoming().filter((e) => !e.packageId));
+    return loose ? [loose] : [];
+  });
+  readonly activeEinsatz = computed<Einsatz | null>(() => {
+    const list = this.bundle();
+    return list.find((e) => e.id === this.pickedEinsatz()) ?? list.find((e) => e.steps.some((s) => s.state === 'todo')) ?? list[list.length - 1] ?? null;
+  });
+  readonly activeIndex = computed(() => this.bundle().findIndex((e) => e.id === this.activeEinsatz()?.id));
+  private readonly steps = computed<readonly EinsatzStep[]>(() => [...(this.activeEinsatz()?.steps ?? [])].sort((a, b) => a.ord - b.ord));
+  readonly total = computed(() => this.steps().length);
+  readonly doneCount = computed(() => this.steps().filter((s) => s.state === 'done').length);
+  readonly shownStep = computed(() => Math.min(this.doneCount() + 1, this.total()));
+  readonly nextStep = computed(() => this.steps().find((s) => s.state === 'todo') ?? null);
+  readonly upcoming = computed(() => {
+    const next = this.nextStep();
+    return this.steps().filter((s) => s.state === 'todo' && s.ord !== next?.ord).slice(0, UPCOMING);
+  });
+  /** The step finished last, so one tap takes it back (by hand or by the SCC-App). */
+  readonly lastDone = computed(() =>
+    this.steps()
+      .filter((s) => s.state === 'done' && s.doneAt)
+      .sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? ''))[0] ?? null,
+  );
+  readonly graphSteps = computed<RouteGraphStep[]>(() =>
+    this.steps().map((s) => ({ ord: s.ord, kind: s.kind, label: s.label, location: s.location, system: s.system, state: s.state })),
+  );
+  readonly filterKey = computed(() => routeFilterKey(this.nachschub()?.id ?? null, this.activeEinsatz()?.id ?? null));
+  readonly switchable = computed(() =>
+    this.ns.active().map((n) => {
+      const p = this.ns.evaluation(n.id)?.progress ?? { done: 0, total: 0 };
+      return { id: n.id, name: n.name, done: p.done, total: p.total };
+    }),
+  );
+  /** Places of this route that another active Nachschub also needs (a quiet clickable hint on the route). */
+  readonly sharedStops = computed<RouteSharedStop[]>(() => {
+    const mine = this.nachschub();
+    const here = new Set(this.steps().filter((s) => s.state === 'todo' && s.location).map((s) => (s.location as string).toLowerCase()));
+    if (!mine || !here.size) return [];
+    const out: RouteSharedStop[] = [];
+    for (const n of this.ns.active()) {
+      if (n.id === mine.id) continue;
+      for (const e of this.einsatzSvc.ofPackage(n.id)) {
+        for (const s of e.steps) {
+          const loc = (s.location ?? '').toLowerCase();
+          if (s.state === 'todo' && loc && here.has(loc) && !out.some((o) => o.location.toLowerCase() === loc)) {
+            out.push({ location: s.location as string, nachschubId: n.id, name: n.name });
+          }
+        }
+      }
+    }
+    return out;
+  });
+
+  otherNachschubAt(location: string | null): string | null {
+    if (!location) return null;
+    return this.sharedStops().find((s) => s.location.toLowerCase() === location.toLowerCase())?.name ?? null;
+  }
+
+  choose(id: string): void {
+    this.focus.select(id);
+    this.pickedEinsatz.set(null);
+    this.menuOpen.set(false);
+  }
+
+  pickEinsatz(id: string): void {
+    this.pickedEinsatz.set(id);
+  }
+
+  /** "Schritt erledigt": ticks the step (the SCC-App ticks the same steps by itself, both land in the same state). */
+  finish(ord: number): void {
+    const e = this.activeEinsatz();
+    if (e) this.einsatzSvc.toggleStep(e.id, ord);
+  }
+
+  undoLast(ord: number): void {
+    const e = this.activeEinsatz();
+    if (e) this.einsatzSvc.unmarkStep(e.id, ord);
+  }
+
 
   readonly PREVIEW = PREVIEW;
   readonly label = eventLabel;

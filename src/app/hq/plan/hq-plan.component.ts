@@ -18,6 +18,12 @@ import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service'
 import { HqLiveService } from '../now/hq-live.service';
 import { readLocation } from '../now/hq-live.util';
 import { HqSuppliesPopupComponent } from '../hq-supplies-popup.component';
+import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
+import { NachschubService, type NachschubResult } from '../nachschub/nachschub.service';
+import { HqNachschubBoardComponent } from './hq-nachschub-board.component';
+import { HqNachschubArchiveDialogComponent, HqNachschubRemoveDialogComponent } from './hq-nachschub-dialogs.component';
+import { HqNachschubFlowComponent } from './hq-nachschub-flow.component';
+import { HqNachschubPanelComponent } from './hq-nachschub-panel.component';
 import { HqSuppliesService, supplyQtyText } from '../hq-supplies.service';
 import { HqEinsatzCrewComponent } from '../social/hq-einsatz-crew.component';
 import { HqFriendShareComponent } from '../social/hq-friend-share.component';
@@ -86,12 +92,26 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     HqFriendShareComponent,
     HqEinsatzCrewComponent,
     HqSharedEinsaetzeComponent,
+    HqNachschubBoardComponent,
+    HqNachschubPanelComponent,
+    HqNachschubFlowComponent,
+    HqNachschubRemoveDialogComponent,
+    HqNachschubArchiveDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
       <h2 class="page-title" id="hq-plan-title">{{ 'hq.pages.planen' | translate }}</h2>
-      @if (!fresh()) {
+      @if (mode() === 'nachschub' && ns.newBlock(); as block) {
+        <span class="hint" role="status">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.4" /></svg>{{ block | translate }}
+        </span>
+      }
+      <div class="switch" role="group" [attr.aria-label]="'hq.plan.mode.label' | translate">
+        <button type="button" class="seg" [attr.aria-pressed]="mode() === 'nachschub'" (click)="mode.set('nachschub')">{{ 'hq.plan.mode.nachschub' | translate }}</button>
+        <button type="button" class="seg" [attr.aria-pressed]="mode() === 'classic'" (click)="mode.set('classic')">{{ 'hq.plan.mode.classic' | translate }}</button>
+      </div>
+      @if (mode() === 'classic' && !fresh()) {
         <div class="switch" role="group" [attr.aria-label]="'hq.plan.switch.label' | translate">
           <button type="button" class="seg" [attr.aria-pressed]="view() === 'what'" (click)="view.set('what')">
             {{ 'hq.plan.switch.what' | translate }}
@@ -100,12 +120,38 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
             {{ 'hq.plan.switch.how' | translate }}
           </button>
         </div>
-        <button type="button" scAction tier="secondary" class="nach" aria-haspopup="dialog" (click)="openSupplies('nachschub')">
-          {{ 'hq.supplies.button' | translate }} <b class="mono">{{ supplies.open().length }}</b>
-        </button>
       }
     </header>
 
+    @if (mode() === 'nachschub') {
+      <div class="ns-page">
+        @if (ns.error() && !ns.loaded()) {
+          <p class="err" role="alert">
+            {{ ns.error()! | translate }}
+            <button type="button" scAction tier="secondary" (click)="retryNachschub()">{{ 'hq.plan.retry' | translate }}</button>
+          </p>
+        }
+        <sc-hq-nachschub-board
+          [selectedId]="focus.selected()?.id ?? null"
+          (selectNachschub)="focus.select($event)"
+          (create)="flow.set({ mode: 'new', id: null, step: 1 })"
+          (remove)="askRemove($event, 'remove')"
+          (openArchive)="archiveOpen.set(true)" />
+        @if (focus.selected(); as sel) {
+          <sc-hq-nachschub-panel
+            [nachschub]="sel"
+            (edit)="flow.set({ mode: 'edit', id: sel.id, step: $event })"
+            (emptyIt)="askRemove(sel.id, 'empty')"
+            (remove)="askRemove(sel.id, 'remove')" />
+        } @else if (ns.loaded() || !ns.error()) {
+          <section class="intro">
+            <p class="intro-title">{{ 'hq.slots.introTitle' | translate }}</p>
+            <p class="intro-text">{{ 'hq.slots.introText' | translate }}</p>
+          </section>
+        }
+      </div>
+    } @else {
+    <div class="classic">
     @if (syncError(); as key) {
       <p class="err" role="alert">
         {{ key | translate }}
@@ -277,13 +323,42 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       }
     }
 
+    </div>
+    }
+
+    @if (flow(); as f) {
+      <sc-hq-nachschub-flow [mode]="f.mode" [nachschubId]="f.id" [startStep]="f.step" (closed)="flow.set(null)" (done)="onFlowDone($event)" />
+    }
+    @if (removing(); as r) {
+      <sc-hq-nachschub-remove-dialog [name]="nameOf(r.id)" [mode]="r.kind" [open]="openCountOf(r.id)" (cancelled)="removing.set(null)" (confirmed)="doRemove($event)" />
+    }
+    @if (archiveOpen()) {
+      <sc-hq-nachschub-archive-dialog (closed)="archiveOpen.set(false)" (reactivate)="reactivate($event)" />
+    }
+    @if (notice(); as n) {
+      <div class="notice" role="status">
+        <span>{{ n.key | translate: n.params }}</span>
+        @if (n.undo) { <button type="button" scAction tier="secondary" (click)="undoNotice()">{{ 'hq.log.undo' | translate }}</button> }
+      </div>
+    }
+
     @if (suppliesOpen()) {
       <sc-hq-supplies-popup [startTab]="suppliesTab()" (closed)="suppliesOpen.set(false)" />
     }
   `,
   styles: [
     `
-      :host { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); }
+      /* One page without scrolling the page: on desktop the host is as tall as the page area, the panels scroll inside. */
+      :host { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); height: var(--hq-page-h, auto); min-height: 0; }
+      .ns-page { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); }
+      .classic { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); overflow-y: auto; padding-right: 4px; }
+      .hint { display: inline-flex; align-items: center; gap: 6px; color: var(--sc-fg-2); font-size: 0.85rem; max-width: 60ch; }
+      .hint svg { width: 18px; height: 18px; fill: none; stroke: var(--sc-accent); stroke-width: 1.8; stroke-linecap: round; flex: none; }
+      .intro { flex: 1; display: grid; align-content: center; justify-items: center; gap: var(--sc-space-2, 8px); text-align: center; border: 1px dashed var(--sc-border); border-radius: 14px; padding: var(--sc-space-5, 24px); }
+      .intro-title { margin: 0; font: 600 1.1rem var(--sc-font-display, inherit); }
+      .intro-text { margin: 0; max-width: var(--sc-measure, 62ch); color: var(--sc-fg-2); }
+      .notice { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: var(--sc-float-bottom, 16px); display: flex; align-items: center; gap: var(--sc-space-3, 12px); max-width: min(520px, calc(100vw - 2 * var(--sc-space-3, 12px))); padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: var(--sc-radius, 10px); background: var(--sc-surface, var(--sc-bg-1)); box-shadow: 0 8px 28px rgb(0 0 0 / 0.45); }
+      @media (max-width: 760px) { .notice { left: var(--sc-fab-clear-inline, 12px); right: var(--sc-fab-clear-inline, 12px); transform: none; max-width: none; } }
       .head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-3, 12px); }
       .page-title { margin: 0; margin-right: auto; font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .switch { display: inline-flex; padding: 3px; border: 1px solid var(--sc-border); border-radius: 999px; background: var(--sc-bg-0); }
@@ -366,6 +441,8 @@ export class HqPlanComponent {
 
   protected readonly supplies = inject(HqSuppliesService);
   protected readonly einsatz = inject(HqEinsatzService);
+  protected readonly ns = inject(NachschubService);
+  protected readonly focus = inject(NachschubFocusService);
   private readonly hangar = inject(HangarService);
   private readonly ownership = inject(HqOwnershipService);
   private readonly nav = inject(HqPageNavService);
@@ -379,6 +456,13 @@ export class HqPlanComponent {
   protected readonly kinds = STEP_KINDS;
   protected readonly shapes = STEP_SHAPES;
   protected readonly view = signal<PlanView>('what');
+  /** The page's two faces: the Nachschub slots (default), or the older Auswahl / Route builder (Was / Wie). */
+  protected readonly mode = signal<'nachschub' | 'classic'>('nachschub');
+  protected readonly flow = signal<{ mode: 'new' | 'edit'; id: string | null; step: 1 | 3 } | null>(null);
+  protected readonly removing = signal<{ id: string; kind: 'remove' | 'empty' } | null>(null);
+  protected readonly archiveOpen = signal(false);
+  protected readonly notice = signal<{ key: string; params?: Record<string, string | number>; undo?: () => Promise<NachschubResult> } | null>(null);
+  private noticeTimer: ReturnType<typeof setTimeout> | undefined;
   protected readonly suppliesOpen = signal(false);
   protected readonly suppliesTab = signal<HqListTab>('nachschub');
   private readonly listRoute = inject(ActivatedRoute);
@@ -386,7 +470,9 @@ export class HqPlanComponent {
   /** `/hq?list=wish#planen` (the item path's anchors): open the popup on that tab. */
   private readonly listParam = this.listRoute.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
     const tab = hqListTabOf(q.get(HQ_LIST_PARAM));
-    if (tab) this.openSupplies(tab);
+    // Nachschub lives on this page now (the slots); only the wishlist still opens the popup (the cart replaces it later).
+    if (tab === 'wish') this.openSupplies('wish');
+    else if (tab === 'nachschub') this.mode.set('nachschub');
   });
 
   protected openSupplies(tab: HqListTab): void {
@@ -464,6 +550,7 @@ export class HqPlanComponent {
 
   constructor() {
     void this.ownership.ensureLoaded();
+    void this.ns.ensureLoaded();
     const destroyRef = inject(DestroyRef);
     // Only what is still to get, and only what is bought: a mining line has no shop.
     effect(() => {
@@ -482,6 +569,13 @@ export class HqPlanComponent {
         if (this.handledRoute === focus) return;
         this.handledRoute = focus;
         this.focusedRoute.set(focus.id);
+        const pkg = this.einsatz.items().find((e) => e.id === focus.id)?.packageId;
+        if (pkg) {
+          this.focus.select(pkg);
+          this.mode.set('nachschub');
+          return;
+        }
+        this.mode.set('classic');
         this.view.set('how');
         clearTimeout(scroll);
         // After the glide to this page: a second scroll would cancel it.
@@ -491,7 +585,10 @@ export class HqPlanComponent {
         );
       });
     });
-    destroyRef.onDestroy(() => clearTimeout(scroll));
+    destroyRef.onDestroy(() => {
+      clearTimeout(scroll);
+      clearTimeout(this.noticeTimer);
+    });
   }
 
   protected needSources(className: string | null) {
@@ -532,6 +629,61 @@ export class HqPlanComponent {
   }
 
   protected badge = einsatzBadge;
+
+  protected retryNachschub(): void {
+    void this.ns.ensureLoaded();
+  }
+
+  protected nameOf(id: string): string {
+    return this.ns.packages().find((p) => p.id === id)?.name ?? '';
+  }
+
+  /** Lines of a Nachschub that would leave it (open ones), for the delete / empty dialog. */
+  protected openCountOf(id: string): number {
+    const ev = this.ns.evaluation(id);
+    return this.ns.linesOf(id).filter((l) => !l.done && !(ev?.statuses.get(l.id)?.closed ?? false)).length;
+  }
+
+  protected askRemove(id: string, kind: 'remove' | 'empty'): void {
+    this.removing.set({ id, kind });
+  }
+
+  protected async doRemove(back: boolean): Promise<void> {
+    const r = this.removing();
+    this.removing.set(null);
+    if (!r) return;
+    const res = r.kind === 'remove' ? await this.ns.remove(r.id, back) : await this.ns.empty(r.id, back);
+    this.announce(res);
+  }
+
+  protected async reactivate(id: string): Promise<void> {
+    const res = await this.ns.reactivate(id);
+    if (res.ok) {
+      this.archiveOpen.set(false);
+      this.focus.select(id);
+    }
+    this.announce(res);
+  }
+
+  protected onFlowDone(res: NachschubResult): void {
+    this.flow.set(null);
+    if (res.id) this.focus.select(res.id);
+    this.announce(res);
+  }
+
+  /** A result with its undo as a notice at the bottom (8 s). */
+  private announce(res: NachschubResult): void {
+    clearTimeout(this.noticeTimer);
+    this.notice.set({ key: res.key, params: res.params, undo: res.undo });
+    this.noticeTimer = setTimeout(() => this.notice.set(null), NOTICE_MS);
+  }
+
+  protected async undoNotice(): Promise<void> {
+    const n = this.notice();
+    clearTimeout(this.noticeTimer);
+    this.notice.set(null);
+    if (n?.undo) this.announce(await n.undo());
+  }
 
   protected readonly syncError = computed(() => this.supplies.syncError() ?? this.einsatz.syncError());
 
@@ -623,6 +775,8 @@ export class HqPlanComponent {
   }
 }
 
+/** How long the result notice (with its undo) stays. */
+const NOTICE_MS = 8000;
 const NO_SOURCES = { state: 'ready', kind: null, options: [] } as const satisfies NeedSources;
 
 function sessionOrNull(): Storage | null {

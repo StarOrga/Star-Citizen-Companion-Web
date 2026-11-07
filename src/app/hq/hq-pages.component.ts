@@ -9,6 +9,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, Scroll } from '@angular/router';
@@ -17,6 +18,10 @@ import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { HqCueComponent } from './hq-cue.component';
 import { wireHqPageHotkeys, wireHqPageScroll } from './hq-page-scroll';
 import { HqNowComponent } from './now/hq-now.component';
+import { HqLiveTickerComponent } from './now/hq-live-ticker.component';
+import { HangarService } from '../hangar/hangar.service';
+import { HqInventoryService } from './data/hq-inventory.service';
+import { NachschubService } from './nachschub/nachschub.service';
 import { HqPageBarComponent } from './hq-page-bar.component';
 import { HqPageNavService } from './hq-page-nav.service';
 import { HqPlanComponent } from './plan/hq-plan.component';
@@ -56,6 +61,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
     HqNowComponent,
     HqStockComponent,
     HqStatsComponent,
+    HqLiveTickerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -79,6 +85,7 @@ import { HqStockComponent } from './stock/hq-stock.component';
       <sc-hq-cue class="page-cue" [class.gone]="!cueFree()" [target]="next" />
     }
     <sc-hq-page-bar />
+    <sc-hq-live-ticker [page]="chrome.hqPage()" />
   `,
   styles: [
     `
@@ -90,6 +97,9 @@ import { HqStockComponent } from './stock/hq-stock.component';
       /* Its own padding already clears the bar, so it cancels the global scroll-padding: rail click,
          deep link and back/forward all land the section at the viewport top. */
       .follow { scroll-margin-top: calc(-1 * var(--sc-bar-h, 64px)); padding-top: calc(var(--sc-bar-h, 64px) + var(--sc-space-7, 48px)); padding-bottom: var(--sc-space-6, 32px); }
+      /* The room a page's content has on desktop: the viewport minus the bar, the top padding and the bottom padding. Pages
+         size themselves to it (height: var(--hq-page-h)) and scroll inside their panels, never as a page. */
+      @media (min-width: 1024px) { .follow { --hq-page-h: calc(100svh - var(--sc-bar-h, 64px) - var(--sc-space-7, 48px) - var(--sc-space-8, 64px) - var(--sc-space-5, 24px)); } }
       /* Room after the last page, before the footer. */
       .last { padding-bottom: var(--sc-space-8, 64px); }
       /* The way on stands at the viewport's bottom edge on every page; the phone bar does that job below 1024px. */
@@ -104,7 +114,10 @@ import { HqStockComponent } from './stock/hq-stock.component';
 })
 export class HqPagesComponent {
   protected readonly feed = inject(HqStartFeedService);
-  private readonly chrome = inject(ShellChromeService);
+  protected readonly chrome = inject(ShellChromeService);
+  private readonly nachschub = inject(NachschubService);
+  private readonly inventory = inject(HqInventoryService);
+  private readonly hangar = inject(HangarService);
   private readonly nav = inject(HqPageNavService);
   private readonly location = inject(Location);
   private readonly route = inject(ActivatedRoute);
@@ -122,10 +135,25 @@ export class HqPagesComponent {
   /** The end of the page in view is on screen, so nothing but its bottom padding lies under the cue. */
   protected readonly cueFree = signal(true);
 
+  /** Inventar and Hangar are loaded: Nachschub lines may be compared against them. */
+  private readonly stockReady = signal(false);
+
   constructor() {
     effect(() => {
       this.chrome.hqPage();
       this.measureCue();
+    });
+    // A finished Nachschub archives itself: whenever Inventar or Hangar change, close the lines that rose (r4 s3-a1).
+    // Only against stock that really loaded: a baseline taken from an empty, not yet loaded stock would close lines later.
+    void this.nachschub.ensureLoaded();
+    void Promise.all([this.inventory.load(), this.hangar.loadAll()]).then(() =>
+      this.stockReady.set(this.inventory.loaded() && !this.inventory.error() && !this.hangar.error()),
+    );
+    effect(() => {
+      this.inventory.items();
+      this.hangar.ships();
+      if (!this.stockReady() || !this.nachschub.loaded()) return;
+      untracked(() => void this.nachschub.reconcile());
     });
     this.chrome.setHqPage(hqPageOfFragment(this.route.snapshot.fragment) ?? 'start');
     effect(() => {
