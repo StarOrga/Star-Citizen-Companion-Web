@@ -25,7 +25,7 @@ import { CodexService, type CodexKind } from '../codex.service';
 import { HOLO_FALLBACK_ACCENT, parseRgbToken } from '../ship-hologram';
 import { type Rgb, manufacturerAccent, rgbToken } from '../holo-manufacturer';
 import { AssetPackageService } from './asset-package.service';
-import type { PackageScene, ScreenPoint } from './asset-package-scene';
+import type { PackageScene, ScreenPoint, StartFacing } from './asset-package-scene';
 import {
   type CalloutPlacement,
   type LabelPlacement,
@@ -475,6 +475,8 @@ export class AssetPackageViewerComponent {
   readonly activePorts = input<readonly string[]>([]);
   /** Reduced motion from the host page; the OS setting is honoured as well. */
   readonly still = input(false);
+  /** Start view: 'nose' turns the model so its nose faces the reader (missiles). */
+  readonly facing = input<StartFacing>('side');
   /** Hover, click, wheel and camera behaviour; see {@link ViewerInteraction}. */
   readonly interaction = input<ViewerInteraction>('classic');
   /** Insets the model stays out of, CSS px (table only). The chip row is reserved on top of `bottom` by the viewer itself. */
@@ -994,7 +996,7 @@ export class AssetPackageViewerComponent {
   /** Back to the initial camera framing (chip / double click on the model). */
   resetView(): void {
     const m = this.manifest();
-    if (m) this.scene?.frame(this.frameBounds(m));
+    if (m) this.scene?.frame(this.frameBounds(m), this.facing());
   }
 
   private frameBounds(m: AssetPackageManifest) {
@@ -1126,7 +1128,7 @@ export class AssetPackageViewerComponent {
       scene.place(m.placements);
       this.manifest.set(m);
       scene.setVisibility(this.visibleIds(), this.groupsOn().has('interior'));
-      scene.frame(this.frameBounds(m));
+      scene.frame(this.frameBounds(m), this.facing());
       scene.setFocus(this.focusIds(), this.seeThrough());
       scene.setQuiet(this.quietIds());
       this.status.set('ready');

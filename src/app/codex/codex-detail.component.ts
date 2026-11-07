@@ -386,7 +386,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                  that model is the picture, here instead of further down the page. -->
             @if (isMissile() && itemPackage(); as pkg) {
               @defer (on viewport) {
-                <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" [still]="prefersReducedMotion()" />
+                <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" facing="nose" [still]="prefersReducedMotion()" />
               } @placeholder {
                 <div class="pkg-viewer" aria-hidden="true"></div>
               }

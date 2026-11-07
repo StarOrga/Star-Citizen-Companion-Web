@@ -34,6 +34,19 @@ export interface ScreenPoint {
   readonly onScreen: boolean;
 }
 
+/**
+ * Which end the start view shows. Packages are glTF Y-up with the nose on -Z
+ * (CryEngine +Y forward), like the hulls. 'side' is the long-standing
+ * three-quarter view from the +Z side (a ship's quarter); 'nose' is the same
+ * view half a turn round, so a missile points its nose at the reader instead of its exhaust.
+ */
+export type StartFacing = 'side' | 'nose';
+
+/** Camera direction (from the orbit centre, not normalised) of the start view. */
+export function startViewDir(facing: StartFacing): readonly [number, number, number] {
+  return facing === 'nose' ? [-1, 0.55, -1.25] : [1, 0.55, 1.25];
+}
+
 // X-ray opacities and the dim factor live in holo-look.ts (HOLO_XRAY_*, HOLO_DIM_*).
 const HULL_OPACITY_INTERIOR = 0.28;
 
@@ -411,7 +424,7 @@ export class PackageScene {
   }
 
   /** Frame the camera on `bounds` (manifest) or, when null, the loaded root's measured box. */
-  frame(bounds: Bounds | null): void {
+  frame(bounds: Bounds | null, facing: StartFacing = 'side'): void {
     const box = new THREE.Box3();
     if (bounds) box.set(new THREE.Vector3(...bounds.min), new THREE.Vector3(...bounds.max));
     else if (this.root) box.setFromObject(this.root);
@@ -421,7 +434,7 @@ export class PackageScene {
     this.fitPoints = this.safe ? this.sampleFitPoints(box) : [];
     const center = box.getCenter(new THREE.Vector3());
     const radius = Math.max(box.getSize(this.tmp).length() / 2, 0.1);
-    const dir = new THREE.Vector3(1, 0.55, 1.25).normalize();
+    const dir = new THREE.Vector3(...startViewDir(facing)).normalize();
     // Orientation first: the safe-area fit solves against the camera's axes.
     this.camera.position.copy(center).addScaledVector(dir, radius);
     this.camera.lookAt(center);
