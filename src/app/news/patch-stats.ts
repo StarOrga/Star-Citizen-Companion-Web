@@ -601,6 +601,13 @@ export function computeTestBuildRelease(
   const open = openPtuBuild(groups);
   if (!open) return null;
 
+  // A main line in testing (5.0) is the monitor's question: quote ITS date, or
+  // the page would print two estimates for one patch (feedback ae9f8cba).
+  const next = computeNextPatch(groups, cutoffMs);
+  if (next && next.basis === 'leadTime' && buildKey(open.version) === buildKey(next.anchorLine)) {
+    return { version: open.version, firstTestAt: next.anchorAt, at: next.at, medianDays: next.medianDays, samples: next.samples };
+  }
+
   const firstTest = new Map<string, number>();
   for (const s of firstSightings(groups, isTestStage)) {
     const key = buildKey(s.version);

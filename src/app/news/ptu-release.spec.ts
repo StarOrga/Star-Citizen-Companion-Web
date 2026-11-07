@@ -1,6 +1,6 @@
 import { VerseNewsItem } from './news.service';
 import { groupPatchNotes } from './patch-notes';
-import { computeTestBuildRelease } from './patch-stats';
+import { computeNextPatch, computeTestBuildRelease } from './patch-stats';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -58,5 +58,19 @@ describe('computeTestBuildRelease — when the PTU build reaches LIVE (feedback 
       patch('b', '[All Waves] Star Citizen Alpha 4.10.1 PTU Patch Notes 1', '2026-10-01T00:00:00.000Z'),
     ]);
     expect(computeTestBuildRelease(groups)).toBeNull();
+  });
+});
+
+describe('computeTestBuildRelease — a main line in testing', () => {
+  it('quotes the monitor estimate, so one patch never gets two dates', () => {
+    const groups = groupPatchNotes([
+      patch('a', '[All Waves] Star Citizen Alpha 4.9 PTU Patch Notes 1', '2026-06-01T00:00:00.000Z'),
+      patch('b', 'Star Citizen Alpha 4.9 LIVE Release Notes', '2026-06-21T00:00:00.000Z'),
+      patch('c', '[All Waves] Star Citizen Alpha 4.10 PTU Patch Notes 2', '2026-08-01T00:00:00.000Z'),
+    ]);
+    const r = computeTestBuildRelease(groups)!;
+    const next = computeNextPatch(groups)!;
+    expect(r.version).toBe('4.10');
+    expect(r.at).toBe(next.at);
   });
 });
