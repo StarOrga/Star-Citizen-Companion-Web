@@ -3,6 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { FriendsComponent } from './friends.component';
 import { SocialCompareComponent } from './social-compare.component';
+import { SocialEinsatzComponent } from './social-einsatz.component';
 import { SocialGroupsComponent } from './social-groups.component';
 import { SocialInviteBoxComponent } from './social-invite-box.component';
 import { SocialVisibilityDialogComponent } from './social-visibility-dialog.component';
@@ -26,6 +27,7 @@ export const SOCIAL_NOTICE_KEY = 'sc.social.visibility-notice.dismissed';
     SocialInviteBoxComponent,
     SocialGroupsComponent,
     SocialCompareComponent,
+    SocialEinsatzComponent,
     SocialVisibilityDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +58,7 @@ export const SOCIAL_NOTICE_KEY = 'sc.social.visibility-notice.dismissed';
       <sc-friends (inviteRequested)="invite()?.reveal()" />
       <sc-social-invite-box />
       <sc-social-groups />
+      <sc-social-einsatz />
       <sc-social-compare />
 
       @if (visibilityOpen()) {
