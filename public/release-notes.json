@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.220.0",
+  "current": "0.220.1",
   "releases": [
+    {
+      "version": "0.220.1",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ shows live while you play even when the Starscape App was started after the game. Before, the old end of your last session kept the live marker off for the whole session."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.220.0",
       "date": "2026-11-06",
