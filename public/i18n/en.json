@@ -4800,7 +4800,10 @@
   },
   "starscape": {
     "title": "Starscape",
-    "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
+    "subtitle": "High-resolution artwork by Cloud Imperium Games, linked straight to the original.",
+    "subtitleAppPre": "With the ",
+    "subtitleAppLink": "Starscape app",
+    "subtitleAppPost": " you can set it as your desktop background.",
     "filterAll": "All",
     "filter": {
       "label": "Gallery view",
@@ -4829,7 +4832,7 @@
       "hint": "The {{count}} highest-voted wallpapers across all users. The number beside each thumbs up is the total across all users. While few images have been voted for, the newest ones fill the remaining slots.",
       "loading": "Loading the top picks…"
     },
-    "empty": "No wallpapers captured yet — they appear as the news crawl runs.",
+    "empty": "No wallpapers yet. New artwork shows up here on its own.",
     "loadMore": "Load more",
     "loading": "Loading…",
     "loadingImages": "Loading images…",

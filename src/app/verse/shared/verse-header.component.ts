@@ -77,7 +77,7 @@ import { VerseWorld } from './verse-world';
       }
       <div class="vh-line" [scFeedbackSpot]="'feedbackSpot.headline'" [scFeedbackSpotText]="heading()">
         @if (heading(); as h) { <h1 class="vh-title">{{ h }}</h1> }
-        @if (subtitle(); as s) { <p class="vh-sub">{{ s }}</p> }
+        @if (subtitle(); as s) { <p class="vh-sub">{{ s }}<ng-content select="[vhSub]" /></p> }
       </div>
       <div class="vh-actions">
         <ng-content select="[vhActions]" />

@@ -4800,7 +4800,10 @@
   },
   "starscape": {
     "title": "Starscape",
-    "subtitle": "Hochauflösende Artworks aus RSI-Comm-Links, gesammelt beim News-Crawl. Jedes Bild verlinkt direkt aufs Original im RSI-CDN — Kachel anklicken für volle Auflösung und Download.",
+    "subtitle": "Hochauflösende Artworks von Cloud Imperium Games, direkt zum Original verlinkt.",
+    "subtitleAppPre": "Mit der ",
+    "subtitleAppLink": "Starscape-App",
+    "subtitleAppPost": " holst du sie als Hintergrund auf deinen Desktop.",
     "filterAll": "Alle",
     "filter": {
       "label": "Galerie-Ansicht",
@@ -4829,7 +4832,7 @@
       "hint": "Die {{count}} bestbewerteten Wallpaper aller Nutzer. Die Zahl am Daumen ist die Gesamtzahl der Stimmen aller Nutzer. Solange noch wenig bewertet wurde, füllen die neuesten Bilder die restlichen Plätze auf.",
       "loading": "Top-Auswahl wird geladen…"
     },
-    "empty": "Noch keine Wallpaper erfasst — sie erscheinen, sobald der News-Crawl läuft.",
+    "empty": "Noch keine Wallpaper vorhanden. Neue Artworks erscheinen hier von selbst.",
     "loadMore": "Mehr laden",
     "loading": "Lädt…",
     "loadingImages": "Bilder werden geladen…",

@@ -11,7 +11,7 @@ import {
   input,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BetaService } from '../core/beta.service';
 import { OverlayOriginService } from '../shared/overlay-frame/overlay-origin.service';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -104,7 +104,7 @@ const RENDER_CHUNK = 24;
 @Component({
   selector: 'sc-starscape',
   standalone: true,
-  imports: [NeuroFieldDirective, 
+  imports: [NeuroFieldDirective, RouterLink,
     TranslatePipe,
     ImgReadyDirective,
     AppDownloadMenuComponent,
@@ -121,7 +121,7 @@ const RENDER_CHUNK = 24;
         @if (!embedded()) {
           <div>
             <h1>{{ 'starscape.title' | translate }}</h1>
-            <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
+            <p class="hint">{{ 'starscape.subtitle' | translate }} {{ 'starscape.subtitleAppPre' | translate }}<a class="app-link" routerLink="/apps/starscape">{{ 'starscape.subtitleAppLink' | translate }}</a>{{ 'starscape.subtitleAppPost' | translate }}</p>
           </div>
         }
         <!-- Desktop-only: a Windows tray app cannot be installed from a phone,
