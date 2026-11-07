@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.5",
+  "current": "0.225.7",
   "releases": [
+    {
+      "version": "0.225.7",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "/verse news: a tile now opens as soon as the pointer moves slowly over it or stops on it, while a fast sweep across the tiles opens nothing (pointer speed instead of a rest timer)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.225.6",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data uploader 0.75.1: FPS weapons whose model is a single mesh (every unbranded gun, the Behring P8-AR, the Hedeby Gallant and their paint variants) now get a 3D package instead of a \"package skipped\" warning per variant; leftover skips are one summary line per run."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.5",
       "date": "2026-11-07",
