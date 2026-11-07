@@ -5,6 +5,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { filter } from 'rxjs';
 import { NewsService } from '../../news/news.service';
 import { PatchBoardComponent } from '../../news/patch-board.component';
+import { PtuReleaseComponent } from '../../news/ptu-release.component';
 import { nextLineInTesting } from '../../news/patch-stats';
 import { VerseApiService } from '../data/verse-api.service';
 import { BetaService } from '../../core/beta.service';
@@ -75,11 +76,14 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
   // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
   host: { class: DOCK_HOST_CLASS },
   standalone: true,
-  imports: [TranslatePipe, RouterLink, VerseHeaderComponent, PatchBoardComponent],
+  imports: [TranslatePipe, RouterLink, VerseHeaderComponent, PatchBoardComponent, PtuReleaseComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (enabled()) {
       <sc-verse-header planet="patches" [title]="'verse.area.patches' | translate" [subtitle]="'verse.patches.sub' | translate" />
+
+      <!-- The build in the PTU right now: our estimate and RSI's announced date (feedback #317). -->
+      <sc-ptu-release class="sc-enter" style="--sc-enter-i: 1" [groups]="news.patchLines()" [deployment]="news.feed()?.deployment ?? null" [now]="now()" />
 
       <sc-patch-board class="sc-enter" style="--sc-enter-i: 1" [embedded]="true" [barSearch]="shellOn()" [searchQuery]="barTerm()">
         @if (targetLine(); as line) {
@@ -198,7 +202,9 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
   `, DOCK_WIDTH_STYLE],
 })
 export class VersePatchesComponent {
-  private readonly news = inject(NewsService);
+  protected readonly news = inject(NewsService);
+  /** Clock for the PTU panel's "in ~N Tagen"; a minute is plenty for a day-level distance. */
+  protected readonly now = signal(Date.now());
   private readonly api = inject(VerseApiService);
   private readonly stars = inject(StarTriggerService);
   private readonly router = inject(Router);
@@ -248,6 +254,8 @@ export class VersePatchesComponent {
       .pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed(destroyRef))
       .subscribe((e) => this.watchDossier((e as NavigationEnd).urlAfterRedirects));
     destroyRef.onDestroy(() => this.clearNotesTimer());
+    const clock = setInterval(() => this.now.set(Date.now()), 60_000);
+    destroyRef.onDestroy(() => clearInterval(clock));
   }
 
   /** `YYYY-MM-DD` as a short local date ("6. Nov."). */

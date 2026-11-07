@@ -2789,6 +2789,19 @@
           "empty": "Keine Daten in diesem Zeitraum – auf „Alle“ umschalten."
         }
       },
+      "ptuRelease": {
+        "title": "Wann kommt {{version}} auf LIVE?",
+        "infoLabel": "Wie die Termine entstehen",
+        "infoEstimate": "Unsere Schätzung: erster Test-Build dieser Version plus die mittlere Zeit (Median), die bisherige Versionen vom ersten PTU-Build bis LIVE gebraucht haben. Eine Hochrechnung, kein Versprechen.",
+        "infoOfficial": "Offizielles Datum: das LIVE-Deployment, das RSI auf seiner Status-Seite ankündigt — sobald dort eines geplant ist. In den Patch Notes selbst nennt RSI kein Datum.",
+        "estimate": "Unsere Schätzung",
+        "estimateBasis": "seit {{days}} Tagen im Test · Median {{median}} Tage PTU → LIVE (n = {{n}})",
+        "noEstimate": "Noch zu wenig Daten für eine Schätzung",
+        "official": "Offiziell (RSI)",
+        "source": "Quelle: RSI-Status, {{title}}",
+        "noOfficial": "Noch kein offizielles Datum",
+        "statusLink": "RSI-Status-Seite prüfen"
+      },
       "forecast": {
         "title": "Voraussichtliche Termine",
         "short": "Termine",
