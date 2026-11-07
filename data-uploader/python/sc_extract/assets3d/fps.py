@@ -150,14 +150,24 @@ def parse_cdf(blob: bytes) -> Optional[CharacterDef]:
     return cd
 
 
+def model_is_mesh(cd: CharacterDef) -> bool:
+    """``True`` when the definition's ``Model`` is a plain mesh, not a skeleton."""
+    return bool(cd.model) and cd.model.lower().endswith((".cga", ".cgf"))
+
+
 def body_sources(cd: CharacterDef, bones: Dict[str, Dict[str, List[float]]]
                  ) -> List[Tuple[str, Optional[str], Optional[Mat4]]]:
     """The meshes that make up the weapon body, glTF-space matrices.
-    ``CA_SKIN`` meshes are already in model space (identity); a ``CA_BONE``
-    mesh sits at its bone's bind pose times its relative offset. Ammo / shell
-    bindings are skipped; a bone attachment whose bone is unknown is dropped
-    rather than guessed."""
+    A ``Model`` that is itself a mesh (``.cga``/``.cgf`` instead of a ``.chr``
+    skeleton — LIVE 4.x: every ``none_*`` gun, Behring P8-AR, Hedeby Gallant
+    rifle) is the body at identity; its attachments are then only the
+    chambered round. ``CA_SKIN`` meshes are already in model space (identity);
+    a ``CA_BONE`` mesh sits at its bone's bind pose times its relative offset.
+    Ammo / shell bindings are skipped; a bone attachment whose bone is unknown
+    is dropped rather than guessed."""
     out: List[Tuple[str, Optional[str], Optional[Mat4]]] = []
+    if model_is_mesh(cd):
+        out.append((cd.model, cd.material, None))
     for a in cd.attachments:
         if not a.binding:
             continue
@@ -225,6 +235,11 @@ class FpsSource:
         key = cdf_path.lower()
         if key not in self._bones:
             cd = self.cdf(cdf_path)
+            if cd is not None and model_is_mesh(cd):
+                # A mesh model has no skeleton: its attachment helpers
+                # (magAttach, sight_attachment, ...) are nodes of that mesh.
+                self._bones[key] = self.base.helpers(cd.model)
+                return self._bones[key]
             try:
                 blob = self.reader.read(cd.model) if cd and cd.model else b""
             except Exception:  # noqa: BLE001
@@ -292,7 +307,8 @@ def export_body(source: FpsSource, store, weapon: EntityDef):
     sources = body_sources(cd, source.bones(geo))
     if not sources:
         return None
-    return store.export_composite(geo, sources, extra_files=[cd.model] if cd.model else [])
+    skeleton = [cd.model] if cd.model and not model_is_mesh(cd) else []
+    return store.export_composite(geo, sources, extra_files=skeleton)
 
 
 def build_fps_package(class_name: str, source: FpsSource, store, out_dir: Path,
@@ -306,8 +322,8 @@ def build_fps_package(class_name: str, source: FpsSource, store, out_dir: Path,
         return None
     body = export_body(source, store, weapon)
     if body is None or not body.sha256:
-        # A weapon without a body is not displayable; LIVE 4.x: 27 of 387
-        # (.cdf with no CA_SKIN/CA_BONE mesh we can convert).
+        # A weapon without a body is not displayable. LIVE 4.10: 27 of 395 were
+        # .cdf files whose Model is a .cga mesh, now part of the body (model_is_mesh).
         return None
     root_glb = store.path_of(body.sha256)
     res = build_package("fps_weapon", weapon, source.default_loadout(class_name), source,
@@ -322,5 +338,5 @@ def build_fps_package(class_name: str, source: FpsSource, store, out_dir: Path,
 
 
 __all__ = ["FPS_DIR", "bones_from_chr", "parse_cdf", "body_sources", "body_path",
-           "is_attachment_port", "FpsSource", "is_fps_weapon_record", "fps_weapon_classes",
+           "model_is_mesh", "is_attachment_port", "FpsSource", "is_fps_weapon_record", "fps_weapon_classes",
            "export_body", "build_fps_package"]
