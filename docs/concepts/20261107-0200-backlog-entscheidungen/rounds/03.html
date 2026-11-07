@@ -1,0 +1,107 @@
+<section data-iteration="3" data-iteration-template="free" data-final-report data-active>
+  <p class="fr-sentence">Sechs Backlog-Issues sind gebaut, zwei Migrationen laufen auf der Datenbank, und #900 wartet auf deinen Handelslauf.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">👥</span><span><b>Echte Gruppen</b> mit Einladungscode, Rollen und geteilten Einsätzen.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📈</span><span>Planen zeigt <b>Blueprint-Fortschritt</b> und Warenpreise mit Alter.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📡</span><span>EM als <b>Modell mit Idle, Maximum und Quantum</b>, nach Energieverteilung.</span></li>
+      </ul>
+      <p class="fr-try-auth">🔑 Lokal ohne Anmeldung ungeprüft; nach dem Ship angemeldet auf der Live-Seite ansehen.</p>
+    </div>
+    <div class="fr-flow">
+      <p>Social: Einladen → Gruppe oder Freund wählen → alle sehen, wer kommt.</p>
+      <p>Codex: Schiff → Signatur → Idle, aktuell, maximal und Quantum, als Modell beschriftet.</p>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="56 Datenbank-Prüfungen für Gruppen und Namen grün, fünf Befunde der Sicherheitsprüfung behoben; Anforderung: kein Befund offen (geschätzt).">
+        <span class="fr-meter-name">🛡 Sicherheit</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">56 / 56</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 80%" data-tip="EM liegt 11 bis 25 % unter den Wiki-Werten, vor allem wegen der Reaktor-Grenze; IR liegt deutlich höher, weil der Kühlmittelverbrauch in den Daten fehlt. Anforderung: Abweichung unter 10 % mit benanntem Grund (geschätzt).">
+        <span class="fr-meter-name">📡 EM-Modell</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">−11 bis −25 %</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Alle 360 Schiffe haben eine Silhouette, 21 über die nächstniedrigere Detailstufe; Anforderung: jedes Schiff belegt (geschätzt).">
+        <span class="fr-meter-name">🛸 Silhouetten</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">360 / 360</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_prod}} · ○ {{final.level_local}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_live}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-coolant"
+          data-issue-title="[FEATURE] Export consumer coolant use so the IR model follows cooling"
+          data-issue-type="feature"
+          data-issue-body="The #967 EM/IR model scales EM by allocated power segments, but IR cannot follow coolant use: the 4.10 extract has no coolant.consume on consumers, so cooler IR is counted at full power and runs 70 to 130 percent above the StarCitizenWiki reference. Add the field to dataforge_extract.py and feed it into codex-em-model.ts. Comparison script: scripts/em-model-compare.mts."
+          data-issue-module="codex"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="Extraktor">
+        <span class="oq-label">IR ohne Kühlmittelwerte</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>IR liegt zu hoch, weil die Spieldaten-Extraktion den Kühlmittelverbrauch der Verbraucher nicht liefert.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Extraktor und EM-Modell</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — braucht einen Uploader-Release und einen neuen Datenlauf.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-carrack"
+          data-issue-title="[CHORE] Find the source of the wiki's ship-level power generation segments"
+          data-issue-type="chore"
+          data-issue-body="On the Carrack the StarCitizenWiki API uses 30 generation segments for the power plant, while both its item data and ours list 2 x Reliance at 23 each (46). This accounts for the whole 12,314 EM gap. Find where the ship-level value comes from in the game data before deciding whether the EM model should follow it."
+          data-issue-module="codex"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="unklar">
+        <span class="oq-label">Carrack-Reaktorsegmente</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die Wiki rechnet mit 30 Reaktor-Segmenten statt 46; daher kommt die ganze Lücke von 12.314 EM.</dd>
+          <dt>{{final.fund_where}}</dt><dd>EM-Modell, Carrack</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — die Quelle des Wertes ist unbekannt.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/app-connection-not-recognized-daf4d7</code> · Head <code>3a3e95c3</code></li>
+      <li>Migrationen <code>20261107120000_real_groups.sql</code>, <code>20261107180000_einsatz_crew_names_for_all.sql</code> angewendet</li>
+      <li><code>codex-em-model.ts</code>, <code>social-teams.component.ts</code>, <code>commodity-prices/index.ts</code></li>
+      <li>Tests: Karma 5988 grün, pgTAP 47 + 9 grün, Funktionen 364 grün, Lint 0 Fehler</li>
+      <li>Edge Function <code>commodity-prices</code> deployt CI erst beim Merge</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-ui" data-crit="mid" data-guide="web">HQ Planen und Social angemeldet ansehen</li>
+      <li data-todo-id="t-prices" data-crit="mid" data-guide="web">Warenpreise nach dem Deploy prüfen</li>
+    </ul>
+  </section>
+  <section data-handoffs hidden aria-label="{{final.group_handoffs}}">
+    <ul>
+      <li data-todo-id="h-trade" data-crit="mid" data-guide="">Einmal mit der App handeln, Menge über 1</li>
+      <li data-todo-id="h-upload" data-crit="low" data-guide="desktop">Uploader-Lauf für die neuen Silhouetten</li>
+    </ul>
+  </section>
+</section>

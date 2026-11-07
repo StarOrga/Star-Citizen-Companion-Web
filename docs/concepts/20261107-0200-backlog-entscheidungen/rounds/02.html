@@ -1,4 +1,5 @@
-<section data-iteration="2" data-iteration-template="decision" data-analysis="full" data-active>
+<section data-iteration="2" data-iteration-template="decision" data-analysis="full" data-active data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
     <p data-briefing-what>#895, #902, #903 und #938 sind gebaut und auf dem Arbeitsbranch, die volle Testsuite ist grün. Die Gruppen-Migration ist nach einer Sicherheitsprüfung und 47 grünen Prüfungen auf der Datenbank. Auf main ist noch nichts, und im Browser konnte ich die neuen Oberflächen nicht ansehen, weil dort keine Anmeldung vorliegt.</p>
     <p data-briefing-why>Beim Bauen sind drei Fragen entstanden, die nur du beantworten kannst. Danach folgt der Abschlussbericht mit dem Ship.</p>
@@ -23,7 +24,7 @@
       <p data-stakes>EM max sieht weiter nach Maximum aus, obwohl es der Wert bei Standardverteilung ist.</p>
       <div data-options>
         <label data-opt="rename" data-recommended>
-          <input type="radio" name="dm-d-em2" value="rename" checked>
+          <input type="radio" name="dm-d-em2" value="rename">
           <span data-opt-label>Leere Achse entfernen, EM max richtig benennen</span>
           <span data-opt-consequence>Klein und ohne neue Daten. Der Vergleich hat dann eine Achse weniger.</span>
         </label>
@@ -33,15 +34,15 @@
           <span data-opt-consequence>Die Achse bleibt sichtbar leer und sagt, dass die Daten fehlen. Sie trägt aber nichts zum Vergleich bei.</span>
         </label>
         <label data-opt="model">
-          <input type="radio" name="dm-d-em2" value="model">
+          <input type="radio" name="dm-d-em2" value="model" checked>
           <span data-opt-label>Idle-EM aus Komponentenwerten berechnen</span>
           <span data-opt-consequence>Die Achse füllt sich, aber mit unserem eigenen Modell, das wir beschriften und pflegen müssen.</span>
         </label>
       </div>
-      <textarea data-comment="d-em2-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-em2-note" placeholder="Notiz (optional)">und forsche da nochmal online gut nach, ob das so funktioniert!? ERkul.games macht das ja uach irgendwie?! Vergleiche dort schiffs em werte mit deinen berechneten. Und generell hängen die max em ir werte doch auch an der konfiguration der komponten und der energieverteilung!?</textarea>
       <input type="hidden" name="dm-d-em2-none" value="">
-      <input type="hidden" name="dm-d-em2-hes" value="">
-      <input type="hidden" name="dm-d-em2-touched" value="">
+      <input type="hidden" name="dm-d-em2-hes" value="{&quot;ms&quot;:80880,&quot;revisits&quot;:0,&quot;median&quot;:80880}">
+      <input type="hidden" name="dm-d-em2-touched" value="1">
       <input type="hidden" name="dm-d-em2-issue" value="">
       <input type="hidden" name="dm-d-em2-epic" value="">
       <div data-alevel="3" data-title="#967 EM-Achsen">
@@ -57,7 +58,7 @@
       <p data-stakes>Wer einen Abend plant, will wissen, wer kommt. Dagegen steht die Datenschutzregel.</p>
       <div data-options>
         <label data-opt="counts" data-recommended>
-          <input type="radio" name="dm-d-names" value="counts" checked>
+          <input type="radio" name="dm-d-names" value="counts">
           <span data-opt-label>Nein, Zahlen reichen</span>
           <span data-opt-consequence>Keine Änderung. Für eine Runde mit Namen gibt es jetzt die Gruppen.</span>
         </label>
@@ -67,15 +68,15 @@
           <span data-opt-consequence>Kleine Migration. Niemand lernt Fremde kennen, aber manche Zusagen bleiben namenlos.</span>
         </label>
         <label data-opt="all">
-          <input type="radio" name="dm-d-names" value="all">
+          <input type="radio" name="dm-d-names" value="all" checked>
           <span data-opt-label>Alle Namen für alle Eingeladenen zeigen</span>
           <span data-opt-consequence>Kleine Migration. Damit wird die Regel aufgehoben, und Fremde sehen einander.</span>
         </label>
       </div>
       <textarea data-comment="d-names-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-names-none" value="">
-      <input type="hidden" name="dm-d-names-hes" value="">
-      <input type="hidden" name="dm-d-names-touched" value="">
+      <input type="hidden" name="dm-d-names-hes" value="{&quot;ms&quot;:81551,&quot;revisits&quot;:3,&quot;median&quot;:80880}">
+      <input type="hidden" name="dm-d-names-touched" value="1">
       <input type="hidden" name="dm-d-names-issue" value="">
       <input type="hidden" name="dm-d-names-epic" value="">
       <div data-alevel="3" data-title="#938 Namen">
@@ -101,10 +102,10 @@
           <span data-opt-consequence>Sofort erledigt. Die bekannten Problemfälle wie Constellation und Vulture bleiben dann unbestätigt.</span>
         </label>
       </div>
-      <textarea data-comment="d-sil-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-sil-note" placeholder="Notiz (optional)">ich habe dcen data uploader geschlossen,k du kannst also direkt vollgas geben hier</textarea>
       <input type="hidden" name="dm-d-sil-none" value="">
-      <input type="hidden" name="dm-d-sil-hes" value="">
-      <input type="hidden" name="dm-d-sil-touched" value="">
+      <input type="hidden" name="dm-d-sil-hes" value="{&quot;ms&quot;:39850,&quot;revisits&quot;:1,&quot;median&quot;:80880}">
+      <input type="hidden" name="dm-d-sil-touched" value="1">
       <input type="hidden" name="dm-d-sil-issue" value="">
       <input type="hidden" name="dm-d-sil-epic" value="">
       <div data-alevel="3" data-title="#842 Silhouetten">
