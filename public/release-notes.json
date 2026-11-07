@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.7",
+  "current": "0.225.9",
   "releases": [
+    {
+      "version": "0.225.9",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ stock: the stock list works like a store counter — −/+ per row, store, take out, set the amount, delete with a confirmation, and reservations (\"1 SCU for player X / sale\") with free and reserved amounts per row."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.225.8",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data uploader 0.75.2: after the ships, the weapon, item and armor package upload shows its own progress instead of sitting on \"312 / 312\", and uploads four packages at once."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.7",
       "date": "2026-11-07",

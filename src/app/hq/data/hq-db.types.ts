@@ -131,7 +131,16 @@ export interface HqInventoryItemRow {
   class_name: string | null;
   qty: number;
   unit: 'pcs' | 'scu';
+  /** Reservations on this row (migration 20261107210000); absent on rows read before it. */
+  reservations?: HqStockReservation[] | null;
   updated_at: string;
+}
+
+/** Part of a row earmarked for someone or something ("Spieler X", "Verkauf"). */
+export interface HqStockReservation {
+  amount: number;
+  note: string;
+  at: string;
 }
 
 export interface HqShipStorageRow {
