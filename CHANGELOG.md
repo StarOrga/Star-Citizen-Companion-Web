@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.224.0] - 2026-11-07
+
+### Added
+- HQ Planen shows how far each blueprint is: one card per blueprint counts the materials in Nachschub that are ready (#895).
+- HQ Planen lists commodity prices per terminal from UEX, labelled as a community source with their age (#902).
+- Groups on the Social page: create a group, invite by code, roles, leave, remove and delete; an Einsatz can be shared with a group. Blocks are respected everywhere (#903).
+- A shared Einsatz shows every invitee who accepted, who declined and who took which slot, by name (#938).
+- Ship signatures come from a model of the power allocation: idle, current, maximum and quantum EM and IR, labelled as a model with its formula (#967).
+
+### Changed
+- "EM max" was the value at default allocation; it is now called current, and the maximum is a real maximum (#967).
+
 ## [0.223.1] - 2026-11-07
 
 ### Fixed
