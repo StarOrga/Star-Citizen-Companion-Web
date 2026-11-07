@@ -318,7 +318,6 @@
       },
       "holo": {
         "label": "Holotable",
-        "open": "Open {{name}}",
         "rotation": "Choose a category",
         "next": "Click: resume",
         "hold": "Click: hold",
@@ -440,8 +439,7 @@
       },
       "values": {
         "key": "Key values",
-        "more": "More values",
-        "open": "{{label}} {{value}}: open {{name}}",
+        "more": "Data sheet",
         "legend": "Class average",
         "toPage": "To the {{name}} page"
       },
@@ -460,15 +458,14 @@
         "label": "Codex: new in this patch",
         "title": "Codex · new in {{patch}}",
         "titleNoPatch": "Codex · new",
-        "count": "{{count}} new",
         "announced": "announced",
         "onTable": "on the table",
         "categories": "Categories",
         "openPage": "Open page: {{name}}",
-        "noneNew": "Nothing new in this patch.",
-        "more": "+ {{count}} more in search",
+        "more": "+ {{count}} more",
         "all": "All {{category}}",
-        "held": "held"
+        "held": "held",
+        "updated": "updated"
       }
     },
     "index": {
@@ -2405,7 +2402,8 @@
       "subtitleAllNoPatch": "{{shown}} entries",
       "listSearch": "Search {{area}}",
       "listSearchPh": "Search {{area}} …",
-      "listSearchClear": "Clear search"
+      "listSearchClear": "Clear search",
+      "freshFilter": "New/updated in the last patch"
     },
     "contract": {
       "eyebrow": "Mission",
@@ -3912,7 +3910,7 @@
           "consent": "sc.consent — your decision about the storage categories, so we do not ask again on every visit.",
           "composer": "sc.composer.sendOnEnter — whether the Enter key sends in the feedback box or adds a new line.",
           "verseBeta": "sc.beta — which menu items (Verse, Codex & HQ) you switched the new β interface on or off for. A pure display preference, not used for tracking.",
-          "preferences": "\"Preferences\" category — convenience state such as news filters, saved articles and favorited ships. Only written if you allow it; withdrawing your consent deletes those entries immediately.",
+          "preferences": "\"Preferences\" category — convenience state such as news filters, saved articles, favorited ships and recently opened search pages. Only written if you allow it; withdrawing your consent deletes those entries immediately.",
           "statistics": "\"Statistics\" category — the state of the anonymous product analytics (PostHog). Only created if you allow it; withdrawing your consent deletes it immediately."
         },
         "p2": "During a Google sign-in there is briefly one extra entry in session storage (sc.oauth-redirect-qs) so that you land back on the page you came from. It disappears when the tab closes at the latest.",
@@ -5388,6 +5386,15 @@
         "unknown": "Location unknown",
         "ship": "Ship:"
       },
+      "zone": {
+        "label": "Zone:",
+        "unknown": "Unknown",
+        "restricted": "Restricted area",
+        "commDown": "Comm array down",
+        "armistice": "Armistice",
+        "monitored": "Monitored",
+        "unmonitored": "Unmonitored"
+      },
       "path": {
         "title": "Your route",
         "empty": "No active operation. Plan one under Plan."
@@ -5569,6 +5576,13 @@
           "hint": "Completed missions.",
           "col": "Missions"
         },
+        "contracts": {
+          "name": "Completion rate",
+          "sub": "{{failed}} failed · {{abandoned}} abandoned",
+          "hint": "Completed contracts as a share of all finished contracts.",
+          "col": "Completed",
+          "col2": "Failed or abandoned"
+        },
         "deaths": {
           "name": "Deaths / claims",
           "sub": "Deaths / claims",
@@ -5598,7 +5612,7 @@
       "preview": {
         "stamp": "Preview",
         "title": "Your stats grow here",
-        "text": "This is what it looks like once the SCC app reads along while you play: aUEC, missions, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
+        "text": "This is what it looks like once the SCC app reads along while you play: aUEC, missions, completion rate, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
         "textLinked": "The SCC app is connected. Once you play, aUEC, missions, deaths, crimestat, refinery and blueprints fill up. The tiles behind it are sample data."
       }
     },
@@ -5640,6 +5654,7 @@
         "nachholenAria": "Restock: {{name}}"
       },
       "retry": "Try again",
+      "destroyed": "Last destroyed: {{at}}",
       "ships": {
         "title": "Ships",
         "count": "{{n}} in the hangar",
@@ -6309,15 +6324,17 @@
   },
   "beta": {
     "aria": "New view (β)",
-    "switchFor": "New view for {{area}}",
     "area": {
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Page shell"
     },
+    "staffOnly": "Team only",
+    "fab": {
+      "admin": "Beta switch (admin)",
+      "collaborator": "Beta switch (collaborator)"
+    },
     "chip": {
-      "admin": "Admin",
-      "collaborator": "Collaborator",
       "title": "Beta areas",
       "note": "Visible to admins and collaborators only."
     }

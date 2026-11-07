@@ -1,7 +1,113 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.220.0",
+  "current": "0.222.0",
   "releases": [
+    {
+      "version": "0.222.0",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Jetzt shows your current zone while you play: restricted area, comm array down, armistice or monitored space. A zone from an earlier session never shows as current."
+            },
+            {
+              "title": "",
+              "text": "HQ Statistik has a completion rate tile with failed and abandoned contracts."
+            },
+            {
+              "title": "",
+              "text": "HQ Bestand marks a ship as last destroyed for 7 days after the SCC app reports its loss."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Recently opened pages in the search are stored only with the preferences consent, and declining removes them. Without a decision \"Zuletzt geöffnet\" stays empty."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.221.0",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Codex landing swaps its sides: the Codex list stands left, the values right. \"Weitere Werte\" is now \"Datenblatt\"."
+            },
+            {
+              "title": "",
+              "text": "Nothing on the holotable is a link or carries an arrow any more. The way to an item's page is the button in the Datenblatt."
+            },
+            {
+              "title": "",
+              "text": "The Codex list keeps its title and tabs at the top and \"Alle ...\" and Tastenbelegungen at the bottom on every tab. With nothing new the middle is gone; with too much, five rows turn like a wheel around the item on the table."
+            },
+            {
+              "title": "",
+              "text": "\"+ N weitere\" opens the index filtered to what is new or updated in the last patch."
+            },
+            {
+              "title": "",
+              "text": "The beta switches moved into one small round button above the feedback button, on both page frames. The pills bottom left and the chip top right are gone."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Codex index has a filter \"Neu/Aktualisiert im letzten Patch\"."
+            },
+            {
+              "title": "",
+              "text": "Items whose values changed in a patch are marked \"aktualisiert\" in the Codex list."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Codex list no longer reports thousands of new items after a patch."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.220.1",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ shows live while you play even when the Starscape App was started after the game. Before, the old end of your last session kept the live marker off for the whole session."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.220.0",
       "date": "2026-11-06",

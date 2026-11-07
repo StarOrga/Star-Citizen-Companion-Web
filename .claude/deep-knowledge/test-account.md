@@ -103,7 +103,11 @@ legacy `SC_GATE_EMAIL`/`SC_GATE_PASSWORD`, then the Credential Manager entry.
   in the scratchpad, run the script from the repo root (the init page checks the
   cwd), `require('scripts/playwright/test-session.cjs')` and call it with `{ page }`.
   The new stages need `localStorage['sc.beta']` with `verse` and `shell` set, or the
-  old shell renders.
+  old shell renders. Give every context `setDefaultTimeout(15000)` and run the script
+  under an outer limit (`timeout 300 node …`), without a buffering pipe such as `| cut`:
+  Playwright's library default is NO action timeout, so one click on a missing or
+  covered element waits forever, no completion notice ever comes and an autonomous
+  run stands still (2026-11-06: almost two hours).
 
 ## Limits
 

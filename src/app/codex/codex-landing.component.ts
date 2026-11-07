@@ -30,14 +30,13 @@ import { IndexWheelGate, atPageEnd, wheelBelongsToInner } from './landing/codex-
 /** One rotation step (brief A4: ≈ 8 s per category). */
 export const ROTATION_MS = 8000;
 /** New items listed per category in the Codex list before "+ N weitere in der Suche". */
-export const CODEX_LIST_ITEMS = 5;
 
 /**
  * The Codex landing (concept 2026-10-30-codex-holo-buehne, round 4 "Zugewandte
  * Kante"): one viewport, no page scroll on desktop. Hero with the category's
  * claims and the staged search; the holotable in the centre with the newest
  * flight-ready item per category in rotation; the Codex list left (where the
- * index keeps its area tree) and "Weitere Werte" right, both light panes whose
+ * index keeps its area tree) and the data sheet right, both light panes whose
  * glowing edges face the screen edge and stand in the light the table spills
  * across the floor. Wheeling on past the page end opens the Codex index.
  * Nothing personal.
@@ -251,7 +250,7 @@ export class CodexLandingComponent {
 
   async load(): Promise<void> {
     this.loading.set(true);
-    const [items, codex] = await Promise.all([this.data.rotationItems(), this.data.codexNews(CODEX_LIST_ITEMS)]);
+    const [items, codex] = await Promise.all([this.data.rotationItems(), this.data.codexNews()]);
     this.items.set(items);
     this.codex.set(codex);
     this.picked.set(null);

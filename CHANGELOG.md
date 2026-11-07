@@ -4,19 +4,36 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.221.0] - 2026-11-06
+## [0.222.0] - 2026-11-07
 
 ### Added
-- The Codex index opens on two columns: the area tree beside the title, the filter bar and the list on the right. The list has its own search in its head, next to the sort order.
-- Ships filter by role (Combat, Transport, Exploration, Industrial, Support, Competition, Ground, Multirole), crew (1, 2–3, 4–8, 9+) and size S1–S6. The size comes from the game data: the uploader 0.75.0 extracts it, and it shows after the next upload.
-- Ship rows show the cheapest in-game price in aUEC and how many places sell the ship. A shop button on ships, weapons, components, items and ammunition lists every in-game offer under the row, with the item path to Nachschub and a link into the plan.
-- Settings → Codex shows items you cannot use (doors, seats, displays …). They sit under "Nicht nutzbar", and the search ranks them after every usable hit.
+- HQ Jetzt shows your current zone while you play: restricted area, comm array down, armistice or monitored space. A zone from an earlier session never shows as current.
+- HQ Statistik has a completion rate tile with failed and abandoned contracts.
+- HQ Bestand marks a ship as last destroyed for 7 days after the SCC app reports its loss.
 
 ### Changed
-- The Codex landing page puts the Codex list on the left and the values on the right, with both scrollbars on the outer side. The hologram ship faces you when the page loads.
-- Scrolling on past the end of the Codex landing page (desktop) opens the Codex index.
-- The area tree follows what a player uses: ship weapons, missiles, modules and ship ammunition sit under Ships, Weapons and Ammunition are on-foot gear, components and items are split by kind, and manufacturers and blueprints have sub areas.
-- Doors, seats, displays and other game objects no longer appear in the Codex tree, lists or search unless you switch them on.
+- Recently opened pages in the search are stored only with the preferences consent, and declining removes them. Without a decision "Zuletzt geöffnet" stays empty.
+
+## [0.221.0] - 2026-11-07
+
+### Changed
+- The Codex landing swaps its sides: the Codex list stands left, the values right. "Weitere Werte" is now "Datenblatt".
+- Nothing on the holotable is a link or carries an arrow any more. The way to an item's page is the button in the Datenblatt.
+- The Codex list keeps its title and tabs at the top and "Alle ..." and Tastenbelegungen at the bottom on every tab. With nothing new the middle is gone; with too much, five rows turn like a wheel around the item on the table.
+- "+ N weitere" opens the index filtered to what is new or updated in the last patch.
+- The beta switches moved into one small round button above the feedback button, on both page frames. The pills bottom left and the chip top right are gone.
+
+### Added
+- The Codex index has a filter "Neu/Aktualisiert im letzten Patch".
+- Items whose values changed in a patch are marked "aktualisiert" in the Codex list.
+
+### Fixed
+- The Codex list no longer reports thousands of new items after a patch.
+
+## [0.220.1] - 2026-11-07
+
+### Fixed
+- HQ shows live while you play even when the Starscape App was started after the game. Before, the old end of your last session kept the live marker off for the whole session.
 
 ## [0.220.0] - 2026-11-06
 

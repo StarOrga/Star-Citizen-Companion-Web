@@ -18,7 +18,7 @@ import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqNowFriendsComponent } from './hq-now-friends.component';
 import { HqLiveService } from './hq-live.service';
-import { eventLabel, formatLocationName, isGameLive, presenceAt, readContracts, readLocation, readShip } from './hq-live.util';
+import { eventLabel, formatLocationName, isGameLive, presenceAt, readContracts, readLocation, readShip, readZones } from './hq-live.util';
 import { HQ_NOW_PATH } from './hq-now-path';
 import { HqMissionsPopoverComponent } from './hq-missions-popover.component';
 
@@ -73,6 +73,18 @@ const PRESENCE_TICK_MS = 30_000;
           }
           @if (ship(); as s) {
             <p class="ship">{{ 'hq.now.anchor.ship' | translate }} <b class="ship-name">{{ s }}</b></p>
+          }
+          @if (gameLive()) {
+            <p class="zones">
+              <span class="zones-label">{{ 'hq.now.zone.label' | translate }}</span>
+              @if (zones(); as list) {
+                @for (z of list; track z) {
+                  <span class="zone" [class.warn]="z === 'restricted' || z === 'commDown'">{{ 'hq.now.zone.' + z | translate }}</span>
+                }
+              } @else {
+                <span class="zone unknown">{{ 'hq.now.zone.unknown' | translate }}</span>
+              }
+            </p>
           }
           @if (lastSignal(); as at) {
             <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</p>
@@ -159,6 +171,10 @@ const PRESENCE_TICK_MS = 30_000;
       .where .sys, .where .sep { color: var(--sc-fg-2); font-weight: 400; }
       .where.unknown { color: var(--sc-fg-2); font-size: 1.2rem; }
       .ship { margin: var(--sc-space-2, 8px) 0 0; color: var(--sc-fg-2); }
+      .zones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px); margin: var(--sc-space-2, 8px) 0 0; color: var(--sc-fg-2); }
+      .zone { padding: 2px var(--sc-space-2, 8px); border: 1px solid var(--sc-accent); border-radius: 999px; color: var(--sc-fg); font-size: max(0.8125rem, var(--sc-fs-floor)); }
+      .zone.warn { border-color: var(--sc-warning); color: var(--sc-warning); }
+      .zone.unknown { border-color: var(--sc-border); color: var(--sc-fg-2); }
       .h { margin: var(--sc-space-5, 20px) 0 var(--sc-space-2, 8px); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
       .next { font-size: 1.25rem; padding: var(--sc-space-3, 12px) 0; }
       .trail { opacity: 0.55; padding-left: var(--sc-space-4, 16px); border-left: 2px dashed var(--sc-border); }
@@ -214,6 +230,7 @@ export class HqNowComponent {
   /** Re-evaluates the life sign's age while the page stays open without new data. */
   private readonly clock = signal(Date.now());
   readonly gameLive = computed(() => isGameLive(this.live.state(), this.live.events(), this.clock()));
+  readonly zones = computed(() => readZones(this.live.events()));
   readonly lastSignal = computed(() => presenceAt(this.live.state()) ?? this.live.stateUpdatedAt());
   /** Signed-in app without any live state yet: the app is there, only the opt-in sync or the game is missing. */
   readonly appConnected = computed(() => this.conn.stateFor('starscape') === 'connected');

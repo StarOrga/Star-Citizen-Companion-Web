@@ -99,7 +99,7 @@ describe('HqNowComponent', () => {
 
   it('marks the location as last known once the session ended', () => {
     const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
-      { ...ev(0), type: 'session.quit' },
+      { ...ev(0), type: 'session.quit', at: new Date().toISOString() },
       { ...ev(1), type: 'session.joined' },
     ]);
     live.stateUpdatedAt.set(new Date().toISOString());
@@ -115,6 +115,45 @@ describe('HqNowComponent', () => {
     const el = mount(live).nativeElement as HTMLElement;
     expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.label');
     expect(el.querySelector('.fresh')?.textContent).toContain('hq.now.fresh.updated');
+  });
+
+  it('stays live when only an older session end is known (the app attached to a running game)', () => {
+    const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
+      { ...ev(0), type: 'session.quit', at: new Date(Date.now() - 86_400_000).toISOString() },
+    ]);
+    const el = mount(live).nativeElement as HTMLElement;
+    expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.label');
+  });
+
+  describe('zone', () => {
+    const zoneTexts = (el: HTMLElement) => Array.from(el.querySelectorAll('.zone')).map((z) => z.textContent?.trim());
+
+    it('shows the current zone while the game is live and flags a restricted area', () => {
+      const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
+        { ...ev(0), type: 'restricted.entered' },
+        { ...ev(1), type: 'armistice.entered' },
+        { ...ev(2), type: 'session.joined' },
+      ]);
+      const el = mount(live).nativeElement as HTMLElement;
+      expect(zoneTexts(el)).toEqual(['hq.now.zone.restricted', 'hq.now.zone.armistice']);
+      expect(el.querySelector('.zone')?.classList.contains('warn')).toBeTrue();
+    });
+
+    it('reads unknown when this session has no zone event', () => {
+      const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
+        { ...ev(0), type: 'session.joined' },
+        { ...ev(1), type: 'armistice.entered' },
+      ]);
+      expect(zoneTexts(mount(live).nativeElement as HTMLElement)).toEqual(['hq.now.zone.unknown']);
+    });
+
+    it('shows no zone without a live signal', () => {
+      const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(4 * 60_000) }, [
+        { ...ev(0), type: 'armistice.entered' },
+        { ...ev(1), type: 'session.joined' },
+      ]);
+      expect((mount(live).nativeElement as HTMLElement).querySelector('.zones')).toBeNull();
+    });
   });
 
   it('renders the location anchor as system > place with the ship and the mission count', () => {

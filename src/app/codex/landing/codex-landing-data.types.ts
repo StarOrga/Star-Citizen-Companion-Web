@@ -42,17 +42,17 @@ export interface LandingCodexEntry {
   route: string[];
   /** Announced (not yet flight-ready) — rendered with the "angekündigt" tag. */
   announced: boolean;
+  /** In the previous build too, its values changed in this patch — rendered with the "aktualisiert" tag. */
+  updated?: boolean;
 }
 
-/** One category row of the Codex list: its new items of the current patch. */
+/** One category row of the Codex list: its new and updated items of the current patch. */
 export interface LandingCodexCategory {
   category: LandingCategory;
-  /** New flight-ready items of the current patch (announced ones not counted). */
+  /** New and updated flight-ready items of the current patch (announced ones not counted). */
   count: number;
-  /** Up to the requested limit, newest first; announced ships last. */
+  /** All of them, new before updated; announced ships last. The pane shows a window of them. */
   entries: LandingCodexEntry[];
-  /** New flight-ready items beyond `entries` (for "+ N weitere in der Suche"). */
-  more: number;
   /** Announced ships of this category (ships only, else 0). */
   announced: number;
 }

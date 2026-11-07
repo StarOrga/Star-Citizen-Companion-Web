@@ -53,7 +53,11 @@
   text-align: center;
   // The panes stand low, so the hero may reach over them (the News chip keeps its corner).
   padding-inline: max(130px, calc(var(--cx-side) * 0.5));
+  // Its box spans the page and lies above the stage: only its content takes the pointer,
+  // or the top of a pane reaching up beside it could not be clicked.
+  pointer-events: none;
 }
+.hero > * { pointer-events: auto; }
 .eyebrow {
   margin: 0;
   min-height: 1.4em;
@@ -113,9 +117,19 @@
   flex-direction: column;
 }
 // The Codex list stands left (the index it leads to keeps its area tree on the
-// left too), the values right; each scrollbar sits on the pane's outer side.
+// left too), the values right.
 .codex { left: var(--cx-gut); }
 .values { right: var(--cx-gut); }
+// The list needs its full height for title, tabs, wheel and foot: on a short
+// window it reaches below the hologram box, down to just above the stage footer.
+.codex {
+  --cx-codex-h: 400px;
+  --cx-box-top: calc((100% - var(--cx-table-h)) * var(--cx-holo-t));
+  top: auto;
+  height: var(--cx-codex-h);
+  bottom: max(var(--sc-space-2), min(calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b)), calc(100% - var(--cx-box-top) - var(--cx-codex-h))));
+}
+@media (pointer: coarse) { .codex { --cx-codex-h: 500px; } }
 .news {
   position: absolute;
   z-index: 8;
@@ -175,6 +189,7 @@
   :host(:not(.shell)) .landing { height: auto; }
   .hero { order: 0; padding-inline: 0; }
   .title { font-size: 24px; }
+  .codex { height: auto; }
   .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   // Phone order (d-landing table-first): title, holotable, list, values, news mark.
   .news { order: 3; align-self: flex-end; }

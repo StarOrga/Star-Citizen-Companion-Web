@@ -160,6 +160,29 @@ describe('CodexBuildDiffService', () => {
     });
   });
 
+  describe('changedClassNamesMemo', () => {
+    it('asks codex_changed_class_names once per build and kind', async () => {
+      const { svc, sb } = setup({ builds: [CUR, PREV], answer: () => ({ data: ['SHIP_A', '', 'SHIP_B'] }) });
+      expect(await svc.changedClassNamesMemo('ship')).toEqual(['SHIP_A', 'SHIP_B']);
+      await svc.changedClassNamesMemo('ship');
+      expect(sb.calls.length).toBe(1);
+      expect(sb.calls[0].target).toBe('codex_changed_class_names');
+      expect(sb.calls[0].args).toEqual({ p_kind: 'ship', p_current: 'b-cur', p_previous: 'b-prev' });
+    });
+
+    it('returns [] without a previous build, for an unknown kind, and when the RPC is missing or fails', async () => {
+      const one = setup({ builds: [CUR], answer: () => ({ data: ['X'] }) });
+      expect(await one.svc.changedClassNamesMemo('weapon')).toEqual([]);
+      expect(one.sb.calls.length).toBe(0);
+      expect(await one.svc.changedClassNamesMemo('blueprint')).toEqual([]);
+    });
+
+    it('swallows a missing function', async () => {
+      const { svc } = setup({ builds: [CUR, PREV] });
+      expect(await svc.changedClassNamesMemo('item')).toEqual([]);
+    });
+  });
+
   describe('codex_added_class_names RPC', () => {
     function rpcAnswer(names: string[]) {
       return (call: FakeCall): FakeResult =>
