@@ -80,7 +80,7 @@ describe('BriefingHubComponent — news accordion', () => {
     expect(parseFloat(img.top)).toBeGreaterThan(0);
   });
 
-  it('animates for exactly as long as the hover intent waits', () => {
+  it('animates for exactly ACC_TRANSITION_MS', () => {
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
     const fixture = TestBed.createComponent(BriefingHubComponent);
     const item = { id: 'n1', title: 'News', thumbnail: null, publishedAt: new Date(NOW).toISOString() };
