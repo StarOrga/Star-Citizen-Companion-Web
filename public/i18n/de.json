@@ -5414,6 +5414,12 @@
         "what": "Was brauche ich",
         "how": "Wie komme ich hin"
       },
+      "progress": {
+        "title": "Blueprint-Fortschritt",
+        "loading": "Dein Nachschub wird geladen ...",
+        "empty": "Noch kein Blueprint hat Material im Nachschub. Füge einen Blueprint auf seiner Codex-Seite hinzu, um ihn hier zu verfolgen.",
+        "count": "{{have}} von {{total}} Materialien"
+      },
       "selection": "Auswahl",
       "stepsAria": "Schritt-Arten",
       "state": {

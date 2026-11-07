@@ -5414,6 +5414,12 @@
         "what": "What I need",
         "how": "How to get there"
       },
+      "progress": {
+        "title": "Blueprint progress",
+        "loading": "Loading your supplies...",
+        "empty": "No blueprint has material in Nachschub yet. Add a blueprint from its Codex page to track it here.",
+        "count": "{{have}} of {{total}} materials"
+      },
       "selection": "Selection",
       "stepsAria": "Step kinds",
       "state": {
