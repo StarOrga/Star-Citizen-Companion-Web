@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.10",
+  "current": "0.225.11",
   "releases": [
+    {
+      "version": "0.225.11",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Missile pages: the 3D model opens with the nose turned towards the reader at a three-quarter angle instead of showing the exhaust."
+            },
+            {
+              "title": "",
+              "text": "Missile pages: when the current data has no damage, speed, agility and range yet, the Einordnung says so and names the uploader version that brings them, instead of an empty card with a bare dash."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.10",
       "date": "2026-11-07",

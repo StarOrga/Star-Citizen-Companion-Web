@@ -386,7 +386,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                  that model is the picture, here instead of further down the page. -->
             @if (isMissile() && itemPackage(); as pkg) {
               @defer (on viewport) {
-                <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" [still]="prefersReducedMotion()" />
+                <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" facing="nose" [still]="prefersReducedMotion()" />
               } @placeholder {
                 <div class="pkg-viewer" aria-hidden="true"></div>
               }
@@ -537,6 +537,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [profiles]="[]"
             [scopes]="missileRankScopes"
             [copy]="missileRankCopy"
+            [gapKey]="missileRankGapKey()"
             [scope]="missileRankScope()"
             (scopeChange)="missileScopeChoice.set($event)" />
         }
@@ -2216,6 +2217,15 @@ export class CodexDetailComponent implements OnInit {
   readonly missileCombatMissing = computed(() => {
     const target = this.missileRecord();
     return !!target && !hasCombatMetrics(target);
+  });
+  /**
+   * What the Einordnung says when it has nothing to rank: a build without the
+   * combat values (uploaded before Data Uploader 0.73.3) or too few missiles
+   * that differ on them — never a bare "no value" that reads as broken.
+   */
+  readonly missileRankGapKey = computed(() => {
+    if (this.missileCombatMissing()) return 'codex.missile.rank.gapNoData';
+    return this.missileCohort() ? 'codex.missile.rank.gapTooFew' : 'codex.missile.rank.gapNoCohort';
   });
 
   private async loadMissileCohort(seq: number): Promise<void> {

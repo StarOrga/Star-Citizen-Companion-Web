@@ -184,7 +184,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
         @if (loading()) {
           <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
         } @else if (!result()) {
-          <p class="gap-note">{{ 'codex.rank.gapAxis' | translate }}</p>
+          <p class="gap-note">{{ (gapKey() ?? 'codex.rank.gapAxis') | translate }}</p>
         } @else if (holo()) {
           <!-- The panel's head says it once. -->
         } @else if (result()!.overall != null) {
@@ -530,6 +530,8 @@ export class CodexRankCardComponent {
   readonly scopes = input<readonly RankCardScope[]>(SHIP_SCOPES);
   /** Everything that names what is compared; the default is the ship wording. */
   readonly copy = input<RankCardCopy>(SHIP_COPY);
+  /** Why there is no result (no cohort, no comparable values); null = the generic gap line. */
+  readonly gapKey = input<string | null>(null);
 
   readonly activeProfileLabelKey = computed<string>(
     () => rankProfileById(this.profile()).labelKey,
