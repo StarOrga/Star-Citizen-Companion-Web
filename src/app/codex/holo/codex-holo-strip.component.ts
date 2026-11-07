@@ -88,7 +88,7 @@ const STRIP_TILE_ORDER: Readonly<Record<Perspective, readonly string[]>> = {
   offensive: ['alpha', 'burstDps', 'sustainedDps', 'missiles'],
   defensive: ['shieldHp', 'shieldRegen', 'hullHp', 'effectiveHp', 'armorHp'],
   movement: ['boost', 'scm', 'maxSpeed', 'agility', 'quantumRange', 'quantumSpeed', 'spool', 'mass', 'cargo'],
-  signature: ['ir', 'emMax', 'crossSection', 'emIdle'],
+  signature: ['ir', 'emLoad', 'crossSection', 'emIdle'],
 };
 
 interface PerspectiveTile {

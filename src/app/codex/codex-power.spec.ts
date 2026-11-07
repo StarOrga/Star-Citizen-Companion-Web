@@ -549,17 +549,17 @@ describe('cooler units (590230e3, F1d)', () => {
 
 describe('withPowerSignature — the ranking sheet takes the signature of the strip', () => {
   const baseSheet = computeKpiSheet(nomad, null);
-  it('fills ir and emMax from the same power model the strip prints, never anything else', () => {
+  it('fills ir and emLoad from the same power model the strip prints, never anything else', () => {
     const fact = (key: string) => computePowerSheet({ occupants: nomad, shipStats }).facts.find((f) => f.key === key)?.value ?? null;
-    const out = withPowerSignature({ ...baseSheet, ir: null, emMax: null, emIdle: null }, nomad, shipStats, null);
+    const out = withPowerSignature({ ...baseSheet, ir: null, emLoad: null, emIdle: null }, nomad, shipStats, null);
     expect(out.ir).toBe(fact('ir'));
-    expect(out.emMax).toBe(fact('em'));
+    expect(out.emLoad).toBe(fact('em'));
     expect(out.emIdle).toBeNull(); // no source in the model: stays a gap
   });
   it('leaves a value the sheet already has and a ship without emitters at null', () => {
-    expect(withPowerSignature({ ...baseSheet, ir: 5, emMax: 6 }, nomad, shipStats, null).ir).toBe(5);
-    const none = withPowerSignature({ ...baseSheet, ir: null, emMax: null }, [], null, null);
+    expect(withPowerSignature({ ...baseSheet, ir: 5, emLoad: 6 }, nomad, shipStats, null).ir).toBe(5);
+    const none = withPowerSignature({ ...baseSheet, ir: null, emLoad: null }, [], null, null);
     expect(none.ir).toBeNull();
-    expect(none.emMax).toBeNull();
+    expect(none.emLoad).toBeNull();
   });
 });

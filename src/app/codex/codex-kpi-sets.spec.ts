@@ -32,7 +32,7 @@ const sheet = (over: Partial<KpiSheet> = {}): KpiSheet =>
     spool: null,
     ir: 7340,
     emIdle: null,
-    emMax: 29100,
+    emLoad: 29100,
     crossSection: 9712,
     ...over,
   }) as KpiSheet;
@@ -67,7 +67,7 @@ describe('kpiSetFor', () => {
   it('follows MASTER §4 for Transport, Reisen and Schleichen', () => {
     expect(kpiSetFor('transport')).toEqual(['cargo', 'hullHp', 'shieldHp', 'quantumRange', 'scm', 'mass']);
     expect(kpiSetFor('travel')).toEqual(['quantumRange', 'scm', 'maxSpeed', 'boost', 'mass', 'shieldHp']);
-    expect(kpiSetFor('stealth')).toEqual(['ir', 'emMax', 'crossSection', 'shieldHp', 'scm', 'sustainedDps']);
+    expect(kpiSetFor('stealth')).toEqual(['ir', 'emLoad', 'crossSection', 'shieldHp', 'scm', 'sustainedDps']);
   });
 
   it('falls back to the Alles set for Bergbau and Bergung', () => {
@@ -79,7 +79,7 @@ describe('kpiSetFor', () => {
 describe('conventions', () => {
   it('names signatures, mass and spool as lower-is-better — nothing else', () => {
     expect(kpiLowerIsBetter('ir')).toBeTrue();
-    expect(kpiLowerIsBetter('emMax')).toBeTrue();
+    expect(kpiLowerIsBetter('emLoad')).toBeTrue();
     expect(kpiLowerIsBetter('crossSection')).toBeTrue();
     expect(kpiLowerIsBetter('mass')).toBeTrue();
     expect(kpiLowerIsBetter('shieldHp')).toBeFalse();

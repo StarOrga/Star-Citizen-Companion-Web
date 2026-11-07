@@ -1345,8 +1345,10 @@
         "quantumSpeed": "QT SPEED",
         "spool": "SPOOL",
         "ir": "IR",
-        "emIdle": "EM IDLE",
-        "emMax": "EM MAX"
+        "emIdle": "EM IDLE · MODEL",
+        "emLoad": "EM CURRENT · MODEL",
+        "emMax": "EM MAX · MODEL",
+        "emQuantum": "EM QUANTUM · MODEL"
       },
       "nShipsOfRole": "{{n}} ships of the same role",
       "compare": {
@@ -1980,8 +1982,12 @@
       "quantumRange": "Quantum range",
       "spool": "Spool time",
       "ir": "IR signature",
-      "emIdle": "EM signature (idle)",
-      "emMax": "EM signature (max)",
+      "emIdle": "EM signature (idle, model)",
+      "emLoad": "EM signature (current allocation, model)",
+      "emMax": "EM signature (maximum, model)",
+      "emQuantum": "EM signature (quantum, model)",
+      "modelHint": "Our model, not a game value: EM per component = nominal × assigned ÷ full segments, reactor EM follows the power consumed, times the hull armor factor. Source: component values from the game data.",
+      "modelNote": "IR and EM are our own model, not game values: EM per component = nominal × assigned ÷ full segments, reactor EM follows the power consumed, times the hull armor factor. Idle = everything at its minimum, shield and quantum off; maximum = everything full, shield on; quantum = shield off, quantum drive on. IR covers coolers only, thrusters are left out (they follow throttle). Source: component values from the game data.",
       "crossSection": "Cross section",
       "boost": "Boost speed",
       "armor": "Armour",
@@ -2015,8 +2021,10 @@
         "armorHp": "Armour",
         "quantumSpeed": "Q speed",
         "spool": "Spool",
-        "emIdle": "EM (idle)",
-        "emMax": "EM (load)"
+        "emIdle": "EM (idle, model)",
+        "emLoad": "EM (current, model)",
+        "emMax": "EM (max, model)",
+        "emQuantum": "EM (quantum, model)"
       }
     },
     "damageChannel": {

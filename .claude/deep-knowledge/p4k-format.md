@@ -271,8 +271,27 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
 - The only EM/IR numbers in the data are per component state:
   `ItemResourceComponentParams.states[].signatureParams.EMSignature|IRSignature`
   (`nominalSignature`, `decayRate`), already extracted as `<state>.em.nominal`.
-  There is no "idle" ship value; `emIdle` stays null and the sheet shows the
-  gap. Do not derive one from component minimums without an owner decision.
+  There is no game-side idle or maximum ship value. The owner decided (#967
+  round 2, `model`) to compute them: `src/app/codex/codex-em-model.ts`.
+- `em.nominal` / `ir.nominal` are the emission at FULL allocation (raw extract:
+  Ecouter radar consumeSegments 5, minFraction 0.4, em 1800 = wiki 720–1,800
+  over 2–5 segments; Maelstrom generateSegments 20, em 9900 = wiki 495/segment).
+  `powerRanges.<band>.modifier` (0.7/0.85/1) is not an emission factor — the
+  wiki's per-segment values are linear. `decayRate` is a transient, ignored.
+- Model: item EM = nominal × assigned / full segments (flat for minFraction 1
+  or no segment draw); reactor EM = Σ nominal × min(load, capacity)/capacity,
+  load = Σ assigned consumer segments; IR alike (only coolers carry IR);
+  × hull armor factor. Scenarios: idle (minimum = ⌈S × minFraction⌉, shield
+  and quantum off), max (all full, shield on), quantum (shield off, drive on).
+  Thrusters are left out (EM follows throttle). `emLoad` = the old default-
+  allocation sum (nominal of every powered item, uncapped reactor nominal).
+- Versus StarCitizenWiki (`scripts/em-model-compare.mts <extract>`): EM is
+  −11 … −25 %, almost all of it the reactor cap (the wiki sums 495 × demanded
+  segments without capping at capacity; Gladius demands 23.6 of 16) plus the
+  per-group ceil of weapon units; the wiki's component EM already carries the
+  armor factor. IR is +69 … +134 %: the wiki scales cooler IR with the coolant
+  in use, and the 4.10 extract has no consumer `coolant.consume` — an
+  extractor field, not something to fake.
 - Radars: no metre detection range; the one distance is
   `aimAssist.distanceMaxAssignment` (exported as `aimAssistRangeM`, shown as
   "Range (aim assist)").

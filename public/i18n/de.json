@@ -1345,8 +1345,10 @@
         "quantumSpeed": "Q-TEMPO",
         "spool": "SPOOL",
         "ir": "IR",
-        "emIdle": "EM RUHE",
-        "emMax": "EM MAX"
+        "emIdle": "EM RUHE · MODELL",
+        "emLoad": "EM AKTUELL · MODELL",
+        "emMax": "EM MAX · MODELL",
+        "emQuantum": "EM QUANTUM · MODELL"
       },
       "nShipsOfRole": "{{n}} Schiffe der gleichen Rolle",
       "compare": {
@@ -1980,8 +1982,12 @@
       "quantumRange": "Quantenreichweite",
       "spool": "Spool-Zeit",
       "ir": "IR-Signatur",
-      "emIdle": "EM-Signatur (Ruhe)",
-      "emMax": "EM-Signatur (Last)",
+      "emIdle": "EM-Signatur (Ruhe, Modell)",
+      "emLoad": "EM-Signatur (aktuelle Verteilung, Modell)",
+      "emMax": "EM-Signatur (Maximum, Modell)",
+      "emQuantum": "EM-Signatur (Quantum, Modell)",
+      "modelHint": "Unser Modell, kein Spielwert: EM je Komponente = Nennwert × zugeteilte ÷ volle Segmente, Reaktor-EM folgt der verbrauchten Leistung, mal Rumpfpanzer-Faktor. Quelle: Komponentenwerte der Spieldaten.",
+      "modelNote": "IR und EM sind unser eigenes Modell, keine Spielwerte: EM je Komponente = Nennwert × zugeteilte ÷ volle Segmente, Reaktor-EM folgt der verbrauchten Leistung, mal Rumpfpanzer-Faktor. Ruhe = alles am Minimum, Schild und Quantum aus; Maximum = alles voll, Schild an; Quantum = Schild aus, Quantumantrieb an. IR enthält nur Kühler, Triebwerke fehlen (schubabhängig). Quelle: Komponentenwerte der Spieldaten.",
       "crossSection": "Querschnitt",
       "boost": "Boost-Geschwindigkeit",
       "armor": "Panzerung",
@@ -2015,8 +2021,10 @@
         "armorHp": "Panzerung",
         "quantumSpeed": "Q-Tempo",
         "spool": "Spool",
-        "emIdle": "EM (Ruhe)",
-        "emMax": "EM (Last)"
+        "emIdle": "EM (Ruhe, Modell)",
+        "emLoad": "EM (aktuell, Modell)",
+        "emMax": "EM (Max, Modell)",
+        "emQuantum": "EM (Quantum, Modell)"
       }
     },
     "damageChannel": {

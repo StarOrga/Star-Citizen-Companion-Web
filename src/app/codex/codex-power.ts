@@ -81,6 +81,7 @@
 // game rule, not a number — but we never invent per-mode magnitudes.
 
 import { findStat } from '../hangar/loadout-stats';
+import { EmModelItem, EmModelRole, emModel } from './codex-em-model';
 import { ArmorSignalMultipliers, armorSignalMultipliers, crossSectionAxes, findArmorPayload } from './codex-loadout-stats';
 import type { KpiSheet } from './codex-loadout-stats';
 import type { SummaryOccupant } from './ship-summary-panels';
@@ -1067,13 +1068,50 @@ export function isDockPosition(v: unknown): v is DockPosition {
   return typeof v === 'string' && (DOCK_POSITIONS as readonly string[]).includes(v);
 }
 
+/** The occupants as EM-model items (#967): role from the power group, full
+ * segments = whole segments + standard units / (4/3). */
+export function emModelItems(occupants: readonly SummaryOccupant[]): EmModelItem[] {
+  const items: EmModelItem[] = [];
+  for (const occupant of occupants) {
+    if (!occupant.payload) continue;
+    const d = occupantDraw(occupant);
+    if (d.missing) continue;
+    const role: EmModelRole =
+      d.generateSegments > 0
+        ? 'powerPlant'
+        : d.group === 'shields'
+          ? 'shield'
+          : d.group === 'quantum'
+            ? 'quantum'
+            : d.group === 'coolers'
+              ? 'cooler'
+              : /_thruster_/i.test(classNameOfPayload(occupant.payload))
+                ? 'thruster'
+                : 'consumer';
+    items.push({
+      role,
+      segments: d.consumeSegments + d.consumeUnits / STANDARD_UNITS_PER_SEGMENT,
+      minFraction: d.minFraction,
+      generateSegments: d.generateSegments,
+      em: d.emNominal,
+      ir: d.irNominal,
+    });
+  }
+  return items;
+}
+
+function classNameOfPayload(payload: unknown): string {
+  const c = (payload as { className?: unknown } | null)?.className;
+  return typeof c === 'string' ? c : '';
+}
+
 /**
  * The ranking sheet's signature values from the SAME model the strip shows
  * (IR and EM of the powered components at the default allocation, times the
  * hull armor's factor). The ship payload carries no signature stats of its own,
- * so the sheet ir and emMax were always null and the hexagon marked them
+ * so the sheet ir and emLoad were always null and the hexagon marked them
  * as gaps while the strip printed km. A value stays null when the model has
- * none; emIdle has no source in the model and is left as the sheet had it.
+ * none. emIdle / emMax / emQuantum come from the EM model (#967).
  */
 export function withPowerSignature(
   sheet: KpiSheet,
@@ -1081,9 +1119,21 @@ export function withPowerSignature(
   shipStats: Record<string, Record<string, unknown>> | null | undefined,
   schemaVersion: number | null | undefined,
 ): KpiSheet {
-  if (sheet.ir != null && sheet.emMax != null) return sheet;
   const facts = computePowerSheet({ occupants, shipStats, schemaVersion }).facts;
   const ir = facts.find((f) => f.key === 'ir')?.value ?? null;
   const em = facts.find((f) => f.key === 'em')?.value ?? null;
-  return { ...sheet, ir: sheet.ir ?? ir, emMax: sheet.emMax ?? em };
+  // #967 — idle / maximum / quantum from the EM model (codex-em-model.ts).
+  const items = emModelItems(occupants);
+  const hasEm = items.some((i) => i.em > 0);
+  const armor = armorSignalMultipliers(findArmorPayload(occupants));
+  const run = (scenario: 'idle' | 'max' | 'quantum'): number | null =>
+    hasEm ? emModel(items, scenario, armor).em : null;
+  return {
+    ...sheet,
+    ir: sheet.ir ?? ir,
+    emLoad: sheet.emLoad ?? em,
+    emIdle: sheet.emIdle ?? run('idle'),
+    emMax: sheet.emMax ?? run('max'),
+    emQuantum: sheet.emQuantum ?? run('quantum'),
+  };
 }

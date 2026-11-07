@@ -32,7 +32,9 @@ export type KpiKey =
   | 'spool'
   | 'ir'
   | 'emIdle'
+  | 'emLoad'
   | 'emMax'
+  | 'emQuantum'
   | 'crossSection';
 
 export interface MissionDef {
@@ -126,7 +128,7 @@ export const MISSIONS: readonly MissionDef[] = [
     order: POWER_FIRST_ORDER,
     fold: expand(['missiles', 'offense']),
     // MASTER §4: Schleichen = IR, EM, Querschnitt, Schild HP, SCM, Dauer-DPS
-    kpis: ['ir', 'emMax', 'crossSection', 'shieldHp', 'scm', 'sustainedDps'],
+    kpis: ['ir', 'emLoad', 'crossSection', 'shieldHp', 'scm', 'sustainedDps'],
   },
   {
     id: 'mining',

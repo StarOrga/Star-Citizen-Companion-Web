@@ -176,7 +176,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   offensive: ['sustainedDps', 'burstDps', 'alpha', 'missiles'],
   defensive: ['shieldHp', 'hullHp', 'effectiveHp', 'shieldRegen', 'armorHp'],
   movement: ['boost', 'scm', 'maxSpeed', 'agility', 'quantumRange', 'mass', 'cargo'],
-  signature: ['ir', 'emMax', 'crossSection', 'emIdle'],
+  signature: ['ir', 'emLoad', 'crossSection', 'emIdle'],
 };
 
 /**

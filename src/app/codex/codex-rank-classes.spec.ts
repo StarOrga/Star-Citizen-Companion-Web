@@ -81,7 +81,7 @@ describe('axis lists', () => {
   it('gives Reisen and Schleichen the axes of briefs/03.md, with their own label', () => {
     expect(rankProfileById('travel').axes.map((a) => a.key)).toEqual(['scm', 'maxSpeed', 'boost', 'quantumSpeed', 'quantumRange', 'spool']);
     const stealth = rankProfileById('stealth');
-    expect(stealth.axes.map((a) => a.key)).toEqual(['ir', 'emIdle', 'emMax', 'crossSection', 'agility', 'scm']);
+    expect(stealth.axes.map((a) => a.key)).toEqual(['ir', 'emIdle', 'emLoad', 'crossSection', 'agility', 'scm']);
     expect(stealth.labelKey).toBe('codex.rank.profile.stealth');
     expect(stealth.labelKey).not.toContain('defense');
     expect(stealth.axes.filter((a) => a.lowerIsBetter).length).toBe(4);

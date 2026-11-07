@@ -37,7 +37,7 @@ const KPI_LABEL_KEYS: Record<string, string> = {
   cargo: 'codex.kpi.cargo',
   ir: 'codex.kpi.ir',
   emIdle: 'codex.kpi.emIdle',
-  emMax: 'codex.kpi.emMax',
+  emLoad: 'codex.kpi.emLoad',
   crossSection: 'codex.kpi.crossSection',
 };
 
