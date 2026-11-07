@@ -1,3 +1,4 @@
+import type { CodexListRow } from '../codex.service';
 import { LandingPaint } from './codex-landing-data.types';
 import {
   classCohort,
@@ -7,7 +8,7 @@ import {
   isNewPaint,
   overviewFor,
   paintRecency,
-  pickNewest,
+  freshPool, pickNewest,
   pickPatchThread,
   sortPaints,
   topValuesFor,
@@ -29,6 +30,15 @@ describe('codex-landing-data pure helpers', () => {
     expect(pickNewest(['a', 'b', 'c'], new Set(['c']))).toBe('c');
     expect(pickNewest(['a', 'b'], new Set())).toBe('a');
     expect(pickNewest([], new Set())).toBeNull();
+  });
+
+  it('freshPool lists new before updated and never counts a new row as updated', () => {
+    const row = (classNameSlug: string) => ({ classNameSlug }) as CodexListRow;
+    const rows = [row('a'), row('b'), row('c'), row('d')];
+    const pool = freshPool(rows, [row('c')], ['a', 'c', 'gone']);
+    expect(pool.fresh.map((r) => r.classNameSlug)).toEqual(['c', 'a']);
+    expect([...pool.added]).toEqual(['c']);
+    expect([...pool.updated]).toEqual(['a']);
   });
 
   it('topValuesFor ships: curated order, skips missing and zero, caps at 7', () => {

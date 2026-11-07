@@ -79,7 +79,8 @@
 // One line per row: the wheel's height never depends on a name.
 .new a .nm { flex: 1 1 auto; }
 .new a.ent:hover, .new a:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.08); }
-.new a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+// Inside the row: the wheel's box clips what stands outside it.
+.new a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
 .new li.table { background: rgba(82, 193, 230, 0.14); box-shadow: inset 2px 0 0 #c8f2ff; }
 .new li.table a.ent { color: #fff; }
 .new li.flash { animation: entry-flash 1.4s ease-out 1.1s both; }

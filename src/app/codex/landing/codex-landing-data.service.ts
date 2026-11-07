@@ -82,7 +82,7 @@ export function pickNewest(candidates: readonly string[], added: ReadonlySet<str
 }
 
 /** New rows first, then the rows whose values changed. */
-function freshPool(rows: CodexListRow[], added: CodexListRow[], changed: readonly string[]): CategoryPool {
+export function freshPool(rows: CodexListRow[], added: CodexListRow[], changed: readonly string[]): CategoryPool {
   const addedIds = new Set(added.map((r) => r.classNameSlug));
   const changedIds = new Set(changed);
   const updated = rows.filter((r) => changedIds.has(r.classNameSlug) && !addedIds.has(r.classNameSlug));
@@ -460,7 +460,7 @@ export class CodexLandingDataService {
 
   private async buildItem(category: LandingCategory, className: string, pool: CategoryPool): Promise<LandingItem | null> {
     const kind = KIND_OF[category];
-    const { rows, fresh } = pool;
+    const { rows, added } = pool;
     const detail = await this.codex.getDetail(kind, className);
     if (!detail) return null;
     const lang = toLang(this.translate.getCurrentLang() || this.translate.getFallbackLang());
@@ -486,7 +486,8 @@ export class CodexLandingDataService {
       overview,
       topValues: withClassStats(category, topValuesFor(category, detail.payload), cohort),
       facts: factsFor(category, detail.payload, listRow.size),
-      fresh: fresh.some((r) => r.classNameSlug === className),
+      // "Neu" on the table only for what is new: an updated item is not.
+      fresh: added.has(className),
       ...(category === 'ship' ? { ...shipAnchors(detail.payload), loadoutValues: await this.loadoutFor(detail.payload, cohort) } : {}),
     };
   }

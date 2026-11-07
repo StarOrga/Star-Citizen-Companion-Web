@@ -117,7 +117,7 @@
   flex-direction: column;
 }
 // The Codex list stands left (the index it leads to keeps its area tree on the
-// left too), the values right; each scrollbar sits on the pane's outer side.
+// left too), the values right.
 .codex { left: var(--cx-gut); }
 .values { right: var(--cx-gut); }
 // The list needs its full height for title, tabs, wheel and foot: on a short
