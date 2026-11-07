@@ -62,7 +62,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       display: flex; flex-direction: column-reverse; align-items: flex-end; gap: var(--sc-space-2);
     }
     @media (max-width: 720px) {
-      .wrap { inset-inline-end: var(--sc-fab-inset, 16px); bottom: var(--sc-beta-fab-bottom, var(--sc-fab-clear-block, 96px)); }
+      .wrap { bottom: var(--sc-beta-fab-bottom, var(--sc-fab-clear-block, 96px)); }
     }
     .fab {
       display: inline-grid; place-items: center; width: var(--_d); height: var(--_d);

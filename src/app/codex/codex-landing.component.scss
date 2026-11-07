@@ -189,6 +189,7 @@
   :host(:not(.shell)) .landing { height: auto; }
   .hero { order: 0; padding-inline: 0; }
   .title { font-size: 24px; }
+  .codex { height: auto; }
   .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   // Phone order (d-landing table-first): title, holotable, list, values, news mark.
   .news { order: 3; align-self: flex-end; }
