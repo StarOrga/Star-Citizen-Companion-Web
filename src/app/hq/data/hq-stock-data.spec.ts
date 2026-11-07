@@ -173,6 +173,36 @@ describe('patch feed', () => {
     expect(feed.patchHit()).toBeNull();
     expect(svc.error()).toBeTruthy();
   });
+
+  it('shell beta: the variant id opens the HQ ship page with that variant', async () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
+    try {
+      const rpc = jasmine.createSpy('rpc').and.resolveTo({ data: patch, error: null });
+      TestBed.configureTestingModule({
+        providers: [
+          provideTranslateService({ fallbackLang: 'en' }),
+          { provide: SupabaseClientProvider, useValue: { client: { rpc } } },
+          { provide: AuthService, useValue: { user: signal<{ id: string } | null>(null) } },
+          {
+            provide: HqOwnershipService,
+            useValue: {
+              ensureLoaded: async () => undefined,
+              configById: (id: string) => (id === 'sh1' ? { id: 'sh1', hangarShipId: 'hs1' } : null),
+              index: signal(new Map([['AEGS_Gladius', { ship: { id: 'hs1', shipClassName: 'AEGS_Gladius' } }]])),
+            },
+          },
+        ],
+      });
+      const svc = TestBed.inject(HqPatchService);
+      (TestBed.inject(AuthService).user as ReturnType<typeof signal<{ id: string } | null>>).set({ id: 'u1' });
+      await svc.load();
+      const hit = TestBed.inject(HqStartFeedService).patchHit();
+      expect(hit?.link).toEqual(['/hq/hangar', 'hs1']);
+      expect(hit?.linkQuery).toEqual({ v: 'sh1' });
+    } finally {
+      localStorage.removeItem('sc.beta');
+    }
+  });
 });
 
 describe('parsePreviousSnapshot', () => {

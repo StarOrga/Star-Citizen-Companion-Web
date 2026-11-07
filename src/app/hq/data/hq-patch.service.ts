@@ -13,8 +13,8 @@ import type { HqFleetPatch } from './hq-db.types';
  * is the first line; a line without a set stays plain text in the hero.
  *
  * A ship set's `set_id` is a VARIANT (config) id, not a hangar ship id: `variantLink` turns it into
- * that variant on the ship's personal Codex view. A variant the reader's index does not know falls
- * back to the hangar list — never to the `/hq/hangar/:id` redirect, which looks up ship ids.
+ * that variant on the ship (HQ page under the shell beta, else its personal Codex view). A variant the reader's index does not know falls
+ * back to the hangar list — never to `/hq/hangar/:id`, which looks up ship ids.
  */
 export function mapPatchHit(
   patch: HqFleetPatch | null,
