@@ -13,7 +13,6 @@ import {
   suppliesCacheKey,
   supplyQtyText,
 } from './hq-supplies.service';
-import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 
 function serverRow(id: string, patch: Partial<HqSupplyRow> = {}): HqSupplyRow {
   return {
@@ -32,8 +31,6 @@ describe('HqSuppliesService', () => {
 
   /** Ids whose upsert the (fake) server trigger rejects as stale: it keeps its row and returns nothing. */
   let rejectIds: Set<string>;
-  let confirmAnswer = true;
-  let confirmCalls = 0;
   const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 
   const answer = (call: FakeCall): FakeResult => {
@@ -72,7 +69,6 @@ describe('HqSuppliesService', () => {
       providers: [
         fake.provider,
         { provide: AuthService, useValue: { user } },
-        { provide: ScConfirmService, useValue: { confirm: async () => (confirmCalls++, confirmAnswer) } },
       ],
     });
     const s = TestBed.inject(HqSuppliesService);
@@ -91,8 +87,6 @@ describe('HqSuppliesService', () => {
     server = [];
     failPush = false;
     rejectIds = new Set();
-    confirmAnswer = true;
-    confirmCalls = 0;
     clearStorage();
   });
   afterEach(clearStorage);
@@ -187,28 +181,6 @@ describe('HqSuppliesService', () => {
     expect(s.items().map((i) => i.id)).toEqual(['b']);
   });
 
-  it('imports the old local list after sign-in only once the user confirms, then removes the key', async () => {
-    localStorage.setItem(SUPPLIES_STORAGE_KEY, JSON.stringify([{ id: 'old1', name: 'Old shield', qty: 2, done: true }]));
-    const s = make();
-    await flush();
-    await s.sync();
-    expect(confirmCalls).toBe(1);
-    expect(localStorage.getItem(SUPPLIES_STORAGE_KEY)).toBeNull();
-    expect(server.map((r) => [r.id, r.name, r.qty, r.done])).toEqual([['old1', 'Old shield', 2, true]]);
-    expect(s.items()[0].name).toBe('Old shield');
-  });
-
-  it('keeps the old local list out of the account when the user declines', async () => {
-    confirmAnswer = false;
-    localStorage.setItem(SUPPLIES_STORAGE_KEY, JSON.stringify([{ id: 'old1', name: 'Old shield', qty: 2, done: true }]));
-    const s = make();
-    await flush();
-    await s.sync();
-    expect(s.items()).toEqual([]);
-    expect(server).toEqual([]);
-    expect(localStorage.getItem(SUPPLIES_STORAGE_KEY)).not.toBeNull();
-  });
-
   it('caches per user: a second account on the same browser never sees the first one\'s lines', async () => {
     const s = make();
     s.add('Mine', 1);
@@ -270,15 +242,6 @@ describe('HqSuppliesService', () => {
     expect(pull.chain.filter(([m]) => m === 'order').map(([, a]) => a[0])).toEqual(['synced_at', 'id']);
     expect(chainArgs(pull, 'or')![0]).toBe('synced_at.gt.2026-11-01T10:00:05.000Z');
     expect(s.items().map((i) => i.id).sort()).toEqual(['a', 'b']);
-  });
-
-  it('signed out it still works from the old local key', () => {
-    localStorage.setItem(SUPPLIES_STORAGE_KEY, '{not json');
-    expect(make(false).items()).toEqual([]);
-    const s = make(false);
-    s.add('Local', 1);
-    expect(JSON.parse(localStorage.getItem(SUPPLIES_STORAGE_KEY)!).length).toBe(1);
-    expect(fake.calls.length).toBe(0);
   });
 
   describe('live agent API', () => {
@@ -397,17 +360,5 @@ describe('HqSuppliesService', () => {
       expect(by('d').amount).toBeNull();
     });
 
-    it('the signed-out list and its import into an account keep amount, unit and blueprint link', async () => {
-      const s0 = make(false);
-      s0.addLine('Agricium', 1, { amount: 0.36, unit: 'scu', forClassName: 'BP_X', className: 'Agricium' });
-      const stored = JSON.parse(localStorage.getItem(SUPPLIES_STORAGE_KEY)!);
-      expect([stored[0].amount, stored[0].unit, stored[0].forClassName]).toEqual([0.36, 'scu', 'BP_X']);
-      const s = make();
-      await flush();
-      await s.sync();
-      expect(confirmCalls).toBe(1);
-      expect(server.map((r) => [r.name, r.amount, r.unit, r.for_class_name])).toEqual([['Agricium', 0.36, 'scu', 'BP_X']]);
-      expect(s.items()[0].amount).toBe(0.36);
-    });
   });
 });

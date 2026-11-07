@@ -31,6 +31,8 @@ export interface HqSupplyRow {
   unit?: 'pcs' | 'scu' | null;
   /** Class name of the blueprint this material line was added for. */
   for_class_name?: string | null;
+  /** hq_supply_packages.id (migration 20261107190100); null = a loose line. */
+  package_id?: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -46,6 +48,8 @@ export interface HqEinsatzRow {
   status: 'planned' | 'active' | 'done' | 'archived';
   planned_at: string | null;
   start_location: string | null;
+  /** hq_supply_packages.id (migration 20261107190100). */
+  package_id?: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -201,4 +205,19 @@ export interface HqStats {
   crimestat: { total: number; series: HqStatsPoint[] };
   refinery: { total: number; series: HqStatsPoint[] };
   blueprints: { total: number; series: HqStatsPoint[] };
+}
+
+/** hq_supply_packages - a Nachschub. Sync table like hq_supplies. */
+export interface HqSupplyPackageRow {
+  user_id: string;
+  id: string;
+  name: string;
+  status: 'active' | 'archived';
+  slot: number | null;
+  snapshot: Record<string, number>;
+  archived_at: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  synced_at: string;
 }

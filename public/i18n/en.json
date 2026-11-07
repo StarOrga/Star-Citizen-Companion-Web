@@ -5517,11 +5517,7 @@
       "forSet": "for set {{name}}",
       "forBlueprint": "for blueprint {{name}}",
       "wanted": "Want to get",
-      "wantedAria": "Mark {{name}} as wanted",
-      "importTitle": "Add the list from this browser?",
-      "importMessage": "This browser holds a supplies list from before you signed in ({{count}} lines). Add it to your account? On a shared browser it may belong to someone else.",
-      "importConfirm": "Add to my account",
-      "importCancel": "Not now"
+      "wantedAria": "Mark {{name}} as wanted"
     },
     "einsatz": {
       "single": "Op",
