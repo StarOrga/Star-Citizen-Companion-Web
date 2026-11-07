@@ -5,6 +5,7 @@ import { FriendsComponent } from './friends.component';
 import { SocialCompareComponent } from './social-compare.component';
 import { SocialEinsatzComponent } from './social-einsatz.component';
 import { SocialGroupsComponent } from './social-groups.component';
+import { SocialTeamsComponent } from './social-teams.component';
 import { SocialInviteBoxComponent } from './social-invite-box.component';
 import { SocialVisibilityDialogComponent } from './social-visibility-dialog.component';
 import { SocialService } from './social.service';
@@ -26,6 +27,7 @@ export const SOCIAL_NOTICE_KEY = 'sc.social.visibility-notice.dismissed';
     FriendsComponent,
     SocialInviteBoxComponent,
     SocialGroupsComponent,
+    SocialTeamsComponent,
     SocialCompareComponent,
     SocialEinsatzComponent,
     SocialVisibilityDialogComponent,
@@ -58,6 +60,7 @@ export const SOCIAL_NOTICE_KEY = 'sc.social.visibility-notice.dismissed';
       <sc-friends (inviteRequested)="invite()?.reveal()" />
       <sc-social-invite-box />
       <sc-social-groups />
+      <sc-social-teams />
       <sc-social-einsatz />
       <sc-social-compare />
 

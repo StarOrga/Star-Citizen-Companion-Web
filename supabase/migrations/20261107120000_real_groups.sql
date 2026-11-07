@@ -189,7 +189,7 @@ begin
     raise exception 'invalid_name' using errcode = '22023';
   end if;
   if (select count(*) from public.sc_group_members m where m.user_id = caller) >= 20 then
-    raise exception 'group_limit' using errcode = '22023';
+    raise exception 'team_limit' using errcode = '22023';
   end if;
   v_code := public.sc_group_new_code();
   insert into public.sc_groups (name, invite_code, created_by)
@@ -225,10 +225,10 @@ begin
     return v_group;
   end if;
   if (select count(*) from public.sc_group_members m where m.user_id = caller) >= 20 then
-    raise exception 'group_limit' using errcode = '22023';
+    raise exception 'team_limit' using errcode = '22023';
   end if;
   if (select count(*) from public.sc_group_members m where m.group_id = v_group) >= 50 then
-    raise exception 'group_full' using errcode = '22023';
+    raise exception 'team_full' using errcode = '22023';
   end if;
   insert into public.sc_group_members (group_id, user_id, role) values (v_group, caller, 'member')
   on conflict do nothing;
@@ -349,9 +349,9 @@ $$;
 
 -- Members of one group, for members only (empty for everybody else).
 create or replace function public.list_group_members(p_group uuid)
-returns table (user_id uuid, display_name text, username citext, role text, joined_at timestamptz)
+returns table (user_id uuid, display_name text, username citext, role text, joined_at timestamptz, is_me boolean)
 language sql security definer set search_path = public stable as $$
-  select m.user_id, p.display_name, p.username, m.role, m.joined_at
+  select m.user_id, p.display_name, p.username, m.role, m.joined_at, m.user_id = auth.uid()
   from public.sc_group_members m
   join public.profiles p on p.id = m.user_id
   where public.is_approved()

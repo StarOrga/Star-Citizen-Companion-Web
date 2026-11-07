@@ -5,6 +5,7 @@ import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { edgeLabel } from './friends.types';
 import { SocialService } from './social.service';
+import { TeamsService } from './teams.service';
 import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from './social.types';
 
 /**
@@ -34,14 +35,23 @@ import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from
       <h3>{{ 'social.einsatz.mine' | translate }}</h3>
       @if (einsatzOptions().length === 0) {
         <p class="empty-inline">{{ 'social.einsatz.noneOwn' | translate }}</p>
-      } @else if (friendOptions().length === 0) {
+      } @else if (friendOptions().length === 0 && teamOptions().length === 0) {
         <p class="empty-inline">{{ 'social.einsatz.noFriends' | translate }}</p>
       } @else {
         <div class="pick">
           <sc-select [options]="einsatzOptions()" [value]="einsatzId()" [allowEmpty]="false"
                      [ariaLabel]="'social.einsatz.pickEinsatz' | translate" (valueChange)="pickEinsatz($event)" />
-          <sc-select [options]="friendOptions()" [value]="friendId()" [allowEmpty]="false"
-                     [ariaLabel]="'social.einsatz.pickFriend' | translate" (valueChange)="friend.set($event)" />
+          @if (friendOptions().length > 0 && teamOptions().length > 0) {
+            <sc-select [options]="audienceOptions" [value]="audienceKind()" [allowEmpty]="false"
+                       [ariaLabel]="'social.einsatz.pickAudience' | translate" (valueChange)="audience.set($event === 'team' ? 'team' : 'friend')" />
+          }
+          @if (audienceKind() === 'team') {
+            <sc-select [options]="teamOptions()" [value]="teamId()" [allowEmpty]="false"
+                       [ariaLabel]="'social.einsatz.pickGroup' | translate" (valueChange)="team.set($event)" />
+          } @else {
+            <sc-select [options]="friendOptions()" [value]="friendId()" [allowEmpty]="false"
+                       [ariaLabel]="'social.einsatz.pickFriend' | translate" (valueChange)="friend.set($event)" />
+          }
           <button type="button" scAction tier="primary" [busy]="social.busy()" (click)="invite()">
             {{ 'social.einsatz.invite' | translate }}
           </button>
@@ -149,6 +159,7 @@ import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from
 export class SocialEinsatzComponent implements OnInit {
   readonly social = inject(SocialService);
   private readonly hq = inject(HqEinsatzService);
+  private readonly teams = inject(TeamsService);
 
   readonly answers = RSVP_ANSWERS;
   readonly slotsMax = SLOTS_MAX;
@@ -169,6 +180,24 @@ export class SocialEinsatzComponent implements OnInit {
   readonly einsatzId = computed(() => this.einsatz() ?? this.einsatzOptions()[0]?.value ?? null);
   readonly friendId = computed(() => this.friend() ?? this.friendOptions()[0]?.value ?? null);
 
+  // Audience: one friend, or one real group (#903). Same invite path, same button.
+  readonly audience = signal<'friend' | 'team'>('friend');
+  readonly team = signal<string | null>(null);
+  readonly audienceOptions: ScSelectOption[] = [
+    { value: 'friend', labelKey: 'social.einsatz.audienceFriend' },
+    { value: 'team', labelKey: 'social.einsatz.audienceGroup' },
+  ];
+  readonly teamOptions = computed<ScSelectOption[]>(() =>
+    this.teams.teams().map((t) => ({ value: t.id, labelKey: '', label: t.name }) as ScSelectOption),
+  );
+  readonly teamId = computed(() => this.team() ?? this.teamOptions()[0]?.value ?? null);
+  /** Falls back to the only audience kind that has anything to pick. */
+  readonly audienceKind = computed<'friend' | 'team'>(() => {
+    if (this.friendOptions().length === 0) return 'team';
+    if (this.teamOptions().length === 0) return 'friend';
+    return this.audience();
+  });
+
   ngOnInit(): void {
     this.reload();
   }
@@ -176,6 +205,7 @@ export class SocialEinsatzComponent implements OnInit {
   reload(): void {
     void this.social.loadCompare();
     void this.social.loadSharedEinsaetze();
+    void this.teams.load();
   }
 
   async pickEinsatz(id: string | null): Promise<void> {
@@ -193,9 +223,10 @@ export class SocialEinsatzComponent implements OnInit {
 
   async invite(): Promise<void> {
     const id = this.einsatzId();
-    const friendId = this.friendId();
-    if (!id || !friendId) return;
-    this.invited.set(await this.social.inviteToEinsatz(id, { friendId }));
+    const to = this.audienceKind() === 'team' ? { teamId: this.teamId() } : { friendId: this.friendId() };
+    const target = 'teamId' in to ? to.teamId : to.friendId;
+    if (!id || !target) return;
+    this.invited.set(await this.social.inviteToEinsatz(id, 'teamId' in to ? { teamId: target } : { friendId: target }));
     await this.loadOwnCrew();
   }
 

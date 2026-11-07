@@ -115,7 +115,7 @@ export function isEmptyOverride(override: VisibilityOverride): boolean {
 export type FriendShareKind = 'einsatz' | 'ship_config';
 
 /** Who a share goes to: exactly one friend or one group. */
-export type ShareAudience = { friendId: string } | { groupId: string };
+export type ShareAudience = { friendId: string } | { groupId: string } | { teamId: string };
 
 /** `created` on the first share, `duplicate` when that audience already has it. */
 export type ShareVerdict = 'created' | 'duplicate';
@@ -389,9 +389,68 @@ export function socialErrorKey(message: string | null | undefined): string | nul
     ['invalid_answer', 'invalidAnswer'],
     ['not_friends', 'notFriends'],
     ['invalid_target', 'invalidTarget'],
+    ['team_full', 'teamFull'],
+    ['team_limit', 'teamLimit'],
+    ['last_owner', 'lastOwner'],
+    ['invalid_name', 'teamInvalidName'],
+    ['invalid_role', 'teamInvalidRole'],
+    ['forbidden', 'teamForbidden'],
+    ['rate_limited', 'teamRateLimited'],
     ['account_suspended', 'accountSuspended'],
     ['not approved', 'notApproved'],
   ];
   const hit = known.find(([c]) => code.includes(c));
   return hit ? `social.error.${hit[1]}` : null;
+}
+
+// --- Real groups (#903) ------------------------------------------------------
+
+/** Mirrors `sc_group_members.role`. */
+export const TEAM_ROLES = ['owner', 'admin', 'member'] as const;
+export type TeamRole = (typeof TEAM_ROLES)[number];
+
+/** Mirrors the `sc_groups.name` check. */
+export const TEAM_NAME_MAX = 40;
+
+/** One row of `list_my_groups()`. The code is only present for an owner or admin. */
+export interface Team {
+  id: string;
+  name: string;
+  role: TeamRole;
+  member_count: number;
+  joined_at: string;
+  invite_code: string | null;
+  invite_expires_at: string | null;
+}
+
+/** One row of `list_group_members()`: what a member learns about another member, nothing more. */
+export interface TeamMember {
+  user_id: string;
+  display_name: string | null;
+  username: string;
+  role: TeamRole;
+  joined_at: string;
+  is_me: boolean;
+}
+
+/** One row of `list_einsatz_group_shares()`. */
+export interface TeamEinsatzShare {
+  group_id: string;
+  name: string;
+  created_at: string;
+}
+
+/** Shows a stored code as XXXX-XXXX-XXXX-XXXX. */
+export function formatTeamCode(code: string): string {
+  return (code.match(/.{1,4}/g) ?? []).join('-');
+}
+
+/** Owners and admins may rotate the code; only owners promote, demote and delete. */
+export function canManageInvite(role: TeamRole): boolean {
+  return role === 'owner' || role === 'admin';
+}
+
+/** May `me` remove `other`? Mirrors remove_group_member(); never oneself. */
+export function canRemoveMember(me: TeamRole, other: TeamRole): boolean {
+  return me === 'owner' || (me === 'admin' && other === 'member');
 }
