@@ -83,3 +83,34 @@ Each builder returns one row per line it owns: item, `done` / `partial` / `not d
 ## Independent check
 
 Before the final report a `devops:qax` that built nothing compares this checklist with the diff and with screenshots of the real result. Its verdict wins over the builders' tables. Every `partial` or `not done` line becomes a shortfall.
+
+---
+
+# Round 2 (submission v2, `action: implement`)
+
+- Payload: [20261107-0200-backlog-entscheidungen-decisions-r2.json](../../20261107-0200-backlog-entscheidungen-decisions-r2.json)
+- Round: [rounds/02.html](../rounds/02.html)
+
+## User notes, verbatim
+
+- d-em2: "und forsche da nochmal online gut nach, ob das so funktioniert!? ERkul.games macht das ja uach irgendwie?! Vergleiche dort schiffs em werte mit deinen berechneten. Und generell hängen die max em ir werte doch auch an der konfiguration der komponten und der energieverteilung!?"
+- d-sil: "ich habe dcen data uploader geschlossen,k du kannst also direkt vollgas geben hier"
+- General comment: none.
+
+## Decisions as submitted
+
+| Decision | Chosen option | Recommended | Deviates |
+|---|---|---|---|
+| d-em2, #967 | `model`: "Idle-EM aus Komponentenwerten berechnen" | rename | **yes** |
+| d-names, #938 | `all`: "Alle Namen für alle Eingeladenen zeigen" | counts | **yes** |
+| d-sil, #842 | `run`: "Ja, mit niedriger Priorität laufen lassen", note overrides the priority: full speed | run | no |
+
+## Checklist round 2
+
+- [ ] M1 Research how erkul.games and other community tools compute ship EM and IR, how power allocation and component configuration enter, and whether idle and maximum are defined. Sources cited.
+- [ ] M2 Compare our computed EM for several ships with erkul's numbers for the same loadout, with the differences explained.
+- [ ] M3 Build the EM model: idle and maximum (and the current-allocation value) from component states and power allocation, labelled as our own model on the ship page and in the rank comparison, documented with its formula.
+- [ ] N1 Every invitee of a shared Einsatz sees who accepted, who declined and who took which slot, by name. Blocks still hide a person in both directions.
+- [ ] N2 The migration for N1 runs as a dry run with its tests before it is applied.
+- [ ] L1 The full silhouette build runs on the real `Data.p4k` at full speed, and every ship that fails is recorded with its reason.
+- [ ] L2 #842 closes or keeps open exactly the failures L1 found.
