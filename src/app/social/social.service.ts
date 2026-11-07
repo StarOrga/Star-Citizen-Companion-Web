@@ -208,10 +208,23 @@ export class SocialService {
   // --- Shares --------------------------------------------------------------
 
   async shareEinsatz(einsatzId: string, to: ShareAudience): Promise<ShareVerdict | null> {
+    if ('teamId' in to) {
+      return this.act<ShareVerdict | null>('share_einsatz_with_group', { p_einsatz: einsatzId, p_group: to.teamId }, null);
+    }
     return this.act<ShareVerdict | null>('share_einsatz', { p_einsatz: einsatzId, ...audienceArgs(to) }, null);
   }
 
-  async shareShipConfig(configId: string, to: ShareAudience): Promise<ShareVerdict | null> {
+  /**
+   * Invites a friend into one of the caller's Einsatz as the shared goal: the
+   * friend gets read access (the share) and can then answer and take a crew
+   * slot. The single entry point, so a group audience later is one more case
+   * of {@link ShareAudience}, not a second path.
+   */
+  async inviteToEinsatz(einsatzId: string, to: ShareAudience): Promise<ShareVerdict | null> {
+    return this.shareEinsatz(einsatzId, to);
+  }
+
+  async shareShipConfig(configId: string, to: Exclude<ShareAudience, { teamId: string }>): Promise<ShareVerdict | null> {
     return this.act<ShareVerdict | null>('share_ship_config', { p_config: configId, ...audienceArgs(to) }, null);
   }
 
@@ -322,7 +335,7 @@ export class SocialService {
   }
 }
 
-function audienceArgs(to: ShareAudience): { p_friend: string | null; p_group: string | null } {
+function audienceArgs(to: Exclude<ShareAudience, { teamId: string }>): { p_friend: string | null; p_group: string | null } {
   return 'friendId' in to ? { p_friend: to.friendId, p_group: null } : { p_friend: null, p_group: to.groupId };
 }
 

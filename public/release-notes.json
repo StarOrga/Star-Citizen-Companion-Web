@@ -1,7 +1,69 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.223.0",
+  "current": "0.224.0",
   "releases": [
+    {
+      "version": "0.224.0",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Planen shows how far each blueprint is: one card per blueprint counts the materials in Nachschub that are ready (#895)."
+            },
+            {
+              "title": "",
+              "text": "HQ Planen lists commodity prices per terminal from UEX, labelled as a community source with their age (#902)."
+            },
+            {
+              "title": "",
+              "text": "Groups on the Social page: create a group, invite by code, roles, leave, remove and delete; an Einsatz can be shared with a group. Blocks are respected everywhere (#903)."
+            },
+            {
+              "title": "",
+              "text": "A shared Einsatz shows every invitee who accepted, who declined and who took which slot, by name (#938)."
+            },
+            {
+              "title": "",
+              "text": "Ship signatures come from a model of the power allocation: idle, current, maximum and quantum EM and IR, labelled as a model with its formula (#967)."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "\"EM max\" was the value at default allocation; it is now called current, and the maximum is a real maximum (#967)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.223.1",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing: the 3D ship in the hologram fills its box again instead of sitting small, low and cut off."
+            },
+            {
+              "title": "",
+              "text": "Codex landing: the bracket beside the hologram is exactly as tall as the callout column on the left."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.223.0",
       "date": "2026-11-07",

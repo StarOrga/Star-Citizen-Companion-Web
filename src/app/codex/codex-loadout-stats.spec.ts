@@ -116,7 +116,7 @@ describe('codex-loadout-stats — computeKpiSheet', () => {
     });
     expect(sheet.ir).toBeNull();
     expect(sheet.emIdle).toBeNull();
-    expect(sheet.emMax).toBeNull();
+    expect(sheet.emLoad).toBeNull();
   });
 });
 
@@ -198,7 +198,9 @@ describe('codex-loadout-stats — buildKpiCells', () => {
     spool: null,
     ir: null,
     emIdle: null,
+    emLoad: null,
     emMax: null,
+    emQuantum: null,
     crossSection: null,
     ...over,
   });

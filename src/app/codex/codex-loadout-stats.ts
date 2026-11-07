@@ -94,7 +94,9 @@ const EMPTY_SHEET: KpiSheet = {
   spool: null,
   ir: null,
   emIdle: null,
+  emLoad: null,
   emMax: null,
+  emQuantum: null,
   crossSection: null,
 };
 
@@ -221,7 +223,7 @@ export function computeKpiSheet(
   const shipStats = ship?.stats ?? undefined;
   sheet.ir = usable(findStat(shipStats, 'signature', IR_FIELDS));
   sheet.emIdle = usable(findStat(shipStats, 'signature', EM_IDLE_FIELDS));
-  sheet.emMax = usable(findStat(shipStats, 'signature', EM_MAX_FIELDS));
+  sheet.emLoad = usable(findStat(shipStats, 'signature', EM_MAX_FIELDS));
   sheet.crossSection = crossSectionMax(crossSectionAxes(shipStats));
 
   // hullHp, effectiveHp and cargo have no source in the 4.9.0 extract — stay
@@ -252,7 +254,9 @@ const LOWER_IS_BETTER: ReadonlySet<KpiKey> = new Set<KpiKey>([
   'spool',
   'ir',
   'emIdle',
+  'emLoad',
   'emMax',
+  'emQuantum',
   'crossSection',
 ]);
 
@@ -316,7 +320,9 @@ const KPI_META: Record<KpiKey, KpiMeta> = {
   // (see the CROSS_SECTION_*_FIELDS comment above) — distinct gap wording.
   ir: { labelKey: 'codex.kpi.ir', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
   emIdle: { labelKey: 'codex.kpi.emIdle', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
+  emLoad: { labelKey: 'codex.kpi.emLoad', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
   emMax: { labelKey: 'codex.kpi.emMax', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
+  emQuantum: { labelKey: 'codex.kpi.emQuantum', format: 'int', gapKey: 'codex.summary.gap.noEmissionModel' },
   crossSection: { labelKey: 'codex.kpi.crossSection', format: 'int', gapKey: 'codex.summary.gap.noSignature' },
 };
 

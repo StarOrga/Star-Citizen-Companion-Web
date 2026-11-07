@@ -15,6 +15,7 @@ import {
 } from './codex-rank';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { modelHintKey } from './codex-em-model';
 
 /** The strings that name what is being compared. A ship page passes nothing. */
 export interface RankCardCopy {
@@ -229,7 +230,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
           <ul class="bar-list">
             @for (a of result()!.bars; track a.key) {
               <li class="bar-row">
-                <span class="bar-label">{{ a.labelKey | translate }}</span>
+                <span class="bar-label" [scTooltip]="modelHint(a.key) ? (modelHint(a.key)! | translate) : null">{{ a.labelKey | translate }}</span>
                 <span class="bar-track">
                   @if (a.percentile != null) {
                     <span class="bar-fill" [class.weak]="a.weak" [style.width.%]="a.percentile"></span>
@@ -477,6 +478,8 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
   `],
 })
 export class CodexRankCardComponent {
+  /** #967: IR / EM axes are our model — their label carries the formula. */
+  protected readonly modelHint = modelHintKey;
   readonly shipName = input.required<string>();
   readonly sizeClass = input<number | null>(null);
   readonly result = input<RankResult<string> | null>(null);

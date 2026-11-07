@@ -510,8 +510,11 @@ describe('cooler units (590230e3, F1d)', () => {
     const cut = computePowerSheet({ occupants: twoCoolers, cutGroups: ['cooler1'], previous: auto });
     expect(col(cut, 'cooler1').state).toBe('off');
     expect(col(cut, 'cooler2').state).toBe('active');
-    // only the cut unit's signature leaves the IR sum: one UltraFlow = 7130
-    expect(cut.facts.find((f) => f.key === 'ir')!.delta).toBe(-7130);
+    // only the cut unit's signature leaves the IR sum — at the share of its
+    // segments the auto allocation gave it (#967), at most one UltraFlow = 7130
+    const irDelta = cut.facts.find((f) => f.key === 'ir')!.delta!;
+    expect(irDelta).toBeLessThan(0);
+    expect(irDelta).toBeGreaterThanOrEqual(-7130);
     // the ship-wide coolant balance is untouched by the split
     expect(auto.coolant.total).toBe(68);
   });
@@ -549,17 +552,20 @@ describe('cooler units (590230e3, F1d)', () => {
 
 describe('withPowerSignature — the ranking sheet takes the signature of the strip', () => {
   const baseSheet = computeKpiSheet(nomad, null);
-  it('fills ir and emMax from the same power model the strip prints, never anything else', () => {
+  it('fills ir and emLoad from the same power model the strip prints, never anything else', () => {
     const fact = (key: string) => computePowerSheet({ occupants: nomad, shipStats }).facts.find((f) => f.key === key)?.value ?? null;
-    const out = withPowerSignature({ ...baseSheet, ir: null, emMax: null, emIdle: null }, nomad, shipStats, null);
+    const out = withPowerSignature({ ...baseSheet, ir: null, emLoad: null, emIdle: null }, nomad, shipStats, null);
     expect(out.ir).toBe(fact('ir'));
-    expect(out.emMax).toBe(fact('em'));
-    expect(out.emIdle).toBeNull(); // no source in the model: stays a gap
+    expect(out.emLoad).toBe(fact('em'));
+    // #967: idle / max / quantum now come from the EM model
+    expect(out.emIdle).toBeGreaterThan(0);
+    expect(out.emMax!).toBeGreaterThanOrEqual(out.emIdle!);
+    expect(out.emQuantum).not.toBeNull();
   });
   it('leaves a value the sheet already has and a ship without emitters at null', () => {
-    expect(withPowerSignature({ ...baseSheet, ir: 5, emMax: 6 }, nomad, shipStats, null).ir).toBe(5);
-    const none = withPowerSignature({ ...baseSheet, ir: null, emMax: null }, [], null, null);
+    expect(withPowerSignature({ ...baseSheet, ir: 5, emLoad: 6 }, nomad, shipStats, null).ir).toBe(5);
+    const none = withPowerSignature({ ...baseSheet, ir: null, emLoad: null }, [], null, null);
     expect(none.ir).toBeNull();
-    expect(none.emMax).toBeNull();
+    expect(none.emLoad).toBeNull();
   });
 });

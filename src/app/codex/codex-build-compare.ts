@@ -28,7 +28,7 @@ export const PERSPECTIVE_KPIS: Readonly<Record<Perspective, readonly KpiKey[]>> 
   offensive: ['alpha', 'burstDps', 'sustainedDps', 'missiles'],
   defensive: ['shieldHp', 'shieldRegen', 'hullHp', 'effectiveHp', 'armorHp'],
   movement: ['scm', 'maxSpeed', 'boost', 'agility', 'quantumSpeed', 'quantumRange', 'spool', 'mass', 'cargo'],
-  signature: ['ir', 'emIdle', 'emMax', 'crossSection'],
+  signature: ['ir', 'emIdle', 'emLoad', 'crossSection'],
 };
 
 /** Every KPI key the four perspectives cover — in perspective order. */

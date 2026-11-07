@@ -288,13 +288,22 @@ export function buildShipFactGroups(
         // upload" one.
         { labelKey: 'codex.kpi.ir', value: num(sheet.ir, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
         { labelKey: 'codex.kpi.emIdle', value: num(sheet.emIdle, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
+        { labelKey: 'codex.kpi.emLoad', value: num(sheet.emLoad, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
         { labelKey: 'codex.kpi.emMax', value: num(sheet.emMax, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
+        { labelKey: 'codex.kpi.emQuantum', value: num(sheet.emQuantum, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
         // The three cross-section axes shown honestly (x/y/z), not
         // collapsed into one number — the KPI band uses the max of the
         // three for its single comparable cell (see crossSectionMax()).
         { labelKey: 'codex.kpi.crossSection', value: crossSectionAxesLabel, gapKey: 'codex.summary.gap.noSignature' },
       ],
-      note: crossSectionAxesLabel != null ? t('codex.analysis.ship.crossSectionNote') : null,
+      // #967: IR and EM are our own model, never game values — the note says so.
+      note:
+        [
+          sheet.emIdle != null || sheet.emLoad != null || sheet.ir != null ? t('codex.kpi.modelNote') : null,
+          crossSectionAxesLabel != null ? t('codex.analysis.ship.crossSectionNote') : null,
+        ]
+          .filter((n): n is string => n != null)
+          .join(' ') || null,
     },
     {
       titleKey: 'codex.analysis.ship.hull',

@@ -28,7 +28,9 @@ const EMPTY_SHEET: KpiSheet = {
   spool: null,
   ir: null,
   emIdle: null,
+  emLoad: null,
   emMax: null,
+  emQuantum: null,
   crossSection: null,
 };
 

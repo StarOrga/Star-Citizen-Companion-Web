@@ -86,6 +86,11 @@ verify_jwt = false
 # and never reaches the browser. No user data flows through this function.
 verify_jwt = false
 
+[functions.commodity-prices]
+# JWT verification OFF: public read-only commodity prices (UEX community data) for
+# HQ Planen (#902). Same UEX_API_TOKEN edge secret as uex-proxy; no user data.
+verify_jwt = false
+
 [functions.process-p4k]
 verify_jwt = true
 

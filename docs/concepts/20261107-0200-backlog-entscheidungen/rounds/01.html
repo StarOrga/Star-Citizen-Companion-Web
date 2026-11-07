@@ -1,0 +1,272 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-active data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Der Backlog-Lauf hat vier Issues gebaut und zwei als erledigt geschlossen. Sieben Issues sind offen geblieben, weil dort eine Produktentscheidung fehlt.</p>
+    <p data-briefing-why>Mit deinen Antworten kann der nächste Lauf diese Issues ohne Rückfragen bauen oder schließen.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"7","unit":"Fragen","label":"offen im Backlog"}'>7 Fragen</div>
+    <a data-briefing-topic="t-hq" data-share="43">Ziele und Handel</a>
+    <a data-briefing-topic="t-crew" data-share="29">Gemeinsam spielen</a>
+    <a data-briefing-topic="t-codex" data-share="28">Codex-Daten</a>
+    <p data-briefing-duration>≈ 4 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"7","unit":"Fragen","label":"offen im Backlog"}'></div></div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Ziele und Handel","value":3},{"label":"Gemeinsam spielen","value":2},{"label":"Codex-Daten","value":2}],"unit":"Fragen"}'></div><p>Jede Frage ist mit meiner Empfehlung vorbelegt. Wer nur auf Weiter drückt, übernimmt sie.</p></div>
+    </div>
+  </section>
+
+  <section id="t-hq" data-topic data-nav-label="Ziele und Handel">
+    <div data-alevel="2" data-title="Ziele und Handel">
+      <div data-slot="short">Drei Issues, und ein Teil davon gibt es inzwischen schon oder hat keine Daten.</div>
+      <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Events","label":"shop.purchase in der Datenbank"}'></div><p>Die Blueprint-Hälfte von #895 ist mit #972 gebaut. #900 und #902 setzen auf Kaufdaten auf, die bisher niemand hat.</p></div>
+    </div>
+    <section id="d-goals" data-nav-label="#895 HQ-Ziele" data-decision="d-goals" data-decision-mode="single" data-label="#895 HQ-Ziele" data-rec="progress" data-rec-why="die Zeilen und ihre Verknüpfung gibt es schon, es fehlt nur die Sicht darauf, und dafür braucht es keine neue Tabelle." data-applies-to="HQ Planen, Issue #895" data-finding="f-d-goals">
+      <p data-applies>Gilt für: HQ Planen, Issue #895</p>
+      <p data-situation>Seit #972 bringt ein Blueprint in Nachschub sein Material als eigene Zeilen mit, samt exakter SCU und Verknüpfung zum Blueprint. Damit ist der Kern von #895 für Blueprints gebaut.</p>
+      <h3 data-question>Was soll #895 jetzt noch liefern?</h3>
+      <p data-stakes>Ob Planen einen sichtbaren Grund bekommt oder eine zweite Liste.</p>
+      <div data-options>
+        <label data-opt="progress" data-recommended>
+          <input type="radio" name="dm-d-goals" value="progress" checked>
+          <span data-opt-label>Fortschritt pro Blueprint in Planen zeigen</span>
+          <span data-opt-consequence>Klein: eine Karte über den vorhandenen Zeilen, zum Beispiel 3 von 5 Materialien da. Keine Migration.</span>
+        </label>
+        <label data-opt="table">
+          <input type="radio" name="dm-d-goals" value="table">
+          <span data-opt-label>Eigene Ziele mit Tabelle bauen</span>
+          <span data-opt-consequence>Wie im Issue, auch für Schiffe und Items. Groß, und der Kaufpreis passt nicht in Nachschub: Dort gibt es keine aUEC-Einheit.</span>
+        </label>
+        <label data-opt="close">
+          <input type="radio" name="dm-d-goals" value="close">
+          <span data-opt-label>#895 schließen</span>
+          <span data-opt-consequence>Die Wunschliste ist das Ziel. Kostet nichts, aber Planen zeigt weiter keinen Fortschritt.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-goals-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-goals-none" value="">
+      <input type="hidden" name="dm-d-goals-hes" value="{&quot;ms&quot;:910850,&quot;revisits&quot;:1,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-goals-touched" value="1">
+      <input type="hidden" name="dm-d-goals-issue" value="">
+      <input type="hidden" name="dm-d-goals-epic" value="">
+      <div data-alevel="3" data-title="#895 HQ-Ziele">
+        <div data-slot="short">Blueprint-Material landet seit #972 automatisch in Nachschub.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"1 von 3","unit":"Zielarten","label":"schon über Nachschub abgedeckt"}'></div><p>Die Verknüpfung steht in `for_class_name`, geschrieben in `item-path.service.ts`. Offen sind nur Schiff- und Item-Ziele sowie die Anzeige des Fortschritts.</p></div>
+      </div>
+    </section>
+
+    <section id="d-runs" data-nav-label="#900 Trade Runs" data-decision="d-runs" data-decision-mode="single" data-label="#900 Trade Runs" data-rec="verify" data-rec-why="ohne ein echtes Event wäre jede Paarungsregel geraten, und ein einziger Handelslauf mit der neuen App klärt das." data-applies-to="HQ Statistik, Issue #900" data-finding="f-d-runs">
+      <p data-applies>Gilt für: HQ Statistik, Issue #900</p>
+      <p data-situation>In `hq_live_events` liegt bisher kein einziges `shop.purchase`, von keinem Konto. Ob ein Warenhandel überhaupt so ankommt und ob der Preis bei Mengen über 1 die Gesamtsumme ist, ist damit nicht belegt.</p>
+      <h3 data-question>Wie soll es mit den Trade Runs weitergehen?</h3>
+      <p data-stakes>Falsche Summen ergäben falsche Gewinne, die niemand bemerkt.</p>
+      <div data-options>
+        <label data-opt="verify" data-recommended>
+          <input type="radio" name="dm-d-runs" value="verify" checked>
+          <span data-opt-label>Erst einen echten Handelslauf aufzeichnen</span>
+          <span data-opt-consequence>Du handelst einmal mit der aktualisierten App, dann wird nach den echten Events gebaut. Bis dahin bleibt #900 offen.</span>
+        </label>
+        <label data-opt="fifo">
+          <input type="radio" name="dm-d-runs" value="fifo">
+          <span data-opt-label>Jetzt mit FIFO pro Ware bauen</span>
+          <span data-opt-consequence>Ältester Kauf wird zuerst verkauft, Restladung bleibt sichtbar. Die Annahme zum Preis kann sich als falsch erweisen.</span>
+        </label>
+        <label data-opt="sum">
+          <input type="radio" name="dm-d-runs" value="sum">
+          <span data-opt-label>Nur Summen pro Ware zeigen</span>
+          <span data-opt-consequence>Einkauf und Verkauf je Ware ohne einzelne Runs. Einfach, beantwortet aber nicht, welche Route sich lohnt.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-runs-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-runs-none" value="">
+      <input type="hidden" name="dm-d-runs-hes" value="{&quot;ms&quot;:45552,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-runs-touched" value="1">
+      <input type="hidden" name="dm-d-runs-issue" value="">
+      <input type="hidden" name="dm-d-runs-epic" value="">
+      <div data-alevel="3" data-title="#900 Trade Runs">
+        <div data-slot="short">Die Datenbank enthält keinen einzigen Kauf oder Verkauf.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Käufe","label":"bisher aufgezeichnet"}'></div><p>Der Vertrag `hq-live.md` hält selbst fest, dass der Preis gegen einen echten Kauf mit Menge über 1 noch nicht geprüft ist.</p></div>
+      </div>
+    </section>
+
+    <section id="d-routes" data-nav-label="#902 Handelsrouten" data-decision="d-routes" data-decision-mode="single" data-label="#902 Handelsrouten" data-rec="follow" data-rec-why="der einzige Vorteil gegenüber bestehenden Tools ist der Vergleich mit den eigenen Runs, und die gibt es erst nach #900." data-applies-to="HQ Planen, Issue #902" data-finding="f-d-routes">
+      <p data-applies>Gilt für: HQ Planen, Issue #902</p>
+      <p data-situation>Die Blockade ist weg: #901 ist geschlossen, UEX ist als gekennzeichnete Community-Quelle freigegeben. Das Issue sagt aber selbst, dass ein Planer ohne Vergleich mit den eigenen Runs nur UEX und SC Trade Tools nachbaut.</p>
+      <h3 data-question>Soll der Routenplaner auf die eigenen Runs warten?</h3>
+      <p data-stakes>Ohne eigene Runs fehlt der Grund, nicht gleich UEX zu öffnen.</p>
+      <div data-options>
+        <label data-opt="follow" data-recommended>
+          <input type="radio" name="dm-d-routes" value="follow">
+          <span data-opt-label>Erst nach #900 bauen</span>
+          <span data-opt-consequence>Der Marktvergleich entsteht auf echten eigenen Runs. Bis dahin passiert nichts an diesem Issue.</span>
+        </label>
+        <label data-opt="prices">
+          <input type="radio" name="dm-d-routes" value="prices" checked>
+          <span data-opt-label>Preis-Service sofort bauen</span>
+          <span data-opt-consequence>Warenpreise mit Quelle und Alter über einen Edge-Proxy. Nützlich, aber zunächst nur eine Kopie von UEX.</span>
+        </label>
+        <label data-opt="close">
+          <input type="radio" name="dm-d-routes" value="close">
+          <span data-opt-label>#902 schließen und auf UEX verlinken</span>
+          <span data-opt-consequence>Kein Aufwand, und HQ bekommt keinen eigenen Marktvergleich.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-routes-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-routes-none" value="">
+      <input type="hidden" name="dm-d-routes-hes" value="{&quot;ms&quot;:168198,&quot;revisits&quot;:2,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-routes-touched" value="1">
+      <input type="hidden" name="dm-d-routes-issue" value="">
+      <input type="hidden" name="dm-d-routes-epic" value="">
+      <div data-alevel="3" data-title="#902 Handelsrouten">
+        <div data-slot="short">Der Vergleich mit eigenen Runs ist der einzige Vorteil.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"3","unit":"Teile","label":"Preise, Routenmodell, Vergleich"}'></div><p>Der vorhandene `UexShopService` kennt nur Item- und Schiffspreise, keine Warenpreise und kein Alter pro Preis. Das Issue wäre in drei Teile zu zerlegen.</p></div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-crew" data-topic data-nav-label="Gemeinsam spielen">
+    <div data-alevel="2" data-title="Gemeinsam spielen">
+      <div data-slot="short">Beide Issues überschneiden sich mit dem, was die Social-Seite schon kann.</div>
+      <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"4","unit":"Tabellen","label":"für Teilen und Crew schon vorhanden"}'></div><p>Freundesgruppen, geteilte Einsätze, Crew-Plätze und Zusagen gibt es bereits. Die Frage ist, ob daneben noch ein zweites Modell nötig ist.</p></div>
+    </div>
+    <section id="d-groups" data-nav-label="#903 HQ-Gruppen" data-decision="d-groups" data-decision-mode="single" data-label="#903 HQ-Gruppen" data-rec="social" data-rec-why="eine Crew kann über Freunde schon gemeinsam planen, und ein zweites Rechtemodell ist der teuerste und riskanteste Punkt dieser Liste." data-applies-to="HQ und Social, Issue #903" data-finding="f-d-groups">
+      <p data-applies>Gilt für: HQ und Social, Issue #903</p>
+      <p data-situation>Die Social-Migration hat `friend_groups`, `friend_shares`, `einsatz_crew_slots` und `einsatz_rsvps` gebracht. Die Gruppen dort sind bewusst privat, ohne eigene Mitgliedschaft. #903 stammt von vor diesem Konzept und will echte Gruppen mit Einladungscode und Rollen.</p>
+      <h3 data-question>Braucht es neben den Freunden noch echte Gruppen?</h3>
+      <p data-stakes>Ein zweites Sichtbarkeitsmodell mit eigener RLS.</p>
+      <div data-options>
+        <label data-opt="social" data-recommended>
+          <input type="radio" name="dm-d-groups" value="social">
+          <span data-opt-label>Nein, #903 zugunsten von Social schließen</span>
+          <span data-opt-consequence>Eine Crew plant über geteilte Einsätze unter Freunden. Fremde per Einladungscode gehen damit nicht.</span>
+        </label>
+        <label data-opt="groups">
+          <input type="radio" name="dm-d-groups" value="groups" checked>
+          <span data-opt-label>Ja, echte Gruppen bauen</span>
+          <span data-opt-consequence>Einladungscode, Rollen und RLS über Mitgliedschaft, vorab mit Sicherheitsprüfung. Groß.</span>
+        </label>
+        <label data-opt="later">
+          <input type="radio" name="dm-d-groups" value="later">
+          <span data-opt-label>Nur den Einladungslink ergänzen</span>
+          <span data-opt-consequence>Ein Link macht jemanden zum Freund und damit zum Crew-Kandidaten. Klein, ohne neues Modell.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-groups-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-groups-none" value="">
+      <input type="hidden" name="dm-d-groups-hes" value="{&quot;ms&quot;:59486,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-groups-touched" value="1">
+      <input type="hidden" name="dm-d-groups-issue" value="">
+      <input type="hidden" name="dm-d-groups-epic" value="">
+      <div data-alevel="3" data-title="#903 HQ-Gruppen">
+        <div data-slot="short">Das Teilen läuft heute über Freunde, nicht über Mitgliedschaft.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"L","unit":"Größe","label":"mit RLS-Prüfung vorab"}'></div><p>Laut Migration ist eine Freundesgruppe ausdrücklich keine geteilte Organisation mit eigener Mitgliedschaft. #903 wäre also ein anderes Vertrauensmodell.</p></div>
+      </div>
+    </section>
+
+    <section id="d-shared" data-nav-label="#938 Geteilte Ziele" data-decision="d-shared" data-decision-mode="single" data-label="#938 Geteilte Ziele" data-rec="einsatz" data-rec-why="Einsätze und Crew-Zusagen gibt es schon, und ein konkreter Abend bringt Leute eher zusammen als eine Zahl." data-applies-to="Social-Seite, Issue #938" data-finding="f-d-shared">
+      <p data-applies>Gilt für: Social-Seite, Issue #938</p>
+      <p data-situation>Du hattest das im Freunde-Konzept geparkt: erst vergleichen, gemeinsame Ziele später ausfeilen. Der Vergleich steht, ein gemeinsames Ziel gibt es noch nicht, und es ist nicht festgelegt, was das sein soll.</p>
+      <h3 data-question>Was ist ein gemeinsames Ziel unter Freunden?</h3>
+      <p data-stakes>Die Antwort entscheidet zwischen kleinem Umbau und neuem Datenmodell.</p>
+      <div data-options>
+        <label data-opt="einsatz" data-recommended>
+          <input type="radio" name="dm-d-shared" value="einsatz" checked>
+          <span data-opt-label>Ein geteilter Einsatz mit Crew-Zusagen</span>
+          <span data-opt-consequence>Baut auf `get_einsatz_crew` auf. Mittel, und das Ziel ist ein konkreter gemeinsamer Plan.</span>
+        </label>
+        <label data-opt="metric">
+          <input type="radio" name="dm-d-shared" value="metric">
+          <span data-opt-label>Eine Zielzahl im Vergleich</span>
+          <span data-opt-consequence>Zum Beispiel gemeinsam 1 Mio. aUEC. Klein, setzt aber Live-Daten bei allen Beteiligten voraus.</span>
+        </label>
+        <label data-opt="entity">
+          <input type="radio" name="dm-d-shared" value="entity">
+          <span data-opt-label>Eine eigene Ziel-Funktion</span>
+          <span data-opt-consequence>Freie Ziele mit Fortschritt und Abschluss. Groß, und es braucht neue Tabellen und Regeln.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-shared-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-shared-none" value="">
+      <input type="hidden" name="dm-d-shared-hes" value="{&quot;ms&quot;:154368,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-shared-touched" value="">
+      <input type="hidden" name="dm-d-shared-issue" value="">
+      <input type="hidden" name="dm-d-shared-epic" value="">
+      <div data-alevel="3" data-title="#938 Geteilte Ziele">
+        <div data-slot="short">Im Code gibt es noch kein Ziel, aber die Crew-Bausteine stehen.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"M","unit":"Größe","label":"mit dem empfohlenen Weg"}'></div><p>Der Vergleich liegt in `social-compare.component.ts`, die Crew kommt aus `get_einsatz_crew`. Offen ist, wer ein Ziel setzt und wann es als erreicht gilt.</p></div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-codex" data-topic data-nav-label="Codex-Daten">
+    <div data-alevel="2" data-title="Codex-Daten">
+      <div data-slot="short">Bei beiden geht es darum, was das Spiel wirklich an Werten hergibt.</div>
+      <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"2","unit":"Lücken","label":"Idle-EM und Radarreichweite"}'></div><p>Die Regel bleibt: keine erfundenen Werte. Beide Fragen entscheiden, wie eine Lücke sichtbar wird.</p></div>
+    </div>
+    <section id="d-em" data-nav-label="#967 Stealth-EM" data-decision="d-em" data-decision-mode="single" data-label="#967 Stealth-EM" data-rec="honest" data-rec-why="das ist ohne neue Daten sofort ehrlich, und ob das Spiel überhaupt einen Idle-Wert hat, ist noch nicht geprüft." data-applies-to="Schiffsseite, Rangvergleich, Issue #967" data-finding="f-d-em">
+      <p data-applies>Gilt für: Schiffsseite, Rangvergleich, Issue #967</p>
+      <p data-situation>Die Schleichen-Achsen zeigen Idle-EM und EM max. Idle-EM ist immer leer, und EM max ist in Wahrheit der Wert bei Standardverteilung. Das Modell kennt pro Item nur `em.nominal`.</p>
+      <h3 data-question>Wie gehen wir mit den beiden EM-Achsen um?</h3>
+      <p data-stakes>Eine Zahl, die nur nach Maximum aussieht, führt beim Vergleich in die Irre.</p>
+      <div data-options>
+        <label data-opt="honest" data-recommended>
+          <input type="radio" name="dm-d-em" value="honest">
+          <span data-opt-label>Leere Achse entfernen, EM max richtig benennen</span>
+          <span data-opt-consequence>Klein und ohne neue Daten. Der Vergleich hat dann eine Achse weniger.</span>
+        </label>
+        <label data-opt="extract">
+          <input type="radio" name="dm-d-em" value="extract" checked>
+          <span data-opt-label>Echte Werte aus dem Extraktor holen</span>
+          <span data-opt-consequence>Der saubere Weg, falls die Spieldaten sie enthalten. Braucht einen Uploader-Release und einen Data.p4k-Lauf.</span>
+        </label>
+        <label data-opt="model">
+          <input type="radio" name="dm-d-em" value="model">
+          <span data-opt-label>Aus vorhandenen Werten berechnen</span>
+          <span data-opt-consequence>Alle Gruppen aus oder alle auf voll. Füllt die Achse, aber das Modell wäre von uns erdacht.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-em-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-em-none" value="">
+      <input type="hidden" name="dm-d-em-hes" value="{&quot;ms&quot;:35641,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-em-touched" value="1">
+      <input type="hidden" name="dm-d-em-issue" value="">
+      <input type="hidden" name="dm-d-em-epic" value="">
+      <div data-alevel="3" data-title="#967 Stealth-EM">
+        <div data-slot="short">Eine Achse ist immer leer, die andere trägt den falschen Namen.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"1 von 6","unit":"Achsen","label":"immer leer"}'></div><p>Siehe `withPowerSignature` in `codex-power.ts`: Es füllt nur IR und EM max. Mining, Salvage, Medical und Refuel haben gar keine Kennzahl und wären ein eigenes Daten-Issue.</p></div>
+      </div>
+    </section>
+
+    <section id="d-radar" data-nav-label="#842 Radar" data-decision="d-radar" data-decision-mode="single" data-label="#842 Radar" data-rec="gap" data-rec-why="die Aim-Assist-Reichweite misst etwas anderes, und als Radarreichweite beschriftet wäre sie schlicht falsch." data-applies-to="Codex und Ship Fitting der App, Issue #842" data-finding="f-d-radar">
+      <p data-applies>Gilt für: Codex und Ship Fitting der App, Issue #842</p>
+      <p data-situation>Cargo, Radar-Export und die Gründe fehlender Silhouetten sind im Code, wirken aber erst nach einem echten Data.p4k-Lauf. Offen bleibt eine Frage: Das Spiel liefert für Radar keine Reichweite in Metern, nur die Aim-Assist-Reichweite.</p>
+      <h3 data-question>Was zeigen wir als Radarreichweite?</h3>
+      <p data-stakes>Das Issue verlangt eine lesbare Reichweite, die es so nicht gibt.</p>
+      <div data-options>
+        <label data-opt="gap" data-recommended>
+          <input type="radio" name="dm-d-radar" value="gap">
+          <span data-opt-label>Lücke zeigen und das Kriterium anpassen</span>
+          <span data-opt-consequence>Radar-Items erscheinen mit ihren echten Werten, die Reichweite steht als „nicht in den Spieldaten“.</span>
+        </label>
+        <label data-opt="aim">
+          <input type="radio" name="dm-d-radar" value="aim" checked>
+          <span data-opt-label>Aim-Assist-Reichweite zeigen, klar beschriftet</span>
+          <span data-opt-consequence>Eine Zahl ist da, aber nicht die, nach der Spieler beim Radar suchen.</span>
+        </label>
+        <label data-opt="drop">
+          <input type="radio" name="dm-d-radar" value="drop">
+          <span data-opt-label>Radar aus #842 herausnehmen</span>
+          <span data-opt-consequence>Das Issue schließt mit Cargo und Silhouetten. Radar bleibt in der App ohne Daten.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-radar-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-radar-none" value="">
+      <input type="hidden" name="dm-d-radar-hes" value="{&quot;ms&quot;:159635,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-radar-touched" value="1">
+      <input type="hidden" name="dm-d-radar-issue" value="">
+      <input type="hidden" name="dm-d-radar-epic" value="">
+      <div data-alevel="3" data-title="#842 Radar">
+        <div data-slot="short">Die einzige Distanz in den Radardaten ist die Aim-Assist-Reichweite.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Meter","label":"Radarreichweite in den Spieldaten"}'></div><p>Gelesen in `dataforge_extract.py`. Unabhängig von der Antwort brauchen Cargo und Silhouetten noch einen Uploader-Lauf auf deinem Rechner.</p></div>
+      </div>
+    </section>
+  </section>
+</section>
