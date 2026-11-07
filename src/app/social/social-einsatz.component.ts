@@ -52,7 +52,7 @@ import { EinsatzCrew, RSVP_ANSWERS, RsvpAnswer, SLOTS_MAX, SLOT_LABEL_MAX } from
             <sc-select [options]="friendOptions()" [value]="friendId()" [allowEmpty]="false"
                        [ariaLabel]="'social.einsatz.pickFriend' | translate" (valueChange)="friend.set($event)" />
           }
-          <button type="button" scAction tier="primary" [busy]="social.busy()" (click)="invite()">
+          <button type="button" scAction tier="secondary" [busy]="social.busy()" (click)="invite()">
             {{ 'social.einsatz.invite' | translate }}
           </button>
         </div>

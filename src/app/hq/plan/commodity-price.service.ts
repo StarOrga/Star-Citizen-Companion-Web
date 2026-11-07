@@ -30,7 +30,10 @@ export interface CommodityPriceSet {
   prices: CommodityPrice[];
 }
 
-export type PriceAge = { unit: 'minutes' | 'hours' | 'days'; n: number };
+export interface PriceAge {
+  unit: 'minutes' | 'hours' | 'days';
+  n: number;
+}
 
 /** How old a price is, in the largest whole unit; null when the source gave no timestamp. */
 export function priceAge(updatedAt: string | null, now: number): PriceAge | null {

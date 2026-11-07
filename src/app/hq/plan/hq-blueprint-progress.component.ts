@@ -17,7 +17,7 @@ import { blueprintProgress } from './hq-blueprint-progress';
       @if (error(); as key) {
         <p class="bp-err" role="alert">
           {{ key | translate }}
-          <button type="button" scAction="secondary" (click)="retry()">{{ 'hq.plan.retry' | translate }}</button>
+          <button type="button" scAction tier="secondary" (click)="retry()">{{ 'hq.plan.retry' | translate }}</button>
         </p>
       } @else if (!supplies.ready()) {
         <p class="bp-empty">{{ 'hq.plan.progress.loading' | translate }}</p>

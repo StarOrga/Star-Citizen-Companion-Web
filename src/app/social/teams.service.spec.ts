@@ -4,7 +4,10 @@ import { SocialService } from './social.service';
 import { canManageInvite, canRemoveMember, formatTeamCode, socialErrorKey } from './social.types';
 import { TeamsService } from './teams.service';
 
-type Reply = { data?: unknown; error?: { message: string } | null };
+interface Reply {
+  data?: unknown;
+  error?: { message: string } | null;
+}
 
 function setup(reply: (fn: string, args?: Record<string, unknown>) => Reply) {
   const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string, args?: Record<string, unknown>) => {
