@@ -7,7 +7,8 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { CodexService, toLang } from '../../codex/codex.service';
 import { toErrorKey } from '../../core/describe-error';
 import { HangarService } from '../../hangar/hangar.service';
-import { hqShip } from '../hq-routes';
+import { HqLink, hqHangar, ownShipLink } from '../hq-routes';
+import { HqOwnershipService } from '../hq-ownership.service';
 import { ItemPathService } from '../data/item-path.service';
 import { PATH_ICONS } from '../../shared/item-path/path-icons';
 import { ItemPathComponent } from '../../shared/item-path/item-path.component';
@@ -159,7 +160,7 @@ export interface StockStart {
                     <li class="row">
                       <span class="nm">
                         @if (s.shipId) {
-                          <a class="t" [routerLink]="shipRoute(s.shipId)">{{ s.name }}</a>
+                          <a class="t" [routerLink]="shipRoute(s.shipId).commands" [queryParams]="shipRoute(s.shipId).queryParams">{{ s.name }}</a>
                         } @else {
                           <span class="t">{{ s.name }}</span>
                         }
@@ -443,6 +444,7 @@ export class HqStockPopupComponent implements OnInit {
   protected readonly filter = signal<StockFilter>(NO_FILTER);
   private readonly limit = signal(STOCK_PAGE);
   private readonly hangar = inject(HangarService);
+  private readonly ownership = inject(HqOwnershipService);
   private readonly path = inject(ItemPathService);
   private readonly toast = inject(UndoToastService);
   protected readonly icons = PATH_ICONS;
@@ -498,8 +500,9 @@ export class HqStockPopupComponent implements OnInit {
     return f.ships || (!f.q.trim() && f.place === null && f.cat === null && !f.stale);
   });
 
-  protected shipRoute(id: string): string[] {
-    return hqShip(id);
+  protected shipRoute(id: string): HqLink {
+    const ship = this.hangar.ships().find((s) => s.id === id);
+    return ship ? ownShipLink(ship, this.ownership.configsForShip(id)) : { commands: [hqHangar], queryParams: {} };
   }
 
   protected readonly places = computed(() => this.inv.snapshots().map((s) => ({ location: s.location, takenAt: s.taken_at })));

@@ -7,11 +7,20 @@
 // rows because the sources are empty.
 
 import type { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../../hangar/hangar.types';
-import { hqLocker, hqShip, hqSet, hqHangar } from '../../hq/hq-routes';
+import { hqLocker, ownShipLink, hqSet, hqHangar } from '../../hq/hq-routes';
 import { humanizeClassName } from '../codex-format';
 import { recordScore, searchMatcher } from '../codex-search';
 import type { SearchTarget } from './codex-search-model';
 import type { OwnRowType, SearchResultRow } from './search-result-model';
+
+/** The own ship's page: its personal Codex view (active variant), not a hangar detail page. */
+function ownTarget(
+  ship: { id: string; shipClassName: string },
+  configs: readonly { hangarShipId: string; id: string; isActive: boolean }[],
+): { link: string[]; queryParams: Record<string, string> } {
+  const l = ownShipLink(ship, configs.filter((c) => c.hangarShipId === ship.id));
+  return { link: l.commands, queryParams: l.queryParams };
+}
 
 export type OwnMatch = Omit<Extract<SearchResultRow, { type: 'own' }>, 'cta' | 'icons'>;
 
@@ -82,7 +91,7 @@ export function searchOwn(
         {
           type: 'own', id: `own-ship-${s.id}`, ownKind: 'ship', title: type, ownName: s.customName?.trim() || null,
           subtitle: null, classNameSlug: s.shipClassName, qty: null,
-          target: { link: hqShip(s.id), queryParams: null },
+          target: ownTarget(s, src.configs),
         },
         [s.customName, type],
         [s.shipClassName],
@@ -97,7 +106,7 @@ export function searchOwn(
         {
           type: 'own', id: `own-config-${c.id}`, ownKind: 'config', title: nameOf(ship.shipClassName),
           ownName: c.name, subtitle: ship.customName?.trim() || null, classNameSlug: ship.shipClassName, qty: null,
-          target: { link: hqShip(ship.id), queryParams: null },
+          target: ownTarget(ship, src.configs),
         },
         [c.name],
       );

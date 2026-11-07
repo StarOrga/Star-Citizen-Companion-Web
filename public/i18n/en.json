@@ -212,6 +212,16 @@
     "enterFailedDismiss": "Dismiss"
   },
   "codex": {
+    "own": {
+      "group": "Your ship",
+      "rename": "Rename",
+      "renameTitle": "Rename this ship",
+      "note": "Note",
+      "noteTitle": "Note on this ship",
+      "pin": "Pin to hangar top",
+      "unpin": "Unpin",
+      "remove": "Remove from hangar"
+    },
     "title": "Codex",
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {

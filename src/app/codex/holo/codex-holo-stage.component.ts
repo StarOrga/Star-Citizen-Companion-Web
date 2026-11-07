@@ -1,3 +1,4 @@
+import { BetaService } from '../../core/beta.service';
 import { logWarn } from '../../core/log';
 import {
   ChangeDetectionStrategy,
@@ -258,6 +259,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
               (portPins)="patchPortPins.set($event)"
               (comparisonBuild)="onPatchCompared($event)" />
           }
+          <!-- Own ship (concept r1-hangar-panel): rename, note, pin, remove - projected by the page only for the reader's own ship. -->
+          <ng-content select="[htOwn]" />
           <ng-content select="[htSwitch]" />
         </div>
       </div>
@@ -283,14 +286,16 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
           <div class="table-head">
             <!-- slot: hangar-tab (round 16-17, N4): the same HangarPicker as
                  the Codex landing and the classic hero. -->
-            <div class="hangar-dock">
-              <sc-hangar-picker
-                kind="ship"
-                [docked]="true"
-                [items]="hangarPickerItems()"
-                (pick)="hangarPick.emit($event)"
-                (open)="hangarOpen.emit()" />
-            </div>
+            @if (!shellBeta()) {
+              <div class="hangar-dock">
+                <sc-hangar-picker
+                  kind="ship"
+                  [docked]="true"
+                  [items]="hangarPickerItems()"
+                  (pick)="hangarPick.emit($event)"
+                  (open)="hangarOpen.emit()" />
+              </div>
+            }
             <p class="table-eyebrow">
               {{ eyebrowKey() | translate: { n: tablePins().length } }}
               @if (!silhouette() && viewMode() === 'holo') {
@@ -909,6 +914,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
 })
 export class CodexHoloStageComponent {
   private readonly t = inject(TranslateService);
+  /** Beta shell: the hangar button in the table head is retired (concept r1-flag). */
+  protected readonly shellBeta = inject(BetaService).isEnabled('shell');
   private readonly skins = inject(ShipSkinsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);

@@ -79,7 +79,19 @@ export interface HqLink {
   queryParams: Record<string, string>;
 }
 
-/** One hangar ship in HQ. */
+/**
+ * The page of one of the reader's own ships: the personal Codex view of its active (else first)
+ * variant, or the ship's Codex page when it has none. `/hq/hangar/:id` only redirects here.
+ */
+export function ownShipLink(
+  ship: { shipClassName: string },
+  configs: readonly { id: string; isActive: boolean }[],
+): HqLink {
+  const cfg = configs.find((c) => c.isActive) ?? configs[0];
+  return cfg ? personalShipLink(ship.shipClassName, cfg.id) : personalItemLink('ship', ship.shipClassName);
+}
+
+/** One hangar ship in HQ by id - only for callers that hold nothing but the id (the route redirects). */
 export const hqShip = (id: string): string[] => [hqHangar, id];
 
 /** One FPS/role set in the locker. */

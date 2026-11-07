@@ -4,7 +4,7 @@ import type { PolySearchHit } from '../../codex/codex-poly-search';
 import { normalizeSearch } from '../../codex/codex-search';
 import { hitTitle } from '../../codex/search/codex-search-model';
 import { polyHitLink } from '../../codex/codex-poly-search';
-import { hqShip } from '../hq-routes';
+import { personalItemLink } from '../hq-routes';
 
 /**
  * What an entry of "Lager per Ort" points at. The table has only a nullable `class_name`
@@ -48,7 +48,7 @@ export function stockTarget(
   const owned = ownedShips.find((s) => s.shipClassName === ref.className);
   if (ref.kind === 'ship' || (!ref.kind && owned)) {
     return owned
-      ? { commands: hqShip(owned.id), queryParams: null }
+      ? { commands: personalItemLink('ship', owned.shipClassName).commands, queryParams: personalItemLink('ship', owned.shipClassName).queryParams }
       : { commands: polyHitLink({ kind: 'ship', classNameSlug: ref.className }), queryParams: null };
   }
   if (ref.kind) return { commands: polyHitLink({ kind: ref.kind, classNameSlug: ref.className }), queryParams: null };

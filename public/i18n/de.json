@@ -212,6 +212,16 @@
     "enterFailedDismiss": "Verwerfen"
   },
   "codex": {
+    "own": {
+      "group": "Dein Schiff",
+      "rename": "Umbenennen",
+      "renameTitle": "Schiff umbenennen",
+      "note": "Notiz",
+      "noteTitle": "Notiz zu diesem Schiff",
+      "pin": "Oben im Hangar anpinnen",
+      "unpin": "Anpinnen aufheben",
+      "remove": "Aus dem Hangar entfernen"
+    },
     "title": "Codex",
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {

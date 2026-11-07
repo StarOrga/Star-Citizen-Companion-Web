@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { HqOwnershipService } from '../hq/hq-ownership.service';
-import { hqHangar, personalItemLink, personalShipLink } from '../hq/hq-routes';
+import { hqHangar, ownShipLink } from '../hq/hq-routes';
 import { HangarService } from './hangar.service';
 
 /**
@@ -38,9 +38,7 @@ export class HangarShipRedirectComponent implements OnInit {
       void this.router.navigate([hqHangar], { replaceUrl: true });
       return;
     }
-    const cfgs = this.ownership.configsForShip(ship.id);
-    const cfg = cfgs.find((c) => c.isActive) ?? cfgs[0];
-    const link = cfg ? personalShipLink(ship.shipClassName, cfg.id) : personalItemLink('ship', ship.shipClassName);
+    const link = ownShipLink(ship, this.ownership.configsForShip(ship.id));
     void this.router.navigate(link.commands, { queryParams: link.queryParams, replaceUrl: true });
   }
 }
