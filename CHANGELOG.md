@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.10] - 2026-11-07
+
+### Fixed
+- Admin feedback: the panel now stays faded while either Ctrl or Alt is held, in any press/release order — holding Alt, pressing Ctrl and letting go of Alt no longer stops Ctrl from working. Ctrl+click and Alt+click still pick after such a mixed sequence.
+
 ## [0.225.9] - 2026-11-07
 
 ### Added

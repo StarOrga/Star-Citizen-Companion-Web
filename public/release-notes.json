@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.9",
+  "current": "0.225.10",
   "releases": [
+    {
+      "version": "0.225.10",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin feedback: the panel now stays faded while either Ctrl or Alt is held, in any press/release order — holding Alt, pressing Ctrl and letting go of Alt no longer stops Ctrl from working. Ctrl+click and Alt+click still pick after such a mixed sequence."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.9",
       "date": "2026-11-07",
