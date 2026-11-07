@@ -5420,6 +5420,23 @@
         "empty": "Noch kein Blueprint hat Material im Nachschub. Füge einen Blueprint auf seiner Codex-Seite hinzu, um ihn hier zu verfolgen.",
         "count": "{{have}} von {{total}} Materialien"
       },
+      "prices": {
+        "title": "Warenpreise",
+        "source": "Community-Quelle: UEX Corp. Von Spielern gemeldet, nicht von CIG bestätigt.",
+        "pick": "Ware wählen",
+        "pickAria": "Ware für die Preisliste",
+        "loading": "Preise werden geladen ...",
+        "idle": "Wähle eine Ware, um ihre Preise je Terminal zu sehen.",
+        "empty": "Für diese Ware meldet UEX keine Preise.",
+        "terminal": "Terminal",
+        "buy": "Kauf (aUEC/SCU)",
+        "sell": "Verkauf (aUEC/SCU)",
+        "age": "Stand",
+        "unknownAge": "unbekannt",
+        "ageMinutes": "vor {{n}} Min.",
+        "ageHours": "vor {{n}} Std.",
+        "ageDays": "vor {{n}} Tagen"
+      },
       "selection": "Auswahl",
       "stepsAria": "Schritt-Arten",
       "state": {

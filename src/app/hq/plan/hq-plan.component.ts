@@ -48,6 +48,7 @@ import { HqPlaceTreeComponent } from './hq-place-tree.component';
 import { HqSetRingsComponent } from './hq-set-rings.component';
 import { HqCommunityOptinComponent } from './hq-community-optin.component';
 import { HqBlueprintProgressComponent } from './hq-blueprint-progress.component';
+import { HqCommodityPricesComponent } from './hq-commodity-prices.component';
 import { HqPlanMapComponent } from './map/hq-plan-map.component';
 import { buildRoute } from './map/hq-route';
 import type { MapPlace, PlanView } from './map/hq-map.types';
@@ -81,6 +82,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     HqPlanMapComponent,
     HqCommunityOptinComponent,
     HqBlueprintProgressComponent,
+    HqCommodityPricesComponent,
     HqFriendShareComponent,
     HqEinsatzCrewComponent,
     HqSharedEinsaetzeComponent,
@@ -154,6 +156,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       <sc-hq-plan-map [needs]="mapNeeds()" [route]="route()" [view]="view()" />
       <sc-hq-community-optin />
       <sc-hq-blueprint-progress />
+      <sc-hq-commodity-prices />
 
       @if (view() === 'what') {
         @if (listNeeds().length === 0) {

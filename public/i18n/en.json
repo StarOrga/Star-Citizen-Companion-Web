@@ -5420,6 +5420,23 @@
         "empty": "No blueprint has material in Nachschub yet. Add a blueprint from its Codex page to track it here.",
         "count": "{{have}} of {{total}} materials"
       },
+      "prices": {
+        "title": "Commodity prices",
+        "source": "Community source: UEX Corp. Reported by players, not confirmed by CIG.",
+        "pick": "Pick a commodity",
+        "pickAria": "Commodity for the price list",
+        "loading": "Loading prices ...",
+        "idle": "Pick a commodity to see its prices per terminal.",
+        "empty": "UEX reports no prices for this commodity.",
+        "terminal": "Terminal",
+        "buy": "Buy (aUEC/SCU)",
+        "sell": "Sell (aUEC/SCU)",
+        "age": "As of",
+        "unknownAge": "unknown",
+        "ageMinutes": "{{n}} min ago",
+        "ageHours": "{{n}} h ago",
+        "ageDays": "{{n}} days ago"
+      },
       "selection": "Selection",
       "stepsAria": "Step kinds",
       "state": {
