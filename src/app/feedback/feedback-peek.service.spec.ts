@@ -148,4 +148,111 @@ describe('FeedbackPeekService (hold Ctrl/Alt to dissolve the panel)', () => {
     tick(PEEK_DELAY_MS);
     expect(peek.peeking()).toBeTrue();
   }));
+
+  describe('overlapping Ctrl and Alt (feedback #313 follow-up)', () => {
+    const click = (init: MouseEventInit) =>
+      document.body.dispatchEvent(new MouseEvent('click', { bubbles: true, ...init }));
+
+    it('Alt down, Ctrl down, Alt up: Ctrl keeps the panel dissolved; Ctrl up restores', fakeAsync(() => {
+      key('keydown', 'Alt', { altKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      key('keydown', 'Control', { ctrlKey: true, altKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      key('keyup', 'Alt', { ctrlKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      key('keyup', 'Control');
+      expect(peek.peeking()).toBeFalse();
+    }));
+
+    it('Ctrl down, Alt down, Ctrl up: Alt keeps the panel dissolved', fakeAsync(() => {
+      key('keydown', 'Control', { ctrlKey: true });
+      tick(PEEK_DELAY_MS);
+      key('keydown', 'Alt', { ctrlKey: true, altKey: true });
+      key('keyup', 'Control', { altKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      key('keyup', 'Alt');
+      expect(peek.peeking()).toBeFalse();
+    }));
+
+    it('both pressed quickly before the delay still dissolve, and survive releasing one', fakeAsync(() => {
+      key('keydown', 'Alt', { altKey: true });
+      tick(20);
+      key('keydown', 'Control', { ctrlKey: true, altKey: true });
+      tick(20);
+      key('keyup', 'Alt', { ctrlKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+    }));
+
+    it('repeats of the remaining Ctrl after Alt is released do not end the dissolve', fakeAsync(() => {
+      key('keydown', 'Alt', { altKey: true });
+      tick(PEEK_DELAY_MS);
+      key('keydown', 'Control', { ctrlKey: true, altKey: true });
+      key('keyup', 'Alt', { ctrlKey: true });
+      key('keydown', 'Control', { ctrlKey: true, repeat: true });
+      key('keydown', 'Control', { ctrlKey: true, repeat: true });
+      expect(peek.peeking()).toBeTrue();
+    }));
+
+    it('a Ctrl+click after the mixed sequence picks and restores; a fresh Alt dissolves again', fakeAsync(() => {
+      key('keydown', 'Alt', { altKey: true });
+      tick(PEEK_DELAY_MS);
+      key('keydown', 'Control', { ctrlKey: true, altKey: true });
+      key('keyup', 'Alt', { ctrlKey: true });
+      click({ ctrlKey: true });
+      expect(peek.peeking()).toBeFalse();
+      key('keydown', 'Alt', { ctrlKey: true, altKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      click({ altKey: true, ctrlKey: true });
+      expect(peek.peeking()).toBeFalse();
+    }));
+
+    it('after the pick click, releasing one of two held modifiers does not re-dissolve', fakeAsync(() => {
+      key('keydown', 'Control', { ctrlKey: true });
+      tick(PEEK_DELAY_MS);
+      key('keydown', 'Alt', { ctrlKey: true, altKey: true });
+      click({ altKey: true, ctrlKey: true });
+      key('keyup', 'Control', { altKey: true });
+      tick(PEEK_DELAY_MS * 3);
+      expect(peek.peeking()).toBeFalse();
+    }));
+
+    it('a typing chord with one modifier left held does not re-dissolve on the other release', fakeAsync(() => {
+      key('keydown', 'Control', { ctrlKey: true });
+      key('keydown', 'Alt', { ctrlKey: true, altKey: true });
+      key('keydown', 'q', { ctrlKey: true, altKey: true });
+      key('keyup', 'Alt', { ctrlKey: true });
+      tick(PEEK_DELAY_MS * 3);
+      expect(peek.peeking()).toBeFalse();
+    }));
+
+    it('AltGr released while Ctrl is reported down does not re-dissolve', fakeAsync(() => {
+      key('keydown', 'Control', { ctrlKey: true, altKey: true });
+      key('keydown', 'AltGraph', { ctrlKey: true, altKey: true });
+      key('keyup', 'AltGraph', { ctrlKey: true });
+      tick(PEEK_DELAY_MS * 3);
+      expect(peek.peeking()).toBeFalse();
+    }));
+
+    it('blur and a hidden tab reset a mixed hold', fakeAsync(() => {
+      key('keydown', 'Alt', { altKey: true });
+      key('keydown', 'Control', { ctrlKey: true, altKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      window.dispatchEvent(new Event('blur'));
+      expect(peek.peeking()).toBeFalse();
+      key('keydown', 'Alt', { altKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      const vis = spyOnProperty(document, 'visibilityState', 'get').and.returnValue('hidden');
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(peek.peeking()).toBeFalse();
+      vis.and.callThrough();
+    }));
+  });
 });
