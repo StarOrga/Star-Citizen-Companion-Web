@@ -11,7 +11,7 @@
         @for (n of news(); track n.id; let i = $index) {
           <li class="acc-i" [class.open]="acc.open() === i">
             <a class="acc-a" routerLink="/verse/news" [queryParams]="{ item: n.id }"
-               (pointermove)="acc.move(i, $event.clientX, $event.clientY)" (focus)="acc.focus(i)">
+               (pointermove)="acc.move(i, $event.clientX, $event.clientY, $event.timeStamp)" (focus)="acc.focus(i)">
               @if (n.thumbnail) {
                 <img class="acc-img" [src]="n.thumbnail" alt="" loading="lazy" decoding="async" />
               } @else {

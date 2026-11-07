@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.7] - 2026-11-07
+
+### Fixed
+- /verse news: a tile now opens as soon as the pointer moves slowly over it or stops on it, while a fast sweep across the tiles opens nothing (pointer speed instead of a rest timer).
+
 ## [0.225.6] - 2026-11-07
 
 ### Fixed

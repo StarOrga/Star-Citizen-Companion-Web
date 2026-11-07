@@ -18,7 +18,7 @@ import { VerseDigest, VerseDigestItem } from '../../data/verse.models';
 import { HERO_MS, VerseBriefingComponent } from '../verse-briefing.component';
 import { WindowFocusService } from '../../../core/window-focus.service';
 import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing-beacons.component';
-import { ACC_REST_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
+import { ACC_SLOW_PX_PER_MS, ACC_STOP_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
 import { INTRO_FLAG, localDay } from './briefing.model';
 import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
 import { VERSE_STAGED_BUILD } from './staged-build';
@@ -84,38 +84,80 @@ describe('Verse hub — verdict + patch grid model', () => {
 });
 
 describe('Verse hub — accordion hover intent', () => {
-  it('opens only after the rest delay, ignores sweeps, finishes a started transition, keeps the open entry on leave', fakeAsync(() => {
-    const acc = new AccordionIntent(0);
-    // A quick sweep over the rows: every move restarts the wait, nothing opens.
-    for (let i = 1; i <= 3; i++) {
-      acc.move(i, 10, i * 40, i * 10);
-      tick(10);
+  /** Moves the pointer in 16 ms frames from (x, y0) to (x, y1) at `speed` px/ms; `row` maps y to the entry under it. */
+  function sweep(acc: AccordionIntent, y0: number, y1: number, speed: number, t0: number, row = (y: number) => Math.floor(y / 50)): number {
+    const dir = Math.sign(y1 - y0);
+    let t = t0;
+    for (let y = y0; dir > 0 ? y <= y1 : y >= y1; y += dir * speed * 16) {
+      acc.move(row(y), 10, y, t);
+      tick(16);
+      t += 16;
     }
+    return t;
+  }
+
+  it('opens nothing while the pointer sweeps fast across the rows (normal ~1 px/ms)', fakeAsync(() => {
+    const acc = new AccordionIntent(0);
+    sweep(acc, 199, 0, 1, 1000);
     expect(acc.open()).toBe(0);
-    // A resting pointer (jitter) does not open at once and does not restart the wait.
+    acc.leave();
+    tick(ACC_STOP_MS * 4);
+    expect(acc.open()).withContext('leaving after a sweep opens nothing late').toBe(0);
+    acc.destroy();
+  }));
+
+  it('opens the entry under a slowly moving pointer at once, without a dwell wait', fakeAsync(() => {
+    const acc = new AccordionIntent(0);
+    // 0.25 px/ms (8 px per 32 ms, above the jitter limit) inside entry 3: opens on the second sample, no timer involved.
+    expect(8 / 32).toBeLessThanOrEqual(ACC_SLOW_PX_PER_MS);
+    acc.move(3, 10, 190, 1000);
+    expect(acc.open()).withContext('the first sample has no speed yet').toBe(0);
+    acc.move(3, 10, 182, 1032);
+    expect(acc.open()).toBe(3);
+    acc.destroy();
+  }));
+
+  it('opens the entry the pointer stops on, after a fast sweep, within the stop tick', fakeAsync(() => {
+    const acc = new AccordionIntent(0);
+    const t = sweep(acc, 199, 60, 1, 1000);
+    expect(acc.open()).toBe(0);
+    // Pointer stands still on entry 1: no further pointermove fires.
+    tick(ACC_STOP_MS + 1);
+    expect(acc.open()).toBe(1);
+    // Jitter on the entry counts as standing still.
+    tick(ACC_TRANSITION_MS);
+    acc.move(2, 10, 120, t + 2000);
+    acc.move(2, 12, 121, t + 2005);
+    expect(acc.open()).toBe(2);
+    acc.destroy();
+  }));
+
+  it('finishes a started transition, queues the next target, drops it when the pointer moved on, keeps the open entry on leave', fakeAsync(() => {
+    const acc = new AccordionIntent(0);
     acc.move(2, 10, 80, 1000);
-    tick(ACC_REST_MS - 50);
-    acc.move(2, 12, 81, 1000 + ACC_REST_MS - 50);
-    expect(acc.open()).withContext('no reaction before the rest delay').toBe(0);
-    tick(60);
+    tick(ACC_STOP_MS + 1);
     expect(acc.open()).toBe(2);
     expect(acc.transitioning).toBeTrue();
-    // A new target during the transition rests, then waits for the transition's end.
-    acc.move(3, 10, 120, 5000);
-    tick(ACC_REST_MS + 10);
+    // A new target during the transition waits for the transition's end.
+    acc.move(3, 10, 120, 1100);
+    tick(ACC_STOP_MS + 1);
     expect(acc.open()).toBe(2);
     tick(ACC_TRANSITION_MS);
     expect(acc.open()).toBe(3);
     tick(ACC_TRANSITION_MS);
-    // A target that was still waiting is dropped when the pointer left.
+    // A target that was still waiting is dropped when the pointer moved on.
     acc.move(2, 10, 80, 9000);
-    tick(ACC_REST_MS + 10);
+    tick(ACC_STOP_MS + 1);
     expect(acc.open()).toBe(2);
-    acc.move(1, 10, 40, 9400);
-    tick(ACC_REST_MS + 10);
+    acc.move(1, 10, 40, 9100);
+    tick(ACC_STOP_MS + 1);
+    acc.move(2, 10, 80, 9200);
+    tick(ACC_STOP_MS + 1);
+    tick(ACC_TRANSITION_MS);
     expect(acc.open()).toBe(2);
+    acc.move(1, 10, 40, 10000);
     acc.leave();
-    tick(ACC_TRANSITION_MS * 2 + ACC_REST_MS);
+    tick(ACC_TRANSITION_MS * 2 + ACC_STOP_MS);
     expect(acc.open()).toBe(2);
     acc.destroy();
   }));
