@@ -47,6 +47,8 @@ describe('UpcomingShipsService', () => {
     bump = () => names.update((n) => n + 1);
     const wishlistFake = {
       has: (_k: string, _c: string, name?: string | null) => { names(); return wishedNames.has(name ?? ''); },
+      qtyOf: () => 0,
+      setQty: async () => true,
       ensureLoaded: () => undefined,
       add: addSpy,
     };

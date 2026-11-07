@@ -116,7 +116,7 @@ export function setupFusionSearch(engine: FakeEngine, actions = fakeActions(), p
       { provide: CodexBuildDiffService, useValue: { addedClassNamesMemo: async () => [] } },
       { provide: HangarService, useValue: { ships: signal([]), flagshipClassName: () => null } },
       { provide: HqOwnershipService, useValue: { ensureLoaded: async () => undefined, ownsShip: () => false } },
-      { provide: SearchWishlistService, useValue: { ensureLoaded: () => undefined, has: () => false } },
+      { provide: SearchWishlistService, useValue: { ensureLoaded: () => undefined, has: () => false, qtyOf: () => 0, setQty: async () => true } },
       { provide: SearchRowActionsService, useValue: actions },
       { provide: ItemPathService, useValue: path },
       { provide: CodexSearchHub, useValue: { register: () => () => undefined, hasBar: () => false, activate: () => false } },

@@ -25,6 +25,8 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; re
   const wk = (k: string, c: string) => `${k}:${c.toLowerCase()}`;
   const wishlist = {
     has: (k: string, c: string) => wished.has(wk(k, c)),
+    qtyOf: (k: string, c: string) => (wished.has(wk(k, c)) ? 1 : 0),
+    setQty: async () => true,
     add: async (k: string, c: string) => (wished.add(wk(k, c)), true),
     remove: async (k: string, c: string) => (wished.delete(wk(k, c)), true),
   };

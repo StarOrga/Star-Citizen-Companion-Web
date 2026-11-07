@@ -52,7 +52,7 @@ function setup() {
       fakeSupabase().provider,
       { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
       { provide: ScConfirmService, useValue: { confirm: async () => false } },
-      { provide: SearchWishlistService, useValue: { has: () => false, add: async () => true, remove: async () => true } },
+      { provide: SearchWishlistService, useValue: { has: () => false, qtyOf: () => 0, setQty: async () => true, add: async () => true, remove: async () => true } },
       { provide: HqInventoryService, useValue: inventory },
       { provide: HangarService, useValue: { shipByClassName: () => null } },
       { provide: HqLiveService, useValue: { state: () => null, events: () => [] } },

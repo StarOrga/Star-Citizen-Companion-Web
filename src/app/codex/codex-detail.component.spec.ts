@@ -530,6 +530,7 @@ describe('CodexDetailComponent — weapon kind (legacy regions)', () => {
 describe('CodexDetailComponent — armour hero icon (part glyph)', () => {
   it("passes the item's attach type to the hero icon (part glyph, not the generic item box)", async () => {
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, {
+      silhouette: async () => null,
       getDetail: async () => ({
         classNameSlug: 'rsi_legs_01',
         kind: 'item',
@@ -540,7 +541,7 @@ describe('CodexDetailComponent — armour hero icon (part glyph)', () => {
       }),
     });
     const el: HTMLElement = fixture.nativeElement;
-    const icon = el.querySelector('.hero-icon path')!;
+    const icon = el.querySelector('.hero-icon path, sc-codex-item-stage .ico path')!;
     // armorLegs' glyph path (codex-category-icon.component.ts) — distinct from
     // the generic 'item' box, which is what a missing attachType binding renders.
     expect(icon.getAttribute('d')).toContain('M7.5 3.5 H16.5');
