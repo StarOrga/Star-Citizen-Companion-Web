@@ -1052,6 +1052,8 @@ export class CodexHardpointLayoutComponent {
    * stats hide behind a per-group "Detail ▾" (concept round 5: per box, not
    * a global density switch); everything else keeps working as in classic. */
   readonly calm = input(false);
+  /** Merged groups ("Antrieb & Systeme") nest their sections; false = every section stands as its own block (the Holotable's area columns). */
+  readonly nestGroups = input(true);
   private readonly detailOpenSections = signal<ReadonlySet<ShipModuleSection>>(new Set());
 
   isDetailOpen(section: ShipModuleSection): boolean {
@@ -1421,7 +1423,8 @@ export class CodexHardpointLayoutComponent {
     // A group only NESTS when it actually merges something. A hull whose only
     // system is a cooler keeps the plain "Kühler" block it always had rather
     // than burying one row under a second heading.
-    for (const grp of out) grp.nested = isMergedShipModuleGroup(grp.group) && grp.subs.length > 1;
+    const nest = this.nestGroups();
+    for (const grp of out) grp.nested = nest && isMergedShipModuleGroup(grp.group) && grp.subs.length > 1;
     return out;
   });
 

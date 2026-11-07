@@ -24,13 +24,15 @@ let nextDeckPlanId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (plans(); as set) {
-      <section class="sc-card deck-plan">
-        <header class="dp-head">
-          <h2>{{ 'codex.deckPlan.title' | translate }}</h2>
-          <p class="hint">{{ 'codex.deckPlan.hint' | translate }}</p>
-        </header>
+      <section class="deck-plan" [class.sc-card]="!bare()" [class.bare]="bare()">
+        @if (!bare()) {
+          <header class="dp-head">
+            <h2>{{ 'codex.deckPlan.title' | translate }}</h2>
+            <p class="hint">{{ 'codex.deckPlan.hint' | translate }}</p>
+          </header>
+        }
 
-        @if (set.decks.length > 1) {
+        @if (set.decks.length > 1 && !bare()) {
           <div class="switch" role="tablist" [attr.aria-label]="'codex.deckPlan.switchAria' | translate">
             @for (d of set.decks; track d.key) {
               <button
@@ -53,6 +55,9 @@ let nextDeckPlanId = 0;
         }
 
         @if (deck(); as d) {
+          @if (bare()) {
+            <p class="bare-nose">▲ {{ 'codex.deckPlan.nose' | translate }} · {{ d.label }}</p>
+          }
           <div class="stage" [attr.id]="uid + '-panel'" [attr.role]="set.decks.length > 1 ? 'tabpanel' : null"
                [attr.aria-labelledby]="set.decks.length > 1 ? uid + '-tab-' + deckIndex() : null">
             <svg
@@ -60,10 +65,12 @@ let nextDeckPlanId = 0;
               role="group"
               [attr.aria-label]="'codex.deckPlan.aria' | translate: { deck: d.label, count: d.rooms.length }"
             >
+              @if (!bare()) {
               <text class="nose" [attr.x]="set.width / 2" [attr.y]="fontSize() * 1.1" text-anchor="middle"
                     [attr.font-size]="fontSize()">
                 ▲ {{ 'codex.deckPlan.nose' | translate }}
               </text>
+              }
               @for (r of d.rooms; track r.key) {
                 <g
                   class="room"
@@ -101,6 +108,7 @@ let nextDeckPlanId = 0;
           </p>
           <!-- Every room by name: the plan's own labels only fit the larger
                rooms, and a list reads on a phone where hovering does not. -->
+          @if (!bare()) {
           <ul class="legend" [attr.aria-label]="'codex.deckPlan.roomsAria' | translate: { deck: d.label }">
             @for (r of legend(); track r.key) {
               <li>
@@ -114,6 +122,7 @@ let nextDeckPlanId = 0;
               </li>
             }
           </ul>
+          }
         }
       </section>
     }
@@ -121,6 +130,13 @@ let nextDeckPlanId = 0;
   styles: [`
     :host { display: block; }
     .deck-plan { margin: 0 0 14px; }
+    /* On the Holotable's surface (Schema "Einfach", a deck chip): no card, no
+       own switcher — the chips above the table pick the deck; the plan fills the surface. */
+    :host(.deck-sheet) { display: flex; flex-direction: column; min-height: 0; }
+    .deck-plan.bare { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .bare .stage { flex: 1; min-height: 0; background: transparent; border: 0; padding: 0; }
+    .bare svg { height: 100%; max-height: min(100%, 560px); }
+    .bare-nose { margin: 0 0 6px; text-align: center; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .dp-head h2 { margin: 0 0 2px; }
     .hint { margin: 0 0 10px; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
@@ -169,6 +185,10 @@ export class ShipDeckPlanComponent {
 
   readonly decks = input<readonly ShipDeck[] | null | undefined>(null);
   readonly lang = input<Lang>('en');
+  /** The deck to show, chosen outside (the Holotable's deck chips); null = own switcher. */
+  readonly deckKey = input<string | null>(null);
+  /** No card, header, switcher or room chips: the plan alone, for the Holotable surface. */
+  readonly bare = input(false);
 
   readonly plans = computed(() => buildDeckPlans(this.decks(), this.lang()));
 
@@ -184,7 +204,7 @@ export class ShipDeckPlanComponent {
   readonly deck = computed<DeckPlan | null>(() => {
     const set = this.plans();
     if (!set) return null;
-    const key = this.picked();
+    const key = this.deckKey() ?? this.picked();
     return set.decks.find((d) => d.key === key)
       ?? set.decks.reduce((best, d) => (d.rooms.length > best.rooms.length ? d : best), set.decks[0]);
   });

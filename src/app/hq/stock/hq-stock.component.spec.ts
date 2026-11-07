@@ -166,7 +166,7 @@ describe('HqStockComponent', () => {
     expect(fixture.componentInstance.popup()).toEqual({ mode: 'browse', filter: { ships: true } });
     expect(el.querySelectorAll('.list .row').length).toBe(1);
     const a = el.querySelector('.ships a') as HTMLAnchorElement;
-    expect(a.getAttribute('href')).toContain('/hq/hangar/sh1');
+    expect(a.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
     expect(el.querySelector('.ships')?.textContent).toContain('Area18');
   });
 

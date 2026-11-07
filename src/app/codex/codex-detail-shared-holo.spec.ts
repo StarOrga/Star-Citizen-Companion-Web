@@ -204,6 +204,7 @@ function setup(
           shipByClassName: () => ({ id: 'ship-1' }),
           recentShips: signal([]),
           markShipPicked: () => undefined,
+          error: signal(null),
           ...hangar,
         } as unknown as Partial<HangarService>,
       },

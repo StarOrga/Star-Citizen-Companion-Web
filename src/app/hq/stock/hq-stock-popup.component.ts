@@ -1,13 +1,15 @@
+import { BetaService } from '../../core/beta.service';
 import { DatePipe } from '@angular/common';
 import { humanizeClassName } from '../../codex/codex-format';
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Injector, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { CodexService, toLang } from '../../codex/codex.service';
 import { toErrorKey } from '../../core/describe-error';
 import { HangarService } from '../../hangar/hangar.service';
-import { hqShip } from '../hq-routes';
+import { HqLink, hqHangar, ownShipLink } from '../hq-routes';
+import { HqOwnershipService } from '../hq-ownership.service';
 import { ItemPathService } from '../data/item-path.service';
 import { PATH_ICONS } from '../../shared/item-path/path-icons';
 import { ItemPathComponent } from '../../shared/item-path/item-path.component';
@@ -159,7 +161,7 @@ export interface StockStart {
                     <li class="row">
                       <span class="nm">
                         @if (s.shipId) {
-                          <a class="t" [routerLink]="shipRoute(s.shipId)">{{ s.name }}</a>
+                          <a class="t" [routerLink]="shipRoute(s.shipId).commands" [queryParams]="shipRoute(s.shipId).queryParams">{{ s.name }}</a>
                         } @else {
                           <span class="t">{{ s.name }}</span>
                         }
@@ -443,6 +445,8 @@ export class HqStockPopupComponent implements OnInit {
   protected readonly filter = signal<StockFilter>(NO_FILTER);
   private readonly limit = signal(STOCK_PAGE);
   private readonly hangar = inject(HangarService);
+  private readonly injector = inject(Injector);
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
   private readonly path = inject(ItemPathService);
   private readonly toast = inject(UndoToastService);
   protected readonly icons = PATH_ICONS;
@@ -498,8 +502,9 @@ export class HqStockPopupComponent implements OnInit {
     return f.ships || (!f.q.trim() && f.place === null && f.cat === null && !f.stale);
   });
 
-  protected shipRoute(id: string): string[] {
-    return hqShip(id);
+  protected shipRoute(id: string): HqLink {
+    const ship = this.hangar.ships().find((s) => s.id === id);
+    return ship ? ownShipLink(ship, this.injector.get(HqOwnershipService).configsForShip(id), this.shellBeta()) : { commands: [hqHangar], queryParams: {} };
   }
 
   protected readonly places = computed(() => this.inv.snapshots().map((s) => ({ location: s.location, takenAt: s.taken_at })));
@@ -634,7 +639,7 @@ export class HqStockPopupComponent implements OnInit {
   private readonly ownedShips = computed(() => this.hangar.ships().filter((s) => s.status === 'owned'));
 
   protected target(i: Pick<StockItem, 'name' | 'class_name'>): StockTarget | null {
-    return stockTarget(i.name, i.class_name, this.ownedShips());
+    return stockTarget(i.name, i.class_name, this.ownedShips(), this.shellBeta());
   }
 
   protected onItemInput(v: string): void {

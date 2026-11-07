@@ -1,0 +1,447 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "favorite": "d2",
+    "decisions": [
+      {
+        "id": "r1-dock-open",
+        "label": "Wann das Dock aufgeht",
+        "mode": "single",
+        "value": "both",
+        "rec": "both",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Perspektiven und untere Leiste",
+        "finding": "r1-dock-open-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 22815,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-dock-energy",
+        "label": "Pfeil und Energie",
+        "mode": "single",
+        "value": "row",
+        "rec": "row",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "ALso energie hat einfluss auf die ganzen werte! Deswegen muss man die auch direkt sehen können! Ich muss mir das aber mal ansehen mit einem gesamt seiten beispiel wo ich selbst drin scrollen kann",
+        "appliesTo": "Pfeil der unteren Leiste",
+        "finding": "r1-dock-energy-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 72869,
+          "noteWords": 34,
+          "revisits": 1,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-dock-phone",
+        "label": "Dock auf dem Handy",
+        "mode": "single",
+        "value": "swipe",
+        "rec": "swipe",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Handy",
+        "finding": "r1-dock-phone-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 16318,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-callout",
+        "label": "Callouts im Schema",
+        "mode": "single",
+        "value": "selected",
+        "rec": "selected",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "aber nur bei einfach alle punkte+ callouts bzgl. filter ausgewählten, bei den perspektiven ansichten nur die punkte bzgl. filter ausgewählten und der nutzer kann dann anklicken / suchen. bei 3d modus bekommen alle punkte ohne callouts bzgl filter ausgewüählten wie bei den perspektiven",
+        "appliesTo": "Einfach, Draufsicht, Seitensicht und Frontsicht",
+        "finding": "r1-callout-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 105077,
+          "noteWords": 43,
+          "revisits": 1,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-decks",
+        "label": "Deckplan im Schema",
+        "mode": "single",
+        "value": "chips",
+        "rec": "chips",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Schema, Schiffe mit Raumdaten",
+        "finding": "r1-decks-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 16534,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-small",
+        "label": "Kleine Gruppen",
+        "mode": "single",
+        "value": "pick",
+        "rec": "pick",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Einordnung im Holotisch",
+        "finding": "r1-small-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 64913,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-default",
+        "label": "Gemerkte Gruppe",
+        "mode": "single",
+        "value": "keep",
+        "rec": "always",
+        "deviates": true,
+        "none": false,
+        "untouched": false,
+        "note": "aber nur für dieses schiff gemerkt für 12h. Weil wenn man zwischen Schiffen hin und her wechselt, will man das vllt. imer wieder vergleichen! Aber auf der anderen siete will man am nächsten tag sozusagen frisch wieder nur die negste sehen",
+        "appliesTo": "Einordnung im Holotisch",
+        "finding": "r1-default-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 109856,
+          "noteWords": 41,
+          "revisits": 2,
+          "flagged": true
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-flag",
+        "label": "Welcher Beta-Schalter",
+        "mode": "single",
+        "value": "shell",
+        "rec": "shell",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Hangar-Knopf",
+        "finding": "r1-flag-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 58072,
+          "noteWords": 0,
+          "revisits": 1,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-classic",
+        "label": "Klassische Beta-Seite",
+        "mode": "single",
+        "value": "remove",
+        "rec": "remove",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "Klassische Schiffsseite im Beta-Modus",
+        "finding": "r1-classic-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 14704,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-recents",
+        "label": "Ersatz für den Schnellzugriff",
+        "mode": "single",
+        "value": "none",
+        "rec": "none",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "Holotisch und Codex-Startseite",
+        "finding": "r1-recents-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 12650,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-hangar-panel",
+        "label": "Eigenes Schiff: Panel oben",
+        "mode": "multi",
+        "value": [
+          "variant",
+          "save",
+          "wish",
+          "rename",
+          "pin"
+        ],
+        "rec": "variant save wish",
+        "deviates": true,
+        "none": false,
+        "untouched": false,
+        "note": "aber erstmal nur für holotisch betas viariante",
+        "appliesTo": "Persönliche Schiffsansicht",
+        "finding": "r1-hangar-panel-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 55546,
+          "noteWords": 7,
+          "revisits": 2,
+          "flagged": false
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-text",
+        "label": "Neuer Untertitel",
+        "mode": "wording",
+        "choice": "short",
+        "value": "Hochauflösende Artworks von Cloud Imperium Games, direkt zum Original verlinkt. Mit der Starscape-App holst du sie als Hintergrund auf deinen Desktop.",
+        "rec": "short",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "ui und wir sollten im tray menü von starscape auch anziegen fan made... mit verlinkung auf der website zu dem voll fan made logo + text oder einfach auf die starscape website! Weil jede applikation ja fanmade info irgendwie benötigt! Ggf. auch bei Starscape öffnen lassen einfach eher Starscape Fan-made oder so schreiben! Weil da habne wir es ja schon\n\nim starscape tray menü: Pausieren sollte zu Fortsetzen wechseln je nachdem was gerade der status ist. Meine Stenrenbilder sollte in Bildauswahl reinwandern. Mit windows starten und anonyme diagnose sollten in konto menü rein wandern ;)",
+        "appliesTo": "Galerie, Deutsch und Englisch",
+        "finding": "r1-text-f",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 266211,
+          "noteWords": 95,
+          "revisits": 2,
+          "flagged": true
+        },
+        "view": "r1-v-fragen"
+      },
+      {
+        "id": "r1-a11y",
+        "label": "Liste unter dem Schema: nur optisch weg",
+        "evaluation": "include",
+        "view": "r1-v-done",
+        "note": ""
+      },
+      {
+        "id": "r1-redirect",
+        "label": "Weiterleitung /hq/hangar/:id bleibt",
+        "evaluation": "include",
+        "view": "r1-v-done",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "devops learn warum die custom notizen hier speech bubbles irgendwie kaputt dargestellt",
+        "attachments": [
+          {
+            "id": "4599d643b77ce7577e1a4482fd529c946657000f6c16d9041873fe949c544370.png",
+            "name": "image.png",
+            "mime": "image/png",
+            "size": 430531,
+            "path": ".claude/concepts/20261107-0250-holotisch-unten-hangar/attachments/4599d643b77ce7577e1a4482fd529c946657000f6c16d9041873fe949c544370.png"
+          }
+        ]
+      },
+      "items": [
+        {
+          "id": "anno-r1-d2-s1-a1",
+          "text": "Warum die nicht links machen und die breite haben vom einsatz?",
+          "attachments": []
+        },
+        {
+          "id": "anno-r1-d2-s1-a2",
+          "text": "Sehr gut",
+          "attachments": []
+        },
+        {
+          "id": "anno-r1-d2-s1-a3",
+          "text": "ok",
+          "attachments": []
+        },
+        {
+          "id": "r1-dock-energy-note",
+          "text": "ALso energie hat einfluss auf die ganzen werte! Deswegen muss man die auch direkt sehen können! Ich muss mir das aber mal ansehen mit einem gesamt seiten beispiel wo ich selbst drin scrollen kann",
+          "attachments": []
+        },
+        {
+          "id": "r1-callout-note",
+          "text": "aber nur bei einfach alle punkte+ callouts bzgl. filter ausgewählten, bei den perspektiven ansichten nur die punkte bzgl. filter ausgewählten und der nutzer kann dann anklicken / suchen. bei 3d modus bekommen alle punkte ohne callouts bzgl filter ausgewüählten wie bei den perspektiven",
+          "attachments": []
+        },
+        {
+          "id": "r1-default-note",
+          "text": "aber nur für dieses schiff gemerkt für 12h. Weil wenn man zwischen Schiffen hin und her wechselt, will man das vllt. imer wieder vergleichen! Aber auf der anderen siete will man am nächsten tag sozusagen frisch wieder nur die negste sehen",
+          "attachments": []
+        },
+        {
+          "id": "r1-hangar-panel-note",
+          "text": "aber erstmal nur für holotisch betas viariante",
+          "attachments": []
+        },
+        {
+          "id": "r1-text-note",
+          "text": "ui und wir sollten im tray menü von starscape auch anziegen fan made... mit verlinkung auf der website zu dem voll fan made logo + text oder einfach auf die starscape website! Weil jede applikation ja fanmade info irgendwie benötigt! Ggf. auch bei Starscape öffnen lassen einfach eher Starscape Fan-made oder so schreiben! Weil da habne wir es ja schon\n\nim starscape tray menü: Pausieren sollte zu Fortsetzen wechseln je nachdem was gerade der status ist. Meine Stenrenbilder sollte in Bildauswahl reinwandern. Mit windows starten und anonyme diagnose sollten in konto menü rein wandern ;)",
+          "attachments": [
+            {
+              "id": "ae497f73bdb2368fef5dbd74072d938297af69bd69a8cf12d84f9272fe03a9a5.png",
+              "name": "image.png",
+              "mime": "image/png",
+              "size": 10022,
+              "path": ".claude/concepts/20261107-0250-holotisch-unten-hangar/attachments/ae497f73bdb2368fef5dbd74072d938297af69bd69a8cf12d84f9272fe03a9a5.png"
+            }
+          ]
+        },
+        {
+          "id": "d2-s4",
+          "text": "sehr gut!\nWobei bei Schema einfach würde ich direkt alle callouts gleichzteeitig anzeigen und nicht abwählbar. Bei den anderen sichten nur wenn man draufdrückt.",
+          "attachments": []
+        },
+        {
+          "id": "design-d2",
+          "text": "Die idee wäre, bauteile im detail nehmen horizontal genauso viel platz iein wie unten offensive bis signatur& kühlung, dabei 4 spalten auch wie unten und die sachen zugeordnet sozusagen visuell uach wenn sie nicht direkt visuell gekoppelt sind aber sortiert halt. \nPerspektiven widerum passt mit beschreeibung und wo zu kaufen usw.",
+          "attachments": []
+        }
+      ],
+      "designs": {
+        "d2": "Die idee wäre, bauteile im detail nehmen horizontal genauso viel platz iein wie unten offensive bis signatur& kühlung, dabei 4 spalten auch wie unten und die sachen zugeordnet sozusagen visuell uach wenn sie nicht direkt visuell gekoppelt sind aber sortiert halt. \nPerspektiven widerum passt mit beschreeibung und wo zu kaufen usw."
+      },
+      "screens": {
+        "d2-s4": "sehr gut!\nWobei bei Schema einfach würde ich direkt alle callouts gleichzteeitig anzeigen und nicht abwählbar. Bei den anderen sichten nur wenn man draufdrückt."
+      },
+      "views": {}
+    },
+    "annotations": [
+      {
+        "id": "r1-d2-s1-a1",
+        "screen": "d2-s1",
+        "design": "d2",
+        "question": "Die Spalte läuft beim Scrollen mit. Bleibt sie so nützlich, oder stört sie neben langen Bauteillisten?",
+        "answer": "Warum die nicht links machen und die breite haben vom einsatz?"
+      },
+      {
+        "id": "r1-d2-s1-a2",
+        "screen": "d2-s1",
+        "design": "d2",
+        "question": "Der Wunschlisten-Knopf steht hier zusätzlich zu den Symbolen oben im Panel. Beide behalten oder nur diesen?",
+        "answer": "Sehr gut"
+      },
+      {
+        "id": "r1-d2-s1-a3",
+        "screen": "d2-s1",
+        "design": "d2",
+        "question": "Die Bauteile bekommen weniger Breite. Sind zwei Spalten Gruppen genug für dich?",
+        "answer": "ok"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw692srrp5yy",
+        "design": "d2",
+        "screen": "d2-s1",
+        "x": 54.1,
+        "y": 94.6,
+        "target": "div.bz-tv \"Boost520 m/sSCM226 m/sMaximal1.193 m/s\"",
+        "text": "Ganz unten die leiste wäre gut wenn die klar gleicheverteilt horizontal wären. Das heißt links der einsatz horizontal kleiner und der rest rechts danbebn gleichverteilt",
+        "attachments": []
+      },
+      {
+        "id": "up-mw693y9to7nr",
+        "design": "d2",
+        "screen": "d2-s1",
+        "x": 79.7,
+        "y": 95.8,
+        "target": "button \"–\"",
+        "text": "Das minimieren icon benötigen wir denke ich nciht, es reichthier unten das kleine größer machen icon",
+        "attachments": []
+      },
+      {
+        "id": "up-mw696fy4ypsc",
+        "design": "d2",
+        "screen": "d2-s2",
+        "x": 68.8,
+        "y": 69.1,
+        "target": "aside.bz-side \"BeschreibungPlatzhalter für den Beschrei\"",
+        "text": "keine einzelbuttons hier, bitte integrieren in die kästen oben (z. B. bei rsi) oder einen extra kasten",
+        "attachments": []
+      },
+      {
+        "id": "up-mw6971zlo5ns",
+        "design": "d2",
+        "screen": "d2-s2",
+        "x": 30.8,
+        "y": 38.6,
+        "target": "button.bz-chip.on \"Komponenten\"",
+        "text": "brauchen keine filterauswwahl hier",
+        "attachments": []
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "action": "final-report",
+    "implemented": true,
+    "head": "3a34185a",
+    "qa": "6043/6043 green; C26 fixed for ?mine; Rust not compiled"
+  }
+]

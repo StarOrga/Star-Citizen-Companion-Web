@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   computed,
+  inject,
   input,
   output,
   signal,
@@ -12,6 +13,7 @@ import { RouterLink } from '@angular/router';
 import { hqHangar, hqLocker, hqSet } from '../../hq/hq-routes';
 import { TranslatePipe } from '@ngx-translate/core';
 
+import { BetaService } from '../../core/beta.service';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 
 /** One entry in the fly-out chain — a ship or a set, whichever the stage picks from. */
@@ -48,6 +50,7 @@ const COLLAPSE_DELAY_MS = 150;
   imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (!hidden()) {
     <div
       class="picker"
       [class.amber]="kind() === 'set'"
@@ -93,6 +96,7 @@ const COLLAPSE_DELAY_MS = 150;
         </div>
       }
     </div>
+    }
   `,
   styles: [
     `
@@ -195,6 +199,9 @@ const COLLAPSE_DELAY_MS = 150;
 export class HangarPickerComponent {
   /** Which domain the picker switches within — labels and amber vs. cyan follow this. */
   readonly kind = input.required<'ship' | 'set'>();
+  /** Beta shell: the hangar button is retired (concept r1-flag); the Sets button stays. */
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
+  protected readonly hidden = computed(() => this.kind() === 'ship' && this.shellBeta());
   /** Top 3, most-recently-chosen first; `active` marks the one the stage currently shows. */
   readonly items = input<readonly HangarPickerItem[]>([]);
   /** True when a wrapper (the Holotable's `.hangar-dock`) already positions this

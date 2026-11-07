@@ -86,6 +86,18 @@ Close-out follow-ups, routed by the owner to "build now" (2026-11-06):
 
 Filed: idle and true max EM (#967), hull variants counted once (#968). Dropped: where the ship actions sit.
 
+## Decided and built: lower part + hangar (concept 20261107-0250, 2026-11-07)
+
+Source: `20261107-0250-holotisch-unten-hangar/briefs/implement.md` (verbatim notes, checklist C1–C33), favourite design d2 "Seitenspalte".
+
+- Lower part order: Bauteile im Detail first, Perspektiven last. Bauteile in **4 columns aligned to the strip areas** (Offensive … Signatur & Kühlung), no filter chips there.
+- Left side column with the **width of the Einsatz column**: Beschreibung (with "Bei RSI"), Wo zu kaufen (with the wishlist control), one box "Varianten & Vergleich". No loose buttons under it.
+- Strip: narrow Einsatz on the left, four areas evenly distributed; no minimise button, only the expand arrow. The arrow opens the dock anywhere: energy as its own row, then the four perspective areas. At page end the perspectives stand on their own. Phone: areas swipe sideways.
+- Schema: deck plan as chips in Einfach (Außen / Deck n; one deck → Außen / Innen; no room data → none). No list under the drawing; markers are keyboard buttons. Einfach shows all callouts at once (not deselectable); the other views and 3D show a callout only on click.
+- Panel tabs: Einordnung first and default, Bauteile second; picking a part brings Bauteile forward.
+- Groups under 8 ships stay pickable with "nur N Schiffe". Default = narrowest group; a picked group is remembered **per ship for 12 h** (classic view keeps its account-wide choice).
+- Shell beta: no hangar button anywhere (classic page loses only that row). Own ship in the Holotable: rename, note, pin, remove (remove confirms) — holotable variant only.
+
 ## Rejected, do not re-propose without saying so
 
 - Compare button on the ship page ("eher auf der Landing ... Richtung Simulation"). (S hv-s2)

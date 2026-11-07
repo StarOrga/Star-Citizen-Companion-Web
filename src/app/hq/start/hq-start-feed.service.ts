@@ -12,6 +12,8 @@ export interface HqPatchHit {
   weaker: boolean;
   /** The set it touches; rendered as a real anchor. */
   link?: string[];
+  /** Query of the link (a ship variant opens with `?v=`). */
+  linkQuery?: Record<string, string>;
 }
 
 /**

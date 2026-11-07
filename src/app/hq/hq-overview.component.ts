@@ -12,7 +12,7 @@ import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive
 import { StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
 import { HqSpotStageComponent } from './hq-spot-stage.component';
 import { HqOwnershipService } from './hq-ownership.service';
-import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } from './hq-routes';
+import { HqLink, hqHangar, hqLocker, hqOps, hqSet, ownShipLink, personalShipLink } from './hq-routes';
 
 /**
  * HQ landing ("Übersicht"): the active ship with its active variant, the
@@ -53,7 +53,7 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, hqShip, personalShipLink } fr
       <section class="sc-card tile" aria-labelledby="hq-ov-ship">
         <h2 id="hq-ov-ship" class="tile-eyebrow">{{ 'hq.overview.activeShip' | translate }}</h2>
         @if (activeShip(); as s) {
-          <a class="tile-main" [routerLink]="shipRoute(s)">
+          <a class="tile-main" [routerLink]="shipRoute(s).commands" [queryParams]="shipRoute(s).queryParams">
             <strong class="tile-title">{{ shipName(s) }}</strong>
             <span class="tile-sub">
               {{ 'hq.overview.activeVariant' | translate }}:
@@ -234,8 +234,8 @@ export class HqOverviewComponent implements OnInit {
     return s.customName || humanizeClassName(s.shipClassName);
   }
 
-  shipRoute(s: HangarShip): string[] {
-    return hqShip(s.id);
+  shipRoute(s: HangarShip): HqLink {
+    return ownShipLink(s, this.ownership.configsForShip(s.id));
   }
 
   setRoute(id: string): string[] {

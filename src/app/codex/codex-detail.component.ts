@@ -15,6 +15,7 @@ import {
   computed,
   effect,
   inject,
+  input,
   signal,
   untracked,
 } from '@angular/core';
@@ -52,10 +53,11 @@ import { roleSlotForAttachType } from './codex-landing-kpi';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShipConfig, PeekedSharedLoadout } from '../hangar/hangar.types';
 import { HqOwnershipService } from '../hq/hq-ownership.service';
-import { HQ_MINE_PARAM, HQ_ROOT, HQ_VARIANT_PARAM, hqHangar, personalShipLink } from '../hq/hq-routes';
+import { HQ_MINE_PARAM, HQ_ROOT, HQ_VARIANT_PARAM, hqHangar, hqShipLink, personalShipLink } from '../hq/hq-routes';
 import { CodexModeSwitchComponent, CodexPersonalUsesComponent } from './detail/codex-personal-mode.component';
 import { BetaService } from '../core/beta.service';
 import { SharedLoadoutAdopter } from '../hangar/shared-loadout-adopter.service';
+import { CodexOwnShipActionsComponent } from './holo/codex-own-ship-actions.component';
 import { HangarPickerComponent, HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import { ShareButtonComponent } from '../shared/share-button/share-button.component';
@@ -196,13 +198,14 @@ import {
   rankClassOfCareer,
   rankProfileDisabledReason,
   rankTargetShipInput,
-  RANK_MIN_GROUP,
   RankClassId,
+  narrowestRankScope,
   readRankScopePref,
   rankShip,
   resolveCareerLabel,
   writeRankScopePref,
 } from './codex-rank';
+import { CodexPrefsService } from './codex-prefs.service';
 import {
   CodexDefensivePanelComponent,
   CodexOffensivePanelComponent,
@@ -259,7 +262,7 @@ import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
-import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
+import { HANGAR_ROOT_CRUMB, NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
 import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 import { FeedbackSpotDirective } from '../feedback/feedback-spot.directive';
 
@@ -281,7 +284,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, ShareButtonComponent, HeightVarDirective],
+  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexOwnShipActionsComponent, ShareButtonComponent, HeightVarDirective],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -299,7 +302,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       @if (foreignVariant()) {
         <p class="foreign-note sc-card" role="status">{{ 'codex.personal.foreignVariant' | translate }}</p>
       }
-      @if (detail() && kind() !== 'ship') {
+      @if (detail() && kind() !== 'ship' && !shellBeta()) {
         <sc-codex-personal-uses class="personal-uses" [ownership]="myOwnership()" [personal]="personalMode()" />
       }
 
@@ -342,7 +345,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              included (they existed nowhere else on the page).
              Every other codex kind keeps the two-column hero it always had: it
              has no analysis card to move its facts into. ── -->
-        @if (kind() === 'ship') {
+        @if (kind() === 'ship' && !shellBeta()) {
           <!-- The hangar control sits ABOVE the picture (#239: "Hangar im
                Bild raus, dafür gibt es über dem Bild einen Button") — the
                same docked HangarPicker the Holotable carries in its table
@@ -909,6 +912,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [allKpiCells]="allKpiCells()"
             [heroArt]="heroArt()"
             [previewSilhouette]="previewSilhouetteUrl()"
+            [decks]="shipDecks()"
+            [deckLang]="deckPlanLang()"
             (hovered)="setActivePorts($event)"
             (inspected)="openInspect($event)"
             (swapRequested)="onHoloSwapRequested($event)"
@@ -937,42 +942,67 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [openDetails]="sourceLinkRequested()"
             (copyShareLink)="copyShareLink()">
             <div htData class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideData" /></div>
+            @if (ownShipForActions(); as ownShip) {
+              <sc-codex-own-ship-actions htOwn [ship]="ownShip" />
+            }
             <div htSwitch class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideSwitch" /></div>
-            <!-- Details drawer content, projected into the Holotable: the
-                 shared sub-components in detail/ and the shared ng-templates,
-                 rendered in both branches, on the SAME signals/methods as the
-                 classic view (item B "present, not hidden behind a code
-                 path"). -->
-            <div htOpen class="ho-wrap">
-            <div class="holo-details-pickers">
-              @if (editionOptions().length > 1) {
-                <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                  [options]="editionPickerOptions()" [current]="currentEdition()" />
-              }
-              @if (skinOptions().length > 1) {
-                <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                  [options]="skinPickerOptions()" [current]="currentLivery()" />
-              }
-              <sc-item-path kind="ship" [className]="detail()!.classNameSlug" [name]="displayName()" />
-              <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" />
-              <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
-              <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
-                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
-              </button>
-            </div>
-            @if (shipLinkForm.open()) {
-              <sc-codex-ship-link-form />
-            }
-            <!-- 2D deck plan (#797): renders nothing until the uploader emitted rooms. -->
-            @if (shipDecks(); as decks) {
-              @defer (on viewport) {
-                <sc-ship-deck-plan [decks]="decks" [lang]="deckPlanLang()" />
-              } @placeholder {
-                <div aria-hidden="true"></div>
-              }
-            }
-            <ng-container [ngTemplateOutlet]="descriptionCard" />
-            <ng-container [ngTemplateOutlet]="whereToBuy" />
+            <!-- The side column below the first screen (concept holotisch-unten
+                 r1, d2): as wide as the strip's Einsatz, on the left. Every
+                 action lives in a box — Bei RSI in Beschreibung, the wish list
+                 in Wo zu kaufen, Edition/Lackierung/Vergleich in their own box.
+                 The deck plan moved into the table's Schema "Einfach" chips. -->
+            <div htSide class="ho-side">
+              <section class="sc-card side-card">
+                <h2 class="side-h">{{ 'codex.detail.description' | translate }}</h2>
+                @if (description(); as d) {
+                  <p class="desc side-desc">{{ d }}</p>
+                }
+                <div class="side-acts">
+                  <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" />
+                </div>
+                @if (shipLinkForm.open()) {
+                  <sc-codex-ship-link-form />
+                }
+              </section>
+              <section class="sc-card side-card" [attr.id]="shipSourceFragment">
+                <h2 class="side-h">{{ 'codex.detail.whereToBuy' | translate }}</h2>
+                @if (buyLoading()) {
+                  <p class="muted">{{ 'codex.detail.whereToBuyLoading' | translate }}</p>
+                } @else if (buyError()) {
+                  <p class="err-inline">{{ 'codex.detail.whereToBuyError' | translate }}</p>
+                } @else if (buyOptions().length === 0) {
+                  <p class="muted">{{ 'codex.detail.whereToBuyEmpty' | translate }}</p>
+                } @else {
+                  <ul class="side-buy">
+                    @for (opt of buyOptions(); track opt.terminal + opt.price) {
+                      <li>
+                        <b class="buy-price">{{ fmt(opt.price) }} aUEC</b>
+                        <span>{{ opt.terminal }}</span>
+                        <small class="muted">{{ opt.location }}</small>
+                      </li>
+                    }
+                  </ul>
+                }
+                <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
+                <sc-item-path kind="ship" level="secondary" [className]="detail()!.classNameSlug" [name]="displayName()" />
+              </section>
+              <section class="sc-card side-card">
+                <h2 class="side-h">{{ 'codex.holo.side.variants' | translate }}</h2>
+                <div class="side-variants">
+                  @if (editionOptions().length > 1) {
+                    <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                      [options]="editionPickerOptions()" [current]="currentEdition()" />
+                  }
+                  @if (skinOptions().length > 1) {
+                    <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                      [options]="skinPickerOptions()" [current]="currentLivery()" />
+                  }
+                  <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
+                  <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
+                    <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+                  </button>
+                </div>
+              </section>
             </div>
             <ng-container [ngTemplateOutlet]="tailLoadout" />
             @if (recipeView(); as rv) {
@@ -1026,7 +1056,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <ng-template #shipAsideData>
         @if (showModeSwitch()) {
           <sc-codex-mode-switch [kind]="kind()!" [className]="detail()!.classNameSlug" [personal]="personalMode()"
-            [variants]="myVariants()" [activeVariantId]="activeVariantId()" />
+            [variants]="myVariants()" [activeVariantId]="activeVariantId()" [hangarShipId]="hqShipId()" />
         }
         @if (kind() === 'ship' && dataPill(); as pill) {
           <span class="prov data-pill" [class.pending]="pill.pending">
@@ -1159,7 +1189,15 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     <sc-share-button />
   `,
   styles: [`
-    .ho-wrap { display: flex; flex-direction: column; gap: 12px; }
+    .ho-side { display: contents; }
+    .side-card { margin: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .side-h { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); font-family: var(--sc-font-display); font-weight: 400; }
+    .side-desc { font-size: max(0.8rem, var(--sc-fs-floor)); }
+    .side-acts, .side-variants { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+    .side-buy { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+    .side-buy li { display: grid; gap: 1px; min-width: 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .side-buy li > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .side-card .buy-attribution { margin: 0; }
     .foreign-note { margin: 0 0 12px; padding: 10px 14px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-1); border-left: 3px solid var(--sc-warning); }
     .personal-uses { margin: 0 0 12px; }
     :host { display: block; }
@@ -1562,6 +1600,10 @@ export class CodexDetailComponent implements OnInit {
       kind && CODEX_KINDS.includes(kind)
         ? { labelKey: `codex.kinds.${kind}`, link: '/codex/index', queryParams: { kind } }
         : null;
+    // Hosted under HQ (shell beta): HQ > Hangar > ship (the header adds the ship's name).
+    if (this.hqHosted()) {
+      return [{ labelKey: 'codex.personal.hqCrumb', link: HQ_ROOT }, HANGAR_ROOT_CRUMB];
+    }
     // Personal mode: the reader's own copy belongs to HQ, so the parent crumb goes there.
     if (this.personalMode()) {
       return [{ labelKey: 'codex.personal.hqCrumb', link: kind === 'ship' ? hqHangar : HQ_ROOT }];
@@ -1569,10 +1611,24 @@ export class CodexDetailComponent implements OnInit {
     return originTrail(this.navOrigin, fallback);
   });
   readonly kind = computed(() => this.detail()?.kind ?? null);
+  /**
+   * Hosted under HQ > Hangar (`/hq/hangar/:id`, shell beta): the class name of the hangar ship whose
+   * page this is. The route then carries a hangar id instead of `kind`/`className`; the host resolves it.
+   */
+  readonly hostClassName = input<string | null>(null);
+  /** The hangar ship this page belongs to when hosted under HQ. */
+  readonly hostShipId = input<string | null>(null);
+  // withComponentInputBinding() sets an input the route does not carry to `undefined`, not to its
+  // default: on every /codex route both inputs are undefined, so test for a value, never `!== null`.
+  readonly hqHosted = computed(() => !!this.hostClassName());
+  /** The hangar ship id the mode switch links use; null in the Codex. */
+  readonly hqShipId = computed(() => (this.hqHosted() ? (this.hostShipId() ?? null) : null));
   private readonly ownershipSvc = inject(HqOwnershipService);
   private readonly codexBeta = inject(BetaService).isEnabled('codex');
   /** The share FAB (beta shell) replaces the "Link teilen" buttons; without the beta they stay, or no link copy would be left. */
   protected readonly shareFab = inject(BetaService).isEnabled('shell');
+  /** Beta shell: the retired hangar button row above the classic hero is gone (concept r1-classic). */
+  protected readonly shellBeta = this.shareFab;
   protected readonly pathLevel = computed(() => (this.detail() ? pathLevelFor(this.navOrigin) : 'secondary'));
   /** Everything the reader has of this entity (HQ ownership index), or null. */
   readonly myOwnership = computed(() => this.ownershipSvc.lookup(this.detail()?.classNameSlug));
@@ -1595,6 +1651,15 @@ export class CodexDetailComponent implements OnInit {
    * every other kind lists where the reader fitted / packed it. Codex mode is
    * the game's knowledge, the same for everyone, never saved.
    */
+  /** The own ship the personal actions act on: only in HQ, or in the Codex without the shell beta (`?mine` / `?v=`). */
+  readonly ownShipForActions = computed(() => {
+    if (this.hqHosted()) {
+      const id = this.hostShipId();
+      return this.hangar.ships().find((s) => s.id === id) ?? null;
+    }
+    if (this.shellBeta()) return null;
+    return this.personalMode() || this.mineFlag() ? (this.myOwnership()?.ship ?? null) : null;
+  });
   readonly personalMode = computed(() =>
     this.kind() === 'ship' ? this.activeVariantId() !== null : this.mineFlag() && this.personalCount() > 0,
   );
@@ -1604,7 +1669,10 @@ export class CodexDetailComponent implements OnInit {
    */
   readonly showModeSwitch = computed(() => {
     const k = this.kind();
-    if (!k || !this.detail() || !this.codexBeta()) return false;
+    if (!k || !this.detail()) return false;
+    // Shell beta: the Codex has no personal mode; the HQ page keeps the variant switch.
+    if (this.shellBeta()) return this.hqHosted() && this.myVariants().length > 0;
+    if (!this.codexBeta()) return false;
     return k === 'ship' ? this.myVariants().length > 0 : this.personalCount() > 0;
   });
   /**
@@ -1785,6 +1853,11 @@ export class CodexDetailComponent implements OnInit {
     const variantId = q.get(HQ_VARIANT_PARAM)?.trim() || null;
     this.appliedLoadoutSource = loadoutSourceKey(q);
     this.foreignVariant.set(false);
+    // Shell beta: the Codex shows no personal mode. An own ship (`?v=` / `?config=` / `?mine`) lives in HQ.
+    if (this.shellBeta() && !this.hqHosted() && !token) {
+      await this.leavePersonalForHq(classNameSlug, configId ?? variantId, q.has(HQ_MINE_PARAM), seq);
+      return;
+    }
     if (token) {
       this.activeVariantId.set(null);
       await this.applySharedLoadout(classNameSlug, token, seq);
@@ -1806,6 +1879,46 @@ export class CodexDetailComponent implements OnInit {
       this.sharedDraft.set(null);
       this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
     }
+  }
+
+  /**
+   * Shell beta, Codex page: `?v=` / `?config=` / `?mine` name the reader's own copy, which lives at
+   * HQ > Hangar. An owned ship sends the reader there (replaceUrl, old bookmarks keep working); a
+   * variant that is not the reader's is dropped with the foreign note, as before. The plain view stays.
+   */
+  private async leavePersonalForHq(classNameSlug: string, configId: string | null, mine: boolean, seq: number): Promise<void> {
+    this.activeVariantId.set(null);
+    this.activeHangarConfig.set(null);
+    this.sharedDraft.set(null);
+    if (configId || mine) {
+      try {
+        await this.auth.whenReady?.();
+        await this.ownershipSvc.ensureLoaded();
+      } catch (error) {
+        logWarn('codex', 'ownership for hq redirect failed', { error });
+      }
+      if (!this.isCurrentLoad(seq)) return;
+      const config = configId ? this.ownershipSvc.configById(configId) : null;
+      const ship = config
+        ? (this.hangar.ships().find((s) => s.id === config.hangarShipId) ?? null)
+        : configId
+          ? null
+          : this.ownershipSvc.shipFor(classNameSlug);
+      if (ship) {
+        const link = hqShipLink(ship.id, config?.id);
+        void this.router.navigate(link.commands, { queryParams: link.queryParams, replaceUrl: true });
+        return;
+      }
+      if (configId) this.foreignVariant.set(true);
+      this.appliedLoadoutSource = null; // dropping the params is not a new source
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { [HQ_VARIANT_PARAM]: null, config: null, [HQ_MINE_PARAM]: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+    this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
   }
 
   private async applySharedLoadout(classNameSlug: string, token: string, seq: number): Promise<void> {
@@ -2249,8 +2362,9 @@ export class CodexDetailComponent implements OnInit {
    */
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const kind = params.get('kind') as CodexKind | null;
-      const className = params.get('className');
+      const host = this.hostClassName() || null; // undefined on a /codex route (input binding)
+      const kind = (host !== null ? 'ship' : params.get('kind')) as CodexKind | null;
+      const className = host ?? params.get('className');
       // An unknown category (/codex/foo/x) used to query a table named
       // "undefined" and print the raw database message.
       if (!kind || !className || !CODEX_KINDS.includes(kind)) {
@@ -2271,7 +2385,7 @@ export class CodexDetailComponent implements OnInit {
     // `?shared=` / `?config=` change without a new ship (adopt → own config,
     // leaving the shared view): the draft follows, the page does not reload.
     this.route.queryParamMap?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((q) => {
-      this.mineFlag.set(q.has(HQ_MINE_PARAM));
+      this.mineFlag.set(!this.shellBeta() && q.has(HQ_MINE_PARAM));
       const d = this.detail();
       if (!d || d.kind !== 'ship' || this.loading()) return;
       if (loadoutSourceKey(q) === this.appliedLoadoutSource) return;
@@ -2325,7 +2439,7 @@ export class CodexDetailComponent implements OnInit {
     this.shipSilhouette.set(null);
     this.foreignVariant.set(false);
     this.activeVariantId.set(null);
-    this.mineFlag.set(this.route.snapshot.queryParamMap?.has?.(HQ_MINE_PARAM) ?? false);
+    this.mineFlag.set(!this.shellBeta() && (this.route.snapshot.queryParamMap?.has?.(HQ_MINE_PARAM) ?? false));
     try {
       const d = await this.svc.getDetail(kind, className);
       if (seq !== this.loadSeq) return;
@@ -3371,8 +3485,23 @@ export class CodexDetailComponent implements OnInit {
   // so the choice follows the user to another browser.
   /** The stored/picked group; null = never chosen. */
   readonly rankScopeChosen = signal<RankScope | null>(readRankScopePref(null));
-  /** Never chosen: Alle in the classic card (untouched), Karriere/Rolle in the Holotable. A stored choice applies to both. */
-  readonly rankScope = computed<RankScope>(() => this.rankScopeChosen() ?? (this.holoView() ? 'role' : 'all'));
+  private readonly codexPrefs = inject(CodexPrefsService);
+  /** The Holotable's default group: the narrowest one this ship belongs to. */
+  private readonly holoNarrowestScope = computed<RankScope>(() => {
+    const target = this.rankShipInput();
+    const cohort = this.rankCohort();
+    return target && cohort ? narrowestRankScope(target, cohort, { careerByClass: true }) : 'role';
+  });
+  /**
+   * Classic card: the account-wide choice, Alle when never chosen (untouched).
+   * Holotable (concept r1-default): the group clicked for THIS ship within the
+   * last 12 hours, else the narrowest group — another ship never inherits it.
+   */
+  readonly rankScope = computed<RankScope>(() =>
+    this.holoView()
+      ? (this.codexPrefs.shipRankScope(this.shipClassName()) ?? this.holoNarrowestScope())
+      : (this.rankScopeChosen() ?? 'all'),
+  );
   private readonly accountPrefs = inject(AccountPrefsService);
   private readonly rankScopeFromAccount = effect(() => {
     const fromAccount = parseRankScopePref(this.accountPrefs.prefs()?.[RANK_SCOPE_ACCOUNT_KEY]);
@@ -3383,6 +3512,10 @@ export class CodexDetailComponent implements OnInit {
   });
 
   setRankScope(scope: RankScope): void {
+    if (this.holoView()) {
+      this.codexPrefs.setShipRankScope(this.shipClassName(), scope);
+      return;
+    }
     this.rankScopeChosen.set(scope);
     writeRankScopePref(scope);
     this.accountPrefs.set(RANK_SCOPE_ACCOUNT_KEY, scope);
@@ -3466,13 +3599,14 @@ export class CodexDetailComponent implements OnInit {
     const cohort = this.rankCohort();
     if (!target || !cohort) return null;
     // Holotable: rim at the group's 95th percentile, a "Karriere" group is the
-    // class, a group under RANK_MIN_GROUP widens (role -> class -> all).
-    // The classic card keeps the best-value rim and the raw career.
+    // class, and the picked group applies even under RANK_MIN_GROUP (the card
+    // says "nur N Schiffe", concept r1-small). The classic card keeps the
+    // best-value rim and the raw career.
     const holo = this.holoView();
     return rankShip(target, cohort, {
       profile: this.rankProfile(),
       scope: this.rankScope(),
-      ...(holo ? { rim: 'p95' as const, careerByClass: true, minGroup: RANK_MIN_GROUP } : {}),
+      ...(holo ? { rim: 'p95' as const, careerByClass: true } : {}),
     });
   });
 
@@ -4245,6 +4379,8 @@ export class CodexDetailComponent implements OnInit {
     if (d?.kind !== 'ship') return null;
     const created = await this.draftStore.adoptToHq();
     if (!created) return null;
+    // Shell beta, in the Codex: no personal mode to switch to - the variant simply appears under HQ > Hangar.
+    if (this.shellBeta() && !this.hqHosted()) return created;
     const link = personalShipLink(d.classNameSlug, created.id);
     await this.router.navigate([], {
       relativeTo: this.route,

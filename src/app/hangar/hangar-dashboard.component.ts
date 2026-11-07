@@ -1,3 +1,4 @@
+import { BetaService } from '../core/beta.service';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -10,7 +11,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { HqLink, hqHangar, hqListLink, hqSet, personalItemLink, personalShipLink } from '../hq/hq-routes';
+import { HqLink, hqHangar, hqListLink, hqSet, ownShipLink, ownVariantLink } from '../hq/hq-routes';
 import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { SearchWishlistService } from '../codex/search/search-wishlist.service';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
@@ -643,6 +644,7 @@ export class HangarDashboardComponent implements OnInit {
    */
   readonly section = input<'all' | 'hangar' | 'locker'>('all');
   private readonly ownership = inject(HqOwnershipService);
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
   protected readonly wishes = inject(SearchWishlistService);
   protected readonly wishLink = hqListLink('wish');
   private readonly confirmDialog = inject(ScConfirmService);
@@ -676,7 +678,7 @@ export class HangarDashboardComponent implements OnInit {
   }
 
   variantLink(s: HangarShip, c: HangarShipConfig): HqLink {
-    return personalShipLink(s.shipClassName, c.id);
+    return ownVariantLink(s, c.id, this.shellBeta());
   }
 
   async saveName(s: HangarShip): Promise<void> {
@@ -734,9 +736,7 @@ export class HangarDashboardComponent implements OnInit {
 
   /** The ship's own page is the personal Codex view (its active variant), not a hangar detail page. */
   shipLink(s: HangarShip): HqLink {
-    const cfgs = this.ownership.configsForShip(s.id);
-    const cfg = cfgs.find((c) => c.isActive) ?? cfgs[0];
-    return cfg ? personalShipLink(s.shipClassName, cfg.id) : personalItemLink('ship', s.shipClassName);
+    return ownShipLink(s, this.ownership.configsForShip(s.id), this.shellBeta());
   }
 
   setRoute(id: string): string[] {
