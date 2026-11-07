@@ -45,7 +45,7 @@ describe('picking', () => {
 
   it('toggles a whole group to the full quantity and back', () => {
     const on = toggleGroup(p4ar, new Map());
-    expect([...on.entries()].sort()).toEqual([['blueprint:p4ar', 2], ['material:aluminium@p4ar', 16], ['material:copper@p4ar', 8]].sort());
+    expect(Object.fromEntries(on)).toEqual({ 'blueprint:p4ar': 2, 'material:aluminium@p4ar': 16, 'material:copper@p4ar': 8 });
     expect(pickedShare(p4ar.rows, on)).toBe(1);
     expect(toggleGroup(p4ar, on).size).toBe(0);
   });

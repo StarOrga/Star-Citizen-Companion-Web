@@ -437,7 +437,8 @@ export class HqNachschubFlowComponent {
   protected readonly canNext = computed(() => (this.step() === 1 ? this.picks().size > 0 || (this.mode() === 'edit' && this.existing().length > 0) : this.name().trim().length > 0));
   protected readonly canSave = computed(() => this.name().trim().length > 0 && (this.picks().size > 0 || this.mode() === 'edit'));
 
-  private namesVersion = 0;
+  /** The steps each Einsatz name was asked for, so an unchanged Einsatz is not asked again. */
+  private readonly nameSig = new Map<string, string>();
 
   constructor() {
     effect(() => {
@@ -449,14 +450,18 @@ export class HqNachschubFlowComponent {
       const wanted = this.proposalLines().filter((l) => l.className && !isBlueprintLine(l)).map((l) => l.className as string);
       untracked(() => this.sourcesSvc.ensure(wanted));
     });
-    // Name proposals for the Einsaetze (what you do), asked when the proposal changes.
+    // Name proposals for the Einsaetze (what you do): asked on step 3 only, and only when an Einsatz' steps really changed.
     effect(() => {
       const drafts = this.drafts();
-      const version = ++this.namesVersion;
+      if (this.step() !== 3) return;
       untracked(() => {
         for (const d of drafts) {
-          void this.naming.einsatzName(d.steps.map((s) => ({ kind: s.kind, label: s.label }))).then((n) => {
-            if (version === this.namesVersion) this.names.update((m) => new Map(m).set(d.role, n));
+          const steps = d.steps.map((s) => ({ kind: s.kind, label: s.label }));
+          const sig = steps.map((s) => `${s.kind}:${s.label}`).join('|');
+          if (this.nameSig.get(d.role) === sig) continue;
+          this.nameSig.set(d.role, sig);
+          void this.naming.einsatzName(steps).then((n) => {
+            if (this.nameSig.get(d.role) === sig) this.names.update((m) => new Map(m).set(d.role, n));
           });
         }
       });
