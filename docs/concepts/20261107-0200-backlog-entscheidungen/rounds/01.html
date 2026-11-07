@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-active data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
     <p data-briefing-what>Der Backlog-Lauf hat vier Issues gebaut und zwei als erledigt geschlossen. Sieben Issues sind offen geblieben, weil dort eine Produktentscheidung fehlt.</p>
     <p data-briefing-why>Mit deinen Antworten kann der nächste Lauf diese Issues ohne Rückfragen bauen oder schließen.</p>
@@ -42,8 +43,8 @@
       </div>
       <textarea data-comment="d-goals-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-goals-none" value="">
-      <input type="hidden" name="dm-d-goals-hes" value="">
-      <input type="hidden" name="dm-d-goals-touched" value="">
+      <input type="hidden" name="dm-d-goals-hes" value="{&quot;ms&quot;:910850,&quot;revisits&quot;:1,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-goals-touched" value="1">
       <input type="hidden" name="dm-d-goals-issue" value="">
       <input type="hidden" name="dm-d-goals-epic" value="">
       <div data-alevel="3" data-title="#895 HQ-Ziele">
@@ -76,8 +77,8 @@
       </div>
       <textarea data-comment="d-runs-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-runs-none" value="">
-      <input type="hidden" name="dm-d-runs-hes" value="">
-      <input type="hidden" name="dm-d-runs-touched" value="">
+      <input type="hidden" name="dm-d-runs-hes" value="{&quot;ms&quot;:45552,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-runs-touched" value="1">
       <input type="hidden" name="dm-d-runs-issue" value="">
       <input type="hidden" name="dm-d-runs-epic" value="">
       <div data-alevel="3" data-title="#900 Trade Runs">
@@ -93,12 +94,12 @@
       <p data-stakes>Ohne eigene Runs fehlt der Grund, nicht gleich UEX zu öffnen.</p>
       <div data-options>
         <label data-opt="follow" data-recommended>
-          <input type="radio" name="dm-d-routes" value="follow" checked>
+          <input type="radio" name="dm-d-routes" value="follow">
           <span data-opt-label>Erst nach #900 bauen</span>
           <span data-opt-consequence>Der Marktvergleich entsteht auf echten eigenen Runs. Bis dahin passiert nichts an diesem Issue.</span>
         </label>
         <label data-opt="prices">
-          <input type="radio" name="dm-d-routes" value="prices">
+          <input type="radio" name="dm-d-routes" value="prices" checked>
           <span data-opt-label>Preis-Service sofort bauen</span>
           <span data-opt-consequence>Warenpreise mit Quelle und Alter über einen Edge-Proxy. Nützlich, aber zunächst nur eine Kopie von UEX.</span>
         </label>
@@ -110,8 +111,8 @@
       </div>
       <textarea data-comment="d-routes-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-routes-none" value="">
-      <input type="hidden" name="dm-d-routes-hes" value="">
-      <input type="hidden" name="dm-d-routes-touched" value="">
+      <input type="hidden" name="dm-d-routes-hes" value="{&quot;ms&quot;:168198,&quot;revisits&quot;:2,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-routes-touched" value="1">
       <input type="hidden" name="dm-d-routes-issue" value="">
       <input type="hidden" name="dm-d-routes-epic" value="">
       <div data-alevel="3" data-title="#902 Handelsrouten">
@@ -133,12 +134,12 @@
       <p data-stakes>Ein zweites Sichtbarkeitsmodell mit eigener RLS.</p>
       <div data-options>
         <label data-opt="social" data-recommended>
-          <input type="radio" name="dm-d-groups" value="social" checked>
+          <input type="radio" name="dm-d-groups" value="social">
           <span data-opt-label>Nein, #903 zugunsten von Social schließen</span>
           <span data-opt-consequence>Eine Crew plant über geteilte Einsätze unter Freunden. Fremde per Einladungscode gehen damit nicht.</span>
         </label>
         <label data-opt="groups">
-          <input type="radio" name="dm-d-groups" value="groups">
+          <input type="radio" name="dm-d-groups" value="groups" checked>
           <span data-opt-label>Ja, echte Gruppen bauen</span>
           <span data-opt-consequence>Einladungscode, Rollen und RLS über Mitgliedschaft, vorab mit Sicherheitsprüfung. Groß.</span>
         </label>
@@ -150,8 +151,8 @@
       </div>
       <textarea data-comment="d-groups-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-groups-none" value="">
-      <input type="hidden" name="dm-d-groups-hes" value="">
-      <input type="hidden" name="dm-d-groups-touched" value="">
+      <input type="hidden" name="dm-d-groups-hes" value="{&quot;ms&quot;:59486,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-groups-touched" value="1">
       <input type="hidden" name="dm-d-groups-issue" value="">
       <input type="hidden" name="dm-d-groups-epic" value="">
       <div data-alevel="3" data-title="#903 HQ-Gruppen">
@@ -184,7 +185,7 @@
       </div>
       <textarea data-comment="d-shared-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-shared-none" value="">
-      <input type="hidden" name="dm-d-shared-hes" value="">
+      <input type="hidden" name="dm-d-shared-hes" value="{&quot;ms&quot;:154368,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
       <input type="hidden" name="dm-d-shared-touched" value="">
       <input type="hidden" name="dm-d-shared-issue" value="">
       <input type="hidden" name="dm-d-shared-epic" value="">
@@ -207,12 +208,12 @@
       <p data-stakes>Eine Zahl, die nur nach Maximum aussieht, führt beim Vergleich in die Irre.</p>
       <div data-options>
         <label data-opt="honest" data-recommended>
-          <input type="radio" name="dm-d-em" value="honest" checked>
+          <input type="radio" name="dm-d-em" value="honest">
           <span data-opt-label>Leere Achse entfernen, EM max richtig benennen</span>
           <span data-opt-consequence>Klein und ohne neue Daten. Der Vergleich hat dann eine Achse weniger.</span>
         </label>
         <label data-opt="extract">
-          <input type="radio" name="dm-d-em" value="extract">
+          <input type="radio" name="dm-d-em" value="extract" checked>
           <span data-opt-label>Echte Werte aus dem Extraktor holen</span>
           <span data-opt-consequence>Der saubere Weg, falls die Spieldaten sie enthalten. Braucht einen Uploader-Release und einen Data.p4k-Lauf.</span>
         </label>
@@ -224,8 +225,8 @@
       </div>
       <textarea data-comment="d-em-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-em-none" value="">
-      <input type="hidden" name="dm-d-em-hes" value="">
-      <input type="hidden" name="dm-d-em-touched" value="">
+      <input type="hidden" name="dm-d-em-hes" value="{&quot;ms&quot;:35641,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-em-touched" value="1">
       <input type="hidden" name="dm-d-em-issue" value="">
       <input type="hidden" name="dm-d-em-epic" value="">
       <div data-alevel="3" data-title="#967 Stealth-EM">
@@ -241,12 +242,12 @@
       <p data-stakes>Das Issue verlangt eine lesbare Reichweite, die es so nicht gibt.</p>
       <div data-options>
         <label data-opt="gap" data-recommended>
-          <input type="radio" name="dm-d-radar" value="gap" checked>
+          <input type="radio" name="dm-d-radar" value="gap">
           <span data-opt-label>Lücke zeigen und das Kriterium anpassen</span>
           <span data-opt-consequence>Radar-Items erscheinen mit ihren echten Werten, die Reichweite steht als „nicht in den Spieldaten“.</span>
         </label>
         <label data-opt="aim">
-          <input type="radio" name="dm-d-radar" value="aim">
+          <input type="radio" name="dm-d-radar" value="aim" checked>
           <span data-opt-label>Aim-Assist-Reichweite zeigen, klar beschriftet</span>
           <span data-opt-consequence>Eine Zahl ist da, aber nicht die, nach der Spieler beim Radar suchen.</span>
         </label>
@@ -258,8 +259,8 @@
       </div>
       <textarea data-comment="d-radar-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-radar-none" value="">
-      <input type="hidden" name="dm-d-radar-hes" value="">
-      <input type="hidden" name="dm-d-radar-touched" value="">
+      <input type="hidden" name="dm-d-radar-hes" value="{&quot;ms&quot;:159635,&quot;revisits&quot;:0,&quot;median&quot;:154368}">
+      <input type="hidden" name="dm-d-radar-touched" value="1">
       <input type="hidden" name="dm-d-radar-issue" value="">
       <input type="hidden" name="dm-d-radar-epic" value="">
       <div data-alevel="3" data-title="#842 Radar">
