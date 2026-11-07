@@ -5,8 +5,9 @@
 -- row itself, so it inherits the row's owner-only RLS and is cascade-deleted with it. Shape of
 -- one entry: { "amount": number > 0, "note": text (<= 120), "at": ISO timestamp }.
 --
--- A desktop snapshot that replaces a location's items (delete + insert) drops that location's
--- reservations with the rows; manual upserts leave the column untouched.
+-- Upserts that do not name the column (desktop snapshots, manual entries) leave it untouched;
+-- a row that is deleted (desktop: a name no longer seen; web: undo of a snapshot) takes its
+-- reservations with it.
 --
 -- Alpha-phase data policy: purely additive, nothing dropped, no policy change.
 

@@ -54,7 +54,8 @@ export interface StockStart {
  * The stock popup: search + filter chips + result rows (the look of the app's own search), grouped
  * by place by default (place-free items as their own group), or by item with every place beneath, or
  * by amount. Rows render in steps while the list is scrolled. "Wo liegt …?" and the capture form are
- * the other two modes of the same sheet. Built on the shared overlay frame in popup mode
+ * the other two modes of the same sheet. Every row is a counter (#304): −/+ one step, and a desk
+ * for amount in/out, correction, reservations (available = amount − reserved) and delete. Built on the shared overlay frame in popup mode
  * (focus trap, Escape, scrim).
  */
 @Component({

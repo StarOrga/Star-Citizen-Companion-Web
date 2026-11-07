@@ -104,6 +104,11 @@ upserts the new list first (names merged case-insensitively, qty summed), then d
 the old names that are not in it - never a delete-all-then-insert, so a failure in between
 cannot empty the location.
 
+`reservations jsonb` (web-only, default `[]`): `[{ amount, note, at }]`, part of `qty` earmarked
+for someone or something ("Spieler X", "Verkauf"); available = `qty` minus their amounts. The
+desktop never writes it: its upsert leaves the column alone, and a name it deletes takes its
+reservations with it.
+
 ### `hq_ship_storage` (user_id, ship_ref, location, source, taken_at)
 
 Upsert `on_conflict=user_id,ship_ref` merge. (All conflict targets were verified against the
