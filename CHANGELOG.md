@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.223.1] - 2026-11-07
+
+### Fixed
+- Codex landing: the 3D ship in the hologram fills its box again instead of sitting small, low and cut off.
+- Codex landing: the bracket beside the hologram is exactly as tall as the callout column on the left.
+
 ## [0.223.0] - 2026-11-07
 
 ### Added
