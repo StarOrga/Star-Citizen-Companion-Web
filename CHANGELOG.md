@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.13] - 2026-11-07
+
+### Added
+- Patch News: a panel for the build currently in the PTU (generic, e.g. 4.10.3) shows when it should reach LIVE: our estimate from the median PTU-to-LIVE time of earlier versions, and separately the official LIVE deployment RSI schedules on its status site with a source link, or "no official date yet".
+
 ## [0.225.12] - 2026-11-07
 
 ### Added
