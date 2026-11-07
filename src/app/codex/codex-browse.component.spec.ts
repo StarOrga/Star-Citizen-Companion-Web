@@ -1,3 +1,4 @@
+import { CodexBuildDiffService } from './codex-build-diff.service';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
@@ -114,6 +115,8 @@ describe('CodexBrowseComponent', () => {
       silhouettes?: Map<string, HoloSilhouette>;
       armorCounts?: Map<string, number>;
       crossCounts?: Map<string, number>;
+      /** The build diff behind `?fresh=1`. */
+      diff?: { added: string[]; changed: string[] };
       /** Beta shell flag; undefined = the real BetaService (shell off). */
       shell?: boolean;
     } = {},
@@ -172,6 +175,9 @@ describe('CodexBrowseComponent', () => {
           ? [{ provide: ActivatedRoute, useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap(opts.query) } } }]
           : []),
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        ...(opts.diff
+          ? [{ provide: CodexBuildDiffService, useValue: { addedClassNamesMemo: async () => opts.diff!.added, changedClassNamesMemo: async () => opts.diff!.changed } }]
+          : []),
         ...(opts.shell === undefined
           ? []
           : [{ provide: BetaService, useValue: { state: signal({ verse: true, codex: true, shell: opts.shell }), isEnabled: () => () => opts.shell } }]),
@@ -201,6 +207,17 @@ describe('CodexBrowseComponent', () => {
     fixture.detectChanges();
     return { fixture, cmp: fixture.componentInstance, listByKind, silhouettes };
   }
+
+  it('?fresh=1 lists only what is new or updated in the last patch, and the switch lifts it', async () => {
+    const { fixture, cmp, listByKind } = await setup({ query: { kind: 'component', fresh: '1' }, diff: { added: ['A', 'B'], changed: ['B', 'C'] } });
+    await fixture.whenStable();
+    expect(cmp.patchFresh()).toBeTrue();
+    expect(listByKind.calls.mostRecent().args[1].classNameIn).toEqual(['A', 'B', 'C']);
+    cmp.setPatchFresh(false);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(listByKind.calls.mostRecent().args[1].classNameIn).toBeUndefined();
+  });
 
   it('reads the legacy weaponClass param as the weapon super group', async () => {
     const { cmp, listByKind } = await setup({ query: { kind: 'weapon', weaponClass: 'Ship' } });

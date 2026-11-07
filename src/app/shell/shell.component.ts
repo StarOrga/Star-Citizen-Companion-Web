@@ -55,7 +55,7 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
 import { FeedbackCaptureComponent } from '../feedback/feedback-capture.component';
 import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
 import { BetaService, betaAreaOf } from '../core/beta.service';
-import { BetaDockComponent } from '../shared/beta/beta-dock.component';
+import { BetaFabComponent } from './corners/beta-fab.component';
 import { LayoutService } from '../core/layout/layout.service';
 import { NgTemplateOutlet } from '@angular/common';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
@@ -69,7 +69,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaDockComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, HqSuppliesPopupComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, HqSuppliesPopupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -490,14 +490,8 @@ import { avatarUrlOf } from './avatar-url';
     <!-- Two mutually exclusive launchers: the admin board for admins, the slim
          "send feedback" panel for every other signed-in user (feedback
          5920cf8c). Each gates itself on the role, so only ever one renders. -->
-    <!-- The β switch of the nav item the reader is in — only there. -->
-    @if (betaArea(); as area) {
-      <sc-beta-dock [area]="area" />
-    }
-    <!-- The app-wide shell β (layout contract) — for the people who test it. -->
-    @if (roles.isCollaborator()) {
-      <sc-beta-dock area="shell" [lane]="betaArea() ? 1 : 0" />
-    }
+    <!-- The one β switch: a small FAB above the feedback launcher, both shells. -->
+    <sc-beta-fab [area]="betaArea()" />
 
     <sc-feedback-fab />
     <sc-user-feedback-fab />
@@ -518,7 +512,6 @@ import { avatarUrlOf } from './avatar-url';
     @media (min-width: 641px) and (min-height: 681px) {
       :host(.verse-overlay) {
         --sc-verse-footer-h: 48px;
-        --sc-beta-dock-bottom: var(--sc-safe-bottom, 0px);
       }
     }
     .topbar {

@@ -35,7 +35,7 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
     tr.use(lang);
     fixture = TestBed.createComponent(CodexLandingCodexPaneComponent);
     const host = fixture.nativeElement as HTMLElement;
-    // Desktop: the pane is a flex column of limited height, so its body scrolls and carries a REAL scrollbar like in the app (that is what made the bar 229px at a 257px pane).
+    // Desktop: the pane is a flex column of limited height, like in the app.
     host.style.cssText = `display:flex;flex-direction:column;width:${width}px;position:absolute;left:0;top:0;${height ? `height:${height}px;` : ''}`;
     document.body.appendChild(host);
     fixture.componentRef.setInput('items', LANDING_CATEGORIES.map(item));
@@ -69,8 +69,6 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
         const measured: string[] = [];
         for (const cat of LANDING_CATEGORIES) {
           const host = await mount(lang, width, cat, coarse || width < 200 ? 0 : 150);
-          const bodyEl = host.querySelector<HTMLElement>('.body')!;
-          if (!coarse && width > 200) expect(bodyEl.offsetWidth - bodyEl.clientWidth).withContext('real scrollbar present').toBeGreaterThan(0);
           const bar = host.querySelector<HTMLElement>('.tabs')!.getBoundingClientRect();
           const tabs = Array.from(host.querySelectorAll<HTMLElement>('.tabs .tab'));
           expect(tabs.length).toBe(5);

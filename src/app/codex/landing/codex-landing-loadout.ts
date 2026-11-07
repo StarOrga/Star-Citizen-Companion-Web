@@ -6,7 +6,7 @@ import { LandingValue } from './codex-landing-data.types';
  * 20261102-2215-holotisch-loadout-callouts): five part types in a fixed
  * order. The first three a ship carries become callouts; a missing part
  * (no quantum drive on a snub, no shield on a ground vehicle) lets the next
- * one move up, the rest goes to "Weitere Werte".
+ * one move up, the rest goes to the data sheet.
  */
 export const LOADOUT_KEYS = ['loadout.weapons', 'loadout.shield', 'loadout.quantum', 'loadout.power', 'loadout.cooler'] as const;
 export type LoadoutKey = (typeof LOADOUT_KEYS)[number];

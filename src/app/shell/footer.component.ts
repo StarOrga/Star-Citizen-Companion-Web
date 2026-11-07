@@ -8,7 +8,6 @@ import { AuthService } from '../auth/auth.service';
 import { BetaService } from '../core/beta.service';
 import { LayoutService } from '../core/layout/layout.service';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
-import { BetaChipComponent } from './corners/beta-chip.component';
 import { HandoffButtonComponent } from './corners/handoff-button.component';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ReleaseSeenService } from '../release-notes/release-seen.service';
@@ -22,7 +21,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 @Component({
   selector: 'sc-footer',
   standalone: true,
-  imports: [TranslatePipe, RouterLink, ScTooltipDirective, ScDialogDirective, NgTemplateOutlet, BetaChipComponent, HandoffButtonComponent],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective, ScDialogDirective, NgTemplateOutlet, HandoffButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shellOn()) {
@@ -59,7 +58,6 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         <p>{{ 'footer.disclaimer' | translate }}</p>
         <p class="sf-tm">{{ 'footer.trademarks' | translate }}</p>
       </ng-template>
-      <sc-beta-chip />
       @if (auth.user()) {
         <sc-handoff-button />
       }

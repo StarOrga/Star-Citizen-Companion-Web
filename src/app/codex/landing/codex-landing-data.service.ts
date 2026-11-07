@@ -55,6 +55,8 @@ const COHORT_SHIP_KEYS: readonly string[] = ['flight', 'hull', 'armorHp', 'cargo
 const COHORT_STAT_KEYS: readonly string[] = ['weaponParams', 'stats'];
 /** Candidate rows read per category before "newest" is chosen. */
 const CANDIDATE_LIMIT = 200;
+/** Lean lists read as far as one request goes: a new item further down must still count as new. */
+const FULL_LIST_LIMIT = 1000;
 /**
  * "Werkzeug" = the ship utility heads of the weapon taxonomy
  * (`codex-weapon-taxonomy.ts`, group `utility`): tractor/towing beam, salvage head.
@@ -72,16 +74,19 @@ const KIND_OF: Record<LandingCategory, CodexKind> = {
 // ── pure helpers (exported for the spec) ──────────────────────────────────────
 
 /**
- * First candidate the previous build did not have (= new this patch); else the
- * first candidate. `previous === null` (no earlier build) takes the first.
+ * First candidate that is new in this patch; else the first candidate (an
+ * empty set: no earlier build, or nothing new).
  */
-export function pickNewest(candidates: readonly string[], previous: ReadonlySet<string> | null): string | null {
-  if (candidates.length === 0) return null;
-  if (previous) {
-    const fresh = candidates.find((c) => !previous.has(c));
-    if (fresh) return fresh;
-  }
-  return candidates[0];
+export function pickNewest(candidates: readonly string[], added: ReadonlySet<string>): string | null {
+  return candidates.find((c) => added.has(c)) ?? candidates[0] ?? null;
+}
+
+/** New rows first, then the rows whose values changed. */
+export function freshPool(rows: CodexListRow[], added: CodexListRow[], changed: readonly string[]): CategoryPool {
+  const addedIds = new Set(added.map((r) => r.classNameSlug));
+  const changedIds = new Set(changed);
+  const updated = rows.filter((r) => changedIds.has(r.classNameSlug) && !addedIds.has(r.classNameSlug));
+  return { rows, fresh: [...added, ...updated], added: addedIds, updated: new Set(updated.map((r) => r.classNameSlug)) };
 }
 
 /** Display name used to spot the same ship listed under two class names. */
@@ -302,7 +307,10 @@ export function pickPatchThread(
 interface CategoryPool {
   rows: CodexListRow[];
   fresh: CodexListRow[];
-  previous: ReadonlySet<string> | null;
+  /** Class names of the pool rows that are new in this patch. */
+  added: ReadonlySet<string>;
+  /** Class names of the pool rows that are updated, not new. */
+  updated: ReadonlySet<string>;
 }
 
 /**
@@ -387,24 +395,12 @@ export class CodexLandingDataService {
       case 'armor':
         return this.codex.listFpsCatalog('armor', false, true);
       case 'component':
-        return (await this.codex.listByKind('component', { limit: CANDIDATE_LIMIT, payload: 'none' })).rows;
+        return (await this.codex.listByKind('component', { limit: FULL_LIST_LIMIT, payload: 'none' })).rows;
       case 'tool':
         return (
-          await this.codex.listByKind('weapon', { weaponClass: 'Ship', attachTypeIn: [...TOOL_ATTACH_TYPES], limit: CANDIDATE_LIMIT, payload: 'none' })
+          await this.codex.listByKind('weapon', { weaponClass: 'Ship', attachTypeIn: [...TOOL_ATTACH_TYPES], limit: FULL_LIST_LIMIT, payload: 'none' })
         ).rows;
     }
-  }
-
-  private async previousClassNames(kind: CodexKind): Promise<ReadonlySet<string> | null> {
-    const builds = await this.codex.recentLiveBuilds(2);
-    if (builds.length < 2) return null;
-    const table = { ship: 'codex_ships', weapon: 'codex_weapons', component: 'codex_components', item: 'codex_items' }[
-      kind as 'ship' | 'weapon' | 'component' | 'item'
-    ];
-    if (!table) return null;
-    const { data, error } = await this.sb.client.from(table).select('class_name').eq('build_id', builds[1].id).limit(1000);
-    if (error) throw error;
-    return new Set(((data ?? []) as { class_name: string }[]).map((r) => r.class_name));
   }
 
   /** Candidates of a category (deduped, no variants) and the ones new in this patch — memoised per build. */
@@ -422,16 +418,21 @@ export class CodexLandingDataService {
   private async loadPool(category: LandingCategory): Promise<CategoryPool> {
     const rows = dedupeByName((await this.candidates(category)).filter((r) => !r.isVariant));
     if (category === 'ship') {
-      const added = new Set((await this.diff.addedShipsMemo()).map(nameKey));
-      return { rows, fresh: rows.filter((r) => added.has(nameKey(r))), previous: null };
+      const addedNames = new Set((await this.diff.addedShipsMemo()).map(nameKey));
+      const added = rows.filter((r) => addedNames.has(nameKey(r)));
+      return freshPool(rows, added, await this.diff.changedClassNamesMemo('ship'));
     }
-    const previous = await this.previousClassNames(KIND_OF[category]);
-    return { rows, fresh: previous ? rows.filter((r) => !previous.has(r.classNameSlug)) : [], previous };
+    // The whole-build diff, not one capped read of the previous build: past its
+    // 1000 rows everything else used to count as new ("2284 neu").
+    const kind = KIND_OF[category];
+    const addedNames = new Set(await this.diff.addedClassNamesMemo(kind));
+    const added = rows.filter((r) => addedNames.has(r.classNameSlug));
+    return freshPool(rows, added, await this.diff.changedClassNamesMemo(kind));
   }
 
   private async loadNewest(category: LandingCategory): Promise<LandingItem | null> {
     const pool = await this.pool(category);
-    const className = pickNewest(pool.rows.map((r) => r.classNameSlug), pool.previous);
+    const className = pickNewest(pool.rows.map((r) => r.classNameSlug), pool.added);
     if (!className) return null;
     return this.buildItem(category, className, pool);
   }
@@ -459,7 +460,7 @@ export class CodexLandingDataService {
 
   private async buildItem(category: LandingCategory, className: string, pool: CategoryPool): Promise<LandingItem | null> {
     const kind = KIND_OF[category];
-    const { rows, fresh } = pool;
+    const { rows, added } = pool;
     const detail = await this.codex.getDetail(kind, className);
     if (!detail) return null;
     const lang = toLang(this.translate.getCurrentLang() || this.translate.getFallbackLang());
@@ -485,7 +486,8 @@ export class CodexLandingDataService {
       overview,
       topValues: withClassStats(category, topValuesFor(category, detail.payload), cohort),
       facts: factsFor(category, detail.payload, listRow.size),
-      fresh: fresh.some((r) => r.classNameSlug === className),
+      // "Neu" on the table only for what is new: an updated item is not.
+      fresh: added.has(className),
       ...(category === 'ship' ? { ...shipAnchors(detail.payload), loadoutValues: await this.loadoutFor(detail.payload, cohort) } : {}),
     };
   }
@@ -530,23 +532,24 @@ export class CodexLandingDataService {
   // ── Codex list: new items per category ────────────────────────────────────
 
   /**
-   * New items of the current patch per category (rotation order), at most
-   * `limit` flight-ready entries each plus the count beyond. Ships also list
+   * New and updated items of the current patch per category (rotation order),
+   * all of them: the pane decides how many it shows. Ships also list
    * newly announced RSI ships (tagged, not counted as new). Never rejects: a
    * category that fails comes back empty and sets {@link error}.
    */
-  async codexNews(limit = 5): Promise<LandingCodex> {
+  async codexNews(): Promise<LandingCodex> {
     const build = await this.codex.loadCurrentBuild().catch(() => null);
     const patch = build?.patchVersion ?? null;
     const categories = await Promise.all(
       LANDING_CATEGORIES.map(async (category): Promise<LandingCodexCategory> => {
         try {
-          const { fresh } = await this.pool(category);
-          const ready: LandingCodexEntry[] = fresh.slice(0, limit).map((r) => ({
+          const { fresh, updated } = await this.pool(category);
+          const ready: LandingCodexEntry[] = fresh.map((r) => ({
             id: r.classNameSlug,
             name: r.nameLocalized ?? r.classNameSlug,
             route: ['/codex', KIND_OF[category], r.classNameSlug],
             announced: false,
+            ...(updated.has(r.classNameSlug) ? { updated: true } : {}),
           }));
           let announced: LandingCodexEntry[] = [];
           if (category === 'ship') {
@@ -561,12 +564,11 @@ export class CodexLandingDataService {
             category,
             count: fresh.length,
             entries: [...ready, ...announced.slice(0, ANNOUNCED_IN_LIST)],
-            more: Math.max(0, fresh.length - ready.length),
             announced: announced.length,
           };
         } catch (err) {
           this.error.set(toErrorKey('codex-landing', `news ${category}`, err));
-          return { category, count: 0, entries: [], more: 0, announced: 0 };
+          return { category, count: 0, entries: [], announced: 0 };
         }
       }),
     );

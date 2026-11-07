@@ -81,11 +81,10 @@
 .piece { position: absolute; inset: 0; }
 .piece.leaving { animation: hold 0.95s linear both; pointer-events: none; }
 
-a.holo {
+.holo {
   position: absolute; left: var(--hx); width: var(--hw); top: var(--ht); height: var(--hh); z-index: 2;
   display: block; color: var(--holo); text-decoration: none;
 }
-.holo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; border-radius: 6px; }
 .form {
   position: absolute; inset: 0; display: block;
   clip-path: inset(100% -25% -6% -25%);
@@ -157,9 +156,6 @@ a.holo {
 .leaving .disc { animation: disc-shrink 0.9s cubic-bezier(0.42, 0.05, 0.58, 0.95) both; }
 .leaving .disc i { top: auto; bottom: 50%; background: linear-gradient(0deg, rgba(160, 235, 255, 0.3), transparent); }
 
-.go { position: absolute; right: 4%; top: 2%; font-size: 15px; line-height: 1; color: var(--sc-accent); opacity: 0; transition: opacity 0.2s ease; }
-.holo:hover .go, .holo:focus-visible .go { opacity: 1; }
-
 // ── Callouts (round-1 look) ──
 .leaders { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: visible; }
 .leaders path {
@@ -198,16 +194,9 @@ a.holo {
 .c-value {
   position: relative; display: inline-flex; align-items: baseline; gap: 6px;
   font: 600 clamp(17px, 1.45vw, 26px) / 1.08 var(--cx-mono); font-variant-numeric: tabular-nums;
-  color: #eefbff; text-decoration: none; white-space: nowrap;
+  color: #eefbff; white-space: nowrap;
   text-shadow: 0 0 12px rgba(130, 220, 255, 0.55);
 }
-.c-value i {
-  position: absolute; right: -16px; top: 0.1em; font-style: normal; font-size: 12px; color: var(--sc-accent);
-  opacity: 0; transform: translateX(-3px); transition: opacity 0.18s ease, transform 0.18s ease;
-}
-.c-value:hover i, .c-value:focus-visible i { opacity: 1; transform: none; }
-.c-value:hover { color: #fff; }
-.c-value:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 2px; }
 .c-cmp {
   font: 500 max(10px, 0.64rem) / 1.3 var(--sc-font-body); letter-spacing: 0.02em;
   color: color-mix(in srgb, var(--sc-warning) 72%, var(--sc-fg-1));
@@ -259,9 +248,9 @@ a.holo {
 .k-tick { width: 14px; height: 1px; background: var(--sc-accent); box-shadow: 0 0 6px var(--sc-accent); }
 .k-sep { color: rgba(159, 179, 200, 0.5); }
 .k-name {
-  position: relative; display: inline-block; max-width: 100%;
+  position: relative; display: inline-block; max-width: 100%; margin: 0;
   font: 500 clamp(20px, 1.65vw, 32px) / 1.06 var(--sc-font-display); letter-spacing: 0.012em;
-  color: #f2fcff; text-decoration: none; text-wrap: balance;
+  color: #f2fcff; text-wrap: balance;
   text-shadow: 0 0 18px rgba(130, 220, 255, 0.45), 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 .k-type {
@@ -269,12 +258,6 @@ a.holo {
   clip-path: inset(0 100% 0 0);
   animation: type 0.8s steps(var(--chars, 12)) calc(var(--at) + 0.12s) both;
 }
-.k-name i {
-  display: inline-block; margin-left: 6px; font-style: normal; font-size: 0.42em; vertical-align: 0.95em;
-  color: var(--sc-accent); opacity: 0.55; transition: opacity 0.18s ease;
-}
-.k-name:hover i, .k-name:focus-visible i { opacity: 1; }
-.k-name:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 2px; }
 .k-facts {
   display: flex; flex-direction: column; gap: 10px; margin: 0;
   animation: rise-in 0.45s ease-out calc(var(--at) + 0.75s) both;

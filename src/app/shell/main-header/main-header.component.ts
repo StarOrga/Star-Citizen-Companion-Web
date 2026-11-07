@@ -262,7 +262,7 @@ export const MAIN_NAV_SLOT_PX = 112;
          nothing glides: the header just fades out as a whole. */
       @media (max-width: 720px) {
         :host {
-          padding-inline: var(--_x) max(var(--_xr), var(--sc-chip-lane, 0px));
+          padding-inline: var(--_x) var(--_xr);
           padding-bottom: var(--sc-space-1);
           display: grid;
           grid-template-columns: 1fr auto;
@@ -303,7 +303,7 @@ export const MAIN_NAV_SLOT_PX = 112;
         }
         .nav {
           width: 100%;
-          --mh-slot: calc((100vw - var(--_x) - max(var(--_xr), var(--sc-chip-lane, 0px))) / var(--mh-slots, 4));
+          --mh-slot: calc((100vw - var(--_x) - var(--_xr)) / var(--mh-slots, 4));
           transform: none;
         }
         .slot {
@@ -329,7 +329,7 @@ export const MAIN_NAV_SLOT_PX = 112;
           column-gap: var(--sc-space-2);
         }
         .row {
-          margin-inline-end: calc(var(--_x) - max(var(--_xr), var(--sc-chip-lane, 0px)));
+          margin-inline-end: calc(var(--_x) - var(--_xr));
         }
         .nav {
           justify-content: space-between;

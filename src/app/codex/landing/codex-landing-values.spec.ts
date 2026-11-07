@@ -69,7 +69,6 @@ describe('hero claims', () => {
       { id: 'b', name: 'Gladius', route: [], announced: false },
       { id: 'c', name: 'Polaris', route: [], announced: true },
     ],
-    more: 12,
     announced: 1,
   };
 
