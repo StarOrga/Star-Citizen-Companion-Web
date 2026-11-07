@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.2",
+  "current": "0.225.4",
   "releases": [
+    {
+      "version": "0.225.4",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Dependencies: Angular 22.2.4/22.2.5, ngx-translate 18.1, posthog-js, tslib, eslint and typescript-eslint updated; the data uploader moves to Electron 45.1."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.225.3",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Missile pages: the Einordnung now ranks damage, speed, agility and range."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.2",
       "date": "2026-11-07",

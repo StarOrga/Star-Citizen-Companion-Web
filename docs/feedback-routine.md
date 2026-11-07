@@ -342,8 +342,15 @@ continuation changed what the topic is about. `summary` is nullable (readers fal
 back to the body-derived `displayTitle`) and admin-only — not in `my_feedback`.
 
 **Complex topics (`complex = true`) are worked two reasoning/effort steps above
-the default** (`high` → `max`, or the highest level the model offers) — for the
-worker AND every sub-agent it fans out to, decided before the worker is spawned.
+the default.** The watcher pins the run to `--model opus --effort medium`
+(`scripts/routine-watcher.mjs`, `RUN_MODEL`/`RUN_EFFORT`), so a complex item's
+worker gets `effort: "xhigh"` on its Agent call — for the worker AND every
+sub-agent it fans out to, decided before the worker is spawned. Every worker is a
+devops domain agent (`devops:frontend` / `devops:core` / `devops:aix`) with
+`model: "opus"`; a complex worker may fan out to further devops agents (other
+area, `devops:qax`, `devops:redteam`). The prompt's STEP 3 "WORKER SHAPE" is the
+binding form; prose alone never reached the workers (runs before 2026-11-07 set
+no `effort` at all).
 Two steps up is the ceiling, not a licence to widen the item: scope, gates and
 ship rules are unchanged, one PR. With no adjustable level, read wider first and
 prefer a design pass over a first-guess patch. The flag is admin-only input

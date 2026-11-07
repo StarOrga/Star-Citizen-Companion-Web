@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.5] - 2026-11-07
+
+### Fixed
+- Feedback routine: the headless run is pinned to Opus with medium effort and a 5-minute prompt cache; complex topics get devops agents with higher effort.
+
+## [0.225.4] - 2026-11-07
+
+### Changed
+- Dependencies: Angular 22.2.4/22.2.5, ngx-translate 18.1, posthog-js, tslib, eslint and typescript-eslint updated; the data uploader moves to Electron 45.1.
+
+## [0.225.3] - 2026-11-07
+
+### Changed
+- Missile pages: the Einordnung now ranks damage, speed, agility and range.
+
 ## [0.225.2] - 2026-11-07
 
 ### Changed
