@@ -1,25 +1,18 @@
 import { signal } from '@angular/core';
 
-/** After the last (fast) movement the pointer has to stand still this long before its entry opens. */
+/** The pointer has to stand still this long over an entry before it opens (reaction delay: 80 ms x 1/0.3). */
 export const ACC_REST_MS = 267;
 /** A step of at most this many pixels is jitter: the pointer counts as standing still. */
 export const ACC_MOVE_PX = 4;
-/** Slower than this (px per ms) is a resting / creeping pointer, not a sweep. */
-export const ACC_SLOW_PX_PER_MS = 0.2;
-/** Two pointer samples further apart than this (ms) say nothing about speed. */
-export const ACC_SAMPLE_MAX_MS = 150;
 /** One open/close transition; a started one always runs to its end. Same value as --acc-t in briefing-hub.component.scss. */
-export const ACC_TRANSITION_MS = 1500;
+export const ACC_TRANSITION_MS = 450;
 
 /**
  * Hover intent for the hub's News accordion (exactly one entry open):
  *
- * - a pointer that stands still or creeps (a step within {@link ACC_MOVE_PX},
- *   or slower than {@link ACC_SLOW_PX_PER_MS}) opens its entry at once — no
- *   delay for a resting pointer;
- * - a pointer in fast motion starts nothing: the entry under it opens only
- *   when it has stopped for {@link ACC_REST_MS}, so a sweep across the rows
- *   toward another target does not react;
+ * - the entry under the pointer opens only after the pointer has rested on it
+ *   for {@link ACC_REST_MS} (jitter within {@link ACC_MOVE_PX} does not restart
+ *   that wait), so neither a sweep across the rows nor a slow creep reacts at once;
  * - a started transition ({@link ACC_TRANSITION_MS}) always completes; a new
  *   target waits for its end and starts then — or is dropped cleanly when the
  *   pointer moved on in between;
@@ -32,6 +25,7 @@ export class AccordionIntent {
   private last: { x: number; y: number; t: number } | null = null;
   private rest: ReturnType<typeof setTimeout> | null = null;
   private busy: ReturnType<typeof setTimeout> | null = null;
+  private restFor = -1;
   private queued: number | null = null;
 
   constructor(initial = 0) {
@@ -44,15 +38,11 @@ export class AccordionIntent {
     this.last = { x, y, t };
     // Moving on: a target that waited for the running transition is dropped.
     if (this.queued !== null && this.queued !== i) this.queued = null;
+    // Jitter on the same entry keeps the running rest wait.
+    const jitter = p !== null && this.restFor === i && Math.hypot(x - p.x, y - p.y) <= ACC_MOVE_PX;
+    if (jitter && this.rest) return;
     this.clearRest();
-    // Speed is only known from a recent previous sample; the first one of a burst arms the rest timer.
-    const known = p !== null && t - p.t <= ACC_SAMPLE_MAX_MS;
-    const dist = known ? Math.hypot(x - p.x, y - p.y) : Infinity;
-    const slow = known && (dist <= ACC_MOVE_PX || dist / Math.max(1, t - p.t) <= ACC_SLOW_PX_PER_MS);
-    if (slow) {
-      this.request(i);
-      return;
-    }
+    this.restFor = i;
     this.rest = setTimeout(() => {
       this.rest = null;
       this.request(i);
@@ -62,6 +52,7 @@ export class AccordionIntent {
   /** Pointer left the list: whatever is open stays open; a pending target is dropped. */
   leave(): void {
     this.last = null;
+    this.restFor = -1;
     this.clearRest();
     this.queued = null;
   }

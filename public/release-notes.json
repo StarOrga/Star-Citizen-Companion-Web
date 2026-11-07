@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.224.0",
+  "current": "0.224.1",
   "releases": [
+    {
+      "version": "0.224.1",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hub: news tiles keep their original open/close speed; only the delay before a tile reacts to the pointer is 30 % as fast."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.224.0",
       "date": "2026-11-07",
