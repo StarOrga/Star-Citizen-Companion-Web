@@ -366,7 +366,7 @@ const FITTED_SHOWN = 2;
                               @if (r.cta) { <span class="sep" aria-hidden="true"></span> }
                               <sc-item-path [kind]="r.hit.kind" [className]="r.hit.classNameSlug" [name]="nm.title"
                                             [level]="chrome.supplySearch() ? 'secondary' : 'tertiary'"
-                                            [nextStep]="chrome.supplySearch() ? 'nachschub' : null"
+                                            [nextStep]="chrome.supplySearch() ? 'wish' : null"
                                             (leave)="close()" />
                             }
                           </span>

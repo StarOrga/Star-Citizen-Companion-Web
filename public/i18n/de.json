@@ -4833,7 +4833,7 @@
       "newest": "Neueste",
       "top": "Community Top",
       "mine": "Meine Votes",
-      "mineCount": "Meine Stimmen · {{n}}",
+      "mineCount": "Meine Votes · {{n}}",
       "mineSignedOut": "Melde dich an, um deine bewerteten Wallpaper zu sehen",
       "emptyMine": "Du hast noch kein Wallpaper bewertet. Tippe auf den Daumen bei einem Bild, dann landet es hier."
     },

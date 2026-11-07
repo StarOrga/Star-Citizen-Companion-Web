@@ -407,9 +407,9 @@ export function blueprintCategoriesForGroup(
                             <p class="buy-note" role="status">{{ 'codex.buy.loading' | translate }}</p>
                           }
                           <div class="buy-acts">
-                            <!-- "Zum Nachschub" is the item path's step (one path for wish, Nachschub, Inventar). -->
+                            <!-- The way to the Nachschub is the wishlist (one path: Wunschliste, then Inventar / Hangar / Sammlung). -->
                             <sc-item-path [kind]="kind()" [className]="r.classNameSlug" [name]="cardName(r)"
-                                          level="secondary" nextStep="nachschub" stepKind="buy" />
+                                          level="secondary" nextStep="wish" />
                             <a class="to-plan" routerLink="/hq" fragment="planen">{{ 'codex.buy.openPlan' | translate }}</a>
                           </div>
                         </div>
