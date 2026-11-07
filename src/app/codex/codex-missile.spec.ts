@@ -88,62 +88,53 @@ describe('codex-missile', () => {
   });
 
   describe('comparison', () => {
+    const armed = (className: string, n: number, extra: Partial<MissileRecord> = {}) =>
+      missile({ className, metrics: { damage: n, speed: n * 2, agility: n * 3, range: n * 4, length: n, size: n }, ...extra });
+    const field = [armed('p', 1), armed('q', 2), armed('r', 3), armed('s', 4)];
+
     it('opens on the same kind, or on everything when the kind is too small', () => {
       expect(defaultMissileScope(COHORT[0], COHORT)).toBe('career');
       expect(defaultMissileScope(COHORT[5], COHORT)).toBe('all');
     });
 
-    it('ranks against the chosen group only', () => {
-      const r = rankMissile(COHORT[3], COHORT, 'career')!;
+    it('ranks damage, speed, agility and range against the chosen group only', () => {
+      const r = rankMissile(field[2], field, 'career')!;
       expect(r.scope).toBe('career');
-      expect(r.cohortSize).toBe(5);
-      const length = r.axes.find((a) => a.key === 'length')!;
-      expect(length.value).toBe(2.4);
-      expect(length.percentile).toBe(70);
-      expect(length.labelKey).toBe('codex.missile.axis.length');
+      expect(r.cohortSize).toBe(4);
+      expect(r.axes.map((a) => a.key)).toEqual(['damage', 'speed', 'agility', 'range']);
+      const range = r.axes.find((a) => a.key === 'range')!;
+      expect(range.value).toBe(12);
+      expect(range.labelKey).toBe('codex.missile.axis.range');
     });
 
-    it('leaves measurements out once enough combat numbers can be compared', () => {
-      const armed = (className: string, n: number) =>
-        missile({ className, metrics: { damage: n, speed: n, range: n, length: n, size: n } });
-      const field = [armed('p', 1), armed('q', 2), armed('r', 3)];
-      expect(rankMissile(field[1], field, 'all')!.axes.map((a) => a.key)).toEqual(['damage', 'speed', 'range']);
+    it('never draws measurements or lock time as an axis', () => {
+      const keys = rankMissile(field[1], field, 'all')!.axes.map((a) => a.key);
+      expect(keys).not.toContain('length');
+      expect(keys).not.toContain('size');
     });
 
     it('draws no axis a value is missing for', () => {
-      const bare = missile({ className: 'bare', metrics: { size: 2 } });
-      const r = rankMissile(bare, COHORT, 'all')!;
-      expect(r.axes.map((a) => a.key)).toEqual(['size']);
+      const noRange = missile({ className: 'n', metrics: { damage: 2, speed: 4, agility: 6 } });
+      const r = rankMissile(noRange, [...field, noRange], 'all')!;
+      expect(r.axes.map((a) => a.key)).toEqual(['damage', 'speed', 'agility']);
     });
 
-    it('drops an axis the group does not differ on: same size has no size axis', () => {
-      const r = rankMissile(COHORT[0], COHORT, 'sizeClass')!;
-      expect(r.axes.map((a) => a.key)).not.toContain('size');
-      expect(r.axes.map((a) => a.key)).toContain('length');
+    it('is null while fewer than three values can be compared (data not uploaded yet)', () => {
+      expect(rankMissile(COHORT[0], COHORT, 'all')).toBeNull();
+      const two = missile({ className: 't', metrics: { damage: 2, speed: 4 } });
+      expect(rankMissile(two, [...field, two], 'all')).toBeNull();
     });
 
     it('offers a group of one as disabled and falls back to everything', () => {
-      const r = rankMissile(COHORT[5], COHORT, 'sizeClass')!;
+      const torp = armed('torp', 9, { size: 9, category: 'torpedo' });
+      const r = rankMissile(torp, [...field, torp], 'sizeClass')!;
       expect(r.scopeAvailable.sizeClass).toBeFalse();
       expect(r.scope).toBe('all');
     });
 
-    it('is null when there is nothing to compare', () => {
-      const lonely = missile({ className: 'lonely', size: null, metrics: {} });
-      expect(rankMissile(lonely, COHORT, 'all')).toBeNull();
-    });
-
     it('marks the value below the group as weak, so the bar paints the warning colour', () => {
-      const r = rankMissile(COHORT[0], COHORT, 'career')!;
-      expect(r.axes.find((a) => a.key === 'length')!.weak).toBeTrue();
-    });
-
-    it('treats a shorter lock time as the better one', () => {
-      const quick = missile({ className: 'q', metrics: { lockTime: 1 } });
-      const slow = missile({ className: 's', metrics: { lockTime: 5 } });
-      const r = rankMissile(quick, [quick, slow], 'all')!;
-      expect(r.axes[0].key).toBe('lockTime');
-      expect(r.axes[0].percentile).toBe(75);
+      const r = rankMissile(field[0], field, 'career')!;
+      expect(r.axes.find((a) => a.key === 'damage')!.weak).toBeTrue();
     });
   });
 
