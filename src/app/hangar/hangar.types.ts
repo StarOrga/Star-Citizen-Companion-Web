@@ -146,9 +146,15 @@ export interface HangarShip {
   pinnedRank: number | null;
   selectedSkinId: string | null;
   notes: string | null;
+  /** Copies owned or wished (second copy allowed), 1..999. Column `qty`, migration 20261107190000. */
+  qty?: number;
+  /** Where the ship came from; null = not stated. Column `origin`. */
+  origin?: HangarShipOrigin | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export type HangarShipOrigin = 'pledge' | 'ingame' | 'loan';
 
 export interface HangarShipConfig {
   id: string;
@@ -269,9 +275,20 @@ export function mapHangarShip(r: HangarShipRow): HangarShip {
     pinnedRank: r.pinned_rank,
     selectedSkinId: r.selected_skin_id,
     notes: r.notes,
+    qty: shipQty((r as unknown as Record<string, unknown>)['qty']),
+    origin: shipOrigin((r as unknown as Record<string, unknown>)['origin']),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
+}
+
+function shipQty(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.min(999, Math.max(1, Math.round(n))) : 1;
+}
+
+function shipOrigin(v: unknown): HangarShipOrigin | null {
+  return v === 'pledge' || v === 'ingame' || v === 'loan' ? v : null;
 }
 
 // `HangarShipConfigRow` comes from the generated DB types, which are not

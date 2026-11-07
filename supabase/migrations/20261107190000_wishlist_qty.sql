@@ -17,6 +17,30 @@ alter table public.search_wishlist add constraint search_wishlist_qty check (qty
 
 comment on column public.search_wishlist.qty is 'Wished quantity, 1..999 (cart counter).';
 
+-- Material wished for a blueprint is grouped under it ("fuer Gallant craften"). The same material for two
+-- blueprints is two wishes, so the blueprint joins the key: '' = wished on its own (every existing row).
+alter table public.search_wishlist
+  add column if not exists for_class_name text not null default '';
+
+alter table public.search_wishlist drop constraint if exists search_wishlist_for_class_len;
+alter table public.search_wishlist add constraint search_wishlist_for_class_len
+  check (char_length(for_class_name) <= 200);
+
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.search_wishlist'::regclass and contype = 'p'
+      and pg_get_constraintdef(oid) not like '%for_class_name%'
+  ) then
+    alter table public.search_wishlist drop constraint search_wishlist_pkey;
+    alter table public.search_wishlist add primary key (user_id, entity_kind, class_name, for_class_name);
+  end if;
+end $$;
+
+comment on column public.search_wishlist.for_class_name is
+  'Blueprint (or crafted item) class this material is wished for; empty = wished on its own. Part of the key.';
+
 alter table public.hangar_ships
   add column if not exists qty    integer not null default 1,
   add column if not exists origin text;

@@ -13,13 +13,36 @@ export interface WishRow {
   manufacturer: string | null;
   rsiUrl: string | null;
   notes: string | null;
+  /** Wished quantity (cart counter), 1..999. */
+  qty: number;
+  /** Blueprint this material is wished for ('' = on its own); part of the row key. */
+  forClassName: string;
   createdAt: string;
 }
 
 /** Wish key of an entry: lower-cased class name; announced ships key on their folded name. */
-export function wishKey(kind: string, className: string, name?: string | null): string {
+export function wishKey(kind: string, className: string, name?: string | null, forClassName?: string | null): string {
   if (kind === 'upcoming') return `upcoming:${normalizeShipName(name ?? className) || className.toLowerCase()}`;
-  return `${kind}:${className.toLowerCase()}`;
+  const f = (forClassName ?? '').trim().toLowerCase();
+  return f ? `${kind}:${className.toLowerCase()}@${f}` : `${kind}:${className.toLowerCase()}`;
+}
+
+export const WISH_QTY_MAX = 999;
+
+export function clampWishQty(n: number): number {
+  return Number.isFinite(n) ? Math.min(WISH_QTY_MAX, Math.max(1, Math.round(n))) : 1;
+}
+
+/** What {@link WishlistStore.add} takes. `qty` defaults to 1; an existing wish is left as it is (see `addQty`). */
+export interface WishEntry {
+  kind: string;
+  className: string;
+  name?: string | null;
+  manufacturer?: string | null;
+  rsiUrl?: string | null;
+  notes?: string | null;
+  qty?: number;
+  forClassName?: string | null;
 }
 
 /** Table column that holds an announced ship's key: its folded name. */
@@ -43,14 +66,25 @@ export class WishlistStore {
   private inFlight: Promise<void> | null = null;
 
   /** key -> row, for O(1) `has`. */
-  readonly byKey = computed(() => new Map(this.rows().map((r) => [wishKey(r.kind, r.className, r.name), r] as const)));
+  readonly byKey = computed(() => new Map(this.rows().map((r) => [wishKey(r.kind, r.className, r.name, r.forClassName), r] as const)));
 
-  has(kind: string, className: string, name?: string | null): boolean {
-    return this.byKey().has(wishKey(kind, className, name));
+  has(kind: string, className: string, name?: string | null, forClassName?: string | null): boolean {
+    return this.byKey().has(wishKey(kind, className, name, forClassName));
   }
 
-  find(kind: string, className: string, name?: string | null): WishRow | null {
-    return this.byKey().get(wishKey(kind, className, name)) ?? null;
+  find(kind: string, className: string, name?: string | null, forClassName?: string | null): WishRow | null {
+    return this.byKey().get(wishKey(kind, className, name, forClassName)) ?? null;
+  }
+
+  /** Wished quantity of an entry, 0 when it is not on the list. */
+  qtyOf(kind: string, className: string, name?: string | null, forClassName?: string | null): number {
+    return this.find(kind, className, name, forClassName)?.qty ?? 0;
+  }
+
+  /** Wished quantity of a class over every group (own wish plus material wished for blueprints). */
+  totalQty(kind: string, className: string): number {
+    const k = className.toLowerCase();
+    return this.rows().reduce((n, r) => (r.kind === kind && r.className.toLowerCase() === k ? n + r.qty : n), 0);
   }
 
   /** Load once per signed-in user (and again after a user switch). */
@@ -88,10 +122,12 @@ export class WishlistStore {
   }
 
   /** Insert a wish. True when it is on the list afterwards (a duplicate counts). */
-  async add(entry: { kind: string; className: string; name?: string | null; manufacturer?: string | null; rsiUrl?: string | null; notes?: string | null }): Promise<boolean> {
+  async add(entry: WishEntry): Promise<boolean> {
     if (!this.auth.user()) return false;
-    if (this.has(entry.kind, entry.className, entry.name)) return true;
+    if (this.has(entry.kind, entry.className, entry.name, entry.forClassName)) return true;
     const row = {
+      qty: clampWishQty(entry.qty ?? 1),
+      for_class_name: (entry.forClassName ?? '').trim().slice(0, 200),
       entity_kind: entry.kind,
       class_name: entry.kind === 'upcoming' ? upcomingClassName(entry.name ?? entry.className) : entry.className,
       name: entry.name?.trim().slice(0, 80) || null,
@@ -114,13 +150,53 @@ export class WishlistStore {
     }
   }
 
-  /** Delete a wish. True when it is gone afterwards. */
-  async remove(kind: string, className: string, name?: string | null): Promise<boolean> {
+  /**
+   * Set the wished quantity of an entry (the cart stepper). 0 or less removes it; an entry that is not on the
+   * list yet is created with that quantity. True when the list shows the quantity afterwards.
+   */
+  async setQty(entry: WishEntry, qty: number): Promise<boolean> {
     if (!this.auth.user()) return false;
-    const hit = this.find(kind, className, name);
+    if (qty <= 0) return this.remove(entry.kind, entry.className, entry.name, entry.forClassName);
+    const hit = this.find(entry.kind, entry.className, entry.name, entry.forClassName);
+    if (!hit) return this.add({ ...entry, qty });
+    const next = clampWishQty(qty);
+    if (hit.qty === next) return true;
+    try {
+      const { error } = await this.sb.client
+        .from('search_wishlist' as never)
+        .update({ qty: next } as never)
+        .eq('entity_kind', hit.kind)
+        .eq('class_name', hit.className)
+        .eq('for_class_name', hit.forClassName);
+      if (error) {
+        logWarn('wishlist', 'setQty failed', error);
+        return false;
+      }
+      this.rows.update((rs) => rs.map((r) => (r === hit ? { ...r, qty: next } : r)));
+      return true;
+    } catch (err) {
+      logWarn('wishlist', 'setQty failed', err);
+      return false;
+    }
+  }
+
+  /** Count an entry up by `qty` (default 1) - how returned Nachschub lines land on the wishlist. */
+  addQty(entry: WishEntry, qty = entry.qty ?? 1): Promise<boolean> {
+    return this.setQty(entry, this.qtyOf(entry.kind, entry.className, entry.name, entry.forClassName) + Math.max(1, Math.round(qty)));
+  }
+
+  /** Delete a wish. True when it is gone afterwards. */
+  async remove(kind: string, className: string, name?: string | null, forClassName?: string | null): Promise<boolean> {
+    if (!this.auth.user()) return false;
+    const hit = this.find(kind, className, name, forClassName);
     if (!hit) return true;
     try {
-      const { error } = await this.sb.client.from('search_wishlist' as never).delete().eq('entity_kind', hit.kind).eq('class_name', hit.className);
+      const { error } = await this.sb.client
+        .from('search_wishlist' as never)
+        .delete()
+        .eq('entity_kind', hit.kind)
+        .eq('class_name', hit.className)
+        .eq('for_class_name', hit.forClassName);
       if (error) {
         logWarn('wishlist', 'remove failed', error);
         return false;
@@ -143,6 +219,8 @@ function mapWishRow(r: Record<string, unknown>): WishRow {
     manufacturer: s('manufacturer'),
     rsiUrl: s('rsi_url'),
     notes: s('notes'),
+    qty: clampWishQty(Number(r['qty'] ?? 1)),
+    forClassName: s('for_class_name') ?? '',
     createdAt: s('created_at') ?? '',
   };
 }
