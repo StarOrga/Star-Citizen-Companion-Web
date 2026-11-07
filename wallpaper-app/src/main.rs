@@ -711,6 +711,9 @@ unsafe fn show_menu(hwnd: HWND) {
     // above the anonymous ring. Signed in, the same submenu names the account
     // and offers the way back out.
     let account_menu = CreatePopupMenu();
+    let l_auto = util::wide(&t("Mit Windows starten", "Start with Windows"));
+    let l_telemetry =
+        util::wide(&t("Anonyme Diagnose senden", "Send anonymous diagnostics"));
     let signed_in_as = session::stored_email();
     let signed_in = signed_in_as.is_some();
     let l_account_who = util::wide(&match signed_in_as.as_deref() {
@@ -733,6 +736,12 @@ unsafe fn show_menu(hwnd: HWND) {
         if signed_in { ID_ACCOUNT_SIGNOUT } else { ID_ACCOUNT_SIGNIN },
         l_account_action.as_ptr(),
     );
+    // App-level preferences live under the account entry: they belong to this
+    // install/user, not to the gallery.
+    AppendMenuW(account_menu, MF_SEPARATOR, 0, std::ptr::null());
+    AppendMenuW(account_menu, chk(autostart), ID_AUTOSTART, l_auto.as_ptr());
+    // Telemetry opt-OUT (ticked by default), same contract as the data-uploader.
+    AppendMenuW(account_menu, chk(telemetry_on), ID_TELEMETRY, l_telemetry.as_ptr());
     let l_account = util::wide(&t("Konto", "Account"));
 
     // ---- Image-selection submenu ----
@@ -760,20 +769,24 @@ unsafe fn show_menu(hwnd: HWND) {
         ID_SOURCE_MINE,
         l_src_mine.as_ptr(),
     );
+    // The earned constellations ride along as a nested submenu: they are a
+    // "which images" choice too, max the last seven patches.
+    let (verse_menu, _verse_labels) = constellations::build_menu(signed_in);
+    let l_verse = util::wide(&t("Meine Sternbilder", "My constellations"));
+    AppendMenuW(source_menu, MF_SEPARATOR, 0, std::ptr::null());
+    AppendMenuW(source_menu, MF_POPUP, verse_menu as usize, l_verse.as_ptr());
     let l_source = util::wide(&t("Bildauswahl", "Image selection"));
 
     let l_next = util::wide(&t("Nächstes Wallpaper", "Next wallpaper"));
-    let l_pause = util::wide(&t("Pausiert", "Paused"));
+    let (pause_de, pause_en) = pause_label(paused);
+    let l_pause = util::wide(&t(pause_de, pause_en));
     let l_mode = util::wide(&t("Modus", "Mode"));
     let l_delay = util::wide(&t("Bildschirmschoner-Verzögerung", "Screensaver delay"));
     let l_fade = util::wide(&t("Übergangseffekt", "Fade transition"));
     let l_summary_boot = util::wide(&t("Verse-News beim Start", "Weekly Verse News on start"));
-    let l_auto = util::wide(&t("Mit Windows starten", "Start with Windows"));
-    let l_telemetry =
-        util::wide(&t("Anonyme Diagnose senden", "Send anonymous diagnostics"));
     let l_summary_now =
         util::wide(&t("Verse-News-Zusammenfassung jetzt zeigen", "Show Verse News summary now"));
-    let l_star = util::wide(&t("Starscape Website öffnen", "Open Starscape website"));
+    let l_star = util::wide(&t("Starscape Fan-made – Website öffnen", "Starscape fan-made – open website"));
     let l_quit = util::wide(&t("Beenden", "Quit"));
     let l_display = util::wide(&t("Darstellung", "Presentation"));
 
@@ -804,7 +817,7 @@ unsafe fn show_menu(hwnd: HWND) {
     //
     //   1 · status   — version readout, update ring, account
     //   2 · gallery  — next, pause, which images, how they are presented
-    //   3 · app      — autostart, diagnostics, website, quit
+    //   3 · app      — fan-made website, quit
     let menu = CreatePopupMenu();
     AppendMenuW(menu, update_flags, ID_UPDATE, l_update.as_ptr());
     // Directly under the readout it explains: "Aktuell · v0.6.0 · Alpha" is only
@@ -819,18 +832,10 @@ unsafe fn show_menu(hwnd: HWND) {
     AppendMenuW(menu, MF_POPUP, account_menu as usize, l_account.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
     AppendMenuW(menu, MF_STRING, ID_NEXT, l_next.as_ptr());
-    AppendMenuW(menu, chk(paused), ID_PAUSE, l_pause.as_ptr());
+    AppendMenuW(menu, MF_STRING, ID_PAUSE, l_pause.as_ptr());
     AppendMenuW(menu, MF_POPUP, source_menu as usize, l_source.as_ptr());
     AppendMenuW(menu, MF_POPUP, display_menu as usize, l_display.as_ptr());
-    // Fifth (and last allowed) gallery entry: the earned constellations, max
-    // the last seven patches — the website keeps the full list.
-    let (verse_menu, _verse_labels) = constellations::build_menu(signed_in);
-    let l_verse = util::wide(&t("Meine Sternbilder", "My constellations"));
-    AppendMenuW(menu, MF_POPUP, verse_menu as usize, l_verse.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
-    AppendMenuW(menu, chk(autostart), ID_AUTOSTART, l_auto.as_ptr());
-    // Telemetry opt-OUT (ticked by default), same contract as the data-uploader.
-    AppendMenuW(menu, chk(telemetry_on), ID_TELEMETRY, l_telemetry.as_ptr());
     AppendMenuW(menu, MF_STRING, ID_STARSCAPE, l_star.as_ptr());
     AppendMenuW(menu, MF_STRING, ID_QUIT, l_quit.as_ptr());
 
@@ -930,6 +935,16 @@ unsafe fn show_menu(hwnd: HWND) {
     // loop is gone.
     if RESTART_PENDING.swap(false, Ordering::SeqCst) {
         PostMessageW(hwnd, WM_UPDATE_RESTART, 0, 0);
+    }
+}
+
+/// Tray label of the pause entry: the ACTION it performs, so "Pausieren" while
+/// the rotation runs and "Fortsetzen" while it is paused. Returns (de, en).
+fn pause_label(paused: bool) -> (&'static str, &'static str) {
+    if paused {
+        ("Fortsetzen", "Resume")
+    } else {
+        ("Pausieren", "Pause")
     }
 }
 
@@ -1122,5 +1137,16 @@ fn prune_cache(dir: &std::path::Path, keep: usize) {
     files.sort_by_key(|(t, _)| *t);
     for (_, p) in files.iter().take(files.len() - keep) {
         let _ = std::fs::remove_file(p);
+    }
+}
+
+#[cfg(test)]
+mod tray_label_tests {
+    use super::pause_label;
+
+    #[test]
+    fn pause_entry_names_the_action_not_the_state() {
+        assert_eq!(pause_label(false), ("Pausieren", "Pause"));
+        assert_eq!(pause_label(true), ("Fortsetzen", "Resume"));
     }
 }
