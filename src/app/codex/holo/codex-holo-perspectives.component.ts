@@ -229,6 +229,8 @@ export interface HoloPerspectiveView {
       background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 7%, var(--sc-bg-0)), color-mix(in srgb, var(--sc-accent) 3%, var(--sc-bg-0))); overflow: hidden; }
     /* Docked onto the strip below: one piece with it. */
     :host(.row.docked) { border-block-end: 0; border-radius: 16px 16px 0 0; }
+    /* Inside the strip's dock: the dock is the frame. */
+    :host(.row.in-dock) { border: 0; border-radius: 0; background: none; overflow: visible; }
     .lead { display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 10px; min-width: 0; }
     .lead .lt { font-family: var(--d); text-transform: uppercase; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); }
     .lsay { margin: 0; font-size: max(11.5px, var(--f)); line-height: 1.4; color: var(--sc-fg-1); }

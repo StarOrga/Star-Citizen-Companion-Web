@@ -289,6 +289,7 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
 
   it('a ship without hardpoints says so on the table and in the inspector instead of "1 bis 0"', async () => {
     const fixture = await setup({ detail: detailWithPorts([]) });
+    fixture.componentInstance.panelTab.set('parts'); // Einordnung is the default tab
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.table-empty')).toBeTruthy();
@@ -476,6 +477,7 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
       ],
     });
     const c = fixture.componentInstance;
+    c.panelTab.set('parts'); // Einordnung is the default tab
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const groups = Array.from(el.querySelectorAll('.holo-panel .pgroup'));
@@ -741,5 +743,83 @@ describe('CodexHoloStageComponent sound (cx-sound)', () => {
     expect(started.length).withContext('arrival = two notes').toBe(5);
     expect(started.every((s) => s.gain > 0 && s.gain <= 0.05)).toBeTrue();
     expect(Object.values(HOLO_TONES).flat().every((n) => n.gain <= 0.05)).toBeTrue();
+  });
+});
+
+describe('CodexHoloStageComponent lower part (concept holotisch-unten r1, d2)', () => {
+  const sections = [
+    { section: 'weapons', slots: [slot('hp_gun', 'Gun')] },
+    { section: 'missiles', slots: [slot('hp_rack', 'Rack')] },
+    { section: 'shields', slots: [slot('hp_shield', 'Shield')] },
+    { section: 'quantum', slots: [slot('hp_qd', 'Drive')] },
+    { section: 'coolers', slots: [slot('hp_cool', 'Cooler')] },
+  ] as unknown as LayoutSection[];
+
+  it('the parts come first in four columns over the strip areas, each section where it counts (C4/C5)', async () => {
+    const f = await setup({ primaryModuleSections: sections });
+    const el: HTMLElement = f.nativeElement;
+    const areas = Array.from(el.querySelectorAll<HTMLElement>('.holo-below .below-area'));
+    expect(areas.map((a) => a.dataset['p'])).toEqual(['offensive', 'defensive', 'movement', 'signature']);
+    const secs = (a: HTMLElement) => Array.from(a.querySelectorAll('[data-sec]')).map((d) => d.getAttribute('data-sec'));
+    expect(secs(areas[0])).toEqual(['weapons', 'missiles']);
+    expect(secs(areas[1])).toEqual(['shields']);
+    expect(secs(areas[2])).toEqual(['quantum']);
+    expect(secs(areas[3])).toEqual(['coolers']);
+    // No "Antrieb & Systeme" merge across columns.
+    expect(el.querySelector('.holo-below .mod-sec.merged')).toBeNull();
+    // Perspectives come after the parts and are the last thing before the strip (C4/C9).
+    const below = el.querySelector('.holo-below')!;
+    const persp = el.querySelector('sc-codex-holo-perspectives.below-persp')!;
+    expect(below.compareDocumentPosition(persp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(persp.nextElementSibling?.tagName.toLowerCase()).toBe('sc-codex-holo-strip');
+    expect(persp.classList).toContain('row');
+  });
+
+  it('the side column sits in the first (Einsatz) column and holds no chip filter row (C6/C8)', async () => {
+    const f = await setup({ primaryModuleSections: sections });
+    const el: HTMLElement = f.nativeElement;
+    const side = el.querySelector<HTMLElement>('.holo-below .below-side')!;
+    expect(side).toBeTruthy();
+    expect(getComputedStyle(side).gridColumnStart).toBe('1');
+    expect(el.querySelector('.holo-below .chip, .holo-below [role="toolbar"]')).toBeNull();
+  });
+
+  it('the strip carries the four perspective areas in its dock (C9)', async () => {
+    const f = await setup({ primaryModuleSections: sections });
+    const el: HTMLElement = f.nativeElement;
+    (el.querySelector('sc-codex-holo-strip .hs-toggle') as HTMLButtonElement).click();
+    f.detectChanges();
+    const dock = el.querySelector('sc-codex-holo-strip .hs-panel')!;
+    expect(dock.querySelector('.hp-energy')).toBeTruthy();
+    expect(dock.querySelector('sc-codex-holo-perspectives.in-dock.row')).toBeTruthy();
+  });
+
+  const room = (key: string) => ({ key, name: null, pos: [0, 0, 0], floorZ: null, height: 3, shapes: [[[-2, -2], [2, -2], [2, 2], [-2, 2]]] });
+
+  it('deck chips in Einfach: Außen + one per deck; one deck reads Außen/Innen; no rooms, no chips (C14)', async () => {
+    const f = await setup();
+    const c = f.componentInstance;
+    expect(c.deckChips()).toEqual([]);
+    f.componentRef.setInput('decks', [{ key: 'D1', name: { en: 'Deck 1', de: 'Deck 1' }, order: 0, rooms: [room('A')] }]);
+    f.detectChanges();
+    expect(c.deckChips().map((d) => d.labelKey)).toEqual(['codex.holo.stage.deckOutside', 'codex.holo.stage.deckInside']);
+    f.componentRef.setInput('decks', [
+      { key: 'D1', name: { en: 'Deck 1', de: 'Deck 1' }, order: 0, rooms: [room('A')] },
+      { key: 'D2', name: { en: 'Deck 2', de: 'Deck 2' }, order: 1, rooms: [room('B')] },
+      { key: 'D3', name: null, order: 2 },
+    ]);
+    f.detectChanges();
+    expect(c.deckChips().map((d) => d.key)).toEqual([null, 'D1', 'D2']);
+    const el: HTMLElement = f.nativeElement;
+    expect(el.querySelectorAll('.sub-views .deck').length).toBe(3);
+    c.pickDeck('D2');
+    f.detectChanges();
+    expect(c.tableDeck()?.key).toBe('D2');
+    // Inside a deck there are no part markers: the deck plan replaces the hull.
+    expect(el.querySelector('sc-ship-deck-plan.deck-sheet')).toBeTruthy();
+    expect(el.querySelector('sc-codex-holo-table .shipwrap')).toBeNull();
+    // Picking a part goes back outside, where its marker is.
+    c.inspectPin('hp_gun');
+    expect(c.deckView()).toBeNull();
   });
 });

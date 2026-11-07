@@ -640,6 +640,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
         (sheetChange)="onSheetChange($event)">
         <sc-codex-holo-perspectives
           hsDock
+          class="in-dock"
           layout="row"
           [tiles]="perspectiveViews()"
           [missionLabelKey]="missionLabelKey()"
@@ -668,7 +669,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
      r1 d2): a narrow lead column (Einsatz on the strip; Beschreibung + Wo zu
      kaufen above it), the four areas evenly, the strip's arrow. */
   --holo-lead-w: clamp(150px, 15%, 230px); --holo-ctl-w: max(44px, var(--sc-tap-min, 0px));
-  --holo-cols: var(--holo-lead-w) repeat(4, minmax(0, 1fr)) var(--holo-ctl-w);
+  --holo-cols: var(--holo-lead-w) repeat(4, minmax(0, 1fr)) var(--holo-ctl-w) var(--holo-fab-clear, 0px);
   display: flex; flex-direction: column; gap: 6px;
   }
   .btn, .mobile-tabs button, .statics .k, .sub, .tt, .table-eyebrow, .sh, .details-toggle, .switch { font-family: var(--d); text-transform: uppercase; }
@@ -1716,6 +1717,8 @@ export class CodexHoloStageComponent {
   /** What the table surface currently shows. */
   readonly eyebrowKey = computed(() =>
     this.viewMode() === '3d' ? 'codex.holo.stage.eyebrow3d'
+    // The perspective views show the same parts as "Einfach" (concept r1-callout).
+    : this.viewMode() === 'schema' && this.drawingAvailable() ? 'codex.holo.stage.eyebrowTop'
     : this.viewMode() === 'schema' ? 'codex.holo.stage.eyebrowSchema'
     : 'codex.holo.stage.eyebrowTop',
   );

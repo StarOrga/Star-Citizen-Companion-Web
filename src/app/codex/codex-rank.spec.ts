@@ -212,8 +212,8 @@ describe('small groups (concept r1-small) and the narrowest default (r1-default)
     expect(r.scope).toBe('role');
     expect(r.scopeFallbackKey).toBeNull();
     expect(r.cohortSize).toBe(2);
-    expect(r.scopeSizes.role).toBe(2);
-    expect(r.scopeSizes.all).toBe(4);
+    expect(r.scopeSizes?.role).toBe(2);
+    expect(r.scopeSizes?.all).toBe(4);
   });
 
   it('defaults to the narrowest group that holds another ship', () => {

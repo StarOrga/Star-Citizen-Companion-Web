@@ -339,7 +339,7 @@ export interface RankResult<K extends string = KpiKey> {
   scopeAvailable: Record<RankScope, boolean>;
   /** Ships per group (target included) for every scope the target can filter
    * by — the Holotable says "nur N Schiffe" for a group under RANK_MIN_GROUP. */
-  scopeSizes: Partial<Record<RankScope, number>>;
+  scopeSizes?: Partial<Record<RankScope, number>>;
 }
 
 /** Percentile band thresholds (MASTER §3). */

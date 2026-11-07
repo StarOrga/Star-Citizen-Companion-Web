@@ -1,7 +1,7 @@
 import { ApplicationRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
-import { CodexHoloTableComponent, parallaxOffset } from './codex-holo-table.component';
+import { CodexHoloTableComponent, filterSchemaMarkers, parallaxOffset } from './codex-holo-table.component';
 import { installFrameClock } from '../../testing/frames';
 import { HoloPhase, StagePin } from './codex-holo-model';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
@@ -387,5 +387,17 @@ describe('CodexHoloTableComponent', () => {
       expect(frame.style.getPropertyValue('--px')).toBe('');
       fixture.destroy();
     });
+  });
+});
+
+describe('filterSchemaMarkers (concept holotisch-unten r1-callout)', () => {
+  const mk = (port: string) => ({ port });
+  it('keeps the points of the parts the table shows, plus the part picked elsewhere', () => {
+    const all = [mk('a'), mk('b'), mk('c'), mk('d')];
+    expect(filterSchemaMarkers(all, ['a', 'c'], null).map((m) => m.port)).toEqual(['a', 'c']);
+    expect(filterSchemaMarkers(all, ['a', 'c'], 'd').map((m) => m.port)).toEqual(['a', 'c', 'd']);
+  });
+  it('a hull whose ports match none keeps every point instead of an empty drawing', () => {
+    expect(filterSchemaMarkers([mk('a'), mk('b')], ['x'], null).length).toBe(2);
   });
 });

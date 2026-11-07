@@ -55,6 +55,9 @@ let nextDeckPlanId = 0;
         }
 
         @if (deck(); as d) {
+          @if (bare()) {
+            <p class="bare-nose">▲ {{ 'codex.deckPlan.nose' | translate }} · {{ d.label }}</p>
+          }
           <div class="stage" [attr.id]="uid + '-panel'" [attr.role]="set.decks.length > 1 ? 'tabpanel' : null"
                [attr.aria-labelledby]="set.decks.length > 1 ? uid + '-tab-' + deckIndex() : null">
             <svg
@@ -62,10 +65,12 @@ let nextDeckPlanId = 0;
               role="group"
               [attr.aria-label]="'codex.deckPlan.aria' | translate: { deck: d.label, count: d.rooms.length }"
             >
+              @if (!bare()) {
               <text class="nose" [attr.x]="set.width / 2" [attr.y]="fontSize() * 1.1" text-anchor="middle"
                     [attr.font-size]="fontSize()">
                 ▲ {{ 'codex.deckPlan.nose' | translate }}
               </text>
+              }
               @for (r of d.rooms; track r.key) {
                 <g
                   class="room"
@@ -130,7 +135,8 @@ let nextDeckPlanId = 0;
     :host(.deck-sheet) { display: flex; flex-direction: column; min-height: 0; }
     .deck-plan.bare { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
     .bare .stage { flex: 1; min-height: 0; background: transparent; border: 0; padding: 0; }
-    .bare svg { height: 100%; max-height: none; }
+    .bare svg { height: 100%; max-height: min(100%, 560px); }
+    .bare-nose { margin: 0 0 6px; text-align: center; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .dp-head h2 { margin: 0 0 2px; }
     .hint { margin: 0 0 10px; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
