@@ -673,6 +673,7 @@
       "from": "from {{price}} aUEC",
       "placeOne": "1 place",
       "places": "{{count}} places",
+      "more": "+{{count}} more",
       "price": "{{price}} aUEC",
       "openPlan": "Open the plan"
     },
