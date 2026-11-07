@@ -151,3 +151,28 @@ describe('CodexHoloPerspectivesComponent', () => {
     expect(btn.textContent).toContain('codex.holo.stage.allValues');
   });
 });
+
+describe('CodexHoloPerspectivesComponent row layout (concept holotisch-unten r1)', () => {
+  it('lays out a lead cell and the four areas; "Alle Werte aller vier" opens every full panel', async () => {
+    await TestBed.configureTestingModule({
+      imports: [CodexHoloPerspectivesComponent],
+      providers: [provideTranslateService({})],
+    }).compileComponents();
+    const f = TestBed.createComponent(CodexHoloPerspectivesComponent);
+    const tile = (id: 'offensive' | 'defensive' | 'movement' | 'signature') => ({
+      id, titleKey: 't.' + id, pct: null, leadText: null, leadLabelKey: null, leadShortKey: null, deltaText: null, deltaTone: null, ghost: null, say: '', subs: [],
+    });
+    f.componentRef.setInput('tiles', [tile('offensive'), tile('defensive'), tile('movement'), tile('signature')]);
+    f.componentRef.setInput('missionLabelKey', 'codex.mission.all');
+    f.componentRef.setInput('layout', 'row');
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    expect(el.classList).toContain('row');
+    expect(el.querySelector('.lead')).toBeTruthy();
+    expect(el.querySelectorAll('.ptile').length).toBe(4);
+    (el.querySelector('.all-expand') as HTMLButtonElement).click();
+    f.detectChanges();
+    expect(f.componentInstance.allOpen()).toBeTrue();
+    expect(el.querySelectorAll('.tile-full').length).toBe(3);
+  });
+});

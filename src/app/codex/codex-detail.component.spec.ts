@@ -1088,9 +1088,9 @@ function arrive(fixture: ComponentFixture<CodexDetailComponent>): void {
   fixture.detectChanges();
 }
 
-/** The basics that stand open below the first screen (variants, actions, description, where to buy). */
+/** The side column below the first screen (description + RSI, where to buy, variants — concept holotisch-unten d2). */
 function openBlock(fixture: ComponentFixture<CodexDetailComponent>): HTMLElement {
-  const open = (fixture.nativeElement as HTMLElement).querySelector('#holo-open') as HTMLElement;
+  const open = (fixture.nativeElement as HTMLElement).querySelector('.holo-below .below-side') as HTMLElement;
   expect(open).withContext('open block').not.toBeNull();
   return open;
 }
@@ -1147,8 +1147,11 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     // The Nomad fixture has more sections than blocks — that is the whole point.
     const sections = cmp.moduleSections().filter((s) => s.slots.length > 0);
     expect(cmp.moduleCount()).toBeLessThan(sections.length);
-    const listed = el.querySelectorAll('.below-ports .mod-sec').length;
-    expect(listed).toBe(cmp.moduleCount() + cmp.tailModuleCount());
+    // Four area columns (concept holotisch-unten r1): every section stands
+    // once, in the column of the strip area it moves — no merged blocks.
+    const listed = el.querySelectorAll('.holo-below .below-area .mod-sec').length;
+    const withSlots = [...cmp.primaryModuleSections(), ...cmp.tailModuleSections()].filter((s) => s.slots.length > 0);
+    expect(listed).toBe(withSlots.length);
     const body = openDetails(fixture);
     expect(body.querySelector('.col-loadout-tail .col-head .n')?.textContent?.trim()).toBe(String(cmp.tailModuleCount()));
   }));
@@ -1161,7 +1164,7 @@ describe('CodexDetailComponent — Holotable basics stand open (d-drawer)', () =
     const fixture = renderOnFakeClock();
     arrive(fixture);
     const el: HTMLElement = fixture.nativeElement;
-    const open = el.querySelector('#holo-open') as HTMLElement;
+    const open = openBlock(fixture);
     expect(open.querySelector('#bezugsquelle')).withContext('where to buy, open').not.toBeNull();
     expect(el.querySelector('.details-body')).withContext('drawer still closed').toBeNull();
     const body = openDetails(fixture);
@@ -1173,8 +1176,12 @@ describe('CodexDetailComponent — rank scope default per view', () => {
   beforeEach(() => {
     configureSetup('ship');
     localStorage.removeItem('sc.codex.rankScope');
+    localStorage.removeItem('sc.codex.rankScopeByShip');
   });
-  afterEach(() => localStorage.removeItem('sc.codex.rankScope'));
+  afterEach(() => {
+    localStorage.removeItem('sc.codex.rankScope');
+    localStorage.removeItem('sc.codex.rankScopeByShip');
+  });
 
   it('nobody chose: Alle in the classic view, Rolle in the Holotable', fakeAsync(() => {
     const fixture = renderOnFakeClock();
@@ -1185,12 +1192,18 @@ describe('CodexDetailComponent — rank scope default per view', () => {
     expect(cmp.rankScope()).toBe('all');
   }));
 
-  it('a stored choice applies to both views', fakeAsync(() => {
+  it('the classic choice stays in the classic view; the Holotable keeps its own per ship (concept r1-default)', fakeAsync(() => {
     const fixture = renderOnFakeClock();
     const cmp = fixture.componentInstance;
+    cmp.holoView.set(false);
     cmp.setRankScope('career');
-    cmp.holoView.set(true);
     expect(cmp.rankScope()).toBe('career');
+    cmp.holoView.set(true);
+    // The account-wide choice no longer overrides the Holotable.
+    expect(cmp.rankScope()).toBe('role');
+    cmp.setRankScope('all');
+    expect(cmp.rankScope()).toBe('all');
+    expect(JSON.parse(localStorage.getItem('sc.codex.rankScopeByShip')!)[cmp.shipClassName()].scope).toBe('all');
     cmp.holoView.set(false);
     expect(cmp.rankScope()).toBe('career');
   }));

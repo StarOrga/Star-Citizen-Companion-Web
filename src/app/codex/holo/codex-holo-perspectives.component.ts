@@ -66,7 +66,7 @@ export interface HoloPerspectiveView {
             {{ 'codex.holo.persp.leadNoCohort' | translate: { mission: (missionLabelKey() | translate) } }}
           }
         </p>
-        <button type="button" class="tile-expand all" (click)="toggleAll()" [attr.aria-expanded]="allOpen()">
+        <button type="button" class="all-expand" (click)="toggleAll()" [attr.aria-expanded]="allOpen()">
           {{ (allOpen() ? 'codex.holo.persp.allHide' : 'codex.holo.persp.allShow') | translate }}
         </button>
       </div>
@@ -234,7 +234,10 @@ export interface HoloPerspectiveView {
     .lead { display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 10px; min-width: 0; }
     .lead .lt { font-family: var(--d); text-transform: uppercase; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); }
     .lsay { margin: 0; font-size: max(11.5px, var(--f)); line-height: 1.4; color: var(--sc-fg-1); }
-    .tile-expand.all { margin-top: auto; }
+    .all-expand { margin-top: auto; align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--d); text-transform: uppercase;
+      font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); min-height: var(--sc-tap-min, 24px); transition: color var(--holo-t-fast) ease; }
+    .all-expand:hover, .all-expand[aria-expanded="true"] { color: var(--sc-accent); }
+    .all-expand:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: var(--holo-r-xs); }
     :host(.row) .ptile { border: 0; border-inline-start: 1px solid var(--sc-border); border-radius: 0; padding: 12px 12px 10px; gap: 8px;
       background: none; box-shadow: inset 0 2px 0 var(--p); }
     :host(.row) .ptile:last-child { border-inline-end: 1px solid var(--sc-border); }
