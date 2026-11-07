@@ -353,6 +353,8 @@ export class HqNachschubFlowComponent {
   readonly nachschubId = input<string | null>(null);
   /** Jump straight to a step when opened (edit from the panel opens on step 3 when asked). */
   readonly startStep = input<Step>(1);
+  /** Wishlist positions that start out picked (the cart's "In einen Nachschub"): `key` and the quantity to take. */
+  readonly preselect = input<readonly { key: string; qty: number }[]>([]);
   readonly closed = output<void>();
   readonly done = output<NachschubResult>();
 
@@ -437,10 +439,29 @@ export class HqNachschubFlowComponent {
   protected readonly canNext = computed(() => (this.step() === 1 ? this.picks().size > 0 || (this.mode() === 'edit' && this.existing().length > 0) : this.name().trim().length > 0));
   protected readonly canSave = computed(() => this.name().trim().length > 0 && (this.picks().size > 0 || this.mode() === 'edit'));
 
+  private preselected = false;
+
   /** The steps each Einsatz name was asked for, so an unchanged Einsatz is not asked again. */
   private readonly nameSig = new Map<string, string>();
 
   constructor() {
+    // The cart hands over its selection: pick it once, as far as the wishlist still holds those positions.
+    effect(() => {
+      const pre = this.preselect();
+      const rows = this.wish();
+      if (!pre.length || !rows.length) return;
+      untracked(() => {
+        if (this.preselected) return;
+        this.preselected = true;
+        const have = new Map(rows.map((r) => [positionKey(r), r.qty] as const));
+        const next = new Map<string, number>();
+        for (const p of pre) {
+          const max = have.get(p.key);
+          if (max) next.set(p.key, Math.min(max, p.qty));
+        }
+        if (next.size) this.picks.set(next);
+      });
+    });
     effect(() => {
       const s = this.startStep();
       untracked(() => this.step.set(s));

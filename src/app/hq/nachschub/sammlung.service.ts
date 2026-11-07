@@ -3,9 +3,8 @@ import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { SupabaseClientProvider } from '../../core/supabase.client';
-import { NEWS_FAVORITES_STORAGE_KEY } from '../../news/news.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
-import { BLUEPRINT_PLACE, SammlungEntry, bookmarksToCopy } from './sammlung.model';
+import { BLUEPRINT_PLACE, NEWS_FAVORITES_STORAGE_KEY, SammlungEntry, bookmarksToCopy } from './sammlung.model';
 
 /**
  * The Sammlung (collected things) as the HQ reads it: Blaupausen (stock rows at the blueprint place), Ruf (empty,
@@ -75,12 +74,14 @@ export class SammlungService {
   async collectNews(id: string): Promise<boolean> {
     if (!this.auth.user()) return false;
     if (this.news().has(id)) return true;
+    // Optimistic: the set shows it at once, a failed write takes it back.
+    this.news.update((s) => new Set([...s, id]));
     try {
       const { error } = await this.sb.client.from('user_news_collected' as never).insert({ news_id: id } as never);
       if (error && (error as { code?: string }).code !== '23505') throw error;
-      this.news.update((s) => new Set([...s, id]));
       return true;
     } catch (err) {
+      this.news.update((s) => new Set([...s].filter((x) => x !== id)));
       this.error.set(toErrorKey('sammlung', 'collectNews', err));
       return false;
     }
@@ -88,12 +89,13 @@ export class SammlungService {
 
   async uncollectNews(id: string): Promise<boolean> {
     if (!this.auth.user()) return false;
+    this.news.update((s) => new Set([...s].filter((x) => x !== id)));
     try {
       const { error } = await this.sb.client.from('user_news_collected' as never).delete().eq('news_id', id);
       if (error) throw error;
-      this.news.update((s) => new Set([...s].filter((x) => x !== id)));
       return true;
     } catch (err) {
+      this.news.update((s) => new Set([...s, id]));
       this.error.set(toErrorKey('sammlung', 'uncollectNews', err));
       return false;
     }

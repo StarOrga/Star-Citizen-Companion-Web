@@ -6772,31 +6772,6 @@
       }
     }
   },
-  "merkliste": {
-    "title": "Bookmarks",
-    "aria": "Bookmarks, {{count}} in all: {{wishes}} on the wishlist, {{supply}} open in Supplies, {{posts}} saved posts",
-    "nachschub": "Supplies",
-    "openNachschub": "Open supplies",
-    "recent": "Recently opened",
-    "wished": "On the wishlist",
-    "allWishes": "Whole wishlist",
-    "newsRead": "Recently read",
-    "newsSaved": "Bookmarked posts",
-    "emptyRecent": "Nothing opened yet.",
-    "emptyWished": "Nothing on the wishlist yet.",
-    "emptyRead": "Nothing read yet.",
-    "emptySaved": "No bookmarks yet.",
-    "emptyNachschub": "Everything fetched, nothing open.",
-    "type": {
-      "all": "All",
-      "ship": "Ships",
-      "weapon": "Weapons",
-      "component": "Components",
-      "item": "Items",
-      "blueprint": "Blueprints",
-      "news": "News"
-    }
-  },
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Download apps",
@@ -7577,6 +7552,82 @@
       "store": "Put down",
       "removeHangarTitle": "Remove from hangar?",
       "removeHangarMessage": "“{{name}}” is deleted along with its variants, their shares with friends and its notes. This cannot be undone."
+    }
+  },
+  "quick": {
+    "title": "Quick access",
+    "recent": "Recently opened",
+    "more": "Show more",
+    "less": "Show less",
+    "emptyRecent": "Nothing opened yet.",
+    "wish": "Wishlist",
+    "lastAdded": "last added",
+    "emptyWish": "Nothing on the wishlist yet.",
+    "allWish": "Whole wishlist · {{n}} items",
+    "emptyContext": "Nothing here yet.",
+    "section": {
+      "inventar": "Inventory",
+      "hangar": "Hangar",
+      "sammlung": "Collection"
+    },
+    "all": {
+      "inventar": "Whole inventory",
+      "hangar": "Whole hangar",
+      "sammlung": "Whole collection"
+    },
+    "type": {
+      "ship": "Ships",
+      "weapon": "Weapons",
+      "component": "Components",
+      "item": "Items",
+      "blueprint": "Blueprints",
+      "news": "News"
+    }
+  },
+  "cart": {
+    "title": "Wishlist",
+    "summary": "{{n}} items · {{g}} groups",
+    "close": "Close",
+    "empty": "The wishlist is empty.",
+    "emptyHint": "Put items from the Codex or the search here.",
+    "group": {
+      "weapons": "Weapons",
+      "armor": "Armor",
+      "components": "Components",
+      "ships": "Ships and vehicles",
+      "items": "Items",
+      "materials": "Raw materials"
+    },
+    "forBlueprint": "to craft {{name}}",
+    "blueprintQty": "{{n}}× {{name}}",
+    "selectGroup": "Select the whole group {{name}}",
+    "select": "Select {{name}}",
+    "qtyOf": "Quantity of {{name}}",
+    "less": "Less",
+    "more": "More",
+    "remove": "Remove {{name}}",
+    "removeGroup": "Remove group {{name}}",
+    "removed": "{{name}} removed from the wishlist",
+    "removedGroup": "{{name}} removed ({{n}} items)",
+    "selected": "selected",
+    "clear": "Deselect all",
+    "toNachschub": "Into a Nachschub",
+    "kind": {
+      "ship": "Ship",
+      "vehicle": "Vehicle",
+      "upcoming": "Announced ship",
+      "weapon": "Weapon",
+      "component": "Component",
+      "item": "Item",
+      "blueprint": "Blueprint",
+      "material": "Raw material",
+      "ammunition": "Ammunition"
+    },
+    "suggest": {
+      "title": "Goes with it",
+      "count": "{{n}} suggestions",
+      "add": "to the wishlist",
+      "dismiss": "Do not suggest {{name}}"
     }
   }
 }

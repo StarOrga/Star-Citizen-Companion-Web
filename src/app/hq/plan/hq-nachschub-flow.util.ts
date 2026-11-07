@@ -5,10 +5,10 @@ export interface FlowRow extends WishPosition {
   readonly key: string;
 }
 
-export type FlowGroupId = 'ships' | 'items' | 'materials' | 'blueprint';
+export type FlowGroupId = 'ships' | 'items' | 'materials' | 'blueprint' | 'weapons' | 'armor' | 'components';
 
 export interface FlowGroup {
-  /** `ships` | `items` | `materials` | `bp:<className>` */
+  /** `ships` | `items` | `materials` | `bp:<className>` (the cart also: `weapons` | `armor` | `components`) */
   readonly id: string;
   readonly type: FlowGroupId;
   /** i18n key of the group title (not for blueprint groups). */

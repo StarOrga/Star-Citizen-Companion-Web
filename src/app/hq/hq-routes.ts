@@ -34,9 +34,46 @@ export interface HqPageLink {
 export const HQ_LIST_PARAM = 'list';
 export type HqListTab = 'wish' | 'nachschub';
 
-/** The link that opens the wish / Nachschub popup on `tab` (`/hq?list=wish#planen`). */
+/**
+ * The Warenkorb (the wishlist as a cart dialog) is an overlay with its own URL: any page plus `?cart=1`. The shell owns
+ * the dialog (`sc-wish-cart`), so a link, a reload and "open in new tab" all land on the open cart.
+ */
+export const CART_PARAM = 'cart';
+
+/** `<a [routerLink]="[]" [queryParams]="cartLinkParams" queryParamsHandling="merge" preserveFragment>` - opens the cart on the current page. */
+export const cartLinkParams: Readonly<Record<string, string>> = { [CART_PARAM]: '1' };
+
+/** The cart on the HQ's Planen page (`/hq?cart=1#planen`) - for links that are not on the page the cart should open on. */
+export function hqCartLink(): HqPageLink {
+  return { commands: [HQ_ROOT], fragment: 'planen', queryParams: { ...cartLinkParams } };
+}
+
+/** The link for the wish / Nachschub tabs of the old popup: the wishlist is the cart now, Nachschub lives on Planen. */
 export function hqListLink(tab: HqListTab): HqPageLink {
-  return { commands: [HQ_ROOT], fragment: 'planen', queryParams: { [HQ_LIST_PARAM]: tab } };
+  return tab === 'wish' ? hqCartLink() : { commands: [HQ_ROOT], fragment: 'planen', queryParams: { [HQ_LIST_PARAM]: tab } };
+}
+
+/**
+ * "In einen Nachschub": Planen opens the new-Nachschub flow with these wishlist positions picked
+ * (`/hq?pick=<key>~<qty>&pick=...#planen`). `key` is the wishlist position key (`kind:class[@for]`).
+ */
+export const HQ_PICK_PARAM = 'pick';
+
+export function hqNachschubPickLink(picks: readonly { key: string; qty: number }[]): HqPageLink {
+  // Repeated params cannot ride in a Record; one comma-free joined value does (`~` and `|` never occur in a key).
+  return { commands: [HQ_ROOT], fragment: 'planen', queryParams: { [HQ_PICK_PARAM]: picks.map((p) => `${p.key}~${p.qty}`).join('|') } };
+}
+
+/** The picks a `pick` value names (see {@link hqNachschubPickLink}); malformed entries are dropped. */
+export function hqPicksOf(v: string | null | undefined): { key: string; qty: number }[] {
+  const out: { key: string; qty: number }[] = [];
+  for (const part of (v ?? '').split('|')) {
+    const at = part.lastIndexOf('~');
+    if (at <= 0) continue;
+    const qty = Number(part.slice(at + 1));
+    if (Number.isFinite(qty) && qty >= 1) out.push({ key: part.slice(0, at), qty: Math.round(qty) });
+  }
+  return out;
 }
 
 /** The tab a `list` query value names; null for none / unknown. */

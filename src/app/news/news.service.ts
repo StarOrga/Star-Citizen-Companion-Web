@@ -1,9 +1,11 @@
 import { toErrorKey } from '../core/describe-error';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { ConsentService } from '../core/consent.service';
+import { AuthService } from '../auth/auth.service';
+import { NEWS_FAVORITES_STORAGE_KEY } from '../hq/nachschub/sammlung.model';
+import { SammlungService } from '../hq/nachschub/sammlung.service';
 import { PatchLineGroup, groupPatchNotes } from './patch-notes';
 import { BuildVerdict, buildSaved, buildStream, buildVerdict, pickStage } from './news-stage';
 import { toNewsImageUrl } from './news-image-variants';
@@ -69,7 +71,7 @@ export interface VerseFeed {
 
 /** Background refresh cadence for the feed. */
 const POLL_INTERVAL_MS = 5 * 60 * 1000;
-export const NEWS_FAVORITES_STORAGE_KEY = 'sc-companion.news.favorites';
+export { NEWS_FAVORITES_STORAGE_KEY };
 
 /**
  * Retention window for VIDEOS in Verse News (feedback e7082310): only today,
@@ -87,16 +89,25 @@ export const VIDEO_RETENTION_DAYS = 31;
 @Injectable({ providedIn: 'root' })
 export class NewsService {
   private readonly http = inject(HttpClient);
-  private readonly consent = inject(ConsentService);
+  private readonly sammlung = inject(SammlungService);
+  private readonly auth = inject(AuthService);
   private readonly endpoint = `${environment.supabase.url}/functions/v1/fetch-verse-news`;
+
+  constructor() {
+    // The Sammlung loads with the first signed-in user; it also copies the old local bookmarks once (W1.4).
+    effect(() => {
+      if (this.auth.user()) void this.sammlung.load();
+    });
+  }
 
   readonly feed = signal<VerseFeed | null>(null);
   readonly loading = signal(false);
   /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
-  // Saved ("Gemerkt") article ids, persisted in localStorage.
-  readonly favoriteIds = signal<Set<string>>(this.loadFavoritesFromStorage());
+  // Collected ("gesammelt") article ids: the account's Sammlung (user_news_collected). The old localStorage bookmarks
+  // are copied into it once on the next visit (SammlungService.copyLocalNewsBookmarks).
+  readonly favoriteIds = computed<ReadonlySet<string>>(() => this.sammlung.news());
   // When true, the stream shows only saved items (overrides channel filters).
   readonly favoritesOnly = signal(false);
 
@@ -210,15 +221,12 @@ export class NewsService {
     return this.favoriteIds().has(id);
   }
 
-  /** Toggle "Merken" for an article; persisted across sessions. */
+  /** Toggle "Sammeln" for an article; it lives in the account's Sammlung. */
   toggleFavorite(id: string): void {
-    const next = new Set(this.favoriteIds());
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    this.favoriteIds.set(next);
-    this.persistFavorites(next);
-    // Leaving the favorites view empty would strand the user on a blank stream.
-    if (this.favoritesOnly() && next.size === 0) this.favoritesOnly.set(false);
+    // The Sammlung updates its set at once and reverts when the write fails.
+    void (this.favoriteIds().has(id) ? this.sammlung.uncollectNews(id) : this.sammlung.collectNews(id));
+    // Leaving the collected view empty would strand the user on a blank stream.
+    if (this.favoritesOnly() && this.favoriteIds().size === 0) this.favoritesOnly.set(false);
   }
 
   /**
@@ -257,28 +265,6 @@ export class NewsService {
       this.visibilityListener = null;
     }
   }
-
-  private loadFavoritesFromStorage(): Set<string> {
-    if (typeof localStorage === 'undefined') return new Set();
-    try {
-      const raw = localStorage.getItem(NEWS_FAVORITES_STORAGE_KEY);
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? new Set(arr.filter((x): x is string => typeof x === 'string')) : new Set();
-    } catch {
-      return new Set();
-    }
-  }
-
-  private persistFavorites(set: Set<string>): void {
-    // Preference-category storage is opt-in (#130) — skip until allowed.
-    if (!this.consent.preferencesAllowed()) return;
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(NEWS_FAVORITES_STORAGE_KEY, JSON.stringify(Array.from(set)));
-    } catch { /* quota / private mode */ }
-  }
-
 }
 
 /**

@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ItemPathComponent } from '../../shared/item-path/item-path.component';
-import { HQ_LIST_PARAM, hqListTabOf, type HqListTab } from '../hq-routes';
+import { HQ_LIST_PARAM, HQ_PICK_PARAM, hqListTabOf, hqPicksOf } from '../hq-routes';
+import { WishCartService } from '../../shell/cart/wish-cart.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
@@ -17,7 +18,6 @@ import { PAGE_GLIDE_MS } from '../hq-page-scroll';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { readLocation } from '../now/hq-live.util';
-import { HqSuppliesPopupComponent } from '../hq-supplies-popup.component';
 import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
 import { NachschubService, type NachschubResult } from '../nachschub/nachschub.service';
 import { HqNachschubBoardComponent } from './hq-nachschub-board.component';
@@ -84,7 +84,6 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     HqMoodTogglesComponent,
     HqPlaceTreeComponent,
     HqSetRingsComponent,
-    HqSuppliesPopupComponent,
     HqPlanMapComponent,
     HqCommunityOptinComponent,
     HqBlueprintProgressComponent,
@@ -329,7 +328,7 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
     }
 
     @if (flow(); as f) {
-      <sc-hq-nachschub-flow [mode]="f.mode" [nachschubId]="f.id" [startStep]="f.step" (closed)="flow.set(null)" (done)="onFlowDone($event)" />
+      <sc-hq-nachschub-flow [mode]="f.mode" [nachschubId]="f.id" [startStep]="f.step" [preselect]="flowPicks()" (closed)="closeFlow()" (done)="onFlowDone($event)" />
     }
     @if (removing(); as r) {
       <sc-hq-nachschub-remove-dialog [name]="nameOf(r.id)" [mode]="r.kind" [open]="openCountOf(r.id)" (cancelled)="removing.set(null)" (confirmed)="doRemove($event)" />
@@ -344,9 +343,6 @@ import type { MapPlace, PlanView } from './map/hq-map.types';
       </div>
     }
 
-    @if (suppliesOpen()) {
-      <sc-hq-supplies-popup [startTab]="suppliesTab()" (closed)="suppliesOpen.set(false)" />
-    }
   `,
   styles: [
     `
@@ -465,21 +461,37 @@ export class HqPlanComponent {
   protected readonly archiveOpen = signal(false);
   protected readonly notice = signal<{ key: string; params?: Record<string, string | number>; undo?: () => Promise<NachschubResult> } | null>(null);
   private noticeTimer: ReturnType<typeof setTimeout> | undefined;
-  protected readonly suppliesOpen = signal(false);
-  protected readonly suppliesTab = signal<HqListTab>('nachschub');
   private readonly listRoute = inject(ActivatedRoute);
+  protected readonly cart = inject(WishCartService);
+  private readonly pickRouter = inject(Router);
+  protected readonly flowPicks = signal<readonly { key: string; qty: number }[]>([]);
 
   /** `/hq?list=wish#planen` (the item path's anchors): open the popup on that tab. */
   private readonly listParam = this.listRoute.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
     const tab = hqListTabOf(q.get(HQ_LIST_PARAM));
-    // Nachschub lives on this page now (the slots); only the wishlist still opens the popup (the cart replaces it later).
-    if (tab === 'wish') this.openSupplies('wish');
+    // Nachschub lives on this page (the slots); the wishlist is the cart, which the shell opens on `?cart=1` (an old
+    // `list=wish` link opens it too).
+    if (tab === 'wish') void this.cart.open();
     else if (tab === 'nachschub') this.mode.set('nachschub');
+    // "In einen Nachschub" from the cart: the new-Nachschub flow opens with those wishlist positions picked.
+    const picks = hqPicksOf(q.get(HQ_PICK_PARAM));
+    if (picks.length && !this.flow()) {
+      this.flowPicks.set(picks);
+      this.mode.set('nachschub');
+      this.flow.set({ mode: 'new', id: null, step: 1 });
+    }
   });
 
-  protected openSupplies(tab: HqListTab): void {
-    this.suppliesTab.set(tab);
-    this.suppliesOpen.set(true);
+  /** The flow closed: the picks from the URL are spent, so a reload does not reopen it. */
+  protected closeFlow(): void {
+    this.flow.set(null);
+    this.dropPickParam();
+  }
+
+  private dropPickParam(): void {
+    if (this.flowPicks().length === 0) return;
+    this.flowPicks.set([]);
+    void this.pickRouter.navigate([], { queryParams: { [HQ_PICK_PARAM]: null }, queryParamsHandling: 'merge', preserveFragment: true, replaceUrl: true });
   }
   /** The saved route "Route öffnen" asked for: marked in the list. */
   protected readonly focusedRoute = signal<string | null>(null);
@@ -669,6 +681,7 @@ export class HqPlanComponent {
 
   protected onFlowDone(res: NachschubResult): void {
     this.flow.set(null);
+    this.dropPickParam();
     if (res.id) this.focus.select(res.id);
     this.announce(res);
   }

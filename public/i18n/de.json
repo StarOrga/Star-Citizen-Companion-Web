@@ -6772,31 +6772,6 @@
       }
     }
   },
-  "merkliste": {
-    "title": "Merkliste",
-    "aria": "Merkliste, {{count}} insgesamt: {{wishes}} auf der Wunschliste, {{supply}} offen im Nachschub, {{posts}} gemerkte Beiträge",
-    "nachschub": "Nachschub",
-    "openNachschub": "Nachschub öffnen",
-    "recent": "Zuletzt geöffnet",
-    "wished": "Auf der Wunschliste",
-    "allWishes": "Ganze Wunschliste",
-    "newsRead": "Zuletzt gelesen",
-    "newsSaved": "Lesezeichen",
-    "emptyRecent": "Noch nichts geöffnet.",
-    "emptyWished": "Noch nichts auf der Wunschliste.",
-    "emptyRead": "Noch nichts gelesen.",
-    "emptySaved": "Noch keine Lesezeichen.",
-    "emptyNachschub": "Alles besorgt, nichts offen.",
-    "type": {
-      "all": "Alles",
-      "ship": "Schiffe",
-      "weapon": "Waffen",
-      "component": "Komponenten",
-      "item": "Gegenstände",
-      "blueprint": "Blaupausen",
-      "news": "News"
-    }
-  },
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Apps herunterladen",
@@ -7577,6 +7552,82 @@
       "store": "Ablegen",
       "removeHangarTitle": "Aus dem Hangar entfernen?",
       "removeHangarMessage": "„{{name}}“ wird samt Varianten, deren Freigaben für Freunde und Notizen gelöscht. Das lässt sich nicht rückgängig machen."
+    }
+  },
+  "quick": {
+    "title": "Schnellzugriff",
+    "recent": "Zuletzt geöffnet",
+    "more": "Mehr anzeigen",
+    "less": "Weniger anzeigen",
+    "emptyRecent": "Noch nichts geöffnet.",
+    "wish": "Wunschliste",
+    "lastAdded": "zuletzt hinzugefügt",
+    "emptyWish": "Noch nichts auf der Wunschliste.",
+    "allWish": "Ganze Wunschliste · {{n}} Positionen",
+    "emptyContext": "Hier noch nichts.",
+    "section": {
+      "inventar": "Inventar",
+      "hangar": "Hangar",
+      "sammlung": "Sammlung"
+    },
+    "all": {
+      "inventar": "Gesamtes Inventar",
+      "hangar": "Gesamter Hangar",
+      "sammlung": "Gesamte Sammlung"
+    },
+    "type": {
+      "ship": "Schiffe",
+      "weapon": "Waffen",
+      "component": "Komponenten",
+      "item": "Gegenstände",
+      "blueprint": "Blaupausen",
+      "news": "News"
+    }
+  },
+  "cart": {
+    "title": "Wunschliste",
+    "summary": "{{n}} Positionen · {{g}} Gruppen",
+    "close": "Schließen",
+    "empty": "Die Wunschliste ist leer.",
+    "emptyHint": "Leg Gegenstände aus dem Codex oder der Suche hierher.",
+    "group": {
+      "weapons": "Waffen",
+      "armor": "Rüstung",
+      "components": "Komponenten",
+      "ships": "Schiffe und Fahrzeuge",
+      "items": "Gegenstände",
+      "materials": "Rohstoffe"
+    },
+    "forBlueprint": "für {{name}} craften",
+    "blueprintQty": "{{n}}× {{name}}",
+    "selectGroup": "Ganze Gruppe {{name}} wählen",
+    "select": "{{name}} wählen",
+    "qtyOf": "Menge von {{name}}",
+    "less": "Weniger",
+    "more": "Mehr",
+    "remove": "{{name}} entfernen",
+    "removeGroup": "Gruppe {{name}} entfernen",
+    "removed": "{{name}} von der Wunschliste entfernt",
+    "removedGroup": "{{name}} entfernt ({{n}} Positionen)",
+    "selected": "gewählt",
+    "clear": "Alle abwählen",
+    "toNachschub": "In einen Nachschub",
+    "kind": {
+      "ship": "Schiff",
+      "vehicle": "Fahrzeug",
+      "upcoming": "Angekündigtes Schiff",
+      "weapon": "Waffe",
+      "component": "Komponente",
+      "item": "Gegenstand",
+      "blueprint": "Blaupause",
+      "material": "Rohstoff",
+      "ammunition": "Munition"
+    },
+    "suggest": {
+      "title": "Passt dazu",
+      "count": "{{n}} Vorschläge",
+      "add": "auf die Wunschliste",
+      "dismiss": "{{name}} nicht vorschlagen"
     }
   }
 }
