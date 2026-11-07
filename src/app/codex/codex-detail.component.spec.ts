@@ -760,6 +760,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
           shipByClassName: () => null,
           recentShips: signal([]),
           markShipPicked: () => undefined,
+          error: signal(null),
           ...opts.hangar,
         } as Partial<HangarService>,
       },
@@ -1380,6 +1381,14 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       cmp.holoView.set(false);
       fixture.detectChanges();
       expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
+    }));
+
+    it('shows for an own ship opened with ?mine and no variant (hangar list link)', fakeAsync(() => {
+      const fixture = ownFixture();
+      const cmp = fixture.componentInstance;
+      cmp.mineFlag.set(true);
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-own-ship-actions')).not.toBeNull();
     }));
   });
 });

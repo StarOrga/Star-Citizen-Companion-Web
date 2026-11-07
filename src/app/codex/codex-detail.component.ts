@@ -941,7 +941,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [openDetails]="sourceLinkRequested()"
             (copyShareLink)="copyShareLink()">
             <div htData class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideData" /></div>
-            @if (personalMode() && myOwnership()?.ship; as ownShip) {
+            @if ((personalMode() || mineFlag()) && myOwnership()?.ship; as ownShip) {
               <sc-codex-own-ship-actions htOwn [ship]="ownShip" />
             }
             <div htSwitch class="crumb-aside"><ng-container [ngTemplateOutlet]="shipAsideSwitch" /></div>
