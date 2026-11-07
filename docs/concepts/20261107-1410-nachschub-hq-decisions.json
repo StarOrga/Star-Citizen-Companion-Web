@@ -165,5 +165,137 @@
         "none": false
       }
     ]
+  },
+  {
+    "iteration": 2,
+    "action": "implement",
+    "submitted": true,
+    "general": "als nächstes dann gern ein devops cocnetp mit design pure!",
+    "decisions": [
+      {
+        "id": "r2-d2-flow",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-split",
+        "value": "split",
+        "deviates": false,
+        "none": false,
+        "note": "ja, auch wenn default immer volles übernehmen ist"
+      },
+      {
+        "id": "r2-d2-detect",
+        "value": "snapshot",
+        "deviates": false,
+        "none": false,
+        "note": "Genau, egal ob manuell oder mit live signal aus scc app erhöht"
+      },
+      {
+        "id": "r2-d2-limit",
+        "value": "block",
+        "deviates": false,
+        "none": false,
+        "note": "bzw. lieber \"Slots\" aktive (max. 7) und sonst archivierte"
+      },
+      {
+        "id": "r2-d2-names",
+        "value": "ai",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-sammlung",
+        "value": [
+          "blueprint",
+          "rep",
+          "news",
+          "vote"
+        ],
+        "deviates": true,
+        "none": false,
+        "note": "Hmmm, also\n\nfür mich ist galerie bilder sammeln wie blueprints samlen / verdienen! Wir wollen nix visuell an galerie verändern, ich würde einfach sagen hochgevotete galeriebilder oder gemerkte news sind einfach auch gesammelt ;) \n \nErledigte missionen gern in statsitik aufnehmen!"
+      },
+      {
+        "id": "r2-d2-stock",
+        "value": "hint",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-codex",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-plan",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-now",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-stock-page",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-cart",
+        "value": "ok",
+        "deviates": false,
+        "none": false,
+        "note": "gern in bestand auch andersartig, kürzlich aufgebruachtes anzeigen, weil man das ja ggf. nachholen will, aber nicht alles sondern nur was in den letzten 48h augebraucht wurde"
+      },
+      {
+        "id": "r2-d2-panel",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-cleanup",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-migrate",
+        "value": "one",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-newsmove",
+        "value": "copy",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-wishqty",
+        "value": "detail",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-shipqty",
+        "value": "same",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-panel-ctx",
+        "value": "none",
+        "deviates": false,
+        "none": false
+      }
+    ]
   }
 ]
