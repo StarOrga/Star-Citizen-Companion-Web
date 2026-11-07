@@ -234,7 +234,7 @@ export class HqSuppliesPopupComponent {
     const rows: WishRow[] = [
       ...this.wishlist.rows(),
       ...this.hangar.ships().filter((s) => s.status === 'wishlist').map((s): WishRow => ({
-        kind: 'ship', className: s.shipClassName, name: null, manufacturer: null, rsiUrl: null, notes: null, createdAt: s.createdAt,
+        kind: 'ship', className: s.shipClassName, name: null, manufacturer: null, rsiUrl: null, notes: null, qty: s.qty ?? 1, forClassName: '', createdAt: s.createdAt,
       })),
     ];
     // Entries stored without a name resolve from the catalog; the row shows the class name meanwhile.

@@ -13,7 +13,7 @@ function setup() {
     byKey: () => new Map(rows().map((r) => [wishKey(r.kind, r.className, r.name), r] as const)),
     ensureLoaded: async () => undefined,
     add: async (e: { kind: string; className: string; name?: string | null }) => {
-      rows.update((r) => [...r, { kind: e.kind, className: e.className, name: e.name ?? null, manufacturer: null, rsiUrl: null, notes: null, createdAt: '' }]);
+      rows.update((r) => [...r, { kind: e.kind, className: e.className, name: e.name ?? null, manufacturer: null, rsiUrl: null, notes: null, qty: 1, forClassName: '', createdAt: '' }]);
       return true;
     },
     remove: async (kind: string, className: string, name?: string | null) => {
@@ -35,7 +35,7 @@ function setup() {
 describe('SearchWishlistService (A4 regression: announced ships)', () => {
   it('lights up a wished announced ship, matched by name although the search hit carries the feed id', () => {
     const { svc, rows } = setup();
-    rows.set([{ kind: 'upcoming', className: 'idris', name: 'Idris', manufacturer: null, rsiUrl: null, notes: null, createdAt: '' }]);
+    rows.set([{ kind: 'upcoming', className: 'idris', name: 'Idris', manufacturer: null, rsiUrl: null, notes: null, qty: 1, forClassName: '', createdAt: '' }]);
     expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBeTrue();
     expect(svc.has('upcoming', 'feed-id-78', 'Polaris')).toBeFalse();
   });

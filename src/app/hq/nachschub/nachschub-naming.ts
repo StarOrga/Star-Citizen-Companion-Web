@@ -29,7 +29,7 @@ export class NachschubNamingService {
   private async ask(kind: 'nachschub' | 'einsatz', items: readonly NameItem[], max: number): Promise<string | null> {
     if (!items.length) return null;
     try {
-      const locale = this.i18n.currentLang === 'en' ? 'en' : 'de';
+      const locale = this.i18n.getCurrentLang() === 'en' ? 'en' : 'de';
       const { data, error } = await this.sb.client.functions.invoke('nachschub-names', { body: { kind, locale, items } });
       if (error) throw error;
       const name = (data as { status?: string; name?: unknown } | null)?.name;
