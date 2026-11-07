@@ -8,6 +8,9 @@ import { ConnectionState } from '../../desktop/desktop-access';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqLiveService } from './hq-live.service';
 import { HqNowComponent } from './hq-now.component';
+import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { NachschubService } from '../nachschub/nachschub.service';
+import type { Nachschub } from '../nachschub/nachschub.model';
 
 function ev(i: number): HqLiveEventRow {
   return {
@@ -193,5 +196,61 @@ describe('HqNowComponent', () => {
     (el.querySelector('button.more') as HTMLButtonElement).click();
     await f.whenStable();
     expect(live.loadMore).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Nachschub bundle', () => {
+    beforeEach(() => localStorage.removeItem('sc.hq.nachschub.focus'));
+    afterEach(() => localStorage.removeItem('sc.hq.nachschub.focus'));
+    const nach = (id: string, name: string, slot: number): Nachschub => ({ id, name, status: 'active', slot, snapshot: {}, createdAt: '2026-11-07T10:00:00Z', archivedAt: null });
+    const step = (kind: 'buy' | 'mine', label: string, location: string | null, system: string | null) => ({
+      kind, label, location, system, className: null, qty: 2, supplyId: null, missionRef: null,
+    });
+
+    function mountRun() {
+      const f = mount(fakeLive({ location: { name: 'Lorville', system: 'Stanton' } }));
+      const ns = TestBed.inject(NachschubService);
+      ns.packages.set([nach('n1', 'Rattler-Vorrat', 1), nach('n2', 'Medpens', 2)]);
+      const einsatz = TestBed.inject(HqEinsatzService);
+      einsatz.create({ title: 'Einkauf Area18', packageId: 'n1', steps: [step('buy', 'Rattler', 'Area18', 'Stanton'), step('mine', 'Titan', 'Pyro I', 'Pyro')] });
+      einsatz.create({ title: 'Anderer', packageId: 'n2', steps: [step('buy', 'Medpen', 'Area18', 'Stanton')] });
+      f.detectChanges();
+      return { f, el: f.nativeElement as HTMLElement, einsatz };
+    }
+
+    it('runs the Einsatz bundle of the focused Nachschub: its name, the route graphic and the next step', () => {
+      const { el } = mountRun();
+      expect(el.querySelector('.run-t b')?.textContent).toBe('Rattler-Vorrat');
+      expect(el.querySelector('sc-hq-route-graphic')).not.toBeNull();
+      expect(el.querySelector('.now-h')?.textContent).toContain('Rattler');
+      expect(el.querySelectorAll('.cta button').length).toBe(1);
+    });
+
+    it('"Schritt erledigt" ticks the next step and moves on to the following one', () => {
+      const { f, el, einsatz } = mountRun();
+      (el.querySelector('.cta button') as HTMLButtonElement).click();
+      f.detectChanges();
+      expect(einsatz.ofPackage('n1')[0].steps[0].state).toBe('done');
+      expect(el.querySelector('.now-h')?.textContent).toContain('Titan');
+      // The step just finished can be taken back.
+      expect(el.querySelectorAll('.cta button').length).toBe(2);
+    });
+
+    it('offers to switch the Nachschub, and the other one shows its own bundle', () => {
+      const { f, el } = mountRun();
+      (el.querySelector('.sw button') as HTMLButtonElement).click();
+      f.detectChanges();
+      const items = el.querySelectorAll('.menu button');
+      expect(items.length).toBe(2);
+      (items[1] as HTMLButtonElement).click();
+      f.detectChanges();
+      expect(el.querySelector('.run-t b')?.textContent).toBe('Medpens');
+    });
+
+    it('without any Nachschub it explains itself and leads to Planen', () => {
+      const f = mount(fakeLive({}));
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.run')).toBeNull();
+      expect(el.querySelector('.empty a')).not.toBeNull();
+    });
   });
 });

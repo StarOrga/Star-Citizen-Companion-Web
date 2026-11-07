@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { humanizeClassName } from '../../codex/codex-format';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
@@ -360,6 +360,7 @@ export class HqNachschubFlowComponent {
   private readonly naming = inject(NachschubNamingService);
   private readonly sourcesSvc = inject(HqNeedSourcesService);
   private readonly chrome = inject(ShellChromeService);
+  private readonly i18n = inject(TranslateService);
 
   protected readonly stepList: readonly Step[] = [1, 2, 3];
   protected readonly nameMax = NACHSCHUB_NAME_MAX;
@@ -475,7 +476,7 @@ export class HqNachschubFlowComponent {
   }
 
   protected groupTitle(g: FlowGroup): string {
-    return g.title ?? '';
+    return g.title ?? (g.titleKey ? this.i18n.instant(g.titleKey) : '');
   }
 
   protected bpName(forClassName: string): string {

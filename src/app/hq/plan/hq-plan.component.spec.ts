@@ -47,6 +47,15 @@ describe('HqPlanComponent', () => {
     return { f, el: f.nativeElement as HTMLElement };
   }
 
+  /** The older Auswahl / Route builder (Was / Wie) lives behind the "Auswahl und Route" face of Planen. */
+  function makeClassic(withSupplies = true) {
+    const r = make(withSupplies);
+    r.f.componentInstance['mode'].set('classic');
+    r.f.detectChanges();
+    return r;
+  }
+  const whatHow = (el: HTMLElement) => el.querySelectorAll('.switch[aria-label="hq.plan.switch.label"] .seg');
+
   const text = (el: HTMLElement, sel: string) => el.querySelector(sel)?.textContent?.trim();
   const click = (f: { detectChanges(): void }, el: Element | null) => {
     (el as HTMLElement).click();
@@ -54,7 +63,7 @@ describe('HqPlanComponent', () => {
   };
 
   it('a fresh account (both lists in, nothing in them) gets the explaining empty state instead of empty filters', () => {
-    const { f, el } = make(false);
+    const { f, el } = makeClassic(false);
     // Before the first pull nothing is decided: no empty state flashes up.
     expect(el.querySelector('.fresh')).toBeNull();
     TestBed.inject(HqSuppliesService).ready.set(true);
@@ -63,7 +72,7 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('.fresh')).not.toBeNull();
     expect(el.querySelector('.select')).toBeNull();
     expect(el.querySelector('sc-hq-plan-map')).toBeNull();
-    expect(el.querySelector('.switch')).toBeNull();
+    expect(whatHow(el).length).toBe(0);
     // A need has to be a real item: the way in is the search, not a free-text form.
     const chrome = TestBed.inject(ShellChromeService);
     click(f, el.querySelector('.fresh-actions button'));
@@ -90,6 +99,7 @@ describe('HqPlanComponent', () => {
     supplies.add('Medpen', 2, { className: 'Medpen_01', entityKind: 'item' });
     supplies.add('Freitext', 1);
     const f = TestBed.createComponent(HqPlanComponent);
+    f.componentInstance['mode'].set('classic');
     f.detectChanges();
     const needs = [...(f.nativeElement as HTMLElement).querySelectorAll('li.need')];
     const medpen = needs.find((n) => n.textContent?.includes('Medpen'))!;
@@ -100,23 +110,23 @@ describe('HqPlanComponent', () => {
   });
 
   it('marks a free-text line as having no source', () => {
-    const { el } = make();
+    const { el } = makeClassic();
     expect(text(el, '.need .n-where')).toBe('hq.plan.source.freeText');
   });
 
   it('keeps the section heading and shows Was with the Auswahl; Top 3 is the default (no mode toggle)', () => {
-    const { el } = make();
+    const { el } = makeClassic();
     expect(el.querySelector('h2#hq-plan-title')).not.toBeNull();
     expect(text(el, '#hq-plan-sel')).toBe('hq.plan.selection');
     expect(text(el, '.state')).toBe('hq.plan.state.top3');
     // The switch is Was / Wie only - nothing offers Top 3 / Nach Lust / Gezielt as a control.
-    expect(el.querySelectorAll('.switch .seg').length).toBe(2);
+    expect(whatHow(el).length).toBe(2);
     expect(el.querySelectorAll('sc-hq-mood-toggles .pair').length).toBe(3);
     expect(el.querySelectorAll('.kinds .kind').length).toBe(7);
   });
 
   it('a mood click is Nach Lust, a step chip Eigene Auswahl, and it survives a new component in the same tab', () => {
-    const { f, el } = make();
+    const { f, el } = makeClassic();
     click(f, el.querySelector('sc-hq-mood-toggles .pair .side.right'));
     expect(text(el, '.state')).toBe('hq.plan.state.mood');
     click(f, el.querySelectorAll('.kinds .kind')[0]);
@@ -124,18 +134,20 @@ describe('HqPlanComponent', () => {
     expect(sessionStorage.getItem(PLAN_SELECTION_KEY)).toContain('"changed":true');
 
     const fresh = TestBed.createComponent(HqPlanComponent);
+    fresh.componentInstance['mode'].set('classic');
     fresh.detectChanges();
     expect(text(fresh.nativeElement, '.state')).toBe('hq.plan.state.custom');
 
     sessionStorage.removeItem(PLAN_SELECTION_KEY);
     const reloaded = TestBed.createComponent(HqPlanComponent);
+    reloaded.componentInstance['mode'].set('classic');
     reloaded.detectChanges();
     expect(text(reloaded.nativeElement, '.state')).toBe('hq.plan.state.top3');
   });
 
   it('Wie shows the route without any filters, and an empty route cannot be saved as an Einsatz', () => {
-    const { f, el } = make();
-    click(f, el.querySelectorAll('.switch .seg')[1]);
+    const { f, el } = makeClassic();
+    click(f, whatHow(el)[1]);
     expect(el.querySelector('.select')).toBeNull();
     expect(el.querySelector('.kinds')).toBeNull();
     expect(el.querySelector('sc-hq-place-tree')).toBeNull();
@@ -144,11 +156,28 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('sc-hq-plan-map')).not.toBeNull();
   });
 
-  it('lists the Nachschub lines as needs and opens the supplies popup from here', () => {
-    const { f, el } = make();
+  it('lists the supply lines as needs; the old Nachschub popup button is gone (Nachschub lives in the slots)', () => {
+    const { el } = makeClassic();
     expect(el.querySelectorAll('.needs .need').length).toBe(2);
-    click(f, el.querySelector('.nach'));
-    expect(el.querySelector('sc-hq-supplies-popup')).not.toBeNull();
+    expect(el.querySelector('.nach')).toBeNull();
+    expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
+  });
+
+  it('opens on the seven Nachschub slots: free slots are a plus that starts the flow, no separate button', () => {
+    const { f, el } = make(false);
+    expect(el.querySelector('sc-hq-nachschub-board')).not.toBeNull();
+    expect(el.querySelectorAll('.board .slot').length).toBe(7);
+    expect(el.querySelectorAll('.board .slot.free').length).toBe(7);
+    expect(el.querySelector('.intro')).not.toBeNull();
+    expect(el.querySelector('.classic')).toBeNull();
+    click(f, el.querySelector('.board .slot.free .hit'));
+    expect(el.querySelector('sc-hq-nachschub-flow')).not.toBeNull();
+  });
+
+  it('the archive opens from the end of the board', () => {
+    const { f, el } = make(false);
+    click(f, el.querySelector('.board .archive'));
+    expect(el.querySelector('sc-hq-nachschub-archive-dialog')).not.toBeNull();
   });
 
   it('"Route öffnen" opens Wie on exactly this saved route', () => {

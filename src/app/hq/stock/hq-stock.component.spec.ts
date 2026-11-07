@@ -1,207 +1,205 @@
-import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
+import { of } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
+import { WishlistStore } from '../data/wishlist.store';
 import { HqOwnershipService } from '../hq-ownership.service';
+import { HqSuppliesService } from '../hq-supplies.service';
+import { NachschubEdgeService } from '../nachschub/nachschub-edge.service';
+import { SammlungService } from '../nachschub/sammlung.service';
+import { NachschubService } from '../nachschub/nachschub.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { HqStockComponent } from './hq-stock.component';
 
 describe('HqStockComponent', () => {
-  const ago = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+  const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 
-  function mount(opts: { full: boolean; many?: number; user?: boolean }) {
-    const base = opts.full
-      ? [
-          { location: 'Lorville', name: 'Gold', class_name: null, qty: 3, unit: 'scu' },
-          { location: 'Area18', name: 'Gold', class_name: null, qty: 4, unit: 'scu' },
-          { location: 'Area18', name: 'Helm', class_name: 'ARGO_Helmet_01', qty: 1, unit: 'pcs' },
-        ]
-      : [];
-    const many = Array.from({ length: opts.many ?? 0 }, (_, i) => ({
-      location: `Place ${i % 40}`, name: `Item ${i}`, class_name: null, qty: i + 1, unit: 'pcs',
-    }));
-    const snaps = opts.full
-      ? [
-          { location: 'Lorville', taken_at: ago(9), source: 'manual' },
-          { location: 'Area18', taken_at: ago(1), source: 'manual' },
-        ]
-      : [];
+  interface Opts {
+    user?: boolean;
+    many?: number;
+    params?: Record<string, string>;
+    events?: unknown[];
+  }
+
+  function mount(opts: Opts = {}) {
+    const base = [
+      { location: 'Lorville', name: 'Medpen', class_name: 'medpen', qty: 5, unit: 'pcs' },
+      { location: 'Cutlass Black', name: 'Medpen', class_name: 'medpen', qty: 2, unit: 'pcs' },
+      { location: 'Area18', name: 'P4-AR', class_name: 'ksar_rifle_p4ar', qty: 1, unit: 'pcs' },
+      { location: 'Area18', name: 'Gold', class_name: null, qty: 3.5, unit: 'scu' },
+      { location: 'Blueprints', name: 'Gallant', class_name: 'gallant_bp', qty: 1, unit: 'pcs' },
+    ];
+    const many = Array.from({ length: opts.many ?? 0 }, (_, i) => ({ location: `Place ${i % 9}`, name: `Item ${i}`, class_name: `item_${i}`, qty: i + 1, unit: 'pcs' }));
     const inv = {
       loaded: signal(true),
       error: signal<string | null>(null),
-      snapshots: signal([...snaps, ...Array.from({ length: Math.min(40, opts.many ?? 0) }, (_, i) => ({ location: `Place ${i}`, taken_at: ago(1), source: 'manual' }))]),
+      snapshots: signal([]),
       locations: signal([]),
       items: signal([...base, ...many]),
-      shipStorage: signal(opts.full ? [{ ship_ref: 'sh1', location: 'Area18', taken_at: ago(1) }] : []),
+      shipStorage: signal([]),
       load: jasmine.createSpy('load').and.resolveTo(),
       addManual: jasmine.createSpy('addManual').and.resolveTo(true),
     };
-    const ships = opts.full
-      ? [
-          { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Pfeil', status: 'owned', pinnedRank: 1 },
-          { id: 'sh2', shipClassName: 'MISC_Freelancer', customName: null, status: 'owned', pinnedRank: null },
-        ]
-      : [];
+    const wish = {
+      totalQty: (_k: string, c: string) => (c === 'ksar_rifle_p4ar' ? 2 : 0),
+      qtyOf: () => 1,
+      setQty: jasmine.createSpy('setQty').and.resolveTo(true),
+      ensureLoaded: () => Promise.resolve(),
+      error: signal<string | null>(null),
+    };
+    const ships = [
+      { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Pfeil', status: 'owned', pinnedRank: 1, qty: 2, origin: 'pledge' },
+      { id: 'sh2', shipClassName: 'MISC_Freelancer', customName: null, status: 'owned', pinnedRank: null, qty: 1, origin: null },
+      { id: 'sh3', shipClassName: 'RSI_Zeus', customName: null, status: 'wishlist', pinnedRank: null, qty: 1, origin: null },
+    ];
     TestBed.configureTestingModule({
       imports: [HqStockComponent],
       providers: [
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
+        { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap(opts.params ?? {})), snapshot: {} } },
         { provide: SupabaseClientProvider, useValue: { client: {} } },
         { provide: AuthService, useValue: { user: signal(opts.user === false ? null : { id: 'u1' }) } },
         { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([]), isFlagship: (c: string) => c === 'MISC_Freelancer' } },
         { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve(), configsForShip: () => [] } },
         { provide: HqInventoryService, useValue: inv },
-        { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }), events: signal([]) } },
+        { provide: WishlistStore, useValue: wish },
+        { provide: HqSuppliesService, useValue: { items: signal([]) } },
+        { provide: NachschubService, useValue: { packages: signal([]), ensureLoaded: () => Promise.resolve() } },
+        { provide: SammlungService, useValue: { blueprints: signal([{ kind: 'blueprint', id: 'gallant_bp', name: 'Gallant' }]), load: () => Promise.resolve() } },
+        { provide: NachschubEdgeService, useValue: { resetIngameStock: jasmine.createSpy('reset').and.resolveTo(true), lastError: null } },
+        { provide: HqLiveService, useValue: { state: signal(null), events: signal(opts.events ?? []) } },
       ],
     });
     const fixture = TestBed.createComponent(HqStockComponent);
     fixture.detectChanges();
-    return { fixture, inv, el: fixture.nativeElement as HTMLElement };
+    return { fixture, inv, wish, el: fixture.nativeElement as HTMLElement };
   }
 
-  const click = (f: { detectChanges(): void }, b: Element) => {
+  const click = (f: { detectChanges(): void }, b: Element | null) => {
     (b as HTMLElement).click();
     f.detectChanges();
   };
 
-  it('shows the overview as real controls and anchors, with the stale place named', () => {
-    const { el } = mount({ full: true });
+  it('opens on Inventar: the plus tile first, one tile per thing, the Sammlung place left out', () => {
+    const { el } = mount();
     expect(el.querySelector('#hq-stock-title')).toBeTruthy();
-    expect(el.querySelectorAll('.num').length).toBe(2);
-    expect(el.querySelector('.totals .num b')?.textContent).toBe('3');
-    expect(el.querySelector('.chip.warn')?.textContent).toContain('Lorville');
-    const fav = [...el.querySelectorAll('section a[href]')].find((a) => a.getAttribute('href')?.includes('/codex/ship/')) as HTMLAnchorElement;
-    expect(fav.getAttribute('href')).toContain('/codex/ship/');
-    // r2-head = one: the Inventar head has a single action, Hinzufuegen.
-    expect(el.querySelectorAll('.actions button').length).toBe(1);
-    expect(el.querySelectorAll('.card button').length).toBeGreaterThan(4);
-    expect(el.querySelector('.card div[role=button], .card [tabindex="0"]')).toBeNull();
+    const tiles = [...el.querySelectorAll('.grid .tile')];
+    expect(tiles[0].classList).toContain('add');
+    // Medpen (two places folded), P4-AR, Gold: three things; the blueprint row is not Inventar.
+    expect(tiles.length).toBe(4);
+    expect(tiles[1].querySelector('.nm')?.textContent).toBe('Medpen');
+    expect(tiles[1].querySelector('.qty')?.textContent).toBe('×7');
+    expect(tiles.some((t) => t.textContent?.includes('Gallant'))).toBeFalse();
   });
 
-  it('opens the popup prefiltered from a quick link (place, category) and from the totals', () => {
-    const { fixture, el } = mount({ full: true });
-    click(fixture, [...el.querySelectorAll('.chip')].find((c) => c.textContent?.includes('Lorville'))!);
-    expect(el.querySelector('sc-hq-stock-popup')).toBeTruthy();
-    expect(fixture.componentInstance.popup()).toEqual({ mode: 'browse', filter: { place: 'Lorville' } });
-    const rows = [...el.querySelectorAll('.list > ul .row')];
-    expect(rows.length).toBe(1);
-    expect(rows[0].textContent).toContain('Gold');
-    fixture.componentInstance.popup.set(null);
-    fixture.detectChanges();
-    click(fixture, el.querySelector('.totals .num')!);
-    expect(el.querySelectorAll('.list > ul .row').length).toBe(3);
+  it('names the three tabs with their counts', () => {
+    const { el } = mount();
+    const tabs = [...el.querySelectorAll('.tabs .tab')];
+    expect(tabs.map((t) => t.querySelector('small')?.textContent)).toEqual(['3', '2', '1']);
   });
 
-  it('opens "Hinzufügen" straight in the capture form, and "Wo liegt" in the finder', () => {
-    const { fixture, el } = mount({ full: true });
-    click(fixture, el.querySelector('.actions button')!);
-    expect(el.querySelector('form.capture')).toBeTruthy();
-    fixture.componentInstance.popup.set(null);
-    fixture.detectChanges();
-    fixture.componentInstance.popup.set({ mode: 'find' });
-    fixture.detectChanges();
-    expect(el.querySelector('#hq-stock-find')).toBeTruthy();
+  it('shows a quiet hint on a tile that is already on the wishlist, and Nachholen puts it there counted up', () => {
+    const { fixture, wish, el } = mount();
+    const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
+    expect(p4ar.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
+    click(fixture, p4ar.querySelector('.nach'));
+    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'item', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 2);
   });
 
-  it('finds an item, nearest first, and marks the places that make up the amount (in the popup)', () => {
-    const { fixture, el } = mount({ full: true });
-    fixture.componentInstance.popup.set({ mode: 'find' });
-    fixture.detectChanges();
-    const input = el.querySelector('input[name=find-term]') as HTMLInputElement;
-    input.value = 'Gold';
+  it('the plus tile opens the stock popup in add mode', () => {
+    const { fixture, el } = mount();
+    click(fixture, el.querySelector('.grid .tile.add'));
+    expect(el.querySelector('sc-hq-stock-popup')).not.toBeNull();
+  });
+
+  it('filters by category chip and by text', () => {
+    const { fixture, el } = mount();
+    const chips = [...el.querySelectorAll('.chips .chip')];
+    // All, Rohstoffe, Waffen (Sonstiges holds Medpen).
+    click(fixture, chips.find((c) => c.textContent?.includes('hq.stock.cat.weapons')) ?? null);
+    expect(el.querySelectorAll('.grid .tile.item').length).toBe(1);
+    click(fixture, chips[0]);
+    const input = el.querySelector('.search input') as HTMLInputElement;
+    input.value = 'gold';
     input.dispatchEvent(new Event('input'));
-    const want = el.querySelector('input[name=find-want]') as HTMLInputElement;
-    want.value = '5';
-    want.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    const hits = [...el.querySelectorAll('.hit')];
-    expect(hits.map((h) => h.querySelector('.hit-place')?.textContent)).toEqual(['Area18', 'Lorville']);
-    expect(hits.every((h) => h.classList.contains('take'))).toBeTrue();
+    expect(el.querySelectorAll('.grid .tile.item').length).toBe(1);
   });
 
-  it('opens the capture form in the popup', async () => {
-    const { fixture, el, inv } = mount({ full: true });
-    click(fixture, el.querySelector('.actions button')!);
-    await fixture.whenStable();
+  it('a deep link carries the filter and brings the focused item on screen', () => {
+    const { el } = mount({ params: { bestand: 'inventar', cat: 'weapons', focus: 'KSAR_rifle_p4ar' } });
+    expect(el.querySelector('.chips .chip[aria-pressed="true"]')?.textContent).toContain('hq.stock.cat.weapons');
+    expect(el.querySelector('.grid .tile.focus')?.textContent).toContain('P4-AR');
+  });
+
+  it('lists what was used up in the last 48 hours as a summary with a Nachholen action', () => {
+    const events = [
+      {
+        type: 'inventory.snapshot',
+        at: ago(5),
+        undone: false,
+        applied: { kind: 'snapshot', replaced: true, previous: { snapshot: { location: 'Lorville', source: 'ocr', taken_at: ago(60) }, items: [{ name: 'Medpen', class_name: 'medpen', qty: 8, unit: 'pcs' }] } },
+      },
+    ];
+    const { fixture, wish, el } = mount({ events });
+    expect(el.querySelector('.used .u-t')?.textContent).toContain('Medpen');
+    click(fixture, el.querySelector('.used'));
+    click(fixture, el.querySelector('.used-pop li button'));
+    expect(wish.setQty).toHaveBeenCalled();
+  });
+
+  it('pages a long list instead of growing the page', () => {
+    const { fixture, el } = mount({ many: 60 });
+    fixture.componentInstance.capacity.set(8);
     fixture.detectChanges();
-    expect(el.querySelector('form.capture #hq-stock-item')).not.toBeNull();
-    expect(inv.addManual).not.toHaveBeenCalled();
+    const pg = el.querySelector('.pager .pg');
+    expect(pg).not.toBeNull();
+    const next = el.querySelector('.pager button:last-child') as HTMLButtonElement;
+    expect(next.disabled).toBeFalse();
+    const first = el.querySelectorAll('.grid .tile').length;
+    click(fixture, next);
+    expect(el.querySelectorAll('.grid .tile').length).toBeGreaterThan(0);
+    expect(first).toBe(8);
   });
 
-  it('renders list rows lazily: a window first, more after scrolling inside the popup', () => {
-    const { fixture, el } = mount({ full: true, many: 500 });
-    fixture.componentInstance.popup.set({ mode: 'browse' });
+  it('Sammlung: the plus tile first, the collected blueprints as anchors, Ruf as an honest empty state', () => {
+    const { fixture, el } = mount();
+    click(fixture, el.querySelectorAll('.tabs .tab')[2]);
+    const tiles = [...el.querySelectorAll('.grid .tile')];
+    expect(tiles[0].classList).toContain('add');
+    expect(tiles[1].tagName).toBe('A');
+    expect(tiles[1].getAttribute('href')).toContain('/codex/blueprint/gallant_bp');
+    expect(el.querySelector('[data-ruf] .empty')).not.toBeNull();
+  });
+
+  it('Hangar: owned ships only, as anchors to their page, with copies and origin', () => {
+    const { fixture, el } = mount();
+    click(fixture, el.querySelectorAll('.tabs .tab')[1]);
+    const ships = [...el.querySelectorAll('.grid a.tile')];
+    expect(ships.length).toBe(2);
+    expect(ships.every((s) => s.getAttribute('href')?.includes('/codex/ship/'))).toBeTrue();
+    expect(ships[0].textContent).toContain('hq.bestand.origin.pledge');
+  });
+
+  it('a load failure shows a translated error with retry, never an empty page', () => {
+    const { fixture, inv, el } = mount();
+    inv.loaded.set(false);
+    inv.error.set('errors.generic');
     fixture.detectChanges();
-    const first = el.querySelectorAll('.list > ul li').length;
-    expect(first).toBeLessThanOrEqual(60);
-    expect(first).toBeGreaterThan(10);
-    const list = el.querySelector('.list') as HTMLElement;
-    list.scrollTop = list.scrollHeight;
-    list.dispatchEvent(new Event('scroll'));
-    fixture.detectChanges();
-    expect(el.querySelectorAll('.list > ul li').length).toBeGreaterThan(first);
+    expect(el.querySelector('.state[role="alert"]')).not.toBeNull();
+    click(fixture, el.querySelector('.state button'));
+    expect(inv.load).toHaveBeenCalled();
   });
 
-  it('switches the view: by item lists every place beneath, by amount is flat and largest first', () => {
-    const { fixture, el } = mount({ full: true });
-    fixture.componentInstance.popup.set({ mode: 'browse' });
-    fixture.detectChanges();
-    const seg = [...el.querySelectorAll('.bar sc-segmented button')];
-    click(fixture, seg[1]);
-    const heads = [...el.querySelectorAll('.list .head strong')].map((e) => e.textContent?.trim());
-    expect(heads).toContain('Gold');
-    click(fixture, seg[2]);
-    expect(el.querySelectorAll('.list .head').length).toBe(0);
-    expect(el.querySelector('.list .row .qty')?.textContent).toContain('4');
-  });
-
-  it('keeps the ship storage: quick link opens the popup on that group, with the ship as a real anchor', () => {
-    const { fixture, el } = mount({ full: true });
-    click(fixture, [...el.querySelectorAll('.card .chip')].find((c) => c.textContent?.includes('lager.storage'))!);
-    expect(fixture.componentInstance.popup()).toEqual({ mode: 'browse', filter: { ships: true } });
-    expect(el.querySelectorAll('.list .row').length).toBe(1);
-    const a = el.querySelector('.ships a') as HTMLAnchorElement;
-    expect(a.getAttribute('href')).toContain('/codex/ship/AEGS_Gladius');
-    expect(el.querySelector('.ships')?.textContent).toContain('Area18');
-  });
-
-  it('keeps the signed-out text, the empty state, and a translated error with retry', () => {
-    const out = mount({ full: false, user: false });
-    expect(out.el.querySelector('[role=status]')).toBeTruthy();
-    TestBed.resetTestingModule();
-    const empty = mount({ full: false });
-    expect(empty.el.querySelector('.intro')).toBeTruthy();
-    TestBed.resetTestingModule();
-    const bad = mount({ full: true });
-    bad.inv.loaded.set(false);
-    bad.inv.error.set('errors.generic');
-    bad.fixture.detectChanges();
-    const retry = bad.el.querySelector('[role=alert] button') as HTMLButtonElement;
-    retry.click();
-    expect(bad.inv.load).toHaveBeenCalled();
-  });
-
-  it('fits one phone screen: 150 items in 30 places at 390 px wide stay within 844 px minus the chrome', () => {
-    const { fixture, el } = mount({ full: true, many: 147 });
-    // The component sizes by its own container, so a fixed 390 px host is the phone layout whatever the Karma frame is.
-    el.style.width = '390px';
-    document.body.appendChild(el);
-    fixture.detectChanges();
-    const h = el.getBoundingClientRect().height;
-    // 844 viewport - 130 bottom bars (HQ page bar + fusion bar) - 88 top (docked bar + padding) - 32 section bottom padding.
-    const room = 844 - 130 - 88 - 32;
-    expect(h).withContext(`stock overview is ${Math.round(h)}px, room ${room}px`).toBeLessThanOrEqual(room);
-    el.remove();
-  });
-
-  it('links the earned blueprints straight to the A-Z blueprint index', () => {
-    const { fixture } = mount({ full: true });
-    const a = (fixture.nativeElement as HTMLElement).querySelector('#hq-stock-earned ~ a') as HTMLAnchorElement;
-    expect(a.getAttribute('href')).toBe('/codex/index?kind=blueprint');
+  it('"Ingame-Bestand zurücksetzen" sits in the page menu, marked as danger', () => {
+    const { fixture, el } = mount();
+    click(fixture, el.querySelector('.menu-wrap button'));
+    expect(el.querySelector('.menu button.danger')).not.toBeNull();
   });
 });

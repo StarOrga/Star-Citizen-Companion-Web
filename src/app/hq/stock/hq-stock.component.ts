@@ -42,6 +42,8 @@ const TILE_H = 104;
 const GAP = 10;
 /** Shown by name in the "Kürzlich aufgebraucht" summary before it folds into "+n". */
 const USED_NAMES = 3;
+/** Rows of tiles per page where the page may scroll (phones and tablets). */
+const PHONE_ROWS = 8;
 
 type Cell =
   | { kind: 'add' }
@@ -413,7 +415,9 @@ export class HqStockComponent implements OnInit {
     const h = el.clientHeight;
     if (w <= 0 || h <= 0) return;
     const cols = Math.max(1, Math.floor((w + GAP) / (TILE_W + GAP)));
-    const rows = Math.max(1, Math.floor((h + GAP) / (TILE_H + GAP)));
+    // Below the desktop frame the page itself may scroll: a fixed page of rows, not what the (growing) box holds.
+    const phone = typeof window !== 'undefined' && window.innerWidth < 1024;
+    const rows = phone ? PHONE_ROWS : Math.max(1, Math.floor((h + GAP) / (TILE_H + GAP)));
     const next = cols * rows;
     if (next !== this.capacity()) this.capacity.set(next);
   }

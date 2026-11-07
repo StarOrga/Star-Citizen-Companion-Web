@@ -155,21 +155,53 @@ const UPCOMING = 4;
           </div>
         }
 
-        <div class="anchor" aria-live="polite">
-          @if (live.state()) {
-            <span class="a-label">{{ (gameLive() ? 'hq.now.anchor.label' : 'hq.now.anchor.lastSeen') | translate }}</span>
-            @if (location(); as loc) {
-              <b class="a-where">@if (loc.system) { {{ loc.system }} › }{{ placeName(loc.name) }}</b>
-            } @else {
-              <b class="a-where unknown">{{ 'hq.now.anchor.unknown' | translate }}</b>
-            }
-            @if (lastSignal(); as at) { <small>{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</small> }
-          } @else if (live.loaded() && !live.error()) {
-            <span class="a-label">{{ (appConnected() ? 'hq.now.connect.syncOffTitle' : 'hq.now.connect.title') | translate }}</span>
-            <small>{{ (appConnected() ? 'hq.now.connect.syncOffHint' : 'hq.now.connect.hint') | translate }}</small>
+        @if (live.loaded() && !live.state() && !live.error()) {
+          <section class="connect">
+            <span class="connect-title">{{ (appConnected() ? 'hq.now.connect.syncOffTitle' : 'hq.now.connect.title') | translate }}</span>
+            <span class="muted">{{ (appConnected() ? 'hq.now.connect.syncOffHint' : 'hq.now.connect.hint') | translate }}</span>
+            <div class="explain" role="group" [attr.aria-label]="'hq.now.connect.explain.aria' | translate">
+              <p class="explain-what">{{ 'hq.now.connect.explain.what' | translate }}</p>
+              <ul class="explain-list">
+                <li>{{ 'hq.now.connect.explain.e1' | translate }}</li>
+                <li>{{ 'hq.now.connect.explain.e2' | translate }}</li>
+                <li>{{ 'hq.now.connect.explain.e3' | translate }}</li>
+              </ul>
+            </div>
             <sc-hq-app-launch class="connect-go" />
-          }
-        </div>
+          </section>
+        }
+
+        @if (live.loaded() && live.state()) {
+          <section class="anchor" aria-labelledby="hq-now-anchor">
+            <span class="eyebrow" id="hq-now-anchor">{{ (gameLive() ? 'hq.now.anchor.label' : 'hq.now.anchor.lastSeen') | translate }}</span>
+            @if (location(); as loc) {
+              <p class="where">
+                @if (loc.system) { <span class="sys">{{ loc.system }}</span><span class="sep" aria-hidden="true"> › </span> }
+                <span class="place">{{ placeName(loc.name) }}</span>
+              </p>
+            } @else {
+              <p class="where unknown">{{ 'hq.now.anchor.unknown' | translate }}</p>
+            }
+            @if (ship(); as s) {
+              <p class="ship">{{ 'hq.now.anchor.ship' | translate }} <b class="ship-name">{{ s }}</b></p>
+            }
+            @if (gameLive()) {
+              <p class="zones">
+                <span class="zones-label">{{ 'hq.now.zone.label' | translate }}</span>
+                @if (zones(); as list) {
+                  @for (z of list; track z) {
+                    <span class="zone" [class.warn]="z === 'restricted' || z === 'commDown'">{{ 'hq.now.zone.' + z | translate }}</span>
+                  }
+                } @else {
+                  <span class="zone unknown">{{ 'hq.now.zone.unknown' | translate }}</span>
+                }
+              </p>
+            }
+            @if (lastSignal(); as at) {
+              <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</p>
+            }
+          </section>
+        }
 
         @if (live.loaded() && live.state()) {
           <div class="log" aria-labelledby="hq-now-log">
@@ -254,12 +286,24 @@ const UPCOMING = 4;
       .etab[aria-pressed='true'] { color: var(--sc-fg); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
       .etab.fin { text-decoration: line-through; }
       .etab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .anchor { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: auto; padding-top: var(--sc-space-2, 8px); border-top: 1px solid var(--sc-border); font-size: 0.85rem; }
-      .a-label { color: var(--sc-fg-2); letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.72rem; }
-      .a-where { font: 600 0.95rem var(--sc-font-display, inherit); }
-      .a-where.unknown { color: var(--sc-fg-2); font-weight: 400; }
-      .anchor small { color: var(--sc-fg-2); }
-      .connect-go { flex-basis: 100%; }
+      .anchor { margin-top: auto; padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); border-left-width: 3px; border-radius: var(--sc-radius, 10px); background: var(--sc-surface-2, var(--sc-bg-0)); }
+      .eyebrow { font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-fg-2); }
+      .where { margin: 2px 0 0; font: 600 1.1rem / 1.2 var(--sc-font-display); overflow-wrap: anywhere; }
+      .where .sys, .where .sep { color: var(--sc-fg-2); font-weight: 400; }
+      .where.unknown { color: var(--sc-fg-2); font-size: 0.95rem; }
+      .ship { margin: 2px 0 0; color: var(--sc-fg-2); font-size: 0.85rem; }
+      .zones { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 0; color: var(--sc-fg-2); font-size: 0.8rem; }
+      .zone { padding: 0 8px; border: 1px solid var(--sc-accent); border-radius: 999px; color: var(--sc-fg); font-size: max(0.75rem, var(--sc-fs-floor)); }
+      .zone.warn { border-color: var(--sc-warning); color: var(--sc-warning); }
+      .zone.unknown { border-color: var(--sc-border); color: var(--sc-fg-2); }
+      .fresh { margin: 4px 0 0; color: var(--sc-fg-2); font-size: 0.78rem; }
+      .connect { display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); margin-top: auto; padding: var(--sc-space-3, 12px); color: var(--sc-fg); border: 1px dashed var(--sc-accent); border-radius: var(--sc-radius, 10px); }
+      .connect-title { font-weight: 600; font-size: 1rem; color: var(--sc-accent); }
+      .explain { margin-top: var(--sc-space-2, 8px); color: var(--sc-fg-2); font-size: 0.85rem; }
+      .explain-what { margin: 0 0 var(--sc-space-1, 4px); }
+      .explain-list { list-style: disc; margin: 0; padding-left: var(--sc-space-5, 20px); }
+      .explain-list li { display: list-item; padding: 0; border: 0; }
+      .connect-go { margin-top: var(--sc-space-2, 8px); }
       .h { margin: 0; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
       .log-head { display: flex; align-items: center; justify-content: space-between; }
       ul { list-style: none; margin: 0; padding: 0; }
