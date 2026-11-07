@@ -43,6 +43,9 @@ import { noteOpenedPage } from '../shell/merkliste/merkliste-opened';
 import { pathLevelFor } from './path-level.util';
 import { blueprintMissions } from './blueprint-missions';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
+import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
+import { WishlistStore } from '../hq/data/wishlist.store';
+import { blueprintMaterialWishes } from '../hq/nachschub/nachschub.model';
 
 @Component({
   selector: 'sc-blueprint-detail',
@@ -129,6 +132,20 @@ import { ScActionDirective } from '../shared/action/sc-action.directive';
             <!-- Ingredients -->
             <div class="section sc-card sc-detail-block">
               <h2>{{ 'blueprint.detail.ingredients' | translate }}</h2>
+              @if (wishableMaterial().length > 0) {
+                <!-- "Material xN auf die Wunschliste" (concept nachschub-hq r3 d2-s10): N crafts put the blueprint and every
+                     ingredient on the wishlist, grouped there as "für <Blaupause> craften". -->
+                <div class="wish-mat">
+                  <span class="st" role="group" [attr.aria-label]="'blueprintWish.craftTimes' | translate">
+                    <button type="button" [disabled]="craftTimes() <= 1" [attr.aria-label]="'pathCtl.less' | translate" (click)="craftTimes.set(craftTimes() - 1)">−</button>
+                    <b>{{ craftTimes() }}</b>
+                    <button type="button" [disabled]="craftTimes() >= 99" [attr.aria-label]="'pathCtl.more' | translate" (click)="craftTimes.set(craftTimes() + 1)">+</button>
+                  </span>
+                  <button type="button" scAction tier="secondary" [busy]="wishBusy()" (click)="wishMaterial()">
+                    <span>{{ 'blueprintWish.button' | translate: { n: craftTimes() } }}</span>
+                  </button>
+                </div>
+              }
               @if (ingredients().length === 0) {
                 <p class="muted">{{ 'blueprint.detail.noIngredients' | translate }}</p>
               } @else {
@@ -221,6 +238,13 @@ import { ScActionDirective } from '../shared/action/sc-action.directive';
     </section>
   `,
   styles: [`
+    .wish-mat { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; }
+    .wish-mat .st { display: inline-flex; align-items: center; gap: 2px; }
+    .wish-mat .st button { width: max(30px, var(--sc-tap-min, 0px)); height: max(30px, var(--sc-tap-min, 0px)); padding: 0; cursor: pointer; font: inherit; border: 1px solid var(--sc-border); border-radius: 7px; background: none; color: var(--sc-fg-1); }
+    .wish-mat .st button:hover:not(:disabled) { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .wish-mat .st button:disabled { opacity: 0.4; cursor: default; }
+    .wish-mat .st button:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .wish-mat .st b { min-width: 32px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
     :host { display: block; }
     /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own;
        the sections below share it in two columns. */
@@ -410,6 +434,48 @@ export class BlueprintDetailComponent implements OnInit {
   readonly qualityStats = computed((): QualityStatSummary[] => {
     return this.payload?.qualityStats ?? [];
   });
+
+  // ── "Material ×N auf die Wunschliste" ──
+  private readonly wishStore = inject(WishlistStore);
+  private readonly undoToast = inject(UndoToastService);
+  protected readonly craftTimes = signal(1);
+  protected readonly wishBusy = signal(false);
+  /** The ingredients that can be wished: the ones the catalogue resolved to a class name. */
+  protected readonly wishableMaterial = computed(() =>
+    this.ingredients()
+      .filter((i) => !!i.ingredientClassName && i.quantity > 0)
+      .map((i) => ({ className: i.ingredientClassName as string, name: this.ingredientName(i), perBlueprint: i.quantity })),
+  );
+
+  /** N crafts: the blueprint (quantity N, at least) and its material on the wishlist, counted up where they are already; one undo toast. */
+  protected async wishMaterial(): Promise<void> {
+    const d = this.detail();
+    if (!d || this.wishBusy()) return;
+    this.wishBusy.set(true);
+    try {
+      const times = this.craftTimes();
+      const entries = [
+        { kind: 'blueprint', className: d.classNameSlug, name: this.displayName(), forClassName: null as string | null, qty: times },
+        ...blueprintMaterialWishes(d.classNameSlug, this.wishableMaterial(), times).map((w) => ({ kind: w.kind, className: w.className, name: w.name, forClassName: w.forClassName ?? null, qty: w.qty })),
+      ];
+      const before = entries.map((e) => this.wishStore.qtyOf(e.kind, e.className, e.name, e.forClassName));
+      for (const e of entries) await this.wishStore.addQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, e.qty);
+      this.undoToast.offer({
+        messageKey: 'blueprintWish.done',
+        messageParams: { n: times, name: this.displayName() },
+        commit: () => undefined,
+        onUndo: () => {
+          void (async () => {
+            for (const [i, e] of entries.entries()) {
+              await this.wishStore.setQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, before[i]);
+            }
+          })();
+        },
+      });
+    } finally {
+      this.wishBusy.set(false);
+    }
+  }
 
   ingredientName(ing: CodexBlueprintIngredient): string {
     return (

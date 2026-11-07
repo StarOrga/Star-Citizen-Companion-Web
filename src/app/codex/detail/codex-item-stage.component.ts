@@ -5,7 +5,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { AssetPackageViewerComponent } from '../asset-package/asset-package-viewer.component';
 import type { AssetPackageRow } from '../asset-package/asset-package.model';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
-import { CodexService } from '../codex.service';
+import { CodexService, type CodexKind } from '../codex.service';
 import { FallbackImageComponent } from '../fallback-image.component';
 import type { HoloSilhouette } from '../holo-silhouette';
 
@@ -117,7 +117,7 @@ export type ItemStageView = 'silhouette' | '3d';
   ],
 })
 export class CodexItemStageComponent {
-  readonly kind = input.required<string>();
+  readonly kind = input.required<CodexKind>();
   readonly className = input.required<string>();
   readonly displayName = input.required<string>();
   readonly heroArt = input<readonly string[]>([]);

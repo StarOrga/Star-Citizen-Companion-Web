@@ -28,6 +28,7 @@ import {
 } from './starscape.service';
 import { AuthService } from '../auth/auth.service';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScEntryDirective } from '../shared/entry-motion/entry-motion';
 import { SammlungService } from '../hq/nachschub/sammlung.service';
 import { SammlungStripComponent, SammlungStripItem } from '../shared/sammlung-strip/sammlung-strip.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
@@ -114,14 +115,15 @@ const RENDER_CHUNK = 24;
     StarscapeAppPromoComponent,
     StarscapeVoteButtonComponent,
     ScSelectComponent,
+    ScEntryDirective,
     SammlungStripComponent,
     LightboxComponent,
     ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
-      <header class="head">
+    <section class="page" [scEntry]="'gallery'">
+      <header class="head ce" style="--ce: 0">
         @if (!embedded()) {
           <div>
             <h1>{{ 'starscape.title' | translate }}</h1>
@@ -148,7 +150,7 @@ const RENDER_CHUNK = 24;
            Series is no filter any more - it stays a badge on the tile. "My
            votes" needs an account, so a signed-out visitor sees it disabled,
            with the reason as its tooltip. -->
-      <div class="controls">
+      <div class="controls ce" style="--ce: 1">
         <sc-select
           class="source-filter"
           [options]="filterOptions()"
@@ -159,7 +161,7 @@ const RENDER_CHUNK = 24;
 
       <!-- The Sammlung pattern (concept nachschub-hq r4-d1-s7g): up-voted wallpapers count as collected. Nothing in the
            gallery below changes. -->
-      <sc-sammlung-strip [items]="collectedItems()" [ariaLabel]="'sammlungStrip.galleryAria' | translate" />
+      <sc-sammlung-strip class="ce" style="--ce: 2" [items]="collectedItems()" [ariaLabel]="'sammlungStrip.galleryAria' | translate" />
 
       <!-- A failed page load is a dead end without a way back in: the request is
            only ever fired on mount, so a phone that lost the connection for one
@@ -217,7 +219,7 @@ const RENDER_CHUNK = 24;
            the wall is re-entered with every page the visitor had loaded, and
            building all of them between two frames is what made coming back from
            another tab stutter (admin feedback 2bf4ab11). -->
-      <div class="wall">
+      <div class="wall ce" style="--ce: 3">
         @for (w of visibleTiles(); track w.imageId; let i = $index) {
         <!-- The wrapper exists so the thumbs-up can be a SIBLING of the tile
              link: a <button> nested inside an <a> is invalid HTML and would eat

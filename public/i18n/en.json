@@ -7710,5 +7710,10 @@
     "newsAria": "Collected news",
     "galleryAria": "Collected wallpapers",
     "votedHint": "Up-voted wallpapers count as collected."
+  },
+  "blueprintWish": {
+    "craftTimes": "How many times to craft",
+    "button": "Material ×{{n}} to the wishlist",
+    "done": "{{n}}× {{name}}: material put on the wishlist"
   }
 }

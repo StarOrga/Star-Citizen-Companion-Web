@@ -7710,5 +7710,10 @@
     "newsAria": "Gesammelte News",
     "galleryAria": "Gesammelte Wallpaper",
     "votedHint": "Hochgevotete Wallpaper zählen als gesammelt."
+  },
+  "blueprintWish": {
+    "craftTimes": "Wie oft herstellen",
+    "button": "Material ×{{n}} auf die Wunschliste",
+    "done": "{{n}}× {{name}}: Material auf die Wunschliste gelegt"
   }
 }

@@ -7,6 +7,7 @@ import { pickedShare, setPicked, toggleGroup, type FlowGroup } from '../../hq/pl
 import { HQ_DIALOG_STYLES } from '../../hq/plan/hq-dialog.styles';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
+import { ScEntryDirective } from '../../shared/entry-motion/entry-motion';
 import { PATH_ICONS } from '../../shared/item-path/path-icons';
 import { SilThumbComponent } from '../../shared/sil-thumb/sil-thumb.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -30,13 +31,13 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
 @Component({
   selector: 'sc-wish-cart',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScActionDirective, ScDialogDirective, ScTooltipDirective, SilThumbComponent],
+  imports: [RouterLink, TranslatePipe, ScActionDirective, ScDialogDirective, ScEntryDirective, ScTooltipDirective, SilThumbComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="scrim" (click)="onScrim($event)">
-      <section class="sheet cart" role="dialog" aria-modal="true" scDialog (scDialogEscape)="cart.close()"
+      <section class="sheet cart" role="dialog" aria-modal="true" scDialog [scEntry]="'cart'" (scDialogEscape)="cart.close()"
                [attr.aria-label]="'cart.title' | translate" data-cart>
-        <header class="dlg-head">
+        <header class="dlg-head ce" style="--ce: 0">
           <span class="dlg-ic" aria-hidden="true"><svg viewBox="0 0 24 24">@for (d of wishPath; track $index) { <path [attr.d]="d" /> }</svg></span>
           <h2 class="dlg-title">
             {{ 'cart.title' | translate }}
@@ -56,7 +57,7 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
           } @else {
             <div class="groups">
               @for (g of cart.groups(); track g.id) {
-                <section class="group" [class.bp]="g.type === 'blueprint'" [style.--n]="span(g)" [attr.aria-label]="groupTitle(g)">
+                <section class="group ce" [class.bp]="g.type === 'blueprint'" [style.--n]="span(g)" [style.--ce]="$index + 1" [attr.aria-label]="groupTitle(g)">
                   <h3 class="g-head">
                     <input type="checkbox" class="chk" [checked]="share(g) === 1" [indeterminate]="share(g) === 0.5"
                            [attr.aria-label]="'cart.selectGroup' | translate: { name: groupTitle(g) }" (change)="onGroup(g)" />
@@ -106,7 +107,7 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
             </div>
 
             @if (cart.suggestions().length) {
-              <section class="sugs" [attr.aria-label]="'cart.suggest.title' | translate">
+              <section class="sugs ce" style="--ce: 5" [attr.aria-label]="'cart.suggest.title' | translate">
                 <h3 class="s-head">{{ 'cart.suggest.title' | translate }} <small>{{ 'cart.suggest.count' | translate: { n: cart.suggestions().length } }}</small></h3>
                 <div class="s-row">
                   @for (s of cart.suggestions(); track s.className) {
@@ -134,7 +135,7 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
           }
         </div>
 
-        <footer class="dlg-foot">
+        <footer class="dlg-foot ce" style="--ce: 6">
           <span class="sel-count" role="status"><b>{{ selectedCount() }}</b> {{ 'cart.selected' | translate }}</span>
           <span class="sp"></span>
           <button type="button" scAction tier="secondary" [disabled]="picks().size === 0" (click)="picks.set(emptyPicks)"><span>{{ 'cart.clear' | translate }}</span></button>
