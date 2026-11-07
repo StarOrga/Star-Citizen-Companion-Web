@@ -614,5 +614,291 @@
         "note": "finde es aber irgendwie leicht zu granular für da oben, das sieht man kaum in der grö0ße !"
       }
     ]
+  },
+  {
+    "iteration": 4,
+    "action": "implement",
+    "annotations": [
+      {
+        "id": "r4-d1-s1-a2",
+        "screen": "r4-d1-s1",
+        "design": "holotafel",
+        "question": "Gibt es zum Seitentyp keine Wünsche, stehen hier die letzten 3 insgesamt. Soll dann ein kleiner Hinweis „aus allen Typen“ dazu?",
+        "improved": "die 3 zuletzt hinzugefügten",
+        "answer": "nope, das ist dann implizit"
+      },
+      {
+        "id": "r4-d1-s1-a3",
+        "screen": "r4-d1-s1",
+        "design": "holotafel",
+        "question": "„Gesamtes Inventar“ springt zu HQ › Bestand › Inventar. Soll der Waffen-Filter dorthin mitkommen oder startet das Inventar ungefiltert?",
+        "improved": "Zeilen wie die Wunschliste",
+        "answer": "mitkommen natürlich!"
+      },
+      {
+        "id": "r4-d1-s2-a1",
+        "screen": "r4-d1-s2",
+        "design": "holotafel",
+        "question": "Gruppiert nach Art und nach Blaupause, ein Haken wählt die ganze Gruppe. Passt die Reihenfolge der Gruppen (Waffen zuerst, Blaupausen am Ende)?",
+        "improved": "ganze Gruppe mit einem Klick",
+        "answer": "super!"
+      },
+      {
+        "id": "r4-d1-s2-a2",
+        "screen": "r4-d1-s2",
+        "design": "holotafel",
+        "question": "Entfernen geht sofort, Rückgängig kommt als Hinweis unten. Soll beim Entfernen einer ganzen Gruppe vorher nachgefragt werden?",
+        "improved": "rotes Löschen statt ×",
+        "answer": "nein, genauso"
+      },
+      {
+        "id": "r4-d1-s2-a3",
+        "screen": "r4-d1-s2",
+        "design": "holotafel",
+        "question": "Genau 3 Vorschläge: Ergänzung vor gleichem Material vor gleichem Ort oder Shop vor gleicher Aktion. Soll ein weggeklickter Vorschlag für immer verschwinden oder nur bis zum nächsten Hinzufügen?",
+        "improved": "neu: Passt dazu",
+        "answer": "nur bis zum nächsten hinzufügen und für einn gexxten vorschlag soll ein neuer kommen :) halte mindestens immer 7 vor falls dem nutzer die 3 nicht gefallen !"
+      },
+      {
+        "id": "r4-d1-s3-a1",
+        "screen": "r4-d1-s3",
+        "design": "holotafel",
+        "question": "Alle 7 Slots belegt, „Neuer Nachschub“ ist gesperrt und sagt warum. Soll ein fertiger Nachschub (Titan-Erz, 5/5) von selbst ins Archiv rutschen und den Slot freimachen?",
+        "improved": "einzelne Kisten statt Leiste",
+        "answer": "ja von selbst!"
+      },
+      {
+        "id": "r4-d1-s3-a2",
+        "screen": "r4-d1-s3",
+        "design": "holotafel",
+        "question": "„Bearbeiten“ öffnet die drei Schritte von „Neuer Nachschub“ mit diesem Inhalt. Darunter stehen jetzt die Einsätze vorn, die Ware als Chips dahinter. Liest sich das so richtig?",
+        "improved": "Bearbeiten direkt am Nachschub",
+        "answer": "sehr gut"
+      },
+      {
+        "id": "r4-d1-s3-a3",
+        "screen": "r4-d1-s3",
+        "design": "holotafel",
+        "question": "Die Legende ist sonst zu, hier offen: jede der 7 Aktionen lässt sich aus- und einblenden (Raffinieren ist aus). Soll die Auswahl pro Route gelten oder überall?",
+        "improved": "Route eingepasst, 7 Aktionen",
+        "answer": "pro route bzw. nachschub einsatz!"
+      },
+      {
+        "id": "r4-d1-s4a-a2",
+        "screen": "r4-d1-s4a",
+        "design": "holotafel",
+        "question": "Teilen per Stepper: 2 von 4 Hydrierungspacks, der Balken zeigt den Anteil, der Rest bleibt auf der Wunschliste. Ist das so klar?",
+        "answer": "ja ist klar!"
+      },
+      {
+        "id": "r4-d1-s4a-a3",
+        "screen": "r4-d1-s4a",
+        "design": "holotafel",
+        "question": "Nimmst du aus einer Blaupausen-Gruppe nur einen Teil, passt sich dann die Stückzahl („2× Gallant“) an oder bleibt sie stehen?",
+        "improved": "Blaupause als ganze Gruppe",
+        "answer": "passt sich auch an"
+      },
+      {
+        "id": "r4-d1-s8-a1",
+        "screen": "r4-d1-s8",
+        "design": "holotafel",
+        "question": "",
+        "improved": "Knoten heißen Inventar, Hangar, Sammlung",
+        "answer": "Sehr gut !"
+      },
+      {
+        "id": "r4-d1-s8-a3",
+        "screen": "r4-d1-s8",
+        "design": "holotafel",
+        "question": "Ein Klick legt 1 auf die Wunschliste, danach zeigt der Knoten „1“. Soll jeder weitere Klick +1 zählen oder dann die Detailseite mit Stepper öffnen?",
+        "improved": "Klick legt 1 auf die Wunschliste",
+        "answer": "ne, der wetiere soll die wunschliste dann aufmachen"
+      },
+      {
+        "id": "r4-d1-s9-a1",
+        "screen": "r4-d1-s9",
+        "design": "holotafel",
+        "question": "Gibt es im Codex kein 3D-Modell, bleibt nur die Silhouette, der Schalter ist dann gesperrt und sagt warum. Okay so?",
+        "improved": "Silhouette ↔ 3D-Modell wie am Holotisch",
+        "answer": "ja"
+      },
+      {
+        "id": "r4-d1-s9-a2",
+        "screen": "r4-d1-s9",
+        "design": "holotafel",
+        "question": "Alle Blöcke von heute sind da: Werte (Fakten, Einschlagsschaden, Waffenparameter), Aufsätze an der Silhouette, Herstellung (Rezept, verwendet in Blaupausen), Kaufen & Info (Wo zu kaufen, Beschreibung, Datenblatt), dazu Lackierung, Vergleichen, Teilen, Codex/Persönlich und Build. Vermisst du einen?",
+        "improved": "alles ohne Scrollen, in Reitern",
+        "answer": "das sieht schon richtig gut aus! Wobei sihlozhutette und 3d modell genausoi wie in holotisch beta in dem bild stehen sollte ! und vergleichen eher hier hier nicht, sondern nur wenn man in der übersicht ist der suche fullsite, also nicht schnellsuche"
+      },
+      {
+        "id": "r4-d1-s9h-a1",
+        "screen": "r4-d1-s9h",
+        "design": "holotafel",
+        "question": "",
+        "improved": "Krümel führen zurück ins HQ",
+        "answer": "sehr gu t"
+      },
+      {
+        "id": "r4-d1-s9h-a2",
+        "screen": "r4-d1-s9h",
+        "design": "holotafel",
+        "question": "Aus dem HQ geöffnet zeigt die Seite leise, in welchem Nachschub der Gegenstand steckt; im Codex bleibt das weg. Passt diese Trennung?",
+        "answer": "ja"
+      },
+      {
+        "id": "r4-d1-s9h-a3",
+        "screen": "r4-d1-s9h",
+        "design": "holotafel",
+        "question": "",
+        "improved": "Inventar per Klick, danach Stepper",
+        "answer": "sehr gut!"
+      }
+    ],
+    "comments": [
+      {
+        "id": "anno-r4-d1-s1-a2",
+        "text": "nope, das ist dann implizit",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s1-a3",
+        "text": "mitkommen natürlich!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s2-a1",
+        "text": "super!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s2-a2",
+        "text": "nein, genauso",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s2-a3",
+        "text": "nur bis zum nächsten hinzufügen und für einn gexxten vorschlag soll ein neuer kommen :) halte mindestens immer 7 vor falls dem nutzer die 3 nicht gefallen !",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s3-a1",
+        "text": "ja von selbst!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s3-a2",
+        "text": "sehr gut",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s3-a3",
+        "text": "pro route bzw. nachschub einsatz!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s4a-a2",
+        "text": "ja ist klar!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s4a-a3",
+        "text": "passt sich auch an",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s8-a1",
+        "text": "Sehr gut !",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s8-a3",
+        "text": "ne, der wetiere soll die wunschliste dann aufmachen",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9-a1",
+        "text": "ja",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9-a2",
+        "text": "das sieht schon richtig gut aus! Wobei sihlozhutette und 3d modell genausoi wie in holotisch beta in dem bild stehen sollte ! und vergleichen eher hier hier nicht, sondern nur wenn man in der übersicht ist der suche fullsite, also nicht schnellsuche",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9h-a1",
+        "text": "sehr gu t",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9h-a2",
+        "text": "ja",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9h-a3",
+        "text": "sehr gut!",
+        "attachments": []
+      },
+      {
+        "id": "r4-slot-pick-note",
+        "text": "ja serhr gut, aber bitte polishen!",
+        "attachments": []
+      },
+      {
+        "id": "r4-d1-s9h",
+        "text": "bitte auch diese wie auch die anderen seiten cinematisch sehr gut animieren inkl. was ist sinnvollzuerst den fokus zu haben, was kommt später eingeblendet! Gern beim ersten aufmachen cinematisc h, danach auch animiert, aber innnerhalb schnellerer zeit",
+        "attachments": []
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "r4-d1-s3",
+        "target": "span \"Neuer Nachschub\"",
+        "text": "denb button bruachen wir nicht, das soll dann einfach ein slot nachschub sein, fall nicht belegt !"
+      },
+      {
+        "screen": "r4-d1-s7",
+        "target": "svg.mk-sil.mk-sil-bp",
+        "text": "Hier auch ein plus füür per hand anlegen !"
+      },
+      {
+        "screen": "r4-d1-s7g",
+        "target": "span.mk-thumb.mk-t2",
+        "text": "sehr gut"
+      },
+      {
+        "screen": "r4-d1-s7g",
+        "target": "button \"Community-Top\"",
+        "text": "gern dieses dropdown auhc nochmal attraktiver machen, ist alles noch sehr bodl und in alten style gestyleed mit festtten brlauen käsatne"
+      },
+      {
+        "screen": "r4-d1-s7n",
+        "target": "b.mk-clamp \"Pyro-Update: Ruin Station bekommt Raffin\"",
+        "text": "sehr gut, wenn mehr, dann bitte mit umgehen!"
+      },
+      {
+        "screen": "r4-d1-s8",
+        "target": "path",
+        "text": "nicht vergessen, in der schnellsuche korrekt mit den verschiednen gruppeirungen usw., aber in der full site suche aulso der auflistung befindet sich hier links noch ein inhaltsverzeichnis. Bitte bei beiden keine funktioniaätliten weg rationalisieren die nicht direkt mit wunschliste / inventar etc. zu tun haben - also das was wir hierändern"
+      },
+      {
+        "screen": "r4-d1-s9h",
+        "target": "span.mk-sharedock",
+        "text": "sehr gut auch den teilen buttoin hier zu haben"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "r4-icon-pick",
+        "value": "frame",
+        "note": ""
+      },
+      {
+        "id": "r4-slot-pick",
+        "value": "crate",
+        "note": "ja serhr gut, aber bitte polishen!"
+      }
+    ]
   }
 ]
