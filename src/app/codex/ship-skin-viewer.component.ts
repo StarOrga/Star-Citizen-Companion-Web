@@ -182,7 +182,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                   [attr.min-camera-orbit]="holo() ? 'auto 15deg 70%' : null"
                   [attr.max-camera-orbit]="holo() ? 'auto 115deg 180%' : null"
                   [attr.disable-pan]="holo() ? '' : null"
-                  camera-orbit="35deg 75deg 105%"
+                  [attr.camera-orbit]="holo() ? HOLO_START_ORBIT : DEFAULT_ORBIT"
                   interaction-prompt="none"
                   (load)="onModelLoad($event)"
                   (error)="onModelError()"
@@ -846,6 +846,14 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
   ],
 })
 export class ShipSkinViewerComponent {
+  /** Start view of the detail viewer: a three-quarter view from the side. */
+  protected readonly DEFAULT_ORBIT = '35deg 75deg 105%';
+  /**
+   * Start view of the landing hologram: half a turn further, so the ship
+   * faces the reader when the page opens and the turntable starts from there.
+   */
+  protected readonly HOLO_START_ORBIT = '215deg 75deg 105%';
+
   readonly shipId = input.required<string>();
 
   /** i18n key for a skin's source tag (AUD-188). */

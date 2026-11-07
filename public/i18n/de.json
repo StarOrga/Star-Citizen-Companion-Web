@@ -318,7 +318,6 @@
       },
       "holo": {
         "label": "Holotisch",
-        "open": "{{name}} öffnen",
         "rotation": "Kategorie wählen",
         "next": "Klick: weiter",
         "hold": "Klick: halten",
@@ -440,8 +439,7 @@
       },
       "values": {
         "key": "Kennwerte",
-        "more": "Weitere Werte",
-        "open": "{{label}} {{value}}: {{name}} öffnen",
+        "more": "Datenblatt",
         "legend": "Klassenschnitt",
         "toPage": "Zur {{name}}-Seite"
       },
@@ -460,15 +458,14 @@
         "label": "Codex: neu in diesem Patch",
         "title": "Codex · neu in {{patch}}",
         "titleNoPatch": "Codex · neu",
-        "count": "{{count}} neu",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
         "categories": "Kategorien",
         "openPage": "Seite öffnen: {{name}}",
-        "noneNew": "Nichts Neues in diesem Patch.",
-        "more": "+ {{count}} weitere in der Suche",
+        "more": "+ {{count}} weitere",
         "all": "Alle {{category}}",
-        "held": "gehalten"
+        "held": "gehalten",
+        "updated": "aktualisiert"
       }
     },
     "index": {
@@ -2358,7 +2355,8 @@
       "subtitleOf": "{{shown}} von {{total}} · Patch {{patch}}",
       "subtitleAll": "{{shown}} Einträge · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} von {{total}}",
-      "subtitleAllNoPatch": "{{shown}} Einträge"
+      "subtitleAllNoPatch": "{{shown}} Einträge",
+      "freshFilter": "Neu/Aktualisiert im letzten Patch"
     },
     "contract": {
       "eyebrow": "Mission",
@@ -6270,15 +6268,17 @@
   },
   "beta": {
     "aria": "Neue Ansicht (β)",
-    "switchFor": "Neue Ansicht für {{area}}",
     "area": {
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Seiten-Rahmen"
     },
+    "staffOnly": "Nur Team",
+    "fab": {
+      "admin": "Beta-Schalter (Admin)",
+      "collaborator": "Beta-Schalter (Collaborator)"
+    },
     "chip": {
-      "admin": "Admin",
-      "collaborator": "Collaborator",
       "title": "Beta-Bereiche",
       "note": "Nur für Admins und Collaborators sichtbar."
     }

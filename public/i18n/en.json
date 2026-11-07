@@ -318,7 +318,6 @@
       },
       "holo": {
         "label": "Holotable",
-        "open": "Open {{name}}",
         "rotation": "Choose a category",
         "next": "Click: resume",
         "hold": "Click: hold",
@@ -440,8 +439,7 @@
       },
       "values": {
         "key": "Key values",
-        "more": "More values",
-        "open": "{{label}} {{value}}: open {{name}}",
+        "more": "Data sheet",
         "legend": "Class average",
         "toPage": "To the {{name}} page"
       },
@@ -460,15 +458,14 @@
         "label": "Codex: new in this patch",
         "title": "Codex · new in {{patch}}",
         "titleNoPatch": "Codex · new",
-        "count": "{{count}} new",
         "announced": "announced",
         "onTable": "on the table",
         "categories": "Categories",
         "openPage": "Open page: {{name}}",
-        "noneNew": "Nothing new in this patch.",
-        "more": "+ {{count}} more in search",
+        "more": "+ {{count}} more",
         "all": "All {{category}}",
-        "held": "held"
+        "held": "held",
+        "updated": "updated"
       }
     },
     "index": {
@@ -2358,7 +2355,8 @@
       "subtitleOf": "{{shown}} of {{total}} · Patch {{patch}}",
       "subtitleAll": "{{shown}} entries · Patch {{patch}}",
       "subtitleOfNoPatch": "{{shown}} of {{total}}",
-      "subtitleAllNoPatch": "{{shown}} entries"
+      "subtitleAllNoPatch": "{{shown}} entries",
+      "freshFilter": "New/updated in the last patch"
     },
     "contract": {
       "eyebrow": "Mission",
@@ -6270,15 +6268,17 @@
   },
   "beta": {
     "aria": "New view (β)",
-    "switchFor": "New view for {{area}}",
     "area": {
       "verse": "Verse",
       "codex": "Codex & HQ",
       "shell": "Page shell"
     },
+    "staffOnly": "Team only",
+    "fab": {
+      "admin": "Beta switch (admin)",
+      "collaborator": "Beta switch (collaborator)"
+    },
     "chip": {
-      "admin": "Admin",
-      "collaborator": "Collaborator",
       "title": "Beta areas",
       "note": "Visible to admins and collaborators only."
     }

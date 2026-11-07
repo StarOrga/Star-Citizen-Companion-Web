@@ -1024,7 +1024,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   .cap > .account.pending {
     position: fixed;
     top: calc(var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + 4px);
-    right: max(var(--sc-page-gutter), var(--sc-chip-lane, 0px));
+    right: var(--sc-page-gutter);
     z-index: 3;
     width: auto;
     margin: 0;
@@ -1041,7 +1041,7 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
     pointer-events: auto;
     // Room for the account at the right end: bookmark (50) + Apps (48) + avatar (48) + a gap. The title
     // ellipsizes into what is left instead of running under the three controls.
-    padding-right: calc(max(var(--sc-page-gutter), var(--sc-chip-lane, 0px)) + 154px) !important;
+    padding-right: calc(var(--sc-page-gutter) + 154px) !important;
     position: fixed;
     top: var(--sc-imp-banner-h, 0px);
     left: 0;

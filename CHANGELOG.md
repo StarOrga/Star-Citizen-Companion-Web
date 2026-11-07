@@ -4,7 +4,7 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.221.0] - 2026-11-07
+## [0.222.0] - 2026-11-07
 
 ### Added
 - HQ Jetzt shows your current zone while you play: restricted area, comm array down, armistice or monitored space. A zone from an earlier session never shows as current.
@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Recently opened pages in the search are stored only with the preferences consent, and declining removes them. Without a decision "Zuletzt geöffnet" stays empty.
+
+## [0.221.0] - 2026-11-07
+
+### Changed
+- The Codex landing swaps its sides: the Codex list stands left, the values right. "Weitere Werte" is now "Datenblatt".
+- Nothing on the holotable is a link or carries an arrow any more. The way to an item's page is the button in the Datenblatt.
+- The Codex list keeps its title and tabs at the top and "Alle ..." and Tastenbelegungen at the bottom on every tab. With nothing new the middle is gone; with too much, five rows turn like a wheel around the item on the table.
+- "+ N weitere" opens the index filtered to what is new or updated in the last patch.
+- The beta switches moved into one small round button above the feedback button, on both page frames. The pills bottom left and the chip top right are gone.
+
+### Added
+- The Codex index has a filter "Neu/Aktualisiert im letzten Patch".
+- Items whose values changed in a patch are marked "aktualisiert" in the Codex list.
+
+### Fixed
+- The Codex list no longer reports thousands of new items after a patch.
 
 ## [0.220.1] - 2026-11-07
 

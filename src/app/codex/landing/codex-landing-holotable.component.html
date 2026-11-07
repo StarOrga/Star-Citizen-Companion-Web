@@ -6,8 +6,7 @@
     @for (k of [key()]; track k) {
       <div class="piece" [class.boot]="boot()" [animate.leave]="still() ? 'cut' : 'leaving'"
            [style.--t0.s]="start()" [attr.data-k]="k">
-        <a class="holo" [routerLink]="it.detailRoute"
-           [attr.aria-label]="'codex.landing.holo.open' | translate: { name: it.name }">
+        <div class="holo">
           <span class="form">
             @if (!flat()) {
               @defer (on immediate) {
@@ -32,8 +31,7 @@
             <span class="band" aria-hidden="true"></span>
           </span>
           <span class="scan" aria-hidden="true"><span class="disc"><i></i></span></span>
-          <span class="go" aria-hidden="true">↗</span>
-        </a>
+        </div>
 
         @if (callouts().length) {
           <svg class="leaders" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -49,10 +47,7 @@
             @for (c of callouts(); track c.key) {
               <li class="call" [style.top.%]="c.y" [style.--at.s]="c.at">
                 <span class="c-label">{{ c.label }}@if (zoneKeys().has(c.key)) { <em class="c-zone">{{ 'codex.landing.set.zone' | translate }}</em> }</span>
-                <a class="c-value flash" [routerLink]="it.detailRoute"
-                   [attr.aria-label]="'codex.landing.values.open' | translate: { label: c.label, value: c.text, name: it.name }">
-                  {{ c.text }}<i aria-hidden="true">↗</i>
-                </a>
+                <span class="c-value flash">{{ c.text }}</span>
                 @if (c.cmp; as cmp) {
                   <small class="c-cmp" [class.worse]="cmp.worse">
                     @switch (cmp.kind) {
@@ -83,7 +78,7 @@
                 <span class="sc-sr-only">·</span><span class="k-maker">{{ it.eyebrow.manufacturer }}</span>
               }
             </p>
-            <a class="k-name" [routerLink]="it.detailRoute"><span class="k-type">{{ it.name }}</span><i aria-hidden="true">↗</i></a>
+            <p class="k-name"><span class="k-type">{{ it.name }}</span></p>
           </div>
           <div class="k-foot">
             @if (it.facts?.length) {
