@@ -99,7 +99,7 @@ describe('HqNowComponent', () => {
 
   it('marks the location as last known once the session ended', () => {
     const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
-      { ...ev(0), type: 'session.quit' },
+      { ...ev(0), type: 'session.quit', at: new Date().toISOString() },
       { ...ev(1), type: 'session.joined' },
     ]);
     live.stateUpdatedAt.set(new Date().toISOString());
@@ -115,6 +115,14 @@ describe('HqNowComponent', () => {
     const el = mount(live).nativeElement as HTMLElement;
     expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.label');
     expect(el.querySelector('.fresh')?.textContent).toContain('hq.now.fresh.updated');
+  });
+
+  it('stays live when only an older session end is known (the app attached to a running game)', () => {
+    const live = fakeLive({ location: { name: 'Lorville', system: null }, presence: presence(1000) }, [
+      { ...ev(0), type: 'session.quit', at: new Date(Date.now() - 86_400_000).toISOString() },
+    ]);
+    const el = mount(live).nativeElement as HTMLElement;
+    expect(el.querySelector('#hq-now-anchor')?.textContent).toContain('hq.now.anchor.label');
   });
 
   it('renders the location anchor as system > place with the ship and the mission count', () => {

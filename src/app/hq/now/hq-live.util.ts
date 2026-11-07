@@ -13,14 +13,6 @@ export interface LiveContract {
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
-/** True when the newest session event says the game is closed: the state is then only the last known one. */
-export function sessionEnded(eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type'>[]): boolean {
-  const last = eventsNewestFirst.find(
-    (e) => e.type === 'session.joined' || e.type === 'session.quit' || e.type === 'disconnect',
-  );
-  return !!last && last.type !== 'session.joined';
-}
-
 /** A life sign older than this means the app or the game is gone (the app writes every 60 s). */
 export const LIVE_PRESENCE_MAX_AGE_MS = 3 * 60 * 1000;
 
@@ -30,16 +22,40 @@ export function presenceAt(state: Record<string, unknown> | null): string | null
   return p && typeof p === 'object' ? str((p as Record<string, unknown>)['at']) : null;
 }
 
-/** The game runs right now: a fresh life sign says so and no newer session event contradicts it. */
+/**
+ * The newest session event says the game ended after `sinceMs`. An older end says nothing: the app
+ * does not upload what it reads while catching up on a running game's log, so the `session.joined` of
+ * a session it attached to late never arrives and the previous session's end stays the newest one.
+ */
+export function sessionEndedSince(eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type' | 'at'>[], sinceMs: number): boolean {
+  const last = eventsNewestFirst.find(
+    (e) => e.type === 'session.joined' || e.type === 'session.quit' || e.type === 'disconnect',
+  );
+  return !!last && last.type !== 'session.joined' && Date.parse(last.at) > sinceMs;
+}
+
+/**
+ * The client lost this session's server and has not rejoined (30k, back in the menu): the process
+ * still runs, so the life sign stays fresh. Read from the state, which the app also rebuilds on catch-up.
+ */
+export function disconnectedInSession(state: Record<string, unknown> | null): boolean {
+  const d = state?.['lastDisconnect'] as Record<string, unknown> | null | undefined;
+  if (!d || typeof d !== 'object' || d['recapConsumed'] === true) return false;
+  const at = Date.parse(String(d['at'] ?? ''));
+  const started = Date.parse(String(state?.['sessionStartedAt'] ?? ''));
+  return Number.isFinite(at) && Number.isFinite(started) && at >= started;
+}
+
+/** The game runs right now: a fresh life sign says so and nothing after it contradicts it. */
 export function isGameLive(
   state: Record<string, unknown> | null,
-  eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type'>[],
+  eventsNewestFirst: readonly Pick<HqLiveEventRow, 'type' | 'at'>[],
   now: number,
 ): boolean {
   const p = state?.['presence'] as Record<string, unknown> | undefined;
   const at = Date.parse(String(p?.['at'] ?? ''));
   if (p?.['gameRunning'] !== true || !Number.isFinite(at) || now - at > LIVE_PRESENCE_MAX_AGE_MS) return false;
-  return !sessionEnded(eventsNewestFirst);
+  return !sessionEndedSince(eventsNewestFirst, at) && !disconnectedInSession(state);
 }
 
 /**
