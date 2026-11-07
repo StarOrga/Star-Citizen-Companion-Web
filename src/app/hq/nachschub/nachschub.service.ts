@@ -211,6 +211,72 @@ export class NachschubService {
     };
   }
 
+  /**
+   * "Bearbeiten" > add: take more wishlist positions into an existing active Nachschub (same rules as
+   * {@link createFromWishlist}). Undo takes them out again and restores the wishlist.
+   */
+  async addFromWishlist(id: string, picks: readonly WishPick[]): Promise<NachschubResult> {
+    const uid = this.auth.user()?.id;
+    const n = this.packages().find((p) => p.id === id && p.status === 'active');
+    if (!uid || !n) return fail('errors.generic');
+    const before = this.wishPositions();
+    const { taken, remaining } = takeFromWishlist(before, picks);
+    if (!taken.length) return fail('hq.nachschub.nothingPicked');
+    const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
+    const lineIds: string[] = [];
+    const snapshot: Record<string, number> = { ...n.snapshot };
+    for (const p of taken) {
+      const added = this.supplies.addLine(label(p), p.qty, {
+        entityKind: p.kind,
+        className: p.className,
+        forClassName: p.forClassName ?? null,
+        packageId: id,
+        source: 'search',
+      });
+      if (!added) continue;
+      lineIds.push(added.id);
+      snapshot[added.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
+    }
+    if (!(await this.replace({ ...n, snapshot }, uid))) {
+      this.supplies.removeMany(lineIds);
+      return fail(this.error() ?? 'errors.generic');
+    }
+    await this.applyRemaining(before, remaining);
+    return {
+      ok: true,
+      key: 'hq.nachschub.done.added',
+      id,
+      undo: async () => {
+        this.supplies.removeMany(lineIds);
+        await this.restoreWishlist(before);
+        return { ok: true, key: 'hq.nachschub.done.undone' };
+      },
+    };
+  }
+
+  /** "Bearbeiten" > remove one line: it goes back to the wishlist (counted up there) or is dropped. */
+  async removeLine(lineId: string, backToWishlist: boolean): Promise<NachschubResult> {
+    const l = this.supplies.items().find((x) => x.id === lineId);
+    if (!l) return fail('errors.generic');
+    const before = this.wishPositions();
+    const out = clearNachschub(
+      l.className ? [{ id: l.id, kind: l.entityKind ?? 'item', className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName, closed: l.done }] : [],
+      before,
+      backToWishlist,
+    );
+    this.supplies.removeMany([l.id]);
+    if (backToWishlist) await this.restoreWishlist(out.wishlist);
+    return {
+      ok: true,
+      key: 'hq.nachschub.done.lineRemoved',
+      undo: async () => {
+        this.supplies.restore(l.id);
+        if (backToWishlist) await this.restoreWishlist(before);
+        return { ok: true, key: 'hq.nachschub.done.undone' };
+      },
+    };
+  }
+
   async rename(id: string, name: string): Promise<boolean> {
     const uid = this.auth.user()?.id;
     const n = this.packages().find((p) => p.id === id);
