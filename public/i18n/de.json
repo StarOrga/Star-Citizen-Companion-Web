@@ -2409,6 +2409,8 @@
       "filterButton": "Filter ({{count}})",
       "showResults": "{{count}} Treffer anzeigen",
       "areaLabel": "Bereich",
+      "collapseArea": "{{name}} einklappen",
+      "expandArea": "{{name}} ausklappen",
       "area": {
         "armor": "Rüstung",
         "shipAmmo": "Schiffsmunition"

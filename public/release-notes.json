@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.15",
+  "current": "0.225.16",
   "releases": [
+    {
+      "version": "0.225.16",
+      "date": "2026-11-07",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex index: the \"Area\" tree on the left now fits the screen below the header and above the bottom launcher row, so its last entries stay reachable when you scroll it to the end."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex index: every group in the \"Area\" tree (for example Manufacturers) has a fold button, and clicking the open group you are in folds it again, without leaving the area."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.15",
       "date": "2026-11-07",
