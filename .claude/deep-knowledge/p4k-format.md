@@ -262,6 +262,21 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
   decks, 21 with an "Other rooms" deck — Carrack 20, Gemini 15); reading the
   containers of every ship adds ~4 min to a full extract.
 
+## Ship signature sources (#967, probed 2026-11-07 on LIVE 4.10.2)
+
+- `SSCSignatureSystemParams` (Nomad, Cutlass Black, Gladius, Carrack) carries
+  no idle or maximum EM/IR field. Its only values are
+  `radarProperties.crossSectionParams.crossSection` (Vec3); `baseSignatureParams`
+  and `emissionModifierParams` are null on those hulls.
+- The only EM/IR numbers in the data are per component state:
+  `ItemResourceComponentParams.states[].signatureParams.EMSignature|IRSignature`
+  (`nominalSignature`, `decayRate`), already extracted as `<state>.em.nominal`.
+  There is no "idle" ship value; `emIdle` stays null and the sheet shows the
+  gap. Do not derive one from component minimums without an owner decision.
+- Radars: no metre detection range; the one distance is
+  `aimAssist.distanceMaxAssignment` (exported as `aimAssistRangeM`, shown as
+  "Range (aim assist)").
+
 ## References
 
 - CryEngine PAK overview: <https://wiki.starcitizenbase.com/wiki/Data.p4k>
