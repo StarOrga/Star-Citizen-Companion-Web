@@ -240,4 +240,30 @@ describe('uploadSkins', () => {
       [2, 2, 'SHIP_EMPTY'],
     ]);
   });
+
+  it('reports its own progress for the armor packages that follow the ships', async () => {
+    // The package phase runs after the last ship inside the same call. Without
+    // its own counter the card sat on "312 / 312" for hours and read as hung.
+    stubHappyPath();
+    const ship = await makeShip('SHIP_EMPTY', [{ id: 'standard', name: 'Standard', model: null }]);
+    const root = join(ship, '..');
+    const classes = ['armor_a', 'armor_b', 'armor_c', 'armor_d', 'armor_e', 'armor_f'];
+    for (const c of classes) {
+      const dir = join(root, '_armor', c);
+      await mkdir(dir, { recursive: true });
+      const manifest = JSON.stringify({ kind: 'armor', entity_class: c });
+      await writeFile(join(dir, 'package.json'), manifest);
+      // Already uploaded in a prior run: cached, no network round trip.
+      await writeFile(join(dir, '.package-uploaded'), createHash('sha256').update(manifest).digest('hex'));
+    }
+    const seen: [string, number, number][] = [];
+
+    await uploadSkins('jwt', [{ shipId: 'SHIP_EMPTY', dir: ship }], () => {}, {
+      onPackageProgress: (kind, done, total) => seen.push([kind, done, total]),
+    });
+
+    expect(seen[0]).toEqual(['armor', 0, 6]);
+    expect(seen.map(([, done]) => done)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(seen.every(([kind, , total]) => kind === 'armor' && total === 6)).toBe(true);
+  });
 });

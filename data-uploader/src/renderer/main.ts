@@ -227,6 +227,8 @@ function tOr(key: string, fallback: string, params: Record<string, string | numb
   return v === key ? fallback : v;
 }
 const phaseLabel = (p: string): string => tOr(`run.phase.${p}`, p);
+/** Short name of a package kind (`fps_weapon` / `item` / `armor`) for the stage meta. */
+const packageLabel = (kind: string | undefined): string => tOr(`skins.packageKind.${kind ?? ''}`, kind ?? '');
 const stageLabel = (s: string): string => tOr(`run.stage.${s}`, s);
 const counterLabel = (k: string): string => tOr(`run.counter.${k}`, k);
 /** Silhouette build counter keys (singular entity kinds) → extract counter keys. */
@@ -3302,7 +3304,21 @@ async function buildAndUploadSkins(
     hint: tOr('skins.hintUpload', 'Große Livery-Dateien werden übertragen — je nach Größe dauert das.'),
   });
   const unsubUpload = window.sc.skin.onEvent((ev) => {
-    if (ev.type === 'progress') {
+    if (ev.type === 'progress' && ev.stage === 'packages') {
+      // Ships are done; the FPS / item / armor packages follow in the same
+      // call and get their own label and counter.
+      const total = ev.total ?? 0;
+      const cur = ev.current ?? 0;
+      setStageMeta('skinsUpload', `${packageLabel(ev.phase)} ${cur} / ${total}`);
+      progress?.update({
+        phaseLabel: tOr(`skins.stepPackages.${ev.phase ?? ''}`, packageLabel(ev.phase)),
+        current: cur,
+        total,
+        overallPct: total > 0 ? (cur / total) * 100 : undefined,
+        detail: ev.detail ?? '',
+        hint: tOr('skins.hintPackages', 'Die Schiffe sind fertig — jetzt folgen Waffen-, Item- und Rüstungspakete.'),
+      });
+    } else if (ev.type === 'progress') {
       if (typeof ev.current === 'number') setStageMeta('skinsUpload', `${ev.current} / ${ev.total ?? ships.length}`);
       const total = ev.total ?? ships.length;
       progress?.update({
