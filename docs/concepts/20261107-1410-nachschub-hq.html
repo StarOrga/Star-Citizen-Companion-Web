@@ -5688,7 +5688,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </header>
       <style>html[data-template="design"] [data-page-header] { display: none; }</style>
       <main>
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-tab-label="Runde 1 · Modell" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-tab-label="Runde 1 · Modell" data-baked id="iter-1" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Btw, wunschlisten sollten auch zähler háben können (weil man sich ja 20 rattler wünschen kann als raketen).\nDamit läuft sozusagen alles durch, außer Wunschliste => Nachschub => Inventar/Hanger/Sammlung\n\nManchmal mit abkürzungen und manchmal geht wie bei news direkt njur in sammlungen!","attachments":[]}}</script>
   <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
     <p data-briefing-what>Ich habe mit zwei Agents den Code und das Produkt durchleuchtet: Wunschliste, Nachschub, Inventar, Hangar, News-Lesezeichen und Verlauf hängen an vier verschiedenen Speichern, und 11 Stellen widersprechen sich.</p>
     <p data-briefing-why>Bevor Nachschub ins HQ zieht, muss klar sein, welche Stati es gibt und was zwischen ihnen passiert — Runde 2 zeigt dann die Folgen je Bereich, Runde 3 das Design.</p>
@@ -5715,28 +5716,30 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Jede weitere Frage auf dieser Seite baut auf diesem Modell auf.</p>
       <div data-options>
         <label data-opt="ok" data-recommended>
-          <input type="radio" name="dm-d-model" value="ok" checked>
+          <input type="radio" name="dm-d-model" value="ok" checked disabled>
           <span data-opt-label>Stimmt</span>
           <span data-opt-consequence>Wunschliste („will ich irgendwann“), Nachschub („brauch ich jetzt“, mit Menge), Besitz (Inventar · Hangar · Gesammelt).</span>
         </label>
         <label data-opt="partial">
-          <input type="radio" name="dm-d-model" value="partial">
+          <input type="radio" name="dm-d-model" value="partial" disabled>
           <span data-opt-label>Teilweise</span>
           <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
         </label>
         <label data-opt="wrong">
-          <input type="radio" name="dm-d-model" value="wrong">
+          <input type="radio" name="dm-d-model" value="wrong" disabled>
           <span data-opt-label>Stimmt nicht</span>
           <span data-opt-consequence>Dann baue ich das Modell in Runde 2 neu auf.</span>
         </label>
-        <input type="text" name="dm-d-model-fix" placeholder="Was stimmt nicht?">
+        <input type="text" name="dm-d-model-fix" placeholder="Was stimmt nicht?" value="" readonly disabled>
       </div>
-      <textarea data-comment="d-model-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-model-none" value="">
-      <input type="hidden" name="dm-d-model-hes" value="">
-      <input type="hidden" name="dm-d-model-touched" value="">
-      <input type="hidden" name="dm-d-model-issue" value="">
-      <input type="hidden" name="dm-d-model-epic" value="">
+      <textarea data-comment="d-model-note" placeholder="Notiz (optional)" readonly disabled>Ich finde die idee gut, alles geht auf eine wunschliste, dann kann ich im hq hingehen unter planen und wunschlsiten themen in den nachschub reinbringen. Ein Nachschub kann dann geplant werden in 1-x Einsätzen (teils missionen oder bergbau oder usw.) um den gesamten nachschub am ende zum bestand zu überführen (Inventar/Hangar). Dabei kann man nicht teilweise den nachschub planen - denn das würde man dann eher so machen, dass man halt nciht alles von der wunschliste in den nachschub überführt.
+
+Außerdem bzgl. Lesezeichen, ne, lass uns das doch auch ala Gesammelt machen, man kann sozusagen auch news, galiere bilder (geht ja schon heute) sammeln! Das heißt am ende ist sammeln gleich gestellt mit inventar / hangar / blaupauseun+ruf gesammlet.</textarea>
+      <input type="hidden" name="dm-d-model-none" value="" disabled>
+      <input type="hidden" name="dm-d-model-hes" value="{&quot;ms&quot;:252200,&quot;revisits&quot;:1,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-model-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-model-issue" value="" disabled>
+      <input type="hidden" name="dm-d-model-epic" value="" disabled>
       <div data-alevel="3" data-title="Statusmodell">
         <div data-slot="short">Drei Stati, parallel, nie exklusiv; Lesezeichen und Verlauf sind keine.</div>
         <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Wunschliste","value":"will ich irgendwann"},{"label":"Nachschub","value":"brauch ich jetzt · Menge · Quelle"},{"label":"Besitz","value":"Inventar · Hangar · Gesammelt"}]}'></div><p>Besitz hat je nach Art einen eigenen Namen: Inventar für Gegenstände und Material, Hangar für Schiffe (Herkunft Pledge oder Ingame als Merkmal, kein eigener Status), Gesammelt für Blaupausen. „Noch nicht im Spiel“, „Nicht mehr im Spiel“ und „Zerstört“ sind Hinweise aus Katalog und Live-Signal, sie löschen nie etwas.</p></div>
@@ -5750,28 +5753,28 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Wie voll die Wunschliste über Wochen wird.</p>
       <div data-options>
         <label data-opt="yes" data-recommended>
-          <input type="radio" name="dm-d-fulfil" value="yes" checked>
+          <input type="radio" name="dm-d-fulfil" value="yes" checked disabled>
           <span data-opt-label>Ja, Wunsch fällt weg, mit Rückgängig</span>
           <span data-opt-consequence>Gleiches Verhalten wie bei Schiffen; der Toast bietet Rückgängig an.</span>
         </label>
         <label data-opt="no">
-          <input type="radio" name="dm-d-fulfil" value="no">
+          <input type="radio" name="dm-d-fulfil" value="no" disabled>
           <span data-opt-label>Nein, Wunsch bleibt stehen</span>
           <span data-opt-consequence>Du räumst die Wunschliste selbst auf; der Zähler zählt Besessenes mit.</span>
         </label>
         <label data-opt="alt">
-          <input type="radio" name="dm-d-fulfil" value="alt">
+          <input type="radio" name="dm-d-fulfil" value="alt" disabled>
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Zum Beispiel nur fragen statt automatisch entfernen.</span>
         </label>
-        <input type="text" name="dm-d-fulfil-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-fulfil-alt" placeholder="Was stattdessen?" value="" readonly disabled>
       </div>
-      <textarea data-comment="d-fulfil-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-fulfil-none" value="">
-      <input type="hidden" name="dm-d-fulfil-hes" value="">
-      <input type="hidden" name="dm-d-fulfil-touched" value="">
-      <input type="hidden" name="dm-d-fulfil-issue" value="">
-      <input type="hidden" name="dm-d-fulfil-epic" value="">
+      <textarea data-comment="d-fulfil-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-fulfil-none" value="" disabled>
+      <input type="hidden" name="dm-d-fulfil-hes" value="{&quot;ms&quot;:14498,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-fulfil-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-fulfil-issue" value="" disabled>
+      <input type="hidden" name="dm-d-fulfil-epic" value="" disabled>
       <div data-alevel="3" data-title="Besitz erfüllt Wunsch">
         <div data-slot="short">Schiffe tun es schon, Gegenstände nicht.</div>
         <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"Schiff: Wunsch → Hangar","value":1},"after":{"label":"Gegenstand: Wunsch + Inventar","value":2},"unit":"Einträge"}'></div><p>Gefunden in item-path.service.ts (addToHangar kippt den Status, adjustInventar lässt Wunsch und Nachschub stehen). Wunsch → Nachschub verschiebt schon heute mit Rückgängig.</p></div>
@@ -5785,27 +5788,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Ob Planen Schiffe als Route anbietet und ob der Zähler stimmt.</p>
       <div data-options>
         <label data-opt="close" data-recommended>
-          <input type="radio" name="dm-d-ship" value="close" checked>
+          <input type="radio" name="dm-d-ship" value="close" checked disabled>
           <span data-opt-label>Hangar schließt die Zeile automatisch</span>
           <span data-opt-consequence>„Besorgt“ bei Schiffen = in den Hangar; die Zeile steht danach auf „liegt bereit“.</span>
         </label>
         <label data-opt="never">
-          <input type="radio" name="dm-d-ship" value="never">
+          <input type="radio" name="dm-d-ship" value="never" disabled>
           <span data-opt-label>Schiffe kommen gar nicht in den Nachschub</span>
           <span data-opt-consequence>Schiffe nur Wunschliste und Hangar; kaufbare Ingame-Schiffe tauchen nicht in Planen auf.</span>
         </label>
         <label data-opt="manual">
-          <input type="radio" name="dm-d-ship" value="manual">
+          <input type="radio" name="dm-d-ship" value="manual" disabled>
           <span data-opt-label>Nur von Hand abhaken (wie heute)</span>
           <span data-opt-consequence>Keine Änderung, der Fehler mit „Besorgt“ muss trotzdem weg.</span>
         </label>
       </div>
-      <textarea data-comment="d-ship-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-ship-none" value="">
-      <input type="hidden" name="dm-d-ship-hes" value="">
-      <input type="hidden" name="dm-d-ship-touched" value="">
-      <input type="hidden" name="dm-d-ship-issue" value="">
-      <input type="hidden" name="dm-d-ship-epic" value="">
+      <textarea data-comment="d-ship-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-ship-none" value="" disabled>
+      <input type="hidden" name="dm-d-ship-hes" value="{&quot;ms&quot;:44282,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-ship-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-ship-issue" value="" disabled>
+      <input type="hidden" name="dm-d-ship-epic" value="" disabled>
       <div data-alevel="3" data-title="Schiff im Nachschub">
         <div data-slot="short">Der Schiffs-Eintrag bleibt heute für immer offen.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Wege","label":"die einen Schiffs-Eintrag automatisch schließen"}'></div><p>moveToInventar lehnt Schiffe ab (item-path.service.ts:431), addToHangar schließt keine Zeile (:529–555), das Popup zeigt „Besorgt“ trotzdem (hq-supplies-popup:113).</p></div>
@@ -5818,28 +5821,28 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <h3 data-question>Bekommen Rohstoffe und Material nur Nachschub und Inventar, keine Wunschliste?</h3>
       <div data-options>
         <label data-opt="yes" data-recommended>
-          <input type="radio" name="dm-d-raw" value="yes" checked>
+          <input type="radio" name="dm-d-raw" value="yes" disabled>
           <span data-opt-label>Ja, ohne Wunschliste</span>
           <span data-opt-consequence>Die Bahn zeigt bei Material zwei Knoten: Nachschub und Inventar.</span>
         </label>
         <label data-opt="no">
-          <input type="radio" name="dm-d-raw" value="no">
+          <input type="radio" name="dm-d-raw" value="no" checked disabled>
           <span data-opt-label>Nein, Wunschliste auch für Material</span>
           <span data-opt-consequence>Ein Wunsch ohne Menge, der in Planen nichts bewirkt.</span>
         </label>
         <label data-opt="alt">
-          <input type="radio" name="dm-d-raw" value="alt">
+          <input type="radio" name="dm-d-raw" value="alt" disabled>
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-raw-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-raw-alt" placeholder="Was stattdessen?" value="" readonly disabled>
       </div>
-      <textarea data-comment="d-raw-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-raw-none" value="">
-      <input type="hidden" name="dm-d-raw-hes" value="">
-      <input type="hidden" name="dm-d-raw-touched" value="">
-      <input type="hidden" name="dm-d-raw-issue" value="">
-      <input type="hidden" name="dm-d-raw-epic" value="">
+      <textarea data-comment="d-raw-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-raw-none" value="" disabled>
+      <input type="hidden" name="dm-d-raw-hes" value="{&quot;ms&quot;:10678,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-raw-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-raw-issue" value="" disabled>
+      <input type="hidden" name="dm-d-raw-epic" value="" disabled>
       <div data-alevel="3" data-title="Rohstoffe ohne Wunsch">
         <div data-slot="short">Material hat immer eine Menge.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"SCU","unit":"","label":"Material zählt in Mengen, nicht in Wünschen"}'></div><p>Blaupausen legen je Zutat eine Zeile mit exakter Menge an (forClassName). Gleiches Material aus zwei Blaupausen bleibt zwei Zeilen mit gemeinsamer Summe, wie im Gegenstand-Weg-Konzept beschlossen.</p></div>
@@ -5853,27 +5856,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Wie lange der Blaupausen-Fortschritt stimmt und wie aufgeräumt Planen bleibt.</p>
       <div data-options>
         <label data-opt="route" data-recommended>
-          <input type="radio" name="dm-d-done" value="route" checked>
+          <input type="radio" name="dm-d-done" value="route" disabled>
           <span data-opt-label>Wenn Einsatz oder Route fertig ist, sonst nach 7 Tagen</span>
           <span data-opt-consequence>Räumt sich selbst auf; der Blaupausen-Fortschritt muss dafür aus dem Inventar lesen.</span>
         </label>
         <label data-opt="now">
-          <input type="radio" name="dm-d-done" value="now">
+          <input type="radio" name="dm-d-done" value="now" disabled>
           <span data-opt-label>Sofort beim Besorgen</span>
           <span data-opt-consequence>Planen verliert „liegt bereit“, die Route weiß nicht mehr, was du schon hast.</span>
         </label>
         <label data-opt="manual">
-          <input type="radio" name="dm-d-done" value="manual">
+          <input type="radio" name="dm-d-done" value="manual" disabled>
           <span data-opt-label>Nur über „Erledigte entfernen“ (wie heute)</span>
           <span data-opt-consequence>Nichts verschwindet von allein; der Fortschritt kann beim Aufräumen zurückspringen.</span>
         </label>
       </div>
-      <textarea data-comment="d-done-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-done-none" value="">
-      <input type="hidden" name="dm-d-done-hes" value="">
-      <input type="hidden" name="dm-d-done-touched" value="">
-      <input type="hidden" name="dm-d-done-issue" value="">
-      <input type="hidden" name="dm-d-done-epic" value="">
+      <textarea data-comment="d-done-note" placeholder="Notiz (optional)" readonly disabled>Nur wenn automatisch erkannt wurde, dass man es im inventar jetzt neu hat ggü. zustand vorher oder wenn es manuell abgehakt wurde! Weil manchmal spielt man ja auch länger nicht. Es sollte aber immer wieder die mgölichkeit kgeben den nachschub zu leeren, =&gt; wird wieder in wunschliste überführt bzw. dort hochgezählt</textarea>
+      <input type="hidden" name="dm-d-done-none" value="1" disabled>
+      <input type="hidden" name="dm-d-done-hes" value="{&quot;ms&quot;:92068,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-done-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-done-issue" value="" disabled>
+      <input type="hidden" name="dm-d-done-epic" value="" disabled>
       <div data-alevel="3" data-title="Erledigte Zeilen">
         <div data-slot="short">Erledigte Zeilen leben heute, bis du sie selbst löschst.</div>
         <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"offen","value":"Planen holt es"},{"label":"liegt bereit","value":"Planen rechnet damit"},{"label":"weg","value":"heute nur per Knopf"}]}'></div><p>hq-blueprint-progress.ts zählt „have“ als erledigte Materialzeilen. clearDone entfernt sie und lässt damit wohl auch „total“ schrumpfen — nicht geprüft, aber aus dem Code abgeleitet.</p></div>
@@ -5886,27 +5889,28 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <h3 data-question>Was darf ein nicht angemeldeter Gast mit den Stati tun?</h3>
       <div data-options>
         <label data-opt="login" data-recommended>
-          <input type="radio" name="dm-d-guest" value="login" checked>
+          <input type="radio" name="dm-d-guest" value="login" disabled>
           <span data-opt-label>Klick öffnet die Anmeldung, danach läuft die Aktion</span>
           <span data-opt-consequence>Kein Gast-Speicher mehr; der Import-Dialog und die Lücke über Set-Seiten fallen weg.</span>
         </label>
         <label data-opt="local">
-          <input type="radio" name="dm-d-guest" value="local">
+          <input type="radio" name="dm-d-guest" value="local" disabled>
           <span data-opt-label>Nachschub bleibt lokal möglich (wie heute)</span>
           <span data-opt-consequence>Gäste können ausprobieren; Set-Seiten werden an die anderen Wege angeglichen.</span>
         </label>
         <label data-opt="all">
-          <input type="radio" name="dm-d-guest" value="all">
+          <input type="radio" name="dm-d-guest" value="all" disabled>
           <span data-opt-label>Alle Stati lokal für Gäste</span>
           <span data-opt-consequence>Am offensten, aber jede Anmeldung braucht einen Zusammenführen-Schritt für drei Listen.</span>
         </label>
       </div>
-      <textarea data-comment="d-guest-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-guest-none" value="">
-      <input type="hidden" name="dm-d-guest-hes" value="">
-      <input type="hidden" name="dm-d-guest-touched" value="">
-      <input type="hidden" name="dm-d-guest-issue" value="">
-      <input type="hidden" name="dm-d-guest-epic" value="">
+      <textarea data-comment="d-guest-note" placeholder="Notiz (optional)" readonly disabled>Alles nur mit anmeldung! und gäste können doch gar nix die sehen nur einen anmelde screen? Du meinst viewer, angemeldete, die dürfen alles machen!
+Nimm das konzept der gäste komplett heraus, unangemeldete user seehen nur die startseite mit login! einmal angemeldet und vom admin angenommen / eingeeladen, darf der user dann alles machen was nicht collaboratuer oder admin erfordert.</textarea>
+      <input type="hidden" name="dm-d-guest-none" value="1" disabled>
+      <input type="hidden" name="dm-d-guest-hes" value="{&quot;ms&quot;:87529,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-guest-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-guest-issue" value="" disabled>
+      <input type="hidden" name="dm-d-guest-epic" value="" disabled>
       <div data-alevel="3" data-title="Gäste">
         <div data-slot="short">Drei verschiedene Gast-Regeln je nach Einstieg.</div>
         <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Nachschub (lokal)","value":1},{"label":"Set-Seite (ohne Prüfung)","value":1},{"label":"Wunsch (Anmeldung)","value":0},{"label":"Inventar (Anmeldung)","value":0}],"unit":"= Gast darf"}'></div><p>hq-supplies.service.ts:374–429 (lokale Liste + Import-Dialog), set-supplies.component.ts:111–123 (keine Prüfung), item-path.component.ts:529 (Anmelde-Hinweis).</p></div>
@@ -5920,52 +5924,52 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-context>Jeder Punkt einzeln; ★ markiert die empfohlenen.</p>
       <div data-options>
         <label data-opt="keep" data-recommended>
-          <input type="checkbox" name="dm-d-edge.keep" value="1" checked>
+          <input type="checkbox" name="dm-d-edge.keep" value="1" checked disabled>
           <span data-opt-label>Katalog löscht nie: Entferntes bleibt mit Hinweis „nicht mehr im Spiel“</span>
           <span data-opt-consequence>Zeile bleibt mit gespeichertem Namen, fällt aber aus der Route.</span>
         </label>
         <label data-opt="upcoming" data-recommended>
-          <input type="checkbox" name="dm-d-edge.upcoming" value="1" checked>
+          <input type="checkbox" name="dm-d-edge.upcoming" value="1" checked disabled>
           <span data-opt-label>Angekündigtes Schiff geht live: der Wunsch zieht mit</span>
           <span data-opt-consequence>Der Wunsch wandert vom Konzept-Eintrag auf das Live-Schiff.</span>
         </label>
         <label data-opt="pledge" data-recommended>
-          <input type="checkbox" name="dm-d-edge.pledge" value="1" checked>
+          <input type="checkbox" name="dm-d-edge.pledge" value="1" checked disabled>
           <span data-opt-label>Gepledgtes angekündigtes Schiff darf in den Hangar</span>
           <span data-opt-consequence>Mit Hinweis „noch nicht im Spiel“; heute geht nur die Wunschliste.</span>
         </label>
         <label data-opt="manual" data-recommended>
-          <input type="checkbox" name="dm-d-edge.manual" value="1" checked>
+          <input type="checkbox" name="dm-d-edge.manual" value="1" checked disabled>
           <span data-opt-label>Manueller Bestand zählt überall als Besitz</span>
           <span data-opt-consequence>Suche und Set-Seiten lesen den Eintrag wie die Bahn.</span>
         </label>
         <label data-opt="zero" data-recommended>
-          <input type="checkbox" name="dm-d-edge.zero" value="1" checked>
+          <input type="checkbox" name="dm-d-edge.zero" value="1" checked disabled>
           <span data-opt-label>Menge 0 heißt überall „nicht da“</span>
           <span data-opt-consequence>Eine Regel statt drei (Bahn, Suche, Sets).</span>
         </label>
         <label data-opt="origin">
-          <input type="checkbox" name="dm-d-edge.origin" value="1">
+          <input type="checkbox" name="dm-d-edge.origin" value="1" checked disabled>
           <span data-opt-label>Herkunft am Hangar-Schiff: Pledge, Ingame, Leihschiff</span>
           <span data-opt-consequence>Ein Merkmal, kein eigener Status; der RSI-Import setzt „Pledge“.</span>
         </label>
         <label data-opt="second">
-          <input type="checkbox" name="dm-d-edge.second" value="1">
+          <input type="checkbox" name="dm-d-edge.second" value="1" checked disabled>
           <span data-opt-label>Zweites Exemplar desselben Schiffs erlaubt</span>
           <span data-opt-consequence>Heute meldet der Weg „schon im Hangar“.</span>
         </label>
         <label data-opt="wipe">
-          <input type="checkbox" name="dm-d-edge.wipe" value="1">
+          <input type="checkbox" name="dm-d-edge.wipe" value="1" checked disabled>
           <span data-opt-label>Knopf „Ingame-Bestand zurücksetzen“ für Wipes</span>
           <span data-opt-consequence>Leert Inventar und Ingame-Schiffe, Pledges und Blaupausen bleiben; mit Rückfrage.</span>
         </label>
       </div>
-      <textarea data-comment="d-edge-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-edge-none" value="">
-      <input type="hidden" name="dm-d-edge-hes" value="">
-      <input type="hidden" name="dm-d-edge-touched" value="">
-      <input type="hidden" name="dm-d-edge-issue" value="">
-      <input type="hidden" name="dm-d-edge-epic" value="">
+      <textarea data-comment="d-edge-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-edge-none" value="" disabled>
+      <input type="hidden" name="dm-d-edge-hes" value="{&quot;ms&quot;:70825,&quot;revisits&quot;:2,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-edge-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-edge-issue" value="" disabled>
+      <input type="hidden" name="dm-d-edge-epic" value="" disabled>
       <div data-alevel="3" data-title="Sonderfall-Regeln">
         <div data-slot="short">Acht Randfälle ohne klare Regel.</div>
         <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Menge 0","value":3},{"label":"Besitz-Erkennung","value":2},{"label":"Angekündigt → live","value":1}],"unit":"Regeln im Code"}'></div><p>Menge 0: item-path.service.ts:227 und codex-search-engine.ts:695 zählen sie als 1, set-supplies.component.ts:99 als nichts. Manueller Bestand: nur die Bahn liest „&lt;kind&gt;:&lt;Class&gt;“, Suche und Sets vergleichen den rohen Klassennamen.</p></div>
@@ -5985,27 +5989,28 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Hotkeys, Phone-Leiste und die Planen-Kachel auf Start.</p>
       <div data-options>
         <label data-opt="plan" data-recommended>
-          <input type="radio" name="dm-d-hqhome" value="plan" checked>
+          <input type="radio" name="dm-d-hqhome" value="plan" checked disabled>
           <span data-opt-label>Als erster Teil von Planen: „Was holen“ → „Route“</span>
           <span data-opt-consequence>Keine neue Seite; die Planen-Kachel auf Start zeigt „N offen“.</span>
         </label>
         <label data-opt="stock">
-          <input type="radio" name="dm-d-hqhome" value="stock">
+          <input type="radio" name="dm-d-hqhome" value="stock" disabled>
           <span data-opt-label>Als Reiter in Bestand</span>
           <span data-opt-consequence>Bestand heißt „hab ich“, Nachschub „hab ich nicht“ — zwei Bedeutungen auf einer Seite.</span>
         </label>
         <label data-opt="page">
-          <input type="radio" name="dm-d-hqhome" value="page">
+          <input type="radio" name="dm-d-hqhome" value="page" disabled>
           <span data-opt-label>Als eigene sechste Seite</span>
           <span data-opt-consequence>Bricht die beschlossene Folge; Hotkeys und Phone-Leiste verschieben sich.</span>
         </label>
       </div>
-      <textarea data-comment="d-hqhome-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-hqhome-none" value="">
-      <input type="hidden" name="dm-d-hqhome-hes" value="">
-      <input type="hidden" name="dm-d-hqhome-touched" value="">
-      <input type="hidden" name="dm-d-hqhome-issue" value="">
-      <input type="hidden" name="dm-d-hqhome-epic" value="">
+      <textarea data-comment="d-hqhome-note" placeholder="Notiz (optional)" readonly disabled>Aber dabei eher wunschliste zu nachschub übernehmen!  Daneben natürlich immer angezeigt in jetzt wofür man alle einsätze und co. macht nämlcih für den nachschub zu besorgen.
+Man soll aber auch mehrere nachschübe vorplanen können (bis zu 7), die jewiels 1-x Einsätze enthalten. Und in jetzt macht man nur ein Einsatzkonglomerat für 1 Nachschub. Den Nachschub auch gern dynamsisch benennen lassen mit der ki und den einsatz dazu uach, nachschub anhand dessen, was man bekommmt zusammengefasst in kurz (zeichenlimits respekteiren) und einsätze anhand was man m achen muss!</textarea>
+      <input type="hidden" name="dm-d-hqhome-none" value="" disabled>
+      <input type="hidden" name="dm-d-hqhome-hes" value="{&quot;ms&quot;:277706,&quot;revisits&quot;:1,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-hqhome-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-hqhome-issue" value="" disabled>
+      <input type="hidden" name="dm-d-hqhome-epic" value="" disabled>
       <div data-alevel="3" data-title="Platz im HQ">
         <div data-slot="short">Planen macht aus Nachschub schon heute eine Route.</div>
         <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Codex / Suche","value":"Bedarf entdecken"},{"label":"Planen · Was holen","value":"Menge, Quelle, auswählen"},{"label":"Planen · Route","value":"wo, in welcher Reihenfolge"},{"label":"Bestand","value":"liegt bereit"}]}'></div><p>i18n hq.plan.intro: „Planen macht aus deinem Nachschub eine Route“. Die Seitenfolge kommt aus hq-einstieg-ui-spec.md und gilt für Leiste, Phone-Leiste und Cue.</p></div>
@@ -6019,27 +6024,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Ob der wichtigste Einstieg in den Nachschub erhalten bleibt.</p>
       <div data-options>
         <label data-opt="pill" data-recommended>
-          <input type="radio" name="dm-d-codex" value="pill" checked>
+          <input type="radio" name="dm-d-codex" value="pill" disabled>
           <span data-opt-label>Listen zwei Knoten, Detail- und Blaupausenseite zusätzlich „In den Nachschub“</span>
           <span data-opt-consequence>Suchzeilen, Index und Holo zeigen Wunsch + Besitz; offener Nachschub nur als stiller Hinweis „3× im Nachschub“.</span>
         </label>
         <label data-opt="hq">
-          <input type="radio" name="dm-d-codex" value="hq">
+          <input type="radio" name="dm-d-codex" value="hq" checked disabled>
           <span data-opt-label>Nur Wunschliste und Besitz, Nachschub nur im HQ</span>
           <span data-opt-consequence>Dein Vorschlag wörtlich: am ruhigsten, aber Material der Blaupause nur noch über HQ → Planen → suchen.</span>
         </label>
         <label data-opt="three">
-          <input type="radio" name="dm-d-codex" value="three">
+          <input type="radio" name="dm-d-codex" value="three" disabled>
           <span data-opt-label>Drei Knoten überall (wie heute)</span>
           <span data-opt-consequence>Keine Änderung; genau die Unruhe, die dich stört.</span>
         </label>
       </div>
-      <textarea data-comment="d-codex-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-codex-none" value="">
-      <input type="hidden" name="dm-d-codex-hes" value="">
-      <input type="hidden" name="dm-d-codex-touched" value="">
-      <input type="hidden" name="dm-d-codex-issue" value="">
-      <input type="hidden" name="dm-d-codex-epic" value="">
+      <textarea data-comment="d-codex-note" placeholder="Notiz (optional)" readonly disabled>aber blaupasen materialien kann man ja nachdem eine blaupause zur wunschliste hinzufügen kann (die man ja z. B. durhc missiionen bkeommt), dann auch auch von der blaupause aus klicken x mal in die wunschliste das material überführen um dann die mateirailien zus sammeln (gern dann gruppiert, das man weiß, dass sie für diese blaupause craften sind bzw. gegenstand craften )</textarea>
+      <input type="hidden" name="dm-d-codex-none" value="" disabled>
+      <input type="hidden" name="dm-d-codex-hes" value="{&quot;ms&quot;:124948,&quot;revisits&quot;:1,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-codex-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-codex-issue" value="" disabled>
+      <input type="hidden" name="dm-d-codex-epic" value="" disabled>
       <div data-alevel="3" data-title="Stati im Codex">
         <div data-slot="short">14 Codex-Stellen zeigen heute drei Knoten.</div>
         <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"heute: Knoten pro Suchzeile","value":3},"after":{"label":"Vorschlag: Knoten pro Suchzeile","value":2},"unit":""}'></div><p>sc-item-path sitzt in Suche, Detail, Browse, Gear, Hardpoints, Swap-Picker und Holo. Die Stufen je Ort sind schon konfigurierbar (steps im ItemPathState), eine zweite Variante ist überschaubar.</p></div>
@@ -6055,27 +6060,29 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Was wird aus dem Nachschub-Knopf mit Popup in der HQ-Leiste?</h3>
       <div data-options>
         <label data-opt="glance" data-recommended>
-          <input type="radio" name="dm-d-hqpopup" value="glance" checked>
+          <input type="radio" name="dm-d-hqpopup" value="glance" disabled>
           <span data-opt-label>Bleibt als Schnellblick, nur Nachschub, Link nach Planen</span>
           <span data-opt-consequence>Der Wunschliste-Reiter zieht dorthin, wo „Ganze Wunschliste“ hinführt.</span>
         </label>
         <label data-opt="drop">
-          <input type="radio" name="dm-d-hqpopup" value="drop">
+          <input type="radio" name="dm-d-hqpopup" value="drop" disabled>
           <span data-opt-label>Entfällt, Planen übernimmt alles</span>
           <span data-opt-consequence>Ein Klick mehr, um schnell abzuhaken; dafür ein Ort weniger.</span>
         </label>
         <label data-opt="keep">
-          <input type="radio" name="dm-d-hqpopup" value="keep">
+          <input type="radio" name="dm-d-hqpopup" value="keep" disabled>
           <span data-opt-label>Bleibt wie heute mit beiden Reitern</span>
           <span data-opt-consequence>Wunschliste existiert dann an drei Orten.</span>
         </label>
       </div>
-      <textarea data-comment="d-hqpopup-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-hqpopup-none" value="">
-      <input type="hidden" name="dm-d-hqpopup-hes" value="">
-      <input type="hidden" name="dm-d-hqpopup-touched" value="">
-      <input type="hidden" name="dm-d-hqpopup-issue" value="">
-      <input type="hidden" name="dm-d-hqpopup-epic" value="">
+      <textarea data-comment="d-hqpopup-note" placeholder="Notiz (optional)" readonly disabled>Naja, wesentlich präsenter und ncih thinter popup versteckt, man soll den aktuelle Einsatzplanung sehen und dort Nachschub ergänzen um Dinge der WUnschliste und man sieht direkt dann die Einsätze...
+
+Nachholen heißt auf die wunschliste packen! Danach kann man hingehen und das zum nachschub hinzufügen für eine konkrete einsatzplanung unter planen im hq!</textarea>
+      <input type="hidden" name="dm-d-hqpopup-none" value="1" disabled>
+      <input type="hidden" name="dm-d-hqpopup-hes" value="{&quot;ms&quot;:87016,&quot;revisits&quot;:1,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-hqpopup-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-hqpopup-issue" value="" disabled>
+      <input type="hidden" name="dm-d-hqpopup-epic" value="" disabled>
       <div data-alevel="3" data-title="Nachschub-Knopf">
         <div data-slot="short">Das Popup trägt heute auch die Wunschliste.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"2","unit":"Reiter","label":"Wunschliste + Nachschub im HQ-Popup"}'></div><p>hq-supplies-popup.component.ts:38–48. Die Nachschub-Seite des Popups hat „Besorgt“ mit Ortswahl, Menge und „Erledigte entfernen“.</p></div>
@@ -6088,27 +6095,27 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Was zeigt Bestand vom Nachschub?</h3>
       <div data-options>
         <label data-opt="line" data-recommended>
-          <input type="radio" name="dm-d-stock" value="line" checked>
+          <input type="radio" name="dm-d-stock" value="line" disabled>
           <span data-opt-label>Pro Zeile „fehlt noch N“ plus „Nachholen“</span>
           <span data-opt-consequence>Ein stiller Hinweis je Eintrag; der Zettel selbst bleibt in Planen.</span>
         </label>
         <label data-opt="none">
-          <input type="radio" name="dm-d-stock" value="none">
+          <input type="radio" name="dm-d-stock" value="none" disabled>
           <span data-opt-label>Nichts, Bestand ist nur „hab ich“</span>
           <span data-opt-consequence>Klar getrennt, aber du siehst nicht, wovon du zu wenig hast.</span>
         </label>
         <label data-opt="block">
-          <input type="radio" name="dm-d-stock" value="block">
+          <input type="radio" name="dm-d-stock" value="block" disabled>
           <span data-opt-label>Eigener Abschnitt „Offen“ oben auf Bestand</span>
           <span data-opt-consequence>Doppelt mit Planen; zwei Stellen für denselben Zettel.</span>
         </label>
       </div>
-      <textarea data-comment="d-stock-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-stock-none" value="">
-      <input type="hidden" name="dm-d-stock-hes" value="">
-      <input type="hidden" name="dm-d-stock-touched" value="">
-      <input type="hidden" name="dm-d-stock-issue" value="">
-      <input type="hidden" name="dm-d-stock-epic" value="">
+      <textarea data-comment="d-stock-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-stock-none" value="1" disabled>
+      <input type="hidden" name="dm-d-stock-hes" value="{&quot;ms&quot;:38272,&quot;revisits&quot;:1,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-stock-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-stock-issue" value="" disabled>
+      <input type="hidden" name="dm-d-stock-epic" value="" disabled>
       <div data-alevel="3" data-title="Bestand und Nachschub">
         <div data-slot="short">Bestand kennt heute nur „Nachholen“.</div>
         <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Bestand-Zeile","value":"2 im Lager"},{"label":"Hinweis","value":"fehlt noch 3"},{"label":"Nachholen","value":"+ Nachschub"}]}'></div><p>hq-stock-popup.component.ts:460–465 ruft nachholen auf. Teilmengen beim Besorgen schrumpfen die Zeile, statt sie zu schließen (item-path.service.ts:445–450).</p></div>
@@ -6121,27 +6128,27 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Wohin führt der Link „Ganze Wunschliste“?</h3>
       <div data-options>
         <label data-opt="stocktab" data-recommended>
-          <input type="radio" name="dm-d-wishhome" value="stocktab" checked>
+          <input type="radio" name="dm-d-wishhome" value="stocktab" disabled>
           <span data-opt-label>Reiter „Wunschliste“ in Bestand</span>
           <span data-opt-consequence>Neben Inventar, Hangar, Blaupausen; ein echter Link mit eigener Adresse.</span>
         </label>
         <label data-opt="plan">
-          <input type="radio" name="dm-d-wishhome" value="plan">
+          <input type="radio" name="dm-d-wishhome" value="plan" disabled>
           <span data-opt-label>Abschnitt in Planen unter „Was holen“</span>
           <span data-opt-consequence>Wunsch direkt neben Nachschub, aber Planen wird länger.</span>
         </label>
         <label data-opt="search">
-          <input type="radio" name="dm-d-wishhome" value="search">
+          <input type="radio" name="dm-d-wishhome" value="search" disabled>
           <span data-opt-label>Suche mit Filter „wunschliste“</span>
           <span data-opt-consequence>Kein neuer Ort, aber keine Pflege-Ansicht (sortieren, entfernen).</span>
         </label>
       </div>
-      <textarea data-comment="d-wishhome-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-wishhome-none" value="">
-      <input type="hidden" name="dm-d-wishhome-hes" value="">
-      <input type="hidden" name="dm-d-wishhome-touched" value="">
-      <input type="hidden" name="dm-d-wishhome-issue" value="">
-      <input type="hidden" name="dm-d-wishhome-epic" value="">
+      <textarea data-comment="d-wishhome-note" placeholder="Notiz (optional)" readonly disabled>wunschliste ist wie eine shopping cart sozusagen ein popup oder so</textarea>
+      <input type="hidden" name="dm-d-wishhome-none" value="1" disabled>
+      <input type="hidden" name="dm-d-wishhome-hes" value="{&quot;ms&quot;:43661,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-wishhome-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-wishhome-issue" value="" disabled>
+      <input type="hidden" name="dm-d-wishhome-epic" value="" disabled>
       <div data-alevel="3" data-title="Ganze Wunschliste">
         <div data-slot="short">Heute führt der Link in ein Popup.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Seiten","label":"mit eigener Adresse für die Wunschliste"}'></div><p>Anker statt Popup folgt der Projektregel „Navigations sind echte Anker“: Mittelklick und neuer Tab funktionieren nur mit einer Adresse.</p></div>
@@ -6154,28 +6161,28 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Darf Planen auch lose Zeilen ohne Set auswählen und vorschlagen?</h3>
       <div data-options>
         <label data-opt="yes" data-recommended>
-          <input type="radio" name="dm-d-loose" value="yes" checked>
+          <input type="radio" name="dm-d-loose" value="yes" checked disabled>
           <span data-opt-label>Ja, jede Zeile ist auswählbar</span>
           <span data-opt-consequence>Häkchen auf jeder Zeile; der Vorschlag mischt Sets und lose Zeilen.</span>
         </label>
         <label data-opt="no">
-          <input type="radio" name="dm-d-loose" value="no">
+          <input type="radio" name="dm-d-loose" value="no" disabled>
           <span data-opt-label>Nein, nur Sets (wie heute)</span>
           <span data-opt-consequence>Einzelkäufe bleiben im Notfall-Vorschlag.</span>
         </label>
         <label data-opt="alt">
-          <input type="radio" name="dm-d-loose" value="alt">
+          <input type="radio" name="dm-d-loose" value="alt" disabled>
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-loose-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-loose-alt" placeholder="Was stattdessen?" value="" readonly disabled>
       </div>
-      <textarea data-comment="d-loose-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-loose-none" value="">
-      <input type="hidden" name="dm-d-loose-hes" value="">
-      <input type="hidden" name="dm-d-loose-touched" value="">
-      <input type="hidden" name="dm-d-loose-issue" value="">
-      <input type="hidden" name="dm-d-loose-epic" value="">
+      <textarea data-comment="d-loose-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-loose-none" value="" disabled>
+      <input type="hidden" name="dm-d-loose-hes" value="{&quot;ms&quot;:20853,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-loose-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-loose-issue" value="" disabled>
+      <input type="hidden" name="dm-d-loose-epic" value="" disabled>
       <div data-alevel="3" data-title="Lose Zeilen in Planen">
         <div data-slot="short">Lose Zeilen sind in Planen heute zweitklassig.</div>
         <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"Set-Zeilen auswählbar","value":1},"after":{"label":"lose Zeilen auswählbar","value":0},"unit":""}'></div><p>hq-supplies-popup:100 (Häkchen nur mit setId), hq-plan-selection.ts:135 und :143 (Ranking nur über Sets, sonst die ersten 12).</p></div>
@@ -6188,33 +6195,33 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Wie heißt die HQ-Seite für alles, was du hast?</h3>
       <div data-options>
         <label data-opt="bestand" data-recommended>
-          <input type="radio" name="dm-d-term" value="bestand" checked data-text="Bestand">
+          <input type="radio" name="dm-d-term" value="bestand" checked data-text="Bestand" disabled>
           <span data-opt-label>Bestand</span>
           <span data-opt-consequence>Oberbegriff; Schritt bleibt Inventar / Hangar / Gesammelt.</span>
         </label>
         <label data-opt="inventar">
-          <input type="radio" name="dm-d-term" value="inventar" data-text="Inventar">
+          <input type="radio" name="dm-d-term" value="inventar" data-text="Inventar" disabled>
           <span data-opt-label>Inventar</span>
           <span data-opt-consequence>Seite und Schritt heißen gleich, Schiffe und Blaupausen passen schlechter.</span>
         </label>
         <label data-opt="besitz">
-          <input type="radio" name="dm-d-term" value="besitz" data-text="Besitz">
+          <input type="radio" name="dm-d-term" value="besitz" data-text="Besitz" disabled>
           <span data-opt-label>Besitz</span>
           <span data-opt-consequence>Neutral, aber neues Wort in der App.</span>
         </label>
         <label data-opt="custom">
-          <input type="radio" name="dm-d-term" value="custom">
+          <input type="radio" name="dm-d-term" value="custom" disabled>
           <span data-opt-label>✎ eigenes Wort</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-term-text" placeholder="✎ eigenes Wort">
+        <input type="text" name="dm-d-term-text" placeholder="✎ eigenes Wort" value="" readonly disabled>
       </div>
-      <textarea data-comment="d-term-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-term-none" value="">
-      <input type="hidden" name="dm-d-term-hes" value="">
-      <input type="hidden" name="dm-d-term-touched" value="">
-      <input type="hidden" name="dm-d-term-issue" value="">
-      <input type="hidden" name="dm-d-term-epic" value="">
+      <textarea data-comment="d-term-note" placeholder="Notiz (optional)" readonly disabled>Stimmt, es sollte inventar / Hangar / Sammlung heißen, aber Bestand darf der oberbegriff selten genutzt sein!</textarea>
+      <input type="hidden" name="dm-d-term-none" value="" disabled>
+      <input type="hidden" name="dm-d-term-hes" value="{&quot;ms&quot;:33275,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-term-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-term-issue" value="" disabled>
+      <input type="hidden" name="dm-d-term-epic" value="" disabled>
       <div data-alevel="3" data-title="Name der Besitz-Seite">
         <div data-slot="short">Zwei Specs, zwei Namen.</div>
         <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"gegenstand-weg-ui-spec.md: „Lager“ und „Bestand“ abgelehnt · hq-einstieg-ui-spec.md: Seite „Bestand“"}'></div><p>Die Entscheidung korrigiert eine der beiden Specs; die Route #bestand bleibt als Alias in jedem Fall.</p></div>
@@ -6234,28 +6241,28 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <p data-context>Aufgeklappt bleibt es nur bis zum Schließen, nichts wird gespeichert.</p>
       <div data-options>
         <label data-opt="yes" data-recommended>
-          <input type="radio" name="dm-d-panel" value="yes" checked>
+          <input type="radio" name="dm-d-panel" value="yes" checked disabled>
           <span data-opt-label>Ja, genau diese zwei Listen</span>
           <span data-opt-consequence>„Mehr anzeigen“ klappt auf 7 auf; unter der Wunschliste „Ganze Wunschliste“ als echter Link.</span>
         </label>
         <label data-opt="no">
-          <input type="radio" name="dm-d-panel" value="no">
+          <input type="radio" name="dm-d-panel" value="no" disabled>
           <span data-opt-label>Nein, Mischung wie heute</span>
           <span data-opt-consequence>Keine Änderung.</span>
         </label>
         <label data-opt="alt">
-          <input type="radio" name="dm-d-panel" value="alt">
+          <input type="radio" name="dm-d-panel" value="alt" disabled>
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Zum Beispiel andere Anzahlen.</span>
         </label>
-        <input type="text" name="dm-d-panel-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-panel-alt" placeholder="Was stattdessen?" value="" readonly disabled>
       </div>
-      <textarea data-comment="d-panel-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-panel-none" value="">
-      <input type="hidden" name="dm-d-panel-hes" value="">
-      <input type="hidden" name="dm-d-panel-touched" value="">
-      <input type="hidden" name="dm-d-panel-issue" value="">
-      <input type="hidden" name="dm-d-panel-epic" value="">
+      <textarea data-comment="d-panel-note" placeholder="Notiz (optional)" readonly disabled>Kontextabhängig eher Zuletzt geöffnet + Wunschliste +Hangar/Inventar/Sammlung  (letzteres kontextabhängig)</textarea>
+      <input type="hidden" name="dm-d-panel-none" value="" disabled>
+      <input type="hidden" name="dm-d-panel-hes" value="{&quot;ms&quot;:73729,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-panel-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-panel-issue" value="" disabled>
+      <input type="hidden" name="dm-d-panel-epic" value="" disabled>
       <div data-alevel="3" data-title="Inhalt des Panels">
         <div data-slot="short">Fünf Listen heute, zwei im Vorschlag.</div>
         <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"Listen heute","value":5},"after":{"label":"Listen Vorschlag","value":2},"unit":""}'></div><p>merkliste.model.ts:16–18 (3/4/4/3), merkliste.service.ts:155 (Nachschub 5). Der Verlauf braucht weiter die Einwilligung „Komfort“ (#971).</p></div>
@@ -6279,27 +6286,27 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Wie wirkt sich die Seite, auf der du bist, auf die Einträge aus?</h3>
       <div data-options>
         <label data-opt="sort" data-recommended>
-          <input type="radio" name="dm-d-ptype" value="sort" checked>
+          <input type="radio" name="dm-d-ptype" value="sort" disabled>
           <span data-opt-label>Passender Typ zuerst, nichts wird ausgeblendet</span>
           <span data-opt-consequence>Auf einer Waffenseite stehen Waffen oben, darunter der Rest.</span>
         </label>
         <label data-opt="filter">
-          <input type="radio" name="dm-d-ptype" value="filter">
+          <input type="radio" name="dm-d-ptype" value="filter" checked disabled>
           <span data-opt-label>Nur der passende Typ (wie heute)</span>
           <span data-opt-consequence>Kurz und thematisch, aber oft leer.</span>
         </label>
         <label data-opt="time">
-          <input type="radio" name="dm-d-ptype" value="time">
+          <input type="radio" name="dm-d-ptype" value="time" disabled>
           <span data-opt-label>Seite egal, rein nach Zeit</span>
           <span data-opt-consequence>Immer gleich, aber ohne Bezug zur Seite.</span>
         </label>
       </div>
-      <textarea data-comment="d-ptype-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-ptype-none" value="">
-      <input type="hidden" name="dm-d-ptype-hes" value="">
-      <input type="hidden" name="dm-d-ptype-touched" value="">
-      <input type="hidden" name="dm-d-ptype-issue" value="">
-      <input type="hidden" name="dm-d-ptype-epic" value="">
+      <textarea data-comment="d-ptype-note" placeholder="Notiz (optional)" readonly disabled>sonst wird es zu viel!</textarea>
+      <input type="hidden" name="dm-d-ptype-none" value="" disabled>
+      <input type="hidden" name="dm-d-ptype-hes" value="{&quot;ms&quot;:48398,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-ptype-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-ptype-issue" value="" disabled>
+      <input type="hidden" name="dm-d-ptype-epic" value="" disabled>
       <div data-alevel="3" data-title="Seitentyp">
         <div data-slot="short">Der Filter macht Listen leer.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Typ","label":"sichtbar auf allen HQ-Seiten (Schiffe)"}'></div><p>merkliste.model.ts:31–42 und 58–104. Munition und Hersteller fallen ganz heraus (typeOfKind = null), obwohl sie gezählt werden.</p></div>
@@ -6312,27 +6319,27 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Was zählt die Zahl am Symbol?</h3>
       <div data-options>
         <label data-opt="wish" data-recommended>
-          <input type="radio" name="dm-d-pcount" value="wish" checked>
+          <input type="radio" name="dm-d-pcount" value="wish" checked disabled>
           <span data-opt-label>Nur die Wunschliste</span>
           <span data-opt-consequence>Zahl und Liste passen zusammen; der Verlauf zählt nicht.</span>
         </label>
         <label data-opt="none">
-          <input type="radio" name="dm-d-pcount" value="none">
+          <input type="radio" name="dm-d-pcount" value="none" disabled>
           <span data-opt-label>Gar keine Zahl</span>
           <span data-opt-consequence>Ruhiger, aber du siehst nicht, ob etwas drin ist.</span>
         </label>
         <label data-opt="mix">
-          <input type="radio" name="dm-d-pcount" value="mix">
+          <input type="radio" name="dm-d-pcount" value="mix" disabled>
           <span data-opt-label>Wünsche plus offener Nachschub</span>
           <span data-opt-consequence>Zählt etwas, das im Panel nicht mehr steht.</span>
         </label>
       </div>
-      <textarea data-comment="d-pcount-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-pcount-none" value="">
-      <input type="hidden" name="dm-d-pcount-hes" value="">
-      <input type="hidden" name="dm-d-pcount-touched" value="">
-      <input type="hidden" name="dm-d-pcount-issue" value="">
-      <input type="hidden" name="dm-d-pcount-epic" value="">
+      <textarea data-comment="d-pcount-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-pcount-none" value="" disabled>
+      <input type="hidden" name="dm-d-pcount-hes" value="{&quot;ms&quot;:16980,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-pcount-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-pcount-issue" value="" disabled>
+      <input type="hidden" name="dm-d-pcount-epic" value="" disabled>
       <div data-alevel="3" data-title="Zahl am Symbol">
         <div data-slot="short">Die Zahl zählt drei Dinge, zwei davon sieht man nicht.</div>
         <div data-slot="long"><div data-viz="donut" data-viz-spec='{"parts":[{"label":"Nachschub offen","value":40},{"label":"Wünsche","value":45},{"label":"News gemerkt","value":15}]}'></div><p>merkliste.service.ts:113–117. Die Anteile im Diagramm sind ein Beispiel, keine Messung.</p></div>
@@ -6345,27 +6352,27 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Bekommt der Nachschub im Panel noch einen Platz?</h3>
       <div data-options>
         <label data-opt="out" data-recommended>
-          <input type="radio" name="dm-d-pnach" value="out" checked>
+          <input type="radio" name="dm-d-pnach" value="out" checked disabled>
           <span data-opt-label>Nein, Nachschub nur im HQ</span>
           <span data-opt-consequence>Das Panel bleibt bei zwei Listen.</span>
         </label>
         <label data-opt="line">
-          <input type="radio" name="dm-d-pnach" value="line">
+          <input type="radio" name="dm-d-pnach" value="line" disabled>
           <span data-opt-label>Eine stille Zeile „N offen · Planen öffnen“</span>
           <span data-opt-consequence>Ein Link ins HQ, keine Liste; kostet eine Zeile.</span>
         </label>
         <label data-opt="tab">
-          <input type="radio" name="dm-d-pnach" value="tab">
+          <input type="radio" name="dm-d-pnach" value="tab" disabled>
           <span data-opt-label>Reiter wie heute</span>
           <span data-opt-consequence>Keine Änderung.</span>
         </label>
       </div>
-      <textarea data-comment="d-pnach-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-pnach-none" value="">
-      <input type="hidden" name="dm-d-pnach-hes" value="">
-      <input type="hidden" name="dm-d-pnach-touched" value="">
-      <input type="hidden" name="dm-d-pnach-issue" value="">
-      <input type="hidden" name="dm-d-pnach-epic" value="">
+      <textarea data-comment="d-pnach-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-pnach-none" value="" disabled>
+      <input type="hidden" name="dm-d-pnach-hes" value="{&quot;ms&quot;:12613,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-pnach-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-pnach-issue" value="" disabled>
+      <input type="hidden" name="dm-d-pnach-epic" value="" disabled>
       <div data-alevel="3" data-title="Nachschub im Panel">
         <div data-slot="short">Heute ein eigener Reiter mit 5 Zeilen.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"5","unit":"Zeilen","label":"Nachschub im Panel-Reiter heute"}'></div><p>merkliste.component.ts:65–90 (Reiter „type“ und „nachschub“).</p></div>
@@ -6378,33 +6385,33 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Wie heißt das Panel oben rechts?</h3>
       <div data-options>
         <label data-opt="schnell" data-recommended>
-          <input type="radio" name="dm-d-pname" value="schnell" checked data-text="Schnellzugriff">
+          <input type="radio" name="dm-d-pname" value="schnell" checked data-text="Schnellzugriff" disabled>
           <span data-opt-label>Schnellzugriff</span>
           <span data-opt-consequence>Bekanntes Wort für Verlauf + Angeheftetes.</span>
         </label>
         <label data-opt="zuletzt">
-          <input type="radio" name="dm-d-pname" value="zuletzt" data-text="Zuletzt &amp; Wünsche">
+          <input type="radio" name="dm-d-pname" value="zuletzt" data-text="Zuletzt &amp; Wünsche" disabled>
           <span data-opt-label>Zuletzt &amp; Wünsche</span>
           <span data-opt-consequence>Sagt genau, was drin ist, aber sperrig im Tooltip.</span>
         </label>
         <label data-opt="wunsch">
-          <input type="radio" name="dm-d-pname" value="wunsch" data-text="Wunschliste">
+          <input type="radio" name="dm-d-pname" value="wunsch" data-text="Wunschliste" disabled>
           <span data-opt-label>Wunschliste</span>
           <span data-opt-consequence>Benennt nur den bleibenden Teil.</span>
         </label>
         <label data-opt="custom">
-          <input type="radio" name="dm-d-pname" value="custom">
+          <input type="radio" name="dm-d-pname" value="custom" disabled>
           <span data-opt-label>✎ eigenes Wort</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-pname-text" placeholder="✎ eigenes Wort">
+        <input type="text" name="dm-d-pname-text" placeholder="✎ eigenes Wort" value="" readonly disabled>
       </div>
-      <textarea data-comment="d-pname-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-pname-none" value="">
-      <input type="hidden" name="dm-d-pname-hes" value="">
-      <input type="hidden" name="dm-d-pname-touched" value="">
-      <input type="hidden" name="dm-d-pname-issue" value="">
-      <input type="hidden" name="dm-d-pname-epic" value="">
+      <textarea data-comment="d-pname-note" placeholder="Notiz (optional)" readonly disabled>Aber bitte drein als icon, nur aufgeklappt sieht man das wording!</textarea>
+      <input type="hidden" name="dm-d-pname-none" value="" disabled>
+      <input type="hidden" name="dm-d-pname-hes" value="{&quot;ms&quot;:28671,&quot;revisits&quot;:1,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-pname-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-pname-issue" value="" disabled>
+      <input type="hidden" name="dm-d-pname-epic" value="" disabled>
       <div data-alevel="3" data-title="Name des Panels">
         <div data-slot="short">„Merkliste“ widerspricht der eigenen Regel.</div>
         <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"gegenstand-weg-ui-spec.md: „No word Merken on game content“"}'></div><p>Betroffen sind merkliste.title, merkliste.aria und der Tooltip am Symbol; der Code-Name merkliste.* kann bleiben oder mitwandern (Runde 2).</p></div>
@@ -6417,27 +6424,27 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Welches Symbol trägt das Panel?</h3>
       <div data-options>
         <label data-opt="clock" data-recommended>
-          <input type="radio" name="dm-d-picon" value="clock" checked>
+          <input type="radio" name="dm-d-picon" value="clock" disabled>
           <span data-opt-label>Uhr mit Zahl</span>
           <span data-opt-consequence>Steht für „zuletzt“; die Zahl zeigt die Wünsche.</span>
         </label>
         <label data-opt="wish">
-          <input type="radio" name="dm-d-picon" value="wish">
+          <input type="radio" name="dm-d-picon" value="wish" disabled>
           <span data-opt-label>Wunsch-Symbol aus der Bahn</span>
           <span data-opt-consequence>Gleiches Zeichen wie der Wunsch-Knoten; der Verlauf läuft mit.</span>
         </label>
         <label data-opt="grid">
-          <input type="radio" name="dm-d-picon" value="grid">
+          <input type="radio" name="dm-d-picon" value="grid" disabled>
           <span data-opt-label>Raster (Schnellzugriff)</span>
           <span data-opt-consequence>Neutral, kann aber mit dem Apps-Menü verwechselt werden.</span>
         </label>
       </div>
-      <textarea data-comment="d-picon-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-picon-none" value="">
-      <input type="hidden" name="dm-d-picon-hes" value="">
-      <input type="hidden" name="dm-d-picon-touched" value="">
-      <input type="hidden" name="dm-d-picon-issue" value="">
-      <input type="hidden" name="dm-d-picon-epic" value="">
+      <textarea data-comment="d-picon-note" placeholder="Notiz (optional)" readonly disabled>gefällt mir alles noch nicht, eher einen verschnitt aus lesezeichen, warenkorb, zuletzt geöfnnet, geschenk, will ich icons brauch ich! gern nochmal kreativ werden und mir visuelel vorschläge machen!</textarea>
+      <input type="hidden" name="dm-d-picon-none" value="1" disabled>
+      <input type="hidden" name="dm-d-picon-hes" value="{&quot;ms&quot;:164832,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-picon-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-picon-issue" value="" disabled>
+      <input type="hidden" name="dm-d-picon-epic" value="" disabled>
       <div data-alevel="3" data-title="Symbol des Panels">
         <div data-slot="short">Das Lesezeichen wird frei für die News.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Symbol","label":"heute doppelt belegt: Panel und News"}'></div><p>Das Apps-Menü daneben nutzt bereits ein Raster-Symbol (appsMenu.trigger), deshalb ist das Raster hier nur die dritte Wahl.</p></div>
@@ -6451,30 +6458,785 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <p data-stakes>Der Such-Begriff „gemerkt“ zeigt danach auf die Wunschliste, „lesezeichen“ auf News.</p>
       <div data-options>
         <label data-opt="feed" data-recommended>
-          <input type="radio" name="dm-d-news" value="feed" checked>
+          <input type="radio" name="dm-d-news" value="feed" disabled>
           <span data-opt-label>Im Feed: Filter „Lesezeichen“ und Streifen „Weiterlesen“</span>
           <span data-opt-consequence>Der Schalter „Gemerkt“ heißt „Lesezeichen“; oben im Feed die zuletzt gelesenen Beiträge.</span>
         </label>
         <label data-opt="panel">
-          <input type="radio" name="dm-d-news" value="panel">
+          <input type="radio" name="dm-d-news" value="panel" checked disabled>
           <span data-opt-label>Im Panel, aber nur auf News-Seiten</span>
           <span data-opt-consequence>Halb der alte Zustand; das Panel ändert sich je nach Seite.</span>
         </label>
         <label data-opt="feedonly">
-          <input type="radio" name="dm-d-news" value="feedonly">
+          <input type="radio" name="dm-d-news" value="feedonly" disabled>
           <span data-opt-label>Im Feed, ohne „Zuletzt gelesen“</span>
           <span data-opt-consequence>Am schlanksten; der Lese-Verlauf entfällt.</span>
         </label>
       </div>
-      <textarea data-comment="d-news-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-news-none" value="">
-      <input type="hidden" name="dm-d-news-hes" value="">
-      <input type="hidden" name="dm-d-news-touched" value="">
-      <input type="hidden" name="dm-d-news-issue" value="">
-      <input type="hidden" name="dm-d-news-epic" value="">
+      <textarea data-comment="d-news-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-news-none" value="" disabled>
+      <input type="hidden" name="dm-d-news-hes" value="{&quot;ms&quot;:37856,&quot;revisits&quot;:0,&quot;median&quot;:44282}" disabled>
+      <input type="hidden" name="dm-d-news-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-news-issue" value="" disabled>
+      <input type="hidden" name="dm-d-news-epic" value="" disabled>
       <div data-alevel="3" data-title="News-Lesezeichen">
         <div data-slot="short">Lesezeichen sind lokal und hängen heute am Panel.</div>
         <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Geräte-Sync","label":"News-Lesezeichen nur in localStorage"}'></div><p>news.service.ts:72 und :262–278 (sc-companion.news.favorites), merkliste.service.ts:22–23 (Zuletzt gelesen, max 12). Sync für Angemeldete wäre ein eigenes Issue.</p></div>
+      </div>
+    </section>
+  </section>
+</section>
+
+<section data-iteration="2" data-iteration-template="decision" data-analysis="full" data-tab-label="Runde 2 · Auswirkungen" id="iter-2" data-active>
+  <section id="r2-briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Deine Antworten aus Runde 1 ergeben ein neues Modell: alles startet auf der Wunschliste (mit Menge), Nachschub wird ein benanntes Paket in Planen mit eigenen Einsätzen, am Ende steht Inventar, Hangar oder Sammlung.</p>
+    <p data-briefing-why>Runde 2 zeigt, was das für jeden Bereich heißt; Runde 3 bringt das Design, inklusive visueller Vorschläge für das Symbol oben rechts.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"7","unit":"Bereiche","label":"ändern sich durch das neue Modell"}'>7 Bereiche</div>
+    <a data-briefing-topic="r2-t-modell" data-share="40">Das neue Modell</a>
+    <a data-briefing-topic="r2-t-bereiche" data-share="40">Auswirkungen je Bereich</a>
+    <a data-briefing-topic="r2-t-uebergang" data-share="20">Übergang und Daten</a>
+    <p data-briefing-duration>≈ 14 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"7","unit":"Bereiche","label":"ändern sich durch das neue Modell"}'></div></div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Das neue Modell","value":7},{"label":"Auswirkungen je Bereich","value":7},{"label":"Übergang und Daten","value":5}],"unit":"Fragen"}'></div><p>Das Gast-Konzept ist in den Routen schon weg: jede Seite der App verlangt Anmeldung und Freigabe (app.routes.ts:13–22, authGuard + approvedGuard). Übrig ist nur toter Code, den Bereich „Daten &amp; Code“ aufräumt. Eine Korrektur vorab: Galerie-Bilder kannst du heute nur abstimmen, nicht sammeln. Die Frage nach dem Symbol kommt in Runde 3 mit visuellen Vorschlägen; jede Frage hier ist mit meiner Empfehlung vorbelegt.</p></div>
+    </div>
+  </section>
+
+  <section id="r2-t-modell" data-topic data-nav-label="Das neue Modell">
+    <div data-alevel="2" data-title="Das neue Modell">
+      <div data-slot="short">Alles startet auf der Wunschliste mit Menge; Pakete bündeln, was du in Einsätzen holst.</div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Fluss bestätigen","value":1},{"label":"Menge und Teilen","value":1},{"label":"Schließen und Grenze","value":2},{"label":"Namen","value":1},{"label":"Sammlung und Bestand","value":2}],"unit":"Fragen","hl":"Schließen und Grenze"}'></div><p>Nach deinen Notizen aus Runde 1 ist Nachschub kein Status am Gegenstand mehr, sondern ein Paket, das du planst. Hier bestätigst du den Fluss einmal und klärst die offenen Regeln: Teilmengen, wann eine Zeile schließt, die Grenze von 7 Paketen, die Namen und was in die Sammlung gehört.</p></div>
+    </div>
+
+    <section id="r2-d2-flow" data-nav-label="Der neue Fluss" data-decision="r2-d2-flow" data-decision-mode="verify" data-label="Der neue Fluss" data-rec="ok" data-rec-why="so hast du es in Runde 1 beschrieben: ein Weg für alles, mit zwei Abkürzungen und einem Rückweg." data-applies-to="die ganze App" data-finding="r2-f-d2-flow">
+      <p data-applies>Gilt für: die ganze App</p>
+      <p data-situation>In Runde 1 hast du das Modell bestätigt und erweitert: Wunschliste mit Zähler, Nachschub als Paket in Planen, Sammlung statt Lesezeichen.</p>
+      <h3 data-question>Stimmt der Fluss: Wunschliste mit Menge → Nachschub-Paket → Inventar, Hangar oder Sammlung?</h3>
+      <p data-stakes>Alle weiteren Fragen dieser Runde bauen auf diesem Fluss auf.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-flow" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>Abkürzungen: Gegenstand direkt in den Bestand, News und Galerie direkt in die Sammlung; „Leeren“ führt zurück auf die Wunschliste.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-flow" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-flow" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann baue ich den Fluss vor dem Design in Runde 3 neu auf.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-flow-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-flow-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-flow-none" value="">
+      <input type="hidden" name="dm-r2-d2-flow-hes" value="">
+      <input type="hidden" name="dm-r2-d2-flow-touched" value="">
+      <input type="hidden" name="dm-r2-d2-flow-issue" value="">
+      <input type="hidden" name="dm-r2-d2-flow-epic" value="">
+      <div data-alevel="3" data-title="Der neue Fluss">
+        <div data-slot="short">Ein Weg für alles: Wunsch, Paket, Einsätze, Bestand — plus zwei Abkürzungen und Leeren.</div>
+        <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Wunschliste","value":"mit Menge, aus Codex, Suche, Holo, Blaupause"},{"label":"Nachschub-Paket","value":"in Planen, bis zu 7, ganz geplant"},{"label":"Einsätze","value":"1–x je Paket, Jetzt fährt eines"},{"label":"Bestand","value":"Inventar · Hangar · Sammlung"}]}'></div><p>Nach deinen Notizen zu d-model, d-done und d-hqhome: Nachschub ist kein dritter Status am Gegenstand mehr, sondern ein Paket, das du aus der Wunschliste befüllst. „Nachholen“ heißt überall „auf die Wunschliste“. „Leeren“ geht jederzeit und zählt offene Zeilen auf der Wunschliste wieder hoch.</p></div>
+        <div data-example><pre>Codex · Suche · Holo · Blaupause
+        │  ♡ ×N
+        ▼
+  Wunschliste (Menge)  ◄────── Leeren ──────┐
+        │  in Planen übernehmen               │
+        ▼                                     │
+  Nachschub-Paket (bis 7, 1–x Einsätze) ──────┘
+        │  erkannt oder abgehakt
+        ▼
+  Inventar · Hangar · Sammlung
+
+Abkürzungen: Gegenstand direkt ins Inventar / in den Hangar
+             News und Galerie direkt in die Sammlung</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-split" data-nav-label="Teilmengen" data-decision="r2-d2-split" data-decision-mode="single" data-label="Teilmengen" data-rec="split" data-rec-why="du planst ein Paket ganz; weniger planen geht nur, wenn du weniger übernehmen kannst — also muss sich die Menge teilen lassen." data-applies-to="Wunschliste, Planen" data-finding="r2-f-d2-split">
+      <p data-applies>Gilt für: Wunschliste, Planen</p>
+      <p data-situation>Wünsche haben ab jetzt eine Menge (20 Rattler). Ein Paket planst du immer ganz — weniger planen heißt, weniger aus der Wunschliste übernehmen.</p>
+      <h3 data-question>Darf ein Paket nur einen Teil einer Wunsch-Position übernehmen, etwa 5 von 20 Rattler?</h3>
+      <div data-options>
+        <label data-opt="split" data-recommended>
+          <input type="radio" name="dm-r2-d2-split" value="split" checked>
+          <span data-opt-label>Ja, die Menge teilt sich</span>
+          <span data-opt-consequence>5 gehen ins Paket, 15 bleiben auf der Wunschliste; „Leeren“ zählt sie dort wieder hoch.</span>
+        </label>
+        <label data-opt="whole">
+          <input type="radio" name="dm-r2-d2-split" value="whole">
+          <span data-opt-label>Nein, immer die ganze Position</span>
+          <span data-opt-consequence>Einfacher, aber alle 20 landen in einem Paket, auch wenn du nur 5 holen willst.</span>
+        </label>
+        <label data-opt="mirror">
+          <input type="radio" name="dm-r2-d2-split" value="mirror">
+          <span data-opt-label>Ja, aber der Wunsch bleibt ganz stehen</span>
+          <span data-opt-consequence>Wunschliste zeigt 20, Paket 5; der Wunsch sinkt erst, wenn die 5 im Bestand sind.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-split-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-split-none" value="">
+      <input type="hidden" name="dm-r2-d2-split-hes" value="">
+      <input type="hidden" name="dm-r2-d2-split-touched" value="">
+      <input type="hidden" name="dm-r2-d2-split-issue" value="">
+      <input type="hidden" name="dm-r2-d2-split-epic" value="">
+      <div data-alevel="3" data-title="Teilmengen">
+        <div data-slot="short">Teilen braucht eine Menge an Wunsch und Paket-Zeile; heute hat der Wunsch keine.</div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"im Paket","value":5},{"label":"bleibt auf der Wunschliste","value":15}],"unit":"Rattler","hl":"im Paket"}'></div><p>Nach deiner Notiz zu d-model planst du nie einen Teil eines Pakets, sondern übernimmst weniger. search_wishlist hat heute keine Mengenspalte (20261102120000_search_wishlist.sql:6–12), die Teilung braucht also qty am Wunsch und an der Paket-Zeile. Die Zahlen im Diagramm sind ein Beispiel.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-detect" data-nav-label="Automatisch erkannt" data-decision="r2-d2-detect" data-decision-mode="single" data-label="Automatisch erkannt" data-rec="snapshot" data-rec-why="das Inventar ändert sich per Hand, per Import oder über die App; der Vergleich mit dem Stand beim Planen erkennt alle drei, ohne auf die Uhr zu schauen." data-applies-to="Nachschub-Zeilen, Inventar, SCC-App" data-finding="r2-f-d2-detect">
+      <p data-applies>Gilt für: Nachschub-Zeilen, Inventar, SCC-App</p>
+      <p data-situation>Heute schließt eine Zeile nur über moveToInventar (Besorgt mit Ort) oder tickOnly (abhaken), item-path.service.ts:429–525. Du willst: erkannt oder von Hand, nie nach Zeit.</p>
+      <h3 data-question>Was zählt als „automatisch erkannt“, um eine Nachschub-Zeile zu schließen?</h3>
+      <p data-context>Von Hand abhaken geht in jedem Fall.</p>
+      <div data-options>
+        <label data-opt="snapshot" data-recommended>
+          <input type="radio" name="dm-r2-d2-detect" value="snapshot" checked>
+          <span data-opt-label>Inventar-Menge steigt gegenüber dem Planungsstand</span>
+          <span data-opt-consequence>Jede Zeile merkt sich beim Planen die Menge an allen Orten; steigt sie, ist die Zeile (teil-)besorgt.</span>
+        </label>
+        <label data-opt="live">
+          <input type="radio" name="dm-r2-d2-detect" value="live">
+          <span data-opt-label>Nur das Live-Signal der SCC-App</span>
+          <span data-opt-consequence>Sicher erkannt, aber ohne laufende App schließt nichts von allein.</span>
+        </label>
+        <label data-opt="manual">
+          <input type="radio" name="dm-r2-d2-detect" value="manual">
+          <span data-opt-label>Gar nicht automatisch, nur abhaken</span>
+          <span data-opt-consequence>Kein Schnappschuss nötig; jede Zeile hakst du selbst ab.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-detect-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-detect-none" value="">
+      <input type="hidden" name="dm-r2-d2-detect-hes" value="">
+      <input type="hidden" name="dm-r2-d2-detect-touched" value="">
+      <input type="hidden" name="dm-r2-d2-detect-issue" value="">
+      <input type="hidden" name="dm-r2-d2-detect-epic" value="">
+      <div data-alevel="3" data-title="Automatisch erkannt">
+        <div data-slot="short">Ein Schnappschuss beim Planen macht „mehr als vorher“ messbar.</div>
+        <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Planen","value":"Schnappschuss: 2 im Bestand"},{"label":"Inventar","value":"jetzt 7 (+5)"},{"label":"Zeile","value":"5/5 besorgt, schließt"}]}'></div><p>Nach deiner Notiz zu d-done: „manchmal spielt man länger nicht“, also nie nach Zeit. Live-Events haken heute schon Einsatz-Schritte ab (hq-live.service.ts:45–46); der Schnappschuss je Zeile wäre eine neue Spalte an der Paket-Zeile — abgeleitet, nicht gebaut.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-limit" data-nav-label="Grenze 7 Pakete" data-decision="r2-d2-limit" data-decision-mode="single" data-label="Grenze 7 Pakete" data-rec="block" data-rec-why="du hast 7 als Grenze gesetzt; nichts soll verschwinden, ohne dass du es entscheidest." data-applies-to="HQ Planen" data-finding="r2-f-d2-limit">
+      <p data-applies>Gilt für: HQ Planen</p>
+      <p data-situation>Du willst bis zu 7 Nachschübe vorplanen. Heute gibt es gar keine Pakete; Zeilen sind nur nach Schiff- oder FPS-Set gruppiert (hq-supplies.service.ts:150–161).</p>
+      <h3 data-question>Was passiert, wenn du einen 8. Nachschub anlegen willst?</h3>
+      <div data-options>
+        <label data-opt="block" data-recommended>
+          <input type="radio" name="dm-r2-d2-limit" value="block" checked>
+          <span data-opt-label>„Neuer Nachschub“ gesperrt, mit Hinweis</span>
+          <span data-opt-consequence>Hinweis: „max. 7 Nachschübe – schließ oder leere einen“; nichts verschwindet ohne dich.</span>
+        </label>
+        <label data-opt="archive">
+          <input type="radio" name="dm-r2-d2-limit" value="archive">
+          <span data-opt-label>Ältester fertiger Nachschub wird archiviert</span>
+          <span data-opt-consequence>Platz entsteht von selbst, aber nur, wenn einer fertig ist.</span>
+        </label>
+        <label data-opt="nolimit">
+          <input type="radio" name="dm-r2-d2-limit" value="nolimit">
+          <span data-opt-label>Keine Grenze</span>
+          <span data-opt-consequence>Planen wird bei vielen Paketen lang; die 7 aus Runde 1 fallen weg.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-limit-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-limit-none" value="">
+      <input type="hidden" name="dm-r2-d2-limit-hes" value="">
+      <input type="hidden" name="dm-r2-d2-limit-touched" value="">
+      <input type="hidden" name="dm-r2-d2-limit-issue" value="">
+      <input type="hidden" name="dm-r2-d2-limit-epic" value="">
+      <div data-alevel="3" data-title="Grenze 7 Pakete">
+        <div data-slot="short">Bis zu 7 Pakete gleichzeitig, das 8. wartet auf einen freien Platz.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"7","unit":"Nachschübe","label":"gleichzeitig vorgeplant"}'></div><p>Nach deiner Notiz zu d-hqhome: bis zu 7 Nachschübe mit je 1–x Einsätzen. Ein Paket ist fertig, wenn alle Zeilen erkannt oder abgehakt sind; „Leeren“ gibt seinen Platz sofort frei. Der gesperrte Knopf bleibt sichtbar und erklärt, warum.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-names" data-nav-label="KI-Namen" data-decision="r2-d2-names" data-decision-mode="single" data-label="KI-Namen" data-rec="ai" data-rec-why="du wolltest die KI ausdrücklich; ein Regel-Name als Rückfall hält Planen auch ohne Server-Antwort bedienbar." data-applies-to="Nachschub-Pakete, Einsätze" data-finding="r2-f-d2-names">
+      <p data-applies>Gilt für: Nachschub-Pakete, Einsätze</p>
+      <p data-situation>„Einsatz speichern“ schlägt heute einen Namen per Heuristik vor (hq-plan.component.ts:575–605). Vier Edge Functions rufen Anthropic schon serverseitig auf, keine benennt Einsätze.</p>
+      <h3 data-question>Wie entstehen die Namen für Nachschub-Pakete und Einsätze?</h3>
+      <p data-context>Die Zeichengrenzen sind ein Vorschlag; schreib andere in die Notiz.</p>
+      <div data-options>
+        <label data-opt="ai" data-recommended>
+          <input type="radio" name="dm-r2-d2-names" value="ai" checked>
+          <span data-opt-label>KI-Vorschlag beim Anlegen, immer änderbar</span>
+          <span data-opt-consequence>Paket ≤ 28 Zeichen (was du bekommst), Einsatz ≤ 40 (was du tust); scheitert der Aufruf, greift die Regel.</span>
+        </label>
+        <label data-opt="rule">
+          <input type="radio" name="dm-r2-d2-names" value="rule">
+          <span data-opt-label>Nur Regel: wichtigstes Ding plus Anzahl</span>
+          <span data-opt-consequence>Etwa „Rattler ×20 + 3 weitere“; kein Server-Aufruf, aber steif.</span>
+        </label>
+        <label data-opt="manual">
+          <input type="radio" name="dm-r2-d2-names" value="manual">
+          <span data-opt-label>Nur von Hand</span>
+          <span data-opt-consequence>Du tippst jeden Namen; leer heißt „Nachschub 1“.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-names-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-names-none" value="">
+      <input type="hidden" name="dm-r2-d2-names-hes" value="">
+      <input type="hidden" name="dm-r2-d2-names-touched" value="">
+      <input type="hidden" name="dm-r2-d2-names-issue" value="">
+      <input type="hidden" name="dm-r2-d2-names-epic" value="">
+      <div data-alevel="3" data-title="KI-Namen">
+        <div data-slot="short">Eine kleine neue Edge Function nach bekanntem Muster; der Client hält nie einen Schlüssel.</div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Paketname","value":28},{"label":"Einsatzname","value":40},{"label":"Einsatztitel in der DB","value":120}],"unit":"Zeichen max."}'></div><p>Nach deiner Notiz zu d-hqhome: Paket = kurz, was du bekommst; Einsatz = was du tun musst. Das Muster gibt es viermal (codex-patch-summary, patch-teaser, sc-events-sync, translate-orchestrator mit Secret TRANSLATE_ANTHROPIC_API_KEY); Schlüssel nur im Edge-Function-Proxy, wie die Projektregel verlangt. hq_einsaetze erlaubt 1–120 Zeichen, 40 passt also hinein.</p></div>
+        <div data-example><pre>Paket:    Raketen &amp; Panzerung          (19 / 28)
+Einsatz:  Rattler in Lorville kaufen     (26 / 40)
+Einsatz:  Laranite auf Daymar abbauen    (27 / 40)
+Rückfall: Rattler ×20 + 3 weitere</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-sammlung" data-nav-label="Inhalt der Sammlung" data-decision="r2-d2-sammlung" data-decision-mode="multi" data-label="Inhalt der Sammlung" data-rec="blueprint rep news gallery" data-rec-why="die vier hast du selbst genannt; Funde und erledigte Missionen sind eher Verlauf als Besitz." data-applies-to="HQ Bestand, News, Galerie, Codex" data-finding="r2-f-d2-sammlung">
+      <p data-applies>Gilt für: HQ Bestand, News, Galerie, Codex</p>
+      <p data-situation>Eine Sammlung gibt es heute nicht. Die Galerie (/verse/gallery, verse_wallpapers) kennt nur Abstimmen (wallpaper_votes), und für Ruf gibt es keine Datenquelle.</p>
+      <h3 data-question>Was gehört in die Sammlung?</h3>
+      <p data-context>Jeder Punkt einzeln; ★ markiert die empfohlenen.</p>
+      <div data-options>
+        <label data-opt="blueprint" data-recommended>
+          <input type="checkbox" name="dm-r2-d2-sammlung.blueprint" value="1" checked>
+          <span data-opt-label>Blaupausen</span>
+          <span data-opt-consequence>Heute die Kachel „Earned“ in Bestand; sie wird der Reiter Sammlung.</span>
+        </label>
+        <label data-opt="rep" data-recommended>
+          <input type="checkbox" name="dm-r2-d2-sammlung.rep" value="1" checked>
+          <span data-opt-label>Ruf bei Fraktionen</span>
+          <span data-opt-consequence>Braucht erst eine Quelle: Eingabe von Hand oder Signal der SCC-App.</span>
+        </label>
+        <label data-opt="news" data-recommended>
+          <input type="checkbox" name="dm-r2-d2-sammlung.news" value="1" checked>
+          <span data-opt-label>News-Beiträge</span>
+          <span data-opt-consequence>Ersetzt die Lesezeichen; liegt dann am Konto statt im Browser.</span>
+        </label>
+        <label data-opt="gallery" data-recommended>
+          <input type="checkbox" name="dm-r2-d2-sammlung.gallery" value="1" checked>
+          <span data-opt-label>Galerie-Bilder, mit eigenem Knopf „Sammeln“</span>
+          <span data-opt-consequence>Neben dem Abstimmen; eine Stimme allein sammelt nichts.</span>
+        </label>
+        <label data-opt="vote">
+          <input type="checkbox" name="dm-r2-d2-sammlung.vote" value="1">
+          <span data-opt-label>Galerie: eine Stimme zählt schon als gesammelt</span>
+          <span data-opt-consequence>Kein neuer Knopf; jedes Bild, für das du gestimmt hast, steht in der Sammlung.</span>
+        </label>
+        <label data-opt="explorer">
+          <input type="checkbox" name="dm-r2-d2-sammlung.explorer" value="1">
+          <span data-opt-label>Explorer-Funde (Sterne im Verse)</span>
+          <span data-opt-consequence>Die Sonnen-Sammlung (sunCollection) gibt es schon als Belohnung.</span>
+        </label>
+        <label data-opt="missions">
+          <input type="checkbox" name="dm-r2-d2-sammlung.missions" value="1">
+          <span data-opt-label>Erledigte Missionen</span>
+          <span data-opt-consequence>Eher Verlauf; Einsätze haben schon den Status „done“.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-sammlung-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-sammlung-none" value="">
+      <input type="hidden" name="dm-r2-d2-sammlung-hes" value="">
+      <input type="hidden" name="dm-r2-d2-sammlung-touched" value="">
+      <input type="hidden" name="dm-r2-d2-sammlung-issue" value="">
+      <input type="hidden" name="dm-r2-d2-sammlung-epic" value="">
+      <div data-alevel="3" data-title="Inhalt der Sammlung">
+        <div data-slot="short">Nur Blaupausen, News und Sonnen haben heute Daten; Galerie ist nur Abstimmen, Ruf fehlt ganz.</div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Blaupausen","value":1},{"label":"News (nur im Browser)","value":1},{"label":"Sonnen im Verse","value":1},{"label":"Galerie (nur Stimmen)","value":0},{"label":"Ruf","value":0}],"unit":"= Daten vorhanden","hl":"Galerie (nur Stimmen)"}'></div><p>Nach deiner Notiz zu d-model ist Sammeln gleichgestellt mit Inventar und Hangar. Du schreibst, Galerie-Bilder sammeln „geht ja schon heute“ — im Code ist es nur Abstimmen (wallpaper_votes); deshalb die Frage, ob eine Stimme reicht oder ein eigener Knopf kommt. Für Ruf habe ich keine Daten gefunden, er braucht eine Quelle, bevor er in der Sammlung stehen kann.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-stock" data-nav-label="Bestand-Zeile" data-decision="r2-d2-stock" data-decision-mode="single" data-label="Bestand-Zeile" data-rec="hint" data-rec-why="wer seinen Bestand ansieht, will wissen, ob Nachschub schon unterwegs ist — ohne dass Bestand zum zweiten Zettel wird." data-applies-to="HQ Bestand: Inventar, Hangar" data-finding="r2-f-d2-stock">
+      <p data-applies>Gilt für: HQ Bestand: Inventar, Hangar</p>
+      <p data-situation>In Runde 1 blieb diese Frage ohne Antwort. Neu ist: „Nachholen“ heißt jetzt „auf die Wunschliste“, der Nachschub entsteht erst in Planen.</p>
+      <h3 data-question>Was zeigt eine Zeile in Inventar oder Hangar von Wunschliste und Nachschub?</h3>
+      <div data-options>
+        <label data-opt="hint" data-recommended>
+          <input type="radio" name="dm-r2-d2-stock" value="hint" checked>
+          <span data-opt-label>Stiller Hinweis plus „Nachholen“</span>
+          <span data-opt-consequence>„auf Wunschliste 3“ oder „im Nachschub ‚Raketen &amp; Panzerung‘“; Nachholen legt es auf die Wunschliste.</span>
+        </label>
+        <label data-opt="only">
+          <input type="radio" name="dm-r2-d2-stock" value="only">
+          <span data-opt-label>Nur „Nachholen“</span>
+          <span data-opt-consequence>Kein Hinweis; ob es schon gewünscht ist, siehst du erst in der Wunschliste.</span>
+        </label>
+        <label data-opt="none">
+          <input type="radio" name="dm-r2-d2-stock" value="none">
+          <span data-opt-label>Nichts, Bestand ist nur „hab ich“</span>
+          <span data-opt-consequence>Nachholen geht dann nur über Codex oder Suche.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-stock-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-stock-none" value="">
+      <input type="hidden" name="dm-r2-d2-stock-hes" value="">
+      <input type="hidden" name="dm-r2-d2-stock-touched" value="">
+      <input type="hidden" name="dm-r2-d2-stock-issue" value="">
+      <input type="hidden" name="dm-r2-d2-stock-epic" value="">
+      <div data-alevel="3" data-title="Bestand-Zeile">
+        <div data-slot="short">„Nachholen“ zielt ab jetzt auf die Wunschliste statt auf den Nachschub.</div>
+        <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Inventar-Zeile","value":"8 Rattler · Lorville"},{"label":"Hinweis","value":"auf Wunschliste 20"},{"label":"Nachholen","value":"+1 auf der Wunschliste"}]}'></div><p>Nach deiner Notiz zu d-hqpopup: „Nachholen heißt auf die Wunschliste packen“. Heute ruft hq-stock-popup.component.ts:460–465 nachholen auf und legt eine Menge direkt in den Nachschub; das Ziel wechselt auf die Wunschliste.</p></div>
+      </div>
+    </section>
+  </section>
+
+  <section id="r2-t-bereiche" data-topic data-nav-label="Auswirkungen je Bereich">
+    <div data-alevel="2" data-title="Auswirkungen je Bereich">
+      <div data-slot="short">Sieben Bereiche ändern sich; jede Frage nennt die Folge, du bestätigst oder korrigierst.</div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Codex und Suche","value":4},{"label":"HQ Planen","value":4},{"label":"HQ Jetzt","value":3},{"label":"HQ Bestand","value":2},{"label":"Wunschliste","value":2},{"label":"Schnellzugriff","value":4},{"label":"Daten und Code","value":12}],"unit":"genannte Code-Stellen","hl":"Daten und Code"}'></div><p>Jede Frage hier ist eine Behauptung über einen Bereich: was du heute siehst, was sich ändert und welche Dateien es trifft. Die Zahlen zählen die Code-Stellen, die ich je Bereich nenne, nicht den Aufwand. Am meisten Stellen trifft das Aufräumen der Gast-Zweige.</p></div>
+    </div>
+
+    <section id="r2-d2-codex" data-nav-label="Codex und Suche" data-decision="r2-d2-codex" data-decision-mode="verify" data-label="Codex und Suche" data-rec="ok" data-rec-why="setzt deine Wahl aus Runde 1 um und erhält den Material-Weg über die Wunschliste mit Menge." data-applies-to="Codex-Index, Suche, Holo, Detailseite, Blaupausenseite" data-finding="r2-f-d2-codex">
+      <p data-applies>Gilt für: Codex-Index, Suche, Holo, Detailseite, Blaupausenseite</p>
+      <p data-situation>Heute zeigen 14 sc-item-path-Stellen drei Knoten (Wunsch, Nachschub, Inventar). Du hast in Runde 1 „nur Wunschliste und Besitz im Codex“ gewählt.</p>
+      <h3 data-question>Stimmt es für Codex und Suche: zwei Knoten, Menge am Wunsch, Material ×N an der Blaupause?</h3>
+      <p data-stakes>Wie du Bedarf anlegst, ohne ins HQ zu wechseln.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-codex" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>Nachschub-Knoten raus aus allen 14 Stellen; Blaupause: „Material ×N auf die Wunschliste“, gruppiert unter ihr; Suchbegriff „sammlung“ neu.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-codex" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-codex" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann plane ich den Bereich vor dem Design neu.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-codex-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-codex-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-codex-none" value="">
+      <input type="hidden" name="dm-r2-d2-codex-hes" value="">
+      <input type="hidden" name="dm-r2-d2-codex-touched" value="">
+      <input type="hidden" name="dm-r2-d2-codex-issue" value="">
+      <input type="hidden" name="dm-r2-d2-codex-epic" value="">
+      <div data-alevel="3" data-title="Codex und Suche">
+        <div data-slot="short">Aus drei Knoten werden zwei; die Blaupause legt Material als Wunsch mit Menge an.</div>
+        <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"Codex-Stellen mit Nachschub-Knoten heute","value":14},"after":{"label":"danach","value":0},"unit":"Stellen"}'></div><p>Nach deiner Wahl zu d-codex: item-path-Komponente ohne Nachschub-Stufe, Wunsch mit Zahl (Liste) bzw. Stepper (Detailseite). blueprint-detail.component.ts:81: „Material ×N auf die Wunschliste“, gruppiert „für P4-AR“. search-cta.ts:287–294 verliert die Nachschub-Aktion; codex-search-engine.ts:641–656: „wunschliste“/„gemerkt“ → Wunschliste, „fehlt mir“ → offene Paket-Zeilen, „sammlung“ neu.</p></div>
+        <div data-example><pre>Suchzeile:    [♡ 20] [▣ Inventar]
+Detailseite:  [♡ Wunschliste  − 20 +] [▣ Inventar]
+
+Blaupause P4-AR
+  Material auf die Wunschliste  ×[ 2 ]
+  └ für P4-AR: Quantanium 8 SCU · Laranite 4 SCU</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-plan" data-nav-label="HQ Planen" data-decision="r2-d2-plan" data-decision-mode="verify" data-label="HQ Planen" data-rec="ok" data-rec-why="so liegt Nachschub sichtbar in Planen statt hinter einem Popup, und jedes Paket trägt seine Einsätze bei sich." data-applies-to="HQ Planen, HQ-Popup, Datenbank" data-finding="r2-f-d2-plan">
+      <p data-applies>Gilt für: HQ Planen, HQ-Popup, Datenbank</p>
+      <p data-situation>Planen baut heute den Bedarf aus allen Nachschub-Zeilen und eine Route (hq-plan.component.ts:438, :453); die Auswahl kommt aus hq-plan-selection.ts (Top-3-Sets, sonst die ersten 12).</p>
+      <h3 data-question>Stimmt Planen so: oben bis zu 7 Paket-Karten, „Neuer Nachschub“ übernimmt aus der Wunschliste?</h3>
+      <p data-stakes>Planen wird der Ort, an dem aus Wünschen Einsätze werden.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-plan" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>Jede Karte: Name, Inhalt, Einsätze, Route; „Neuer Nachschub“ ist der eine Hauptknopf; jede Zeile auswählbar; das Popup entfällt.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-plan" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-plan" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann plane ich den Bereich vor dem Design neu.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-plan-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-plan-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-plan-none" value="">
+      <input type="hidden" name="dm-r2-d2-plan-hes" value="">
+      <input type="hidden" name="dm-r2-d2-plan-touched" value="">
+      <input type="hidden" name="dm-r2-d2-plan-issue" value="">
+      <input type="hidden" name="dm-r2-d2-plan-epic" value="">
+      <div data-alevel="3" data-title="HQ Planen">
+        <div data-slot="short">Pakete ersetzen die Top-3-Auswahl; dafür braucht es eine neue Tabelle.</div>
+        <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Wunschliste","value":"auswählen, Menge"},{"label":"Neuer Nachschub","value":"KI-Name, Inhalt"},{"label":"Einsätze","value":"1–x je Paket"},{"label":"Route","value":"je Paket"}]}'></div><p>Nach deinen Notizen zu d-hqhome und d-hqpopup: Pakete sichtbar in Planen, das Popup fällt weg. Ein Paket gibt es heute nicht: nötig sind eine neue Tabelle (etwa hq_supply_packages) und package_id an Zeilen und an hq_einsaetze, wo heute nur eine weiche supply_id-Kopie liegt (20261101010000_hq_einsaetze.sql:54–122). hq-plan-selection.ts entfällt oder rechnet je Paket.</p></div>
+        <div data-example><pre>Planen                                   [ Neuer Nachschub ]
+─ Nachschübe (3 von 7) ───────────────────────────────
+  Raketen &amp; Panzerung                        4/9 besorgt
+    20× Rattler · 2× Morozov-SH · 1× FS-9 …
+    Einsätze: Rattler in Lorville kaufen
+              Laranite auf Daymar abbauen
+    Route ›                                     Leeren
+  Cutlass-Ausbau                             0/3 besorgt
+  Quantanium für P4-AR                       1/2 besorgt</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-now" data-nav-label="HQ Jetzt" data-decision="r2-d2-now" data-decision-mode="verify" data-label="HQ Jetzt" data-rec="ok" data-rec-why="Jetzt zeigt dann immer, wofür du gerade spielst, und der nächste Schritt bleibt ein Klick." data-applies-to="HQ Jetzt" data-finding="r2-f-d2-now">
+      <p data-applies>Gilt für: HQ Jetzt</p>
+      <p data-situation>Jetzt nimmt heute den aktiven Einsatz, sonst den ersten geplanten (hq-now-path.ts:13–27); Live-Events haken Schritte ab (hq-live.service.ts:45–46).</p>
+      <h3 data-question>Stimmt Jetzt so: ein aktives Paket mit Fortschritt, seine Einsätze, Knopf zum nächsten Schritt?</h3>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-now" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>Kopf: Paketname und „4/9 besorgt“; Paket wechseln direkt in Jetzt; nächster Schritt = erster offener Einsatz-Schritt.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-now" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-now" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann plane ich den Bereich vor dem Design neu.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-now-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-now-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-now-none" value="">
+      <input type="hidden" name="dm-r2-d2-now-hes" value="">
+      <input type="hidden" name="dm-r2-d2-now-touched" value="">
+      <input type="hidden" name="dm-r2-d2-now-issue" value="">
+      <input type="hidden" name="dm-r2-d2-now-epic" value="">
+      <div data-alevel="3" data-title="HQ Jetzt">
+        <div data-slot="short">Jetzt wählt zuerst das Paket, dann dessen Einsatz.</div>
+        <div data-slot="long"><div data-viz="bar" data-viz-spec='{"value":4,"max":9,"unit":"Zeilen","label":"besorgt im aktiven Paket (Beispiel)"}'></div><p>Nach deiner Notiz zu d-hqhome: in Jetzt läuft genau ein Einsatz-Bündel für ein Paket. hq-now-path.ts nimmt künftig das aktive Paket und darin den aktiven oder ersten geplanten Einsatz; hq-now.component.ts bekommt den Paketkopf mit Wechsler. Die Live-Haken bleiben, wie sie sind.</p></div>
+        <div data-example><pre>Jetzt · für: Raketen &amp; Panzerung    4/9 besorgt   [ Paket wechseln ]
+─ Einsatz 1/2: Rattler in Lorville kaufen ───────────
+  ✓ Nach Lorville fliegen
+  ▸ 20× Rattler bei Cubby Blast kaufen     [ Nächster Schritt ]
+─ Einsatz 2/2: Laranite auf Daymar abbauen ──────────</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-stock-page" data-nav-label="HQ Bestand" data-decision="r2-d2-stock-page" data-decision-mode="verify" data-label="HQ Bestand" data-rec="ok" data-rec-why="setzt deine Begriffe aus Runde 1 um: Inventar, Hangar, Sammlung sichtbar, „Bestand“ nur als seltener Oberbegriff." data-applies-to="HQ Bestand, hq/hangar, hq/locker" data-finding="r2-f-d2-stock-page">
+      <p data-applies>Gilt für: HQ Bestand, hq/hangar, hq/locker</p>
+      <p data-situation>Die Bestand-Stufe (hq-routes.ts:23, :62, Alias #bestand) hat heute keine Reiter, nur Karten; Hangar und Locker sind eigene Routen.</p>
+      <h3 data-question>Stimmt Bestand so: Reiter Inventar · Hangar · Sammlung, Hinweis + Nachholen je Zeile?</h3>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-stock-page" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>„Bestand“ nur als Seitenname; „Ingame-Bestand zurücksetzen“ im Seitenmenü, mit roter Rückfrage.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-stock-page" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-stock-page" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann plane ich den Bereich vor dem Design neu.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-stock-page-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-stock-page-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-stock-page-none" value="">
+      <input type="hidden" name="dm-r2-d2-stock-page-hes" value="">
+      <input type="hidden" name="dm-r2-d2-stock-page-touched" value="">
+      <input type="hidden" name="dm-r2-d2-stock-page-issue" value="">
+      <input type="hidden" name="dm-r2-d2-stock-page-epic" value="">
+      <div data-alevel="3" data-title="HQ Bestand">
+        <div data-slot="short">Aus Karten werden drei Reiter; Sammlung ist neu.</div>
+        <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"Reiter heute","value":0},"after":{"label":"Reiter danach","value":3},"unit":""}'></div><p>Nach deiner Antwort zu d-term: Inventar · Hangar · Sammlung. hq-stock.component.ts hat heute Karten (Summen, Orte, Kategorien, Schiffskachel → /hq/hangar, Kachel „Earned“ → /codex/index?kind=blueprint); daraus werden Reiter als echte Links mit eigener Adresse. Ob hq/hangar und hq/locker eigene Seiten bleiben oder auf den Reiter zeigen, entscheidet das Design in Runde 3. Zurücksetzen fragt über ScConfirmService mit tone danger.</p></div>
+        <div data-example><pre>Bestand   [ Inventar ]  Hangar   Sammlung                 ⋯
+Inventar
+  Rattler-Rakete    8 · Lorville    auf Wunschliste 20 · Nachholen
+  Morozov-SH Helm   1 · Area18      im Nachschub „Raketen &amp; Panzerung“
+⋯  Ingame-Bestand zurücksetzen …   (Rückfrage, rot)</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-cart" data-nav-label="Wunschliste als Warenkorb" data-decision="r2-d2-cart" data-decision-mode="verify" data-label="Wunschliste als Warenkorb" data-rec="ok" data-rec-why="so hast du die Wunschliste in Runde 1 beschrieben; die eigene Adresse hält „Ganze Wunschliste“ trotzdem als echten Link." data-applies-to="Schnellzugriff, HQ Planen, Wunschliste" data-finding="r2-f-d2-cart">
+      <p data-applies>Gilt für: Schnellzugriff, HQ Planen, Wunschliste</p>
+      <p data-situation>Die Wunschliste hat heute keine eigene Ansicht; am nächsten kommt der Reiter Wunschliste im HQ-Popup (hq-supplies-popup).</p>
+      <h3 data-question>Stimmt die Wunschliste als Warenkorb-Popup, mit Mengen, Gruppen und „In einen Nachschub“?</h3>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-cart" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>Öffnet aus dem Schnellzugriff und aus Planen; Dialog mit eigener Adresse; „In einen Nachschub“ füllt ein neues oder bestehendes Paket.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-cart" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-cart" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann plane ich den Bereich vor dem Design neu.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-cart-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-cart-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-cart-none" value="">
+      <input type="hidden" name="dm-r2-d2-cart-hes" value="">
+      <input type="hidden" name="dm-r2-d2-cart-touched" value="">
+      <input type="hidden" name="dm-r2-d2-cart-issue" value="">
+      <input type="hidden" name="dm-r2-d2-cart-epic" value="">
+      <div data-alevel="3" data-title="Wunschliste als Warenkorb">
+        <div data-slot="short">Ein Warenkorb, zwei Einstiege, ein Ziel: das Paket.</div>
+        <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Schnellzugriff oder Planen","value":"Ganze Wunschliste ›"},{"label":"Warenkorb","value":"Mengen, Gruppen, Auswahl"},{"label":"In einen Nachschub","value":"neues oder bestehendes Paket"}]}'></div><p>Nach deiner Notiz zu d-wishhome: „wie eine shopping cart, ein Popup“. Das Popup trägt [scDialog] (Fokus, Tab-Falle, Escape) und hat eine eigene Adresse, damit Mittelklick und neuer Tab auf „Ganze Wunschliste“ funktionieren. Material einer Blaupause steht als Gruppe unter ihr; der Wunschliste-Reiter in hq-supplies-popup geht darin auf.</p></div>
+        <div data-example><pre>Wunschliste (5)                                      ✕
+─ für Blaupause P4-AR ─────────────────
+  ☐ Quantanium            − 8 SCU +
+  ☐ Laranite              − 4 SCU +
+─ einzeln ─────────────────────────────
+  ☑ Rattler-Rakete        − 20 +
+  ☑ Morozov-SH Helm       − 2 +
+  ☐ Cutlass Black         − 1 +
+                       [ In einen Nachschub (2) ]</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-panel" data-nav-label="Schnellzugriff" data-decision="r2-d2-panel" data-decision-mode="verify" data-label="Schnellzugriff" data-rec="ok" data-rec-why="setzt deine vier Panel-Antworten aus Runde 1 zusammen: nur Symbol, Filter nach Seitentyp, Zahl nur Wünsche, kein Nachschub." data-applies-to="Kopfzeile oben rechts, alle Seiten" data-finding="r2-f-d2-panel">
+      <p data-applies>Gilt für: Kopfzeile oben rechts, alle Seiten</p>
+      <p data-situation>Das Symbol &lt;sc-merkliste&gt; sitzt vor dem Apps-Menü (shell.component.ts:265–267) als Lesezeichen mit Zahl; der Seitentyp kommt aus der URL (merkliste.model.ts:31–42).</p>
+      <h3 data-question>Stimmt der Schnellzugriff: nur Symbol, Zuletzt, Wunschliste, Bestand nach Seitentyp?</h3>
+      <p data-context>Das Symbol selbst kommt in Runde 3 mit visuellen Vorschlägen.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-panel" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>Zahl = Wunsch-Positionen; Wort „Schnellzugriff“ erst im offenen Panel; Hangar auf Schiffs-, Inventar auf Gegenstands-, Sammlung auf Blaupausen- und News-Seiten.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-panel" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-panel" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann plane ich den Bereich vor dem Design neu.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-panel-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-panel-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-panel-none" value="">
+      <input type="hidden" name="dm-r2-d2-panel-hes" value="">
+      <input type="hidden" name="dm-r2-d2-panel-touched" value="">
+      <input type="hidden" name="dm-r2-d2-panel-issue" value="">
+      <input type="hidden" name="dm-r2-d2-panel-epic" value="">
+      <div data-alevel="3" data-title="Schnellzugriff">
+        <div data-slot="short">Drei kurze Abschnitte, alle nach Seitentyp gefiltert, kein Nachschub.</div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Zuletzt geöffnet (bis 7)","value":3},{"label":"Wunschliste + Link","value":3},{"label":"Bestand nach Seitentyp","value":3}],"unit":"Einträge"}'></div><p>Nach deinen Antworten zu d-panel, d-ptype, d-pcount, d-pnach, d-pname und d-news. In src/app/shell/merkliste/*: der Reiter „nachschub“ in merkliste.component.ts entfällt, der Zähler in merkliste.service.ts:113–117 zählt nur Wunsch-Positionen (20 Rattler = 1), merkliste.model.ts bildet den Seitentyp auf den Bestand-Abschnitt ab. Die Galerie hat heute keinen Typ (gallery null) und bekäme die Sammlung; drei Bestand-Einträge sind meine Annahme.</p></div>
+        <div data-example><pre>[ Symbol · 5 ]        ← nur Symbol, Zahl = Wunsch-Positionen
+Schnellzugriff                       (auf einer Schiffsseite)
+─ Zuletzt geöffnet ───────────
+  Cutlass Black · Corsair · Arrowhead
+  Mehr anzeigen (bis 7)
+─ Wunschliste ────────────────
+  Corsair · 20× Rattler · Morozov-SH
+  Ganze Wunschliste ›
+─ Hangar ─────────────────────
+  Cutlass Black · Avenger Titan · Pisces</pre></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-cleanup" data-nav-label="Daten und Code" data-decision="r2-d2-cleanup" data-decision-mode="verify" data-label="Daten und Code" data-rec="ok" data-rec-why="die Login-Wand steht schon; was übrig ist, kostet nur Pflege, und die drei Schemaänderungen trägt das neue Modell." data-applies-to="Supabase, Hangar, Codex-Sets, Suche, News" data-finding="r2-f-d2-cleanup">
+      <p data-applies>Gilt für: Supabase, Hangar, Codex-Sets, Suche, News</p>
+      <p data-situation>Alle Shell-Routen verlangen schon heute Anmeldung und Freigabe (app.routes.ts:13–22, authGuard + approvedGuard). Die Gast-Zweige im Code laufen also nie.</p>
+      <h3 data-question>Stimmt der Umbau: Gast-Zweige raus, News ans Konto, Menge an der Wunschliste, Paket-ID an Zeilen?</h3>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-r2-d2-cleanup" value="ok" checked>
+          <span data-opt-label>Stimmt</span>
+          <span data-opt-consequence>Toter Code fällt weg; Schema: qty an search_wishlist, neue Paket-Tabelle, package_id an Zeilen und Einsätzen, News-Sammlung am Konto.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-r2-d2-cleanup" value="partial">
+          <span data-opt-label>Teilweise</span>
+          <span data-opt-consequence>Schreib dazu, welcher Teil nicht passt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-r2-d2-cleanup" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Dann plane ich den Bereich vor dem Design neu.</span>
+        </label>
+        <input type="text" name="dm-r2-d2-cleanup-fix" placeholder="Was stimmt nicht?" value="">
+      </div>
+      <textarea data-comment="r2-d2-cleanup-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-cleanup-none" value="">
+      <input type="hidden" name="dm-r2-d2-cleanup-hes" value="">
+      <input type="hidden" name="dm-r2-d2-cleanup-touched" value="">
+      <input type="hidden" name="dm-r2-d2-cleanup-issue" value="">
+      <input type="hidden" name="dm-r2-d2-cleanup-epic" value="">
+      <div data-alevel="3" data-title="Daten und Code">
+        <div data-slot="short">Neun Dateien mit Gast-Zweigen, drei Schemaänderungen, ein Speicher-Umzug.</div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Dateien mit Gast-Zweigen","value":9},{"label":"Schemaänderungen","value":3},{"label":"Speicher-Umzug (News)","value":1}],"unit":"","hl":"Dateien mit Gast-Zweigen"}'></div><p>Nach deiner Notiz zu d-guest. Gast-Zweige: hq-supplies.service.ts:139, :409–438, :607 (lokale Liste + Import-Dialog), search-cta.ts:54, :64, :103 (signedOut-Zeile), shared/item-path/sign-in-ask.service.ts mit item-path.component.ts:396, :529, die needSignIn-Wächter in item-path.service.ts, hq-stock.component.ts:49–50, codex-set.component.ts:108–110, add-to-set.component.ts:61, :241, hangar-dashboard.component.ts:79. News-Favoriten liegen für alle im Browser (kein Gast-Zweig) und ziehen in die Sammlung am Konto; wie, fragt das Thema „Übergang und Daten“.</p></div>
+      </div>
+    </section>
+  </section>
+
+  <section id="r2-t-uebergang" data-topic data-nav-label="Übergang und Daten">
+    <div data-alevel="2" data-title="Übergang und Daten">
+      <div data-slot="short">Bestehende Daten ziehen ins neue Modell um, ohne dass du etwas verlierst.</div>
+      <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Datenumzug","value":2},{"label":"Mengen","value":2},{"label":"Schnellzugriff","value":1}],"unit":"Fragen"}'></div><p>Das neue Modell trifft auf Daten von heute: offene Nachschub-Zeilen ohne Paket, News-Lesezeichen im Browser, Wünsche ohne Menge und Schiffswünsche in einer eigenen Tabelle. Die Alpha-Regel erlaubt sogar, Alt-Tabellen zu verwerfen; die Empfehlungen behalten trotzdem deine Daten.</p></div>
+    </div>
+
+    <section id="r2-d2-migrate" data-nav-label="Offener Nachschub" data-decision="r2-d2-migrate" data-decision-mode="single" data-label="Offener Nachschub" data-rec="one" data-rec-why="nichts geht verloren, es belegt nur einen der 7 Plätze, und du teilst oder leerst es, wann du willst." data-applies-to="Nachschub-Zeilen, HQ Planen" data-finding="r2-f-d2-migrate">
+      <p data-applies>Gilt für: Nachschub-Zeilen, HQ Planen</p>
+      <p data-situation>Offene Nachschub-Zeilen von heute haben kein Paket; gruppiert sind sie nur nach Schiff- oder FPS-Set (hq-supplies.service.ts:150–161).</p>
+      <h3 data-question>Was passiert mit deinen offenen Nachschub-Zeilen von heute?</h3>
+      <div data-options>
+        <label data-opt="one" data-recommended>
+          <input type="radio" name="dm-r2-d2-migrate" value="one" checked>
+          <span data-opt-label>Ein Paket „Bisheriger Nachschub“</span>
+          <span data-opt-consequence>Alles bleibt; du teilst es später auf oder leerst es zurück auf die Wunschliste.</span>
+        </label>
+        <label data-opt="wish">
+          <input type="radio" name="dm-r2-d2-migrate" value="wish">
+          <span data-opt-label>Alles zurück auf die Wunschliste</span>
+          <span data-opt-consequence>Sauberer Start; du planst die Pakete neu.</span>
+        </label>
+        <label data-opt="perset">
+          <input type="radio" name="dm-r2-d2-migrate" value="perset">
+          <span data-opt-label>Ein Paket je Set, lose Zeilen in eines</span>
+          <span data-opt-consequence>Nutzt die heutige Gruppierung, kann aber mehr als 7 Pakete ergeben.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-migrate-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-migrate-none" value="">
+      <input type="hidden" name="dm-r2-d2-migrate-hes" value="">
+      <input type="hidden" name="dm-r2-d2-migrate-touched" value="">
+      <input type="hidden" name="dm-r2-d2-migrate-issue" value="">
+      <input type="hidden" name="dm-r2-d2-migrate-epic" value="">
+      <div data-alevel="3" data-title="Offener Nachschub">
+        <div data-slot="short">Eine Migration setzt package_id auf ein Sammelpaket.</div>
+        <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"heute","value":"Zeilen ohne Paket"},{"label":"Migration","value":"package_id = Bisheriger Nachschub"},{"label":"danach","value":"1 von 7 Plätzen belegt"}]}'></div><p>Nach deiner Antwort zu d-hqhome gibt es höchstens 7 Pakete. Ein Paket je Set könnte diese Grenze beim Umzug schon sprengen, deshalb empfehle ich ein Sammelpaket. Die Einsätze von heute (hq_einsaetze) bekommen dieselbe package_id, wenn ihre Schritte auf diese Zeilen zeigen — abgeleitet aus der weichen supply_id-Kopie.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-newsmove" data-nav-label="News-Lesezeichen umziehen" data-decision="r2-d2-newsmove" data-decision-mode="single" data-label="News-Lesezeichen umziehen" data-rec="copy" data-rec-why="still und einmalig; du findest deine Lesezeichen danach auf jedem Gerät in der Sammlung." data-applies-to="News, Sammlung" data-finding="r2-f-d2-newsmove">
+      <p data-applies>Gilt für: News, Sammlung</p>
+      <p data-situation>News-Lesezeichen liegen heute nur in diesem Browser (sc-companion.news.favorites, news.service.ts:72), für alle Nutzer, nicht nur für Gäste.</p>
+      <h3 data-question>Was passiert mit den News-Lesezeichen, die heute nur im Browser liegen?</h3>
+      <div data-options>
+        <label data-opt="copy" data-recommended>
+          <input type="radio" name="dm-r2-d2-newsmove" value="copy" checked>
+          <span data-opt-label>Beim nächsten Besuch in die Sammlung kopieren</span>
+          <span data-opt-consequence>Einmalig und still; danach liest niemand mehr den Browser-Speicher.</span>
+        </label>
+        <label data-opt="ask">
+          <input type="radio" name="dm-r2-d2-newsmove" value="ask">
+          <span data-opt-label>Einmal fragen, ob sie übernommen werden</span>
+          <span data-opt-consequence>Ein Dialog mehr, gerade wo der Gast-Import-Dialog wegfällt.</span>
+        </label>
+        <label data-opt="empty">
+          <input type="radio" name="dm-r2-d2-newsmove" value="empty">
+          <span data-opt-label>Sammlung startet leer</span>
+          <span data-opt-consequence>Alte Lesezeichen sind weg; weniger Code.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-newsmove-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-newsmove-none" value="">
+      <input type="hidden" name="dm-r2-d2-newsmove-hes" value="">
+      <input type="hidden" name="dm-r2-d2-newsmove-touched" value="">
+      <input type="hidden" name="dm-r2-d2-newsmove-issue" value="">
+      <input type="hidden" name="dm-r2-d2-newsmove-epic" value="">
+      <div data-alevel="3" data-title="News-Lesezeichen umziehen">
+        <div data-slot="short">Die Lesezeichen kennt heute nur ein Browser.</div>
+        <div data-slot="long"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Browser","label":"kennt deine News-Lesezeichen heute"}'></div><p>Nach deiner Notiz zu d-model werden aus Lesezeichen gesammelte Beiträge. Jeder Browser kopiert beim nächsten Besuch, was er hat; auf einem zweiten Gerät kommen dessen Lesezeichen dazu, Doppelte zählen einmal. Der Schalter „Gemerkt“ im Feed liest dann die Sammlung.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-wishqty" data-nav-label="Menge am Wunsch" data-decision="r2-d2-wishqty" data-decision-mode="single" data-label="Menge am Wunsch" data-rec="detail" data-rec-why="Mengen pflegst du dort, wo du ein Ding genau ansiehst; Suchzeilen bleiben ruhig." data-applies-to="Warenkorb, Detailseite, Suche" data-finding="r2-f-d2-wishqty">
+      <p data-applies>Gilt für: Warenkorb, Detailseite, Suche</p>
+      <p data-situation>Wünsche haben heute keine Menge; die Wunschliste ist ein Ja/Nein je Ding (Schlüssel user_id, entity_kind, class_name).</p>
+      <h3 data-question>Wo stellst du die Menge eines Wunsches ein?</h3>
+      <div data-options>
+        <label data-opt="detail" data-recommended>
+          <input type="radio" name="dm-r2-d2-wishqty" value="detail" checked>
+          <span data-opt-label>Standard 1, Stepper im Warenkorb und auf der Detailseite</span>
+          <span data-opt-consequence>Suchzeilen zeigen nur die Zahl; ein Klick auf den Wunsch legt 1 an.</span>
+        </label>
+        <label data-opt="cart">
+          <input type="radio" name="dm-r2-d2-wishqty" value="cart">
+          <span data-opt-label>Menge nur im Warenkorb</span>
+          <span data-opt-consequence>Der Codex bleibt Ja/Nein; Mengen pflegst du gesammelt an einer Stelle.</span>
+        </label>
+        <label data-opt="rows">
+          <input type="radio" name="dm-r2-d2-wishqty" value="rows">
+          <span data-opt-label>Stepper überall, auch in Suchzeilen</span>
+          <span data-opt-consequence>Am schnellsten, aber jede Suchzeile bekommt − und +.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-wishqty-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-wishqty-none" value="">
+      <input type="hidden" name="dm-r2-d2-wishqty-hes" value="">
+      <input type="hidden" name="dm-r2-d2-wishqty-touched" value="">
+      <input type="hidden" name="dm-r2-d2-wishqty-issue" value="">
+      <input type="hidden" name="dm-r2-d2-wishqty-epic" value="">
+      <div data-alevel="3" data-title="Menge am Wunsch">
+        <div data-slot="short">Neue Spalte qty, Standard 1; Menge 0 heißt „kein Wunsch“.</div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Warenkorb","value":1},{"label":"Detailseite","value":1},{"label":"Suchzeile","value":0}],"unit":"= Stepper"}'></div><p>Nach deiner allgemeinen Notiz aus Runde 1 (20 Rattler) bekommt search_wishlist eine Spalte qty (20261102120000_search_wishlist.sql:6–12, 20261106140000_one_wishlist.sql:33–37). Nach d-edge („Menge 0 = nicht da“) entfernt ein Stepper auf 0 den Wunsch. Stepper sind keine Aktionen, also kein scAction.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-shipqty" data-nav-label="Menge bei Schiffswünschen" data-decision="r2-d2-shipqty" data-decision-mode="single" data-label="Menge bei Schiffswünschen" data-rec="same" data-rec-why="du hast ein zweites Exemplar im Hangar erlaubt; dann muss man es sich auch zweimal wünschen können." data-applies-to="Wunschliste, Hangar" data-finding="r2-f-d2-shipqty">
+      <p data-applies>Gilt für: Wunschliste, Hangar</p>
+      <p data-situation>Schiffswünsche liegen heute in hangar_ships mit status „wishlist“, eine Zeile je Schiffsklasse. 2× Cutlass zu wünschen geht damit nicht.</p>
+      <h3 data-question>Bekommen auch Schiffswünsche eine Menge, etwa 2× Cutlass?</h3>
+      <div data-options>
+        <label data-opt="same" data-recommended>
+          <input type="radio" name="dm-r2-d2-shipqty" value="same" checked>
+          <span data-opt-label>Ja, Schiffe zählen wie alles andere</span>
+          <span data-opt-consequence>Der Schiffswunsch bekommt dieselbe Menge; der Warenkorb zeigt 2× Cutlass.</span>
+        </label>
+        <label data-opt="one">
+          <input type="radio" name="dm-r2-d2-shipqty" value="one">
+          <span data-opt-label>Nein, Schiffe immer 1</span>
+          <span data-opt-consequence>Keine Änderung an hangar_ships; das zweite wünschst du, wenn das erste da ist.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-shipqty-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-shipqty-none" value="">
+      <input type="hidden" name="dm-r2-d2-shipqty-hes" value="">
+      <input type="hidden" name="dm-r2-d2-shipqty-touched" value="">
+      <input type="hidden" name="dm-r2-d2-shipqty-issue" value="">
+      <input type="hidden" name="dm-r2-d2-shipqty-epic" value="">
+      <div data-alevel="3" data-title="Menge bei Schiffswünschen">
+        <div data-slot="short">Schiffswünsche haben eine eigene Tabelle ohne Menge.</div>
+        <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"Schiffswunsch je Klasse heute","value":1},"after":{"label":"mit Menge möglich","value":2},"unit":"Cutlass"}'></div><p>Nach deiner Antwort zu d-edge („zweites Exemplar erlaubt“). Ob die Menge an der Wunschzeile in hangar_ships hängt oder Schiffswünsche in search_wishlist umziehen, ist eine Umsetzungsfrage; für dich sieht beides gleich aus. Die Zahlen sind ein Beispiel.</p></div>
+      </div>
+    </section>
+
+    <section id="r2-d2-panel-ctx" data-nav-label="Seiten ohne Typ" data-decision="r2-d2-panel-ctx" data-decision-mode="single" data-label="Seiten ohne Typ" data-rec="none" data-rec-why="du wolltest den Filter, damit es nicht zu viel wird; ohne Typ gibt es nichts Passendes zu zeigen." data-applies-to="Schnellzugriff" data-finding="r2-f-d2-panel-ctx">
+      <p data-applies>Gilt für: Schnellzugriff</p>
+      <p data-situation>Die Erkennung kennt heute Codex-Segmente, /verse/* als News und /hq/* pauschal als Schiff (merkliste.model.ts:31–42); Social und andere Seiten haben keinen Typ.</p>
+      <h3 data-question>Was zeigt der Schnellzugriff auf Seiten ohne Typ, etwa HQ-Start, Verse-Start oder Social?</h3>
+      <div data-options>
+        <label data-opt="none" data-recommended>
+          <input type="radio" name="dm-r2-d2-panel-ctx" value="none" checked>
+          <span data-opt-label>Keinen Bestand-Abschnitt, nur Zuletzt und Wunschliste</span>
+          <span data-opt-consequence>Das Panel ist dort kürzer; /hq/* zählt nicht mehr pauschal als Schiff.</span>
+        </label>
+        <label data-opt="hangar">
+          <input type="radio" name="dm-r2-d2-panel-ctx" value="hangar">
+          <span data-opt-label>Immer Hangar</span>
+          <span data-opt-consequence>Schiffe als Standard, wie heute im ganzen HQ.</span>
+        </label>
+        <label data-opt="last">
+          <input type="radio" name="dm-r2-d2-panel-ctx" value="last">
+          <span data-opt-label>Der zuletzt gezeigte Abschnitt bleibt</span>
+          <span data-opt-consequence>Folgt dir von Seite zu Seite, ist aber schwer vorherzusagen.</span>
+        </label>
+      </div>
+      <textarea data-comment="r2-d2-panel-ctx-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-r2-d2-panel-ctx-none" value="">
+      <input type="hidden" name="dm-r2-d2-panel-ctx-hes" value="">
+      <input type="hidden" name="dm-r2-d2-panel-ctx-touched" value="">
+      <input type="hidden" name="dm-r2-d2-panel-ctx-issue" value="">
+      <input type="hidden" name="dm-r2-d2-panel-ctx-epic" value="">
+      <div data-alevel="3" data-title="Seiten ohne Typ">
+        <div data-slot="short">Ohne Seitentyp entfällt der Bestand-Abschnitt.</div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Schiffsseite","value":3},{"label":"Gegenstandsseite","value":3},{"label":"Blaupause / News","value":3},{"label":"HQ-Start, Verse-Start, Social","value":2}],"unit":"Abschnitte im Panel","hl":"HQ-Start, Verse-Start, Social"}'></div><p>Nach deiner Antwort zu d-ptype („sonst wird es zu viel“). Heute gilt jede HQ-Seite als Schiff, auch Start und Planen; mit der Empfehlung bekommen nur Seiten mit echtem Typ (Hangar, News-Beitrag) einen Bestand-Abschnitt. Wie Verse-Start und News-Seiten unter /verse/* getrennt werden, leite ich aus der URL ab — noch nicht geprüft.</p></div>
       </div>
     </section>
   </section>
@@ -6690,7 +7452,8 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       </div>
       <div class="panel-nav-scroll">
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
-<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Runde 1 · Modell</button>
+<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1 · Modell</button>
+<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Runde 2 · Auswirkungen</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC

@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-tab-label="Runde 1 · Modell">
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-tab-label="Runde 1 · Modell" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Btw, wunschlisten sollten auch zähler háben können (weil man sich ja 20 rattler wünschen kann als raketen).\nDamit läuft sozusagen alles durch, außer Wunschliste => Nachschub => Inventar/Hanger/Sammlung\n\nManchmal mit abkürzungen und manchmal geht wie bei news direkt njur in sammlungen!","attachments":[]}}</script>
   <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
     <p data-briefing-what>Ich habe mit zwei Agents den Code und das Produkt durchleuchtet: Wunschliste, Nachschub, Inventar, Hangar, News-Lesezeichen und Verlauf hängen an vier verschiedenen Speichern, und 11 Stellen widersprechen sich.</p>
     <p data-briefing-why>Bevor Nachschub ins HQ zieht, muss klar sein, welche Stati es gibt und was zwischen ihnen passiert — Runde 2 zeigt dann die Folgen je Bereich, Runde 3 das Design.</p>
@@ -39,12 +40,14 @@
           <span data-opt-label>Stimmt nicht</span>
           <span data-opt-consequence>Dann baue ich das Modell in Runde 2 neu auf.</span>
         </label>
-        <input type="text" name="dm-d-model-fix" placeholder="Was stimmt nicht?">
+        <input type="text" name="dm-d-model-fix" placeholder="Was stimmt nicht?" value="">
       </div>
-      <textarea data-comment="d-model-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-model-note" placeholder="Notiz (optional)">Ich finde die idee gut, alles geht auf eine wunschliste, dann kann ich im hq hingehen unter planen und wunschlsiten themen in den nachschub reinbringen. Ein Nachschub kann dann geplant werden in 1-x Einsätzen (teils missionen oder bergbau oder usw.) um den gesamten nachschub am ende zum bestand zu überführen (Inventar/Hangar). Dabei kann man nicht teilweise den nachschub planen - denn das würde man dann eher so machen, dass man halt nciht alles von der wunschliste in den nachschub überführt.
+
+Außerdem bzgl. Lesezeichen, ne, lass uns das doch auch ala Gesammelt machen, man kann sozusagen auch news, galiere bilder (geht ja schon heute) sammeln! Das heißt am ende ist sammeln gleich gestellt mit inventar / hangar / blaupauseun+ruf gesammlet.</textarea>
       <input type="hidden" name="dm-d-model-none" value="">
-      <input type="hidden" name="dm-d-model-hes" value="">
-      <input type="hidden" name="dm-d-model-touched" value="">
+      <input type="hidden" name="dm-d-model-hes" value="{&quot;ms&quot;:252200,&quot;revisits&quot;:1,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-model-touched" value="1">
       <input type="hidden" name="dm-d-model-issue" value="">
       <input type="hidden" name="dm-d-model-epic" value="">
       <div data-alevel="3" data-title="Statusmodell">
@@ -74,12 +77,12 @@
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Zum Beispiel nur fragen statt automatisch entfernen.</span>
         </label>
-        <input type="text" name="dm-d-fulfil-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-fulfil-alt" placeholder="Was stattdessen?" value="">
       </div>
       <textarea data-comment="d-fulfil-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-fulfil-none" value="">
-      <input type="hidden" name="dm-d-fulfil-hes" value="">
-      <input type="hidden" name="dm-d-fulfil-touched" value="">
+      <input type="hidden" name="dm-d-fulfil-hes" value="{&quot;ms&quot;:14498,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-fulfil-touched" value="1">
       <input type="hidden" name="dm-d-fulfil-issue" value="">
       <input type="hidden" name="dm-d-fulfil-epic" value="">
       <div data-alevel="3" data-title="Besitz erfüllt Wunsch">
@@ -112,8 +115,8 @@
       </div>
       <textarea data-comment="d-ship-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-ship-none" value="">
-      <input type="hidden" name="dm-d-ship-hes" value="">
-      <input type="hidden" name="dm-d-ship-touched" value="">
+      <input type="hidden" name="dm-d-ship-hes" value="{&quot;ms&quot;:44282,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-ship-touched" value="1">
       <input type="hidden" name="dm-d-ship-issue" value="">
       <input type="hidden" name="dm-d-ship-epic" value="">
       <div data-alevel="3" data-title="Schiff im Nachschub">
@@ -128,12 +131,12 @@
       <h3 data-question>Bekommen Rohstoffe und Material nur Nachschub und Inventar, keine Wunschliste?</h3>
       <div data-options>
         <label data-opt="yes" data-recommended>
-          <input type="radio" name="dm-d-raw" value="yes" checked>
+          <input type="radio" name="dm-d-raw" value="yes">
           <span data-opt-label>Ja, ohne Wunschliste</span>
           <span data-opt-consequence>Die Bahn zeigt bei Material zwei Knoten: Nachschub und Inventar.</span>
         </label>
         <label data-opt="no">
-          <input type="radio" name="dm-d-raw" value="no">
+          <input type="radio" name="dm-d-raw" value="no" checked>
           <span data-opt-label>Nein, Wunschliste auch für Material</span>
           <span data-opt-consequence>Ein Wunsch ohne Menge, der in Planen nichts bewirkt.</span>
         </label>
@@ -142,12 +145,12 @@
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-raw-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-raw-alt" placeholder="Was stattdessen?" value="">
       </div>
       <textarea data-comment="d-raw-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-raw-none" value="">
-      <input type="hidden" name="dm-d-raw-hes" value="">
-      <input type="hidden" name="dm-d-raw-touched" value="">
+      <input type="hidden" name="dm-d-raw-hes" value="{&quot;ms&quot;:10678,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-raw-touched" value="1">
       <input type="hidden" name="dm-d-raw-issue" value="">
       <input type="hidden" name="dm-d-raw-epic" value="">
       <div data-alevel="3" data-title="Rohstoffe ohne Wunsch">
@@ -163,7 +166,7 @@
       <p data-stakes>Wie lange der Blaupausen-Fortschritt stimmt und wie aufgeräumt Planen bleibt.</p>
       <div data-options>
         <label data-opt="route" data-recommended>
-          <input type="radio" name="dm-d-done" value="route" checked>
+          <input type="radio" name="dm-d-done" value="route">
           <span data-opt-label>Wenn Einsatz oder Route fertig ist, sonst nach 7 Tagen</span>
           <span data-opt-consequence>Räumt sich selbst auf; der Blaupausen-Fortschritt muss dafür aus dem Inventar lesen.</span>
         </label>
@@ -178,10 +181,10 @@
           <span data-opt-consequence>Nichts verschwindet von allein; der Fortschritt kann beim Aufräumen zurückspringen.</span>
         </label>
       </div>
-      <textarea data-comment="d-done-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-done-none" value="">
-      <input type="hidden" name="dm-d-done-hes" value="">
-      <input type="hidden" name="dm-d-done-touched" value="">
+      <textarea data-comment="d-done-note" placeholder="Notiz (optional)">Nur wenn automatisch erkannt wurde, dass man es im inventar jetzt neu hat ggü. zustand vorher oder wenn es manuell abgehakt wurde! Weil manchmal spielt man ja auch länger nicht. Es sollte aber immer wieder die mgölichkeit kgeben den nachschub zu leeren, =&gt; wird wieder in wunschliste überführt bzw. dort hochgezählt</textarea>
+      <input type="hidden" name="dm-d-done-none" value="1">
+      <input type="hidden" name="dm-d-done-hes" value="{&quot;ms&quot;:92068,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-done-touched" value="1">
       <input type="hidden" name="dm-d-done-issue" value="">
       <input type="hidden" name="dm-d-done-epic" value="">
       <div data-alevel="3" data-title="Erledigte Zeilen">
@@ -196,7 +199,7 @@
       <h3 data-question>Was darf ein nicht angemeldeter Gast mit den Stati tun?</h3>
       <div data-options>
         <label data-opt="login" data-recommended>
-          <input type="radio" name="dm-d-guest" value="login" checked>
+          <input type="radio" name="dm-d-guest" value="login">
           <span data-opt-label>Klick öffnet die Anmeldung, danach läuft die Aktion</span>
           <span data-opt-consequence>Kein Gast-Speicher mehr; der Import-Dialog und die Lücke über Set-Seiten fallen weg.</span>
         </label>
@@ -211,10 +214,11 @@
           <span data-opt-consequence>Am offensten, aber jede Anmeldung braucht einen Zusammenführen-Schritt für drei Listen.</span>
         </label>
       </div>
-      <textarea data-comment="d-guest-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-guest-none" value="">
-      <input type="hidden" name="dm-d-guest-hes" value="">
-      <input type="hidden" name="dm-d-guest-touched" value="">
+      <textarea data-comment="d-guest-note" placeholder="Notiz (optional)">Alles nur mit anmeldung! und gäste können doch gar nix die sehen nur einen anmelde screen? Du meinst viewer, angemeldete, die dürfen alles machen!
+Nimm das konzept der gäste komplett heraus, unangemeldete user seehen nur die startseite mit login! einmal angemeldet und vom admin angenommen / eingeeladen, darf der user dann alles machen was nicht collaboratuer oder admin erfordert.</textarea>
+      <input type="hidden" name="dm-d-guest-none" value="1">
+      <input type="hidden" name="dm-d-guest-hes" value="{&quot;ms&quot;:87529,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-guest-touched" value="1">
       <input type="hidden" name="dm-d-guest-issue" value="">
       <input type="hidden" name="dm-d-guest-epic" value="">
       <div data-alevel="3" data-title="Gäste">
@@ -255,25 +259,25 @@
           <span data-opt-consequence>Eine Regel statt drei (Bahn, Suche, Sets).</span>
         </label>
         <label data-opt="origin">
-          <input type="checkbox" name="dm-d-edge.origin" value="1">
+          <input type="checkbox" name="dm-d-edge.origin" value="1" checked>
           <span data-opt-label>Herkunft am Hangar-Schiff: Pledge, Ingame, Leihschiff</span>
           <span data-opt-consequence>Ein Merkmal, kein eigener Status; der RSI-Import setzt „Pledge“.</span>
         </label>
         <label data-opt="second">
-          <input type="checkbox" name="dm-d-edge.second" value="1">
+          <input type="checkbox" name="dm-d-edge.second" value="1" checked>
           <span data-opt-label>Zweites Exemplar desselben Schiffs erlaubt</span>
           <span data-opt-consequence>Heute meldet der Weg „schon im Hangar“.</span>
         </label>
         <label data-opt="wipe">
-          <input type="checkbox" name="dm-d-edge.wipe" value="1">
+          <input type="checkbox" name="dm-d-edge.wipe" value="1" checked>
           <span data-opt-label>Knopf „Ingame-Bestand zurücksetzen“ für Wipes</span>
           <span data-opt-consequence>Leert Inventar und Ingame-Schiffe, Pledges und Blaupausen bleiben; mit Rückfrage.</span>
         </label>
       </div>
       <textarea data-comment="d-edge-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-edge-none" value="">
-      <input type="hidden" name="dm-d-edge-hes" value="">
-      <input type="hidden" name="dm-d-edge-touched" value="">
+      <input type="hidden" name="dm-d-edge-hes" value="{&quot;ms&quot;:70825,&quot;revisits&quot;:2,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-edge-touched" value="1">
       <input type="hidden" name="dm-d-edge-issue" value="">
       <input type="hidden" name="dm-d-edge-epic" value="">
       <div data-alevel="3" data-title="Sonderfall-Regeln">
@@ -310,10 +314,11 @@
           <span data-opt-consequence>Bricht die beschlossene Folge; Hotkeys und Phone-Leiste verschieben sich.</span>
         </label>
       </div>
-      <textarea data-comment="d-hqhome-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-hqhome-note" placeholder="Notiz (optional)">Aber dabei eher wunschliste zu nachschub übernehmen!  Daneben natürlich immer angezeigt in jetzt wofür man alle einsätze und co. macht nämlcih für den nachschub zu besorgen.
+Man soll aber auch mehrere nachschübe vorplanen können (bis zu 7), die jewiels 1-x Einsätze enthalten. Und in jetzt macht man nur ein Einsatzkonglomerat für 1 Nachschub. Den Nachschub auch gern dynamsisch benennen lassen mit der ki und den einsatz dazu uach, nachschub anhand dessen, was man bekommmt zusammengefasst in kurz (zeichenlimits respekteiren) und einsätze anhand was man m achen muss!</textarea>
       <input type="hidden" name="dm-d-hqhome-none" value="">
-      <input type="hidden" name="dm-d-hqhome-hes" value="">
-      <input type="hidden" name="dm-d-hqhome-touched" value="">
+      <input type="hidden" name="dm-d-hqhome-hes" value="{&quot;ms&quot;:277706,&quot;revisits&quot;:1,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-hqhome-touched" value="1">
       <input type="hidden" name="dm-d-hqhome-issue" value="">
       <input type="hidden" name="dm-d-hqhome-epic" value="">
       <div data-alevel="3" data-title="Platz im HQ">
@@ -329,12 +334,12 @@
       <p data-stakes>Ob der wichtigste Einstieg in den Nachschub erhalten bleibt.</p>
       <div data-options>
         <label data-opt="pill" data-recommended>
-          <input type="radio" name="dm-d-codex" value="pill" checked>
+          <input type="radio" name="dm-d-codex" value="pill">
           <span data-opt-label>Listen zwei Knoten, Detail- und Blaupausenseite zusätzlich „In den Nachschub“</span>
           <span data-opt-consequence>Suchzeilen, Index und Holo zeigen Wunsch + Besitz; offener Nachschub nur als stiller Hinweis „3× im Nachschub“.</span>
         </label>
         <label data-opt="hq">
-          <input type="radio" name="dm-d-codex" value="hq">
+          <input type="radio" name="dm-d-codex" value="hq" checked>
           <span data-opt-label>Nur Wunschliste und Besitz, Nachschub nur im HQ</span>
           <span data-opt-consequence>Dein Vorschlag wörtlich: am ruhigsten, aber Material der Blaupause nur noch über HQ → Planen → suchen.</span>
         </label>
@@ -344,10 +349,10 @@
           <span data-opt-consequence>Keine Änderung; genau die Unruhe, die dich stört.</span>
         </label>
       </div>
-      <textarea data-comment="d-codex-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-codex-note" placeholder="Notiz (optional)">aber blaupasen materialien kann man ja nachdem eine blaupause zur wunschliste hinzufügen kann (die man ja z. B. durhc missiionen bkeommt), dann auch auch von der blaupause aus klicken x mal in die wunschliste das material überführen um dann die mateirailien zus sammeln (gern dann gruppiert, das man weiß, dass sie für diese blaupause craften sind bzw. gegenstand craften )</textarea>
       <input type="hidden" name="dm-d-codex-none" value="">
-      <input type="hidden" name="dm-d-codex-hes" value="">
-      <input type="hidden" name="dm-d-codex-touched" value="">
+      <input type="hidden" name="dm-d-codex-hes" value="{&quot;ms&quot;:124948,&quot;revisits&quot;:1,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-codex-touched" value="1">
       <input type="hidden" name="dm-d-codex-issue" value="">
       <input type="hidden" name="dm-d-codex-epic" value="">
       <div data-alevel="3" data-title="Stati im Codex">
@@ -365,7 +370,7 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Was wird aus dem Nachschub-Knopf mit Popup in der HQ-Leiste?</h3>
       <div data-options>
         <label data-opt="glance" data-recommended>
-          <input type="radio" name="dm-d-hqpopup" value="glance" checked>
+          <input type="radio" name="dm-d-hqpopup" value="glance">
           <span data-opt-label>Bleibt als Schnellblick, nur Nachschub, Link nach Planen</span>
           <span data-opt-consequence>Der Wunschliste-Reiter zieht dorthin, wo „Ganze Wunschliste“ hinführt.</span>
         </label>
@@ -380,10 +385,12 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-consequence>Wunschliste existiert dann an drei Orten.</span>
         </label>
       </div>
-      <textarea data-comment="d-hqpopup-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-hqpopup-none" value="">
-      <input type="hidden" name="dm-d-hqpopup-hes" value="">
-      <input type="hidden" name="dm-d-hqpopup-touched" value="">
+      <textarea data-comment="d-hqpopup-note" placeholder="Notiz (optional)">Naja, wesentlich präsenter und ncih thinter popup versteckt, man soll den aktuelle Einsatzplanung sehen und dort Nachschub ergänzen um Dinge der WUnschliste und man sieht direkt dann die Einsätze...
+
+Nachholen heißt auf die wunschliste packen! Danach kann man hingehen und das zum nachschub hinzufügen für eine konkrete einsatzplanung unter planen im hq!</textarea>
+      <input type="hidden" name="dm-d-hqpopup-none" value="1">
+      <input type="hidden" name="dm-d-hqpopup-hes" value="{&quot;ms&quot;:87016,&quot;revisits&quot;:1,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-hqpopup-touched" value="1">
       <input type="hidden" name="dm-d-hqpopup-issue" value="">
       <input type="hidden" name="dm-d-hqpopup-epic" value="">
       <div data-alevel="3" data-title="Nachschub-Knopf">
@@ -398,7 +405,7 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Was zeigt Bestand vom Nachschub?</h3>
       <div data-options>
         <label data-opt="line" data-recommended>
-          <input type="radio" name="dm-d-stock" value="line" checked>
+          <input type="radio" name="dm-d-stock" value="line">
           <span data-opt-label>Pro Zeile „fehlt noch N“ plus „Nachholen“</span>
           <span data-opt-consequence>Ein stiller Hinweis je Eintrag; der Zettel selbst bleibt in Planen.</span>
         </label>
@@ -414,9 +421,9 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
         </label>
       </div>
       <textarea data-comment="d-stock-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-stock-none" value="">
-      <input type="hidden" name="dm-d-stock-hes" value="">
-      <input type="hidden" name="dm-d-stock-touched" value="">
+      <input type="hidden" name="dm-d-stock-none" value="1">
+      <input type="hidden" name="dm-d-stock-hes" value="{&quot;ms&quot;:38272,&quot;revisits&quot;:1,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-stock-touched" value="1">
       <input type="hidden" name="dm-d-stock-issue" value="">
       <input type="hidden" name="dm-d-stock-epic" value="">
       <div data-alevel="3" data-title="Bestand und Nachschub">
@@ -431,7 +438,7 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Wohin führt der Link „Ganze Wunschliste“?</h3>
       <div data-options>
         <label data-opt="stocktab" data-recommended>
-          <input type="radio" name="dm-d-wishhome" value="stocktab" checked>
+          <input type="radio" name="dm-d-wishhome" value="stocktab">
           <span data-opt-label>Reiter „Wunschliste“ in Bestand</span>
           <span data-opt-consequence>Neben Inventar, Hangar, Blaupausen; ein echter Link mit eigener Adresse.</span>
         </label>
@@ -446,10 +453,10 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-consequence>Kein neuer Ort, aber keine Pflege-Ansicht (sortieren, entfernen).</span>
         </label>
       </div>
-      <textarea data-comment="d-wishhome-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-wishhome-none" value="">
-      <input type="hidden" name="dm-d-wishhome-hes" value="">
-      <input type="hidden" name="dm-d-wishhome-touched" value="">
+      <textarea data-comment="d-wishhome-note" placeholder="Notiz (optional)">wunschliste ist wie eine shopping cart sozusagen ein popup oder so</textarea>
+      <input type="hidden" name="dm-d-wishhome-none" value="1">
+      <input type="hidden" name="dm-d-wishhome-hes" value="{&quot;ms&quot;:43661,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-wishhome-touched" value="1">
       <input type="hidden" name="dm-d-wishhome-issue" value="">
       <input type="hidden" name="dm-d-wishhome-epic" value="">
       <div data-alevel="3" data-title="Ganze Wunschliste">
@@ -478,12 +485,12 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-loose-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-loose-alt" placeholder="Was stattdessen?" value="">
       </div>
       <textarea data-comment="d-loose-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-loose-none" value="">
-      <input type="hidden" name="dm-d-loose-hes" value="">
-      <input type="hidden" name="dm-d-loose-touched" value="">
+      <input type="hidden" name="dm-d-loose-hes" value="{&quot;ms&quot;:20853,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-loose-touched" value="1">
       <input type="hidden" name="dm-d-loose-issue" value="">
       <input type="hidden" name="dm-d-loose-epic" value="">
       <div data-alevel="3" data-title="Lose Zeilen in Planen">
@@ -517,12 +524,12 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-label>✎ eigenes Wort</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-term-text" placeholder="✎ eigenes Wort">
+        <input type="text" name="dm-d-term-text" placeholder="✎ eigenes Wort" value="">
       </div>
-      <textarea data-comment="d-term-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-term-note" placeholder="Notiz (optional)">Stimmt, es sollte inventar / Hangar / Sammlung heißen, aber Bestand darf der oberbegriff selten genutzt sein!</textarea>
       <input type="hidden" name="dm-d-term-none" value="">
-      <input type="hidden" name="dm-d-term-hes" value="">
-      <input type="hidden" name="dm-d-term-touched" value="">
+      <input type="hidden" name="dm-d-term-hes" value="{&quot;ms&quot;:33275,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-term-touched" value="1">
       <input type="hidden" name="dm-d-term-issue" value="">
       <input type="hidden" name="dm-d-term-epic" value="">
       <div data-alevel="3" data-title="Name der Besitz-Seite">
@@ -558,12 +565,12 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-label>Anders …</span>
           <span data-opt-consequence>Zum Beispiel andere Anzahlen.</span>
         </label>
-        <input type="text" name="dm-d-panel-alt" placeholder="Was stattdessen?">
+        <input type="text" name="dm-d-panel-alt" placeholder="Was stattdessen?" value="">
       </div>
-      <textarea data-comment="d-panel-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-panel-note" placeholder="Notiz (optional)">Kontextabhängig eher Zuletzt geöffnet + Wunschliste +Hangar/Inventar/Sammlung  (letzteres kontextabhängig)</textarea>
       <input type="hidden" name="dm-d-panel-none" value="">
-      <input type="hidden" name="dm-d-panel-hes" value="">
-      <input type="hidden" name="dm-d-panel-touched" value="">
+      <input type="hidden" name="dm-d-panel-hes" value="{&quot;ms&quot;:73729,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-panel-touched" value="1">
       <input type="hidden" name="dm-d-panel-issue" value="">
       <input type="hidden" name="dm-d-panel-epic" value="">
       <div data-alevel="3" data-title="Inhalt des Panels">
@@ -589,12 +596,12 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Wie wirkt sich die Seite, auf der du bist, auf die Einträge aus?</h3>
       <div data-options>
         <label data-opt="sort" data-recommended>
-          <input type="radio" name="dm-d-ptype" value="sort" checked>
+          <input type="radio" name="dm-d-ptype" value="sort">
           <span data-opt-label>Passender Typ zuerst, nichts wird ausgeblendet</span>
           <span data-opt-consequence>Auf einer Waffenseite stehen Waffen oben, darunter der Rest.</span>
         </label>
         <label data-opt="filter">
-          <input type="radio" name="dm-d-ptype" value="filter">
+          <input type="radio" name="dm-d-ptype" value="filter" checked>
           <span data-opt-label>Nur der passende Typ (wie heute)</span>
           <span data-opt-consequence>Kurz und thematisch, aber oft leer.</span>
         </label>
@@ -604,10 +611,10 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-consequence>Immer gleich, aber ohne Bezug zur Seite.</span>
         </label>
       </div>
-      <textarea data-comment="d-ptype-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-ptype-note" placeholder="Notiz (optional)">sonst wird es zu viel!</textarea>
       <input type="hidden" name="dm-d-ptype-none" value="">
-      <input type="hidden" name="dm-d-ptype-hes" value="">
-      <input type="hidden" name="dm-d-ptype-touched" value="">
+      <input type="hidden" name="dm-d-ptype-hes" value="{&quot;ms&quot;:48398,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-ptype-touched" value="1">
       <input type="hidden" name="dm-d-ptype-issue" value="">
       <input type="hidden" name="dm-d-ptype-epic" value="">
       <div data-alevel="3" data-title="Seitentyp">
@@ -639,8 +646,8 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       </div>
       <textarea data-comment="d-pcount-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-pcount-none" value="">
-      <input type="hidden" name="dm-d-pcount-hes" value="">
-      <input type="hidden" name="dm-d-pcount-touched" value="">
+      <input type="hidden" name="dm-d-pcount-hes" value="{&quot;ms&quot;:16980,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-pcount-touched" value="1">
       <input type="hidden" name="dm-d-pcount-issue" value="">
       <input type="hidden" name="dm-d-pcount-epic" value="">
       <div data-alevel="3" data-title="Zahl am Symbol">
@@ -672,8 +679,8 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       </div>
       <textarea data-comment="d-pnach-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-pnach-none" value="">
-      <input type="hidden" name="dm-d-pnach-hes" value="">
-      <input type="hidden" name="dm-d-pnach-touched" value="">
+      <input type="hidden" name="dm-d-pnach-hes" value="{&quot;ms&quot;:12613,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-pnach-touched" value="1">
       <input type="hidden" name="dm-d-pnach-issue" value="">
       <input type="hidden" name="dm-d-pnach-epic" value="">
       <div data-alevel="3" data-title="Nachschub im Panel">
@@ -707,12 +714,12 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-label>✎ eigenes Wort</span>
           <span data-opt-consequence>Schreib es in das Feld darunter.</span>
         </label>
-        <input type="text" name="dm-d-pname-text" placeholder="✎ eigenes Wort">
+        <input type="text" name="dm-d-pname-text" placeholder="✎ eigenes Wort" value="">
       </div>
-      <textarea data-comment="d-pname-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="d-pname-note" placeholder="Notiz (optional)">Aber bitte drein als icon, nur aufgeklappt sieht man das wording!</textarea>
       <input type="hidden" name="dm-d-pname-none" value="">
-      <input type="hidden" name="dm-d-pname-hes" value="">
-      <input type="hidden" name="dm-d-pname-touched" value="">
+      <input type="hidden" name="dm-d-pname-hes" value="{&quot;ms&quot;:28671,&quot;revisits&quot;:1,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-pname-touched" value="1">
       <input type="hidden" name="dm-d-pname-issue" value="">
       <input type="hidden" name="dm-d-pname-epic" value="">
       <div data-alevel="3" data-title="Name des Panels">
@@ -727,7 +734,7 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <h3 data-question>Welches Symbol trägt das Panel?</h3>
       <div data-options>
         <label data-opt="clock" data-recommended>
-          <input type="radio" name="dm-d-picon" value="clock" checked>
+          <input type="radio" name="dm-d-picon" value="clock">
           <span data-opt-label>Uhr mit Zahl</span>
           <span data-opt-consequence>Steht für „zuletzt“; die Zahl zeigt die Wünsche.</span>
         </label>
@@ -742,10 +749,10 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
           <span data-opt-consequence>Neutral, kann aber mit dem Apps-Menü verwechselt werden.</span>
         </label>
       </div>
-      <textarea data-comment="d-picon-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-picon-none" value="">
-      <input type="hidden" name="dm-d-picon-hes" value="">
-      <input type="hidden" name="dm-d-picon-touched" value="">
+      <textarea data-comment="d-picon-note" placeholder="Notiz (optional)">gefällt mir alles noch nicht, eher einen verschnitt aus lesezeichen, warenkorb, zuletzt geöfnnet, geschenk, will ich icons brauch ich! gern nochmal kreativ werden und mir visuelel vorschläge machen!</textarea>
+      <input type="hidden" name="dm-d-picon-none" value="1">
+      <input type="hidden" name="dm-d-picon-hes" value="{&quot;ms&quot;:164832,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-picon-touched" value="1">
       <input type="hidden" name="dm-d-picon-issue" value="">
       <input type="hidden" name="dm-d-picon-epic" value="">
       <div data-alevel="3" data-title="Symbol des Panels">
@@ -761,12 +768,12 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       <p data-stakes>Der Such-Begriff „gemerkt“ zeigt danach auf die Wunschliste, „lesezeichen“ auf News.</p>
       <div data-options>
         <label data-opt="feed" data-recommended>
-          <input type="radio" name="dm-d-news" value="feed" checked>
+          <input type="radio" name="dm-d-news" value="feed">
           <span data-opt-label>Im Feed: Filter „Lesezeichen“ und Streifen „Weiterlesen“</span>
           <span data-opt-consequence>Der Schalter „Gemerkt“ heißt „Lesezeichen“; oben im Feed die zuletzt gelesenen Beiträge.</span>
         </label>
         <label data-opt="panel">
-          <input type="radio" name="dm-d-news" value="panel">
+          <input type="radio" name="dm-d-news" value="panel" checked>
           <span data-opt-label>Im Panel, aber nur auf News-Seiten</span>
           <span data-opt-consequence>Halb der alte Zustand; das Panel ändert sich je nach Seite.</span>
         </label>
@@ -778,8 +785,8 @@ Detailseite:         [♡ Wunsch] [▣ Inventar]   ( In den Nachschub · 1 − +
       </div>
       <textarea data-comment="d-news-note" placeholder="Notiz (optional)"></textarea>
       <input type="hidden" name="dm-d-news-none" value="">
-      <input type="hidden" name="dm-d-news-hes" value="">
-      <input type="hidden" name="dm-d-news-touched" value="">
+      <input type="hidden" name="dm-d-news-hes" value="{&quot;ms&quot;:37856,&quot;revisits&quot;:0,&quot;median&quot;:44282}">
+      <input type="hidden" name="dm-d-news-touched" value="1">
       <input type="hidden" name="dm-d-news-issue" value="">
       <input type="hidden" name="dm-d-news-epic" value="">
       <div data-alevel="3" data-title="News-Lesezeichen">

@@ -1,0 +1,169 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "submitted": true,
+    "general": "Btw, wunschlisten sollten auch zähler háben können (weil man sich ja 20 rattler wünschen kann als raketen).\nDamit läuft sozusagen alles durch, außer Wunschliste => Nachschub => Inventar/Hanger/Sammlung\n\nManchmal mit abkürzungen und manchmal geht wie bei news direkt njur in sammlungen!",
+    "decisions": [
+      {
+        "id": "d-model",
+        "value": "ok",
+        "deviates": false,
+        "none": false,
+        "note": "Ich finde die idee gut, alles geht auf eine wunschliste, dann kann ich im hq hingehen unter planen und wunschlsiten themen in den nachschub reinbringen. Ein Nachschub kann dann geplant werden in 1-x Einsätzen (teils missionen oder bergbau oder usw.) um den gesamten nachschub am ende zum bestand zu überführen (Inventar/Hangar). Dabei kann man nicht teilweise den nachschub planen - denn das würde man dann eher so machen, dass man halt nciht alles von der wunschliste in den nachschub überführt.\n\nAußerdem bzgl. Lesezeichen, ne, lass uns das doch auch ala Gesammelt machen, man kann sozusagen auch news, galiere bilder (geht ja schon heute) sammeln! Das heißt am ende ist sammeln gleich gestellt mit inventar / hangar / blaupauseun+ruf gesammlet."
+      },
+      {
+        "id": "d-fulfil",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-ship",
+        "value": "close",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-raw",
+        "value": {
+          "answer": "no",
+          "alt": ""
+        },
+        "deviates": true,
+        "none": false
+      },
+      {
+        "id": "d-done",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "Nur wenn automatisch erkannt wurde, dass man es im inventar jetzt neu hat ggü. zustand vorher oder wenn es manuell abgehakt wurde! Weil manchmal spielt man ja auch länger nicht. Es sollte aber immer wieder die mgölichkeit kgeben den nachschub zu leeren, => wird wieder in wunschliste überführt bzw. dort hochgezählt"
+      },
+      {
+        "id": "d-guest",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "Alles nur mit anmeldung! und gäste können doch gar nix die sehen nur einen anmelde screen? Du meinst viewer, angemeldete, die dürfen alles machen!\nNimm das konzept der gäste komplett heraus, unangemeldete user seehen nur die startseite mit login! einmal angemeldet und vom admin angenommen / eingeeladen, darf der user dann alles machen was nicht collaboratuer oder admin erfordert."
+      },
+      {
+        "id": "d-edge",
+        "value": [
+          "keep",
+          "upcoming",
+          "pledge",
+          "manual",
+          "zero",
+          "origin",
+          "second",
+          "wipe"
+        ],
+        "deviates": true,
+        "none": false
+      },
+      {
+        "id": "d-hqhome",
+        "value": "plan",
+        "deviates": false,
+        "none": false,
+        "note": "Aber dabei eher wunschliste zu nachschub übernehmen!  Daneben natürlich immer angezeigt in jetzt wofür man alle einsätze und co. macht nämlcih für den nachschub zu besorgen.\nMan soll aber auch mehrere nachschübe vorplanen können (bis zu 7), die jewiels 1-x Einsätze enthalten. Und in jetzt macht man nur ein Einsatzkonglomerat für 1 Nachschub. Den Nachschub auch gern dynamsisch benennen lassen mit der ki und den einsatz dazu uach, nachschub anhand dessen, was man bekommmt zusammengefasst in kurz (zeichenlimits respekteiren) und einsätze anhand was man m achen muss!"
+      },
+      {
+        "id": "d-codex",
+        "value": "hq",
+        "deviates": true,
+        "none": false,
+        "note": "aber blaupasen materialien kann man ja nachdem eine blaupause zur wunschliste hinzufügen kann (die man ja z. B. durhc missiionen bkeommt), dann auch auch von der blaupause aus klicken x mal in die wunschliste das material überführen um dann die mateirailien zus sammeln (gern dann gruppiert, das man weiß, dass sie für diese blaupause craften sind bzw. gegenstand craften )"
+      },
+      {
+        "id": "d-hqpopup",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "Naja, wesentlich präsenter und ncih thinter popup versteckt, man soll den aktuelle Einsatzplanung sehen und dort Nachschub ergänzen um Dinge der WUnschliste und man sieht direkt dann die Einsätze...\n\nNachholen heißt auf die wunschliste packen! Danach kann man hingehen und das zum nachschub hinzufügen für eine konkrete einsatzplanung unter planen im hq!"
+      },
+      {
+        "id": "d-stock",
+        "value": "",
+        "deviates": true,
+        "none": true
+      },
+      {
+        "id": "d-wishhome",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "wunschliste ist wie eine shopping cart sozusagen ein popup oder so"
+      },
+      {
+        "id": "d-loose",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-term",
+        "value": "Bestand",
+        "deviates": false,
+        "none": false,
+        "note": "Stimmt, es sollte inventar / Hangar / Sammlung heißen, aber Bestand darf der oberbegriff selten genutzt sein!"
+      },
+      {
+        "id": "d-panel",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "deviates": false,
+        "none": false,
+        "note": "Kontextabhängig eher Zuletzt geöffnet + Wunschliste +Hangar/Inventar/Sammlung  (letzteres kontextabhängig)"
+      },
+      {
+        "id": "d-ptype",
+        "value": "filter",
+        "deviates": true,
+        "none": false,
+        "note": "sonst wird es zu viel!"
+      },
+      {
+        "id": "d-pcount",
+        "value": "wish",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-pnach",
+        "value": "out",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-pname",
+        "value": "Schnellzugriff",
+        "deviates": false,
+        "none": false,
+        "note": "Aber bitte drein als icon, nur aufgeklappt sieht man das wording!"
+      },
+      {
+        "id": "d-picon",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "gefällt mir alles noch nicht, eher einen verschnitt aus lesezeichen, warenkorb, zuletzt geöfnnet, geschenk, will ich icons brauch ich! gern nochmal kreativ werden und mir visuelel vorschläge machen!"
+      },
+      {
+        "id": "d-news",
+        "value": "panel",
+        "deviates": true,
+        "none": false
+      }
+    ]
+  }
+]
