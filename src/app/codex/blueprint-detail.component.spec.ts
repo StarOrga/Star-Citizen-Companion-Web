@@ -7,8 +7,7 @@ import { BlueprintDetailComponent } from './blueprint-detail.component';
 import { BlueprintDetail, CodexService } from './codex.service';
 import { CodexBlueprintIngredient } from './codex.types';
 import { ItemPathService } from '../hq/data/item-path.service';
-import { type FakeItemPath, fakeItemPath, fakeSignIn } from '../shared/item-path/item-path.testing';
-import { SignInAskService } from '../shared/item-path/sign-in-ask.service';
+import { type FakeItemPath, fakeItemPath } from '../shared/item-path/item-path.testing';
 import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
 
 const MICROSAT = 'BP_CRAFT_Carryable_2H_FL_MissionItem_Microsatellite_a';
@@ -65,7 +64,6 @@ async function setup(
       provideLocationMocks(),
       { provide: CodexService, useValue: { getBlueprint, ...extra } as Partial<CodexService> },
       { provide: ItemPathService, useValue: fakeItemPath() },
-      { provide: SignInAskService, useValue: fakeSignIn() },
       {
         provide: ActivatedRoute,
         useValue: { paramMap: new BehaviorSubject(convertToParamMap({ className: detail.classNameSlug })) },
@@ -178,14 +176,6 @@ describe('BlueprintDetailComponent — mission (A9)', () => {
   it('does not add a second line when the step is already there', async () => {
     const fixture = await setup(withMission());
     pathOf().current.set({ nachschubQty: 1 });
-    click(pill(fixture)!);
-    await tick();
-    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
-  });
-
-  it('asks nobody signed out: the anchor just navigates', async () => {
-    const fixture = await setup(withMission());
-    pathOf().current.set({ signedIn: false });
     click(pill(fixture)!);
     await tick();
     expect(pathOf().addToNachschub).not.toHaveBeenCalled();

@@ -7,8 +7,7 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { ItemPathService } from '../data/item-path.service';
 import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
-import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
-import { fakeItemPath, fakeSignIn } from '../../shared/item-path/item-path.testing';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { HqLiveService } from '../now/hq-live.service';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 
@@ -37,7 +36,6 @@ describe('HqStockPopupComponent: capture and links', () => {
         { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
         { provide: HqInventoryService, useValue: inv },
         { provide: ItemPathService, useValue: path },
-        { provide: SignInAskService, useValue: fakeSignIn() },
         { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }), events: signal([]) } },
         { provide: CodexService, useValue: { searchAll: () => Promise.resolve({ hits: opts.hits ?? [], totals: {} }) } },
       ],

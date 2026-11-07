@@ -3,8 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import type { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
 import { ItemPathService } from '../../hq/data/item-path.service';
-import { fakeItemPath, fakeSignIn } from '../../shared/item-path/item-path.testing';
-import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { CodexService } from '../codex.service';
 import { CodexHoloInspectorComponent, partFocusOf } from './codex-holo-inspector.component';
 import type { PinGroup, StagePin } from './codex-holo-model';
@@ -78,7 +77,6 @@ describe('CodexHoloInspectorComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: ItemPathService, useValue: fakeItemPath() },
-        { provide: SignInAskService, useValue: fakeSignIn() },
       ],
     });
     const fixture = TestBed.createComponent(CodexHoloInspectorComponent);

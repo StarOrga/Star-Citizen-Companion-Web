@@ -32,7 +32,6 @@ import { ScConfirmService } from '../dialog/sc-confirm.service';
 import { ScTooltipDirective } from '../tooltip/sc-tooltip.directive';
 import { UndoToastService } from '../undo-toast/undo-toast.service';
 import { PATH_ICONS } from './path-icons';
-import { SignInAskService } from './sign-in-ask.service';
 
 export type ItemPathLevel = 'tertiary' | 'secondary' | 'primary';
 type PopMode = PathStep | 'place' | 'error';
@@ -393,7 +392,6 @@ export class ItemPathComponent implements OnDestroy {
   readonly leave = output<void>();
 
   private readonly path = inject(ItemPathService);
-  private readonly signIn = inject(SignInAskService);
   private readonly toast = inject(UndoToastService);
   private readonly confirm = inject(ScConfirmService);
   private readonly overlay = inject(Overlay);
@@ -526,7 +524,6 @@ export class ItemPathComponent implements OnDestroy {
   }
 
   private async fill(step: PathStep, at: HTMLElement): Promise<void> {
-    if (!(await this.signIn.ensure())) return;
     if (step === 'inventar' && this.kind() !== 'blueprint') {
       this.togglePop('place', at);
       return;

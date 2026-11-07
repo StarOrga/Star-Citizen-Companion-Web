@@ -47,8 +47,3 @@ export function fakeItemPath(start?: Partial<ItemPathState>) {
   };
 }
 export type FakeItemPath = ReturnType<typeof fakeItemPath>;
-
-/** Sign-in is answered by the spec: signed in unless it says otherwise. */
-export function fakeSignIn(answer = true) {
-  return { ensure: jasmine.createSpy('ensure').and.resolveTo(answer) };
-}

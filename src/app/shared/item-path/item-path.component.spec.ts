@@ -6,8 +6,7 @@ import { ItemPathService, stepsOf } from '../../hq/data/item-path.service';
 import { ScConfirmService } from '../dialog/sc-confirm.service';
 import { UndoToastService } from '../undo-toast/undo-toast.service';
 import { ItemPathComponent, ItemPathLevel, nextStepOf } from './item-path.component';
-import { FakeItemPath, fakeItemPath, fakeSignIn, pathState } from './item-path.testing';
-import { SignInAskService } from './sign-in-ask.service';
+import { FakeItemPath, fakeItemPath, pathState } from './item-path.testing';
 import type { ItemPathState, PathStep } from '../../hq/data/item-path.service';
 
 interface Opts {
@@ -15,13 +14,11 @@ interface Opts {
   level?: ItemPathLevel;
   nextStep?: PathStep | null;
   state?: Partial<ItemPathState>;
-  signedIn?: boolean;
   lang?: string;
 }
 
 function setup(o: Opts = {}) {
   const path: FakeItemPath = fakeItemPath(o.state);
-  const signIn = fakeSignIn(o.signedIn ?? true);
   const confirm = { confirm: jasmine.createSpy('confirm').and.resolveTo(true) };
   TestBed.configureTestingModule({
     imports: [ItemPathComponent],
@@ -29,7 +26,6 @@ function setup(o: Opts = {}) {
       provideRouter([]),
       provideTranslateService(),
       { provide: ItemPathService, useValue: path },
-      { provide: SignInAskService, useValue: signIn },
       { provide: ScConfirmService, useValue: confirm },
     ],
   });
@@ -53,7 +49,7 @@ function setup(o: Opts = {}) {
     await settle();
   };
   const popover = () => document.querySelector<HTMLElement>('.cdk-overlay-container .rp');
-  return { fixture, el, node, click, settle, popover, path, signIn, confirm, toast: TestBed.inject(UndoToastService) };
+  return { fixture, el, node, click, settle, popover, path, confirm, toast: TestBed.inject(UndoToastService) };
 }
 
 describe('ItemPathComponent: a mission step (A9)', () => {
@@ -95,7 +91,6 @@ describe('ItemPathComponent: a mission step (A9)', () => {
     const t = withMission();
     await t.fixture.componentInstance.ensureNachschubStep();
     expect(t.path.addToNachschub).toHaveBeenCalledTimes(1);
-    expect(t.signIn.ensure).not.toHaveBeenCalled();
   });
 
   it('ensureNachschubStep leaves a filled stop alone', async () => {
@@ -104,12 +99,6 @@ describe('ItemPathComponent: a mission step (A9)', () => {
     expect(t.path.addToNachschub).not.toHaveBeenCalled();
   });
 
-  it('ensureNachschubStep leaves a signed-out reader alone', async () => {
-    const t = withMission({ state: { signedIn: false } });
-    await t.fixture.componentInstance.ensureNachschubStep();
-    expect(t.path.addToNachschub).not.toHaveBeenCalled();
-    expect(t.signIn.ensure).not.toHaveBeenCalled();
-  });
 });
 
 describe('ItemPathComponent', () => {
@@ -293,15 +282,6 @@ describe('ItemPathComponent', () => {
       await b.click(b.popover()!.querySelector<HTMLButtonElement>('.txt.quiet')!);
       expect(b.confirm.confirm).toHaveBeenCalled();
       expect(b.path.removeFromHangar).toHaveBeenCalledWith('cls', 'Helm');
-    });
-
-    it('signed out: a write asks for sign-in and writes nothing', async () => {
-      const { node, click, path, signIn, popover } = setup({ signedIn: false });
-      await click(node('wish'));
-      await click(node('inventar'));
-      expect(signIn.ensure).toHaveBeenCalledTimes(2);
-      expect(path.addWish).not.toHaveBeenCalled();
-      expect(popover()).toBeNull();
     });
 
     it('a failure shows its translated key at the node, no toast', async () => {

@@ -93,9 +93,7 @@ type Cell =
       </span>
     </header>
 
-    @if (!auth.user()) {
-      <p class="muted" role="status">{{ 'hq.stock.signedOut' | translate }}</p>
-    } @else if (inv.error() && !inv.loaded()) {
+    @if (inv.error() && !inv.loaded()) {
       <div class="state" role="alert">
         <p>{{ inv.error()! | translate }}</p>
         <button type="button" scAction tier="secondary" (click)="inv.load()">{{ 'hq.stock.retry' | translate }}</button>

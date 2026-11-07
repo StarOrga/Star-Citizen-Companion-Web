@@ -234,7 +234,7 @@ describe('ItemPathService', () => {
 
   it('#303: signed out the blueprint mark is not written', async () => {
     const { svc, stock } = setup({ user: false });
-    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).key).toBe('itemPath.needSignIn');
+    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).key).toBe('itemPath.err.failed');
     expect(stock().length).toBe(0);
   });
 
@@ -251,7 +251,7 @@ describe('ItemPathService', () => {
 
   it('signed out nothing is written', async () => {
     const { svc, wished, lines } = setup({ user: false });
-    expect((await svc.addWish('item', 'a', 'A')).key).toBe('itemPath.needSignIn');
+    expect((await svc.addWish('item', 'a', 'A')).key).toBe('itemPath.err.failed');
     expect((await svc.addToNachschub('item', 'a', 'A')).ok).toBeFalse();
     expect(wished.size + lines.length).toBe(0);
   });

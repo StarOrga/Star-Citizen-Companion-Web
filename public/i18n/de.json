@@ -2679,7 +2679,6 @@
     "addToSet": {
       "trigger": "Zum Set",
       "dialogAria": "{{item}} zu einem Set hinzufügen",
-      "signedOut": "Melde dich an und leg ein Set an, um Ausrüstung zu sammeln.",
       "createSet": "Set anlegen",
       "loading": "Sets werden geladen …",
       "noSet": "Du hast noch kein Set.",
@@ -5840,7 +5839,6 @@
         "90d": "90 Tage"
       },
       "retry": "Erneut versuchen",
-      "signedOut": "Melde dich an, um deine Statistik zu sehen.",
       "loading": "Statistik wird geladen …",
       "zero": "Im gewählten Zeitraum nichts erfasst.",
       "details": "Details",
@@ -5901,7 +5899,6 @@
       }
     },
     "stock": {
-      "signedOut": "Melde dich an, um dein Inventar zu sehen.",
       "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Inventar eingetragen.",
@@ -7492,7 +7489,6 @@
     }
   },
   "itemPath": {
-    "needSignIn": "Melde dich an, um das zu speichern.",
     "done": {
       "wishOn": "„{{name}}“ ist auf der Wunschliste",
       "wishOff": "„{{name}}“ ist nicht mehr auf der Wunschliste",

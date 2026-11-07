@@ -2679,7 +2679,6 @@
     "addToSet": {
       "trigger": "Add to set",
       "dialogAria": "Add {{item}} to a set",
-      "signedOut": "Sign in and create a set to collect gear.",
       "createSet": "Create a set",
       "loading": "Loading sets …",
       "noSet": "You have no set yet.",
@@ -5840,7 +5839,6 @@
         "90d": "90 days"
       },
       "retry": "Try again",
-      "signedOut": "Sign in to see your statistics.",
       "loading": "Loading statistics …",
       "zero": "Nothing recorded in this range.",
       "details": "Details",
@@ -5901,7 +5899,6 @@
       }
     },
     "stock": {
-      "signedOut": "Sign in to see your inventory.",
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to your inventory.",
@@ -7492,7 +7489,6 @@
     }
   },
   "itemPath": {
-    "needSignIn": "Sign in to save this.",
     "done": {
       "wishOn": "\"{{name}}\" is on your wishlist",
       "wishOff": "\"{{name}}\" is off your wishlist",

@@ -51,7 +51,7 @@ export const CTA_COLUMNS: readonly Column[] = [
   'owned', 'ship', 'weaponComponent', 'fps', 'ammunition', 'blueprint', 'upcoming', 'manufacturer', 'mission',
 ];
 
-export type CtaRowKey = 'neutral' | 'chipShip' | 'chipItem' | 'hqHangar' | 'hqStock' | 'hqPlan' | 'signedOut';
+export type CtaRowKey = 'neutral' | 'chipShip' | 'chipItem' | 'hqHangar' | 'hqStock' | 'hqPlan';
 
 /** Round 3 `q3-matrix`, cell for cell. Order of cells = {@link CTA_COLUMNS}. */
 export const CTA_MATRIX: Readonly<Record<CtaRowKey, readonly Cell[]>> = {
@@ -61,7 +61,6 @@ export const CTA_MATRIX: Readonly<Record<CtaRowKey, readonly Cell[]>> = {
   hqHangar:  ['myLoadout', 'add', 'whereInstalled', 'inSet', 'N', 'N', 'atRsi', 'N', 'N'],
   hqStock:   ['myLoadout', 'add', 'whereStored', 'whereStored', 'whereStored', 'N', '-', 'N', 'N'],
   hqPlan:    ['planOps', 'shipSource', 'sourceOf', 'sourceOf', 'sourceOf', 'toMission', 'N', 'N', 'toEinsatz'],
-  signedOut: ['-', 'add', 'fittingShips', 'N', 'N', 'N', 'atRsi', 'allProducts', 'N'],
 };
 
 /** The id of the where-to-buy section on a Codex ship page (Bezugsquelle). */
@@ -99,8 +98,7 @@ function loadoutShipId(row: CtaRow): string | null {
 }
 
 /** Which row of the matrix applies in this context. */
-export function ctaRowKey(ctx: SearchContext, signedIn: boolean): CtaRowKey {
-  if (!signedIn) return 'signedOut';
+export function ctaRowKey(ctx: SearchContext): CtaRowKey {
   const compat = ctx.chips.find((c) => c.filter.compatWith)?.filter.compatWith;
   if (compat) return compat.kind === 'ship' ? 'chipShip' : 'chipItem';
   switch (ctx.key) {
@@ -120,11 +118,11 @@ function listKindOf(ctx: SearchContext): PolyHitKind | null {
 
 const NO_ICONS: SearchRowIcons = { wishlist: false, lager: false, nachschub: false };
 
-function cta(id: SearchCtaId, type: 'link' | 'action', target: SearchTarget | null, needsSignIn = false): SearchCta {
-  return { id, labelKey: `search.cta.${id}`, type, target, needsSignIn };
+function cta(id: SearchCtaId, type: 'link' | 'action', target: SearchTarget | null): SearchCta {
+  return { id, labelKey: `search.cta.${id}`, type, target };
 }
 
-function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boolean): SearchCta | null {
+function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext): SearchCta | null {
   switch (id) {
     case 'myLoadout': {
       const ship = loadoutShipId(row);
@@ -139,7 +137,7 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
     }
     case 'inSet': {
       const set = row.ownership?.inSetIds[0];
-      return set ? cta('inSet', 'link', { link: hqSet(set), queryParams: null }) : cta('inSet', 'action', null, !signedIn);
+      return set ? cta('inSet', 'link', { link: hqSet(set), queryParams: null }) : cta('inSet', 'action', null);
     }
     // Only where the data names the mission that earns the blueprint; no mission, no CTA.
     case 'toMission':
@@ -151,7 +149,7 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
       return cta('allProducts', 'link', { link: ['/codex', 'index'], queryParams: code ? { kind: 'ship', mfr: code } : { kind: 'ship' } });
     }
     case 'add':
-      return cta('add', 'action', null, !signedIn);
+      return cta('add', 'action', null);
     case 'whereStored':
       return cta('whereStored', 'link', { link: ['/hq'], queryParams: null, fragment: 'inventar' });
     case 'planOps':
@@ -174,7 +172,7 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
     case 'mount':
       return mount(row, ctx);
     case 'toEinsatz':
-      return cta('toEinsatz', 'action', null, !signedIn);
+      return cta('toEinsatz', 'action', null);
     default:
       return null;
   }
@@ -226,15 +224,15 @@ function whereInstalled(row: CtaRow): SearchCta | null {
  * kind (the Besitz column when the row is a ship / loadout of the reader's) →
  * `*` and unresolvable cells fall back to the neutral row.
  */
-export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): SearchCta | null {
+export function resolveCta(ctx: SearchContext, row: CtaRow): SearchCta | null {
   if (row.type === 'patch' || row.type === 'gallery' || row.type === 'place') return null;
 
   if (row.type === 'own') {
-    if (row.ownKind === 'set') return build('openSet', row, ctx, signedIn);
-    if (row.ownKind === 'item') return build('whereStored', row, ctx, signedIn);
+    if (row.ownKind === 'set') return build('openSet', row, ctx);
+    if (row.ownKind === 'item') return build('whereStored', row, ctx);
     // Chip Item × Besitz: the reader's own ship takes the chip's piece.
-    if (signedIn && ctaRowKey(ctx, signedIn) === 'chipItem') return build('mount', row, ctx, signedIn) ?? build('myLoadout', row, ctx, signedIn);
-    return build('myLoadout', row, ctx, signedIn);
+    if (ctaRowKey(ctx) === 'chipItem') return build('mount', row, ctx) ?? build('myLoadout', row, ctx);
+    return build('myLoadout', row, ctx);
   }
 
   const column = columnOf(row);
@@ -242,10 +240,10 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
 
   const listKind = listKindOf(ctx);
   if (listKind && row.kind === listKind && row.kind !== UPCOMING_HIT_KIND && row.kind !== 'manufacturer') {
-    return build('compare', row, ctx, signedIn);
+    return build('compare', row, ctx);
   }
 
-  const key = ctaRowKey(ctx, signedIn);
+  const key = ctaRowKey(ctx);
   const owned = loadoutShipId(row) !== null;
   const idx = CTA_COLUMNS.indexOf(owned ? 'owned' : column);
   const neutralIdx = CTA_COLUMNS.indexOf(column);
@@ -263,8 +261,8 @@ export function resolveCta(ctx: SearchContext, row: CtaRow, signedIn: boolean): 
   const own = (cell: Cell): SearchCta | null | 'neutral' => {
     if (cell === '-') return null;
     if (cell === 'N' || cell === 'whereInstalled') return 'neutral';
-    if (cell === 'compareSame') return chipItemKind && chipItemKind === row.kind ? build('compareWith', row, ctx, signedIn) : 'neutral';
-    const built = cell === 'shipSource' ? shipSource(row) : build(cell, row, ctx, signedIn);
+    if (cell === 'compareSame') return chipItemKind && chipItemKind === row.kind ? build('compareWith', row, ctx) : 'neutral';
+    const built = cell === 'shipSource' ? shipSource(row) : build(cell, row, ctx);
     return built === null && fallible.has(cell) ? 'neutral' : built;
   };
 
