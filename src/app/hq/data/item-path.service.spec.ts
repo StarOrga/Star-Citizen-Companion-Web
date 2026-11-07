@@ -221,6 +221,23 @@ describe('ItemPathService', () => {
     expect(svc.read('blueprint', 'bp_1').places.map((p) => p.location)).toEqual(['Blueprints']);
   });
 
+  it('#303: "Ich habe diese" marks a blueprint as owned and takes the mark off again', async () => {
+    const { svc, stock } = setup();
+    stock.set([{ location: 'Lorville', name: 'Gold', class_name: 'item:Gold', qty: 3, unit: 'pcs' }]);
+    expect(svc.ownedBlueprints().size).toBe(0);
+    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).ok).toBeTrue();
+    expect([...svc.ownedBlueprints()]).toEqual(['BP_Rifle']);
+    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', false)).ok).toBeTrue();
+    expect(svc.ownedBlueprints().size).toBe(0);
+    expect(stock().map((i) => i.name)).toEqual(['Gold']);
+  });
+
+  it('#303: signed out the blueprint mark is not written', async () => {
+    const { svc, stock } = setup({ user: false });
+    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).key).toBe('itemPath.needSignIn');
+    expect(stock().length).toBe(0);
+  });
+
   it('ships: addToHangar flips a wished ship to owned and undo flips it back; upcoming has no Nachschub', async () => {
     const { svc, ships } = setup();
     ships.set('idris', { id: 's-idris', status: 'wishlist' });

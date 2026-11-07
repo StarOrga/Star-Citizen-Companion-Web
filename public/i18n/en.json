@@ -673,6 +673,7 @@
       "from": "from {{price}} aUEC",
       "placeOne": "1 place",
       "places": "{{count}} places",
+      "more": "+{{count}} more",
       "price": "{{price}} aUEC",
       "openPlan": "Open the plan"
     },
@@ -2476,7 +2477,10 @@
         "legendAbove": "above median",
         "legendBelow": "below median",
         "compareInfo": "Each axis runs from 0 (centre) to the highest value among the chosen weapons (rim). Blue is this weapon, the dashed line the group's median.",
-        "note": "Compares only what the game data holds for this weapon."
+        "note": "Compares only what the game data holds for this weapon.",
+        "gapNoData": "The current data does not include damage, speed, agility and range yet. The comparison appears once a build is uploaded with Data Uploader 0.73.3 or later.",
+        "gapTooFew": "Too few missiles differ in damage, speed, agility and range to rank this one.",
+        "gapNoCohort": "The comparison group could not be loaded."
       },
       "data": {
         "title": "Weapon data",
@@ -2584,6 +2588,11 @@
       "tier": "Tier {{tier}}"
     },
     "recipesMissing": "No recipe ingredients were extracted for this build yet — blueprints are listed, but without their material list.",
+    "owned": {
+      "filter": "Only mine",
+      "mark": "I have this blueprint: {{name}}",
+      "unmark": "Mine – remove the mark: {{name}}"
+    },
     "role": {
       "primary": "Primary",
       "secondary": "Secondary",
@@ -5949,6 +5958,30 @@
         "minutes": "last opened {{n}} min ago",
         "hours": "last opened {{n}} h ago",
         "days": "last opened {{n}} days ago"
+      },
+      "desk": {
+        "open": "Book: {{name}}",
+        "addOne": "Store 1: {{name}}",
+        "takeOne": "Take out 1: {{name}}",
+        "availShort": "{{free}} free · {{reserved}} reserved",
+        "amount": "Amount",
+        "in": "Store",
+        "out": "Take out",
+        "set": "Set amount",
+        "for": "Reserve for",
+        "forHint": "e.g. Player X or Sale",
+        "reserve": "Reserve",
+        "reservations": "Reservations",
+        "handOut": "Handed out",
+        "release": "Release",
+        "delete": "Delete from list",
+        "deleteTitle": "Delete “{{name}}”?",
+        "deleteText": "The entry leaves this place, its reservations with it.",
+        "emptyTitle": "“{{name}}” will be empty",
+        "emptyText": "Nothing of it is left here afterwards: the entry leaves the list.",
+        "emptyConfirm": "Take out and delete",
+        "cutTitle": "Less than reserved",
+        "cutText": "{{reserved}} {{unit}} are reserved. The newest reservations shrink to the new amount."
       },
       "lager": {
         "empty": "Nothing in your inventory yet. Once there is, you can search here for where it lies.",

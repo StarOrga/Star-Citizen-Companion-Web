@@ -1,5 +1,6 @@
 import { normalizeSearch } from '../../codex/codex-search';
 import { HQ_STOCK_STALE_DAYS } from '../data/hq-inventory.service';
+import type { HqStockReservation } from '../data/hq-db.types';
 
 /** The fields of an inventory row the stock page and popup read. */
 export interface StockItem {
@@ -8,6 +9,8 @@ export interface StockItem {
   class_name: string | null;
   qty: number;
   unit: 'pcs' | 'scu';
+  /** Reservations on the row (#304); absent on rows without any. */
+  reservations?: readonly HqStockReservation[] | null;
 }
 
 /** A place with the age of its snapshot. */

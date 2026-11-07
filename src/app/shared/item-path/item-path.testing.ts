@@ -42,6 +42,8 @@ export function fakeItemPath(start?: Partial<ItemPathState>) {
     nachholen: jasmine.createSpy('nachholen').and.returnValue(ok('itemPath.done.nachholen')),
     addToHangar: jasmine.createSpy('addToHangar').and.resolveTo(ok('itemPath.done.hangar')),
     removeFromHangar: jasmine.createSpy('removeFromHangar').and.resolveTo({ ok: true, key: 'itemPath.done.hangarOff' }),
+    ownedBlueprints: signal<ReadonlySet<string>>(new Set()),
+    setBlueprintOwned: jasmine.createSpy('setBlueprintOwned').and.resolveTo(ok('itemPath.done.inventar')),
   };
 }
 export type FakeItemPath = ReturnType<typeof fakeItemPath>;

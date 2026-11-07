@@ -673,6 +673,7 @@
       "from": "ab {{price}} aUEC",
       "placeOne": "1 Ort",
       "places": "{{count}} Orte",
+      "more": "+{{count}} weitere",
       "price": "{{price}} aUEC",
       "openPlan": "Im Plan ansehen"
     },
@@ -2476,7 +2477,10 @@
         "legendAbove": "über Median",
         "legendBelow": "unter Median",
         "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum höchsten Wert der gewählten Vergleichswaffen (Rand). Blau ist diese Waffe, die gestrichelte Linie der Median der Gruppe.",
-        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten."
+        "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten.",
+        "gapNoData": "Der aktuelle Datenstand enthält noch keine Werte für Schaden, Geschwindigkeit, Wendigkeit und Reichweite. Die Einordnung erscheint, sobald ein Build mit dem Data Uploader 0.73.3 oder neuer hochgeladen ist.",
+        "gapTooFew": "Zu wenige Lenkwaffen unterscheiden sich in Schaden, Geschwindigkeit, Wendigkeit und Reichweite, um diese hier einzuordnen.",
+        "gapNoCohort": "Die Vergleichsgruppe konnte nicht geladen werden."
       },
       "data": {
         "title": "Waffendaten",
@@ -2584,6 +2588,11 @@
       "tier": "Tier {{tier}}"
     },
     "recipesMissing": "Für diesen Build wurden noch keine Rezeptzutaten extrahiert — Baupläne sind gelistet, aber ohne Materialliste.",
+    "owned": {
+      "filter": "Nur meine",
+      "mark": "Ich habe diesen Bauplan: {{name}}",
+      "unmark": "Meiner – Markierung entfernen: {{name}}"
+    },
     "role": {
       "primary": "Primär",
       "secondary": "Sekundär",
@@ -5949,6 +5958,30 @@
         "minutes": "zuletzt geöffnet vor {{n}} Min.",
         "hours": "zuletzt geöffnet vor {{n}} Std.",
         "days": "zuletzt geöffnet vor {{n}} Tagen"
+      },
+      "desk": {
+        "open": "Buchen: {{name}}",
+        "addOne": "1 einlagern: {{name}}",
+        "takeOne": "1 entnehmen: {{name}}",
+        "availShort": "{{free}} frei · {{reserved}} reserviert",
+        "amount": "Menge",
+        "in": "Einlagern",
+        "out": "Entnehmen",
+        "set": "Bestand setzen",
+        "for": "Reservieren für",
+        "forHint": "z. B. Spieler X oder Verkauf",
+        "reserve": "Reservieren",
+        "reservations": "Reservierungen",
+        "handOut": "Ausgegeben",
+        "release": "Freigeben",
+        "delete": "Aus der Liste löschen",
+        "deleteTitle": "„{{name}}“ löschen?",
+        "deleteText": "Der Eintrag verschwindet samt seinen Reservierungen aus diesem Ort.",
+        "emptyTitle": "„{{name}}“ ist dann leer",
+        "emptyText": "Danach ist nichts mehr davon hier: Der Eintrag verschwindet aus der Liste.",
+        "emptyConfirm": "Entnehmen und löschen",
+        "cutTitle": "Weniger als reserviert",
+        "cutText": "{{reserved}} {{unit}} sind reserviert. Die neuesten Reservierungen werden auf den neuen Bestand gekürzt."
       },
       "lager": {
         "empty": "Noch nichts im Inventar erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",

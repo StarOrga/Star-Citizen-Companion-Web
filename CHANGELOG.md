@@ -4,6 +4,37 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.14] - 2026-11-07
+
+### Fixed
+- Verse News, Patches and Gallery: the end of the list keeps clear of the footer, so the news stream's "show N more" button no longer sits under the footer's area links.
+
+## [0.225.13] - 2026-11-07
+
+### Changed
+- Codex ship list: a row only says "from" when the shops really ask different prices; a single price reads as the plain price. Maker, price and shop now sit in fixed columns, so a long maker name no longer shifts the price, and the shop is written out ("Area18 – Astro Armada", "+N more" with all shops in the tooltip) instead of "1 place".
+
+## [0.225.12] - 2026-11-07
+
+### Added
+- Codex blueprint list: signed-in readers get an "Only mine" filter (`?own=1`) and an "I have this blueprint" toggle per row, a second way besides the SCC App to mark a blueprint as owned. Both use the HQ inventory blueprint shelf the item path already writes.
+
+## [0.225.11] - 2026-11-07
+
+### Fixed
+- Missile pages: the 3D model opens with the nose turned towards the reader at a three-quarter angle instead of showing the exhaust.
+- Missile pages: when the current data has no damage, speed, agility and range yet, the Einordnung says so and names the uploader version that brings them, instead of an empty card with a bare dash.
+
+## [0.225.10] - 2026-11-07
+
+### Fixed
+- Admin feedback: the panel now stays faded while either Ctrl or Alt is held, in any press/release order — holding Alt, pressing Ctrl and letting go of Alt no longer stops Ctrl from working. Ctrl+click and Alt+click still pick after such a mixed sequence.
+
+## [0.225.9] - 2026-11-07
+
+### Added
+- HQ stock: the stock list works like a store counter — −/+ per row, store, take out, set the amount, delete with a confirmation, and reservations ("1 SCU for player X / sale") with free and reserved amounts per row.
+
 ## [0.225.8] - 2026-11-07
 
 ### Fixed

@@ -392,9 +392,27 @@ describe('CodexBrowseComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(uex.shipOffers).toHaveBeenCalledWith({ guid: 'g-1', name: 'Aegis Gladius' });
-    const price = (fixture.nativeElement as HTMLElement).querySelector('.row .price')?.textContent ?? '';
-    expect(price).toContain('codex.buy.from');
-    expect(price).toContain('codex.buy.places');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.row .price')?.textContent ?? '').toContain('codex.buy.from');
+    expect(el.querySelector('.row .where-name')?.textContent?.trim()).toBe('Lorville – New Deal');
+    expect(el.querySelector('.row .where-more')?.textContent ?? '').toContain('codex.buy.more');
+  });
+
+  it('#314: one price reads as a plain price, without "from" or a "more" count', async () => {
+    const offer: BuyOption = { price: 1508220, priceAvg: null, terminal: 'Astro Armada', location: 'Area18', place: 'Area18' };
+    const { fixture } = await setup({
+      query: { kind: 'ship' },
+      rows: [{ ...row('AEGS_Avenger_Stalker', { nameLocalized: 'Aegis Avenger Stalker' }), guid: 'g-2' }],
+      offers: [offer],
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const price = el.querySelector('.row .price')?.textContent ?? '';
+    expect(price).toContain('codex.buy.price');
+    expect(price).not.toContain('codex.buy.from');
+    expect(el.querySelector('.row .where-name')?.textContent?.trim()).toBe('Area18 – Astro Armada');
+    expect(el.querySelector('.row .where-more')).toBeNull();
   });
 
   it('package D: the shop button lists the offers; the Nachschub step is the item path', async () => {
