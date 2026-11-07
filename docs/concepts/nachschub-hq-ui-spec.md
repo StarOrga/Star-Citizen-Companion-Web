@@ -48,3 +48,9 @@ The next concept or implementation for wishlist, Nachschub, Inventar, Hangar, Sa
 - Codex detail page is redesigned like the ship holotable subpage (silhouette ↔ 3D toggle), keeping every info block, with a Codex and an HQ variant; other ship subpages stay untouched. Inventar node clickable to add, then shows its stepper; Inventar link jumps to the item in HQ.
 - Every page must fit the viewport without scrolling (1920×1080 and 1440×900, stress data).
 - Open: can the SCC-App deliver Ruf (reputation)? If yes, ship it there (user request, round 3).
+
+## Implementation: wave 1 (data and logic, shipped on the concept branch)
+- Schema (migrations `20261107190000` .. `20261107190200`): `search_wishlist.qty` + `for_class_name` (part of the key, material is grouped under its blueprint), `hangar_ships.qty` + `origin`, `hq_supply_packages` (Nachschub: `name` <= 28, `status` active/archived, `slot` 1..7 via a partial unique index, `snapshot` jsonb), `hq_supplies.package_id`, `hq_einsaetze.package_id` (Einsatz title <= 40 inside a Nachschub), `user_news_collected`. Existing open lines become one Nachschub "Bisheriger Nachschub".
+- Rules live in `src/app/hq/nachschub/nachschub.model.ts` (pure: slots, take/split, line closing, auto-archive, clear/return, fulfil, blueprint material, edge rules); `NachschubService` persists them, `SammlungService` reads Sammlung and copies the old news bookmarks, `NachschubEdgeService` does the wipe / second copy / announced-ship follow.
+- "Passt dazu": `recommend.ts` (pure, deterministic), 7 ready / 3 shown, dismissal helpers.
+- Names: Edge Function `nachschub-names` (key as secret) with the rule-based fallback in `nachschub-fallback-names.ts`; the UI never marks a name as generated.
