@@ -104,6 +104,14 @@ describe('ScConfirmService', () => {
     expect(await p).toBeNull();
   });
 
+  it('prompt prefills the initial value and resolves it unchanged on confirm', async () => {
+    const p = service.prompt({ titleKey: 't', inputLabelKey: 'l', initialValue: 'Nachtfalke' });
+    await settle();
+    expect(q<HTMLInputElement>('sc-confirm-dialog input')!.value).toBe('Nachtfalke');
+    q<HTMLButtonElement>('sc-confirm-dialog .confirm')!.click();
+    expect(await p).toBe('Nachtfalke');
+  });
+
   it('resolves a second call while one is open as cancelled', async () => {
     const first = service.confirm({ titleKey: 't' });
     await settle();

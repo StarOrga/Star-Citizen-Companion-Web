@@ -12,7 +12,7 @@
 
 import { UPCOMING_HIT_KIND, type PolyHitKind } from '../codex-poly-search';
 import type { SearchContext } from '../../shell/fusion-bar/search-context';
-import { hqSet, hqShip } from '../../hq/hq-routes';
+import { hqSet, hangarRedirectLink } from '../../hq/hq-routes';
 import type { SearchTarget } from './codex-search-model';
 import type { OwnRowType, RowOwnership, SearchCta, SearchCtaId, SearchRowIcons } from './search-result-model';
 
@@ -128,7 +128,7 @@ function build(id: SearchCtaId, row: CtaRow, ctx: SearchContext, signedIn: boole
   switch (id) {
     case 'myLoadout': {
       const ship = loadoutShipId(row);
-      return ship ? cta('myLoadout', 'link', { link: hqShip(ship), queryParams: null }) : null;
+      return ship ? cta('myLoadout', 'link', { link: hangarRedirectLink(ship), queryParams: null }) : null;
     }
     case 'compare':
       return cta('compare', 'action', null);
@@ -192,11 +192,11 @@ function mount(row: CtaRow, ctx: SearchContext): SearchCta | null {
   if (!compat) return null;
   if (compat.kind === 'ship') {
     if (!row.chipShipId || !row.classNameSlug || (row.kind !== 'weapon' && row.kind !== 'component')) return null;
-    return cta('mount', 'link', { link: hqShip(row.chipShipId), queryParams: { mount: row.classNameSlug } });
+    return cta('mount', 'link', { link: hangarRedirectLink(row.chipShipId), queryParams: { mount: row.classNameSlug } });
   }
   const ship = loadoutShipId(row);
   if (!ship || !MOUNTABLE_CHIP.has(compat.kind)) return null;
-  return cta('mount', 'link', { link: hqShip(ship), queryParams: { mount: compat.className } });
+  return cta('mount', 'link', { link: hangarRedirectLink(ship), queryParams: { mount: compat.className } });
 }
 
 /** Bezugsquelle of a ship: its Codex page, scrolled to the UEX where-to-buy section. */
@@ -214,7 +214,7 @@ function shipSource(row: CtaRow): SearchCta | null {
 function whereInstalled(row: CtaRow): SearchCta | null {
   const ship = row.ownership?.fittedOn[0]?.shipId ?? row.ownership?.equippedOnShipId ?? null;
   if (!ship) return null;
-  return cta('whereInstalled', 'link', { link: hqShip(ship), queryParams: null });
+  return cta('whereInstalled', 'link', { link: hangarRedirectLink(ship), queryParams: null });
 }
 
 /**

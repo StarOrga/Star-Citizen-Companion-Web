@@ -12,6 +12,7 @@ import { of } from 'rxjs';
 import { CodexDetailComponent } from './codex-detail.component';
 import { BlueprintDetail, CodexService, ResolvedEntity } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { AuthService } from '../auth/auth.service';
 import { AccountPrefsService } from '../core/account-prefs.service';
 import { RoleService } from '../auth/role.service';
@@ -209,6 +210,7 @@ function configureSetup(
         provide: HangarService,
         useValue: {
           roleLoadouts: signal([]),
+          error: signal(null),
           listAllConfigs: async () => [],
           ships: signal([]),
           loadAll: async () => undefined,
@@ -1332,4 +1334,52 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     expect(el.querySelector('.sl-error')).toBeNull();
     expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
   }));
+});
+
+describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => {
+  afterEach(() => localStorage.removeItem('sc.beta'));
+
+  it('classic page: the stage-top hangar row is gone with the shell beta (C24)', async () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
+    const fixture = await setup('ship');
+    fixture.componentInstance.holoView.set(false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('header.hero.stage')).toBeTruthy();
+    expect(el.querySelector('.hero-stack > .stage-top')).toBeNull();
+    expect(el.querySelector('sc-hangar-picker')).toBeNull();
+  });
+
+  it('classic page: the row stays without the shell beta (C24)', async () => {
+    localStorage.setItem('sc.beta', JSON.stringify({ shell: false }));
+    const fixture = await setup('ship');
+    fixture.componentInstance.holoView.set(false);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.hero-stack > .stage-top sc-hangar-picker')).toBeTruthy();
+  });
+
+  describe('own-ship actions (C26)', () => {
+    function ownFixture(): ComponentFixture<CodexDetailComponent> {
+      configureSetup('ship');
+      const own = {
+        ship: { id: 'sh1', shipClassName: 'CNOU_Nomad', customName: null, status: 'owned', pinnedRank: null, selectedSkinId: null, notes: null, createdAt: '', updatedAt: '' },
+        configs: [], equippedOn: [], inSets: [],
+      };
+      spyOn(TestBed.inject(HqOwnershipService), 'lookup').and.returnValue(own as never);
+      return renderOnFakeClock();
+    }
+
+    it('shows in the Holotable for an own ship, not on the classic page, not for a foreign ship', fakeAsync(() => {
+      const fixture = ownFixture();
+      const cmp = fixture.componentInstance;
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull(); // codex mode: not the reader's variant
+      cmp.activeVariantId.set('cfg-1');
+      fixture.detectChanges();
+      expect(el.querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+      cmp.holoView.set(false);
+      fixture.detectChanges();
+      expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
+    }));
+  });
 });

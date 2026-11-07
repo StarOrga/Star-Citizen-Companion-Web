@@ -91,8 +91,11 @@ export function ownShipLink(
   return cfg ? personalShipLink(ship.shipClassName, cfg.id) : personalItemLink('ship', ship.shipClassName);
 }
 
-/** One hangar ship in HQ by id - only for callers that hold nothing but the id (the route redirects). */
-export const hqShip = (id: string): string[] => [hqHangar, id];
+/**
+ * Entry of the `/hq/hangar/:id` redirect (old bookmarks): for callers that hold nothing but a hangar
+ * ship id. It lands on the ship's personal Codex view. Callers with the ship itself use {@link ownShipLink}.
+ */
+export const hangarRedirectLink = (id: string): string[] => [hqHangar, id];
 
 /** One FPS/role set in the locker. */
 export const hqSet = (id: string): string[] => [hqLocker, id];

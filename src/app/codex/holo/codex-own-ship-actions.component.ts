@@ -68,6 +68,7 @@ export class CodexOwnShipActionsComponent {
       titleKey: 'codex.own.renameTitle',
       inputLabelKey: 'codex.own.rename',
       inputMaxLength: 80,
+      initialValue: s.customName ?? '',
       confirmKey: 'hangar.detail.save',
     });
     if (v === null) return;
@@ -80,6 +81,7 @@ export class CodexOwnShipActionsComponent {
       titleKey: 'codex.own.noteTitle',
       inputLabelKey: 'hangar.detail.notes',
       inputMaxLength: 2000,
+      initialValue: s.notes ?? '',
       confirmKey: 'hangar.detail.save',
     });
     if (v === null) return;

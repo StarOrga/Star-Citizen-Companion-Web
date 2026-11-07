@@ -2,7 +2,7 @@ import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { SupabaseClientProvider } from '../../core/supabase.client';
-import { hqSet, hqShip } from '../hq-routes';
+import { hqSet, hangarRedirectLink } from '../hq-routes';
 import { HqPatchHit, HqStartFeedService } from '../start/hq-start-feed.service';
 import type { HqFleetPatch } from './hq-db.types';
 
@@ -13,7 +13,7 @@ import type { HqFleetPatch } from './hq-db.types';
 export function mapPatchHit(patch: HqFleetPatch | null): HqPatchHit | null {
   const l = patch?.lines?.[0];
   if (!l) return null;
-  const link = l.set_id ? (l.set_kind === 'fps' ? hqSet(l.set_id) : hqShip(l.set_id)) : undefined;
+  const link = l.set_id ? (l.set_kind === 'fps' ? hqSet(l.set_id) : hangarRedirectLink(l.set_id)) : undefined;
   return {
     plan: l.set_name || null,
     build: patch?.build || null,
