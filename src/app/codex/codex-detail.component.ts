@@ -1618,9 +1618,11 @@ export class CodexDetailComponent implements OnInit {
   readonly hostClassName = input<string | null>(null);
   /** The hangar ship this page belongs to when hosted under HQ. */
   readonly hostShipId = input<string | null>(null);
-  readonly hqHosted = computed(() => this.hostClassName() !== null);
+  // withComponentInputBinding() sets an input the route does not carry to `undefined`, not to its
+  // default: on every /codex route both inputs are undefined, so test for a value, never `!== null`.
+  readonly hqHosted = computed(() => !!this.hostClassName());
   /** The hangar ship id the mode switch links use; null in the Codex. */
-  readonly hqShipId = computed(() => (this.hqHosted() ? this.hostShipId() : null));
+  readonly hqShipId = computed(() => (this.hqHosted() ? (this.hostShipId() ?? null) : null));
   private readonly ownershipSvc = inject(HqOwnershipService);
   private readonly codexBeta = inject(BetaService).isEnabled('codex');
   /** The share FAB (beta shell) replaces the "Link teilen" buttons; without the beta they stay, or no link copy would be left. */
@@ -2360,7 +2362,7 @@ export class CodexDetailComponent implements OnInit {
    */
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const host = this.hostClassName();
+      const host = this.hostClassName() || null; // undefined on a /codex route (input binding)
       const kind = (host !== null ? 'ship' : params.get('kind')) as CodexKind | null;
       const className = host ?? params.get('className');
       // An unknown category (/codex/foo/x) used to query a table named

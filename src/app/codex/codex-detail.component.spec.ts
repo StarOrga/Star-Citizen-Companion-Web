@@ -1340,6 +1340,16 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
 describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => {
   afterEach(() => localStorage.removeItem('sc.beta'));
 
+  it('a /codex route is never HQ-hosted: input binding hands the host inputs undefined', async () => {
+    const fixture = await setup('ship');
+    // withComponentInputBinding() sets inputs the route does not carry to undefined.
+    fixture.componentRef.setInput('hostClassName', undefined);
+    fixture.componentRef.setInput('hostShipId', undefined);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.hqHosted()).toBeFalse();
+    expect(fixture.componentInstance.hqShipId()).toBeNull();
+  });
+
   it('classic page: the stage-top hangar row is gone with the shell beta (C24)', async () => {
     localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
     const fixture = await setup('ship');
