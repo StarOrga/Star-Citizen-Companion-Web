@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.0] - 2026-11-07
+
+### Added
+- Holotable lower part rebuilt: parts first in four columns under the strip's areas, a left side column with description, where to buy and variants & compare, perspectives docked onto the strip with an energy row (swipe on phones).
+- Schema view: deck plan as chips in "Einfach", callouts on the drawing instead of the list below it, keyboard-focusable markers.
+- Own ship under HQ > Hangar (shell beta): the ship page renders the Codex view in place with rename, note, pin and remove.
+- Starscape tray menu: fan-made entry, the pause item names its action (pause / resume), "Meine Sternbilder" under "Bildauswahl", autostart and diagnostics under "Konto".
+
+### Changed
+- Einordnung is the first panel tab; groups under 8 ships stay pickable with a "nur N Schiffe" hint; a picked group is remembered per ship for 12 hours.
+- Shell beta: no hangar button on the holotable, landing or classic page; the Codex shows no personal mode and sends old `?mine` / `?v=` links to the HQ ship page.
+- Gallery subtitle credits Cloud Imperium Games and links the Starscape app; the word "crawl" is gone.
+
+### Fixed
+- The HQ patch hint opens the own ship's variant instead of the hangar list.
+
 ## [0.224.0] - 2026-11-07
 
 ### Added
