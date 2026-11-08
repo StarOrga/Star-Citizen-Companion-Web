@@ -430,8 +430,39 @@ export class CodexLoadoutDraftStore {
       }
     }
     if (!entries || entries.length === 0) return;
+    this.applyRestored(entries, sourceBuildId, buildId);
+    // A draft that came back from localStorage is mirrored into the url so
+    // "Link kopieren" carries what the table shows (wave 5 A1.2).
+    if (!fromUrl) this.persistDraftMirror();
+  }
+
+  /**
+   * Put a named loadout the reader saved locally (#322, SavedLoadoutsService)
+   * back on the table. Same rules as a restored draft: the build is checked,
+   * slots whose class no longer resolves are flagged, and the result is an
+   * UNSAVED draft mirrored into URL + localStorage. Refused on a read-only
+   * (shared) draft. Returns false when nothing could be applied.
+   */
+  applySavedDraft(entries: readonly [string, string | null][], sourceBuildId: string): boolean {
+    const buildId = this.svc.build()?.id;
+    if (!buildId || this.readOnly() || entries.length === 0) return false;
+    this.saveErrorState.set(null);
+    this.savedPathsState.set(new Set());
+    // Saved against THIS build, every class was picked from it: hydrate them
+    // all (the swap picker's classes are not in the page's loadout entities).
+    this.applyRestored([...entries], sourceBuildId, buildId, sourceBuildId === buildId);
+    this.persistDraftMirror();
+    return true;
+  }
+
+  private applyRestored(
+    entries: [string, string | null][],
+    sourceBuildId: string,
+    buildId: string,
+    trustClasses = false,
+  ): void {
     const classResolves = (className: string): boolean =>
-      this.src.loadoutEntities().has(className) || stockLoadoutClassNames(
+      trustClasses || this.src.loadoutEntities().has(className) || stockLoadoutClassNames(
         (this.src.detail()?.payload as ShipPayload | undefined)?.defaultLoadout ?? [],
       ).includes(className);
     const restored = restoreDraft({ version: 'v1', buildId: sourceBuildId, entries }, buildId, classResolves);
@@ -441,8 +472,5 @@ export class CodexLoadoutDraftStore {
     for (const [path, value] of restored.draft) {
       if (value && !restored.unresolvable.includes(path)) void this.hydrateDraftClass(value);
     }
-    // A draft that came back from localStorage is mirrored into the url so
-    // "Link kopieren" carries what the table shows (wave 5 A1.2).
-    if (!fromUrl) this.persistDraftMirror();
   }
 }

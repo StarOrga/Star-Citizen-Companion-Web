@@ -2660,6 +2660,22 @@
         "jumpRange": "RANGE",
         "spoolTime": "SPOOL TIME"
       }
+    },
+    "savedLoadouts": {
+      "group": "Saved loadouts",
+      "save": "Save loadout",
+      "saveNothing": "Change a slot first, then save.",
+      "saveTitle": "Save loadout",
+      "saveMessage": "Saved in this browser, for this ship. The same name overwrites.",
+      "nameLabel": "Name",
+      "saveConfirm": "Save",
+      "pick": "Load saved loadout",
+      "remove": "Delete “{{name}}”",
+      "removeTitle": "Delete loadout?",
+      "removeMessage": "“{{name}}” will be removed from this browser.",
+      "removeConfirm": "Delete",
+      "cart": "Add components to cart",
+      "cartSoon": "Coming soon: puts this loadout's components into the cart."
     }
   },
   "blueprint": {
