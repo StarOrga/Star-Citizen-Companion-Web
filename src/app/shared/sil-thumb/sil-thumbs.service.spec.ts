@@ -39,5 +39,21 @@ describe('silhouette thumbs', () => {
     expect(calls).toEqual([['weapon', ['W1']]]);
     expect(svc.thumbOf('weapon', 'W1')?.path).toBe('M0 0');
     expect(svc.thumbOf('material', 'alu')).toBeNull();
+    expect(svc.thumbOf('weapon', 'W1')?.edges).toBeUndefined();
+  });
+
+  it('hands the inner edges on to the thumb for items', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: CodexService,
+          useValue: { silhouettes: async () => new Map([['A1', { viewBox: '0 0 10 10', path: 'M0 0', edges: 'M1 1L2 2' } as unknown as HoloSilhouette]]) },
+        },
+      ],
+    });
+    const svc = TestBed.inject(SilThumbsService);
+    svc.request([{ kind: 'weapon', className: 'A1' }]);
+    await new Promise((r) => setTimeout(r));
+    expect(svc.thumbOf('weapon', 'A1')?.edges).toBe('M1 1L2 2');
   });
 });

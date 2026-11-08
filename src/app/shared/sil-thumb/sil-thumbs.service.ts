@@ -7,6 +7,8 @@ import { logWarn } from '../../core/log';
 export interface SilThumb {
   readonly viewBox: string;
   readonly path: string;
+  /** Inner feature edges (open polylines, same viewBox), when the silhouette carries them. */
+  readonly edges?: string;
   /** SVG transform for the path (ships are drawn nose-right). Empty for everything else. */
   readonly transform: string;
 }
@@ -72,7 +74,7 @@ export class SilThumbsService {
           if (!found.size) return;
           const next = new Map(this.thumbs());
           for (const [cls, s] of found) {
-            const t: SilThumb = kind === 'ship' ? this.rotated(s.viewBox, s.path) : { viewBox: s.viewBox, path: s.path, transform: '' };
+            const t: SilThumb = kind === 'ship' ? this.rotated(s.viewBox, s.path) : { viewBox: s.viewBox, path: s.path, transform: '', ...(s.edges ? { edges: s.edges } : {}) };
             // A second slice (armor) for an item lands under the item key when the first one found nothing.
             const key = `${kind === 'armor' ? 'item' : kind}:${cls.toLowerCase()}`;
             if (!next.has(key)) next.set(key, t);

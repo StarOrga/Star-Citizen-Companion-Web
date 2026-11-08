@@ -319,7 +319,7 @@ export function blueprintCategoriesForGroup(
                       <a class="row-link" [routerLink]="['/codex', kind(), r.classNameSlug]">
                         @if (silhouetteOf(r); as s) {
                           <span class="sil" aria-hidden="true">
-                            <svg [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" focusable="false"><path [attr.d]="s.path" /></svg>
+                            <svg [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" focusable="false"><path [attr.d]="s.path" />@if (s.edges) { <path class="edges" [attr.d]="s.edges" /> }</svg>
                           </span>
                         } @else {
                           <span class="sil icon" aria-hidden="true"><sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" /></span>
@@ -704,6 +704,7 @@ export function blueprintCategoriesForGroup(
       stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-linejoin: round;
       filter: drop-shadow(0 0 2px color-mix(in srgb, var(--sc-accent) 55%, transparent));
     }
+    .sil path.edges { fill: none; stroke-width: 0.7; opacity: 0.5; filter: none; }
     .sil.icon { color: var(--sc-fg-2); }
     .sil.icon sc-codex-icon { width: 22px; height: 22px; }
     .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
