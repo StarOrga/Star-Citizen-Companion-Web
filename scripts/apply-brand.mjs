@@ -32,6 +32,7 @@ const SKIP = [
   /^supabase\/migrations\//,
   /package-lock\.json$/,
   /^src\/brand\.json$/,
+  /^docs\/rename-verse-companion\.md$/, // names the rejected placeholder on purpose
 ];
 
 const forms = (name) => {
