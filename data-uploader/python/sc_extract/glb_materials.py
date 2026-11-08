@@ -127,6 +127,27 @@ class SubMaterial:
     has_texture: bool = False   # the submaterial itself references a texture
 
 
+def strip_mtl_textures(raw: bytes) -> bytes:
+    """Plain-XML copy of a ``.mtl`` without any ``<Texture>`` element.
+
+    cgf-converter dies (``An item with the same key has already been added.
+    Key: Unknown``) on a material that lists two texture slots it cannot name
+    — the grin multitool's POM decal does. Published parts are geometry only
+    and the paint colours come from :func:`parse_paint_mtl`, so a texture-free
+    material costs nothing and lets the mesh through."""
+    from xml.etree import ElementTree as etree
+
+    if raw[:7] == b"CryXmlB":
+        from scdatatools.engine.chunkfile import etree_from_cryxml_file
+        root = etree_from_cryxml_file(io.BytesIO(raw)).getroot()
+    else:
+        root = etree.fromstring(raw)
+    for parent in list(root.iter()):
+        for tex in [c for c in parent if c.tag == "Texture"]:
+            parent.remove(tex)
+    return etree.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
 def parse_paint_mtl(raw: bytes) -> Dict[str, SubMaterial]:
     """Parse a CryXML ``.mtl`` into ``{submaterial name: SubMaterial}``.
 

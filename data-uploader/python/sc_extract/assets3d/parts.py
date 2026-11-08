@@ -356,12 +356,35 @@ class PartStore:
         produced.unlink(missing_ok=True)
         with stage_timing.timed("convert"):
             r = subprocess.run(cmd, cwd=str(root), capture_output=True, timeout=600)
+            if self._bad_material(r, produced) and material_path and self.exists(material_path):
+                # Converter bug on materials with unnamed texture slots: the
+                # geometry is fine, so retry with a texture-free material.
+                mtl.write_bytes(glb_materials.strip_mtl_textures(self.read(material_path)))
+                r = subprocess.run(cmd, cwd=str(root), capture_output=True, timeout=600)
         if not produced.exists() or produced.stat().st_size < 256:
-            raise RuntimeError(f"cgf-converter produced no glb (rc={r.returncode})")
+            raise RuntimeError(f"cgf-converter produced no glb (rc={r.returncode}"
+                               f"{self._converter_reason(r)})")
         gltf, binary = glb_materials.read_glb(produced)
         if glb_materials.strip_noop_skins(gltf, binary, self.log)["stripped"]:
             glb_materials.write_glb(produced, gltf, binary)
         return produced
+
+    @staticmethod
+    def _converter_reason(r) -> str:
+        """First ``ArgumentException``-style line of the converter's report."""
+        out = (r.stdout or b"").decode("utf-8", "replace")
+        for line in out.splitlines():
+            line = line.strip()
+            if line.startswith(("ArgumentException", "NullReferenceException", "InvalidDataException",
+                                "KeyNotFoundException", "NotSupportedException")):
+                return f": {line[:160]}"
+        return ""
+
+    @classmethod
+    def _bad_material(cls, r, produced: Path) -> bool:
+        if produced.exists() and produced.stat().st_size >= 256:
+            return False
+        return b"same key has already been added" in (r.stdout or b"")
 
     def export_composite(self, key: str,
                          sources: Sequence[Tuple[str, Optional[str], Optional[list]]],
@@ -392,6 +415,7 @@ class PartStore:
         try:
             from ..hull3d import _safe_join
             raws = []
+            why = ""
             for i, (geo, mtl, matrix) in enumerate(sources):
                 sub = scratch / f"s{i}"
                 for extra in extra_files:
@@ -402,9 +426,12 @@ class PartStore:
                 try:
                     raws.append((self.convert_raw(geo, mtl, sub), matrix))
                 except Exception as exc:  # noqa: BLE001 — one missing piece != no body
-                    self.log("warn", f"  part {key}: {geo}: {type(exc).__name__}: {exc}")
+                    # Debug-level: if NOTHING converts the part's own warning
+                    # below carries the first reason; one line, not one per mesh.
+                    why = why or f"{geo.rsplit('/', 1)[-1]}: {type(exc).__name__}: {exc}"
+                    self.log("info", f"  part {key}: {geo}: {type(exc).__name__}: {exc}")
             if not raws:
-                raise RuntimeError("no source converted")
+                raise RuntimeError(f"no source converted ({why})")
             gltf, binary = merge_glbs(raws)
             raw = scratch / "merged.glb"
             glb_materials.write_glb(raw, gltf, binary)

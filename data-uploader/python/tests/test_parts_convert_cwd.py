@@ -55,3 +55,44 @@ def test_converter_runs_from_the_scratch_root_with_the_tree_intact(tmp_path, mon
     assert produced == (scratch / MESH).resolve().with_suffix(".glb")
     assert produced.exists()
     assert os.path.isfile(scratch / MTL)
+
+
+DUP_KEY = (b"[ERR:Program] Failed to render\r\n  ArgumentException: An item with the same key "
+           b"has already been added. Key: Unknown\r\n")
+
+
+def test_material_with_unnamed_texture_slots_is_retried_texture_free(tmp_path, monkeypatch):
+    """cgf-converter crashes on two unnamed texture slots (grin multitool POM
+    decal); the geometry is fine, so the retry hands it a texture-free mtl."""
+    mtl_xml = (b'<Material><SubMaterials><Material Name="a"><Textures>'
+               b'<Texture Map="TexSlot1" File="x.tif"/><Texture Map="TexSlot2" File="x.tif"/>'
+               b'</Textures></Material></SubMaterials></Material>')
+    files = {**FILES, MTL: mtl_xml}
+    store = PartStore(tmp_path / "store", files.__getitem__, files.__contains__,
+                      tmp_path / "cgf-converter.exe", lambda *a, **k: None, tmp_path / "work")
+    seen = []
+
+    def fake_converter(cmd, cwd=None, **kwargs):
+        mesh = Path(cwd) / cmd[1]
+        mtl = (mesh.parent / cmd[cmd.index("-mtl") + 1]).resolve()
+        seen.append(b"<Texture " in mtl.read_bytes())
+        if seen[-1]:
+            return SimpleNamespace(returncode=1, stdout=DUP_KEY)
+        write_glb(mesh.with_suffix(".glb"), {"asset": {"version": "2.0", "generator": "x" * 256}}, b"")
+        return SimpleNamespace(returncode=0, stdout=b"")
+
+    monkeypatch.setattr(parts_mod.subprocess, "run", fake_converter)
+    produced = store.convert_raw(MESH, MTL, tmp_path / "work" / "part_a")
+    assert seen == [True, False] and produced.exists()
+
+
+def test_unconvertible_mesh_reports_the_converter_reason(tmp_path, monkeypatch):
+    out = b"  ArgumentException: boom\r\n"
+    monkeypatch.setattr(parts_mod.subprocess, "run",
+                        lambda cmd, **kw: SimpleNamespace(returncode=1, stdout=out))
+    try:
+        _store(tmp_path).convert_raw(MESH, None, tmp_path / "work" / "part_b")
+    except RuntimeError as exc:
+        assert "rc=1" in str(exc) and "ArgumentException: boom" in str(exc)
+    else:
+        raise AssertionError("expected RuntimeError")
