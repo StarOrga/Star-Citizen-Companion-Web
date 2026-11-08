@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.239.1] - 2026-11-08
+
+### Fixed
+- Codex landing: the data sheet beside the hologram projector matches its top and bottom at every window size and after every item switch.
+
 ## [0.239.0] - 2026-11-08
 
 ### Added
