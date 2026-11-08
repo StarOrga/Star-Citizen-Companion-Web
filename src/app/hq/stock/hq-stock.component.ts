@@ -6,6 +6,9 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { humanizeClassName } from '../../codex/codex-format';
 import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
+import { toErrorKey } from '../../core/describe-error';
+import { CodexService, toLang } from '../../codex/codex.service';
+import { hitTitle } from '../../codex/search/codex-search-model';
 import { HangarService } from '../../hangar/hangar.service';
 import { flagshipFirst } from '../../hangar/flagship-first';
 import type { HangarShip, HangarShipOrigin } from '../../hangar/hangar.types';
@@ -318,6 +321,23 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
                   </ul>
                 </section>
               }
+              @if (codexHits().length) {
+                <section class="tiers codex-hits" aria-labelledby="hq-codex-h">
+                  <h3 id="hq-codex-h">{{ 'hq.bestand.deck.codexTier' | translate }}</h3>
+                  <ul>
+                    @for (h of codexHits(); track h.key) {
+                      <li>
+                        <span>{{ h.name }} <small>{{ h.kind }}</small></span>
+                        @if (shipWishes.has(h.kind, h.className, h.name)) {
+                          <span class="wished">{{ 'hq.bestand.deck.onWishlist' | translate }}</span>
+                        } @else {
+                          <button type="button" scAction tier="secondary" [busy]="wishing() === h.key" (click)="wishCodexHit(h)">{{ 'hq.bestand.deck.toWishlist' | translate }}</button>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </section>
+              }
               <a class="codex-tier" [routerLink]="['/codex/index']" [queryParams]="{ q: query().text }">{{ 'hq.bestand.deck.inCodex' | translate: { q: query().text } }}</a>
             }
 
@@ -575,6 +595,9 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .alt { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--sc-bg-1); color: var(--sc-fg); text-decoration: none; font-size: 0.8rem; }
       .alt small { display: block; color: var(--sc-fg-2); font-size: 0.7rem; }
       a.alt:hover { outline: 1px solid var(--sc-accent); }
+      .codex-hits ul { flex-direction: column; flex-wrap: nowrap; gap: 6px; }
+      .codex-hits li { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .codex-hits small, .codex-hits .wished { color: var(--sc-fg-2); }
       .tiers ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; }
       .tiers a, .codex-tier, .second { color: var(--sc-accent); }
       .tiers small { color: var(--sc-fg-2); }
@@ -846,7 +869,61 @@ export class HqStockComponent implements OnInit {
     () => this.isDeckTab() && !this.shownCrates().length && !this.showSets() && !(this.tab() === 'alles' && !this.kind() && (this.ships().length || this.blueprints().length)) && !(this.kind() === 'ships' && this.shownShips().length) && !(this.kind() === 'sammlung' && this.shownBlueprints().length) && !this.alts(),
   );
 
+  private readonly codex = inject(CodexService);
+  /** Codex hits of the search text (third tier, I14); each can go onto the wishlist. */
+  protected readonly codexHits = signal<readonly { key: string; kind: string; className: string; name: string }[]>([]);
+  protected readonly wishing = signal<string | null>(null);
+  private codexTimer: ReturnType<typeof setTimeout> | null = null;
+  private codexSeq = 0;
+
+  private searchCodex(text: string): void {
+    if (this.codexTimer) clearTimeout(this.codexTimer);
+    const seq = ++this.codexSeq;
+    if (text.trim().length < 2 || !this.isDeckTab()) {
+      this.codexHits.set([]);
+      return;
+    }
+    this.codexTimer = setTimeout(() => {
+      this.codex
+        .searchAll(text.trim(), 4)
+        .then((res) => {
+          if (seq !== this.codexSeq) return;
+          const lang = toLang(this.tr.getCurrentLang() ?? this.tr.getFallbackLang());
+          const seen = new Set<string>();
+          const out: { key: string; kind: string; className: string; name: string }[] = [];
+          for (const h of res.hits) {
+            const key = `${h.kind}:${(h.classNameSlug ?? '').toLowerCase()}`;
+            if (!h.classNameSlug || seen.has(key)) continue;
+            seen.add(key);
+            out.push({ key, kind: h.kind, className: h.classNameSlug, name: hitTitle(h, lang) });
+            if (out.length >= 4) break;
+          }
+          this.codexHits.set(out);
+        })
+        .catch(() => {
+          if (seq === this.codexSeq) this.codexHits.set([]);
+        });
+    }, 300);
+  }
+
+  protected async wishCodexHit(h: { key: string; kind: string; className: string; name: string }): Promise<void> {
+    if (this.wishing()) return;
+    this.wishing.set(h.key);
+    try {
+      const ok = await this.shipWishes.add(h.kind, h.className, h.name);
+      this.errorKey.set(ok ? null : 'hq.flow.search.addFailed');
+    } catch (err) {
+      this.errorKey.set(toErrorKey('hq', 'wishAdd', err));
+    } finally {
+      this.wishing.set(null);
+    }
+  }
+
   constructor() {
+    effect(() => this.searchCodex(this.query().text));
+    inject(DestroyRef).onDestroy(() => {
+      if (this.codexTimer) clearTimeout(this.codexTimer);
+    });
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => this.applyParams(q));
     const destroyRef = inject(DestroyRef);
     destroyRef.onDestroy(this.chrome.registerPageSearch(this, (term) => this.q.set(term)));
@@ -1143,7 +1220,7 @@ export class HqStockComponent implements OnInit {
 
   protected async wishAndPlan(): Promise<void> {
     const ref = this.alts()?.elsewhere[0] ?? this.shownCrates()[0] ?? null;
-    const lines: NachschubLineInput[] = [{ name: ref?.name ?? this.query().text, className: parseStockRef(ref?.className)?.className ?? null, amount: 1, unit: ref?.unit ?? 'scu' }];
+    const lines: NachschubLineInput[] = [{ name: ref?.name ?? this.query().text, className: parseStockRef(ref?.className)?.className ?? null, amount: 1, unit: ref?.unit ?? 'scu', ...(this.query().minQ ? { minQuality: this.query().minQ! } : {}) }];
     await this.openPicker('buy', lines);
   }
 

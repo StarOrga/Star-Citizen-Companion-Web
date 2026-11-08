@@ -69,6 +69,7 @@ import { NACHSCHUB_ICON_PATHS } from './step-icons';
             @for (l of work(); track $index; let li = $index) {
               <li>
                 <p class="ln"><b>{{ l.name }}</b> <span class="amt">{{ l.amount }} {{ (l.unit === 'scu' ? 'hq.nachschub.target.scu' : 'hq.nachschub.target.pcs') | translate }}</span>
+                  @if (l.minQuality) { <span class="route">{{ 'hq.nachschub.target.minQ' | translate: { q: l.minQuality } }}</span> }
                   @if (intent() === 'pickup' && l.stops && l.stops.length > 1) { <span class="route">{{ 'hq.nachschub.target.route' | translate: { n: l.stops.length } }}</span> }</p>
                 @if (l.stops?.length) {
                   <ol class="stops">

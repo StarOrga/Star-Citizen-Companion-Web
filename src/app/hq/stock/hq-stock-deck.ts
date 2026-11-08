@@ -1,3 +1,4 @@
+import { swapArchetype } from '../../codex/swap-table';
 import { ARMOR_SUBS, WEAPON_SUBS, type BestandKind } from '../data/hq-codex-kind';
 import { type QualityAggregate, type QualityRow, aggregateQuality } from '../data/hq-quality';
 import type { HqGatherStop } from '../data/hq-db.types';
@@ -184,6 +185,7 @@ export function alternativesFor(
   f: DeckFilter,
   scrapYes: (c: DeckCrate) => boolean,
   blueprints: readonly { id: string; name: string | null }[],
+  blueprintOf: (className: string | null) => string | null = () => null,
 ): Alternatives | null {
   if (!f.text || hits.length > ALT_MAX_HITS) return null;
   const hitKeys = new Set(hits.map((h) => h.key));
@@ -192,7 +194,7 @@ export function alternativesFor(
   const ref = hits[0] ?? elsewhere[0] ?? null;
   const swap = ref
     ? crates
-        .filter((c) => c.kind === ref.kind && c.sub === ref.sub && itemKey(c) !== itemKey(ref) && !textMatches(c.name, c.className, f.text) && (f.minQ === null || (c.max ?? 0) >= f.minQ) && c.available > 0)
+        .filter((c) => sameSlot(c, ref) && sameBlueprint(c, ref, blueprintOf) && itemKey(c) !== itemKey(ref) && !textMatches(c.name, c.className, f.text) && (f.minQ === null || (c.max ?? 0) >= f.minQ) && c.available > 0)
         .slice(0, 2)
     : [];
   const craft = blueprints
@@ -200,6 +202,23 @@ export function alternativesFor(
     .slice(0, 2)
     .map((b) => ({ id: b.id, name: b.name ?? b.id }));
   return { elsewhere, wish: { text: f.text, minQ: f.minQ }, swap, craft };
+}
+
+/**
+ * Same slot as the swap picker sees it (`swap-table.ts` `swapArchetype`: "Cannon", "Repeater" …): two items swap when
+ * kind and sub-kind agree AND their swap archetypes are equal (both unclassified counts as equal).
+ */
+export function sameSlot(a: DeckCrate, b: DeckCrate): boolean {
+  if (a.kind !== b.kind || a.sub !== b.sub) return false;
+  const bare = (c: DeckCrate): string => parseStockRef(c.className)?.className ?? c.className ?? c.name;
+  return swapArchetype(bare(a), a.name, null) === swapArchetype(bare(b), b.name, null);
+}
+
+/** Same blueprint: when the blueprint of BOTH is known they must be the same one, else the slot decides alone. */
+export function sameBlueprint(a: DeckCrate, b: DeckCrate, blueprintOf: (className: string | null) => string | null): boolean {
+  const x = blueprintOf(a.className);
+  const y = blueprintOf(b.className);
+  return !x || !y || x === y;
 }
 
 const itemKey = (c: Pick<DeckCrate, 'className' | 'name'>): string => (c.className || c.name).toLowerCase();

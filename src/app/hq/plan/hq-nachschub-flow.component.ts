@@ -1,3 +1,4 @@
+import { NachschubMinQualityStore } from '../nachschub/nachschub-min-quality';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -169,6 +170,7 @@ type Step = 1 | 2;
                       <span class="nm">{{ l.name }}</span>
                       @if (l.forClassName) { <span class="for">{{ 'hq.flow.forBp' | translate: { name: bpName(l.forClassName) } }}</span> }
                       <b class="n mono">×{{ l.qty }}</b>
+                      @if (minQualityStore.get(l.id); as mq) { <span class="for">{{ 'hq.nachschub.target.minQ' | translate: { q: mq } }}</span> }
                       <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hq.flow.removeLine' | translate: { name: l.name }"
                               [scTooltip]="'hq.flow.removeLine' | translate: { name: l.name }" scTooltipTier="label" (click)="removeExisting(l.id)">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" /></svg>
@@ -517,6 +519,7 @@ export class HqNachschubFlowComponent {
   readonly done = output<NachschubResult>();
 
   private readonly svc = inject(NachschubService);
+  protected readonly minQualityStore = inject(NachschubMinQualityStore);
   private readonly einsatz = inject(HqEinsatzService);
   private readonly naming = inject(NachschubNamingService);
   private readonly sourcesSvc = inject(HqNeedSourcesService);
