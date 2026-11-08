@@ -123,6 +123,21 @@ describe('MerklisteService (Schnellzugriff)', () => {
       expect(svc.type()).toBeNull();
       expect(svc.wished().length).toBe(3);
     });
+
+    it('material wishes take their place: the newest three are three rows, never fewer (AUD-9)', async () => {
+      const mats = [1, 2, 3, 4].map((n) => ({ ...cartItem('material', `m${n}`, `2026-11-0${5 + n}T10:00:00Z`, `Mat ${n}`, 3), forClassName: 'BP_X' as string | null }));
+      const svc = setup({ wishes: [...wishes, ...mats] });
+      await TestBed.inject(Router).navigateByUrl('/hq');
+      expect(svc.wished().map((r) => r.title)).toEqual(['Mat 4', 'Mat 3', 'Mat 2']);
+      expect(svc.wished()[0].target?.link).toEqual(['/codex', 'blueprint', 'BP_X']);
+    });
+
+    it('a material wished for a blueprint is listed on a blueprint page', async () => {
+      const m = { ...cartItem('material', 'iron', '2026-11-09T10:00:00Z', 'Iron', 2), forClassName: 'BP_X' as string | null };
+      const svc = setup({ wishes: [...wishes, m] });
+      await TestBed.inject(Router).navigateByUrl('/codex/blueprint/BP_X');
+      expect(svc.wished().map((r) => r.title)).toEqual(['Iron']);
+    });
   });
 
   describe('the context section (Inventar / Hangar / Sammlung)', () => {

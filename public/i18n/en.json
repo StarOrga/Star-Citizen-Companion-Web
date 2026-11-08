@@ -5834,8 +5834,7 @@
         "noMatch": "Nothing matches these filters.",
         "empty": "Nothing in your inventory yet.",
         "ships": "Ships at terminal",
-        "nachholen": "Restock",
-        "nachholenAria": "Restock: {{name}}"
+        "onWishlist": "To the wishlist"
       },
       "retry": "Try again",
       "destroyed": "Last destroyed: {{at}}",

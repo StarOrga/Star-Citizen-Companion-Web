@@ -5834,8 +5834,7 @@
         "noMatch": "Nichts passt zu diesen Filtern.",
         "empty": "Noch nichts im Inventar erfasst.",
         "ships": "Schiffe im Terminal",
-        "nachholen": "Nachholen",
-        "nachholenAria": "Nachholen: {{name}}"
+        "onWishlist": "Auf die Wunschliste"
       },
       "retry": "Erneut versuchen",
       "destroyed": "Zuletzt zerstört: {{at}}",

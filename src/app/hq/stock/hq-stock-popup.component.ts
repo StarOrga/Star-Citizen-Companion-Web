@@ -10,10 +10,8 @@ import { toErrorKey } from '../../core/describe-error';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqLink, hqHangar, ownShipLink } from '../hq-routes';
 import { HqOwnershipService } from '../hq-ownership.service';
-import { ItemPathService } from '../data/item-path.service';
-import { PATH_ICONS } from '../../shared/item-path/path-icons';
+import { WISH_CART_ICON, StockWishService } from './hq-stock-wish';
 import { ItemPathComponent } from '../../shared/item-path/item-path.component';
-import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { OverlayFrameComponent } from '../../shared/overlay-frame/overlay-frame.component';
 import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.component';
@@ -138,9 +136,9 @@ export interface StockStart {
                         <!-- D4: tertiary path + "Nachholen" (A7); the row has no click handler of its own. -->
                         <span class="row-acts">
                           <sc-item-path [kind]="p.kind" [className]="p.className" [name]="l.row.name" />
-                          <button scAction tier="secondary" type="button" class="again" [attr.aria-label]="'hq.stock.popup.nachholenAria' | translate: { name: l.row.name }" (click)="nachholen(l.row)">
-                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of icons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
-                            <span>{{ 'hq.stock.popup.nachholen' | translate }}</span>
+                          <button scAction tier="secondary" type="button" class="again" [attr.aria-label]="'hq.bestand.catchUpOne' | translate: { name: l.row.name }" (click)="nachholen(l.row)">
+                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of cartIcon; track $index) { <path [attr.d]="d" /> }</svg>
+                            <span>{{ 'hq.stock.popup.onWishlist' | translate }}</span>
                           </button>
                         </span>
                       }
@@ -554,9 +552,8 @@ export class HqStockPopupComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   private readonly injector = inject(Injector);
   private readonly shellBeta = inject(BetaService).isEnabled('shell');
-  private readonly path = inject(ItemPathService);
-  private readonly toast = inject(UndoToastService);
-  protected readonly icons = PATH_ICONS;
+  private readonly stockWish = inject(StockWishService);
+  protected readonly cartIcon = WISH_CART_ICON;
   protected readonly rowError = signal<string | null>(null);
 
   /** The path of one Inventar row: needs a class name; ships have no Inventar stop. */
@@ -567,22 +564,13 @@ export class HqStockPopupComponent implements OnInit {
     return { kind: ref.kind ?? (ref.className.startsWith('BP_') ? 'blueprint' : 'item'), className: ref.className };
   }
 
-  /** A7 "Nachholen": the quantity goes back to Nachschub, the stock stays. */
-  protected nachholen(row: StockItem): void {
-    const p = this.pathOf(row);
-    if (!p) return;
-    const res = row.unit === 'scu'
-      ? this.path.nachholen(p.kind, p.className, row.name, row.qty, 'scu')
-      : this.path.nachholen(p.kind, p.className, row.name, Math.max(1, Math.round(row.qty)));
-    this.rowError.set(res.ok ? null : res.key);
-    const undo = res.undo;
-    if (!res.ok || !undo) return;
-    this.toast.offer({
-      messageKey: res.key,
-      messageParams: res.params,
-      commit: () => undefined,
-      onUndo: () => void undo().then((back) => this.rowError.set(back.ok ? null : back.key)),
-    });
+  /** "Nachholen": one more onto the wishlist, exactly like the button on a tile; the toast offers the way back. */
+  protected async nachholen(row: StockItem): Promise<void> {
+    if (!this.pathOf(row)) return;
+    const t = this.stockWish.targetOf({ className: row.class_name, name: row.name, unit: row.unit });
+    if (!t) return;
+    const ok = await this.stockWish.wish(t, 1);
+    this.rowError.set(ok ? null : 'errors.generic');
   }
 
   // --- Counter desk (#304): add, take out, correct, delete, reserve -------------------------------

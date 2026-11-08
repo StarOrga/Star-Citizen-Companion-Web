@@ -26,6 +26,15 @@ export function typeOfKind(kind: string): MerkType | null {
 }
 
 /**
+ * The type of a wished entry. A material has no Codex page of its own: wished for a blueprint it belongs to the blueprint
+ * (and leads there), on its own it is a generic item. Null for a kind the panel does not know.
+ */
+export function wishTypeOf(w: { kind: string; forClassName?: string | null }): MerkType | null {
+  if (w.kind === 'material') return w.forClassName ? 'blueprint' : 'item';
+  return typeOfKind(w.kind);
+}
+
+/**
  * The type of a router URL: Codex index/detail by kind, Verse news by news, a ship page in the HQ hangar by ship.
  * Anything else is untyped (HQ start and the other HQ pages, Verse, Social, ...): no context section there.
  */
@@ -91,12 +100,28 @@ export function recentRowsOfType(rows: readonly StoredRow[], type: MerkType | nu
  * resolved for the class, else the readable class name (never the raw "MISL_S01_IR_VNCL_Arrow").
  */
 export function wishRowOfType(
-  w: Pick<WishRow, 'kind' | 'className' | 'name' | 'manufacturer'> & { qty?: number },
+  w: Pick<WishRow, 'kind' | 'className' | 'name' | 'manufacturer'> & { qty?: number; forClassName?: string | null },
   type: MerkType | null,
   nameOf?: (kind: string, className: string) => string | null,
 ): MerkRow | null {
-  const t = typeOfKind(w.kind);
+  const t = wishTypeOf(w);
   if (!t || (type && t !== type)) return null;
+  const title = w.name || nameOf?.(w.kind, w.className) || humanizeClassName(w.className);
+  if (w.kind === 'material') {
+    // Wished for a blueprint: the row leads to it; on its own the material is found through the Codex index.
+    const bp = w.forClassName?.trim();
+    return {
+      id: `wish:material:${w.className}@${bp ?? ''}`,
+      type: t,
+      title,
+      subtitle: null,
+      target: bp ? { link: ['/codex', 'blueprint', bp], queryParams: null } : { link: ['/codex', 'index'], queryParams: { q: title } },
+      href: null,
+      kind: bp ? 'blueprint' : 'item',
+      className: bp || undefined,
+      qty: w.qty ?? null,
+    };
+  }
   const target: SearchTarget = {
     link: polyHitLink({ kind: w.kind as never, classNameSlug: w.className }),
     queryParams: polyHitQueryParams({ kind: w.kind as never, nameLocalized: w.name, classNameSlug: w.className }),
@@ -104,7 +129,7 @@ export function wishRowOfType(
   return {
     id: `wish:${w.kind}:${w.className}`,
     type: t,
-    title: w.name || nameOf?.(w.kind, w.className) || humanizeClassName(w.className),
+    title,
     subtitle: w.kind === 'upcoming' ? null : w.manufacturer,
     target,
     href: null,
