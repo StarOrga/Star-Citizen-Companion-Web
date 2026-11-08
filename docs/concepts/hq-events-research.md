@@ -6,6 +6,12 @@ Raw research for the concept "Event als Nachschub" (HQ > Planen). Web research v
 
 Fetching the official RSI comm-link and Spectrum pages returned only meta tags, not the body. The official text below therefore comes from search snippets of those pages.
 
+## Owner decisions (2026-11-08)
+
+- **No place is fixed while planning.** An event Einsatz carries only what the event binds (venue, maybe a system, maybe a set of places). The player never picks a place in Planen. HQ Jetzt detects where the player is (SCC-App live signal) and, when that place lies inside an open event's area, offers to switch to that event's Nachschub / Einsätze. Owner, verbatim: „du erkennst einfach wo ich gerade bin und je nachdem bietest du mir unter jetzt dann an, oh im event gebiet, möchtest du zu dem nachschub / einsätzen wechseln. Ich muss das ja nicht festlegen.“
+- **The mechanism stays generic.** The two running events are examples, not the schema. Owner, verbatim: „bau den mechanismus flexibel, denn nur weil das bei den zwei events exakt gerade so ist, heißt das nicht, dass es immer so ist.“ → every dimension (venue, location binding, progress scope, reward channel per reward, delivery timing, prerequisites, end rule) is data with an "unknown" value, never an enum tied to today's events; several events run at once.
+- Corrections accepted: Discovery Month is Stanton-wide with a personal cross-location counter; rewards are not pledge by default — channel per reward.
+
 ## Conclusions first
 
 - **RSI Discovery Month does not match your description.** It is a Stanton-only event with personal progress tracks, and I found no global counter. A global counter may belong to another event (see "Open items").
