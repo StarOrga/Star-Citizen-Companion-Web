@@ -60,14 +60,6 @@ import { BRAND_NAME } from '../core/brand';
           <span aria-hidden="true">·</span>
           <a routerLink="/legal/imprint">{{ 'footer.links.imprint' | translate }}</a>
         </nav>
-        <!-- CIG Fankit and Fandom FAQ: the fan-site notice must be open and
-             obvious, never hover- or tooltip-only. It stays visible as its own
-             line under the footer row, with the link to the official site. -->
-        <p class="sf-notice">
-          {{ 'footer.disclaimer' | translate }}
-          <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a>
-          <br />{{ 'footer.trademarks' | translate }}
-        </p>
       </footer>
       <ng-template #disclaimerBody>
         <p>{{ 'footer.disclaimer' | translate }}</p>
@@ -204,14 +196,6 @@ import { BRAND_NAME } from '../core/brand';
     .sf-areas a:hover, .sf-areas a[aria-current] { color: var(--sc-accent); }
     .sf-areas a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
     @media (min-width: 721px) { .sf-badge, .sf-links { flex: 1 1 0; min-width: 0; } }
-    .sf { flex-wrap: wrap; }
-    .sf-notice {
-      order: 10; flex: 1 0 100%; margin: 0;
-      font-size: max(0.85rem, 13.5px); line-height: 1.4; color: var(--sc-fg-2);
-    }
-    .sf-notice a { color: var(--sc-fg-1); text-decoration: underline; text-underline-offset: 2px; }
-    .sf-notice a:hover { color: var(--sc-accent); }
-    .sf-notice a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
     .sf-links {
       display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sc-space-2);
       font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
