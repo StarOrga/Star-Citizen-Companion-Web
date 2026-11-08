@@ -13,6 +13,7 @@ import { HandoffButtonComponent } from './corners/handoff-button.component';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ReleaseSeenService } from '../release-notes/release-seen.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { BRAND_NAME } from '../core/brand';
 
 /**
  * Site-wide footer. Shown on both the public login page and inside the
@@ -86,7 +87,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </div>
 
         <div class="meta">
-          <p class="brand">Verse Companion</p>
+          <p class="brand">{{ brandName }}</p>
           @if (expanded()) {
             <p class="disclaimer">{{ 'footer.disclaimer' | translate }}
               <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a></p>
@@ -417,6 +418,7 @@ export class FooterComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   /** Whether the full legal disclaimer + trademark line is shown. */
+  protected readonly brandName = BRAND_NAME;
   readonly expanded = signal(true);
 
   /** Full, localized disclaimer text — kept in sync with the active language. */

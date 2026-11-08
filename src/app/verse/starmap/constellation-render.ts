@@ -41,7 +41,7 @@
  *          older suns core 4 u, corona 5× — only the current sun is large.
  *  6. SUPERNOVA   (`supernova: true`) a burst around the current constellation
  *     centre: 3 concentric radial gradients (warm white → magenta → transparent)
- *     plus 28 rays (length 90..260 u from rnd()), and the letters "VC" at
+ *     plus 28 rays (length 90..260 u from rnd()), and the brand initials (BRAND_INITIALS) at
  *     alpha 0.06 below-right of the burst — the subtle hint.
  *  7. WATERMARK   the current patch number (e.g. "4.4"), no prefix, no dot,
  *     font 600 14 u "Rajdhani, sans-serif", alpha 0.07, placed 14 u right and
@@ -57,6 +57,7 @@
 
 import type { VersePoint } from '../data/verse.models';
 import { hashSeed, litIndices, mulberry32 } from './starmap.model';
+import { BRAND_INITIALS } from '../../core/brand';
 
 export interface RenderConstellation {
   readonly patchLine: string;
@@ -287,7 +288,7 @@ function drawSupernova(ctx: Ctx2D, cx: number, cy: number, u: number, rnd: () =>
   ctx.fillStyle = '#ffffff';
   ctx.font = `600 ${Math.round(18 * u)}px Rajdhani, sans-serif`;
   ctx.textAlign = 'left';
-  ctx.fillText('VC', cx + 120 * u, cy + 150 * u);
+  ctx.fillText(BRAND_INITIALS, cx + 120 * u, cy + 150 * u);
   ctx.restore();
 }
 

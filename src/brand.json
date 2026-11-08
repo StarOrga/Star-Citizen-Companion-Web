@@ -1,0 +1,4 @@
+{
+  "$comment": "Single source of the product's display name. Change it with `node scripts/apply-brand.mjs \"<New Name>\"`, never by hand: the script rewrites every literal copy (i18n, index.html, manifest, extension, docs) and this file. `prebuild` fails when a copy drifts. The name is TWO words; the UI shows it followed by the alpha badge. Technical ids (storage keys, URL scheme, user agent, package names) are NOT covered — see docs/rename-verse-companion.md, stage 2.",
+  "name": "Verse Companion"
+}

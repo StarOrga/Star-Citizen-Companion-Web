@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { BRAND_NAME } from '../../core/brand';
 import { AuthService } from '../../auth/auth.service';
 import { AnalyticsService } from '../../core/analytics.service';
 import { logWarn } from '../../core/log';
@@ -176,7 +177,7 @@ export class MyConstellationsComponent implements AfterViewInit {
       const channel = await shareImage(
         await this.png(p),
         `sc-constellation-${p.patchLine}.png`,
-        `Verse Companion · ${p.patchLine}`,
+        `${BRAND_NAME} · ${p.patchLine}`,
         `${location.origin}/verse/explorer`,
       );
       if (channel) this.analytics.captureVerse('starscape_share', { image_id: `constellation-${p.patchLine}`, channel });

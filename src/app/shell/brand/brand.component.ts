@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { BRAND_NAME } from '../../core/brand';
 
 /**
  * The brand, from ONE source for the main header and the subheader (concept
@@ -46,7 +47,7 @@ export class BrandLogoComponent {}
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[attr.data-channel]': 'channel()' },
-  template: `<span class="title">Verse Companion</span><span class="channel">{{ 'nav.phaseBadge' | translate }}</span>`,
+  template: `<span class="title">{{ brandName }}</span><span class="channel">{{ 'nav.phaseBadge' | translate }}</span>`,
   styles: [
     `
       :host {
@@ -79,6 +80,7 @@ export class BrandLogoComponent {}
   ],
 })
 export class BrandNameComponent {
+  protected readonly brandName = BRAND_NAME;
   /** Where the channel marker stands: under the name (main header) or beside it (subheader). */
   readonly channel = input<'stack' | 'inline'>('stack');
 }
