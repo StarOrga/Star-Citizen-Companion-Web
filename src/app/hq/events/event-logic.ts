@@ -52,7 +52,16 @@ export interface ResolvedEnd {
   readonly at: string | null;
   /** estimate = labelled „spaetestens mit … (geschaetzt)“ in the UI. */
   readonly basis: EndBasis;
+  /** The event row's own end date while it is only estimated; closes the event once it lies well in the past. */
+  readonly estimatedRowEnd?: string;
 }
+
+/**
+ * Days an estimated row end may lie in the past before the event counts as over. Events often run until the next
+ * patch, so the patch estimate stays the deadline meanwhile; without this cap the moving patch estimate kept every
+ * past estimated event (Pirate Week in September) open forever.
+ */
+export const ESTIMATED_END_GRACE_DAYS = 14;
 
 /**
  * Official end (public sheet end, else the event row's end date when confirmed) > estimated next patch (from
@@ -62,8 +71,9 @@ export function resolveEventEnd(event: Pick<EventRow, 'endDate' | 'dateStatus' |
   const sheetEnd = event.sheet?.fields.end.value ?? null;
   if (sheetEnd) return { at: sheetEnd, basis: 'official' };
   if (event.dateStatus === 'confirmed' && event.endDate) return { at: event.endDate, basis: 'official' };
-  if (nextPatchIso && Number.isFinite(Date.parse(nextPatchIso))) return { at: nextPatchIso, basis: 'estimate' };
-  return { at: null, basis: 'unknown' };
+  const rowEnd = event.dateStatus === 'estimated' && event.endDate ? { estimatedRowEnd: event.endDate } : {};
+  if (nextPatchIso && Number.isFinite(Date.parse(nextPatchIso))) return { at: nextPatchIso, basis: 'estimate', ...rowEnd };
+  return { at: null, basis: 'unknown', ...rowEnd };
 }
 
 /** End instant in ms; a bare date means the end of that day (UTC). */
@@ -74,10 +84,15 @@ export function endMs(end: ResolvedEnd): number | null {
   return Number.isFinite(t) ? t : null;
 }
 
-/** Over only on an OFFICIAL end in the past; an estimate never closes an event by itself. */
+/**
+ * Over on an OFFICIAL end in the past. An estimate never closes an event by itself, except when the event row's own
+ * estimated end lies more than {@link ESTIMATED_END_GRACE_DAYS} days in the past.
+ */
 export function isEventOver(end: ResolvedEnd, nowMs: number): boolean {
   const t = endMs(end);
-  return end.basis === 'official' && t !== null && t < nowMs;
+  if (end.basis === 'official') return t !== null && t < nowMs;
+  const row = end.estimatedRowEnd ? endMs({ at: end.estimatedRowEnd, basis: 'estimate' }) : null;
+  return row !== null && row + ESTIMATED_END_GRACE_DAYS * 86_400_000 < nowMs;
 }
 
 export function hasStarted(event: Pick<EventRow, 'startDate' | 'sheet'>, nowMs: number): boolean {
