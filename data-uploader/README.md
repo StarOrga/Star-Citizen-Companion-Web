@@ -133,7 +133,7 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
   Lauf, Blau kann sie also um den Anteil der App überschreiten. Die Gesamtlast liefert
   `python/sc_extract/sysmon.py` (Windows-Leistungsindikatoren über
   `PdhAddEnglishCounterW`, also sprachunabhängig; CPU = Summe der Prozesszeilen,
-  `Process(_Total)` minus `Process(Idle)`, wie die Prozessliste im Task-Manager; Rückfall
+  `\Process(_Total)` minus `\Process(Idle)`, wie die Prozessliste im Task-Manager; Rückfall
   auf `% Processor Time`, dann auf die `os.cpus()`-Schätzung, wenn ein Sample älter als 3,5 s ist). Er läuft nur, solange der Sampler tickt (sichtbares
   Fenster oder laufender Job).
 - **Laufwerke**: `sysmon.py` liest zusätzlich jedes physische Laufwerk
