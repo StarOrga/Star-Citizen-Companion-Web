@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.239.5] - 2026-11-08
+
+### Changed
+- HQ start: Inventar and Planen tiles share one fixed size, their text links are gone (the tooltip on hover/focus says what opens), and open events are one slim line (count, names, "+N").
+
+## [0.239.4] - 2026-11-08
+
+### Fixed
+- HQ (beta): the old hangar tab page is gone — `/hq/hangar` now opens HQ Bestand › Hangar.
+- Removed the dead app bridges `/hangar/import`, `/starscape`, `/uploader/auth` and `/desktop/connect` (their callers use the removed host).
+- Browser extension 0.1.5: no more old host, popup opens the hangar again; uploader download link and sitemap point at live pages.
+- Starscape 0.11.1: signs in and opens the gallery on the current host again.
+- FPS equip: "Meine Sets" leads to the sets instead of the hangar.
+
 ## [0.239.3] - 2026-11-08
 
 ### Changed
