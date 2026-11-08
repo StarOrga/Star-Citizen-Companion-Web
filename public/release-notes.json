@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.238.3",
+  "current": "0.238.4",
   "releases": [
+    {
+      "version": "0.238.4",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Classic ship view: the ship picture grows with the masthead, so actions and tools end level with the classification card and the empty block above the KPI band is gone."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.238.3",
       "date": "2026-11-08",
