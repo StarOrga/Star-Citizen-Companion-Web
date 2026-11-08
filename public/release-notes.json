@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.232.1",
+  "current": "0.232.2",
   "releases": [
+    {
+      "version": "0.232.2",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Event data sheets: the AI extraction no longer fails with a 400 from the model API."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.232.1",
       "date": "2026-11-08",
