@@ -72,6 +72,20 @@ MIN_COMPONENT_AREA_PX = 64
 # through the SVG path length budget. tol_m = max(floor, % of span, px floor).
 TOLERANCE_SPAN_FRACTION = 0.003  # 0.3% of the hull's own longer span
 TOLERANCE_MIN_PX = 1.5
+# Items (components, weapons, ammo, armor — NOT ships) are fractions of a metre
+# to a few metres across, so the ship-tuned 0.15 m metric floor swallows them:
+# a 0.75 m cooler simplified to a quad, a 0.4 m missile to a stroke. For items
+# the tolerance is purely relative to the part's own span.
+ITEM_TOLERANCE_SPAN_FRACTION = 0.004
+# An alternative view only replaces the top-down one when its outline covers
+# this much MORE area (near-ties stay on the stable top view).
+VIEW_SWITCH_GAIN = 1.08
+VIEW_MASK_SIZE = 192
+# Inner (feature / crease) edges of an item, emitted as the optional `edges` path.
+EDGE_CREASE_DEG = 35.0
+EDGE_MAX_POINTS = 600
+EDGE_SIMPLIFY_VB = 1.2    # Douglas-Peucker tolerance in viewBox units
+EDGE_MIN_LENGTH_VB = 6.0  # chains shorter than this are noise
 
 
 # ── 1. project + rasterise ──────────────────────────────────────────────────
@@ -79,6 +93,157 @@ TOLERANCE_MIN_PX = 1.5
 def project_topdown(triangles: Sequence[Triangle]) -> List[Tuple[Vec2, Vec2, Vec2]]:
     """Drop Z (up): keep (X, Y) = (starboard, nose) of every vertex."""
     return [((a[0], a[1]), (b[0], b[1]), (c[0], c[1])) for a, b, c in triangles]
+
+
+# View -> (u, v) = (screen right, screen up) in CryEngine axes. "top" is the
+# ship view (x right, nose y up).
+VIEWS = ("top", "front", "side")
+
+
+def project_view(triangles: Sequence[Triangle], view: str) -> List[Tuple[Vec2, Vec2, Vec2]]:
+    """Project onto one of `VIEWS`, v always the screen's up axis."""
+    if view == "top":
+        return project_topdown(triangles)
+    iu, iv = (0, 2) if view == "front" else (1, 2)
+    return [((a[iu], a[iv]), (b[iu], b[iv]), (c[iu], c[iv])) for a, b, c in triangles]
+
+
+def choose_item_view(triangles: Sequence[Triangle]) -> str:
+    """The projection with the LARGEST outline area (m^2) — an ammo round lying
+    along Y shows a stroke from the top but its profile from the side. The top
+    view wins ties (anything inside `VIEW_SWITCH_GAIN`)."""
+    best, best_area = "top", -1.0
+    for view in VIEWS:
+        tris2d = project_view(triangles, view)
+        bounds = xy_bounds(tris2d)
+        if bounds is None:
+            continue
+        mask, px_per_m, _w, _h = rasterize_mask(tris2d, bounds, VIEW_MASK_SIZE, backend="cpu")
+        area = float(mask.sum()) / (px_per_m * px_per_m)
+        if view == "top":
+            best, best_area = "top", area
+        elif area > best_area * VIEW_SWITCH_GAIN:
+            best, best_area = view, area
+    return best
+
+
+def feature_edge_segments(triangles: Sequence[Triangle], view: str,
+                          crease_deg: float = EDGE_CREASE_DEG) -> np.ndarray:
+    """``(m, 2, 2)`` world-metre segments (u, v) of the mesh's feature edges:
+    boundary / non-manifold edges and edges whose two faces meet at more than
+    `crease_deg` degrees (orientation-agnostic, a flipped-wound panel is not a
+    crease). Vertices are welded first (the converter splits them per UV)."""
+    arr = np.asarray(triangles, dtype=np.float64).reshape(-1, 3, 3)
+    if arr.size:
+        arr = arr[np.isfinite(arr).all(axis=(1, 2))]
+    if arr.shape[0] == 0:
+        return np.zeros((0, 2, 2))
+    flat = arr.reshape(-1, 3)
+    diag = float(np.linalg.norm(flat.max(0) - flat.min(0)))
+    q = max(diag * 1e-4, 1e-7)
+    _u, inv = np.unique(np.round(flat / q).astype(np.int64), axis=0, return_inverse=True)
+    ids = inv.reshape(-1, 3)
+    n = np.cross(arr[:, 1] - arr[:, 0], arr[:, 2] - arr[:, 0])
+    ln = np.linalg.norm(n, axis=1)
+    ok = (ln > 1e-12) & (ids[:, 0] != ids[:, 1]) & (ids[:, 1] != ids[:, 2]) & (ids[:, 0] != ids[:, 2])
+    arr, ids, n, ln = arr[ok], ids[ok], n[ok], ln[ok]
+    if arr.shape[0] == 0:
+        return np.zeros((0, 2, 2))
+    n = n / ln[:, None]
+    nv = int(ids.max()) + 1
+    pairs = np.concatenate([ids[:, [0, 1]], ids[:, [1, 2]], ids[:, [2, 0]]])
+    face = np.tile(np.arange(ids.shape[0]), 3)
+    lo, hi = pairs.min(axis=1), pairs.max(axis=1)
+    key = lo.astype(np.int64) * nv + hi
+    order = np.argsort(key, kind="stable")
+    key, lo, hi, face = key[order], lo[order], hi[order], face[order]
+    first = np.concatenate(([True], key[1:] != key[:-1]))
+    starts = np.flatnonzero(first)
+    counts = np.diff(np.concatenate((starts, [key.size])))
+    cos_t = math.cos(math.radians(crease_deg))
+    keep = counts != 2
+    two = np.flatnonzero(counts == 2)
+    if two.size:
+        n1 = n[face[starts[two]]]
+        n2 = n[face[starts[two] + 1]]
+        keep[two] = np.abs((n1 * n2).sum(axis=1)) < cos_t
+    sel = starts[keep]
+    verts = np.zeros((nv, 3))
+    verts[ids.reshape(-1)] = arr.reshape(-1, 3)
+    a, b = verts[lo[sel]], verts[hi[sel]]
+    iu, iv = {"top": (0, 1), "front": (0, 2), "side": (1, 2)}[view]
+    return np.stack([a[:, [iu, iv]], b[:, [iu, iv]]], axis=1)
+
+
+def _chain_segments(segs: List[Tuple[Vec2, Vec2]]) -> List[List[Vec2]]:
+    """Join segments that share an endpoint into polylines (deterministic)."""
+    adj: Dict[Vec2, List[int]] = {}
+    for i, (p, q) in enumerate(segs):
+        adj.setdefault(p, []).append(i)
+        adj.setdefault(q, []).append(i)
+    used = [False] * len(segs)
+    chains: List[List[Vec2]] = []
+
+    def walk(start: Vec2) -> None:
+        chain = [start]
+        cur = start
+        while True:
+            nxt = None
+            for i in adj.get(cur, []):
+                if not used[i]:
+                    nxt = i
+                    break
+            if nxt is None:
+                break
+            used[nxt] = True
+            a, b = segs[nxt]
+            cur = b if a == cur else a
+            chain.append(cur)
+        if len(chain) > 1:
+            chains.append(chain)
+
+    for pt in sorted(p for p, lst in adj.items() if len(lst) != 2):  # open ends first
+        walk(pt)
+    for pt in sorted(adj):  # then closed loops
+        walk(pt)
+    return chains
+
+
+def build_edges_path(segs_vb: np.ndarray, max_points: int = EDGE_MAX_POINTS,
+                     tol: float = EDGE_SIMPLIFY_VB, min_len: float = EDGE_MIN_LENGTH_VB) -> Tuple[str, int]:
+    """``(path_d, point_count)``: viewBox-space segments -> stroke-only open
+    polylines ``M x y L x y ...``, simplified, the longest chains first until
+    `max_points` is used up. Empty string when nothing survives."""
+    if segs_vb.shape[0] == 0:
+        return "", 0
+    q = np.round(segs_vb * 2.0) / 2.0  # snap to 0.5 units so shared corners join
+    segs = []
+    seen = set()
+    for (x0, y0), (x1, y1) in q.tolist():
+        p, r = (x0, y0), (x1, y1)
+        if p == r:
+            continue
+        k = (p, r) if p < r else (r, p)
+        if k in seen:
+            continue
+        seen.add(k)
+        segs.append(k)
+    chains = []
+    for chain in _chain_segments(segs):
+        pts = douglas_peucker(chain, tol)
+        length = sum(math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])
+                     for i in range(len(pts) - 1))
+        if length >= min_len:
+            chains.append((length, pts))
+    chains.sort(key=lambda c: (-c[0], c[1][0]))
+    parts: List[str] = []
+    used = 0
+    for _length, pts in chains:
+        if used + len(pts) > max_points:
+            continue
+        parts.append(f"M {pts[0][0]:g} {pts[0][1]:g} " + " ".join(f"L {x:g} {y:g}" for x, y in pts[1:]))
+        used += len(pts)
+    return " ".join(parts), used
 
 
 def xy_bounds(tris_2d: Sequence[Tuple[Vec2, Vec2, Vec2]]) -> Optional[Tuple[float, float, float, float]]:
@@ -614,6 +779,7 @@ def build_silhouette(
     min_component_area_px: int = MIN_COMPONENT_AREA_PX,
     chaikin_iterations: int = CHAIKIN_ITERATIONS,
     on_log: Optional[Any] = None,
+    item: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """Triangles -> the contract's ``silhouette`` object, or None (no usable
     geometry — e.g. an entity whose mesh has no surface, never invented).
@@ -622,9 +788,19 @@ def build_silhouette(
     (should-fix "tolerance") and one with any dropped-component area
     (should-fix "components") — both wave1-redteam.md. Purely diagnostic,
     never affects the returned object.
+
+    ``item=True`` (anything that is not a ship): the view with the largest
+    outline area is used instead of always top-down, the simplification
+    tolerance is relative to the part's own size, and the feature edges of
+    that view are added as the optional ``edges`` path (stroke-only polylines,
+    same viewBox). Ships stay top-down, nose up, and never carry ``edges``.
     """
+    view = "top"
+    if item:
+        with timed("silhouette.view"):
+            view = choose_item_view(triangles)
     with timed("silhouette.project"):
-        tris_2d = project_topdown(triangles)
+        tris_2d = project_view(triangles, view)
         bounds = xy_bounds(tris_2d)
     if bounds is None:
         return None
@@ -657,7 +833,10 @@ def build_silhouette(
     # alone lets a capital ship's hull blow through the SVG path length
     # budget; scale with the hull's own span and the raster's own pixel size,
     # never going BELOW the metric floor.
-    tolerance_m = max(tolerance_m, TOLERANCE_SPAN_FRACTION * span_m, TOLERANCE_MIN_PX / px_per_m)
+    if item:
+        tolerance_m = max(ITEM_TOLERANCE_SPAN_FRACTION * span_m, TOLERANCE_MIN_PX / px_per_m)
+    else:
+        tolerance_m = max(tolerance_m, TOLERANCE_SPAN_FRACTION * span_m, TOLERANCE_MIN_PX / px_per_m)
 
     def polygon(ring_px: Sequence[Tuple[int, int]]) -> List[Vec2]:
         world = [_to_world(p, min_x, min_y, px_per_m) for p in ring_px]
@@ -698,10 +877,27 @@ def build_silhouette(
         on_log("info", f"silhouette: {point_count} point(s), "
                        f"{len(components_px)} component(s), tol={tolerance_m:.4f}m")
 
+    edges = ""
+    edge_points = 0
+    if item:
+        with timed("silhouette.edges"):
+            segs = feature_edge_segments(triangles, view)
+            if segs.shape[0]:
+                uv = segs.reshape(-1, 2)
+                vx = (uv[:, 0] - min_x) * scale + offset_x
+                vy = (span_y_m - (uv[:, 1] - min_y)) * scale + offset_y
+                edges, edge_points = build_edges_path(np.stack([vx, vy], axis=1).reshape(-1, 2, 2))
+    extra: Dict[str, Any] = {"view": view} if item else {}
+    if edges:
+        extra["edges"] = edges
+    if on_log and item:
+        on_log("info", f"silhouette: item view={view}, {edge_points} edge point(s)")
+
     return {
         "viewBox": f"0 0 {viewbox} {viewbox}",
         "noseUp": True,
         "path": path,
+        **extra,
         "bbox": {
             "x": round(offset_x, 2), "y": round(offset_y, 2),
             "w": round(box_w, 2), "h": round(box_h, 2),
@@ -822,7 +1018,8 @@ def build_entity_silhouette(
     """One row of the wave-0 §C1 contract, or None when the mesh has no
     usable top-down surface (never a placeholder — the website renders "ohne
     Geometrie" for a missing row)."""
-    silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=on_log)
+    silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=on_log,
+                                  item=kind != "ship")
     if silhouette is None:
         return None
     # Blocker 2: pop the internal path transform BEFORE the silhouette is

@@ -481,6 +481,10 @@ export interface SilhouetteFile {
     scaleMPerUnit?: number;
     pointCount?: number;
     simplifyToleranceM?: number;
+    /** Items only: view the outline was taken from. */
+    view?: string;
+    /** Items only: stroke-only inner feature edges, same 0..1000 viewBox as `path`. */
+    edges?: string;
   };
   anchors?: unknown[];
   unresolved?: string[];
@@ -547,6 +551,9 @@ export function mapSilhouettes(list: Record<string, unknown>[], tag: Tag): Silho
         scaleMPerUnit: f.silhouette.scaleMPerUnit ?? null,
         pointCount: f.silhouette.pointCount ?? null,
         simplifyToleranceM: f.silhouette.simplifyToleranceM ?? null,
+        // Optional inner-edge path (items only); rows without it stay valid.
+        ...(f.silhouette.edges ? { edges: f.silhouette.edges } : {}),
+        ...(f.silhouette.view ? { view: f.silhouette.view } : {}),
       },
       generated_at: f.generatedAt ?? null,
     }) as unknown as SilhouetteRow;
