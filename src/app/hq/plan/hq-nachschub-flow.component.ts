@@ -11,6 +11,10 @@ import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.c
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
+import { EventHqService } from '../events/event-hq.service';
+import { HqEventEndComponent } from '../events/hq-event-end.component';
+import { eventDrafts, eventsRewarding, looksLikeShip, rewardsOf } from '../events/event-hq.util';
+import { nachschubTypeFor } from '../events/event-nachschub';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { NachschubNamingService } from '../nachschub/nachschub-naming';
 import {
@@ -72,7 +76,7 @@ type Step = 1 | 2 | 3;
 @Component({
   selector: 'sc-hq-nachschub-flow',
   standalone: true,
-  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScDialogDirective, ScSelectComponent, ScTooltipDirective, ScTristateComponent],
+  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScDialogDirective, HqEventEndComponent, ScSelectComponent, ScTooltipDirective, ScTristateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="scrim" (click)="closed.emit()">
@@ -96,12 +100,42 @@ type Step = 1 | 2 | 3;
           @if (error(); as e) { <p class="dlg-err" role="alert">{{ e | translate }}</p> }
 
           @if (step() === 1) {
+            @if (events.open().length) {
+              <section class="evsec" [attr.aria-label]="'hq.events.pick.title' | translate">
+                <h3>{{ 'hq.events.pick.title' | translate }}</h3>
+                <p class="dlg-msg">{{ 'hq.events.pick.hint' | translate }}</p>
+                @for (o of events.open(); track o.event.id) {
+                  @let rs = rewardsOf(o);
+                  <article class="evcard" [class.on]="eventPicks().has(o.event.id)">
+                    <header>
+                      <sc-tristate variant="checkbox" [label]="o.event.name" [value]="eventPicks().has(o.event.id) ? 1 : 0" (toggled)="toggleEvent(o.event.id)" />
+                      <h4>{{ o.event.name }}</h4>
+                      <small><sc-hq-event-end [end]="o.end" /></small>
+                    </header>
+                    @if (rs.length) {
+                      <ul>
+                        @for (r of rs; track r.id) {
+                          <li>
+                            <sc-tristate variant="checkbox" [label]="r.name" [value]="eventPicks().get(o.event.id)?.has(r.id) ? 1 : 0" (toggled)="toggleReward(o.event.id, r.id)" />
+                            <span class="nm">{{ r.name }}</span>
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="dlg-msg">{{ 'hq.events.pick.sightseeing' | translate }}</p>
+                    }
+                  </article>
+                }
+              </section>
+            }
             @if (groups().length === 0) {
+              @if (!events.open().length) {
               <div class="empty">
                 <p class="e-title">{{ 'hq.flow.emptyWish' | translate }}</p>
                 <p class="dlg-msg">{{ 'hq.flow.emptyHint' | translate }}</p>
                 <button type="button" scAction tier="secondary" (click)="searchWish()">{{ 'hq.flow.fillWish' | translate }}</button>
               </div>
+              }
             } @else {
               <div class="pick-bar">
                 <button type="button" scAction tier="secondary" (click)="pickAll()">
@@ -196,7 +230,18 @@ type Step = 1 | 2 | 3;
             <div class="einsatz-head">
               <h3>{{ 'hq.flow.einsaetze' | translate }} <small role="status">{{ 'hq.flow.einsatzCount' | translate: { n: counts().einsaetze, s: counts().steps } }}</small></h3>
             </div>
-            @if (proposalLines().length === 0) {
+            @for (d of eventDraftList(); track d.eventId) {
+              <article class="ecard evdraft">
+                <header>
+                  <span class="eid">✦</span>
+                  <h4>{{ d.label }}</h4>
+                  <span class="kinds"><span class="kic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of icons.event; track p) { <path [attr.d]="p" /> }</svg></span></span>
+                </header>
+                <p class="meta">{{ 'hq.events.draft.area' | translate }}</p>
+                @if (d.goods.length) { <p class="goods">@for (g of d.goods; track $index) { <span class="good">{{ g.qty }}× {{ g.name }}</span> }</p> }
+              </article>
+            }
+            @if (proposalLines().length === 0 && eventDraftList().length === 0) {
               <p class="dlg-msg">{{ (mode() === 'edit' ? 'hq.flow.noNewLines' : 'hq.flow.noLines') | translate }}</p>
             }
             <div class="e-grid">
@@ -341,6 +386,7 @@ type Step = 1 | 2 | 3;
     </ng-template>
   `,
   styles: [
+    `.evsec { display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); margin-bottom: var(--sc-space-3, 12px); } .evsec h3 { margin: 0; font: 600 1rem var(--sc-font-display, inherit); } .evcard { border: 1px solid var(--sc-border); border-radius: 10px; padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); background: var(--sc-bg-0); } .evcard.on { border-color: var(--sc-accent); } .evcard header { display: flex; align-items: center; gap: var(--sc-space-2, 8px); } .evcard h4 { margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; } .evcard ul { list-style: none; margin: 6px 0 0; padding: 0 0 0 28px; display: flex; flex-direction: column; gap: 4px; } .evcard li { display: flex; align-items: center; gap: var(--sc-space-2, 8px); }`,
     HQ_DIALOG_STYLES,
     `
       .sheet { --dlg-w: 1040px; --dlg-h: 760px; height: min(100%, var(--dlg-h)); }
@@ -447,6 +493,10 @@ export class HqNachschubFlowComponent {
   private readonly sourcesSvc = inject(HqNeedSourcesService);
   private readonly chrome = inject(ShellChromeService);
   private readonly i18n = inject(TranslateService);
+  protected readonly events = inject(EventHqService);
+  protected readonly rewardsOf = rewardsOf;
+  /** Events picked next to the wishlist: event id -> the reward ids chosen (an empty set = sightseeing / nothing chosen). */
+  protected readonly eventPicks = signal<ReadonlyMap<string, ReadonlySet<string>>>(new Map());
 
   protected readonly stepList: readonly Step[] = [1, 2, 3];
   protected readonly nameMax = NACHSCHUB_NAME_MAX;
@@ -513,6 +563,7 @@ export class HqNachschubFlowComponent {
         forClassName: (r.forClassName ?? '').trim() || null,
         forName: g.type === 'blueprint' ? g.title : null,
         craftable: !!(r.className && this.sourcesSvc.sources().get(r.className)?.craftable),
+        eventIds: r.className ? eventsRewarding(this.events.open(), r.className).map((o) => o.event.id) : [],
       })),
     ),
   );
@@ -532,8 +583,8 @@ export class HqNachschubFlowComponent {
   protected readonly nextSlot = computed(() => freeSlot(this.svc.packages()));
   protected readonly maxSlots = NACHSCHUB_MAX_SLOTS;
 
-  protected readonly canNext = computed(() => (this.step() === 1 ? this.picks().size > 0 || (this.mode() === 'edit' && this.existing().length > 0) : this.name().trim().length > 0));
-  protected readonly canSave = computed(() => this.name().trim().length > 0 && (this.picks().size > 0 || this.mode() === 'edit'));
+  protected readonly canNext = computed(() => (this.step() === 1 ? this.picks().size > 0 || this.eventPicks().size > 0 || (this.mode() === 'edit' && this.existing().length > 0) : this.name().trim().length > 0));
+  protected readonly canSave = computed(() => this.name().trim().length > 0 && (this.picks().size > 0 || this.eventPicks().size > 0 || this.mode() === 'edit'));
 
   private preselected = false;
 
@@ -734,6 +785,51 @@ export class HqNachschubFlowComponent {
     return purposesOf(d).join(', ');
   }
 
+  protected toggleEvent(id: string): void {
+    this.eventPicks.update((m) => {
+      const next = new Map(m);
+      if (next.has(id)) next.delete(id);
+      else next.set(id, new Set());
+      return next;
+    });
+  }
+
+  protected toggleReward(eventId: string, rewardId: string): void {
+    this.eventPicks.update((m) => {
+      const next = new Map(m);
+      const set = new Set(next.get(eventId) ?? []);
+      if (set.has(rewardId)) set.delete(rewardId);
+      else set.add(rewardId);
+      // Choosing a reward selects the event; an event with no reward left stays selected (the reader unticks it itself).
+      next.set(eventId, set);
+      return next;
+    });
+  }
+
+  /** Events this Nachschub covers: the picked ones plus every event a line was sent to (the fourth way). */
+  private readonly eventsInUse = computed(() => {
+    const out = new Map<string, { name: string; qty: number; className: string | null }[]>();
+    for (const o of this.events.open()) {
+      const picked = this.eventPicks().get(o.event.id);
+      if (picked) out.set(o.event.id, rewardsOf(o).filter((r) => picked.has(r.id)).map((r) => ({ name: r.name, qty: 1, className: r.className })));
+    }
+    for (const l of this.proposalLines()) {
+      if (this.modeNow(l) !== 'event' || !l.eventIds?.length) continue;
+      const id = l.eventIds[0];
+      out.set(id, [...(out.get(id) ?? []), { name: l.name, qty: l.qty, className: l.className }]);
+    }
+    return out;
+  });
+
+  protected readonly eventDraftList = computed(() =>
+    eventDrafts(
+      this.events
+        .open()
+        .filter((o) => this.eventsInUse().has(o.event.id))
+        .map((o) => ({ event: o, rewards: this.eventsInUse().get(o.event.id)!.map((g) => ({ name: g.name, qty: g.qty })) })),
+    ),
+  );
+
   protected back(): void {
     this.error.set(null);
     this.step.update((s) => (s > 1 ? ((s - 1) as Step) : s));
@@ -759,7 +855,10 @@ export class HqNachschubFlowComponent {
       let result: NachschubResult;
       let id: string | undefined;
       if (this.mode() === 'new') {
-        result = await this.svc.createFromWishlist({ picks, name });
+        const first = this.eventDraftList()[0];
+        const rewards = first ? (this.eventsInUse().get(first.eventId) ?? []).filter((g): g is { name: string; qty: number; className: string } => !!g.className).map((g) => ({ name: g.name, className: g.className, ship: looksLikeShip(g.className) })) : [];
+        const binding = first ? { type: nachschubTypeFor(this.rewardListOf(first.eventId)) === 'sightseeing' ? ('sightseeing' as const) : ('event' as const), eventId: first.eventId, name: first.label, rewards } : undefined;
+        result = await this.svc.createFromWishlist({ picks, name, event: binding });
         id = result.id;
       } else {
         id = this.nachschubId() ?? undefined;
@@ -773,9 +872,27 @@ export class HqNachschubFlowComponent {
         return;
       }
       await this.writeEinsaetze(id);
+      this.writeEventEinsaetze(id);
       this.done.emit(result);
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  private rewardListOf(eventId: string) {
+    const o = this.events.open().find((x) => x.event.id === eventId);
+    return o ? rewardsOf(o) : null;
+  }
+
+  /** One Einsatz per chosen event: a single event step carrying the area instead of a place. */
+  private writeEventEinsaetze(id: string): void {
+    for (const d of this.eventDraftList()) {
+      this.einsatz.create({
+        title: clampName(d.label, EINSATZ_NAME_MAX),
+        packageId: id,
+        startLocation: null,
+        steps: [{ kind: 'event', label: d.label, location: null, system: null, className: null, qty: null, supplyId: null, missionRef: null, eventId: d.eventId, area: d.area }],
+      });
     }
   }
 

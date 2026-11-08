@@ -9,6 +9,8 @@ import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { HqPageNavService } from '../hq-page-nav.service';
 import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
 import { NachschubService, type NachschubResult } from '../nachschub/nachschub.service';
+import { isEventNachschub } from '../events/event-nachschub';
+import { EventHqService } from '../events/event-hq.service';
 import { HqNachschubBoardComponent } from './hq-nachschub-board.component';
 import { HqNachschubArchiveDialogComponent, HqNachschubRemoveDialogComponent } from './hq-nachschub-dialogs.component';
 import { HqNachschubFlowComponent } from './hq-nachschub-flow.component';
@@ -52,6 +54,7 @@ import { HqNachschubPanelComponent } from './hq-nachschub-panel.component';
       }
       <sc-hq-nachschub-board
         [selectedId]="focus.selected()?.id ?? null"
+        [eventAvailable]="events.hasOpen()"
         (selectNachschub)="focus.select($event)"
         (create)="flow.set({ mode: 'new', id: null, step: 1 })"
         (remove)="askRemove($event, 'remove')"
@@ -109,6 +112,7 @@ import { HqNachschubPanelComponent } from './hq-nachschub-panel.component';
 export class HqPlanComponent {
   protected readonly einsatz = inject(HqEinsatzService);
   protected readonly ns = inject(NachschubService);
+  protected readonly events = inject(EventHqService);
   protected readonly focus = inject(NachschubFocusService);
   private readonly nav = inject(HqPageNavService);
   protected readonly flow = signal<{ mode: 'new' | 'edit'; id: string | null; step: 1 | 3 } | null>(null);
@@ -150,6 +154,7 @@ export class HqPlanComponent {
 
   constructor() {
     void this.ns.ensureLoaded();
+    this.events.ensure();
     const destroyRef = inject(DestroyRef);
     // An Einsatz opened from Start / Jetzt / a shared URL: its Nachschub is the one shown.
     effect(() => {
@@ -193,6 +198,15 @@ export class HqPlanComponent {
   }
 
   protected async reactivate(id: string): Promise<void> {
+    const pkg = this.ns.packages().find((p) => p.id === id);
+    if (pkg && isEventNachschub(pkg)) {
+      const ok = await this.events.resume(id);
+      if (ok) {
+        this.archiveOpen.set(false);
+        this.focus.select(id);
+      }
+      return;
+    }
     const res = await this.ns.reactivate(id);
     if (res.ok) {
       this.archiveOpen.set(false);

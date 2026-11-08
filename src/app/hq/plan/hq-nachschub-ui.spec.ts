@@ -57,7 +57,7 @@ describe('Nachschub board, panel and dialogs', () => {
     return TestBed.inject(NachschubService);
   }
 
-  it('board: seven separate slots, a plus for each free one, the archive with its count', () => {
+  it('board: oldest first, exactly one plus, the archive with its count', () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Rattler-Vorrat', 1), nach('b', 'Medpens', 3), nach('old', 'Altes', null, 'archived')]);
     const f = TestBed.createComponent(HqNachschubBoardComponent);
@@ -65,12 +65,16 @@ describe('Nachschub board, panel and dialogs', () => {
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
     const slots = el.querySelectorAll('.board .slot');
-    expect(slots.length).toBe(7);
+    expect(slots.length).toBe(3);
     expect(slots[0].classList).toContain('on');
     expect(slots[0].querySelector('.name')?.textContent).toBe('Rattler-Vorrat');
-    expect(slots[1].classList).toContain('free');
-    expect(slots[2].querySelector('.name')?.textContent).toBe('Medpens');
-    expect(el.querySelectorAll('.slot.free').length).toBe(5);
+    expect(slots[1].querySelector('.name')?.textContent).toBe('Medpens');
+    expect(slots[2].classList).toContain('free');
+    expect(el.querySelectorAll('.slot.free').length).toBe(1);
+    expect(el.querySelector('.teaser')).toBeNull();
+    f.componentRef.setInput('eventAvailable', true);
+    f.detectChanges();
+    expect(el.querySelector('.slot.free .teaser')).not.toBeNull();
     expect(el.querySelector('.archive b')?.textContent).toBe('1');
     // Separate objects: each slot is its own card with a gap between them, not one strip.
     expect(el.querySelectorAll('.slot sc-nachschub-crate').length).toBe(2);
