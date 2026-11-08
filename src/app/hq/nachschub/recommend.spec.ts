@@ -246,4 +246,58 @@ describe('recommend', () => {
       expect(names).not.toContain('p4ar_mag');
     });
   });
+
+  describe('ship components, missiles, consumables', () => {
+    const MORE: RecItem[] = [
+      it_({ className: 'shield_s2', name: 'Shield S2', kind: 'ship_component', slotType: 'Shield', size: 2, grade: 2 }),
+      it_({ className: 'shield_s2b', name: 'Shield S2 B', kind: 'ship_component', slotType: 'Shield', size: 2, grade: 1 }),
+      it_({ className: 'cooler_s2', name: 'Cooler S2', kind: 'ship_component', slotType: 'Cooler', size: 2, grade: 1 }),
+      it_({ className: 'qd_s2', name: 'QD S2', kind: 'ship_component', slotType: 'QuantumDrive', size: 2 }),
+      it_({ className: 'cooler_s3', name: 'Cooler S3', kind: 'ship_component', slotType: 'Cooler', size: 3 }),
+      it_({ className: 'msl_ir', name: 'Rattler IR', kind: 'missile', slotType: 'Missile', size: 2, facet: 'ir' }),
+      it_({ className: 'msl_em', name: 'Dominator EM', kind: 'missile', slotType: 'Missile', size: 2, facet: 'em' }),
+      it_({ className: 'msl_ir2', name: 'Other IR', kind: 'missile', slotType: 'Missile', size: 2, facet: 'ir' }),
+      it_({ className: 'msl_em_s3', name: 'EM S3', kind: 'missile', slotType: 'Missile', size: 3, facet: 'em' }),
+      it_({ className: 'tpd_em', name: 'Torpedo EM', kind: 'missile', slotType: 'Torpedo', size: 2, facet: 'em' }),
+      it_({ className: 'pen_a', name: 'Pen A', kind: 'consumable', facet: 'Medical' }),
+      it_({ className: 'pen_b', name: 'Pen B', kind: 'consumable', facet: 'Stim' }),
+      it_({ className: 'pen_a2', name: 'Pen A2', kind: 'consumable', facet: 'Medical' }),
+    ];
+
+    it('a ship component suggests the other loadout slots of its size, never its own slot', () => {
+      const got = recommend(ctx(['shield_s2'], {}, MORE));
+      expect(got.map((r) => r.className).sort()).toEqual(['cooler_s2', 'qd_s2']);
+      expect(got[0].reason).toBe('sameSizeClass');
+      expect(got[0].params).toEqual({ item: 'Shield S2', size: 2 });
+    });
+
+    it('a missile suggests the same size and kind with another tracking signal', () => {
+      const got = recommend(ctx(['msl_ir'], {}, MORE));
+      expect(got.map((r) => r.className)).toEqual(['msl_em']);
+      expect(got[0].reason).toBe('otherSignal');
+      expect(got[0].params['signal']).toBe('EM');
+    });
+
+    it('a consumable suggests a consumable of another type, not a twin', () => {
+      const got = recommend(ctx(['pen_a'], {}, MORE));
+      expect(got.map((r) => r.className)).toEqual(['pen_b']);
+      expect(got[0].reason).toBe('pairsWith');
+    });
+
+    it('returns nothing when a category has no usable data (no padding with random items)', () => {
+      const lone = [it_({ className: 'only', name: 'Only', kind: 'ship_component', slotType: 'Shield', size: 9 }), ...FIX.filter((i) => i.kind === 'armor')];
+      expect(recommend(ctx(['only'], {}, lone))).toEqual([]);
+      const noFacet = [
+        it_({ className: 'm1', name: 'M1', kind: 'missile', slotType: 'Missile', size: 2 }),
+        it_({ className: 'm2', name: 'M2', kind: 'missile', slotType: 'Missile', size: 2 }),
+      ];
+      expect(recommend(ctx(['m1'], {}, noFacet))).toEqual([]);
+    });
+
+    it('the armor set reason names the anchor, never the raw set key', () => {
+      const r = recommend(ctx(['pem_helmet']))[0];
+      expect(r.reason).toBe('sameSet');
+      expect(r.params).toEqual({ item: 'Pembroke Helm' });
+    });
+  });
 });

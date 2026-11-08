@@ -8,7 +8,7 @@ import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { WishlistStore, wishKey } from '../../hq/data/wishlist.store';
 import { HqInventoryService } from '../../hq/data/hq-inventory.service';
-import { fpsRowsToRecItems } from '../../hq/nachschub/rec-catalogue';
+import { componentRowsToRecItems, fpsRowsToRecItems, itemRowsToRecItems, REC_COMPONENT_KINDS } from '../../hq/nachschub/rec-catalogue';
 import {
   READY_COUNT,
   dismissSuggestion,
@@ -184,7 +184,7 @@ export class WishCartService {
   /** A suggestion goes onto the wishlist (quantity 1). */
   async addSuggestion(r: Recommendation): Promise<boolean> {
     const item = this.catalogue().get(r.className);
-    const kind = item?.kind === 'fps_weapon' ? 'weapon' : 'item';
+    const kind = item?.kind === 'fps_weapon' ? 'weapon' : item?.kind === 'ship_component' ? 'component' : 'item';
     return this.store.add({ kind, className: r.className, name: r.name });
   }
 
@@ -202,7 +202,7 @@ export class WishCartService {
     const cat = this.catalogue();
     if (!cat.size) return [];
     const anchors = lastAdded(
-      this.items().filter((i) => i.kind === 'item' || i.kind === 'weapon'),
+      this.items().filter((i) => i.kind === 'item' || i.kind === 'weapon' || i.kind === 'component'),
       3,
     ).map((i) => ({ className: i.className, addedAt: i.createdAt }));
     if (!anchors.length) return [];
@@ -235,6 +235,23 @@ export class WishCartService {
         const [armor, weapons] = await Promise.all([this.codex.listFpsCatalog('armor', true, true), this.codex.listFpsCatalog('weapon', true, true)]);
         const all = [...fpsRowsToRecItems(armor, 'armor'), ...fpsRowsToRecItems(weapons, 'weapon')];
         this.catalogue.set(new Map(all.map((i) => [i.className, i] as const)));
+        // The ship side comes in its own reads: a failure there still leaves the FPS suggestions in place.
+        try {
+          const lean = { payload: 'none', includeVariants: true, limit: 1000 } as const;
+          const [comps, missiles, consumables] = await Promise.all([
+            Promise.all(REC_COMPONENT_KINDS.map((k) => this.codex.listByKind('component', { ...lean, componentKind: k }))),
+            this.codex.listByKind('item', { ...lean, attachType: 'Missile' }),
+            this.codex.listByKind('item', { ...lean, attachType: 'FPS_Consumable' }),
+          ]);
+          all.push(
+            ...componentRowsToRecItems(comps.flatMap((r) => r.rows)),
+            ...itemRowsToRecItems(missiles.rows, 'missile'),
+            ...itemRowsToRecItems(consumables.rows, 'consumable'),
+          );
+          this.catalogue.set(new Map(all.map((i) => [i.className, i] as const)));
+        } catch (err) {
+          logWarn('cart', 'ship suggestion catalogue unavailable', err);
+        }
       } catch (err) {
         // Suggestions are advisory: no catalogue, no row - never an error state. Ask again on the next open.
         this.catalogueAsked = false;

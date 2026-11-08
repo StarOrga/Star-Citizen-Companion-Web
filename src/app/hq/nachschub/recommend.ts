@@ -34,6 +34,7 @@ export type RecKind =
   | 'mining'
   | 'material'
   | 'blueprint'
+  | 'consumable'
   | 'other';
 
 export type RecActivity = 'mining' | 'hauling' | 'fps' | 'ship_combat' | 'crafting';
@@ -65,6 +66,11 @@ export interface RecItem {
   /** Port type this item occupies (weapon, shield, power, optic, ...). */
   readonly slotType?: string | null;
   readonly size?: number | null;
+  /**
+   * What tells two same-slot items apart in a loadout (a missile's tracking signal, a consumable's sub type). Two items
+   * of one slot and size with different facets complement each other instead of replacing each other.
+   */
+  readonly facet?: string | null;
   readonly grade?: number | null;
   /** The weapon's standard magazine (class name). */
   readonly magazineClass?: string | null;
@@ -115,6 +121,9 @@ export type RecReasonKey =
   | 'usedIn'
   | 'sameMaker'
   | 'paintFor'
+  | 'sameSizeClass'
+  | 'otherSignal'
+  | 'pairsWith'
   | 'sameMaterial'
   | 'sameShop'
   | 'samePlace'
@@ -148,6 +157,7 @@ const BUCKET: Record<RecKind, string> = {
   mining: 'mining',
   material: 'material',
   blueprint: 'blueprint',
+  consumable: 'consumable',
   other: 'other',
 };
 
@@ -169,7 +179,7 @@ export function complement(a: RecItem, c: RecItem, cat: ReadonlyMap<string, RecI
   const out: Complement[] = [];
 
   if (a.kind === 'armor' && c.kind === 'armor' && a.setKey && a.setKey === c.setKey) {
-    out.push(hit(1, 'sameSet', { set: a.setKey }));
+    out.push(hit(1, 'sameSet', { item: a.name }));
   }
   if (a.kind === 'fps_weapon' && c.kind === 'magazine' && a.magazineClass === c.className) {
     out.push(hit(1, 'magazineFor', { item: a.name }));
@@ -197,6 +207,18 @@ export function complement(a: RecItem, c: RecItem, cat: ReadonlyMap<string, RecI
   }
   if (a.kind === 'ship' && c.kind === 'paint' && c.shipClasses?.includes(a.className)) {
     out.push(hit(0.5, 'paintFor', { item: a.name }));
+  }
+  // Ship loadout: the core components of one size class belong to one hull class (a S2 shield wants a S2 cooler).
+  if (a.kind === 'ship_component' && c.kind === 'ship_component' && a.slotType && c.slotType && a.slotType !== c.slotType && a.size != null && a.size === c.size) {
+    out.push(hit(0.5, 'sameSizeClass', { item: a.name, size: a.size }));
+  }
+  // Missiles of one size and kind with another tracking signal cover what the first cannot lock.
+  if (a.kind === 'missile' && c.kind === 'missile' && a.facet && c.facet && a.facet !== c.facet && a.slotType === c.slotType && a.size != null && a.size === c.size) {
+    out.push(hit(0.5, 'otherSignal', { item: a.name, signal: c.facet.toUpperCase(), size: a.size }));
+  }
+  // Consumables of a different type (another kind of medpen / gadget) round out the kit.
+  if (a.kind === 'consumable' && c.kind === 'consumable' && a.facet && c.facet && a.facet !== c.facet) {
+    out.push(hit(0.5, 'pairsWith', { item: a.name }));
   }
   if (a.manufacturer && a.manufacturer === c.manufacturer && a.kind !== c.kind && (a.kind === 'armor' || c.kind === 'armor') && (a.kind === 'fps_weapon' || c.kind === 'fps_weapon')) {
     out.push(hit(0.5, 'sameMaker', { maker: a.manufacturer }));
@@ -235,6 +257,7 @@ export function placeOverlap(a: RecItem, c: RecItem): number {
 }
 
 function substituteOf(a: RecItem, c: RecItem): boolean {
+  if (a.facet && c.facet && a.facet !== c.facet) return false;
   return a.kind === c.kind && !!a.slotType && a.slotType === c.slotType && a.size != null && a.size === c.size;
 }
 

@@ -1,5 +1,5 @@
 import type { CodexListRow } from '../../codex/codex.service';
-import { armorPartOf, armorSetKey, fpsRowsToRecItems } from './rec-catalogue';
+import { armorPartOf, armorSetKey, componentRowsToRecItems, fpsRowsToRecItems, itemRowsToRecItems } from './rec-catalogue';
 import { recommend } from './recommend';
 
 function row(over: Partial<CodexListRow>): CodexListRow {
@@ -15,6 +15,8 @@ describe('rec-catalogue adapter', () => {
     expect(armorSetKey('pembroke_armor_heavy_helmet_01_01_01')).toBe('pembroke_armor_heavy');
     expect(armorSetKey('pembroke_armor_heavy_core_01_01_01')).toBe('pembroke_armor_heavy');
     expect(armorSetKey('helmet_01')).toBeNull();
+    // a maker-only prefix is no set: it would merge unrelated families (the raw cds key the cart once showed)
+    expect(armorSetKey('cds_core_01_01')).toBeNull();
     expect(armorSetKey('something_else')).toBeNull();
   });
 
@@ -43,5 +45,24 @@ describe('rec-catalogue adapter', () => {
     });
     expect(rec[0]?.className).toBe('pembroke_armor_heavy_core_01_01_01');
     expect(rec[0]?.reason).toBe('sameSet');
+  });
+
+  it('adapts components (core kinds with a size), missiles (signal from the class name) and consumables (sub type)', () => {
+    const comps = componentRowsToRecItems([
+      row({ classNameSlug: 'shld_s2', componentKind: 'Shield', size: 2 }),
+      row({ classNameSlug: 'radar_s2', componentKind: 'Radar', size: 2 }),
+      row({ classNameSlug: 'cool_nosize', componentKind: 'Cooler', size: null }),
+    ]);
+    expect(comps.map((c) => c.className)).toEqual(['shld_s2']);
+    const msl = itemRowsToRecItems(
+      [
+        row({ classNameSlug: 'MISL_S02_IR_NOVP_Rattler', size: 2, subType: 'Missile' }),
+        row({ classNameSlug: 'MISL_S02_NOVP_Plain', size: 2, subType: 'Missile' }),
+      ],
+      'missile',
+    );
+    expect(msl.map((m) => [m.className, m.facet])).toEqual([['MISL_S02_IR_NOVP_Rattler', 'ir']]);
+    const pens = itemRowsToRecItems([row({ classNameSlug: 'pen', subType: 'Medical' }), row({ classNameSlug: 'nosub' })], 'consumable');
+    expect(pens.map((p) => p.facet)).toEqual(['Medical']);
   });
 });

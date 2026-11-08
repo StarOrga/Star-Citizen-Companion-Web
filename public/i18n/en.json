@@ -5451,13 +5451,16 @@
       },
       "rec": {
         "reason": {
-          "sameSet": "same set: {{set}}",
+          "sameSet": "same set as {{item}}",
           "magazineFor": "magazine for {{item}}",
           "weaponFor": "weapon for {{item}}",
           "fitsPort": "fits S{{size}} of {{item}}",
           "ingredientFor": "ingredient for {{item}}",
           "usedIn": "needed for {{item}}",
           "sameMaker": "same maker: {{maker}}",
+          "sameSizeClass": "S{{size}} to go with {{item}}",
+          "otherSignal": "{{signal}} counterpart to {{item}} (S{{size}})",
+          "pairsWith": "rounds out {{item}}",
           "paintFor": "paint for {{item}}",
           "sameMaterial": "same material as {{item}}",
           "sameShop": "same shop: {{place}}",
