@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.225.16] - 2026-11-07
+
+### Fixed
+- Codex index: the "Area" tree on the left now fits the screen below the header and above the bottom launcher row, so its last entries stay reachable when you scroll it to the end.
+
+### Added
+- Codex index: every group in the "Area" tree (for example Manufacturers) has a fold button, and clicking the open group you are in folds it again, without leaving the area.
+
+## [0.225.15] - 2026-11-07
+
+### Added
+- Patch News: a panel for the build currently in the PTU (generic, e.g. 4.10.3) shows when it should reach LIVE: our estimate from the median PTU-to-LIVE time of earlier versions, and separately the official LIVE deployment RSI schedules on its status site with a source link, or "no official date yet".
+
 ## [0.225.14] - 2026-11-07
 
 ### Fixed

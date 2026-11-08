@@ -63,8 +63,19 @@ export function effectivePlayability(st: VerseStatus): StatusLevel {
   return STATUS_PRIORITY[pu.status] > STATUS_PRIORITY[st.overall] ? pu.status : st.overall;
 }
 
+/** A LIVE deployment RSI has scheduled on its status site (fetch-verse-news, feedback #317). */
+export interface ScheduledDeployment {
+  title: string;
+  /** Planned start of the window (ISO). */
+  at: string;
+  /** The status-site page announcing it. */
+  url: string;
+}
+
 export interface VerseFeed {
   status: VerseStatus | null;
+  /** Absent on a feed from before the function carried it. */
+  deployment?: ScheduledDeployment | null;
   news: VerseNewsItem[];
   fetchedAt: string;
 }
