@@ -1,7 +1,7 @@
 import { BetaService } from '../../core/beta.service';
 import { DatePipe } from '@angular/common';
 import { humanizeClassName } from '../../codex/codex-format';
-import { ChangeDetectionStrategy, Component, ElementRef, Injector, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Injector, OnInit, computed, effect, inject, input, output, signal, untracked, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -744,6 +744,12 @@ export class HqStockPopupComponent implements OnInit {
     this.mode.set(s.mode);
     this.filter.set({ ...NO_FILTER, ...s.filter });
     if (!this.inv.loaded()) void this.inv.load();
+    // I16: a manual entry starts at the last known location (hq_live_state), still editable; never over typed text.
+    void this.inv.lastKnownLocation().then((loc) => {
+      if (!loc?.name || this.location.trim()) return;
+      this.location = loc.name;
+      this.cdr.markForCheck();
+    });
   }
 
   protected patch(p: Partial<StockFilter>): void {
@@ -841,6 +847,7 @@ export class HqStockPopupComponent implements OnInit {
   });
   protected qty: number | null = 1;
   location = '';
+  private readonly cdr = inject(ChangeDetectorRef);
   protected readonly unit = signal<'pcs' | 'scu'>('pcs');
   protected readonly justAdded = signal(false);
 

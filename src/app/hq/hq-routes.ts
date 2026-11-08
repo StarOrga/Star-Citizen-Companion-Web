@@ -84,14 +84,18 @@ export function hqListTabOf(v: string | null | undefined): HqListTab | null {
 /**
  * HQ Bestand (page `inventar`) deep links - the contract for the header quick access ("Gesamtes Inventar") and the Codex
  * search ("Inventar" node): `/hq?bestand=inventar&cat=weapons&focus=<className>#inventar`.
- *   `bestand` - the tab: `inventar` (default) | `hangar` | `sammlung`
+ *   `bestand` - the tab: `inventar` (default) | `alles` | `hangar` | `sammlung`
  *   `cat`     - Inventar filter, a stock category (`weapons` | `armor` | `materials` | `other`); carried from the page type
  *   `focus`   - a class name (or name) to bring on screen and mark in that tab
  */
 export const HQ_STOCK_TAB_PARAM = 'bestand';
 export const HQ_STOCK_CAT_PARAM = 'cat';
 export const HQ_STOCK_FOCUS_PARAM = 'focus';
-export const HQ_STOCK_TABS = ['inventar', 'hangar', 'sammlung'] as const;
+/** Bestand filter state beside `cat` (brief f7): the sub-kind, the place, the Hangar origin/role and the Sammlung kind. */
+export const HQ_STOCK_SUB_PARAM = 'sub';
+export const HQ_STOCK_PLACE_PARAM = 'ort';
+/** Tab order on the page: Alles · Inventar · Hangar · Sammlung (the default for a link without `bestand` stays Inventar). */
+export const HQ_STOCK_TABS = ['alles', 'inventar', 'hangar', 'sammlung'] as const;
 export type HqStockTab = (typeof HQ_STOCK_TABS)[number];
 
 export function hqStockTabOf(v: string | null | undefined): HqStockTab | null {
@@ -99,10 +103,11 @@ export function hqStockTabOf(v: string | null | undefined): HqStockTab | null {
 }
 
 /** The link to HQ Bestand: `[routerLink]="l.commands" [fragment]="l.fragment" [queryParams]="l.queryParams"`. */
-export function hqStockLink(opts: { tab?: HqStockTab; cat?: string | null; focus?: string | null } = {}): HqPageLink {
+export function hqStockLink(opts: { tab?: HqStockTab; cat?: string | null; sub?: string | null; focus?: string | null } = {}): HqPageLink {
   const q: Record<string, string> = {};
   if (opts.tab) q[HQ_STOCK_TAB_PARAM] = opts.tab;
   if (opts.cat) q[HQ_STOCK_CAT_PARAM] = opts.cat;
+  if (opts.sub) q[HQ_STOCK_SUB_PARAM] = opts.sub;
   if (opts.focus) q[HQ_STOCK_FOCUS_PARAM] = opts.focus;
   return { commands: [HQ_ROOT], fragment: 'inventar', queryParams: q };
 }

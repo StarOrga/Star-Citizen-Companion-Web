@@ -38,6 +38,7 @@ describe('HqStockPopupComponent: capture and links', () => {
       shipStorage: signal([]),
       load: jasmine.createSpy('load').and.resolveTo(),
       addManual: jasmine.createSpy('addManual').and.resolveTo(true),
+      lastKnownLocation: () => Promise.resolve(null),
     };
     TestBed.configureTestingModule({
       imports: [HqStockPopupComponent],

@@ -5692,7 +5692,8 @@
       "tab": {
         "inventar": "Inventar",
         "hangar": "Hangar",
-        "sammlung": "Sammlung"
+        "sammlung": "Sammlung",
+        "alles": "Alles"
       },
       "search": "Im Inventar suchen",
       "menu": "Seitenmenü",
@@ -5736,6 +5737,154 @@
         "owned": "schon in der Sammlung",
         "add": "Hinzufügen",
         "addAria": "„{{name}}“ zur Sammlung hinzufügen"
+      },
+      "deck": {
+        "modeAria": "Ansicht",
+        "mode": {
+          "deck": "Übersicht",
+          "table": "Tabelle"
+        },
+        "import": "Importieren …",
+        "kindAria": "Art",
+        "subAria": "{{kind}} genauer",
+        "kind": {
+          "materials": "Rohstoffe",
+          "weapons": "Waffen",
+          "armor": "Rüstung",
+          "other": "Sonstiges",
+          "sets": "Sets",
+          "ships": "Schiffe",
+          "sammlung": "Sammlung"
+        },
+        "sub": {
+          "ore": "Erz",
+          "refined": "Raffiniert",
+          "helmet": "Helm",
+          "torso": "Torso",
+          "arms": "Arme",
+          "legs": "Beine",
+          "undersuit": "Unterkleidung",
+          "backpack": "Rucksack",
+          "sidearm": "Pistole",
+          "primary": "Primärwaffe",
+          "heavy": "Schwere Waffe",
+          "melee": "Nahkampf",
+          "throwable": "Wurfwaffe",
+          "gadget": "Gadget",
+          "other": "Sonstige"
+        },
+        "placeAria": "Ort",
+        "allPlaces": "Alle Orte",
+        "placeSearch": "Ort suchen …",
+        "otherPlaces": "Andere Orte",
+        "reserved": "Reserviert",
+        "scrapOnly": "Zerlegbar",
+        "originAria": "Herkunft",
+        "origin": {
+          "pledge": "Pledge",
+          "ingame": "Ingame",
+          "loan": "Leihschiff"
+        },
+        "roleAria": "Rolle",
+        "allRoles": "Alle Rollen",
+        "role": {
+          "combat": "Kampf",
+          "transport": "Fracht",
+          "exploration": "Erkundung",
+          "industrial": "Bergbau & Bergung",
+          "support": "Unterstützung",
+          "competition": "Rennen",
+          "ground": "Bodenfahrzeug",
+          "multirole": "Mehrzweck"
+        },
+        "wishCount": "{{n}} auf der Wunschliste",
+        "artAria": "Art",
+        "art": {
+          "blueprints": "Blaupausen",
+          "ruf": "Ruf",
+          "news": "News",
+          "gallery": "Galerie"
+        },
+        "resetFilters": "Filter zurücksetzen",
+        "hits": "{{n}} Treffer",
+        "baysAria": "Ladebuchten nach Ort",
+        "byQuality": "{{name}} nach Qualität",
+        "resSummary": "{{qty}} an {{n}} Orten",
+        "toWishlist": "Auf die Wunschliste",
+        "bandTip": "Q {{from}}–{{to}}: {{qty}}, davon {{res}} reserviert",
+        "qUnknown": "Q ?",
+        "qUnknownLong": "Qualität unbekannt",
+        "reservedN": "{{n}} reserviert",
+        "reservedAny": "{{n}} reserviert (beliebige Qualität)",
+        "scrap": {
+          "yes": "zerlegbar",
+          "no": "nicht zerlegbar",
+          "unknown": "Zerlegen: unbekannt"
+        },
+        "noHits": "Kein Treffer für „{{q}}“",
+        "fewHits": "Nur {{n}} Treffer für „{{q}}“",
+        "alt": {
+          "elsewhere": "Liegt woanders: {{qty}} {{name}} in {{place}}",
+          "free": "{{n}} frei",
+          "wish": "{{name}} wünschen und einplanen",
+          "wishQ": "{{name}} Q ≥ {{q}} wünschen und einplanen",
+          "wishGo": "Wünschen und einplanen",
+          "swap": "Ersatz: {{name}}, {{qty}} in {{place}}",
+          "swapWhy": "gleicher Slot",
+          "craft": "Selbst herstellen"
+        },
+        "pickup": "Abholen planen",
+        "alsoIn": "Auch im Bestand",
+        "inCodex": "Im Codex: „{{q}}“ – auf die Wunschliste",
+        "setItems": "{{n}} Teile",
+        "addSet": "Set anlegen",
+        "setName": "Name des Sets",
+        "emptyInv": "Noch nichts eingelagert.",
+        "emptyInvSecond": "Mit der App einlesen",
+        "emptyFiltered": "Unter diesem Filter liegt nichts.",
+        "emptyHangar": "Noch kein Schiff im Hangar.",
+        "emptyHangarSecond": "RSI-Hangar holen",
+        "emptySammlung": "Noch keine Blaupause gesammelt.",
+        "emptySammlungSecond": "Im Codex stöbern",
+        "emptyArt": {
+          "news": "{{n}} gemerkte News.",
+          "gallery": "{{n}} gemerkte Bilder."
+        },
+        "emptyArtGo": {
+          "news": "Zu den News",
+          "gallery": "Zur Galerie"
+        },
+        "log": "Ladeprotokoll",
+        "changes": "Letzte Änderungen",
+        "everything": "Alles",
+        "more": "Alle {{n}} Änderungen",
+        "less": "Weniger",
+        "reorder": "Nachbestellen ({{n}})",
+        "logEmpty": "Noch keine Änderung.",
+        "variants": "{{n}} Varianten",
+        "inSpace": "Weltall",
+        "selAria": "Auswahl",
+        "selected": "{{n}} ausgewählt",
+        "reserve": "Reservieren",
+        "sell": "Verkaufen",
+        "delete": "Löschen",
+        "clearSel": "Auswahl aufheben",
+        "reserveTitle": "Reservieren",
+        "reserveLabel": "Für wen oder wofür?",
+        "reserveNeedsNote": "Eine Reservierung braucht einen Zweck.",
+        "deleteTitle": "Einträge löschen?",
+        "deleteMessage": "{{n}} Einträge verschwinden aus dem Bestand.",
+        "deleteOne": "{{name}} löschen",
+        "editAmount": "Menge von {{name}}",
+        "col": {
+          "item": "Gegenstand",
+          "place": "Ort",
+          "quality": "Qualität",
+          "amount": "Menge",
+          "reserved": "Reserviert",
+          "scrap": "Zerlegen",
+          "actions": "Aktionen"
+        }
       }
     },
     "nachschub": {
@@ -7159,7 +7308,10 @@
       "hqPlan": "Planen",
       "hqNow": "Jetzt",
       "hqStock": "Inventar",
-      "hqStats": "Statistik"
+      "hqStats": "Statistik",
+      "hqStockAll": "Bestand",
+      "hqStockHangar": "Hangar",
+      "hqStockSammlung": "Sammlung"
     },
     "placeholder": {
       "all": "Überall suchen …",
@@ -7173,7 +7325,7 @@
       "hq": "Hangar, Sets, Schiffe …",
       "hqPlan": "Set, Teil oder Ort für deinen Einsatz …",
       "hqNow": "Schiff, Ort oder Teil …",
-      "hqStock": "In deinem Inventar suchen …",
+      "hqStock": "Im Bestand suchen …",
       "hqStats": "Schiff oder Set …"
     },
     "search": {
