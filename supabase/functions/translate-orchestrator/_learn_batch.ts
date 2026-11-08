@@ -69,6 +69,13 @@ export async function bookSpend(deps: LearnDeps, kind: string, usd: number): Pro
   await deps.store.putJson(spendKey(month), cur);
 }
 
+/** Adds delta (may be negative, floor 0) to a month's per-kind total — reservations for hard caps. */
+export async function adjustKind(store: Store, month: string, kind: string, delta: number): Promise<void> {
+  const cur = ((await store.getJson(spendKey(month))) ?? {}) as Record<string, number>;
+  cur[kind] = Math.max(0, Math.round(((cur[kind] ?? 0) + delta) * 1e6) / 1e6);
+  await store.putJson(spendKey(month), cur);
+}
+
 export async function monthKindSpend(store: Store, month: string, kind: string): Promise<number> {
   const cur = ((await store.getJson(spendKey(month))) ?? {}) as Record<string, number>;
   return Number(cur[kind] ?? 0);
