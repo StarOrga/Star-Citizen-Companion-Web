@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.238.4",
+  "current": "0.238.5",
   "releases": [
+    {
+      "version": "0.238.5",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing: the \"new in this patch\" list is only as tall as its content and lists the new items of every category, each with its category glyph."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.238.4",
       "date": "2026-11-08",
