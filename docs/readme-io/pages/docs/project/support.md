@@ -33,7 +33,7 @@ Useful details to include:
 ## Security
 
 Please do **not** open a public issue for a security problem. The project
-publishes an [RFC 9116 `security.txt`](https://sc-companion.vercel.app/.well-known/security.txt)
+publishes an [RFC 9116 `security.txt`](https://versecompanion-alpha.vercel.app/.well-known/security.txt)
 with the correct contact.
 
 ## Documentation drift

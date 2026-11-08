@@ -16,7 +16,7 @@ export const SPEC = {
       'Patch-version-aware: pass `?patch=` or omit for the current LIVE version.',
     contact: {
       name: 'Verse Companion',
-      url: 'https://sc-companion.vercel.app',
+      url: 'https://versecompanion-alpha.vercel.app',
     },
     license: { name: 'MIT' },
   },

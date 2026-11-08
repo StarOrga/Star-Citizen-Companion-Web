@@ -30,11 +30,11 @@ apart without ever revealing the secret.
 
 ## Creating a token
 
-1. Sign in to [Verse Companion](https://sc-companion.vercel.app) with an account
+1. Sign in to [Verse Companion](https://versecompanion-alpha.vercel.app) with an account
    that has the `admin` role.
 2. Open the profile (avatar) menu in the top right and pick **Integrations** —
    or go straight to
-   [`/admin/api-tokens`](https://sc-companion.vercel.app/admin/api-tokens).
+   [`/admin/api-tokens`](https://versecompanion-alpha.vercel.app/admin/api-tokens).
 3. Give the token a descriptive name (`fleetview-bot`, `grafana-scrape`, …) and
    pick its scopes.
 4. Copy the plaintext immediately — it disappears on reload.

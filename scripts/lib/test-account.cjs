@@ -42,7 +42,8 @@ const APP_ORIGIN_RULES = {
   localHosts: ['127.0.0.1', 'localhost'],
   localPortMin: 4200,
   localPortMax: 4399,
-  deployHosts: ['^sc-companion\\.vercel\\.app$', '^star-citizen-companion-website(-[a-z0-9-]+)?\\.vercel\\.app$'],
+  // Production host, previews of the renamed Vercel project, and the legacy hosts.
+  deployHosts: ['^versecompanion-alpha(-[a-z0-9-]+)?\\.vercel\\.app$', '^sc-companion\\.vercel\\.app$', '^star-citizen-companion-website(-[a-z0-9-]+)?\\.vercel\\.app$'],
 };
 
 /**

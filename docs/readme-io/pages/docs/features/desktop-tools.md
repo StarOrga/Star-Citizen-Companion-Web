@@ -39,7 +39,7 @@ The tool speaks English and German, with stubs for ES / FR / PT / RU / ZH.
 ### Getting it
 
 Downloads live at
-[`/download`](https://sc-companion.vercel.app/download) in the web app and are
+[`/download`](https://versecompanion-alpha.vercel.app/download) in the web app and are
 restricted to **admin and collaborator** accounts. The page shows the current
 version, release date, notes, size and SHA-256, and lets admins promote a build
 across the *alpha → beta → stable* channels.

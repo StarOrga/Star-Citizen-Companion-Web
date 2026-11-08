@@ -5,7 +5,7 @@ excerpt: Invite-only sign-up, what is public without an account, what is stored 
 
 Verse Companion is deliberately small on data. This page summarises what an
 account gets you and what the project keeps. The binding version is the
-[privacy policy](https://sc-companion.vercel.app/legal/privacy) in the app.
+[privacy policy](https://versecompanion-alpha.vercel.app/legal/privacy) in the app.
 
 ## Public vs. account-only
 
@@ -101,5 +101,5 @@ collaborator account the button fails. Ask a maintainer (see
 ## Reporting a privacy or security issue
 
 Security contact details are published as an
-[RFC 9116 `security.txt`](https://sc-companion.vercel.app/.well-known/security.txt).
+[RFC 9116 `security.txt`](https://versecompanion-alpha.vercel.app/.well-known/security.txt).
 For anything non-sensitive, see [Support](doc:support).

@@ -37,7 +37,7 @@ GET https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/api/openapi.json
 
 API tokens are issued from the Verse Companion **Integrations** page (profile menu
 → Integrations, i.e.
-[`/admin/api-tokens`](https://sc-companion.vercel.app/admin/api-tokens)) by a
+[`/admin/api-tokens`](https://versecompanion-alpha.vercel.app/admin/api-tokens)) by a
 user with the `admin` role.
 
 A token looks like `scc_live_<32 chars>`. It is **shown exactly once** at

@@ -29,7 +29,7 @@ How it works:
 This is an unofficial Star Citizen fan site, not affiliated with the Cloud
 Imperium group of companies. All content on this site not authored by its host
 or users are property of their respective owners.
-Star Citizen®, Squadron 42®, Roberts Space Industries® and Cloud Imperium® are
+Star Citizen®, Roberts Space Industries® and Cloud Imperium® are
 registered trademarks of Cloud Imperium Rights LLC.
 Official site: https://robertsspaceindustries.com
 
@@ -57,7 +57,7 @@ oder von Nutzern stammen, sind Eigentum ihrer jeweiligen Inhaber.
 Original: "This is an unofficial Star Citizen fan site, not affiliated with the
 Cloud Imperium group of companies. All content on this site not authored by its
 host or users are property of their respective owners."
-Star Citizen®, Squadron 42®, Roberts Space Industries® und Cloud Imperium® sind
+Star Citizen®, Roberts Space Industries® und Cloud Imperium® sind
 eingetragene Marken von Cloud Imperium Rights LLC.
 Offizielle Seite: https://robertsspaceindustries.com
 

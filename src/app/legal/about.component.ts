@@ -203,7 +203,7 @@ const HIGHLIGHTS = 4;
     .affiliation { border-color: var(--sc-accent); }
     .affiliation .disclaimer {
       color: var(--sc-fg-2);
-      font-size: max(0.78rem, var(--sc-fs-floor));
+      font-size: max(0.85rem, 13.5px);
       border-top: 1px solid var(--sc-border);
       padding-top: 10px;
       margin-top: 12px;

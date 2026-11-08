@@ -8,5 +8,8 @@ import brand from '../../brand.json';
  */
 export const BRAND_NAME: string = brand.name;
 
+/** The public host (no scheme). Older hosts in `brand.legacyHosts` keep serving. */
+export const BRAND_HOST: string = brand.host;
+
 /** Initials of the name ("Verse Companion" → "VC"), for marks too small for the full name. */
 export const BRAND_INITIALS: string = BRAND_NAME.split(/\s+/).map((w) => w[0] ?? '').join('').toUpperCase();

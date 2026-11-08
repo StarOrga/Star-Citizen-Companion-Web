@@ -10,7 +10,7 @@ metadata:
 public Verse together in one place — news, patch versions, ships, components —
 and adds the tools that sit around them.
 
-- **Web app:** <https://sc-companion.vercel.app>
+- **Web app:** <https://versecompanion-alpha.vercel.app>
 - **Source:** [StarOrga/Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web)
 - **Licence:** MIT
 - **Phase:** alpha

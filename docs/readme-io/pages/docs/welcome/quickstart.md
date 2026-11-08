@@ -5,7 +5,7 @@ excerpt: Sign in, set your callsign, and find your way around the app in about t
 
 ## 1. Just look around — no account needed
 
-Open <https://sc-companion.vercel.app>. **Verse News**, the **Codex**,
+Open <https://versecompanion-alpha.vercel.app>. **Verse News**, the **Codex**,
 **Starscape** and the release notes are all public: you can browse them signed
 out. Only the personal surfaces (Hangar, Settings, admin) require an account.
 

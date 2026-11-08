@@ -4033,9 +4033,9 @@
   },
   "footer": {
     "madeByCommunity": "Made by the Community",
-    "badgeAlt": "Star Citizen — Made by the Community fan site badge",
+    "badgeAlt": "Star Citizen — Made By The Community",
     "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
-    "trademarks": "Star Citizen®, Squadron 42®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.",
+    "trademarks": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC",
     "disclaimerExpand": "Show full disclaimer",
     "disclaimerCollapse": "Collapse disclaimer",
     "legalNav": "Legal and project information",
@@ -4050,7 +4050,8 @@
     "disclaimerTitle": "Fan-site notice",
     "rsiLink": "Official Star Citizen site: robertsspaceindustries.com",
     "noticeOriginal": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
-    "noticeOriginalLabel": "Original wording"
+    "noticeOriginalLabel": "Original wording",
+    "trademarksOriginal": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC"
   },
   "legal": {
     "about": {
@@ -4163,7 +4164,7 @@
       "title": "Site Notice",
       "operator": {
         "title": "Operator",
-        "p1": "Verse Companion (sc-companion.vercel.app) is a non-commercial, open-source community project. It is maintained by the StarOrga organization and its contributors on GitHub.",
+        "p1": "Verse Companion (versecompanion-alpha.vercel.app) is a non-commercial, open-source community project. It is maintained by the StarOrga organization and its contributors on GitHub.",
         "p2": "The project earns no revenue: no ads, no paid features, no sponsoring."
       },
       "contact": {

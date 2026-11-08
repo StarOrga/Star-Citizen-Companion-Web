@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://sc-companion.vercel.app/</loc>
+    <loc>https://versecompanion-alpha.vercel.app/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://sc-companion.vercel.app/login</loc>
+    <loc>https://versecompanion-alpha.vercel.app/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://sc-companion.vercel.app/about</loc>
+    <loc>https://versecompanion-alpha.vercel.app/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://sc-companion.vercel.app/tools/extension</loc>
+    <loc>https://versecompanion-alpha.vercel.app/tools/extension</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sc-companion.vercel.app/legal/privacy</loc>
+    <loc>https://versecompanion-alpha.vercel.app/legal/privacy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sc-companion.vercel.app/legal/imprint</loc>
+    <loc>https://versecompanion-alpha.vercel.app/legal/imprint</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

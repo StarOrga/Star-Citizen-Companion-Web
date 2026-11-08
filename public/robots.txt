@@ -1,6 +1,6 @@
-# Verse Companion — https://sc-companion.vercel.app
+# Verse Companion — https://versecompanion-alpha.vercel.app
 # Community fan project for Star Citizen. Not affiliated with Cloud Imperium Games.
 User-agent: *
 Allow: /
 
-Sitemap: https://sc-companion.vercel.app/sitemap.xml
+Sitemap: https://versecompanion-alpha.vercel.app/sitemap.xml

@@ -44,7 +44,7 @@ can be reset.
 ## Following along
 
 - **Release notes** are rendered in the app at
-  [`/release-notes`](https://sc-companion.vercel.app/release-notes).
+  [`/release-notes`](https://versecompanion-alpha.vercel.app/release-notes).
 - **Every change** is public on
   [GitHub](https://github.com/StarOrga/Star-Citizen-Companion-Web).
 - **Requests** are welcome — see [Support & feedback](doc:support).

@@ -66,6 +66,7 @@ import { BRAND_NAME } from '../core/brand';
         <p class="sf-notice">
           {{ 'footer.disclaimer' | translate }}
           <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a>
+          <br />{{ 'footer.trademarks' | translate }}
         </p>
       </footer>
       <ng-template #disclaimerBody>
@@ -166,7 +167,6 @@ import { BRAND_NAME } from '../core/brand';
       min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3) 0 var(--sc-space-2); border: 0; font: inherit;
       color: var(--sc-fg-1); background: none; border-radius: 6px;
     }
-    .sf-badge-btn img { filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.35)); }
     .sf-word { text-shadow: 0 0 10px rgba(0, 212, 255, 0.35); }
     .sf-word {
       font-family: var(--sc-font-display); font-size: max(0.58rem, var(--sc-fs-floor));
@@ -207,7 +207,7 @@ import { BRAND_NAME } from '../core/brand';
     .sf { flex-wrap: wrap; }
     .sf-notice {
       order: 10; flex: 1 0 100%; margin: 0;
-      font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1.4; color: var(--sc-fg-2);
+      font-size: max(0.85rem, 13.5px); line-height: 1.4; color: var(--sc-fg-2);
     }
     .sf-notice a { color: var(--sc-fg-1); text-decoration: underline; text-underline-offset: 2px; }
     .sf-notice a:hover { color: var(--sc-accent); }
@@ -264,9 +264,6 @@ import { BRAND_NAME } from '../core/brand';
       gap: 8px;
       flex-shrink: 0;
     }
-    .badge img {
-      filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.35));
-    }
     .badge-label {
       font-family: var(--sc-font-display);
       font-size: max(0.58rem, var(--sc-fs-floor));
@@ -287,16 +284,15 @@ import { BRAND_NAME } from '../core/brand';
     }
     .meta .disclaimer {
       color: var(--sc-fg-2);
-      font-size: max(0.74rem, var(--sc-fs-floor));
+      font-size: max(0.85rem, 13.5px);
       line-height: 1.4;
       margin: 0;
     }
     .meta .copyright {
       color: var(--sc-fg-2);
-      font-size: max(0.7rem, var(--sc-fs-floor));
+      font-size: max(0.85rem, 13.5px);
       line-height: 1.4;
       margin: 2px 0 0;
-      opacity: 0.8;
     }
     .disclaimer-toggle {
       appearance: none;

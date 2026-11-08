@@ -241,6 +241,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
             <p class="fan-notice">
               {{ 'footer.disclaimer' | translate }}
               <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a>
+              <br />{{ 'footer.trademarks' | translate }}
             </p>
           </div>
         </div>
@@ -423,7 +424,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
     .trust-links a:hover { color: var(--sc-accent); }
     .fan-notice {
       margin: 10px 0 0;
-      font-size: max(0.7rem, var(--sc-fs-floor));
+      font-size: max(0.85rem, 13.5px);
       line-height: 1.4;
       color: var(--sc-fg-2);
       text-align: center;

@@ -87,7 +87,7 @@ background through the same gallery.
   switch never stalls on a download.
 - **No settings screen.** Everything is in the tray right-click menu.
 
-Download it from the [Starscape page](https://sc-companion.vercel.app/starscape)
+Download it from the [Starscape page](https://versecompanion-alpha.vercel.app/starscape)
 in the app. It is Windows-only and unsigned, so SmartScreen will warn on first
 run (*More info → Run anyway*).
 

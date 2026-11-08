@@ -4033,9 +4033,9 @@
   },
   "footer": {
     "madeByCommunity": "Made by the Community",
-    "badgeAlt": "Star Citizen — Made by the Community Fan-Site-Badge",
+    "badgeAlt": "Star Citizen — Made By The Community",
     "disclaimer": "Dies ist eine inoffizielle Star-Citizen-Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Alle Inhalte, die nicht vom Betreiber dieser Seite oder ihren Nutzern erstellt wurden, sind Eigentum der jeweiligen Rechteinhaber.",
-    "trademarks": "Star Citizen®, Squadron 42®, Roberts Space Industries® und Cloud Imperium® sind eingetragene Marken von Cloud Imperium Rights LLC.",
+    "trademarks": "Star Citizen®, Roberts Space Industries® und Cloud Imperium® sind eingetragene Marken von Cloud Imperium Rights LLC",
     "disclaimerExpand": "Vollständigen Haftungsausschluss anzeigen",
     "disclaimerCollapse": "Haftungsausschluss einklappen",
     "legalNav": "Rechtliches und Projekt-Informationen",
@@ -4050,7 +4050,8 @@
     "disclaimerTitle": "Hinweis zur Fan-Site",
     "rsiLink": "Offizielle Star-Citizen-Seite: robertsspaceindustries.com",
     "noticeOriginal": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
-    "noticeOriginalLabel": "Originalwortlaut (Englisch)"
+    "noticeOriginalLabel": "Originalwortlaut (Englisch)",
+    "trademarksOriginal": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC"
   },
   "legal": {
     "about": {
@@ -4163,7 +4164,7 @@
       "title": "Impressum",
       "operator": {
         "title": "Betreiber",
-        "p1": "Verse Companion (sc-companion.vercel.app) ist ein nicht-kommerzielles Open-Source-Community-Projekt. Es wird von der StarOrga-Organisation und ihren Mitwirkenden auf GitHub betreut.",
+        "p1": "Verse Companion (versecompanion-alpha.vercel.app) ist ein nicht-kommerzielles Open-Source-Community-Projekt. Es wird von der StarOrga-Organisation und ihren Mitwirkenden auf GitHub betreut.",
         "p2": "Das Projekt erzielt keine Einnahmen: keine Werbung, keine Bezahlfunktionen, kein Sponsoring."
       },
       "contact": {

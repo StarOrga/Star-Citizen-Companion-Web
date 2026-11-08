@@ -25,7 +25,7 @@ export interface OutreachDraft {
   body: string;
 }
 
-const APP_URL = 'https://sc-companion.vercel.app';
+const APP_URL = 'https://versecompanion-alpha.vercel.app';
 
 /** `none` = no licence → ask first; `nc_sa` / `permissive` → inform. */
 export function outreachKind(licenseKind: string): OutreachKind {

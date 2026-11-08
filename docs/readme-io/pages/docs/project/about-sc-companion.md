@@ -9,7 +9,7 @@ patch notes, YouTube), tracks patch versions across LIVE / PTU / EPTU, renders a
 browsable Codex of ships and components datamined from the live build, gives you
 a personal Hangar, and hosts companion tools like the Starscape App.
 
-- **Web app:** <https://sc-companion.vercel.app>
+- **Web app:** <https://versecompanion-alpha.vercel.app>
 - **Source:** [StarOrga/Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web)
 - **Stack:** Angular 22 PWA · Supabase (Auth, Postgres, Storage, Edge Functions) · Vercel
 - **Licence:** MIT
@@ -61,6 +61,6 @@ does not rehost RSI media. The same applies to [Starscape](doc:starscape),
 which hotlinks the RSI CDN rather than storing imagery.
 
 Full texts live in the app:
-[privacy policy](https://sc-companion.vercel.app/legal/privacy) ·
-[imprint](https://sc-companion.vercel.app/legal/imprint) ·
-[about](https://sc-companion.vercel.app/about)
+[privacy policy](https://versecompanion-alpha.vercel.app/legal/privacy) ·
+[imprint](https://versecompanion-alpha.vercel.app/legal/imprint) ·
+[about](https://versecompanion-alpha.vercel.app/about)
