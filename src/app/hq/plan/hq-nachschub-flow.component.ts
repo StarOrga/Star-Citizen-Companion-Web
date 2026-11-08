@@ -81,7 +81,7 @@ type Step = 1 | 2 | 3;
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg></span>
           <h2 id="flow-title" class="dlg-title">
             {{ (mode() === 'new' ? 'hq.flow.titleNew' : 'hq.flow.titleEdit') | translate }}
-            @if (mode() === 'new') { <small>{{ 'hq.flow.slotOf' | translate: { n: nextSlot() ?? maxSlots, max: maxSlots } }}</small> }
+            @if (mode() === 'new' && nextSlot() !== null) { <small>{{ 'hq.flow.slotOf' | translate: { n: nextSlot(), max: maxSlots } }}</small> }
           </h2>
           <ol class="steps" [attr.aria-label]="'hq.flow.stepsAria' | translate">
             @for (s of stepList; track s) {
@@ -502,8 +502,8 @@ export class HqNachschubFlowComponent {
   protected readonly sumPieces = computed(() => this.existing().reduce((n, l) => n + l.qty, 0) + this.pieces());
 
   /** What the proposal reads: the picked rows as lines (edit mode: only the newly added ones). */
-  protected readonly proposalLines = computed<ProposalLine[]>(() =>
-    this.pickedGroups().flatMap((g) =>
+  protected readonly proposalLines = computed<ProposalLine[]>(() => {
+    const picked: ProposalLine[] = this.pickedGroups().flatMap((g) =>
       g.rows.map((r) => ({
         key: r.key,
         name: this.rowName(r),
@@ -514,8 +514,42 @@ export class HqNachschubFlowComponent {
         forName: g.type === 'blueprint' ? g.title : null,
         craftable: !!(r.className && this.sourcesSvc.sources().get(r.className)?.craftable),
       })),
-    ),
-  );
+    );
+    const open = this.openLines();
+    if (!open.length) return picked;
+    // A newly picked position that is already on the Nachschub joins its line instead of doubling it.
+    const byKey = new Map(open.map((l) => [l.key, l] as const));
+    const merged = picked.map((l) => {
+      const o = byKey.get(l.key);
+      if (!o) return l;
+      byKey.delete(l.key);
+      return { ...l, qty: l.qty + o.qty };
+    });
+    return [...byKey.values(), ...merged];
+  });
+  /**
+   * Edit mode, Nachschub without any Einsatz yet: its open lines are proposed Einsaetze like new picks
+   * (otherwise "Einsaetze vorschlagen" could never produce any for lines added earlier).
+   */
+  private readonly openLines = computed<ProposalLine[]>(() => {
+    if (this.mode() !== 'edit' || this.existingEinsaetze().length > 0) return [];
+    return this.existing()
+      .filter((l) => !l.done && !!l.className)
+      .map((l) => {
+        const kind = l.entityKind ?? 'item';
+        const forClassName = (l.forClassName ?? '').trim() || null;
+        return {
+          key: positionKey({ kind, className: l.className as string, forClassName }),
+          name: l.name?.trim() || humanizeClassName(l.className as string),
+          className: l.className,
+          kind,
+          qty: l.qty,
+          forClassName,
+          forName: forClassName ? this.bpName(forClassName) : null,
+          craftable: !!(l.className && this.sourcesSvc.sources().get(l.className)?.craftable),
+        };
+      });
+  });
   protected readonly materialLines = computed(() => this.proposalLines().filter((l) => isMaterialLine(l) && !isBlueprintLine(l)));
   /** Non-material, non-blueprint lines: bought or crafted per line (W5.4). */
   protected readonly itemLines = computed(() => this.proposalLines().filter((l) => !isMaterialLine(l) && !isBlueprintLine(l)));

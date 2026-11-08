@@ -5880,7 +5880,10 @@
         "message": "\"{{name}}\" joins as a mission step.",
         "none": "You have no planned or running op yet.",
         "new": "New op"
-      }
+      },
+      "add": {"action":"Add Einsatz","title":"New Einsatz","label":"Name of the Einsatz (up to 40 characters)","confirm":"Add"},
+      "rename": {"action":"Rename Einsatz \"{{name}}\"","aria":"New name of the Einsatz","empty":"The name cannot be empty."},
+      "noneYet": {"title":"\"{{name}}\" has no Einsätze yet","hint":"In Planen, propose Einsätze from the positions or add one."}
     },
     "activity": {
       "kopfgeld": "Bounty",
@@ -7609,6 +7612,8 @@
     "selected": "selected",
     "clear": "Deselect all",
     "toNachschub": "Into a Nachschub",
+    "slotsFullHint": "All 7 Nachschub slots are in use. The selection goes into an existing Nachschub.",
+    "toExisting": "Into an existing Nachschub",
     "kind": {
       "ship": "Ship",
       "vehicle": "Vehicle",

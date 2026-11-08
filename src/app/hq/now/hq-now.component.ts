@@ -113,8 +113,13 @@ const UPCOMING = 4;
                                [openLabel]="'hq.route.open' | translate" [shared]="sharedStops()" (sharedPick)="choose($event.nachschubId)" />
         } @else {
           <div class="empty">
-            <p class="e-title">{{ 'hq.run.emptyTitle' | translate }}</p>
-            <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
+            @if (nachschub(); as n) {
+              <p class="e-title">{{ 'hq.einsatz.noneYet.title' | translate: { name: n.name } }}</p>
+              <p class="muted">{{ 'hq.einsatz.noneYet.hint' | translate }}</p>
+            } @else {
+              <p class="e-title">{{ 'hq.run.emptyTitle' | translate }}</p>
+              <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
+            }
             <a scAction tier="secondary" [routerLink]="planen.commands" [fragment]="planen.fragment">{{ 'hq.run.toPlanen' | translate }}</a>
           </div>
         }
@@ -146,7 +151,7 @@ const UPCOMING = 4;
           <h3 class="now-h">{{ 'hq.run.allDone' | translate }}</h3>
           <p class="muted">{{ 'hq.run.allDoneHint' | translate }}</p>
           <a scAction tier="secondary" [routerLink]="planen.commands" [fragment]="planen.fragment">{{ 'hq.run.toPlanen' | translate }}</a>
-        } @else {
+        } @else if (!nachschub()) {
           <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
         }
 

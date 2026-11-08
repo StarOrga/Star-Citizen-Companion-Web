@@ -258,6 +258,20 @@ describe('HqNowComponent', () => {
       expect(el.querySelector('.sw button')).not.toBeNull();
     });
 
+    it('a Nachschub without Einsätze shows one empty state naming it, with a link to Planen (no doubled sentence)', () => {
+      const f = mount(fakeLive({}));
+      TestBed.inject(NachschubService).packages.set([nach('n9', 'Leerer Vorrat', 1)]);
+      f.detectChanges();
+      const el = f.nativeElement as HTMLElement;
+      const empty = el.querySelector('.empty')!;
+      expect(empty.querySelector('.e-title')?.textContent).toContain('hq.einsatz.noneYet.title');
+      expect(empty.textContent).not.toContain('hq.run.emptyTitle');
+      expect(empty.querySelector('a')).not.toBeNull();
+      // The step column stays quiet instead of repeating "no operation".
+      expect(el.querySelector('.stepcol')?.textContent).not.toContain('hq.now.path.empty');
+      expect(el.textContent).not.toContain('hq.run.emptyTitle');
+    });
+
     it('without any Nachschub it explains itself and leads to Planen', () => {
       const f = mount(fakeLive({}));
       const el = f.nativeElement as HTMLElement;

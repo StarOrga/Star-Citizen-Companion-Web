@@ -9,6 +9,7 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../../hq/data/hq-inventory.service';
 import { WishlistStore, type WishRow } from '../../hq/data/wishlist.store';
 import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
+import { NachschubService } from '../../hq/nachschub/nachschub.service';
 import { WishCartDialogComponent } from './wish-cart-dialog.component';
 import { WishCartService } from './wish-cart.service';
 
@@ -22,7 +23,7 @@ const fpsRow = (className: string, attachType: string | null, over: Partial<Code
   blueprintCategory: null, blueprintTier: null, craftTimeSec: null, ...over,
 });
 
-function setup(rows: WishRow[], catalogue: { armor?: CodexListRow[]; weapon?: CodexListRow[] } = {}) {
+function setup(rows: WishRow[], catalogue: { armor?: CodexListRow[]; weapon?: CodexListRow[] } = {}, newBlock: string | null = null) {
   const store = {
     rows: signal<readonly WishRow[]>(rows),
     ensureLoaded: () => Promise.resolve(),
@@ -36,6 +37,7 @@ function setup(rows: WishRow[], catalogue: { armor?: CodexListRow[]; weapon?: Co
       provideTranslateService({}),
       { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
       { provide: WishlistStore, useValue: store },
+      { provide: NachschubService, useValue: { newBlock: signal(newBlock), ensureLoaded: () => Promise.resolve() } },
       { provide: HangarService, useValue: { ships: signal([]), updateShip: async () => true, removeShip: async () => true } },
       { provide: HqInventoryService, useValue: { items: signal([]) } },
       { provide: WishNamesService, useValue: { request: () => undefined, nameOf: () => null } },
@@ -91,6 +93,17 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
     expect(href).toContain('/hq');
     expect(href).toContain('#planen');
     expect(decodeURIComponent(href)).toContain('item:klwe_rifle_energy_01~2');
+  });
+
+  it('with all 7 slots taken the take-over says so up front and offers only an existing Nachschub', () => {
+    const open = setup(rows);
+    expect(open.el.querySelector('.full-hint')).toBeNull();
+    expect(open.el.querySelector('a.go')!.textContent).toContain('cart.toNachschub');
+    TestBed.resetTestingModule();
+    const full = setup(rows, {}, 'hq.nachschub.slotsFull');
+    expect(full.el.querySelector('.full-hint')!.textContent).toContain('cart.slotsFullHint');
+    expect(full.el.querySelector('a.go')!.textContent).toContain('cart.toExisting');
+    expect(full.el.querySelector('a.go')!.textContent).not.toContain('cart.toNachschub');
   });
 
   it('selecting a craft group picks the blueprint and its material together', () => {
