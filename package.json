@@ -97,6 +97,7 @@
     "@types/jasmine": "~6.0.0",
     "@types/node": "^26.6.6",
     "@types/three": "^0.183.1",
+    "@vitest/browser-playwright": "^5.1.0",
     "angular-eslint": "22.6.0",
     "eslint": "^10.14.0",
     "istanbul-lib-instrument": "^6.0.3",
@@ -107,11 +108,13 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.3.0",
+    "playwright": "^1.65.0",
     "png-to-ico": "^3.0.2",
     "pngjs": "^7.0.0",
     "supabase": "^3.0.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "8.72.1"
+    "typescript-eslint": "8.72.1",
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "@babel/core": "^7.29.1",
