@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
+import { HqAppConnectionService } from './hq-app-connection.service';
 import type { HqPageId } from '../hq-routes';
 import { HqLiveService } from './hq-live.service';
-import { eventLabel, isGameLive } from './hq-live.util';
+import { eventLabel } from './hq-live.util';
 import { lastRelevantEvent, tickerAge, tickerVisible } from './hq-live-ticker.util';
 
 const TICK_MS = 30_000;
@@ -59,28 +59,20 @@ export class HqLiveTickerComponent {
   readonly page = input<HqPageId | null>(null);
 
   private readonly live = inject(HqLiveService);
-  private readonly conn = inject(DesktopConnectionService);
+  private readonly conn = inject(HqAppConnectionService);
   private readonly clock = signal(Date.now());
 
   /** The app ever reported something or checked in. */
-  private readonly everConnected = computed(
-    () => this.live.state() !== null || this.live.events().length > 0 || this.conn.stateFor('starscape') !== 'never',
-  );
+  private readonly everConnected = this.conn.everConnected;
   protected readonly visible = computed(() => tickerVisible(this.page(), this.everConnected()));
   /** Green: the app checked in recently or the game is live right now. */
-  protected readonly online = computed(
-    () => this.conn.stateFor('starscape', this.clock()) === 'connected' || isGameLive(this.live.state(), this.live.events(), this.clock()),
-  );
+  protected readonly online = this.conn.connected;
   protected readonly event = computed(() => lastRelevantEvent(this.live.events(), this.page()));
   protected readonly label = eventLabel;
 
   constructor() {
     const t = setInterval(() => this.clock.set(Date.now()), TICK_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(t));
-    // The first check-in may not be loaded yet when the page opens.
-    effect(() => {
-      if (this.page() && this.page() !== 'start') untracked(() => void this.conn.refresh());
-    });
   }
 
   protected age(iso: string) {

@@ -88,6 +88,7 @@ import { computeKpiSheet, KpiShipInput } from './codex-loadout-stats';
 import { SummaryOccupant } from './ship-summary-panels';
 import { HoloSilhouette, parseHoloSilhouette, SilhouetteKind } from './holo-silhouette';
 import { MissileRecord, missileRecordOf } from './codex-missile';
+import { ItemRankKind, ItemRankRecord, itemRankRecordOf } from './codex-item-rank';
 import { USABLE_ITEM_ATTACH_TYPES, isUsableAttachType } from './codex-area-taxonomy';
 import { CodexPrefsService } from './codex-prefs.service';
 import {
@@ -2166,6 +2167,44 @@ export class CodexService {
       missileRecordOf(row, row['payload'], silhouettes.get(String(row['class_name']))),
     );
     this.missileCohort = { buildId: build.id, records };
+    return records;
+  }
+
+  /** {@link getItemRankCohort}'s answers, per build and comparison kind. A failed read is not kept. */
+  private itemRankCohorts = new Map<string, ItemRankRecord[]>();
+
+  /**
+   * The peers of one weapon or component for the Holotisch rail graphs: every un-varianted, named record of the
+   * same comparison kind (all ship weapons; one component type) of the current build, reduced to the few payload
+   * slices the graphs read, so the answer stays small.
+   */
+  async getItemRankCohort(kind: ItemRankKind): Promise<ItemRankRecord[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    const key = `${build.id}:${kind}`;
+    const cached = this.itemRankCohorts.get(key);
+    if (cached) return cached;
+    const entity = kind === 'weapon' ? 'weapon' : 'component';
+    const columns =
+      kind === 'weapon'
+        ? 'class_name, name_localized, sub_type, size, wp:payload->weaponParams'
+        : 'class_name, name_localized, sub_type, size, ck:payload->>kind, stats:payload->stats';
+    const query = this.sb.client
+      .from(CODEX_ENTITY_TABLES[entity])
+      .select(columns)
+      .eq('build_id', build.id)
+      .not('name_localized', 'is', null)
+      .eq('is_variant', false)
+      .not('name_localized', 'like', '!*');
+    const { data, error } = await (kind === 'weapon' ? query : query.eq('payload->>kind', kind));
+    if (error) throw error;
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    const records = rows
+      .map((row) =>
+        itemRankRecordOf(entity, row, kind === 'weapon' ? { weaponParams: row['wp'] } : { kind: row['ck'], stats: row['stats'] }),
+      )
+      .filter((r): r is ItemRankRecord => r !== null);
+    this.itemRankCohorts.set(key, records);
     return records;
   }
 

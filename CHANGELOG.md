@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.238.1] - 2026-11-08
+
+### Changed
+- Codex index: every ship row has the same height; the aUEC price sits right next to the maker, the location has a fixed end column of at most two lines (all shops in the tooltip), and the HQ icons stay in the same row (on phones they move to a line below).
+
+## [0.238.0] - 2026-11-08
+
+### Added
+- Codex: "Mehr in Codex" — the full index with filters is the lower part of /codex, reached by scrolling like "Mehr im Verse"; /codex/index links straight into it.
+- Codex: Klassisch / Holotisch for every non-ship item (corner toggle, Klassisch first, then remembered); Holotisch ranks weapons, shields, power plants, coolers and quantum drives against their peers.
+- Star map: the header shows your current star map in small; "Komet" is now "Patch-Tipp".
+- A muted copper colour marks surfaces admins and collaborators see; red stays admin-only.
+
+### Changed
+- No visible "Nur Admin" / "Nur Admin & Collaborator" hints anywhere — the colour carries it, screen readers and tooltips keep the words.
+- Codex landing data sheet is as tall as the column beside it and never scrolls; engine physics rows are gone.
+- HQ: "App downloaden" / "App starten"; the event marker reads "N offene Events" with the names on one line and "+N".
+
+### Fixed
+- Data Uploader: the dock's CPU total matches Task Manager and never freezes at 100 % (uploader 0.75.3).
+- HQ: "Companion-App verbunden" only when the SCC app is connected; start page and Jetzt agree.
+- Star map: a tip whose day has passed reads missed.
+- HQ start page error on load (event names), and two small-text spots on phones.
+
 ## [0.237.1] - 2026-11-08
 
 ### Changed

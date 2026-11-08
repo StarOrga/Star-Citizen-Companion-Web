@@ -56,6 +56,13 @@ describe('codex-landing-data pure helpers', () => {
     expect(topValuesFor('tool', null)).toEqual([]);
   });
 
+  it('topValuesFor drops physics plumbing (mass, damping, collision log) from the sheet', () => {
+    const v = topValuesFor('fpsWeapon', {
+      stats: { SEntityPhysicsControllerParams: { Mass: 4.65, Damping: 0.01, DampingZeroG: 0.01, MaxLoggedCollisions: 1 }, SAmmoContainerParams: { MaxAmmoCount: 15 } },
+    });
+    expect(v.map((x) => x.key)).toEqual(['stats.SAmmoContainerParams.MaxAmmoCount']);
+  });
+
   it('overviewFor follows the brief per category', () => {
     const row = { size: 2, grade: 'A', subType: 'Rifle', attachType: 'Char_Armor_Helmet', weaponClass: 'FPS', componentKind: 'Shield', role: null };
     expect(overviewFor('fpsWeapon', row, 'Behring', null).map((f) => f.id)).toEqual(['type', 'size', 'manufacturer']);

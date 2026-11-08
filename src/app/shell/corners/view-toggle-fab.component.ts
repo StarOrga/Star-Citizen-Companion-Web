@@ -9,7 +9,7 @@ export const VIEW_FAB_LANE_VAR = '--sc-view-fab-lane';
 
 /**
  * Klassisch | Holotisch as one round toggle in the launcher's column: directly above the feedback
- * launcher, below the β FAB (concept codex-kopf-besitz, round 2 pin). Drawn only while a ship page
+ * launcher, below the β FAB (concept codex-kopf-besitz, round 2 pin). Drawn only while a Codex detail page
  * registered its switch (`PageCornerService.setView`); a click is exactly the page's old segment
  * click, so the `?view=` URL behaviour does not change. The label and tooltip name the view the
  * click leads to; the icon shows it.

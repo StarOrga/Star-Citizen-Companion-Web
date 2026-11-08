@@ -1,0 +1,526 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
+<style>
+  .d1-bf-sw { display:inline-flex; gap:.35rem; align-items:center; vertical-align:middle; }
+  .d1-bf-sw i { display:inline-block; width:1.1rem; height:1.1rem; border-radius:4px; border:1px solid rgba(255,255,255,.25); }
+  .d1-bf-menu { font-family: system-ui, sans-serif; background:#0f2230; border:1px solid #23495c; border-radius:10px; padding:.6rem .9rem; max-width:22rem; letter-spacing:.06em; font-size:.82rem; text-transform:uppercase; }
+  .d1-bf-menu p { margin:.35rem 0; }
+  .d1-bf-cov { font-size:.85rem; line-height:1.45; margin:.4rem 0 0; padding-left:1.1rem; }
+  .d1-bf-cov li { margin:.15rem 0; }
+  .d1-bf-two { display:block; font-size:.85rem; border:1px solid #23495c; border-radius:8px; padding:.5rem .7rem; background:#0f2230; }
+  .d1-bf-two b { display:block; }
+</style>
+
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>9 Notizen vom 8.11. gegen den aktuellen Code geprüft: Uploader-CPU, ein Farbsystem für Rechte, drei Codex-Flächen, HQ-Status und die Sternkarte. 6 Punkte sind klar, 12 Entscheidungen offen.</p>
+    <p data-briefing-why>Zwei Notizen (#7, #9) überschneiden sich mit dem noch nicht geshippten Batch claude/batch-fd9db5 — ohne Entscheidung bauen zwei Branches an denselben Dateien.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"9","unit":"Notizen","label":"7 Bündel, 12 offene Fragen"}'>9 Notizen</div>
+    <a data-briefing-topic="t-rights" data-share="25">Rechte-Farben</a>
+    <a data-briefing-topic="t-codex" data-share="45">Codex</a>
+    <a data-briefing-topic="t-hq" data-share="30">HQ &amp; Sternkarte</a>
+    <p data-briefing-duration>≈ 8 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="bars" data-viz-spec='{"items":[{"label":"klar (direkt bauen)","value":6},{"label":"offen","value":12}],"unit":"Punkte"}'></div></div>
+      <div data-slot="long">
+        <p><b>Abdeckung (alle 9 Notizen):</b></p>
+        <ol class="d1-bf-cov">
+          <li>#1 übernommen — Uploader-CPU robust (B1, ohne Frage: Root-Cause + Fallback)</li>
+          <li>#2 übernommen — „Nur Admin &amp; Collaborator“ weg, neue Collaborator-Farbe (B2)</li>
+          <li>#3 zusammengeführt mit #2 — nirgends Text-Hinweise, Farbe trägt die Bedeutung</li>
+          <li>#4 übernommen — Codex-Übersicht als „Mehr in Codex“ (B3)</li>
+          <li>#5 übernommen — „App downloaden“, Event-Anzeige zwei Zeilen (B6)</li>
+          <li>#6 übernommen — „Companion-App verbunden“ synchron zur HQ-Startseite (B6)</li>
+          <li>#7 übernommen + beantwortet — Mini-Sternkarte, Komet/Sonne, Tipp „daneben“ (B7); nichts verloren, der Fix liegt ungeshipt auf claude/batch-fd9db5</li>
+          <li>#8 übernommen — Datenblatt so hoch wie links, nicht scrollbar (B4)</li>
+          <li>#9 übernommen — Klassisch vs. Holotisch für alle Nicht-Schiffe (B5)</li>
+        </ol>
+        <p>Bündel: B1 Uploader-CPU · B2 Rechte-Farbsystem · B3 Mehr in Codex (nach B4) · B4 Landing-Datenblatt · B5 Detail Klassisch/Holotisch · B6 HQ-Start &amp; Verbindung · B7 Sternkarte (nach fd9db5).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Themenfeld 1: Rechte-Farben ============ -->
+  <section id="t-rights" data-topic data-nav-label="Rechte-Farben">
+    <div data-alevel="2" data-title="Rechte-Farben">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≥ 11","unit":"Text-Hinweise","label":"„Nur Admin…“ auf der Website"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Nur Admin","value":7},{"label":"Nur Admin & Collaborator","value":4}],"unit":"Stellen"}'></div>
+        <p>Heute gibt es eine Farbe für erhöhten Zugang (Rot, <code>--sc-accent-hot</code>) und dazu Text-Labels wie „NUR ADMIN“ oder „Nur Admin &amp; Collaborator“. Du willst zwei Farben — Rot = nur Admin, eine gedämpfte zweite = Admin + Collaborator — und keinen Text mehr.</p>
+      </div>
+    </div>
+
+    <section id="d-collab-tone" data-nav-label="Collaborator-Farbe" data-decision="d-collab-tone" data-decision-mode="single"
+             data-label="Collaborator-Farbe" data-rec="copper"
+             data-rec-why="Kupfer liegt zwischen Rot und dem Cyan-Blau, ist klar matter als das Admin-Rot und kollidiert nicht mit --sc-warning (Gelb-Orange)."
+             data-applies-to="alle Flächen, die Admins + Collaborators sehen, Viewer nicht" data-finding="f-tone">
+      <p data-applies>Gilt für: Menüs, Navigation, Buttons für Admin + Collaborator</p>
+      <p data-situation>Notiz #2: „etwas zwischen rot und blau, abgeschwächtes Rot/Orange, aber matter als das Rot, nicht so eye-catching“.</p>
+      <h3 data-question>Welcher Ton wird die Collaborator-Farbe?</h3>
+      <p data-stakes>Wie gut sich Admin-only von Admin+Collaborator unterscheidet.</p>
+      <div data-options>
+        <label data-opt="copper" data-recommended>
+          <input type="radio" name="dm-d-collab-tone" value="copper" checked>
+          <span data-opt-label><span class="d1-bf-sw"><i style="background:#c27a5a"></i></span> Kupfer gedämpft (#c27a5a)</span>
+          <span data-opt-consequence>Warm, deutlich matter als Rot, klar getrennt vom Warn-Gelb.</span>
+        </label>
+        <label data-opt="rose">
+          <input type="radio" name="dm-d-collab-tone" value="rose">
+          <span data-opt-label><span class="d1-bf-sw"><i style="background:#b9707e"></i></span> Altrosa (#b9707e)</span>
+          <span data-opt-consequence>Echt „zwischen Rot und Blau“, aber näher am Rot — Verwechslung auf dunklem Grund möglich.</span>
+        </label>
+        <label data-opt="amber">
+          <input type="radio" name="dm-d-collab-tone" value="amber">
+          <span data-opt-label><span class="d1-bf-sw"><i style="background:#c9925a"></i></span> Bernstein matt (#c9925a)</span>
+          <span data-opt-consequence>Am ruhigsten, liegt aber nahe an --sc-warning (schlechtere Vergleichswerte).</span>
+        </label>
+      </div>
+      <textarea data-comment="d-collab-tone-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-collab-tone-none" value="">
+      <input type="hidden" name="dm-d-collab-tone-hes" value="{&quot;ms&quot;:11563,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-collab-tone-touched" value="">
+      <input type="hidden" name="dm-d-collab-tone-issue" value="">
+      <input type="hidden" name="dm-d-collab-tone-epic" value="">
+      <div data-alevel="3" data-title="Collaborator-Farbe">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Rot bleibt nur-Admin, die neue Farbe markiert Admin + Collaborator, Cyan bleibt für alle."}'></div></div>
+        <div data-slot="long">
+          <div class="d1-bf-menu">
+            <p style="color:#e8553a">Admin</p>
+            <p style="color:#e8553a">Integrationen</p>
+            <p style="color:#c27a5a">Ansehen als → Collaborator</p>
+            <p style="color:#c27a5a">Data Uploader</p>
+            <p style="color:#4fc3e8">Einstellungen · Social</p>
+          </div>
+          <p>So sähe das Profilmenü aus Notiz #2 mit Kupfer aus: Rot = nur Admin, Kupfer = Admin + Collaborator, Cyan = alle. Der Text „Nur Admin“ rechts und die Zeile „Nur Admin &amp; Collaborator“ entfallen.</p>
+        </div>
+        <div data-example><img src="20261108-1830-batch-feedback-codex-hq/assets/2026-11-08T15-40-42-602Z-1.png" alt="Profilmenü mit der durchgestrichenen Zeile" style="max-width:100%"></div>
+      </div>
+    </section>
+
+    <section id="d-hint-a11y" data-nav-label="Text-Hinweise" data-decision="d-hint-a11y" data-decision-mode="single"
+             data-label="Text-Hinweise" data-rec="sronly"
+             data-rec-why="Farbe allein ist für Farbfehlsichtige und Screenreader unsichtbar (WCAG 1.4.1); ein unsichtbarer Hinweis kostet visuell nichts."
+             data-applies-to="alle „Nur Admin…“-Labels" data-finding="f-hint">
+      <p data-applies>Gilt für: alle „Nur Admin“-/„Nur Admin &amp; Collaborator“-Labels</p>
+      <p data-situation>Notiz #3: Nirgends auf der Website sollen diese Hinweise stehen, die Farben sollen es implizit klar machen.</p>
+      <h3 data-question>Wie weit verschwinden die Text-Hinweise?</h3>
+      <div data-options>
+        <label data-opt="sronly" data-recommended>
+          <input type="radio" name="dm-d-hint-a11y" value="sronly" checked>
+          <span data-opt-label>Sichtbar weg, für Screenreader + Tooltip bleibt er</span>
+          <span data-opt-consequence>Optisch genau wie gewünscht; Hover/Screenreader sagt weiter „nur Admin“.</span>
+        </label>
+        <label data-opt="gone">
+          <input type="radio" name="dm-d-hint-a11y" value="gone">
+          <span data-opt-label>Komplett entfernen</span>
+          <span data-opt-consequence>Nur die Farbe trägt die Bedeutung — für Farbfehlsichtige nicht erkennbar.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-hint-a11y-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-hint-a11y-none" value="">
+      <input type="hidden" name="dm-d-hint-a11y-hes" value="{&quot;ms&quot;:14152,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-hint-a11y-touched" value="">
+      <input type="hidden" name="dm-d-hint-a11y-issue" value="">
+      <input type="hidden" name="dm-d-hint-a11y-epic" value="">
+      <div data-alevel="3" data-title="Text-Hinweise">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≈ 8 %","unit":"der Männer","label":"mit Rot-Grün-Schwäche"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bar" data-viz-spec='{"value":8,"max":100,"unit":"%","label":"Männer mit Rot-Grün-Schwäche"}'></div>
+          <p>Fundstellen u. a. de.json:173 (adminOnly), :183 (restricted), :1050, :3975, :4506, :6736, :6896, :7000, :7913. Die Projektregel in CLAUDE.md verlangt heute „says so in words as well as in colour“ — sie wird mit dieser Änderung umgeschrieben.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-rule" data-nav-label="Projektregel" data-decision="d-rule" data-decision-mode="yesnoalt"
+             data-label="Projektregel" data-rec="yes"
+             data-rec-why="Sonst setzt der nächste Agent die Text-Labels nach der alten Regel wieder ein."
+             data-applies-to="CLAUDE.md „Red means elevated access“" data-finding="f-rule">
+      <p data-applies>Gilt für: CLAUDE.md, Regel „Red means elevated access“</p>
+      <p data-situation>Die Regel kennt nur eine Farbe (Rot) und fordert Wort + Farbe für Admin-only.</p>
+      <h3 data-question>Schreiben wir die Regel auf zwei Farben ohne sichtbaren Text um?</h3>
+      <div data-options>
+        <label data-opt="yes" data-recommended>
+          <input type="radio" name="dm-d-rule" value="yes" checked>
+          <span data-opt-label>Ja, Regel umschreiben</span>
+          <span data-opt-consequence>Rot = nur Admin, neues Token = Admin + Collaborator, kein sichtbarer Text.</span>
+        </label>
+        <label data-opt="no">
+          <input type="radio" name="dm-d-rule" value="no">
+          <span data-opt-label>Nein, Regel bleibt</span>
+          <span data-opt-consequence>Regel und Website widersprechen sich danach.</span>
+        </label>
+        <label data-opt="alt">
+          <input type="radio" name="dm-d-rule" value="alt">
+          <span data-opt-label>Anders …</span>
+          <input type="text" name="dm-d-rule-alt" placeholder="Was stattdessen?" value="">
+        </label>
+      </div>
+      <textarea data-comment="d-rule-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-rule-none" value="">
+      <input type="hidden" name="dm-d-rule-hes" value="{&quot;ms&quot;:9742,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-rule-touched" value="">
+      <input type="hidden" name="dm-d-rule-issue" value="">
+      <input type="hidden" name="dm-d-rule-epic" value="">
+      <div data-alevel="3" data-title="Projektregel">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Die Regel steht im Projekt-CLAUDE.md und wird von jedem Agenten gelesen."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Bleibt die alte Regel stehen, gilt sie für jeden Agenten weiter — die nächste Admin-Fläche bekommt wieder ein Label „Nur Admin“."}'></div></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============ Themenfeld 2: Codex ============ -->
+  <section id="t-codex" data-topic data-nav-label="Codex">
+    <div data-alevel="2" data-title="Codex">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"3","unit":"Flächen","label":"Landing, Übersicht, Detail"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Landing","value":"Datenblatt #8"},{"label":"Mehr in Codex","value":"Übersicht #4"},{"label":"Detail","value":"Klassisch/Holotisch #9"}]}'></div>
+        <p>Die Codex-Landing wurde in den letzten zwei Tagen mehrfach umgebaut (#975, #977, #978, #980). Die Detailseite für Nicht-Schiffe hat dabei Infos und die Graphen der rechten Leiste verloren.</p>
+      </div>
+    </div>
+
+    <section id="d-more-codex" data-nav-label="Mehr in Codex" data-decision="d-more-codex" data-decision-mode="single"
+             data-label="Mehr in Codex" data-rec="scroll"
+             data-rec-why="Genau das Verse-Muster aus Notiz #4: eine Route, Runterscrollen wechselt in die zweite Ansicht, der Hauptheader wird zum Subheader."
+             data-applies-to="/codex und alle Links auf die Übersicht" data-finding="f-more">
+      <p data-applies>Gilt für: /codex, die Übersicht mit Filter links, alle Links dorthin</p>
+      <p data-situation>Notiz #4: Die Übersicht mit allen Entitäten und Filter links soll die zweite Seite unter Codex werden, wie „Mehr im Verse“ — Subheader statt Hauptheader.</p>
+      <h3 data-question>Wie wird die Übersicht zur zweiten Codex-Seite?</h3>
+      <div data-options>
+        <label data-opt="scroll" data-recommended>
+          <input type="radio" name="dm-d-more-codex" value="scroll" checked>
+          <span data-opt-label>Wie Verse: Runterscrollen auf /codex</span>
+          <span data-opt-consequence>Eigene URL für den zweiten Teil (Deep-Link), alte Links leiten dorthin um.</span>
+        </label>
+        <label data-opt="route">
+          <input type="radio" name="dm-d-more-codex" value="route">
+          <span data-opt-label>Eigene Seite, nur per Link erreichbar</span>
+          <span data-opt-consequence>Einfacher, aber kein Scroll-Übergang wie in Verse.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-more-codex-note" placeholder="Notiz (optional)">exakt so wie mehr in verse!
+
+vom mechanismus</textarea>
+      <input type="hidden" name="dm-d-more-codex-none" value="">
+      <input type="hidden" name="dm-d-more-codex-hes" value="{&quot;ms&quot;:57245,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-more-codex-touched" value="1">
+      <input type="hidden" name="dm-d-more-codex-issue" value="">
+      <input type="hidden" name="dm-d-more-codex-epic" value="">
+      <div data-alevel="3" data-title="Mehr in Codex">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Vorbild: verse.more „Mehr im Verse“ in verse-briefing.component.ts + briefing-dock.ts."}'></div></div>
+        <div data-slot="long"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"/codex oben","value":"Landing + Hauptheader"},{"label":"Scroll","value":"„Mehr in Codex“"},{"label":"/codex unten","value":"Übersicht + Subheader"}]}'></div><p>Links wie „Alle Raumschiffe“ und „Alle Ergebnisse“ aus der Suche führen künftig direkt in den unteren Teil.</p></div>
+      </div>
+    </section>
+
+    <section id="d-datasheet" data-nav-label="Datenblatt" data-decision="d-datasheet" data-decision-mode="single"
+             data-label="Landing-Datenblatt" data-rec="trim"
+             data-rec-why="Notiz #8 verbietet Scrollen und verweist für mehr auf den Button — also zeigt das Blatt nur, was in die Höhe passt."
+             data-applies-to="Codex-Landing, rechtes Datenblatt" data-finding="f-sheet">
+      <p data-applies>Gilt für: Codex-Landing, Datenblatt rechts</p>
+      <p data-situation>Das Datenblatt ist kürzer als die linke Codex-Spalte und scrollt innen (Crew, Masse, Klassenschnitt, „Zur …-Seite“).</p>
+      <h3 data-question>Was passiert, wenn das Datenblatt mehr Werte hat, als in die Höhe passen?</h3>
+      <div data-options>
+        <label data-opt="trim" data-recommended>
+          <input type="radio" name="dm-d-datasheet" value="trim" checked>
+          <span data-opt-label>Wichtigste Werte zeigen, Rest über den Button</span>
+          <span data-opt-consequence>Gleich hoch wie links, nie Scroll; die Zahl der Zeilen passt sich der Höhe an.</span>
+        </label>
+        <label data-opt="scale">
+          <input type="radio" name="dm-d-datasheet" value="scale">
+          <span data-opt-label>Alle Werte, enger gesetzt</span>
+          <span data-opt-consequence>Nichts fehlt, aber auf Laptops wird die Schrift klein.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-datasheet-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-datasheet-none" value="">
+      <input type="hidden" name="dm-d-datasheet-hes" value="{&quot;ms&quot;:18544,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-datasheet-touched" value="">
+      <input type="hidden" name="dm-d-datasheet-issue" value="">
+      <input type="hidden" name="dm-d-datasheet-epic" value="">
+      <div data-alevel="3" data-title="Datenblatt">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"codex-landing-values-pane.component.ts — das Datenblatt; codex-landing-fit.spec.ts prüft schon den Viewport-Fit."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Höhe kommt künftig aus der linken Spalte (gleiche Grid-Zeile), overflow hidden, Zeilen nach Priorität."}'></div></div>
+        <div data-example><img src="20261108-1830-batch-feedback-codex-hq/assets/2026-11-08T16-34-52-055Z-1.webp" alt="Codex-Landing mit kurzem, scrollbarem Datenblatt" style="max-width:100%"></div>
+      </div>
+    </section>
+
+    <section id="d-classic" data-nav-label="Klassisch" data-decision="d-classic" data-decision-mode="single"
+             data-label="Klassische Ansicht" data-rec="restore"
+             data-rec-why="Notiz #9: Klassisch = Stand vor 24 h und unverändert; das geht nur, wenn wir genau diesen Stand wiederherstellen."
+             data-applies-to="Codex-Detail aller Nicht-Schiffe" data-finding="f-classic">
+      <p data-applies>Gilt für: Codex-Detail aller Nicht-Schiffe (Raketen, Waffen, Bauteile, Ausrüstung)</p>
+      <p data-situation>Vor 24 h hatte die rechte Leiste Graphen und nichts musste im kleinen Kasten gescrollt werden; heute ist die Holotisch-Darstellung die einzige.</p>
+      <h3 data-question>Was genau wird die „Klassische“ Ansicht?</h3>
+      <div data-options>
+        <label data-opt="restore" data-recommended>
+          <input type="radio" name="dm-d-classic" value="restore" checked>
+          <span data-opt-label>Detailseite vom 7.11. ≈ 18 Uhr wiederherstellen</span>
+          <span data-opt-consequence>Aus git rekonstruiert, danach eingefroren; Holotisch bleibt die zweite Ansicht.</span>
+        </label>
+        <label data-opt="panel">
+          <input type="radio" name="dm-d-classic" value="panel">
+          <span data-opt-label>Nur die rechte Leiste mit Graphen zurückholen</span>
+          <span data-opt-consequence>Kleiner, aber kein echter „Stand vor 24 h“.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-classic-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-classic-none" value="">
+      <input type="hidden" name="dm-d-classic-hes" value="{&quot;ms&quot;:13906,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-classic-touched" value="1">
+      <input type="hidden" name="dm-d-classic-issue" value="">
+      <input type="hidden" name="dm-d-classic-epic" value="">
+      <div data-alevel="3" data-title="Klassisch">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4","unit":"Commits","label":"seit 7.11. 18 Uhr am Codex-Detail"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"#995 Rakete Startansicht","value":1},{"label":"#996 Blueprint-Filter","value":1},{"label":"#1001 Bereichsbaum","value":1},{"label":"#1005 Nachschub","value":1}],"unit":"Commit"}'></div>
+          <p>Für Schiffe gibt es den Umschalter schon (codex-detail-holo-toggle.spec.ts); er wird auf Nicht-Schiffe erweitert. Achtung: fd9db5-b5 (ungeshipt) streicht im Einordnung-Panel weitere Infos.</p>
+        </div>
+        <div data-example><img src="20261108-1830-batch-feedback-codex-hq/assets/2026-11-08T17-25-55-245Z-1.png" alt="Rattler-II-Rakete, Werte im kleinen Scrollkasten" style="max-width:100%"></div>
+      </div>
+    </section>
+
+    <section id="d-holo-back" data-nav-label="Holotisch zurück" data-decision="d-holo-back" data-decision-mode="multi"
+             data-label="Was im Holotisch zurückkommt" data-rec="graphs noscroll"
+             data-rec-why="Genau die zwei Dinge, die Notiz #9 benennt."
+             data-applies-to="Holotisch-Ansicht Nicht-Schiffe" data-finding="f-holo">
+      <p data-applies>Gilt für: Holotisch-Ansicht der Nicht-Schiffe</p>
+      <p data-situation>Notiz #9: „zumindest teilweise zurückrollen“ — auch der Holotisch bekommt Teile zurück.</p>
+      <h3 data-question>Was holt der Holotisch zusätzlich zurück?</h3>
+      <div data-options>
+        <label data-opt="graphs" data-recommended>
+          <input type="checkbox" name="dm-d-holo-back.graphs" checked>
+          <span data-opt-label>Graphen in der rechten Leiste</span>
+          <span data-opt-consequence>Einordnung wieder als Grafik statt nur Zahlen.</span>
+        </label>
+        <label data-opt="noscroll" data-recommended>
+          <input type="checkbox" name="dm-d-holo-back.noscroll" checked>
+          <span data-opt-label>Kein Scrollen im kleinen Kasten</span>
+          <span data-opt-consequence>Werte-Kasten wächst mit oder verteilt sich auf die Fläche.</span>
+        </label>
+        <label data-opt="top3">
+          <input type="checkbox" name="dm-d-holo-back.top3">
+          <span data-opt-label>„Top 3 zuletzt / im Hangar“ behalten</span>
+          <span data-opt-consequence>fd9db5-b5 entfernt den Block gerade — würde zurückgedreht.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-holo-back-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-holo-back-none" value="">
+      <input type="hidden" name="dm-d-holo-back-hes" value="{&quot;ms&quot;:19861,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-holo-back-touched" value="">
+      <input type="hidden" name="dm-d-holo-back-issue" value="">
+      <input type="hidden" name="dm-d-holo-back-epic" value="">
+      <div data-alevel="3" data-title="Holotisch zurück">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Klassisch bleibt unangetastet; hier geht es nur um den Holotisch."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Bild #9: Werte stehen in einem kleinen Kasten mit eigener Scrollleiste, Graphen fehlen."}'></div></div>
+      </div>
+    </section>
+
+    <section id="d-default-view" data-nav-label="Standardansicht" data-decision="d-default-view" data-decision-mode="single"
+             data-label="Standardansicht Nicht-Schiffe" data-rec="remember"
+             data-rec-why="So greift deine Wahl überall, ohne dass jeder Besucher erst umschalten muss."
+             data-applies-to="Codex-Detail Nicht-Schiffe" data-finding="f-default">
+      <p data-applies>Gilt für: erster Besuch einer Nicht-Schiff-Detailseite</p>
+      <p data-situation>Mit zwei Ansichten braucht jede Detailseite einen Startzustand.</p>
+      <h3 data-question>Welche Ansicht öffnet eine Nicht-Schiff-Seite zuerst?</h3>
+      <div data-options>
+        <label data-opt="remember" data-recommended>
+          <input type="radio" name="dm-d-default-view" value="remember" checked>
+          <span data-opt-label>Klassisch, danach die zuletzt gewählte</span>
+          <span data-opt-consequence>Wie beim Schiffs-Umschalter: die Wahl wird gemerkt.</span>
+        </label>
+        <label data-opt="holo">
+          <input type="radio" name="dm-d-default-view" value="holo">
+          <span data-opt-label>Holotisch, danach die zuletzt gewählte</span>
+          <span data-opt-consequence>Neue Darstellung zuerst, Klassisch auf Klick.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-default-view-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-default-view-none" value="">
+      <input type="hidden" name="dm-d-default-view-hes" value="{&quot;ms&quot;:31592,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-default-view-touched" value="1">
+      <input type="hidden" name="dm-d-default-view-issue" value="">
+      <input type="hidden" name="dm-d-default-view-epic" value="">
+      <div data-alevel="3" data-title="Standardansicht">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Der Schiffs-Umschalter merkt sich die Wahl schon (codex-prefs.service.ts)."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Ein gemeinsamer Merker für Schiffe und Nicht-Schiffe oder je einer — der Builder nimmt einen gemeinsamen, solange du nichts anderes notierst."}'></div></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============ Themenfeld 3: HQ & Sternkarte ============ -->
+  <section id="t-hq" data-topic data-nav-label="HQ &amp; Sternkarte">
+    <div data-alevel="2" data-title="HQ &amp; Sternkarte">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"2","unit":"Quellen","label":"für „App verbunden“ — sie widersprechen sich"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="compare" data-viz-spec='{"before":{"label":"HQ-Start: Spiel nicht erkannt","value":0},"after":{"label":"HQ Jetzt: verbunden (grün)","value":1},"unit":""}'></div>
+        <p>Feststehend, ohne Frage: Button-Text „App downloaden“ (#5) und der Kometen-Tipp zeigt „daneben“, wenn der Tag vorbei ist (#7, Fix a5f8f44a aus fd9db5 übernehmen).</p>
+      </div>
+    </div>
+
+    <section id="d-conn" data-nav-label="App verbunden" data-decision="d-conn" data-decision-mode="single"
+             data-label="Was „App verbunden“ heißt" data-rec="scc"
+             data-rec-why="Der Ticker liest heute den Status der Starscape-Wallpaper-App und nennt ihn „Companion-App“ — das ist der Widerspruch aus Notiz #6."
+             data-applies-to="HQ-Startseite, HQ Jetzt, Live-Ticker" data-finding="f-conn">
+      <p data-applies>Gilt für: HQ-Startseite, HQ Jetzt (Pille + Hinweisbox)</p>
+      <p data-situation>hq-live-ticker.component.ts:72 und hq-now.component.ts:471 prüfen conn.stateFor('starscape'); die Startseite zeigt „Spiel nicht erkannt“ + Download.</p>
+      <h3 data-question>Welche App muss laufen, damit HQ „Companion-App verbunden“ zeigt?</h3>
+      <div data-options>
+        <label data-opt="scc" data-recommended>
+          <input type="radio" name="dm-d-conn" value="scc" checked>
+          <span data-opt-label>Nur die SCC-Companion-App</span>
+          <span data-opt-consequence>Starscape zählt nicht; Startseite und Jetzt lesen dieselbe Quelle.</span>
+        </label>
+        <label data-opt="either">
+          <input type="radio" name="dm-d-conn" value="either">
+          <span data-opt-label>SCC-App oder Starscape</span>
+          <span data-opt-consequence>Dann muss die Startseite auch bei Starscape „verbunden“ zeigen.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-conn-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-conn-none" value="">
+      <input type="hidden" name="dm-d-conn-hes" value="{&quot;ms&quot;:7848,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-conn-touched" value="1">
+      <input type="hidden" name="dm-d-conn-issue" value="">
+      <input type="hidden" name="dm-d-conn-epic" value="">
+      <div data-alevel="3" data-title="App verbunden">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Zwei Flächen, zwei Quellen — eine gemeinsame Quelle macht sie synchron."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Bild #6 (Jetzt): grüne Pille „Companion-App verbunden · noch kein Ereignis“. Bild #5 (Start): „Spiel nicht erkannt“ + „Companion-App downloaden“."}'></div></div>
+        <div data-example><img src="20261108-1830-batch-feedback-codex-hq/assets/2026-11-08T16-11-36-113Z-1.png" alt="HQ Jetzt mit grüner Verbunden-Pille" style="max-width:100%"></div>
+      </div>
+    </section>
+
+    <section id="d-event-line" data-nav-label="Event-Zeile" data-decision="d-event-line" data-decision-mode="single"
+             data-label="Event-Anzeige zweite Zeile" data-rec="names"
+             data-rec-why="Notiz #5: Zeile 1 nur der Zähler, Zeile 2 die Events — ohne dritte Zeile und ohne „…“; das Datum fällt dafür weg."
+             data-applies-to="HQ-Startseite, Planen-Kachel" data-finding="f-event">
+      <p data-applies>Gilt für: HQ-Startseite, Event-Hinweis in der Planen-Kachel</p>
+      <p data-situation>Heute: „2 Event(s) offen · Day of the Vara 2956 · spätestens mit 27. Nov. 2026 (geschätzt)“ über drei Zeilen.</p>
+      <h3 data-question>Was steht in der zweiten Zeile, wenn die Namen nicht passen?</h3>
+      <div data-options>
+        <label data-opt="names" data-recommended>
+          <input type="radio" name="dm-d-event-line" value="names" checked>
+          <span data-opt-label>So viele Namen, wie ganz passen, dann „+1“</span>
+          <span data-opt-consequence>Kein Abschneiden mitten im Wort, kein Datum.</span>
+        </label>
+        <label data-opt="next">
+          <input type="radio" name="dm-d-event-line" value="next">
+          <span data-opt-label>Nur das nächste Event mit Enddatum</span>
+          <span data-opt-consequence>Datum bleibt, die anderen Events fehlen in der Kachel.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-event-line-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-event-line-none" value="">
+      <input type="hidden" name="dm-d-event-line-hes" value="{&quot;ms&quot;:35379,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-event-line-touched" value="">
+      <input type="hidden" name="dm-d-event-line-issue" value="">
+      <input type="hidden" name="dm-d-event-line-epic" value="">
+      <div data-alevel="3" data-title="Event-Zeile">
+        <div data-slot="short"><div class="d1-bf-two"><b>2 offene Events</b>Day of the Vara 2956 · Orison Relief</div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"hq-start-tiles.component.ts:165–167, Key hq.events.marker „{{n}} Event(s) offen“ (de.json:6263) wird zu „{{n}} offene Events“."}'></div></div>
+        <div data-example><img src="20261108-1830-batch-feedback-codex-hq/assets/2026-11-08T16-06-14-646Z-1.png" alt="HQ-Startseite mit dreizeiliger Event-Anzeige" style="max-width:100%"></div>
+      </div>
+    </section>
+
+    <section id="d-sun-name" data-nav-label="Komet oder Sonne" data-decision="d-sun-name" data-decision-mode="wording"
+             data-label="Name des Patch-Tipps" data-rec="sun"
+             data-rec-why="Notiz #7: die Sonne steht für Patch und Patch-Zeitpunkt — der Tipp heißt dann auch so."
+             data-applies-to="/verse/explorer, Briefing, Patch News" data-finding="f-sun">
+      <p data-applies>Gilt für: Sternkarte unten links, Regeltext, Toasts, Patch News</p>
+      <p data-situation>Unten heißt alles „Komet“, obwohl die Sonne den Patch-Zeitpunkt darstellt.</p>
+      <h3 data-question>Wie heißt der Tipp auf den LIVE-Tag künftig?</h3>
+      <div data-options>
+        <label data-opt="sun" data-recommended data-text="Sonnen-Tipp">
+          <input type="radio" name="dm-d-sun-name" value="sun">
+          <span data-opt-label>„Sonnen-Tipp“ (SONNE · Dein Tipp für 4.11)</span>
+          <span data-opt-consequence>Passt zur Sonne oben rechts; der Komet verschwindet aus den Texten.</span>
+        </label>
+        <label data-opt="patch" data-text="Patch-Tipp">
+          <input type="radio" name="dm-d-sun-name" value="patch" checked>
+          <span data-opt-label>„Patch-Tipp“</span>
+          <span data-opt-consequence>Neutral, verliert aber das Himmelsbild.</span>
+        </label>
+        <label data-opt="custom" data-text="">
+          <input type="radio" name="dm-d-sun-name" value="custom">
+          <span data-opt-label>Eigener Name</span>
+          <input type="text" name="dm-d-sun-name-text" placeholder="Name" value="">
+        </label>
+      </div>
+      <textarea data-comment="d-sun-name-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-sun-name-none" value="">
+      <input type="hidden" name="dm-d-sun-name-hes" value="{&quot;ms&quot;:22521,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-sun-name-touched" value="1">
+      <input type="hidden" name="dm-d-sun-name-issue" value="">
+      <input type="hidden" name="dm-d-sun-name-epic" value="">
+      <div data-alevel="3" data-title="Komet oder Sonne">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≈ 20","unit":"Texte","label":"mit Komet/Kometen in de.json"}'></div></div>
+        <div data-slot="long"><div data-viz="bar" data-viz-spec='{"value":20,"max":30,"unit":"Keys","label":"starmap.comet.*, briefing, Patch News"}'></div><p>Betroffen u. a. starmap.comet.* (de.json ≈ 6805–6835), Kometen-Tipp in Patch News (≈ 6505), Briefing-Texte. Gleich mit dem Fix a5f8f44a bauen, der dieselben Keys anfasst.</p></div>
+        <div data-example><img src="20261108-1830-batch-feedback-codex-hq/assets/2026-11-08T16-15-16-791Z-1.webp" alt="Sternkarte mit Komet-Zeile und rundem Icon oben" style="max-width:100%"></div>
+      </div>
+    </section>
+
+    <section id="d-fd9db5" data-nav-label="Paralleler Batch" data-decision="d-fd9db5" data-decision-mode="single"
+             data-label="Umgang mit claude/batch-fd9db5" data-rec="mergefirst"
+             data-rec-why="Dort liegen schon der Kometen-Fix und Änderungen am Uploader-Dock und am Codex-Holo; mergen statt neu bauen verhindert doppelte Arbeit und Konflikte beim Ship."
+             data-applies-to="B1, B2, B5, B7" data-finding="f-fd9">
+      <p data-applies>Gilt für: Bündel B1 (Uploader), B2 (Apps-Menü), B5 (Codex-Holo), B7 (Sternkarte)</p>
+      <p data-situation>claude/batch-fd9db5 ist heute bis 17:32 gewachsen, ungeshipt, 8 Unter-Branches; b5 entfernt Infos im Einordnung-Panel, also genau das, was #9 zurück will.</p>
+      <h3 data-question>Wie gehen wir mit dem ungeshipten Batch fd9db5 um?</h3>
+      <div data-options>
+        <label data-opt="mergefirst" data-recommended>
+          <input type="radio" name="dm-d-fd9db5" value="mergefirst" checked>
+          <span data-opt-label>In diesen Branch mergen, b5 im Sinne von #9 anpassen</span>
+          <span data-opt-consequence>Ein Ship für beide Batches; der Kometen-Fix kommt mit.</span>
+        </label>
+        <label data-opt="shipfirst">
+          <input type="radio" name="dm-d-fd9db5" value="shipfirst">
+          <span data-opt-label>Erst fd9db5 shippen, dann hier auf main aufsetzen</span>
+          <span data-opt-consequence>Sauberer getrennt, aber b5 geht erst so live und wird danach zurückgedreht.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-fd9db5-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-fd9db5-none" value="">
+      <input type="hidden" name="dm-d-fd9db5-hes" value="{&quot;ms&quot;:10877,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-fd9db5-touched" value="1">
+      <input type="hidden" name="dm-d-fd9db5-issue" value="">
+      <input type="hidden" name="dm-d-fd9db5-epic" value="">
+      <div data-alevel="3" data-title="Paralleler Batch">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4 / 7","unit":"Bündel","label":"überschneiden sich mit fd9db5"}'></div></div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"b1 Uploader-Dock → B1","value":1},{"label":"b4 Apps-Menü → B2","value":1},{"label":"b5 Codex-Holo → B5","value":1},{"label":"b6/b8 Komet, Sonne → B7","value":1}],"unit":"Überschneidung"}'></div><p>Nichts aus fd9db5 ist verloren — es ist nur noch nicht auf main. Deshalb zeigt alpha heute noch „gesetzt · wartet auf LIVE“.</p></div>
+      </div>
+    </section>
+
+    <section id="d-minimap" data-nav-label="Mini-Sternkarte" data-decision="d-minimap" data-decision-mode="yesnoalt"
+             data-label="Mini-Sternkarte im Kopf" data-rec="yes"
+             data-rec-why="Notiz #7 will die aktuelle Sternkarte in klein statt des runden Icons."
+             data-applies-to="/verse/explorer, Seitenkopf" data-finding="f-mini">
+      <p data-applies>Gilt für: /verse/explorer, Kopf links neben „Sternkarte 4.10“</p>
+      <p data-situation>Heute steht dort ein rundes Icon mit einem generischen Sternbild.</p>
+      <h3 data-question>Zeigt der Kopf die echte Form der aktuellen Sternkarte als Mini-Grafik?</h3>
+      <div data-options>
+        <label data-opt="yes" data-recommended>
+          <input type="radio" name="dm-d-minimap" value="yes" checked>
+          <span data-opt-label>Ja, echte Form ohne Kreis</span>
+          <span data-opt-consequence>Dieselben Sterne und Linien wie die große Karte, nur klein; erkannte Sterne leuchten.</span>
+        </label>
+        <label data-opt="no">
+          <input type="radio" name="dm-d-minimap" value="no">
+          <span data-opt-label>Nein, Icon bleibt</span>
+          <span data-opt-consequence>Keine Änderung.</span>
+        </label>
+        <label data-opt="alt">
+          <input type="radio" name="dm-d-minimap" value="alt">
+          <span data-opt-label>Anders …</span>
+          <input type="text" name="dm-d-minimap-alt" placeholder="Was stattdessen?" value="">
+        </label>
+      </div>
+      <textarea data-comment="d-minimap-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-minimap-none" value="">
+      <input type="hidden" name="dm-d-minimap-hes" value="{&quot;ms&quot;:7869,&quot;revisits&quot;:0,&quot;median&quot;:14152}">
+      <input type="hidden" name="dm-d-minimap-touched" value="">
+      <input type="hidden" name="dm-d-minimap-issue" value="">
+      <input type="hidden" name="dm-d-minimap-epic" value="">
+      <div data-alevel="3" data-title="Mini-Sternkarte">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"explorer-page.component.ts — Kopf mit rundem Icon."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Die Form kommt aus denselben Daten wie die große Karte; aus Spoiler-Gründen zeigt die Mini-Grafik nur, was die große auch zeigt."}'></div></div>
+      </div>
+    </section>
+  </section>
+</section>

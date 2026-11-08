@@ -460,9 +460,9 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     :host(.holo) .radar { max-width: 260px; overflow: visible; }
     :host(.holo) .radar .ship { fill: color-mix(in srgb, var(--holo-e, var(--sc-accent)) 20%, transparent); stroke: var(--holo-e, var(--sc-accent)); }
     :host(.holo) .radar text { font-size: 7px; }
-    /* Touch: the holo radar is capped at 230px (scale 1.15), so 10.5-unit
-       labels land on the 12px readability floor. */
-    @media (pointer: coarse) { :host(.holo) .radar text { font-size: 10.5px; } }
+    /* Touch: the holo radar renders at about 1:1 (260px for a 268-unit viewBox),
+       so the labels need 12 units to reach the 12px readability floor. */
+    @media (pointer: coarse) { :host(.holo) .radar text { font-size: 12px; } }
     :host(.holo) .radar text.gap { fill: color-mix(in srgb, var(--sc-fg-2) 60%, transparent); }
     :host(.holo) .compare-head { justify-content: center; }
     :host(.holo) .legend { align-self: stretch; }

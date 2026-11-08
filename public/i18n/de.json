@@ -2568,6 +2568,10 @@
         "quickLock": "Im schnellsten Viertel ihrer Art beim Aufschalten."
       }
     },
+    "page": {
+      "more": "Mehr in Codex",
+      "moreAria": "Übersicht aller Einträge"
+    },
     "head": {
       "stripAria": "Patch und Besitz",
       "patch": "Patch",
@@ -2617,6 +2621,45 @@
       "showInHq": "Im HQ zeigen",
       "noteTitle": "Notiz zu diesem Gegenstand",
       "wishAgain": "Noch eins wünschen"
+    },
+    "itemRank": {
+      "nAll": "{{n}} Teile dieser Art",
+      "nType": "{{n}} Teile vom gleichen Typ",
+      "nSize": "{{n}} Teile der Größe {{k}}",
+      "verdict": "{{pct}} % — {{band}} gegenüber {{n}} Teilen.",
+      "percentileTooltip": "Der Wert sagt, wo dieses Teil im Vergleichsfeld steht. 50 % ist genau die Mitte. Bei Verzögerungen und Signaturen steht ein kleinerer Wert weiter oben.",
+      "radarAria": "Netzdiagramm der Perzentile von {{name}} gegenüber {{n}} Teilen",
+      "legendCompare": "Median {{group}} · {{n}} Teile",
+      "legendAbove": "über Median",
+      "legendBelow": "unter Median",
+      "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum besten Wert der gewählten Vergleichsteile (Rand). Blau ist dieses Teil, die gestrichelte Linie der Median der Gruppe.",
+      "note": "Verglichen wird nur, was die Spieldaten für dieses Teil enthalten.",
+      "gapTooFew": "Zu wenige Teile unterscheiden sich in den Werten, die hier verglichen werden, um dieses einzuordnen.",
+      "gapNoCohort": "Die Vergleichsgruppe konnte nicht geladen werden.",
+      "scope": {
+        "all": "Alle",
+        "size": "Größe",
+        "type": "Typ"
+      },
+      "scopeOff": "Zu wenige Vergleichsteile in dieser Gruppe.",
+      "axis": {
+        "dps": "DPS",
+        "alpha": "ALPHA",
+        "fireRate": "FEUERRATE",
+        "projectileSpeed": "PROJEKTILTEMPO",
+        "shieldHp": "SCHILD-HP",
+        "shieldRegen": "REGEN",
+        "damagedDelay": "PAUSE NACH TREFFER",
+        "downedDelay": "PAUSE NACH AUSFALL",
+        "powerOutput": "LEISTUNG",
+        "coolingRate": "KÜHLRATE",
+        "health": "HP",
+        "emSignature": "EM",
+        "irSignature": "IR",
+        "driveSpeed": "TEMPO",
+        "jumpRange": "REICHWEITE",
+        "spoolTime": "AUFLADEZEIT"
+      }
     }
   },
   "blueprint": {
@@ -3718,7 +3761,7 @@
       "retry": "Erneut versuchen"
     },
     "translations": {
-      "eyebrow": "Admin · nur für Admins",
+      "eyebrow": "Admin",
       "title": "KI-Übersetzung",
       "subtitle": "Claude-Übersetzung der Spieltexte: Schalter, Limits, Sprachen, Aufträge und Glossar.",
       "tabs": {
@@ -4018,7 +4061,7 @@
   },
   "desktop": {
     "title": "Data Upload",
-    "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install. Nur Admin + Collaborator.",
+    "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install.",
     "bundleHistory": "Bundle-Historie",
     "loading": "Lade Release…",
     "released": "Veröffentlicht",
@@ -4549,7 +4592,7 @@
   },
   "adminFeedback": {
     "title": "Feedback-Board",
-    "subtitle": "Nur für Admins. Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
+    "subtitle": "Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
     "heartbeat": {
       "online": "Dev-PC erreichbar",
       "offline": "Dev-PC nicht erreichbar",
@@ -6286,16 +6329,16 @@
       }
     },
     "app": {
-      "launch": "Companion-App starten",
+      "launch": "App starten",
       "starting": "Companion-App wird gestartet …",
       "started": "Companion-App startet. Melde dich dort an, dann kommen deine Daten hierher.",
       "downloading": "Companion-App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
       "noResponse": "Die Companion-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
       "retry": "Schon installiert? Erneut starten",
       "download": "Companion-App herunterladen",
-      "downloadCta": "Companion-App downloaden",
+      "downloadCta": "App downloaden",
       "downloadStarted": "Der Download läuft (rund 500 MB). Führe danach das Setup aus.",
-      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „Companion-App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
+      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "tipLaunch": "Öffnet die Companion-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "close": "Schließen"
     },
@@ -6342,7 +6385,8 @@
     },
     "events": {
       "teaser": "Event verfügbar",
-      "marker": "{{n}} Event(s) offen",
+      "markerOne": "{{n}} offenes Event",
+      "marker": "{{n}} offene Events",
       "dot": "Events offen",
       "end": {
         "official": "bis {{date}}",
@@ -6585,13 +6629,13 @@
         }
       },
       "comet": {
-        "title": "Kometen-Tipp: Wann geht {{line}} live?",
+        "title": "Patch-Tipp: Wann geht {{line}} live?",
         "hint": "Gib deinen Tipp ab — den Community-Median siehst du danach.",
         "label": "Dein Tipp für den LIVE-Tag",
         "submit": "Tipp abgeben",
         "yours": "Dein Tipp: {{date}}",
         "median": "Community-Median: {{date}} ({{n}} Tipps)",
-        "heading": "Kometen-Tipp",
+        "heading": "Patch-Tipp",
         "crowd": "So tippt die Community",
         "cta": "Tipp abgeben",
         "mine": "dein Tipp: {{date}}",
@@ -6665,15 +6709,15 @@
     "sun": {
       "faded": {
         "aria": "Sonne: verblasst",
-        "tip": "Die Sonne ist verblasst. Setz unten deinen Kometen auf den Tag, an dem {{patch}} LIVE geht – trifft er auf ±2 Tage, leuchtet die Sonne auf."
+        "tip": "Die Sonne ist verblasst. Setz unten deinen Patch-Tipp auf den Tag, an dem {{patch}} LIVE geht – trifft er auf ±2 Tage, leuchtet die Sonne auf."
       },
       "tipped": {
-        "aria": "Sonne: Komet gesetzt, wartet auf den LIVE-Tag",
-        "tip": "Dein Komet ist gesetzt: Die Sonne glimmt, bis {{patch}} LIVE geht. Trifft er auf ±2 Tage, leuchtet sie auf."
+        "aria": "Sonne: Patch-Tipp gesetzt, wartet auf den LIVE-Tag",
+        "tip": "Dein Patch-Tipp ist gesetzt: Die Sonne glimmt, bis {{patch}} LIVE geht. Trifft er auf ±2 Tage, leuchtet sie auf."
       },
       "hit": {
         "aria": "Sonne: leuchtet",
-        "tip": "Treffer: Dein Komet lag höchstens 2 Tage neben dem LIVE-Tag, die Sonne leuchtet."
+        "tip": "Treffer: Dein Patch-Tipp lag höchstens 2 Tage neben dem LIVE-Tag, die Sonne leuchtet."
       }
     },
     "export": {
@@ -6699,9 +6743,9 @@
         "link": "Zum Hangar"
       },
       "comet": {
-        "title": "Komet gesetzt",
+        "title": "Patch-Tipp gesetzt",
         "how": "Tippe in den Patch News, wann der Patch LIVE geht.",
-        "link": "Komet setzen"
+        "link": "Patch-Tipp setzen"
       },
       "cxNewship": {
         "title": "Neues Schiff angesehen",
@@ -6785,7 +6829,7 @@
     },
     "suns": {
       "title": "Sonnensammlung",
-      "none": "Noch keine Sonne. Setz deinen Kometen in den Patch News."
+      "none": "Noch keine Sonne. Setz deinen Patch-Tipp in den Patch News."
     },
     "glyph": {
       "aria": "Sternkarte: {{lit}} von {{total}} Sternen"
@@ -6824,7 +6868,7 @@
         "dismissed": "nicht übernommen"
       },
       "admin": {
-        "title": "Vorschläge der Kartographen (nur für Admins)",
+        "title": "Vorschläge der Kartographen",
         "empty": "Keine offenen Vorschläge.",
         "promote": "Anpinnen",
         "dismiss": "Verwerfen",
@@ -6848,7 +6892,7 @@
       "open": "So funktioniert die Sternkarte",
       "title": "Die Sternkarte und das Logbuch",
       "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten.",
-      "p2": "Am Rand liegen zwei Herausforderungen: der Kometentipp und das Erkennen der Sternkarte.",
+      "p2": "Am Rand liegen zwei Herausforderungen: der Patch-Tipp und das Erkennen der Sternkarte.",
       "p3": "Im Logbuch findest du den Community-Himmel, deinen Kartograph-Rang und die Serien-Belohnungen.",
       "start": "Zeig es mir",
       "close": "Schließen",
@@ -6867,7 +6911,7 @@
         },
         "tracks": {
           "title": "Die zwei Herausforderungen",
-          "text": "Tippe den Kometen für den nächsten LIVE-Tag und rate, welches Schiff die Sternkarte zeigt."
+          "text": "Gib deinen Patch-Tipp für den nächsten LIVE-Tag ab und rate, welches Schiff die Sternkarte zeigt."
         },
         "series": {
           "title": "Die Serie",
@@ -6894,7 +6938,7 @@
       "here": "Das machst du direkt hier unten auf der Sternkarte.",
       "empty": "Für diesen Stern gibt es in diesem Patch keine Aufgabe.",
       "emptyTitle": "Ruhender Stern",
-      "lockedComet": "Für diesen Patch kann kein Komet mehr gesetzt werden.",
+      "lockedComet": "Für diesen Patch kann kein Patch-Tipp mehr gesetzt werden.",
       "lockedGuess": "Dein Tipp für diese Sternkarte ist abgegeben."
     },
     "star": {
@@ -6903,9 +6947,9 @@
       "open": "Stern {{n}}: {{task}} · offen"
     },
     "comet": {
-      "kind": "Komet",
-      "ruleAria": "Regeln zum Kometen",
-      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Kometen, ein Tipp pro Patch. Trifft er auf ±2 Tage, leuchtet oben rechts am Himmel die Sonne auf. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
+      "kind": "Patch-Tipp",
+      "ruleAria": "Regeln zum Patch-Tipp",
+      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Patch-Tipp, ein Tipp pro Patch. Trifft er auf ±2 Tage, leuchtet oben rechts am Himmel die Sonne auf. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
       "state": {
         "none": "offen",
         "tipped": "gesetzt · wartet auf LIVE",
@@ -6918,15 +6962,15 @@
         "closed": "Tipps für {{patch}} sind geschlossen",
         "tipped": "Dein Tipp für {{patch}}: {{date}}",
         "hit": "Eingeschlagen am {{date}}",
-        "miss": "Dein Komet: {{date}}",
+        "miss": "Dein Patch-Tipp: {{date}}",
         "open": "Tipps für {{patch}} offen",
         "missed": "Dein Tipp für {{patch}} verpasst: {{date}}"
       },
       "formerly": "ehemals {{patch}}",
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
-      "dayAria": "Komet auf {{date}} setzen",
-      "undoToast": "Komet für {{patch}} gesetzt: {{date}}"
+      "dayAria": "Patch-Tipp auf {{date}} setzen",
+      "undoToast": "Patch-Tipp für {{patch}} gesetzt: {{date}}"
     },
     "guess": {
       "kind": "Erkennen",
@@ -7091,7 +7135,7 @@
     }
   },
   "adminHub": {
-    "eyebrow": "Admin · nur für Admins",
+    "eyebrow": "Admin",
     "title": "Kommandozentrale",
     "subtitle": "Alle Admin-Werkzeuge an einem Ort.",
     "tiles": {
@@ -7164,7 +7208,7 @@
       "breadcrumbAria": "Apps",
       "uploader": {
         "name": "Data Uploader",
-        "desc": "Liest dein Star-Citizen-Spiel aus und lädt die Daten in den Codex. Nur für Collaborator."
+        "desc": "Liest dein Star-Citizen-Spiel aus und lädt die Daten in den Codex."
       },
       "starscape": {
         "name": "Starscape",
@@ -8004,7 +8048,7 @@
     "done": "{{n}}× {{name}}: Material auf die Wunschliste gelegt"
   },
   "adminEvents": {
-    "eyebrow": "Nur für Admins",
+    "eyebrow": "Admin",
     "title": "Event-Datenblätter",
     "subtitle": "Felder unter 80 % Sicherheit bleiben unbekannt, bis du sie freigibst oder von Hand setzt.",
     "retry": "Erneut versuchen",

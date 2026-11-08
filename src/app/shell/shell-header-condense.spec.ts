@@ -107,7 +107,7 @@ describe('ShellComponent condensed header', () => {
     expect(button().getAttribute('aria-expanded')).toBe('true');
     expect(items().map((a) => a.getAttribute('href'))).toEqual(['/admin', '/admin/telemetry', '/admin/translations']);
     expect(items().every((a) => a.classList.contains('elevated') && a.getAttribute('role') === 'menuitem')).toBeTrue();
-    expect(items().every((a) => a.querySelector('.di-tag')?.textContent?.trim() === 'nav.adminOnly')).toBeTrue();
+    expect(items().every((a) => a.querySelector('.sc-sr-only')?.textContent?.trim() === 'nav.adminOnly')).toBeTrue();
     const hot = getComputedStyle(document.documentElement).getPropertyValue('--sc-accent-hot').trim();
     if (hot) {
       const probe = document.createElement('span');
