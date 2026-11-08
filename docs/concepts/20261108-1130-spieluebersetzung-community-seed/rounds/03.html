@@ -10,7 +10,7 @@
         <li><span class="fr-win-icon" aria-hidden="true">🗂</span><span><b>Karteikarten</b> mit Punkten, Serie und Rangliste.</span></li>
       </ul>
       <a class="fr-try" href="https://sc-companion.vercel.app/admin/translations" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
-      <p class="fr-try-auth">🔑 Admin-Konto; erst nach dem Einspielen der zwei neuen Migrationen.</p>
+      <p class="fr-try-auth">🔑 Admin-Konto; erst nach dem Einspielen der drei neuen Migrationen.</p>
     </div>
     <div class="fr-ba">
       <ol class="fr-flow">
@@ -67,7 +67,7 @@
           <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt, als eigene Session im App-Repo; der Overlay-Vertrag steht.</dd>
         </dl>
       </li>
-      <li data-oq-id="oq-zip"
+      <li data-oq-id="oq-zip" data-routed="now"
           data-issue-title="[CHORE] Test the zip unpack path of the community seed import"
           data-issue-type="chore"
           data-issue-body="_pack.ts unpacks 42Kit's data.zip with npm:fflate; no test covers it and the edge memory limit is untested. Chinese stays blocked until 42Kit grants permission, so this only matters then. Add a fixture test before zh is permitted."
@@ -81,8 +81,9 @@
           <dt>{{final.fund_where}}</dt><dd>translate-orchestrator/_pack.ts</dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue, Chinesisch ist ohnehin bis zur Zusage gesperrt.</dd>
         </dl>
+        <p class="oq-done">umgesetzt — Entpacken austauschbar, 5 Tests mit eigenem Zip (Treffer, fehlender Eintrag, BOM, Größengrenze); das Speicherlimit der Edge-Funktion bleibt ungetestet.</p>
       </li>
-      <li data-oq-id="oq-ledger"
+      <li data-oq-id="oq-ledger" data-routed="now"
           data-issue-title="[CHORE] Ledger rows without a job for learning spend"
           data-issue-type="chore"
           data-issue-body="translation_ledger.job_id is NOT NULL, so learning/arbiter/web spend is booked on the newest translation job of the language and the web cap is summed from R2 learn-spend files. Cleaner: job_id nullable plus a kind column, then sum the web cap from the ledger."
@@ -96,6 +97,7 @@
           <dt>{{final.fund_where}}</dt><dd>translation_ledger, _learn_batch.ts</dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue, funktioniert, ist aber unsauber.</dd>
         </dl>
+        <p class="oq-done">umgesetzt — Lernkosten stehen als eigene Zeilen mit Art und Sprache im Ledger, der Web-Deckel zählt dort; dritte Migration 20261108180000.</p>
       </li>
     </ul>
   </details>
@@ -104,9 +106,9 @@
     <summary>🛠 {{final.dev_fold}}</summary>
     <ul class="fr-dev">
       <li>Branch <code>claude/sc-translations-automated-learning-6008c4</code> · Commit <code>baf70811</code></li>
-      <li><code>supabase/migrations/20261108160000_translation_community_seed.sql</code>, <code>…170000_translation_source_sync_cron.sql</code></li>
+      <li><code>supabase/migrations/20261108160000_translation_community_seed.sql</code>, <code>…170000_translation_source_sync_cron.sql</code>, <code>…180000_translation_ledger_kind.sql</code></li>
       <li><code>translate-orchestrator/_learn.ts</code>, <code>_arbiter.ts</code>, <code>_sources.ts</code> · Admin: <code>src/app/admin/translations/</code></li>
-      <li>Tests: test:functions 434 grün · Karma 6226 grün · typecheck, lint, build grün · pgTAP und Deno-Check nicht gelaufen</li>
+      <li>Tests: test:functions 442 grün · Karma 6226 grün · typecheck, lint, build grün · pgTAP und Deno-Check nicht gelaufen</li>
       <li>Docs: <code>docs/translation/ARCHITECTURE.md</code>, <code>OPERATIONS.md</code>, <code>PUBLIC-RELEASE.md</code></li>
     </ul>
   </details>
