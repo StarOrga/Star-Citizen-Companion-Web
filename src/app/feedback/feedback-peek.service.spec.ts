@@ -255,4 +255,69 @@ describe('FeedbackPeekService (hold Ctrl/Alt to dissolve the panel)', () => {
       vis.and.callThrough();
     }));
   });
+
+  describe('only from outside the launcher (admin feedback #327)', () => {
+    beforeEach(() => {
+      panel.style.cssText = 'position:fixed;left:100px;top:100px;width:200px;height:200px;';
+      document.body.appendChild(panel);
+    });
+
+    afterEach(() => panel.remove());
+
+    const moveTo = (x: number, y: number) =>
+      document.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
+
+    it('does nothing while the pointer is over the panel', fakeAsync(() => {
+      moveTo(150, 150);
+      key('keydown', 'Control', { ctrlKey: true });
+      tick(500);
+      expect(peek.peeking()).toBeFalse();
+      key('keyup', 'Control');
+    }));
+
+    it('dissolves with the pointer outside the panel', fakeAsync(() => {
+      moveTo(20, 20);
+      key('keydown', 'Alt', { altKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      key('keyup', 'Alt');
+    }));
+
+    it('a pointer moving onto the panel during the wait cancels the dissolve', fakeAsync(() => {
+      moveTo(20, 20);
+      key('keydown', 'Control', { ctrlKey: true });
+      tick(50);
+      moveTo(150, 150);
+      tick(500);
+      expect(peek.peeking()).toBeFalse();
+      key('keyup', 'Control');
+    }));
+
+    it('keyboard only (no pointer yet): focus inside the panel keeps it, focus outside does not', fakeAsync(() => {
+      const field = document.createElement('textarea');
+      panel.appendChild(field);
+      field.focus();
+      key('keydown', 'Control', { ctrlKey: true });
+      tick(500);
+      expect(peek.peeking()).toBeFalse();
+      key('keyup', 'Control');
+
+      field.blur();
+      key('keydown', 'Control', { ctrlKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      key('keyup', 'Control');
+    }));
+
+    it('with a pointer outside, the pointer decides even while typing in the panel', fakeAsync(() => {
+      const field = document.createElement('textarea');
+      panel.appendChild(field);
+      field.focus();
+      moveTo(20, 20);
+      key('keydown', 'Control', { ctrlKey: true });
+      tick(PEEK_DELAY_MS);
+      expect(peek.peeking()).toBeTrue();
+      key('keyup', 'Control');
+    }));
+  });
 });
