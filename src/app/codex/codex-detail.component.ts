@@ -1788,8 +1788,7 @@ export class CodexDetailComponent implements OnInit {
       return this.hangar.ships().find((s) => s.id === id) ?? null;
     }
     const cls = this.detail()?.classNameSlug;
-    const own = cls ? this.hangar.shipByClassName(cls) : null;
-    return own?.status === 'owned' ? own : null;
+    return cls ? (this.hangar.ships().find((s) => s.shipClassName === cls && s.status === 'owned') ?? null) : null;
   });
   private readonly ownCardRef = viewChild(CodexOwnCardComponent);
   /** The head's "Nicht im Hangar / Inventar": the ownership card comes into view and lights up (C2). */

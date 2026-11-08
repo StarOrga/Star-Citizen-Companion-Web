@@ -182,7 +182,9 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     const kbds = [...el.querySelectorAll('kbd.hk')].map((k) => k.textContent?.trim());
     expect(kbds).toContain('P');
     expect(kbds).toContain('V');
-    expect(kbds).toContain('S');
+    expect(kbds).not.toContain('S');
+    // The patch trigger is the head strip's first segment (concept codex-kopf-besitz C1).
+    expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-holo-patch')).toBeTruthy();
     expect(el.querySelector('.patch-trigger')?.getAttribute('aria-keyshortcuts')).toBe('P');
   });
 });

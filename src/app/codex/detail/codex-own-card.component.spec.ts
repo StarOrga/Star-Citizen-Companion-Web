@@ -37,6 +37,8 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
     return fixture;
   }
 
+  /** One macrotask: every awaited write and the toast offer have run (the toast's own timer is not waited out). */
+  const flush = () => new Promise((r) => setTimeout(r));
   const text = (f: ComponentFixture<unknown>) => (f.nativeElement as HTMLElement).textContent ?? '';
 
   describe('card', () => {
@@ -47,10 +49,10 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       expect(el.querySelector('[tier="primary"]')).toBeNull();
       expect(el.querySelectorAll('[tier="secondary"]').length).toBe(2);
       el.querySelector<HTMLButtonElement>('.oc-wish')!.click();
-      await f.whenStable();
+      await flush();
       expect(path.addWish).toHaveBeenCalledWith('ship', 'AEGS_Avenger_Stalker', 'Avenger Stalker');
       el.querySelector<HTMLButtonElement>('.oc-own')!.click();
-      await f.whenStable();
+      await flush();
       expect(path.addToHangar).toHaveBeenCalledWith('AEGS_Avenger_Stalker', 'Avenger Stalker');
     });
 
@@ -62,7 +64,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       const open = el.querySelector<HTMLAnchorElement>('a.oc-link')!;
       expect(open.getAttribute('href')).toContain('cart=1');
       el.querySelectorAll<HTMLButtonElement>('.oc-step .st')[1].click();
-      await f.whenStable();
+      await flush();
       expect(path.setWishQty).toHaveBeenCalledWith('ship', 'AEGS_Avenger_Stalker', 'Avenger Stalker', 3);
     });
 
@@ -93,14 +95,14 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       expect(text(f)).toContain('codex.ownCard.mineItem');
       expect(el.querySelector('.oc-step b')?.textContent).toBe('2');
       el.querySelectorAll<HTMLButtonElement>('.oc-step .st')[1].click();
-      await f.whenStable();
+      await flush();
       expect(path.adjustInventar).toHaveBeenCalledWith('KLWE_Laser_S3', 'M6A', 'Area 18', 1);
       el.querySelector<HTMLButtonElement>('.oc-remove')!.click();
-      await f.whenStable();
+      await flush();
       expect(confirm).toHaveBeenCalledWith(jasmine.objectContaining({ tone: 'danger' }));
       expect(path.removeFromInventar).toHaveBeenCalledWith('weapon', 'KLWE_Laser_S3', 'M6A');
       el.querySelector<HTMLButtonElement>('.oc-again')!.click();
-      await f.whenStable();
+      await flush();
       expect(path.addWish).toHaveBeenCalled();
       // Note / pin have no backing service for an inventory item: not offered.
       expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
@@ -110,7 +112,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       const f = setup(CodexOwnCardComponent, { kind: 'ship', className: 'X' });
       path.addWish.and.resolveTo({ ok: false, key: 'errors.network' });
       (f.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.oc-wish')!.click();
-      await f.whenStable();
+      await flush();
       f.detectChanges();
       expect((f.nativeElement as HTMLElement).querySelector('[role="alert"]')?.textContent).toContain('errors.network');
     });

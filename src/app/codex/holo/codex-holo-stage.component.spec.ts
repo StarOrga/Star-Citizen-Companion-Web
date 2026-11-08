@@ -322,7 +322,7 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.share-wrap')).toBeNull();
     expect(el.querySelector('sc-codex-holo-share')).toBeNull();
-    expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-holo-patch')).withContext('patch is the first strip segment').toBeTruthy();
+    expect(el.querySelector('.holo-topbar .sc-head-strip')).withContext('the head strip on the title row').toBeTruthy();
     c.inspectedPort.set('hardpoint_gun_left');
     c.onKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(c.inspectedPort()).toBeNull();
