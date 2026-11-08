@@ -54,8 +54,9 @@
           data-issue-body="Approved in Nachschub-HQ round 3/4 (Codex detail in holotable style), not built for missiles: missile detail pages keep the old hero and scroll ~915 px at 1440x900. Weapons, armor and blueprints use the new codex-item-stage (src/app/codex/detail/codex-item-stage.component.ts). Done = missile pages render the item stage, fit without page scroll at 1440x900 and 1920x1080."
           data-oq-origin="shortfall"
           data-route-default="now"
-          data-route-reason="nicht-gebaut">
+          data-route-reason="nicht-gebaut" data-routed>
         <span class="oq-label">Raketen-Detail noch alt</span>
+        <span class="oq-done">✓ umgesetzt — <code>165eed15</code></span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Nicht umgesetzt, weil Raketen eine eigene Detailseite haben, die die Wellen nicht erreicht haben.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex, Raketen</dd>
@@ -68,8 +69,9 @@
           data-issue-body="Approved Passt-dazu block in the Warenkorb (Nachschub-HQ round 3/4). Built only for FPS armor and weapons (src/app/hq/nachschub/recommend.ts); it returns nothing when the newest wishes are e.g. missiles or ship parts, and the armor set key can be wrong (QA saw 'gleiches Set: cds'). Research: docs/concepts/nachschub-recommendations-research.md. Done = ship components and consumables get suggestions, set key fixed, spec per category."
           data-oq-origin="shortfall"
           data-route-default="now"
-          data-route-reason="nicht-gebaut">
+          data-route-reason="nicht-gebaut" data-routed>
         <span class="oq-label">„Passt dazu“ nur teilweise</span>
+        <span class="oq-done">✓ umgesetzt — <code>9eb2d0fb</code></span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Nicht voll umgesetzt, weil es Vorschläge bisher nur für Rüstung und Waffen gibt.</dd>
           <dt>{{final.fund_where}}</dt><dd>Warenkorb</dd>
@@ -83,8 +85,9 @@
           data-issue-module="codex"
           data-oq-origin="found"
           data-route-default="now"
-          data-route-reason="im Repo">
+          data-route-reason="im Repo" data-routed>
         <span class="oq-label">Rangkarte auf dem Handy</span>
+        <span class="oq-done">✓ umgesetzt — <code>1ed6dae5</code></span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Zu kleine Tippflächen und Schrift in der Rangkarte, die Mobile-Prüfung wird rot.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex, Schiffsseite (Holotisch)</dd>
@@ -98,8 +101,9 @@
           data-issue-module="uploader"
           data-oq-origin="found"
           data-route-default="issue"
-          data-route-reason="außerhalb Repo">
+          data-route-reason="außerhalb Repo" data-routed>
         <span class="oq-label">Silhouetten fehlen</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Star-Citizen-Companion-Web/issues/1004" target="_blank" rel="noopener noreferrer">{{final.issue_link_prefix}} #1004</a>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Viele Gegenstände haben in den Live-Daten kein Umrissbild.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex-Daten aus dem Uploader</dd>
@@ -115,6 +119,7 @@
       <li>Branch <code>claude/nachschub-hq-concept-9ffa89</code> · zuletzt <code>e7b6f05c</code> · Bereiche: hq, shell, codex, verse</li>
       <li><code>src/app/hq/nachschub/</code>, <code>src/app/hq/plan/einsatz-proposal.ts</code>, <code>src/app/shell/cart/</code></li>
       <li>Tests: 6202 grün · Typecheck, Lint (0 Fehler), Build grün · Mobile-Gate 70/74</li>
+      <li>Abschluss: <code>165eed15</code>, <code>9eb2d0fb</code>, <code>1ed6dae5</code>, QA <code>1bb6b722</code> · Suite 6209 grün · Mobile 74/74</li>
       <li>3 Migrationen + Edge-Function <code>nachschub-names</code> gehen mit dem Ship live</li>
       <li>Gespeicherte Einsätze ohne Nachschub zeigt Planen nicht mehr (nur der alte Modus tat das)</li>
     </ul>
