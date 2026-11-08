@@ -2612,6 +2612,7 @@
       "removeConfirm": "Entfernen",
       "inNachschub": "Im Nachschub „{{name}}“",
       "showInHq": "Im HQ zeigen",
+      "noteTitle": "Notiz zu diesem Gegenstand",
       "wishAgain": "Noch eins wünschen"
     }
   },

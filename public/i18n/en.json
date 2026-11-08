@@ -2612,6 +2612,7 @@
       "removeConfirm": "Remove",
       "inNachschub": "In supply “{{name}}”",
       "showInHq": "Show in HQ",
+      "noteTitle": "Note on this item",
       "wishAgain": "Wish for another"
     }
   },

@@ -5,6 +5,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
 import type { HangarShip } from '../../hangar/hangar.types';
 import { ItemPathService } from '../../hq/data/item-path.service';
+import { HqItemMarksService, type HqItemMark } from '../../hq/data/hq-item-marks.service';
 import { HqOwnershipService } from '../../hq/hq-ownership.service';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { fakeItemPath, type FakeItemPath } from '../../shared/item-path/item-path.testing';
@@ -16,17 +17,33 @@ const SHIP = { id: 'sh1', shipClassName: 'AEGS_Avenger_Stalker', customName: 'Sc
 describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C7)', () => {
   let path: FakeItemPath;
   let confirm: jasmine.Spy;
+  let prompt: jasmine.Spy;
+  let marks: { list: ReturnType<typeof signal<HqItemMark[]>>; setNote: jasmine.Spy; setPinned: jasmine.Spy };
 
   function setup<T>(type: Type<T>, inputs: Record<string, unknown>): ComponentFixture<T> {
     path = fakeItemPath();
     confirm = jasmine.createSpy('confirm').and.resolveTo(true);
+    prompt = jasmine.createSpy('prompt').and.resolveTo(null);
+    const list = signal<HqItemMark[]>([]);
+    marks = { list, setNote: jasmine.createSpy('setNote').and.resolveTo(true), setPinned: jasmine.createSpy('setPinned').and.resolveTo(true) };
     TestBed.configureTestingModule({
       imports: [type],
       providers: [
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: ItemPathService, useValue: path },
-        { provide: ScConfirmService, useValue: { confirm, prompt: jasmine.createSpy('prompt').and.resolveTo(null) } },
+        { provide: ScConfirmService, useValue: { confirm, prompt } },
+        {
+          provide: HqItemMarksService,
+          useValue: {
+            ensureLoaded: () => Promise.resolve(),
+            error: signal(null),
+            noteOf: (c: string) => list().find((m) => m.class_name === c)?.note ?? null,
+            isPinned: (c: string) => list().some((m) => m.class_name === c && m.pinned_rank != null),
+            setNote: (...a: unknown[]) => marks.setNote(...a),
+            setPinned: (...a: unknown[]) => marks.setPinned(...a),
+          },
+        },
         { provide: HangarService, useValue: { error: signal(null), ships: signal([SHIP]), updateShip: jasmine.createSpy(), pinShip: jasmine.createSpy(), removeShip: jasmine.createSpy() } },
         { provide: HqOwnershipService, useValue: { configsForShip: () => [], invalidate: () => undefined } },
       ],
@@ -104,8 +121,40 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       el.querySelector<HTMLButtonElement>('.oc-again')!.click();
       await flush();
       expect(path.addWish).toHaveBeenCalled();
-      // Note / pin have no backing service for an inventory item: not offered.
       expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
+    });
+
+    it('item owned: note prompt saves per item, pin toggles, the note shows', async () => {
+      const f = setup(CodexOwnCardComponent, { kind: 'weapon', className: 'KLWE_Laser_S3', name: 'M6A' });
+      path.current.set({ inventarQty: 2, places: [{ location: 'Area 18', qty: 2 }] });
+      f.detectChanges();
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.oc-note-text')).toBeNull();
+      prompt.and.resolveTo('  for the Cutlass ');
+      el.querySelector<HTMLButtonElement>('.oc-note')!.click();
+      await flush();
+      expect(marks.setNote).toHaveBeenCalledWith('KLWE_Laser_S3', '  for the Cutlass ');
+      el.querySelector<HTMLButtonElement>('.oc-pin')!.click();
+      await flush();
+      expect(marks.setPinned).toHaveBeenCalledWith('KLWE_Laser_S3', true);
+      marks.list.set([{ class_name: 'KLWE_Laser_S3', note: 'for the Cutlass', pinned_rank: 1 }]);
+      f.detectChanges();
+      expect(el.querySelector('.oc-note-text')?.textContent).toContain('for the Cutlass');
+      expect(el.querySelector('.oc-pin')?.getAttribute('aria-pressed')).toBe('true');
+      el.querySelector<HTMLButtonElement>('.oc-pin')!.click();
+      await flush();
+      expect(marks.setPinned).toHaveBeenCalledWith('KLWE_Laser_S3', false);
+    });
+
+    it('item owned: cancelling the note prompt writes nothing; not owned shows no note or pin', async () => {
+      const f = setup(CodexOwnCardComponent, { kind: 'weapon', className: 'KLWE_Laser_S3', name: 'M6A' });
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.oc-note, .oc-pin')).toBeNull();
+      path.current.set({ inventarQty: 1, places: [{ location: 'Area 18', qty: 1 }] });
+      f.detectChanges();
+      el.querySelector<HTMLButtonElement>('.oc-note')!.click();
+      await flush();
+      expect(marks.setNote).not.toHaveBeenCalled();
     });
 
     it('a failed write shows its translated key, never raw text', async () => {

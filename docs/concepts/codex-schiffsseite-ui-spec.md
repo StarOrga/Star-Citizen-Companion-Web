@@ -789,7 +789,7 @@ item pages, in Klassisch and Holotisch alike.
   quantity stepper + "Wunschliste öffnen" (anchor, `?cart=1`). Owned ship: "Dein Exemplar"
   with the custom name, rename / note / pin / remove (remove = danger, confirm), the
   Nachschub hint only when the ship sits in one, "Im HQ zeigen" (anchor), "Noch eins
-  wünschen". Owned item: "Dein Bestand" with the Inventar stepper, remove (danger,
+  wünschen". Owned item: "Dein Bestand" with the Inventar stepper, note, pin (own table `hq_item_marks`), remove (danger,
   confirm), "Im HQ zeigen", "Noch eins wünschen". Every write goes through
   `ItemPathService`. No variant select in the card.
 - **Altlasten weg.** The Wunschliste → Hangar panel, the own-ship icon row and the HQ
@@ -814,7 +814,7 @@ item pages, in Klassisch and Holotisch alike.
 
 ### Left out
 
-- Item cards offer no note / pin: the Inventar has no backing service for them.
+- ~~Item cards offer no note / pin~~ - built: `hq_item_marks` (per user and item `class_name`, `HqItemMarksService`), note prompt + pin toggle on "Dein Bestand".
 - The view toggle FAB has no `aria-pressed`: its label names the view a click leads to.
 - Klassisch shows the patch as a label, not a chooser: the patch comparison paints the
   Holotisch's KPI ghosts and port pins and has no classic counterpart.

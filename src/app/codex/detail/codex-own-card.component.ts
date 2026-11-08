@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, e
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { HangarShip } from '../../hangar/hangar.types';
+import { HqItemMarksService, HQ_ITEM_NOTE_MAX } from '../../hq/data/hq-item-marks.service';
 import { ItemPathService, ownWordOf, type PathResult } from '../../hq/data/item-path.service';
 import { cartLinkParams, hqStockLink } from '../../hq/hq-routes';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
@@ -21,8 +22,9 @@ const FLASH_MS = 1400;
  * as secondary pills; once wished a quantity stepper and "Wunschliste öffnen". Owned ship:
  * "Dein Exemplar" - the custom name, rename / note / pin / remove (the Holotisch's former
  * own-ship icons), the Nachschub hint, "Im HQ zeigen", "Noch eins wünschen". Owned item:
- * "Dein Bestand" - the Inventar stepper, remove, "Im HQ zeigen", "Noch eins wünschen".
- * Every write goes through `ItemPathService`; nothing new is persisted. No variant select:
+ * "Dein Bestand" - the Inventar stepper, note, pin, remove, "Im HQ zeigen", "Noch eins wünschen".
+ * Stock writes go through `ItemPathService`; an item's note and pin live in `hq_item_marks`
+ * (`HqItemMarksService`). No variant select:
  * that lives in the head strip.
  */
 @Component({
@@ -59,12 +61,22 @@ const FLASH_MS = 1400;
           </span>
           <span class="oc-dim">{{ (word() === 'sammlung' ? 'codex.ownCard.inSammlung' : 'codex.ownCard.inInventar') | translate }}</span>
           <span class="oc-grow"></span>
+          <button type="button" scAction tier="tertiary" class="oc-note" [attr.aria-label]="'codex.own.note' | translate"
+                  [scTooltip]="'codex.own.note' | translate" scTooltipTier="label" (click)="editNote()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12l-4 4H5V4zM9 9h6M9 13h4" /></svg>
+          </button>
+          <button type="button" scAction tier="tertiary" class="oc-pin" [attr.aria-pressed]="pinned()"
+                  [attr.aria-label]="(pinned() ? 'codex.own.unpin' : 'codex.own.pin') | translate"
+                  [scTooltip]="(pinned() ? 'codex.own.unpin' : 'codex.own.pin') | translate" scTooltipTier="label" (click)="togglePin()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2h-4v6l-1 1-1-1v-6H7v-2l3-3-1-6z" [attr.fill]="pinned() ? 'currentColor' : 'none'" /></svg>
+          </button>
           <button type="button" scAction tier="tertiary" tone="danger" class="oc-remove" [busy]="busy()"
                   [attr.aria-label]="'codex.ownCard.removeItem' | translate" [scTooltip]="'codex.ownCard.removeItem' | translate"
                   scTooltipTier="label" (click)="removeItem()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6" /></svg>
           </button>
         </div>
+        @if (itemNote(); as n) { <p class="oc-note-text">{{ n }}</p> }
       }
       <div class="oc-row">
         <a class="oc-link" [routerLink]="hqLink().commands" [queryParams]="hqLink().queryParams" [fragment]="hqLink().fragment">
@@ -131,6 +143,7 @@ const FLASH_MS = 1400;
     .oc-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
     .oc-grow { flex: 1; }
     .oc-name { font-size: max(0.95rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-0); min-width: 0; overflow-wrap: anywhere; }
+    .oc-note-text { margin: 0; color: var(--sc-fg-1); font-size: max(0.8rem, var(--sc-fs-floor)); overflow-wrap: anywhere; white-space: pre-wrap; }
     .oc-dim { margin: 0; color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
     .oc-hq { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 10px; border-radius: 12px;
       border: 1px dashed color-mix(in srgb, var(--sc-warning) 55%, transparent); color: var(--sc-warning);
@@ -157,6 +170,7 @@ export class CodexOwnCardComponent {
   private readonly path = inject(ItemPathService);
   private readonly toast = inject(UndoToastService);
   private readonly confirmDialog = inject(ScConfirmService);
+  private readonly marks = inject(HqItemMarksService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   readonly kind = input.required<string>();
@@ -186,6 +200,8 @@ export class CodexOwnCardComponent {
     const custom = this.ship()?.customName?.trim();
     return custom ? `„${custom}“` : this.label();
   });
+  protected readonly pinned = computed(() => this.marks.isPinned(this.className()));
+  protected readonly itemNote = computed(() => this.marks.noteOf(this.className()));
   protected readonly hqLink = computed(() =>
     hqStockLink({ tab: this.isShip() ? 'hangar' : this.word() === 'sammlung' ? 'sammlung' : 'inventar', focus: this.className() }),
   );
@@ -197,6 +213,9 @@ export class CodexOwnCardComponent {
 
   constructor() {
     effect(() => this.path.ensureLoaded());
+    effect(() => {
+      if (!this.isShip() && this.owned()) void this.marks.ensureLoaded();
+    });
     inject(DestroyRef).onDestroy(() => {
       if (this.flashTimer) clearTimeout(this.flashTimer);
     });
@@ -239,6 +258,28 @@ export class CodexOwnCardComponent {
     if (delta < 0 && s.inventarQty <= 1) return this.removeItem();
     const place = s.places[0]?.location ?? this.path.currentPlaceDefault();
     return this.run(() => this.path.adjustInventar(this.className(), this.label(), place, delta));
+  }
+
+  /** The item's note (per user and item, not per storage place). */
+  async editNote(): Promise<void> {
+    const v = await this.confirmDialog.prompt({
+      titleKey: 'codex.ownCard.noteTitle',
+      inputLabelKey: 'codex.own.note',
+      inputMaxLength: HQ_ITEM_NOTE_MAX,
+      initialValue: this.itemNote() ?? '',
+      confirmKey: 'hangar.detail.save',
+    });
+    if (v === null) return;
+    await this.markResult(this.marks.setNote(this.className(), v));
+  }
+
+  async togglePin(): Promise<void> {
+    await this.markResult(this.marks.setPinned(this.className(), !this.pinned()));
+  }
+
+  private async markResult(write: Promise<boolean>): Promise<void> {
+    this.errorKey.set(null);
+    if (!(await write)) this.errorKey.set(this.marks.error() ?? 'errors.generic');
   }
 
   async removeItem(): Promise<void> {
