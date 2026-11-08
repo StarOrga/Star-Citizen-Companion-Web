@@ -2903,7 +2903,9 @@
         "official": "Official (RSI)",
         "source": "Source: RSI status, {{title}}",
         "noOfficial": "No official date yet",
-        "statusLink": "Check the RSI status page"
+        "statusLink": "Check the RSI status page",
+        "openNotes": "View the changes in {{version}}",
+        "partOf": "Part of Alpha {{line}}"
       },
       "forecast": {
         "title": "Projected schedule",
@@ -3027,7 +3029,9 @@
           "next": "When is the next one?",
           "nextThis": "When does this one land?",
           "nextPast": "What came next?"
-        }
+        },
+        "noteOf": "Changes in {{version}} · part of Alpha {{line}}",
+        "wholeLine": "View the whole {{line}} patch"
       },
       "prep": {
         "source": "per the Spectrum post (\"Important Build Info\")",
@@ -3049,7 +3053,8 @@
         "more": "Full text",
         "less": "Collapse",
         "leftover": "Further note bullets without a roadmap card ({{n}})",
-        "noRoadmap": "No roadmap data for this patch – here is the note \"{{title}}\":"
+        "noRoadmap": "No roadmap data for this patch – here is the note \"{{title}}\":",
+        "ofNote": "The changes from “{{title}}”:"
       },
       "fixed": {
         "placeholder": "Search this patch … e.g. quantum drive",

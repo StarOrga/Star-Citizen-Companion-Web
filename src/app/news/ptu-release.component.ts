@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import type { ScheduledDeployment } from './news.service';
 import type { PatchLineGroup } from './patch-notes';
-import { computeTestBuildRelease, nextPatchDistance } from './patch-stats';
+import { computeTestBuildRelease, nextPatchDistance, testBuildNote, type TestBuildNote } from './patch-stats';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -16,6 +17,8 @@ interface PtuReleaseView {
   state: 'ontrack' | 'over';
   estimate: { date: string; when: string; inTestDays: number; medianDays: number; samples: number } | null;
   official: { date: string; when: string; title: string; url: string } | null;
+  /** Main line + newest note of the build — the way into its changes (feedback #317, round 2). */
+  note: TestBuildNote | null;
 }
 
 /**
@@ -35,7 +38,7 @@ interface PtuReleaseView {
 @Component({
   selector: 'sc-ptu-release',
   standalone: true,
-  imports: [TranslatePipe, InfoNoteComponent],
+  imports: [TranslatePipe, RouterLink, InfoNoteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (view(); as v) {
@@ -48,6 +51,14 @@ interface PtuReleaseView {
             <p>{{ 'news.patch.ptuRelease.infoOfficial' | translate }}</p>
           </sc-info-note>
         </header>
+
+        @if (v.note; as n) {
+          <!-- The build's own changes, framed by the main patch it belongs to. -->
+          <p class="notes">
+            <a [routerLink]="['/verse/patches', n.line]" [queryParams]="{ note: n.noteId }">{{ 'news.patch.ptuRelease.openNotes' | translate:{ version: v.version } }} →</a>
+            <a class="line" [routerLink]="['/verse/patches', n.line]">{{ 'news.patch.ptuRelease.partOf' | translate:{ line: n.line } }}</a>
+          </p>
+        }
 
         <dl class="tiles">
           <div class="tile est" [attr.data-state]="v.state">
@@ -95,6 +106,9 @@ interface PtuReleaseView {
     }
     .beacon { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--sc-success); box-shadow: 0 0 10px var(--sc-success); }
     .pr[data-state='over'] .beacon { background: var(--sc-warning); box-shadow: 0 0 10px var(--sc-warning); }
+    .notes { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0; font-size: max(0.86rem, var(--sc-fs-floor)); }
+    .notes a { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); font-weight: 600; }
+    .notes .line { color: var(--sc-fg-1); font-weight: 400; }
     .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0; background: var(--sc-border); border: 1px solid var(--sc-border); border-radius: 8px; overflow: hidden; }
     .tile { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: var(--sc-bg-0); min-width: 0; }
     dt { font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-fg-2); }
@@ -146,6 +160,7 @@ export class PtuReleaseComponent {
       official: d && Number.isFinite(officialAt)
         ? { date: this.dateTime(officialAt), when: this.distance(Math.round((officialAt - now) / DAY_MS)), title: d.title, url: d.url }
         : null,
+      note: testBuildNote(this.groups(), r.version),
     };
   });
 
