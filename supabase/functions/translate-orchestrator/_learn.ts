@@ -37,7 +37,6 @@ import { containsStem, containsTerm } from './_qa.ts';
 import { propagateGlossaryChange, reviseStateFor, shouldReplace } from './_revise.ts';
 import type { ReviseState } from './_revise.ts';
 import { styleStats } from './_style.ts';
-import type { StylePair } from './_style.ts';
 
 export type LearnTrigger = 'publish' | 'seed' | 'sync' | 'backfill';
 export type LineOrigin = 'admin' | 'cig' | 'community' | 'ai' | 'judge';
@@ -334,6 +333,8 @@ interface LearnState {
   align: LearnBatch<AlignLine[]> | null;
   web: LearnBatch<WebItem[]> | null;
   last?: { trigger: LearnTrigger; at: string; build_id: string | null };
+  /** Haiku pairs already judged for this build (source|a|b, lower case). */
+  seen?: { build_id: string | null; sigs: Record<string, 1> };
 }
 
 export const stateKey = (lang: string) => learnKey(lang, 'state');
@@ -420,7 +421,7 @@ export async function runLearning(deps: Deps, lang: string, trigger: LearnTrigge
 
   // C3 style: CIG + admin teach it; the community joins only where CIG says too little.
   const trusted = lines.filter((l) => l.o === 'cig' || l.o === 'admin');
-  const stylePairs: StylePair[] = trusted.length >= STYLE_MIN_TRUSTED ? trusted : lines.filter((l) => l.o !== 'ai');
+  const stylePairs: MineLine[] = trusted.length >= STYLE_MIN_TRUSTED ? trusted : lines.filter((l) => l.o !== 'ai');
   if (stylePairs.length) {
     const from = [...new Set(stylePairs.map((l) => l.o))].sort();
     await learn.setStyle(lang, { ...styleStats(lang, stylePairs, from), at: d.now().toISOString() });
@@ -447,8 +448,21 @@ export async function runLearning(deps: Deps, lang: string, trigger: LearnTrigge
 
   // C6: contested candidates and row challenges → one Haiku batch (both orders).
   if (!state.haiku && (plan.contested.length || plan.revise.length)) {
-    const exampleOf = (src: string, t: string) =>
-      lines.filter((l) => l.en.length <= 200 && containsTerm(l.en, src) && containsStem(l.t, t)).slice(0, 2).map((l) => ({ en: l.en, t: l.t }));
+    const exampleOf = (src: string, t: string) => {
+      const lo = src.toLowerCase();
+      const out: { en: string; t: string }[] = [];
+      for (const l of lines) {
+        if (out.length >= 2) break;
+        if (l.en.length <= 200 && l.en.toLowerCase().includes(lo) && containsTerm(l.en, src) && containsStem(l.t, t)) out.push({ en: l.en, t: l.t });
+      }
+      return out;
+    };
+    // Never ask twice in one release: a term with an open card, or a pair Haiku already judged
+    // for this build, waits (for the admin, or for the next build's evidence).
+    const openTerms = new Set((await learn.listOpenCards(lang, ['meta', 'wording', 'style'], 1000)).map((c) => c.dedupe_key));
+    const seen = state.seen?.build_id === buildId ? state.seen.sigs : {};
+    const sig = (s: string, a: string, b: string) => `${s.toLowerCase()}|${a.toLowerCase()}|${b.toLowerCase()}`;
+    const fresh = <T extends { source: string }>(x: T, a: string, b: string) => !openTerms.has(`term:${x.source.toLowerCase()}`) && !seen[sig(x.source, a, b)];
     const items: HaikuItem[] = [
       ...plan.revise.map((r) => ({
         source: r.source, a: r.row.target_term, b: r.target, a_ev: r.row.evidence ?? 0, b_ev: r.evidence, total: r.total, keys: r.keys,
@@ -458,14 +472,17 @@ export async function runLearning(deps: Deps, lang: string, trigger: LearnTrigge
         source: c.source, a: c.a.text, b: c.b.text, a_ev: c.a_ev, b_ev: c.b_ev, total: c.total, keys: c.keys,
         examples: [...exampleOf(c.source, c.a.text), ...exampleOf(c.source, c.b.text)],
       })),
-    ].slice(0, HAIKU_ITEMS);
+    ].filter((x) => fresh(x, x.a, x.b)).slice(0, HAIKU_ITEMS);
     const est = estimateUsd(HAIKU_MODEL, items.length * 2, 2500, items.length * 2 * 50, items.length * 2 * 400);
-    const block = await spendBlock(d, settings, est);
-    if (block) sum.blocked.push(`haiku:${block}`);
-    else {
+    const block = items.length ? await spendBlock(d, settings, est) : 'nothing';
+    if (block && block !== 'nothing') sum.blocked.push(`haiku:${block}`);
+    else if (!block) {
       const id = await submitLearnBatch(d, haikuRequests(lang, items, glossary));
       state.haiku = { id, submitted_at: d.now().toISOString(), items };
-      sum.haiku = { submitted: items.length, promoted: 0, replaced: 0, cards: 0 };
+      const sigs = { ...seen };
+      for (const x of items) sigs[sig(x.source, x.a, x.b)] = 1;
+      state.seen = { build_id: buildId, sigs };
+      sum.haiku = { promoted: 0, replaced: 0, cards: 0, ...sum.haiku, submitted: items.length };
     }
   }
 
@@ -490,7 +507,7 @@ export async function runLearning(deps: Deps, lang: string, trigger: LearnTrigge
       else {
         const id = await submitLearnBatch(d, alignRequests(lang, settings.arbiter_model, mis));
         state.align = { id, submitted_at: d.now().toISOString(), items: mis };
-        sum.align = { submitted: mis.length, rewritten: 0 };
+        sum.align = { rewritten: 0, ...sum.align, submitted: mis.length };
       }
     }
   }
@@ -714,5 +731,5 @@ Search the web (e.g. starcitizen.tools in ${name}, the RSI website, ${name} comm
     id, submitted_at: d.now().toISOString(),
     items: top.map((c) => ({ card_id: c.id!, context: (c.context ?? {}) as Record<string, unknown>, est: WEB_USD_PER_CARD, month })),
   };
-  sum.web = { submitted: top.length, attached: 0 };
+  sum.web = { attached: 0, ...sum.web, submitted: top.length };
 }

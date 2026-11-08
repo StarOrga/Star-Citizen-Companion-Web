@@ -178,14 +178,15 @@ export async function applyAnsweredCards(
         sum.rules++;
       }
     } else if (ctx.type === 'term' && typeof ctx.term === 'string' && chosen) {
+      const term = ctx.term;
       // A term answer is a decision for every string with the term. save_as_rule or own text → admin row;
       // a plain a|b pick → a mined row backed by the admin's choice (still re-decidable by an admin).
       if (c.save_as_rule || c.answer === 'own') {
-        await learn.upsertAdminRule(lang, { source_term: ctx.term, target_term: chosen, category: ctx.term === chosen ? 'dnt' : 'term' }, c.answered_by ?? null);
+        await learn.upsertAdminRule(lang, { source_term: term, target_term: chosen, category: term === chosen ? 'dnt' : 'term' }, c.answered_by ?? null);
       } else {
-        const have = (await learn.listGlossary(lang)).find((g) => g.source_term.toLowerCase() === ctx.term.toLowerCase());
+        const have = (await learn.listGlossary(lang)).find((g) => g.source_term.toLowerCase() === term.toLowerCase());
         if (have?.id) await learn.updateGlossary(have.id, { target_term: chosen, origin: 'mined', needs_retranslate: true });
-        else await learn.insertGlossary(lang, [{ source_term: ctx.term, target_term: chosen, category: ctx.term === chosen ? 'dnt' : 'term', origin: 'mined', evidence: Number(c.spread ?? 0) }]);
+        else await learn.insertGlossary(lang, [{ source_term: term, target_term: chosen, category: term === chosen ? 'dnt' : 'term', origin: 'mined', evidence: Number(c.spread ?? 0) }]);
       }
       sum.rules++;
     } else if (c.kind === 'style' && c.save_as_rule && chosen) {
