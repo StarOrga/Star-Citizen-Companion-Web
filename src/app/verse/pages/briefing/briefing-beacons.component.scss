@@ -240,15 +240,17 @@
 .idle .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.7s + var(--n, 0) * 0.04s); }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-// Phones: the constellation sits beside the sun, the station mirrors them in
-// the top-left corner — all three clear of the hero and the search; the
-// feedback launcher (bottom right) is far below.
+// Phones: the hero (kicker, two-line title, search) fills the top of the
+// stage, so the three beacons share the empty band between the search and the
+// planets — station left, star map in the middle, sun right — clear of the
+// hero, the search and the feedback launcher (bottom right). The outer labels
+// align to their screen edge so they never run off it.
 @media (max-width: 720px) {
-  .sun-l { right: 4%; top: 3%; width: 64px; }
-  .const-l { right: calc(4% + 72px); top: 4%; }
-  .hq-l { left: 4%; top: 4%; }
-  .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
-  .hq-l .lab { left: 0; right: auto; align-items: flex-start; }
+  .sun-l { right: 5%; top: 33%; width: 64px; }
+  .const-l { right: calc(50% - 28px); top: 35%; }
+  .hq-l { left: 5%; top: 35%; }
+  .sun-l .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
+  .hq-l .lab { left: 0; transform: none; align-items: flex-start; }
 }
 
 // Entrance (the stage carries .intro only while the sequence plays and never
