@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.238.6",
+  "current": "0.238.7",
   "releases": [
+    {
+      "version": "0.238.7",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship detail (classic): save named loadouts per ship in this browser, recall or delete them from the Einsatz row; a disabled \"Komponenten in den Warenkorb\" button prepares the future cart."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.238.6",
       "date": "2026-11-08",

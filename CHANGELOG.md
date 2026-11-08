@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.238.7] - 2026-11-08
+
+### Added
+- Ship detail (classic): save named loadouts per ship in this browser, recall or delete them from the Einsatz row; a disabled "Komponenten in den Warenkorb" button prepares the future cart.
+
 ## [0.238.6] - 2026-11-08
 
 ### Fixed
