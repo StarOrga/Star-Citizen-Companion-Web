@@ -49,6 +49,9 @@ export type VerseEvent = keyof VerseEventProps;
  *    identify a user, so events stay anonymous.
  *  - EU ingest host (admin decision: EU/Germany).
  */
+/** How long a pending flags answer is awaited before the defaults apply. */
+export const FLAGS_TIMEOUT_MS = 2500;
+
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
   private readonly consent = inject(ConsentService);
@@ -69,6 +72,7 @@ export class AnalyticsService {
   readonly flagsPending = computed(
     () => this.configured && this.consent.statisticsAllowed() && !this.flagsSettled(),
   );
+  private flagsTimer: ReturnType<typeof setTimeout> | null = null;
   /** Guards against a second concurrent lazy-load while the first is in flight. */
   private loading = false;
   private routerBound = false;
@@ -173,7 +177,23 @@ export class AnalyticsService {
     }
   }
 
+  /**
+   * Upper bound for a flags answer that never comes (an ad blocker that only blocks the flags endpoint):
+   * after it the defaults apply, as if PostHog were absent. A fallback for a missing answer only.
+   */
+  private armFlagsTimeout(): void {
+    if (this.flagsSettled() || this.flagsTimer !== null) return;
+    this.flagsTimer = setTimeout(() => this.settleFlags(), FLAGS_TIMEOUT_MS);
+  }
+
+  private settleFlags(): void {
+    if (this.flagsTimer !== null) clearTimeout(this.flagsTimer);
+    this.flagsTimer = null;
+    this.flagsSettled.set(true);
+  }
+
   private async enable(): Promise<void> {
+    this.armFlagsTimeout();
     if (this.client) {
       this.client.opt_in_capturing();
       this.applyPendingLandingUtm();
@@ -201,7 +221,7 @@ export class AnalyticsService {
       this.client = posthog;
       posthog.onFeatureFlags((_flags, variants) => {
         this.flagValues.set({ ...variants });
-        this.flagsSettled.set(true);
+        this.settleFlags();
       });
       this.bindRouter();
       this.applyPendingLandingUtm();
@@ -210,7 +230,7 @@ export class AnalyticsService {
       // strictly optional — never let it break the app.
       logWarn('analytics', 'posthog load failed', error);
       this.client = null;
-      this.flagsSettled.set(true);
+      this.settleFlags();
     } finally {
       this.loading = false;
     }
@@ -218,6 +238,8 @@ export class AnalyticsService {
 
   private disable(): void {
     this.flagValues.set({});
+    if (this.flagsTimer !== null) clearTimeout(this.flagsTimer);
+    this.flagsTimer = null;
     this.flagsSettled.set(false);
     if (!this.client) return;
     this.client.opt_out_capturing();
