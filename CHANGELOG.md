@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.238.8] - 2026-11-08
 
 ### Fixed
+- Codex landing: the data sheet beside the hologram projector matches its top and bottom at every window size and after every item switch.
+
+## [0.238.8] - 2026-11-08
+
+### Fixed
 - Feature branches no longer create Vercel deployments at all (`git.deploymentEnabled`): canceled previews counted toward the Hobby limit of 100 per day and blocked production deploys.
 
 ## [0.238.7] - 2026-11-08
