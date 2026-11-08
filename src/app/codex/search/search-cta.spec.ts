@@ -189,7 +189,7 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
     for (const type of ['patch', 'gallery', 'place'] as const) {
       it(`${type} has none`, () => {
         expect(resolveCta(searchContextOf('/codex'), { type })).toBeNull();
-        expect(resolveIcons({ type })).toEqual({ wishlist: false, lager: false, nachschub: false });
+        expect(resolveIcons({ type })).toEqual({ wishlist: false, lager: false });
       });
     }
   });
@@ -214,16 +214,16 @@ describe('search icons (B9)', () => {
   const icons = (kind: PolyHitKind) => resolveIcons({ type: 'hit', kind });
   it('equipment, ships: all three', () => {
     for (const k of ['ship', 'weapon', 'component', 'item', 'ammunition'] as PolyHitKind[]) {
-      expect(icons(k)).toEqual({ wishlist: true, lager: true, nachschub: true });
+      expect(icons(k)).toEqual({ wishlist: true, lager: true });
     }
   });
   it('a blueprint has all three stops (A9)', () => {
-    expect(icons('blueprint')).toEqual({ wishlist: true, lager: true, nachschub: true });
+    expect(icons('blueprint')).toEqual({ wishlist: true, lager: true });
   });
   it('an announced ship can be wished for, not stored', () => {
-    expect(icons('upcoming')).toEqual({ wishlist: true, lager: false, nachschub: false });
+    expect(icons('upcoming')).toEqual({ wishlist: true, lager: false });
   });
   it('manufacturers have none', () => {
-    expect(icons('manufacturer')).toEqual({ wishlist: false, lager: false, nachschub: false });
+    expect(icons('manufacturer')).toEqual({ wishlist: false, lager: false });
   });
 });

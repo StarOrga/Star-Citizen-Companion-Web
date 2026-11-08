@@ -30,7 +30,7 @@ export interface SammlungStripItem {
     @if (items().length) {
       <section class="coll" [attr.aria-label]="ariaLabel()">
         <h3>
-          <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of star; track $index) { <path [attr.d]="d" /> }</svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of mark; track $index) { <path [attr.d]="d" /> }</svg>
           {{ 'sammlungStrip.title' | translate }} <small>{{ items().length }}</small>
         </h3>
         <ul class="row" [class.wide]="wide()" tabindex="-1">
@@ -39,7 +39,7 @@ export interface SammlungStripItem {
               <a class="tile" [routerLink]="it.link" [queryParams]="it.queryParams ?? null" [queryParamsHandling]="it.queryParamsHandling ?? ''">
                 <span class="thumb">
                   @if (it.thumb) { <img [src]="it.thumb" alt="" loading="lazy" decoding="async" /> }
-                  <i class="got" aria-hidden="true"><svg viewBox="0 0 24 24">@for (d of star; track $index) { <path [attr.d]="d" /> }</svg></i>
+                  <i class="got" aria-hidden="true"><svg viewBox="0 0 24 24">@for (d of mark; track $index) { <path [attr.d]="d" /> }</svg></i>
                 </span>
                 <span class="t"><b>{{ it.title }}</b>@if (it.sub) { <small>{{ it.sub }}</small> }</span>
               </a>
@@ -82,5 +82,5 @@ export class SammlungStripComponent {
   readonly ariaLabel = input<string>('');
   /** News tiles sit thumbnail left, title right; wallpaper tiles are image-first. */
   readonly wide = input(false);
-  protected readonly star = PATH_ICONS.sammlung;
+  protected readonly mark = PATH_ICONS.sammlung;
 }
