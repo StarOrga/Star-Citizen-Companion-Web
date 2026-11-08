@@ -3,15 +3,18 @@
 // (--cx-top) and takes the rest of the viewport above the frame's bottom
 // padding; the shell's stage footer is drawn over its last strip.
 :host {
-  // Side columns in % of the page frame (1280 px up to full HD, wider beyond).
-  --cx-side: clamp(250px, 22%, 350px);
+  // Side columns in % of the page frame (1280 px up to full HD, wider beyond). In cqw (=
+  // the landing's width, as 22% of the stage was), so the value means the same in a
+  // vertical property too (--cx-table-h below feeds the data sheet's bottom).
+  --cx-side: clamp(250px, 22cqw, 350px);
   --cx-gut: var(--sc-page-gutter);
   --cx-pane: calc(var(--cx-side) - var(--cx-gut) - 22px);
   --cx-pb: max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1)));
   // Holotable height (its --tw * 0.23) and the hologram box (its --ht/--hh, % of the air above it):
   // the side panes take exactly the box's height.
-  // 94cqw like the holotable's own --tw: both resolve against the landing (its container).
-  --cx-table-h: calc(min(620px, 94cqw) * 0.23);
+  // The holotable's --tw is 94cqw of the holotable itself (its own container): the
+  // landing's width minus both side columns.
+  --cx-table-h: calc(min(620px, (100cqw - 2 * var(--cx-side)) * 0.94) * 0.23);
   --cx-holo-t: 0.14;
   --cx-holo-b: 0.14;
   // From a pane's outer edge to the screen edge: one gutter plus whatever the
