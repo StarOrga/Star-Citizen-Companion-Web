@@ -5774,8 +5774,8 @@
         "sell": "Geld verdienen",
         "goal": "Ziel in aUEC",
         "goalPlaceholder": "z. B. 1.500.000",
-        "pickHint": "Wähle aus deinem Bestand, was du verkaufst. Weitere Dinge kannst du später im Bestand mit „Verkaufen“ anhängen.",
-        "empty": "Dein Bestand ist leer. Leg den Nachschub jetzt an und häng später Dinge im Bestand mit „Verkaufen“ an.",
+        "pickHint": "Wähle aus deinem Bestand, was du verkaufst.",
+        "empty": "Dein Bestand ist leer, es gibt noch nichts zu verkaufen.",
         "pick": "{{name}} aus {{place}} verkaufen"
       },
       "sell": {

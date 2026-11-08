@@ -3,6 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { toErrorKey } from '../../core/describe-error';
 import { humanizeClassName } from '../../codex/codex-format';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import type { StepKind } from '../../shared/step/sc-step.component';
@@ -19,15 +20,18 @@ import {
   EINSATZ_NAME_MAX,
   NACHSCHUB_MAX_SLOTS,
   NACHSCHUB_NAME_MAX,
+  type NachschubLineInput,
   type WishPick,
   type WishPosition,
   clampName,
   freeSlot,
+  parseSellGoal,
   positionKey,
 } from '../nachschub/nachschub.model';
 import { NachschubService, type NachschubResult } from '../nachschub/nachschub.service';
 import { NACHSCHUB_ICON_PATHS, STEP_ICON_PATHS, TRANSPORT_WHEELS } from '../nachschub/step-icons';
 import { HqNeedSourcesService, bestSource } from './hq-need-sources.service';
+import { HqNachschubSellFormComponent } from './hq-nachschub-sell-form.component';
 import type { MapPlace } from './map/hq-map.types';
 import { pickablePlaces } from './map/hq-places';
 import { HqInventoryService } from '../data/hq-inventory.service';
@@ -82,7 +86,7 @@ type Step = 1 | 2;
 @Component({
   selector: 'sc-hq-nachschub-flow',
   standalone: true,
-  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScDialogDirective, HqEventEndComponent, HqWishSearchComponent, ScSelectComponent, ScTooltipDirective, ScTristateComponent],
+  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScDialogDirective, HqEventEndComponent, HqWishSearchComponent, ScSelectComponent, ScTooltipDirective, ScTristateComponent, HqNachschubSellFormComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- A click beside the sheet does not close it (the picks would be lost): the X, Abbrechen or Escape do. -->
@@ -94,7 +98,7 @@ type Step = 1 | 2;
             {{ (mode() === 'new' ? 'hq.flow.titleNew' : 'hq.flow.titleEdit') | translate }}
             @if (mode() === 'new' && nextSlot() !== null) { <small>{{ 'hq.flow.slotOf' | translate: { n: nextSlot(), max: maxSlots } }}</small> }
           </h2>
-          <ol class="steps" [attr.aria-label]="'hq.flow.stepsAria' | translate">
+          <ol class="steps" [attr.aria-label]="'hq.flow.stepsAria' | translate" [style.display]="kind() === 'sell' ? 'none' : null">
             @for (s of stepList; track s) {
               <li [class.on]="step() === s" [class.past]="step() > s" [attr.aria-current]="step() === s ? 'step' : null">
                 <b>{{ s }}</b><span>{{ 'hq.flow.step.' + s | translate }}</span>
@@ -116,7 +120,18 @@ type Step = 1 | 2;
             <small>{{ name().length }}/{{ nameMax }}</small>
           </label>
 
-          @if (step() === 1) {
+          @if (mode() === 'new') {
+            <div class="seg kind" role="group" [attr.aria-label]="'hq.nachschub.sellForm.kindAria' | translate">
+              <button type="button" [attr.aria-pressed]="kind() === 'wish'" (click)="kind.set('wish')">{{ 'hq.nachschub.sellForm.wish' | translate }}</button>
+              <button type="button" [attr.aria-pressed]="kind() === 'sell'" (click)="kind.set('sell')">{{ 'hq.nachschub.sellForm.sell' | translate }}</button>
+            </div>
+          }
+
+          @if (kind() === 'sell' && mode() === 'new') {
+            <sc-hq-nachschub-sell-form [(goal)]="sellGoal" [(lines)]="sellLines" [(invalid)]="sellBad" />
+          }
+
+          @if (step() === 1 && kind() === 'wish') {
             @if (events.open().length) {
               <section class="evsec" [attr.aria-label]="'hq.events.pick.title' | translate">
                 <h3>{{ 'hq.events.pick.title' | translate }}</h3>
@@ -209,7 +224,7 @@ type Step = 1 | 2;
             </section>
           }
 
-          @if (step() === 2) {
+          @if (step() === 2 && kind() === 'wish') {
             <div class="einsatz-head">
               <h3>{{ 'hq.flow.einsaetze' | translate }} <small role="status">{{ 'hq.flow.einsatzCount' | translate: { n: counts().einsaetze, s: counts().steps } }}</small></h3>
             </div>
@@ -329,6 +344,9 @@ type Step = 1 | 2;
         <footer class="dlg-foot">
           <button type="button" scAction tier="secondary" (click)="closed.emit()">{{ 'common.dialog.cancel' | translate }}</button>
           <span class="sp"></span>
+          @if (kind() === 'sell' && mode() === 'new') {
+            <button type="button" scAction tier="primary" [busy]="busy()" [disabled]="busy() || sellLines().length === 0" (click)="saveSell()">{{ 'hq.flow.create' | translate }}</button>
+          } @else {
           @if (step() > 1) {
             <button type="button" scAction tier="secondary" (click)="back()">{{ 'hq.flow.back' | translate }}</button>
           }
@@ -338,6 +356,7 @@ type Step = 1 | 2;
             <button type="button" scAction tier="primary" [busy]="busy()" [disabled]="busy() || !canSave()" (click)="save()">
               {{ (mode() === 'new' ? 'hq.flow.create' : 'hq.flow.saveEdit') | translate }}
             </button>
+          }
           }
         </footer>
       </div>
@@ -516,6 +535,11 @@ export class HqNachschubFlowComponent {
   protected readonly wheels = TRANSPORT_WHEELS;
 
   protected readonly step = signal<Step>(1);
+  /** New Nachschub: from the wishlist, or "Geld verdienen" (a Verkauf with an aUEC goal and lines from the Bestand). */
+  protected readonly kind = signal<'wish' | 'sell'>('wish');
+  protected readonly sellGoal = signal('');
+  protected readonly sellLines = signal<readonly NachschubLineInput[]>([]);
+  protected readonly sellBad = signal(false);
   protected readonly picks = signal<ReadonlyMap<string, number>>(new Map());
   protected readonly name = signal('');
   private nameTouched = false;
@@ -946,6 +970,32 @@ export class HqNachschubFlowComponent {
 
   protected craftOf(l: ProposalLine): CraftCheck | null {
     return this.craftChecks().get(l.key) ?? null;
+  }
+
+  /** "Geld verdienen": creates the Verkauf Nachschub with the picked Bestand lines; a bad goal is named, not swallowed. */
+  protected async saveSell(): Promise<void> {
+    if (this.busy() || this.sellLines().length === 0) return;
+    const goal = parseSellGoal(this.sellGoal());
+    if (goal === null) {
+      this.sellBad.set(true);
+      this.error.set('hq.nachschub.sellGoalInvalid');
+      return;
+    }
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      const name = clampName(this.name().trim() || this.i18n.instant('hq.nachschub.target.sellName'), NACHSCHUB_NAME_MAX);
+      const result = await this.svc.createSellNachschub(goal, this.sellLines(), { name });
+      if (!result.ok) {
+        this.error.set(result.key);
+        return;
+      }
+      this.done.emit(result);
+    } catch (err) {
+      this.error.set(toErrorKey('nachschub', 'sell', err));
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   protected async save(): Promise<void> {

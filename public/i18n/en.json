@@ -5774,8 +5774,8 @@
         "sell": "Make money",
         "goal": "Goal in aUEC",
         "goalPlaceholder": "e.g. 1,500,000",
-        "pickHint": "Choose what you sell from your stock. You can add more from the stock later.",
-        "empty": "Your stock is empty. Create the Nachschub now and add items from the stock with \"Sell\".",
+        "pickHint": "Choose what you sell from your stock.",
+        "empty": "Your stock is empty, so there is nothing to sell yet.",
         "pick": "Sell {{name}} from {{place}}"
       },
       "sell": {
