@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.232.5",
+  "current": "0.232.6",
   "releases": [
+    {
+      "version": "0.232.6",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ events: an event whose estimated end lies more than two weeks in the past no longer shows as open in Planen and on Start."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.232.5",
       "date": "2026-11-08",
