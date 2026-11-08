@@ -300,5 +300,10 @@
         }
       ]
     }
+  },
+  {
+    "iteration": 2,
+    "action": "final-report",
+    "note": "implemented; final report appended"
   }
 ]
