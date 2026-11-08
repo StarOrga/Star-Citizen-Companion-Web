@@ -609,6 +609,36 @@ fn apply_next() {
     gfx::crossfade_set(&path, fade);
 }
 
+/// Name shown in the greyed header row of the tray menu (the uploader shows
+/// "SC Data Uploader" in the same place).
+const APP_NAME: &str = "Starscape";
+
+/// Opt this process's native popup menus into the system dark theme, which is
+/// what the Electron-built Data Uploader menu does (it follows the OS theme).
+/// Uses the undocumented uxtheme ordinals 135 (SetPreferredAppMode) and 136
+/// (FlushMenuThemes); every failure is silent and leaves the classic menu.
+unsafe fn allow_dark_menus() {
+    use std::sync::Once;
+    use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryW};
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        let name = util::wide("uxtheme.dll");
+        let lib = LoadLibraryW(name.as_ptr());
+        if lib.is_null() {
+            return;
+        }
+        let set_mode = GetProcAddress(lib, 135usize as *const u8);
+        let flush = GetProcAddress(lib, 136usize as *const u8);
+        if let (Some(set_mode), Some(flush)) = (set_mode, flush) {
+            // PreferredAppMode::AllowDark = 1 (follows the system setting).
+            let set_mode: unsafe extern "system" fn(i32) -> i32 = std::mem::transmute(set_mode);
+            let flush: unsafe extern "system" fn() = std::mem::transmute(flush);
+            set_mode(1);
+            flush();
+        }
+    });
+}
+
 unsafe fn show_menu(hwnd: HWND) {
     // Fold the ring the updater has since resolved back into the config, so the
     // readout and the launch telemetry name the right one after a restart —
@@ -819,6 +849,11 @@ unsafe fn show_menu(hwnd: HWND) {
     //   2 · gallery  — next, pause, which images, how they are presented
     //   3 · app      — fan-made website, quit
     let menu = CreatePopupMenu();
+    // Same frame as the Data Uploader's tray menu: a greyed app-name header,
+    // a separator, then the status block.
+    let l_header = util::wide(APP_NAME);
+    AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, l_header.as_ptr());
+    AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
     AppendMenuW(menu, update_flags, ID_UPDATE, l_update.as_ptr());
     // Directly under the readout it explains: "Aktuell · v0.6.0 · Alpha" is only
     // half an answer without "and Alpha is what I follow, automatically".
@@ -839,6 +874,7 @@ unsafe fn show_menu(hwnd: HWND) {
     AppendMenuW(menu, MF_STRING, ID_STARSCAPE, l_star.as_ptr());
     AppendMenuW(menu, MF_STRING, ID_QUIT, l_quit.as_ptr());
 
+    allow_dark_menus();
     let mut pt: POINT = std::mem::zeroed();
     GetCursorPos(&mut pt);
     SetForegroundWindow(hwnd); // required so the menu closes on click-away
