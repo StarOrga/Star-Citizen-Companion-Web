@@ -6,6 +6,7 @@ import { groupPatchNotes } from './patch-notes';
 import { stackCardFor } from './patch-stack';
 import type { VerseNewsItem } from './news.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import deCatalog from '../../../public/i18n/de.json';
 
 /**
  * The cycle axis as it is laid out (feedback 01df732d, follow-up).
@@ -62,10 +63,8 @@ describe('Patch cycle axis — the panel may not print over itself', () => {
   let fixture: ComponentFixture<PatchCycleComponent>;
   let de: TranslationObject;
 
-  beforeAll(async () => {
-    const res = await fetch('/i18n/de.json');
-    expect(res.ok).toBe(true);
-    de = await res.json();
+  beforeAll(() => {
+    de = deCatalog;
   });
 
   async function render(line: string, width: number, now = NOW): Promise<void> {

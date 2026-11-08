@@ -2,6 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { FeedbackRow, FeedbackStatus, ThreadMap, startOfWeek } from './feedback.types';
+import deCatalog from '../../../../public/i18n/de.json';
+import enCatalog from '../../../../public/i18n/en.json';
 
 /**
  * The progress view after the 2026-09-05 rethink (admin feedback a33ba528).
@@ -47,9 +49,9 @@ describe('FeedbackDashboardComponent (feedback a33ba528)', () => {
     };
   }
 
-  beforeAll(async () => {
-    de = await (await fetch('/i18n/de.json')).json();
-    en = await (await fetch('/i18n/en.json')).json();
+  beforeAll(() => {
+    de = deCatalog;
+    en = enCatalog;
   });
 
   function render(rows: FeedbackRow[], threads: ThreadMap = new Map()): ComponentFixture<FeedbackDashboardComponent> {

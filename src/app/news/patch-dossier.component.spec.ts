@@ -11,6 +11,7 @@ import { PatchDossierComponent, sectionOrder } from './patch-dossier.component';
 import type { PatchOutline } from './patch-outline';
 import type { RoadmapPayload } from './roadmap';
 import { RoadmapService } from './roadmap.service';
+import deCatalog from '../../../public/i18n/de.json';
 
 /**
  * The dossier as rendered (rethink Ⓚ): four question-named sections behind a
@@ -119,10 +120,8 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
   let stub: ReturnType<typeof roadmapStub>;
   let de: TranslationObject;
 
-  beforeAll(async () => {
-    const res = await fetch('/i18n/de.json');
-    expect(res.ok).toBe(true);
-    de = await res.json();
+  beforeAll(() => {
+    de = deCatalog;
   });
 
   // `q` defaults to undefined on purpose: that is what the router binds for a

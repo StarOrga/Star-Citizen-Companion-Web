@@ -18,6 +18,7 @@ import {
   daysUntilNextPatch,
   nextPatchDistance,
 } from './patch-stats';
+import deCatalog from '../../../public/i18n/de.json';
 
 /**
  * "warum 20 tage vs 6 wochen. ich denke eins davon ist nicht aktuell"
@@ -108,10 +109,8 @@ function notesOf(news: VerseNewsItem[]) {
 describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', () => {
   let de: TranslationObject;
 
-  beforeAll(async () => {
-    const res = await fetch('/i18n/de.json');
-    expect(res.ok, 'public/i18n must be served to Karma').toBe(true);
-    de = await res.json();
+  beforeAll(() => {
+    de = deCatalog;
   });
 
   let listFixture: ComponentFixture<NewsListComponent> | null = null;

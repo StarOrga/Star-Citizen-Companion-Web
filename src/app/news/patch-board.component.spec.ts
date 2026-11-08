@@ -14,6 +14,7 @@ import { StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
 import type { PatchOutline } from './patch-outline';
 import type { RoadmapPayload } from './roadmap';
 import { RoadmapService } from './roadmap.service';
+import deCatalog from '../../../public/i18n/de.json';
 
 /**
  * The board as rendered (rethink Ⓚ, 2026-09-04): a time stack with three
@@ -142,10 +143,8 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   let fixture: ComponentFixture<PatchBoardComponent>;
   let de: TranslationObject;
 
-  beforeAll(async () => {
-    const res = await fetch('/i18n/de.json');
-    expect(res.ok, 'public/i18n/de.json must be served to Karma').toBe(true);
-    de = await res.json();
+  beforeAll(() => {
+    de = deCatalog;
   });
 
   async function render(feed: VerseFeed, roadmap: RoadmapPayload | null): Promise<void> {

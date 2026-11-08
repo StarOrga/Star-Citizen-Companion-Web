@@ -7,6 +7,7 @@ import { NewsListComponent } from './news-list.component';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
 import { ConsentService } from '../core/consent.service';
 import { UpcomingShipsService } from '../codex/upcoming-ships.service';
+import deCatalog from '../../../public/i18n/de.json';
 
 /**
  * The verdict card as it is actually rendered (feedback 2026-08-27).
@@ -87,10 +88,8 @@ describe('Verse News — the build-status card', () => {
    */
   let de: TranslationObject;
 
-  beforeAll(async () => {
-    const res = await fetch('/i18n/de.json');
-    expect(res.ok, 'public/i18n/de.json must be served to Karma').toBe(true);
-    de = await res.json();
+  beforeAll(() => {
+    de = deCatalog;
   });
 
   async function render(feed: VerseFeed): Promise<void> {
