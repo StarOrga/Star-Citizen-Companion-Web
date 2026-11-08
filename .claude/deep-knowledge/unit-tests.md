@@ -34,6 +34,10 @@ runs every `src/**/*.spec.ts` under Vitest in headless Chromium via Playwright
 - **`pending()` has no global**: use the test context, `it('…', ({ skip }) => { if (!gl) return skip('…'); })`.
 - **Spies**: `vi.spyOn` calls through; a Jasmine-style stub is `.mockReturnValue(undefined as never)`
   or `.mockImplementation(…)`. `mock.lastCall` is typed `| undefined`: assert it with `!`.
+- **The next test starts in a microtask**, not a new task as under Jasmine. After a test that ended on
+  `await` of a frame, the next one runs inside that frame's rendering update, so a `ResizeObserver` it
+  creates fires before a scroll event it caused. A spec about that order starts with
+  `await new Promise((r) => setTimeout(r))` (codex-page holdOnLower).
 - **i18n catalogues are imported, never fetched**: `import de from '…/public/i18n/de.json'`. A
   `fetch('/i18n/de.json')` from the dev server timed out a whole `beforeAll` (30 s) under full-suite load.
 - Specs that open a real tab still fail by name (new-tab guard). Under Playwright the page stays
