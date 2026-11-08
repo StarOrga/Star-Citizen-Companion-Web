@@ -142,7 +142,7 @@ jobs:
           body: |
             **Verse Companion — Hangar Import**, the Chrome MV3 extension that reads
             the ship list from your own RSI hangar page and hands it to
-            [Verse Companion](https://sc-companion.vercel.app) for confirmation.
+            [Verse Companion](https://versecompanion-alpha.vercel.app) for confirmation.
 
             `sc-hangar-extension.zip` is always the newest build — the website's
             download button points at this fixed URL so it never goes stale. The

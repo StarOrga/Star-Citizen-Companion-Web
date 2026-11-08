@@ -151,7 +151,7 @@ optionally still send a Supabase invite mail.
   `auth.users` row without one, so the mail's link is the *only* way in until
   its owner picks a password. The function therefore passes
   `redirectTo: <site>/set-password` (`PUBLIC_SITE_URL` env, default
-  `https://sc-companion.vercel.app`), and the app funnels the landing there
+  `https://versecompanion-alpha.vercel.app`), and the app funnels the landing there
   anyway: `src/app/auth/auth-link.ts` snapshots `type=invite|recovery` off the
   URL in `main.ts` *before* `detectSessionInUrl` strips the fragment, and
   `AuthService.init()` routes on that (plus the `PASSWORD_RECOVERY` event) to

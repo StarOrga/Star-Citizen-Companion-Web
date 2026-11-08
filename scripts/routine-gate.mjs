@@ -441,7 +441,7 @@ async function runSql() {
 
 // ---------------------------------------------------------------- concepts
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CONCEPT_URL_BASE = 'https://sc-companion.vercel.app/concept/';
+const CONCEPT_URL_BASE = 'https://versecompanion-alpha.vercel.app/concept/';
 /**
  * Dollar-quote a literal for SQL. The html is hundreds of KB of arbitrary
  * text (quotes, backslashes, `$$` inside the engine), so a quote-doubling

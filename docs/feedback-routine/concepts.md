@@ -24,7 +24,7 @@ the engine's bridge protocol, and the Angular route `/concept/<id>` frames it.
 | Angular route `/concept/:id` | `src/app/admin/concepts/` | `roleGuard('admin')`; mints the ticket with the session and renders the document in an iframe. Back link to `/admin/feedback`, "open in new tab" |
 | Routine tooling | `scripts/routine-gate.mjs concept-publish` / `concept-read` | Publish/republish a page, read the submission back |
 
-The **link shape** the admin sees is always `https://sc-companion.vercel.app/concept/<uuid>`.
+The **link shape** the admin sees is always `https://versecompanion-alpha.vercel.app/concept/<uuid>`.
 Never post the function URL (it carries the ticket) — the app mints a fresh one on
 every open.
 
@@ -47,7 +47,7 @@ every open.
      --feedback <admin_feedback.id>
    ```
 
-   prints `{"id":"<uuid>","url":"https://sc-companion.vercel.app/concept/<uuid>"}`.
+   prints `{"id":"<uuid>","url":"https://versecompanion-alpha.vercel.app/concept/<uuid>"}`.
 3. Post the `url` as a SYSTEM reply in the topic's thread and park the topic
    `needs_input` (the admin has to act). Say in one line what the page asks.
 4. **Iteration:** edit the html, run `concept-publish --id <uuid> --file … --title …`.

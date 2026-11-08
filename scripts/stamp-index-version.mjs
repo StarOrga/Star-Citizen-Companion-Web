@@ -4,7 +4,7 @@
  *
  * Why this exists. /ship's post-merge verification (`.claude/skills/ship/
  * reference.md` + the plugin's post-merge watcher) asserts that the version
- * users actually receive from https://sc-companion.vercel.app is the one that
+ * users actually receive from https://versecompanion-alpha.vercel.app is the one that
  * was just shipped. Until this stamp existed the page exposed no version marker
  * at all (checked 2026-08-17): a green merge could still leave a stale deploy
  * live with nothing to notice it. The source template carries

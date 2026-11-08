@@ -21,7 +21,7 @@ insert a `is_system=true` reply that (a) links the PR, (b) says in one line what
 changed, (c) points at where to see it **live**, and (d) invites the admin to
 reply in-thread to continue. The live pointer depends on the area:
 
-- **web** (`src/`, `public/`) → `https://sc-companion.vercel.app` + the exact
+- **web** (`src/`, `public/`) → `https://versecompanion-alpha.vercel.app` + the exact
   route/view the change touches (e.g. `/hangar`, the admin feedback panel), named
   only once the Production deployment for the merge SHA reports `success`.
 - **migration / edge function** → it is live once `db push` / `functions deploy`
@@ -102,7 +102,7 @@ So step 5b runs as four rules, in this order:
    content probe exists it is the stronger confirmation: fetch an **unhashed**
    asset the change touched, with the service worker bypassed, and grep for a
    string the merge introduced —
-   `curl -s 'https://sc-companion.vercel.app/i18n/en.json?ngsw-bypass=true' | grep '<new key>'`.
+   `curl -s 'https://versecompanion-alpha.vercel.app/i18n/en.json?ngsw-bypass=true' | grep '<new key>'`.
 2. **Only then post the reply — worded as a measured fact, never as a promise.**
    "ist live seit 22:53" is checkable and was observed; "Vercel braucht nach dem
    Merge ~1 Min" is a guess the admin has to test on our behalf. **Never state a
@@ -134,7 +134,7 @@ Examples (German — the admin's language; the routine's system replies address 
 admin directly). **Deployment verified `success`:**
 
 > ✅ Geshipped in <PR-Link>. Geändert: <ein Satz>.
-> Live seit <HH:MM> auf `https://sc-companion.vercel.app/<route>` — das Deployment
+> Live seit <HH:MM> auf `https://versecompanion-alpha.vercel.app/<route>` — das Deployment
 > für die Merge-SHA ist geprüft. Siehst du noch den alten Stand: die Seite ist eine
 > PWA und liefert dir zuerst den gecachten — einmal `Strg+Shift+R`, oder
 > `<route>?ngsw-bypass=true` aufrufen.
@@ -148,7 +148,7 @@ ship, but the admin is *not* sent to look at something that is not there:
 > ⏳ Das Production-Deployment ist noch nicht durch (Stand <HH:MM>,
 > <Deployment-/Run-Link>) — ich schicke dich bewusst nicht auf eine Seite, auf der
 > die Änderung noch nicht drauf ist. Sobald es durch ist:
-> `https://sc-companion.vercel.app/<route>`, und weil die Seite eine PWA ist dann
+> `https://versecompanion-alpha.vercel.app/<route>`, und weil die Seite eine PWA ist dann
 > einmal `Strg+Shift+R` (sonst zeigt sie dir den gecachten Stand).
 > Passt etwas nicht, oder willst du weiter dran arbeiten? Antworte einfach hier im
 > Thread — die Routine nimmt das Thema dann automatisch wieder auf.

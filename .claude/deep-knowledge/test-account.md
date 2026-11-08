@@ -47,7 +47,7 @@ refresh token is ever shared. It is seeded once per tab: a tab that signs out
 stays signed out.
 
 App origins (`APP_ORIGIN_RULES` in `scripts/lib/test-account.cjs`):
-`http://127.0.0.1|localhost` on ports 4200–4399, `https://sc-companion.vercel.app`,
+`http://127.0.0.1|localhost` on ports 4200–4399, `https://versecompanion-alpha.vercel.app`,
 `https://star-citizen-companion-website*.vercel.app` (previews).
 
 The route answers only a page of the **same** origin (403 otherwise).
@@ -93,7 +93,7 @@ legacy `SC_GATE_EMAIL`/`SC_GATE_PASSWORD`, then the Credential Manager entry.
   merged has no init page at all — the MCP read its env at startup.
 - **The Desktop Browser pane is separate.** `mcp__Claude_Browser__*` keeps its own
   storage per origin and may be signed out on `localhost` / `127.0.0.1` (seen
-  2026-11-06). The admin can sign in once on `sc-companion.vercel.app` there for
+  2026-11-06). The admin can sign in once on `versecompanion-alpha.vercel.app` there for
   pane checks on live. The devops browsertest gate still only recognises Playwright.
 - **Never hand the admin a local URL to look at.** The local sign-in is the test
   account, for Claude's browsers only; the admin has no account there. "Sieh es dir

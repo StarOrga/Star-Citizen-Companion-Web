@@ -109,8 +109,8 @@ jobs:
       # + check-bundle. Direct API calls, no web layer.
       SC_API_BASE: https://hcnqhvzlavdycidqyaai.supabase.co
       # Web app (OAuth callback page /uploader/auth). Vercel project is
-      # `star-citizen-companion-web`, primary alias `sc-companion.vercel.app`.
-      SC_WEB_BASE: https://sc-companion.vercel.app
+      # `star-citizen-companion-web`, primary alias `versecompanion-alpha.vercel.app`.
+      SC_WEB_BASE: https://versecompanion-alpha.vercel.app
       # Shared anti-abuse signing key for the ingest-telemetry edge function
       # (must equal the Supabase `TELEMETRY_HMAC_KEY` secret). NOT a credential
       # to any user data. electron.vite.config.ts bakes it into the binary; the

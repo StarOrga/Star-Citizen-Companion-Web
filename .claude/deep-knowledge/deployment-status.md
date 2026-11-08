@@ -9,14 +9,12 @@ surface flips between deployed / pending / broken.
   2026-11-08 for the Verse Companion rename; id `prj_eAm2zUm7oz0fTpCE6RNY10sx3bDv`). Previews are
   `versecompanion-alpha-git-….vercel.app`.
 - **Canonical URL:** `https://versecompanion-alpha.vercel.app` (`src/brand.json` `host`)
-- **Legacy hosts (still serving):** `https://sc-companion.vercel.app`;
-  `https://star-citizen-companion-website.vercel.app` 307s to it until the owner removes it
-  in the dashboard (CIG domain rule).
+- **Old hosts removed (2026-11-08, owner decision, no redirects):** `sc-companion.vercel.app` and `star-citizen-companion-website.vercel.app` answer 404.
 - **Status:** ✅ LIVE — auto-deployed from `main` via GitHub integration.
 - **Implication for tasks:** every push to `main` triggers a Vercel
-  build. `curl -sI https://sc-companion.vercel.app` (200 OK expected) proves the
+  build. `curl -sI https://versecompanion-alpha.vercel.app` (200 OK expected) proves the
   **site** is up; for a specific path, probe it directly:
-  `curl -sI https://sc-companion.vercel.app/desktop`.
+  `curl -sI https://versecompanion-alpha.vercel.app/desktop`.
 - **A 200 OK does NOT prove your change is live.** The site answers 200 the whole
   time it is serving the *previous* build, and a production build can be queued,
   skipped, or fail. Merge → live took 5.3–9.5 min in the four deploys before
@@ -33,7 +31,7 @@ surface flips between deployed / pending / broken.
   An empty list means the build never started — that is a negative result, not
   "still building". The strongest cheap confirmation is a content probe on an
   **unhashed** asset with the service worker bypassed, e.g.
-  `curl -s 'https://sc-companion.vercel.app/i18n/en.json?ngsw-bypass=true'` grepped
+  `curl -s 'https://versecompanion-alpha.vercel.app/i18n/en.json?ngsw-bypass=true'` grepped
   for a string the merge introduced.
 - **In a browser it is a PWA.** `ngsw` replays the cached shell to returning
   visitors, so a live deploy still looks unshipped until a hard reload

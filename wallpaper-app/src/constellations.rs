@@ -43,7 +43,7 @@ const ID_LIVE: usize = 48;
 const ID_METEOR: usize = 49;
 const ID_WEB: usize = 50;
 
-pub const WEB_URL: &str = "https://sc-companion.vercel.app/verse/gallery";
+pub const WEB_URL: &str = "https://versecompanion-alpha.vercel.app/verse/gallery";
 
 static STATE: Mutex<Option<State>> = Mutex::new(None);
 static SETTINGS: OnceLock<Mutex<Settings>> = OnceLock::new();
