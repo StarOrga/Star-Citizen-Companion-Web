@@ -4,7 +4,7 @@ import { CodexService } from '../../codex/codex.service';
 import { pinKindOf } from '../../codex/search/codex-search-model';
 import type { SearchChip, SearchCta, SearchResultRow } from '../../codex/search/search-result-model';
 import { toErrorKey } from '../../core/describe-error';
-import { ItemPathService, type PathResult } from '../../hq/data/item-path.service';
+import { ItemPathService, isPathError, type PathResult } from '../../hq/data/item-path.service';
 import { HqEinsatzService, missionStep } from '../../hq/data/hq-einsatz.service';
 import { HqEinsatzPickService } from '../../hq/plan/hq-einsatz-pick.service';
 import { hqLocker } from '../../hq/hq-routes';
@@ -18,9 +18,13 @@ export interface RowActionResult {
   undo?: () => Promise<PathResult>;
 }
 
-/** A PathResult as the row's status line: a failure keeps its own `errors.*` / `itemPath.err.*` key. */
+/**
+ * A PathResult as the row's status line: a failure keeps its own `errors.*` / `itemPath.err.*` key. Only a real
+ * failure is `error` (the danger tone); a refusal (`tone: 'info'`) reads as a plain status.
+ */
 function fromPath(r: PathResult, doneKey: string, params: Record<string, string | number>): RowActionResult {
-  return r.ok ? { key: doneKey, params, undo: r.undo } : { key: r.key, error: true };
+  if (r.ok) return { key: doneKey, params, undo: r.undo };
+  return isPathError(r) ? { key: r.key, error: true } : { key: r.key };
 }
 
 /** The row's catalog identity (what an action CTA writes against). */
@@ -52,8 +56,12 @@ export class SearchRowActionsService {
     if (!id) return null;
     try {
       switch (cta.id) {
-        case 'add':
-          return fromPath(await this.path.addToHangar(id.cls, title), 'search.done.hangar', { name: title });
+        case 'add': {
+          const r = await this.path.addToHangar(id.cls, title);
+          // A second copy, or a purchase that answered a wish, says so in its own words.
+          if (r.ok && r.key !== 'itemPath.done.hangar') return { key: r.key, params: r.params, undo: r.undo };
+          return fromPath(r, 'search.done.hangar', { name: title });
+        }
         case 'compare':
         case 'compareWith': {
           if (row.type !== 'hit') return null;

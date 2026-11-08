@@ -567,13 +567,13 @@ export class HqStockPopupComponent implements OnInit {
     return { kind: ref.kind ?? (ref.className.startsWith('BP_') ? 'blueprint' : 'item'), className: ref.className };
   }
 
-  /** A7 "Nachholen": the quantity goes back to Nachschub, the stock stays. */
-  protected nachholen(row: StockItem): void {
+  /** "Nachholen": the item goes back on the wishlist (counted up), the stock stays. */
+  protected async nachholen(row: StockItem): Promise<void> {
     const p = this.pathOf(row);
     if (!p) return;
     const res = row.unit === 'scu'
-      ? this.path.nachholen(p.kind, p.className, row.name, row.qty, 'scu')
-      : this.path.nachholen(p.kind, p.className, row.name, Math.max(1, Math.round(row.qty)));
+      ? await this.path.nachholen(p.kind, p.className, row.name, row.qty, 'scu')
+      : await this.path.nachholen(p.kind, p.className, row.name, Math.max(1, Math.round(row.qty)));
     this.rowError.set(res.ok ? null : res.key);
     const undo = res.undo;
     if (!res.ok || !undo) return;

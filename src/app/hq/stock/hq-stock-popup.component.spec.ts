@@ -120,7 +120,7 @@ describe('HqStockPopupComponent: capture and links', () => {
     expect(note.querySelector('.again')).toBeNull();
   });
 
-  it('Nachholen puts the quantity back into Nachschub through the path service and offers an undo; stock is not written', async () => {
+  it('Nachholen puts the item back on the wishlist through the path service and offers an undo; stock is not written', async () => {
     const { fixture, inv, path } = mount(
       { mode: 'browse' },
       { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'Medpen_01', qty: 4, unit: 'pcs' }] },
@@ -129,11 +129,12 @@ describe('HqStockPopupComponent: capture and links', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('li.row button.again') as HTMLButtonElement).click();
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(path.nachholen).toHaveBeenCalledOnceWith('item', 'Medpen_01', 'Medpen', 4);
     expect(inv.addManual).not.toHaveBeenCalled();
     const toast = TestBed.inject(UndoToastService);
-    expect(toast.current()?.messageKey).toBe('itemPath.done.nachholen');
+    expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
     toast.undo();
     expect(el.querySelector('[role=alert].warn')).toBeNull();
   });
@@ -143,12 +144,13 @@ describe('HqStockPopupComponent: capture and links', () => {
       { mode: 'browse' },
       { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'Medpen_01', qty: 1, unit: 'pcs' }] },
     );
-    path.nachholen.and.returnValue({ ok: false, key: 'itemPath.err.listFull' });
+    path.nachholen.and.resolveTo({ ok: false, key: 'itemPath.err.failed' });
     await fixture.whenStable();
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('li.row button.again') as HTMLButtonElement).click();
+    await fixture.whenStable();
     fixture.detectChanges();
-    expect(el.querySelector('[role=alert].warn')?.textContent).toContain('itemPath.err.listFull');
+    expect(el.querySelector('[role=alert].warn')?.textContent).toContain('itemPath.err.failed');
   });
 });
