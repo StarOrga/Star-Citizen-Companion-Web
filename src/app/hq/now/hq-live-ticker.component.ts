@@ -20,7 +20,7 @@ const TICK_MS = 30_000;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <p class="ticker" [class.off]="!online()" role="status">
+      <p class="ticker" [class.off]="!online()" [class.above-footer]="page() === 'statistik'" role="status">
         <i aria-hidden="true"></i>
         <b>{{ 'hq.ticker.app' | translate }}</b>
         <span class="state">{{ (online() ? 'hq.ticker.on' : 'hq.ticker.off') | translate }}</span>
@@ -45,6 +45,8 @@ const TICK_MS = 30_000;
       .state { color: var(--sc-success); }
       em { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
       small { flex: none; color: var(--sc-fg-2); }
+      /* The last page ends in the shell footer (its badge sits bottom left): the ticker stands above it. */
+      @media (min-width: 1024px) { .ticker.above-footer { bottom: calc(max(8px, 0.8vw) + 84px); } }
       .off { border-color: color-mix(in srgb, var(--sc-fg-2) 35%, transparent); }
       .off i { background: var(--sc-fg-2); box-shadow: none; }
       .off .state { color: var(--sc-fg-2); }
