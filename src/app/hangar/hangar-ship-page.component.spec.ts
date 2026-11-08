@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
+import { AnalyticsService } from '../core/analytics.service';
 import { CodexDetailComponent } from '../codex/codex-detail.component';
 import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { HangarService } from './hangar.service';
@@ -22,8 +23,8 @@ describe('HangarShipPageComponent (/hq/hangar/:id)', () => {
     TestBed.resetTestingModule();
   });
 
-  async function run(opts: { id: string; ships: unknown[]; configs: unknown[]; shell: boolean; query?: Record<string, string> }) {
-    localStorage.setItem('sc.beta', JSON.stringify({ shell: opts.shell }));
+  async function run(opts: { id: string; ships: unknown[]; configs: unknown[]; shell: boolean | null; query?: Record<string, string> }, analytics = { flags: signal<Record<string, boolean>>({}), flagsPending: signal(false) }) {
+    if (opts.shell !== null) localStorage.setItem('sc.beta', JSON.stringify({ shell: opts.shell }));
     TestBed.configureTestingModule({
       imports: [HangarShipPageComponent],
       providers: [
@@ -35,6 +36,7 @@ describe('HangarShipPageComponent (/hq/hangar/:id)', () => {
             snapshot: { paramMap: convertToParamMap({ id: opts.id }), queryParamMap: convertToParamMap(opts.query ?? {}) },
           },
         },
+        { provide: AnalyticsService, useValue: { ...analytics, captureVerse: () => undefined } },
         { provide: AuthService, useValue: { user: signal({ id: 'u' }) } },
         { provide: HangarService, useValue: { ships: signal(opts.ships), loadAll: async () => undefined } },
         { provide: HqOwnershipService, useValue: { ensureLoaded: async () => undefined, configsForShip: () => opts.configs } },
@@ -49,7 +51,7 @@ describe('HangarShipPageComponent (/hq/hangar/:id)', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { nav, fixture };
+    return { nav, fixture, analytics };
   }
 
   const gladius = { id: 's1', shipClassName: 'AEGS_Gladius' };
@@ -84,6 +86,23 @@ describe('HangarShipPageComponent (/hq/hangar/:id)', () => {
         id: 's1', ships: [gladius], configs: [{ id: 'c0', isActive: false }, { id: 'c1', isActive: true }], shell: true, query: { v: 'foreign' },
       });
       expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { v: 'c1' }, replaceUrl: true }));
+    });
+
+    it('does not bounce through /codex while the shell flag is still loading', async () => {
+      const analytics = { flags: signal<Record<string, boolean>>({}), flagsPending: signal(true) };
+      const { nav, fixture } = await run(
+        { id: 's1', ships: [gladius], configs: [{ id: 'c1', isActive: true }], shell: null, query: { v: 'c1' } },
+        analytics,
+      );
+      expect(nav).not.toHaveBeenCalled(); // default (off) must not decide yet
+      expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-detail')).toBeNull();
+      analytics.flags.set({ 'beta-shell': true });
+      analytics.flagsPending.set(false);
+      fixture.detectChanges(); // flushes the effect behind toObservable
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(nav).not.toHaveBeenCalled();
+      expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-detail')).not.toBeNull();
     });
 
     it('sends an unknown id to the hangar list', async () => {
