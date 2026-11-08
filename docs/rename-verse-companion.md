@@ -59,8 +59,9 @@ After a change run `npm run gen:readme-content` and the usual gates.
 3. **Google OAuth consent screen / Discord app**: display name "Verse
    Companion".
 4. **readme.io**: project name and subdomain `star-citizen-companion`.
-5. **Chrome Web Store**: paste `browser-extension/STORE-LISTING.md`, upload
-   0.1.2 (adds a host permission — Chrome asks users to re-approve).
+5. **Chrome Web Store**: nothing to do — the extension is not listed there; it ships as a ZIP
+   via the Binaries release `browser-extension-latest` (CI). `STORE-LISTING.md` is only for a
+   future store listing.
 6. **GitHub repos** (`gh repo rename`, GitHub keeps redirects): web, app,
    binaries — binaries only after the desktop updater follows redirects.
 7. Edge-function secret `PUBLIC_SITE_URL`, if set, → new host.
