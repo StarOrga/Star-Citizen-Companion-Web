@@ -514,14 +514,6 @@ describe('NachschubService', () => {
       expect(supplies.items().every((l) => l.done)).toBeTrue();
     });
   });
-
-  describe('fulfilWish', () => {
-    it('AUD-10: reports a failed wishlist write instead of an undo', async () => {
-      addWish('medpen', 2);
-      wish.failOn.add('medpen');
-      expect(await svc.fulfilWish('item', 'medpen', 1)).toEqual({ ok: false, key: 'hq.nachschub.wishlistFailed' });
-    });
-  });
 });
 
 describe('NachschubFocusService (M10)', () => {

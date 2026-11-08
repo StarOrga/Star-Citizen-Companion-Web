@@ -132,8 +132,10 @@ describe('HqStockComponent', () => {
     const toast = TestBed.inject(UndoToastService);
     expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
     wish.setQty.calls.reset();
+    // The write landed (1 + 1) and someone wished 3 more meanwhile: undo takes off only its own one.
+    wish.qtyOf = () => 5;
     toast.undo();
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'weapon', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 1);
+    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'weapon', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 4);
   });
 
   it('a failed wishlist write shows the error and no success toast', async () => {

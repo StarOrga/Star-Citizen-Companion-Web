@@ -28,7 +28,6 @@ import {
   clearNachschub,
   evaluateNachschub,
   freeSlot,
-  fulfilWish,
   newNachschubBlock,
   positionKey,
   reactivate,
@@ -87,7 +86,6 @@ const inverse = (applied: readonly Shift[]): Shift[] => [...applied].reverse().m
  *   empty(id, backToWishlist) / remove(id, backToWishlist)   open lines go back to the wishlist (counted up) or are dropped
  *   reconcile()                             close lines whose stock rose vs the snapshot, archive finished Nachschuebe
  *   evaluation(id)                          status per line / progress of one Nachschub
- *   fulfilWish(kind, className, gained)     owning fulfils the wish; result carries the undo
  *
  * Rules every write follows (audit bundle B2):
  *  - Wishlist changes are DELTAS (take out what moved, add back what returned), never "restore the old full list", so
@@ -519,22 +517,6 @@ export class NachschubService {
       if (next.status !== n.status) Object.assign(cols, { status: next.status, slot: next.slot, archived_at: next.archivedAt });
       if ((await this.patch(n.id, uid, cols)) === 'ok') this.packages.update((ps) => ps.map((p) => (p.id === n.id ? next : p)));
     }
-  }
-
-  /**
-   * Owning fulfils the wish: `gained` copies landed in Inventar / Hangar, so the wished quantity of that class shrinks
-   * (to zero = the wish goes). The result carries the undo.
-   */
-  async fulfilWish(kind: string, className: string, gained: number): Promise<NachschubResult> {
-    const wished = this.wishPositions().find((p) => p.kind === kind && p.className.toLowerCase() === className.toLowerCase() && !p.forClassName);
-    if (!wished) return { ok: true, key: 'hq.nachschub.done.nothingWished' };
-    const r = fulfilWish(wished.qty, gained);
-    if (!(await this.setWishQty(wished, r.qty))) return fail('hq.nachschub.wishlistFailed');
-    return {
-      ok: true,
-      key: 'hq.nachschub.done.fulfilled',
-      undo: async () => ((await this.setWishQty(wished, r.previous)) ? UNDONE : fail('hq.nachschub.wishlistFailed')),
-    };
   }
 
   // ------------------------------------------------------------------------------------------------ internals

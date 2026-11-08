@@ -66,7 +66,11 @@ export class NachschubEdgeService {
       // (3 wished + buy 1 = owned 1, wished 2) - as an extra-copies wish in the store, which SearchWishlistService owns.
       const wished = have.qty ?? 1;
       if (!(await this.hangar.updateShip(have.id, { status: 'owned', qty: 1, ...(origin ? { origin } : {}) }))) return 0;
-      if (wished > 1) await this.searchWish.setQty('ship', shipClassName, have.customName, wished - 1);
+      if (wished > 1 && !(await this.searchWish.setQty('ship', shipClassName, have.customName, wished - 1))) {
+        // The other wished copies could not be kept: back to the wished row as it was, nothing half done.
+        await this.hangar.updateShip(have.id, { status: 'wishlist', qty: wished });
+        return 0;
+      }
       return 1;
     }
     const next = nextShipCopies(have.qty);

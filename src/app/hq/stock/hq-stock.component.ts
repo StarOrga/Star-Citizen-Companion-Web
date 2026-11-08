@@ -485,13 +485,9 @@ export class HqStockComponent implements OnInit {
     const name = await this.confirm.prompt({ titleKey: 'hq.bestand.addShip', inputLabelKey: 'hq.bestand.addShipLabel', inputMaxLength: 80 });
     const n = name?.trim();
     if (!n) return;
-    const have = this.hangar.shipByClassName(n);
-    if (have) {
-      await this.hangar.updateShip(have.id, { qty: (have.qty ?? 1) + 1 });
-      return;
-    }
-    const added = await this.hangar.addShip(n, 'owned');
-    this.errorKey.set(added ? null : (this.hangar.error() ?? 'errors.generic'));
+    // One more OWNED copy: a wished row becomes owned (its other wished copies stay wished), never +1 on the wish.
+    const copies = await this.edge.addShipCopy(n);
+    this.errorKey.set(copies ? null : (this.hangar.error() ?? 'errors.generic'));
   }
 
   protected shipLink(s: HangarShip): HqLink {

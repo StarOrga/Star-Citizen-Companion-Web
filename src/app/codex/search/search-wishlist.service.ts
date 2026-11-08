@@ -55,7 +55,12 @@ export class SearchWishlistService {
     if (qty <= 0) return this.remove(kind, className, name);
     if (kind === 'ship') {
       const s = this.hangar.shipByClassName(className);
-      if (s?.status === 'wishlist') return this.hangar.updateShip(s.id, { qty: clampWishQty(qty) });
+      if (s?.status === 'wishlist') {
+        // Rare: a store row next to the wished Hangar row (left from an owned copy removed since). One home only,
+        // so qtyOf (which adds both) shows exactly what was set.
+        if (this.store.qtyOf('ship', className) > 0 && !(await this.store.remove('ship', className))) return false;
+        return this.hangar.updateShip(s.id, { qty: clampWishQty(qty) });
+      }
       if (!s && !this.store.has('ship', className)) {
         const added = await this.hangar.addShip(className, 'wishlist');
         if (!added) return false;

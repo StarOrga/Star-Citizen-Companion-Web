@@ -9,6 +9,8 @@ import { HqLiveService } from '../now/hq-live.service';
 import { isGameLive, readLocation } from '../now/hq-live.util';
 import { HqSuppliesService, SupplyUnit, lineAmount, roundAmount } from '../hq-supplies.service';
 import { NachschubEdgeService } from '../nachschub/nachschub-edge.service';
+import { stockMatches } from '../nachschub/nachschub-stock';
+import { NachschubService } from '../nachschub/nachschub.service';
 import { parseStockRef } from '../stock/hq-stock-ref';
 import { HqInventoryService } from './hq-inventory.service';
 
@@ -29,7 +31,6 @@ import { HqInventoryService } from './hq-inventory.service';
  *   (itemPath.done.* for the toast, errors.* / itemPath.err.* when ok is false). A refusal that is no failure (this
  *   step does not exist here) carries `tone: 'info'` and is shown neutral, never in the danger tone.
  *     addWish / setWishQty / removeWish
- *     nachholen(qty)             Inventar row "Nachholen": counted up on the wishlist, stock untouched
  *     moveToInventar(place, qty) writes Inventar (an empty place falls back to currentPlaceDefault()) and closes a
  *                                matching Nachschub line
  *     addToHangar                first copy, or one more copy of an owned ship
@@ -218,8 +219,8 @@ export class ItemPathService {
     let nachschubUnit: SupplyUnit | null = null;
     if (kind !== 'upcoming') {
       for (const i of this.inventory.items()) {
-        // Manual entries store `<kind>:<Class>` (hq-stock-ref); the path counts them like a bare class name.
-        if ((parseStockRef(i.class_name)?.className ?? '').toLowerCase() !== cls) continue;
+        // The same match as the Nachschub line closing (nachschub-stock): manual `<kind>:<Class>` rows and crates.
+        if (!stockMatches(i.class_name, cls)) continue;
         const q = i.qty > 0 ? i.qty : 1;
         const have = places.find((p) => p.location === i.location);
         if (have) have.qty += q;
@@ -287,30 +288,6 @@ export class ItemPathService {
     return { ok: true, key: 'itemPath.done.wishOff', params: { name: name ?? className }, undo: () => this.addWish(kind, className, name) };
   }
 
-  /**
-   * Inventar row "Nachholen": the item goes back on the wishlist, counted up by `qty` (the tile button's rule); the
-   * stock stays as it is. SCU stock is wished as material, whole SCU rounded up. Undo sets the wish back.
-   */
-  async nachholen(kind: string, className: string, name: string, qty = 1, unit: 'pcs' | 'scu' = 'pcs'): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.err.failed');
-    if (kind === 'upcoming') return refuse('itemPath.err.unavailable');
-    const wishKind = unit === 'scu' ? 'material' : kind;
-    const n = unit === 'scu' ? Math.max(1, Math.ceil(qty - 1e-9)) : Math.max(1, Math.round(qty));
-    const before = this.wishlist.qtyOf(wishKind, className, name);
-    try {
-      if (!(await this.wishlist.setQty(wishKind, className, name, before + n))) return fail('itemPath.err.failed');
-    } catch (err) {
-      return fail(toErrorKey('itemPath', 'nachholen', err));
-    }
-    return {
-      ok: true,
-      key: 'itemPath.done.wishOn',
-      params: { name },
-      undo: async () =>
-        (await this.wishlist.setQty(wishKind, className, name, before)) ? { ok: true, key: 'itemPath.done.undone', params: { name } } : fail('itemPath.err.failed'),
-    };
-  }
-
   // ── Inventar ───────────────────────────────────────────────────────────────
 
   /**
@@ -332,26 +309,39 @@ export class ItemPathService {
     } catch (err) {
       return fail(toErrorKey('itemPath', 'moveToInventar', err));
     }
-    const lineBefore = line ? { id: line.id, qty: line.qty, amount: line.amount } : null;
-    if (line) {
+    const lineBefore = line ? { id: line.id, qty: line.qty, amount: line.amount, packageId: line.packageId } : null;
+    // A line of an active Nachschub closes by the stock rise itself (NachschubService.reconcile against its baseline);
+    // shrinking it here as well would count the arrival twice and could close a second line of the same class.
+    const nachschub = line?.packageId ? this.injector.get(NachschubService) : null;
+    const tracked = !!(nachschub && line?.packageId && nachschub.active().some((p) => p.id === line.packageId));
+    if (line && !tracked) {
       const have = lineAmount(line);
       if (n >= have - 1e-9) this.supplies.setDone(line.id, true);
       else if (line.amount !== null) this.supplies.setLine(line.id, Math.max(1, Math.round((line.qty * (have - n)) / have)), roundAmount(have - n));
       else this.supplies.setQty(line.id, line.qty - n);
     }
+    if (tracked) void nachschub?.reconcile();
+    // What the line asked for answers the line; only the rest answers the item's own (leftover) wish.
+    const toWish = line ? Math.max(0, n - lineAmount(line)) : n;
     // SCU stock answers a material wish; an item wished as such keeps its own kind.
     const wishKind = scu && !this.wishlist.has(kind, className, name) ? 'material' : kind;
-    const wish = await this.fulfilOwnWish(wishKind, className, name, scu ? Math.ceil(n - 1e-9) : n);
+    const wish = toWish > 1e-9 ? await this.fulfilOwnWish(wishKind, className, name, scu ? Math.ceil(toWish - 1e-9) : toWish) : null;
     return {
       ok: true,
       ...(wish ? this.wishDone(name, wish) : { key: 'itemPath.done.inventar', params: { name, where } }),
       undo: async () => {
         const removed = await this.inventory.removeStock(where, name, n, className);
+        let reopened = true;
         if (lineBefore) {
           this.supplies.setDone(lineBefore.id, false);
           this.supplies.setLine(lineBefore.id, lineBefore.qty, lineBefore.amount);
+          // The arrival may have finished (and archived) its Nachschub meanwhile: bring it back with the line.
+          if (tracked && nachschub && lineBefore.packageId && !nachschub.active().some((p) => p.id === lineBefore.packageId)) {
+            reopened = (await nachschub.reactivate(lineBefore.packageId)).ok;
+          }
         }
         const back = wish ? await wish.restore() : true;
+        if (!reopened) return fail('itemPath.err.failed');
         return removed && back ? { ok: true, key: 'itemPath.done.undone', params: { name } } : fail('itemPath.err.failed');
       },
     };
@@ -501,7 +491,9 @@ export class ItemPathService {
       logWarn('itemPath', 'wish not fulfilled', err);
       return null;
     }
-    return { before, left, restore: () => this.wishlist.setQty(kind, className, name, before) };
+    // Undo gives back only what this step took, so a wish changed in the meantime keeps that change.
+    const took = before - left;
+    return { before, left, restore: () => this.wishlist.setQty(kind, className, name, this.wishlist.qtyOf(kind, className, name) + took) };
   }
 
   /** The toast after owning answered a wish: fulfilled, or how many are still wished. */

@@ -5450,8 +5450,6 @@
         "reactivated": "Nachschub ist wieder aktiv.",
         "emptied": "Nachschub geleert.",
         "removed": "Nachschub gelöscht.",
-        "nothingWished": "Nichts auf der Wunschliste.",
-        "fulfilled": "Von der Wunschliste abgehakt.",
         "added": "Zum Nachschub hinzugefügt.",
         "lineRemoved": "Position entfernt.",
         "edited": "Nachschub gespeichert."

@@ -30,6 +30,23 @@ describe('shared stock gain (H4)', () => {
     expect(ev.closeIds).toEqual([]);
   });
 
+  it('a newer line counts from its own baseline: what an older line took below it never blocks it', () => {
+    // A (line of 2, baseline 0) closed at stock 2; B was planned at stock 2 with a line of 1; stock is now 3.
+    const pool: RisePool = new Map();
+    const a = evaluateNachschub([line('a', 'x', 2, true)], { a: 0 }, () => 3, pool);
+    const b = evaluateNachschub([line('b', 'x', 1)], { b: 2 }, () => 3, pool);
+    expect(a.statuses.get('a')?.rise).toBe(3);
+    expect(b.closeIds).toEqual(['b']);
+  });
+
+  it('two lines on the same baseline still share one gain after the fix (H4 kept)', () => {
+    const pool: RisePool = new Map();
+    const a = evaluateNachschub([line('a', 'x', 2)], { a: 5 }, () => 7, pool);
+    const b = evaluateNachschub([line('b', 'x', 2)], { b: 5 }, () => 7, pool);
+    expect(a.closeIds).toEqual(['a']);
+    expect(b.statuses.get('b')?.rise).toBe(0);
+  });
+
   it('different classes and ship vs item do not share', () => {
     const pool: RisePool = new Map();
     const ev = evaluateNachschub([line('a', 'x', 1), line('b', 'y', 1), line('c', 'x', 1, false, true)], { a: 0, b: 0, c: 0 }, () => 1, pool);

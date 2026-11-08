@@ -100,9 +100,8 @@ export class StockWishService {
 
   private async write(t: StockWishTarget, qty: number): Promise<boolean> {
     if (t.kind === 'ship') {
-      if (this.wishes.qtyOf('ship', t.className) > 0) return this.wishes.setQty('ship', t.className, t.name, qty);
-      const ok = await this.wishes.add('ship', t.className, t.name);
-      return ok && qty > 1 ? this.wishes.setQty('ship', t.className, t.name, qty) : ok;
+      // One write: setQty creates the wish where it belongs (owned ship -> store row, else the wished Hangar row).
+      return this.wishes.setQty('ship', t.className, t.name, qty);
     }
     return this.store.setQty({ kind: t.kind, className: t.className, name: t.name }, qty);
   }
@@ -118,7 +117,8 @@ export class StockWishService {
   async wish(target: StockWishTarget, qty = 1, withToast = true): Promise<boolean> {
     const t = this.settle(target);
     const have = this.own(t);
-    const ok = await this.write(t, have + Math.max(1, Math.round(qty)));
+    const more = Math.max(1, Math.round(qty));
+    const ok = await this.write(t, have + more);
     if (!ok) return false;
     if (!withToast) return true;
     this.toast.offer({
@@ -126,7 +126,9 @@ export class StockWishService {
       messageParams: { name: t.name },
       commit: () => undefined,
       onUndo: () => {
-        void (have > 0 ? this.write(t, have) : this.erase(t)).then((back) => {
+        // Only what this step added comes off: a change made meanwhile stays.
+        const left = this.own(t) - more;
+        void (left > 0 ? this.write(t, left) : this.erase(t)).then((back) => {
           if (!back) logWarn('stock', 'wish undo failed', { kind: t.kind });
         });
       },

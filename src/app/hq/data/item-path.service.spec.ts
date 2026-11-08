@@ -5,12 +5,13 @@ import { SearchWishlistService } from '../../codex/search/search-wishlist.servic
 import { HangarService } from '../../hangar/hangar.service';
 import { HqSuppliesService, type SupplyItem } from '../hq-supplies.service';
 import { NachschubEdgeService } from '../nachschub/nachschub-edge.service';
+import { NachschubService } from '../nachschub/nachschub.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { HqInventoryService } from './hq-inventory.service';
 import { ItemPathService, PLACE_WITH_ME, isPathError, stepsOf } from './item-path.service';
 import { WishlistStore, wishKey, type WishEntry, type WishRow } from './wishlist.store';
 
-interface Line { id: string; name: string; qty: number; done: boolean; className: string; amount: number | null; unit: null }
+interface Line { id: string; name: string; qty: number; done: boolean; className: string; amount: number | null; unit: null; packageId?: string | null }
 interface Stock { location: string; name: string; class_name: string | null; qty: number; unit: 'pcs' }
 interface Ship { id: string; shipClassName: string; status: 'owned' | 'wishlist'; qty: number }
 
@@ -101,8 +102,15 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; st
       return true;
     },
   };
+  const active = signal<{ id: string }[]>([]);
+  const nachschub = {
+    active,
+    reconcile: jasmine.createSpy('reconcile').and.resolveTo(undefined),
+    reactivate: jasmine.createSpy('reactivate').and.callFake(async (id: string) => (active.update((a) => [...a, { id }]), { ok: true })),
+  };
   TestBed.configureTestingModule({
     providers: [
+      { provide: NachschubService, useValue: nachschub },
       { provide: AuthService, useValue: { user: () => (opts.user === false ? null : { id: 'u1' }) } },
       { provide: WishlistStore, useValue: store },
       { provide: HangarService, useValue: hangar },
@@ -113,7 +121,7 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; st
     ],
   });
   const ship = (c: string) => hangar.shipByClassName(c);
-  return { svc: TestBed.inject(ItemPathService), wishlist: TestBed.inject(SearchWishlistService), rows, lines, stock, ships, ship, edge, supplies };
+  return { svc: TestBed.inject(ItemPathService), wishlist: TestBed.inject(SearchWishlistService), rows, lines, stock, ships, ship, edge, supplies, nachschub, active };
 }
 
 describe('ItemPathService', () => {
@@ -209,7 +217,6 @@ describe('ItemPathService', () => {
       expect(refused.ok).toBeFalse();
       expect(refused.tone).toBe('info');
       expect(isPathError(refused)).toBeFalse();
-      expect(isPathError(await svc.nachholen('upcoming', 'x', 'X'))).toBeFalse();
       const failed = await svc.addWish('item', 'a', 'A');
       expect(failed.key).toBe('itemPath.err.failed');
       expect(isPathError(failed)).toBeTrue();
@@ -352,32 +359,52 @@ describe('ItemPathService', () => {
     });
   });
 
-  describe('Nachholen: back on the wishlist (AUD-5)', () => {
-    it('counts the wish up by the quantity, leaves the stock alone and opens no Nachschub line; undo sets it back', async () => {
-      const { svc, rows, stock, lines } = setup();
-      await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 4);
-      await svc.addWish('item', 'medpen', 'Medpen');
-      const res = await svc.nachholen('item', 'medpen', 'Medpen', 3);
+  describe('an arrival on a Nachschub line (harden B/C/E)', () => {
+    const packageLine = (lines: Line[], qty: number): Line => {
+      const l: Line = { id: 'p1', name: 'Medpen', qty, done: false, className: 'medpen', amount: null, unit: null, packageId: 'n1' };
+      lines.push(l);
+      return l;
+    };
+
+    it('leaves the line to the stock rise: no second count, reconcile closes it', async () => {
+      const { svc, lines, active, nachschub } = setup();
+      active.set([{ id: 'n1' }]);
+      const l = packageLine(lines, 10);
+      const res = await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 6);
       expect(res.ok).toBeTrue();
-      expect(res.key).toBe('itemPath.done.wishOn');
-      expect(rows()[0].qty).toBe(4);
-      expect(stock()[0].qty).toBe(4);
-      expect(lines.length).toBe(0);
-      await res.undo!();
-      expect(rows()[0].qty).toBe(1);
+      expect(l.qty).toBe(10);
+      expect(l.done).toBeFalse();
+      expect(nachschub.reconcile).toHaveBeenCalled();
     });
 
-    it('SCU stock is wished as material, whole SCU rounded up', async () => {
-      const { svc, rows } = setup();
-      await svc.nachholen('item', 'Agricium', 'Agricium', 0.36, 'scu');
-      expect(rows().map((r) => [r.kind, r.className, r.qty])).toEqual([['material', 'Agricium', 1]]);
+    it('a split take keeps the leftover wish: what the line asked for does not shrink it', async () => {
+      const { svc, lines, active, wishlist } = setup();
+      active.set([{ id: 'n1' }]);
+      packageLine(lines, 5);
+      await wishlist.setQty('item', 'medpen', 'Medpen', 15);
+      await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 5);
+      expect(wishlist.qtyOf('item', 'medpen', 'Medpen')).toBe(15);
+      await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 7);
+      expect(wishlist.qtyOf('item', 'medpen', 'Medpen')).toBe(13);
     });
 
-    it('a failed write is a failure, nothing is pretended', async () => {
-      const { svc } = setup({ storeFails: true });
-      const res = await svc.nachholen('item', 'medpen', 'Medpen', 1);
-      expect(res.ok).toBeFalse();
-      expect(isPathError(res)).toBeTrue();
+    it('undo brings back a Nachschub the arrival finished and archived', async () => {
+      const { svc, lines, active, nachschub } = setup();
+      active.set([{ id: 'n1' }]);
+      const l = packageLine(lines, 2);
+      const res = await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 2);
+      l.done = true;
+      active.set([]);
+      expect((await res.undo!()).ok).toBeTrue();
+      expect(nachschub.reactivate).toHaveBeenCalledWith('n1');
+      expect(l.done).toBeFalse();
+    });
+
+    it('a line of an archived Nachschub is a loose line: it shrinks as before', async () => {
+      const { svc, lines } = setup();
+      const l = packageLine(lines, 10);
+      await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 6);
+      expect(l.qty).toBe(4);
     });
   });
 });

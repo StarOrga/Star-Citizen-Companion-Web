@@ -185,8 +185,8 @@ export class WishCartService {
 
   private async erase(i: CartItem): Promise<void> {
     try {
-      if (i.shipId) await this.hangar.removeShip(i.shipId);
-      else await this.store.remove(i.kind, i.className, i.name, i.forClassName);
+      const ok = i.shipId ? await this.hangar.removeShip(i.shipId) : await this.store.remove(i.kind, i.className, i.name, i.forClassName);
+      if (ok === false) logWarn('cart', 'remove failed', { kind: i.kind });
     } catch (err) {
       logWarn('cart', 'remove failed', err);
     }
