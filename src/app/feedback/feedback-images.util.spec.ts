@@ -91,11 +91,11 @@ describe('feedback attachment rules', () => {
 /** D16 step 10: the role gate is enforced in the upload itself, before any request. */
 describe('uploadFeedbackImages role gate', () => {
   function fakeClient() {
-    const upload = jasmine.createSpy('upload').and.resolveTo({ error: null });
-    const getPublicUrl = jasmine.createSpy('getPublicUrl').and.callFake((path: string) => ({
+    const upload = vi.fn().mockName('upload').mockResolvedValue({ error: null });
+    const getPublicUrl = vi.fn().mockName('getPublicUrl').mockImplementation((path: string) => ({
       data: { publicUrl: 'https://db.test/storage/v1/object/public/feedback-images/' + path },
     }));
-    const from = jasmine.createSpy('from').and.returnValue({ upload, getPublicUrl });
+    const from = vi.fn().mockName('from').mockReturnValue({ upload, getPublicUrl });
     const client = { storage: { from } } as unknown as Parameters<typeof uploadFeedbackImages>[0];
     return { client, upload, from };
   }
@@ -103,9 +103,7 @@ describe('uploadFeedbackImages role gate', () => {
 
   it('rejects a non-image for a viewer without touching storage', async () => {
     const { client, upload, from } = fakeClient();
-    await expectAsync(uploadFeedbackImages(client, 'uid-1', [IMG, FILE_LOG], false)).toBeRejectedWithError(
-      ATTACHMENT_TYPE_BLOCKED,
-    );
+    await expect(uploadFeedbackImages(client, 'uid-1', [IMG, FILE_LOG], false)).rejects.toThrowError(ATTACHMENT_TYPE_BLOCKED);
     expect(from).not.toHaveBeenCalled();
     expect(upload).not.toHaveBeenCalled();
   });
@@ -114,9 +112,9 @@ describe('uploadFeedbackImages role gate', () => {
     const { client, upload } = fakeClient();
     const urls = await uploadFeedbackImages(client, 'uid-1', [FILE_LOG], true);
     expect(upload).toHaveBeenCalledTimes(1);
-    const path = upload.calls.mostRecent().args[0] as string;
-    expect(path.startsWith('uid-1/')).toBeTrue();
-    expect(path.endsWith('.log')).toBeTrue();
+    const path = vi.mocked(upload).mock.lastCall![0] as string;
+    expect(path.startsWith('uid-1/')).toBe(true);
+    expect(path.endsWith('.log')).toBe(true);
     expect(urls.length).toBe(1);
     expect(urls[0]).toContain('/object/public/feedback-images/uid-1/');
   });
@@ -125,9 +123,9 @@ describe('uploadFeedbackImages role gate', () => {
     const { client, upload } = fakeClient();
     const urls = await uploadFeedbackImages(client, 'uid-1', [{ ...IMG, dataUrl: 'data:image/png;base64,AA==' }], false);
     expect(upload).toHaveBeenCalledTimes(1);
-    const path = upload.calls.mostRecent().args[0] as string;
-    expect(path.startsWith('uid-1/')).toBeTrue();
-    expect(path.endsWith('.png')).toBeTrue();
+    const path = vi.mocked(upload).mock.lastCall![0] as string;
+    expect(path.startsWith('uid-1/')).toBe(true);
+    expect(path.endsWith('.png')).toBe(true);
     expect(urls.length).toBe(1);
   });
 });

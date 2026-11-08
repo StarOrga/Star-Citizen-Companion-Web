@@ -93,10 +93,10 @@ describe('UserFeedbackPanelComponent — frame nesting', () => {
 
     const composer = el.querySelector<HTMLElement>('sc-feedback-composer .composer')!;
     expect(composer).not.toBeNull();
-    expect(drawsBox(composer)).withContext('the compose box is frameless').toBeFalse();
+    expect(drawsBox(composer), 'the compose box is frameless').toBe(false);
 
     const worst = deepestBoxNesting(el);
-    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(1);
+    expect(worst.depth, `deepest chain: ${worst.path}`).toBeLessThanOrEqual(1);
   });
 
   it('nests at most two boxes in an opened topic with a thread and a reply box', async () => {
@@ -113,15 +113,15 @@ describe('UserFeedbackPanelComponent — frame nesting', () => {
     // an empty card.
     const reply = el.querySelector<HTMLElement>('.reply')!;
     expect(reply).not.toBeNull();
-    expect(drawsBox(reply)).withContext('a reply is a rule, not a box').toBeFalse();
+    expect(drawsBox(reply), 'a reply is a rule, not a box').toBe(false);
     expect(parseFloat(getComputedStyle(reply).borderInlineStartWidth)).toBeGreaterThan(0);
 
     // …and the answer box inside the card does not draw a second frame either.
     const composer = el.querySelector<HTMLElement>('.topic sc-feedback-composer .composer')!;
     expect(composer).not.toBeNull();
-    expect(drawsBox(composer)).toBeFalse();
+    expect(drawsBox(composer)).toBe(false);
 
     const worst = deepestBoxNesting(el);
-    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
+    expect(worst.depth, `deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
   });
 });

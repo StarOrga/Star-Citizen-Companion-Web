@@ -100,14 +100,14 @@ describe('parseDraftRow', () => {
 
 describe('isEmptyDraft', () => {
   it('counts whitespace-only text with no attachments as empty', () => {
-    expect(isEmptyDraft('   \n ', [])).toBeTrue();
+    expect(isEmptyDraft('   \n ', [])).toBe(true);
   });
 
   it('is not empty while an attachment is queued, even without text', () => {
-    expect(isEmptyDraft('', [{}])).toBeFalse();
+    expect(isEmptyDraft('', [{}])).toBe(false);
   });
 
   it('is not empty with real text', () => {
-    expect(isEmptyDraft('hi', [])).toBeFalse();
+    expect(isEmptyDraft('hi', [])).toBe(false);
   });
 });

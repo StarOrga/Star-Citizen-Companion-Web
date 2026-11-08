@@ -86,6 +86,10 @@ const STATEMENT = [
 
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
+// Brackets around source text the printer copies through untouched (see print()).
+const OPEN = '\u0001';
+const CLOSE = '\u0002';
+
 /** Rewrite one file's text; returns the new text (=== input when nothing changed). */
 export function migrate(fileName, content, { fakeAsync = false, reporter = new RefactorReporter(silentLogger()) } = {}) {
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
@@ -135,21 +139,41 @@ export function migrate(fileName, content, { fakeAsync = false, reporter = new R
   };
   ts.transform(sourceFile, [transformer]);
 
+  // A node that carries a TODO note, and every node above it, must go through
+  // the printer (which writes the note); nothing else does.
+  const noted = new Set();
+  for (const node of original) {
+    if (!ts.getSyntheticLeadingComments(node)?.length) continue;
+    for (let n = node; n; n = n.parent) noted.add(n);
+  }
+
+  const file = { sourceFile, content, original, noted };
   const edits = [];
   for (const [node, final] of replaced) {
     if (hasReplacedAncestor(node, replaced)) continue;
-    edits.push({ start: node.getStart(sourceFile), end: node.getEnd(), text: print(final, node, sourceFile, content) });
+    edits.push({ start: node.getStart(sourceFile), end: node.getEnd(), text: print(final, node, file) });
+  }
+  // TODO notes on statements the transformers did not replace: no print above
+  // carries them, so they go in as text.
+  for (const node of original) {
+    const notes = ts.getSyntheticLeadingComments(node);
+    if (!notes?.length || replaced.has(node) || hasReplacedAncestor(node, replaced)) continue;
+    const at = node.getStart(sourceFile);
+    const indent = indentAt(content, at);
+    const text = notes.map((c) => (c.kind === ts.SyntaxKind.SingleLineCommentTrivia ? `//${c.text}` : `/*${c.text}*/`)).join(`\n${indent}`);
+    edits.push({ start: at, end: at, text: `${text}\n${indent}` });
   }
   edits.push(...importRemovals(sourceFile, ctx.pendingImportSpecifierRemovals));
   if (ctx.pendingVitestTypeImports.size > 0) {
     const decl = astHelpers.getVitestAutoImports(new Set(), ctx.pendingVitestTypeImports);
     const first = sourceFile.statements[0];
     const at = first ? first.getStart(sourceFile) : 0;
-    if (decl) edits.push({ start: at, end: at, text: `${printer.printNode(ts.EmitHint.Unspecified, decl, sourceFile)}\n` });
+    if (decl) edits.push({ start: at, end: at, text: `${printer.printNode(ts.EmitHint.Unspecified, decl, sourceFile).replaceAll('"', "'")}\n` });
   }
 
   let out = content;
-  for (const e of edits.sort((a, b) => b.start - a.start)) out = out.slice(0, e.start) + e.text + out.slice(e.end);
+  // Back to front; at one position the replacement goes before the insertion.
+  for (const e of edits.sort((a, b) => b.start - a.start || b.end - a.end)) out = out.slice(0, e.start) + e.text + out.slice(e.end);
   return out;
 }
 
@@ -158,39 +182,81 @@ function hasReplacedAncestor(node, replaced) {
   return false;
 }
 
+function indentAt(content, pos) {
+  const lineStart = content.lastIndexOf('\n', pos - 1) + 1;
+  return /^[ \t]*/.exec(content.slice(lineStart))[0];
+}
+
 /**
- * Print a replacement and fit it into the original text: the printer indents
- * by 4 from column 0; the project indents by 2 from the node's own line.
+ * Print a replacement and fit it into the original text.
+ *
+ * Only the new nodes go through the printer. Every node of the original file
+ * that sits unchanged inside the replacement — an arrow function body, an
+ * argument, a comment in front of a statement — is substituted by its own
+ * source text, so its wrapping, comments and template literals survive byte
+ * for byte. The printer's own lines get the project's 2-space steps on top of
+ * the node's indent; the copied lines already have theirs.
  */
-function print(final, node, sourceFile, content) {
+function print(final, node, { sourceFile, content, original, noted }) {
+  const indent = indentAt(content, node.getStart(sourceFile));
+  const top = node.getStart(sourceFile);
+  const bottom = node.getEnd();
+  const printer2 = ts.createPrinter(
+    { newLine: ts.NewLineKind.LineFeed },
+    {
+      substituteNode(_hint, n) {
+        if (!original.has(n)) {
+          // A new node made by `update…` carries the source range of the node
+          // it replaces, and the printer would print that range's comments
+          // again — they are already in the text (before the splice point) or
+          // come along with a copied child below.
+          if (n.pos >= 0) ts.setEmitFlags(n, ts.getEmitFlags(n) | ts.EmitFlags.NoComments);
+          return n;
+        }
+        if (noted.has(n) || n.kind === ts.SyntaxKind.SourceFile) return n;
+        // Its comments come along — the leading ones unless they lie before
+        // the splice point (they stay in the text there), the trailing ones
+        // unless they lie after it.
+        const lead = (ts.getLeadingCommentRanges(content, n.pos) ?? []).find((c) => c.pos >= top);
+        const trail = (ts.getTrailingCommentRanges(content, n.end) ?? []).filter((c) => c.end <= bottom).at(-1);
+        const from = lead ? lead.pos : n.getStart(sourceFile);
+        return ts.factory.createIdentifier(OPEN + content.slice(from, trail ? trail.end : n.end) + CLOSE);
+      },
+    },
+  );
   const nodes = Array.isArray(final) ? final : [final];
-  const lineStart = content.lastIndexOf('\n', node.getStart(sourceFile) - 1) + 1;
-  const indent = /^[ \t]*/.exec(content.slice(lineStart))[0];
-  // The printer re-emits the comments in front of the original node, but they
-  // stay in the text before the splice point — drop the copies.
-  const leading = (ts.getLeadingCommentRanges(content, node.pos) ?? []).map((r) => content.slice(r.pos, r.end));
-  const withoutLeading = (text) => {
-    let head = text;
-    for (const c of leading) {
-      const at = head.indexOf(c);
-      if (at < 0 || head.slice(0, at).replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\/|\s/g, '') !== '') continue;
-      head = head.slice(0, at) + head.slice(at + c.length).replace(/^\s*/, '');
+  // A block the transformers build (the fake-async rewrite does) prints on one
+  // line unless told otherwise; the project writes them open.
+  const openBlocks = (n) => {
+    if (original.has(n)) return;
+    if (ts.isBlock(n) && n.statements.length > 0) {
+      n.multiLine = true;
+      ts.setEmitFlags(n, ts.getEmitFlags(n) & ~ts.EmitFlags.SingleLine);
     }
-    return head;
+    ts.forEachChild(n, openBlocks);
   };
-  return nodes
-    .map((n, i) => {
-      const printed = printer.printNode(ts.EmitHint.Unspecified, n, sourceFile);
-      return i === 0 ? withoutLeading(printed) : printed;
-    })
-    .join(`\n${indent}`)
+  nodes.forEach(openBlocks);
+  return nodes.map((n) => reindent(printer2.printNode(ts.EmitHint.Unspecified, n, sourceFile), indent)).join(`\n${indent}`);
+}
+
+/** Re-indent the printer's lines (4-space steps from column 0); keep copied lines; drop the brackets. */
+function reindent(text, indent) {
+  let depth = 0; // > 0 while inside copied source text
+  return text
     .split('\n')
     .map((line, i) => {
-      if (i === 0) return line;
+      const copied = depth > 0;
+      for (const ch of line) {
+        if (ch === OPEN) depth++;
+        else if (ch === CLOSE) depth--;
+      }
+      if (i === 0 || copied) return line;
       const lead = /^ */.exec(line)[0].length;
       return line.trim() === '' ? '' : indent + ' '.repeat(Math.floor(lead / 2)) + line.slice(lead);
     })
-    .join('\n');
+    .join('\n')
+    .replaceAll(OPEN, '')
+    .replaceAll(CLOSE, '');
 }
 
 /** Named imports the fake-async rewrite no longer needs (`fakeAsync`, `tick`, …). */

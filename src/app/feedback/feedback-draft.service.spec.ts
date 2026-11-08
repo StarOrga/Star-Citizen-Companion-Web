@@ -136,7 +136,7 @@ describe('FeedbackDraftService', () => {
     const entry = svc.entry(draftScopes.adminNew);
     expect(entry?.body).toBe('half a topic');
     expect(entry?.images.map((i) => i.url)).toEqual([BUCKET_URL]);
-    expect(entry?.dirty).toBeFalse();
+    expect(entry?.dirty).toBe(false);
   });
 
   it('writes a staged draft once the debounce elapses, not on every keystroke', async () => {
@@ -151,7 +151,7 @@ describe('FeedbackDraftService', () => {
     await svc.flush(draftScopes.adminNew);
     expect(sb.upserts).toBe(1);
     expect(sb.rows[0].body).toBe('abc');
-    expect(svc.entry(draftScopes.adminNew)?.dirty).toBeFalse();
+    expect(svc.entry(draftScopes.adminNew)?.dirty).toBe(false);
   });
 
   it('derives the topic id from a scoped key so the row can cascade', async () => {
@@ -202,8 +202,8 @@ describe('FeedbackDraftService', () => {
 
     const entry = svc.entry(draftScopes.adminNew);
     expect(entry?.body).toBe('precious text');
-    expect(entry?.dirty).toBeTrue();
-    expect(entry?.failed).toBeTrue();
+    expect(entry?.dirty).toBe(true);
+    expect(entry?.failed).toBe(true);
   });
 
   it('discard removes the row AND the screenshots that never became a message', async () => {
