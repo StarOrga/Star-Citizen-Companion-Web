@@ -1,5 +1,5 @@
 /**
- * Content script for the Star Citizen Companion origin.
+ * Content script for the Verse Companion origin.
  *
  * It is the only path by which a hangar payload reaches the web app, and it is
  * deliberately dumb: it hands over what the RSI script already stored in

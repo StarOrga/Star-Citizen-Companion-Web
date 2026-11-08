@@ -151,7 +151,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#0d2635', // = --surface-canvas, so resize/launch never flashes a foreign dark
-    title: 'Star Citizen Companion - Data Uploader',
+    title: 'Verse Companion - Data Uploader',
     icon: runtimeIcon('icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
@@ -404,7 +404,7 @@ ipcMain.handle('sc:system:shutdown', (_e, delaySeconds?: number) => {
       ? Math.max(0, Math.floor(delaySeconds))
       : 60;
   if (process.platform === 'win32') {
-    return execAsync(`shutdown /s /t ${secs} /c "Star Citizen Companion: upload complete."`);
+    return execAsync(`shutdown /s /t ${secs} /c "Verse Companion: upload complete."`);
   }
   if (process.platform === 'darwin' || process.platform === 'linux') {
     // Unix `shutdown` takes minutes, not seconds, and typically needs privileges.

@@ -1,4 +1,4 @@
-# Supabase — SC Companion
+# Supabase — Verse Companion
 
 Cloud project: **`hcnqhvzlavdycidqyaai`** (region `eu-central-1`, free tier, organization "Jerrys Projects").
 

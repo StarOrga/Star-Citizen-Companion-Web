@@ -1,6 +1,6 @@
 ---
 title: Endpoints
-excerpt: Every route on the SC Companion Public API — parameters, response shapes, and current data status.
+excerpt: Every route on the Verse Companion Public API — parameters, response shapes, and current data status.
 ---
 
 All routes are relative to
@@ -23,7 +23,7 @@ All routes are relative to
 
 ## GET /v1/patch
 
-Current LIVE / PTU / EPTU patch versions as detected by SC Companion's channel
+Current LIVE / PTU / EPTU patch versions as detected by Verse Companion's channel
 detection.
 
 **Parameters:** none.

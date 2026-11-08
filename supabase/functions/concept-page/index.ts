@@ -72,6 +72,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const FRAME_ANCESTORS = [
   'https://sc-companion.vercel.app',
   'https://star-citizen-companion-website.vercel.app',
+  // Public host since the Verse Companion rename (src/brand.json `host`).
+  'https://versecompanion-alpha.vercel.app',
   'http://127.0.0.1:4200',
   'http://localhost:4200',
 ];

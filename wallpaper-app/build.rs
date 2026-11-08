@@ -32,7 +32,7 @@ fn main() {
     res.set("FileDescription", "Starscape");
     res.set("ProductName", "Starscape");
     res.set("OriginalFilename", "starscape-wallpaper.exe");
-    res.set("CompanyName", "Star Citizen Companion");
+    res.set("CompanyName", "Verse Companion");
     res.set("LegalCopyright", "MIT License");
     // FileVersion / ProductVersion default from CARGO_PKG_VERSION.
     // Per-monitor DPI awareness (v2, falling back to v1 / system-aware on older

@@ -153,7 +153,7 @@ describe('FusionBarComponent', () => {
     });
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.plate .cat')?.textContent).toContain('Star Citizen Companion');
+    expect(el.querySelector('.plate .cat')?.textContent).toContain('Verse Companion');
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.plate .trail a'));
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['/codex', '/codex/index?kind=ship']);
     const path = Array.from(el.querySelectorAll('.plate .trail li')).map((li) => li.textContent?.trim());
@@ -189,7 +189,7 @@ describe('FusionBarComponent', () => {
     fixture.detectChanges();
     expect(el.getAttribute('data-mode')).toBe('docked');
     expect(el.classList).not.toContain('condensing');
-    expect(el.querySelector('.plate .cat')?.textContent).toContain('Star Citizen Companion');
+    expect(el.querySelector('.plate .cat')?.textContent).toContain('Verse Companion');
     expect(el.querySelector('.plate .trail')?.textContent).toContain('nav.verse');
     expect(chrome.stageSearch()).toBe('docked');
     expect(chrome.dockProgress).toBe(1);

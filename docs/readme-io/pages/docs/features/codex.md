@@ -3,7 +3,7 @@ title: Codex
 excerpt: Every ship, weapon, component, item, ammo, manufacturer and crafting blueprint — datamined from the live build and searchable.
 ---
 
-The **Codex** is the reference half of SC Companion: ships, weapons,
+The **Codex** is the reference half of Verse Companion: ships, weapons,
 components, items, ammunition, manufacturers and crafting blueprints, extracted
 from the live game build rather than transcribed by hand. It is public — no
 account needed.

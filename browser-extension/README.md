@@ -1,7 +1,7 @@
-# SC Companion — Hangar Import (Chrome MV3 extension)
+# Verse Companion — Hangar Import (Chrome MV3 extension)
 
 Imports the ship list from the user's **own** RSI hangar page into
-[Star Citizen Companion](https://sc-companion.vercel.app).
+[Verse Companion](https://sc-companion.vercel.app).
 
 The web app cannot read robertsspaceindustries.com itself — the same-origin
 policy and RSI's lack of a public hangar API make server- or browser-side

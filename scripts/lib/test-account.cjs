@@ -1,5 +1,5 @@
 /**
- * The SC Companion test account — where its credentials live, how a session is
+ * The Verse Companion test account — where its credentials live, how a session is
  * obtained for it, and which origins may receive one.
  *
  * Shared by the Playwright-MCP init page (`scripts/playwright/test-session.cjs`,
@@ -42,7 +42,8 @@ const APP_ORIGIN_RULES = {
   localHosts: ['127.0.0.1', 'localhost'],
   localPortMin: 4200,
   localPortMax: 4399,
-  deployHosts: ['^sc-companion\\.vercel\\.app$', '^star-citizen-companion-website(-[a-z0-9-]+)?\\.vercel\\.app$'],
+  // Production host, previews of the renamed Vercel project, and the legacy hosts.
+  deployHosts: ['^versecompanion-alpha(-[a-z0-9-]+)?\\.vercel\\.app$', '^sc-companion\\.vercel\\.app$', '^star-citizen-companion-website(-[a-z0-9-]+)?\\.vercel\\.app$'],
 };
 
 /**
@@ -66,7 +67,7 @@ function isAppOrigin(url, rules = APP_ORIGIN_RULES) {
 
 /**
  * Supabase URL + publishable key, read from `src/environments/environment.ts` so
- * the scripts can never drift from the app. Null outside an SC Companion checkout.
+ * the scripts can never drift from the app. Null outside an Verse Companion checkout.
  */
 function readSupabaseConfig(repoRoot) {
   const file = join(repoRoot, 'src', 'environments', 'environment.ts');

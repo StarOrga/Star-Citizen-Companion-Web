@@ -1,6 +1,6 @@
-# SC Companion
+# Verse Companion
 
-Angular 22 PWA · Supabase · Vercel — live at `sc-companion.vercel.app` (the project default `star-citizen-companion-website.vercel.app` 307s to it)
+Angular 22 PWA · Supabase · Vercel — live at `versecompanion-alpha.vercel.app` (`sc-companion.vercel.app` keeps serving; the old project alias `star-citizen-companion-website.vercel.app` 307s to it until removed)
 
 ## Commands
 

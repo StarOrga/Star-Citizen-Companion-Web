@@ -7,7 +7,7 @@
   Sync ignores it.
 -->
 
-# SC Companion — ReadMe documentation mirror
+# Verse Companion — ReadMe documentation mirror
 
 **Do not edit this repository.** Every file here is overwritten on the next
 sync.

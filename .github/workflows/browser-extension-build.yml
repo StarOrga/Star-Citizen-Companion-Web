@@ -134,15 +134,15 @@ jobs:
           repository: StarOrga/Star-Citizen-Companion-Binaries
           token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
           tag_name: browser-extension-latest
-          name: SC Companion Hangar Import (latest)
+          name: Verse Companion Hangar Import (latest)
           files: |
             sc-hangar-extension.zip
             sc-hangar-extension-${{ steps.manifest.outputs.version }}.zip
           fail_on_unmatched_files: true
           body: |
-            **SC Companion — Hangar Import**, the Chrome MV3 extension that reads
+            **Verse Companion — Hangar Import**, the Chrome MV3 extension that reads
             the ship list from your own RSI hangar page and hands it to
-            [Star Citizen Companion](https://sc-companion.vercel.app) for confirmation.
+            [Verse Companion](https://sc-companion.vercel.app) for confirmation.
 
             `sc-hangar-extension.zip` is always the newest build — the website's
             download button points at this fixed URL so it never goes stale. The

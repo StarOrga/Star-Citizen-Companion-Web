@@ -1,20 +1,20 @@
 {
   "extName": {
-    "message": "Star Citizen Companion — Hangar-Import",
+    "message": "Verse Companion — Hangar-Import",
     "description": "Extension name"
   },
   "extDescription": {
-    "message": "Importiert die Schiffsliste aus deinem eigenen RSI-Hangar in Star Citizen Companion. Nur personalisierte Spielinhalte — keine persönlichen Daten, keine Zugangsdaten.",
+    "message": "Inoffizielles Star-Citizen-Fan-Tool: Schiffsliste deiner eigenen RSI-Hangarseite in Verse Companion übernehmen. Ohne Zugangsdaten.",
     "description": "Store listing description"
   },
 
-  "bannerTitle": { "message": "Star Citizen Companion" },
+  "bannerTitle": { "message": "Verse Companion" },
   "bannerLeadNew": {
-    "message": "Schiffe in deinem Hangar gefunden: $COUNT$. In Star Citizen Companion importieren?",
+    "message": "Schiffe in deinem Hangar gefunden: $COUNT$. In Verse Companion importieren?",
     "placeholders": { "count": { "content": "$1", "example": "12" } }
   },
   "bannerLeadChanged": {
-    "message": "Dein Hangar hat sich geändert. Gefundene Schiffe: $COUNT$. Aktualisierung in Star Citizen Companion importieren?",
+    "message": "Dein Hangar hat sich geändert. Gefundene Schiffe: $COUNT$. Aktualisierung in Verse Companion importieren?",
     "placeholders": { "count": { "content": "$1", "example": "13" } }
   },
   "bannerImport": { "message": "Schiffe importieren" },
@@ -34,7 +34,7 @@
     "message": "Es wird nichts an einen Server gesendet. Die Liste wird an einen Star-Citizen-Companion-Tab in diesem Browser übergeben und landet erst in deinem Account, wenn du sie dort bestätigst."
   },
   "privacyRsiOnly": {
-    "message": "Die Erweiterung ist nur auf deiner eigenen RSI-Hangarseite und auf Star Citizen Companion aktiv — sonst nirgends."
+    "message": "Die Erweiterung ist nur auf deiner eigenen RSI-Hangarseite und auf Verse Companion aktiv — sonst nirgends."
   },
 
   "popupStatusNever": { "message": "Noch kein Import." },
@@ -53,10 +53,10 @@
     "message": "Die Erweiterung bietet den Import an, wenn deine Flotte neu ist oder sich geändert hat — nie, wenn sich nichts geändert hat."
   },
   "popupHow3": {
-    "message": "Bestätige die Schiffe in Star Citizen Companion. Vorher wird nichts geschrieben."
+    "message": "Bestätige die Schiffe in Verse Companion. Vorher wird nichts geschrieben."
   },
   "popupOpenHangar": { "message": "Meinen RSI-Hangar öffnen" },
-  "popupOpenApp": { "message": "Star Citizen Companion öffnen" },
+  "popupOpenApp": { "message": "Verse Companion öffnen" },
   "popupOfferAgain": { "message": "Import erneut anbieten" },
   "popupOfferAgainDone": { "message": "Das Angebot erscheint wieder auf deiner Hangarseite." },
   "popupForget": { "message": "Gespeicherte Daten löschen" },

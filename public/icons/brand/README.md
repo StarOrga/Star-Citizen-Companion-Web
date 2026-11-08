@@ -10,7 +10,7 @@ npm run check:brand-icons    # verify the working tree matches (what CI runs)
 
 ## The master
 
-`scc-mark.svg` is the SC Companion **desktop app's** icon, vendored byte-for-byte from
+`scc-mark.svg` is the Verse Companion **desktop app's** icon, vendored byte-for-byte from
 
     Star-Citizen-Companion-App/modules/desktop/resources/app-icon-taskbar.svg
 
@@ -39,7 +39,7 @@ icon — fix the marker in `marks.mjs` and re-run.
 
 | Product | Mark | What it is |
 |---|---|---|
-| SC Companion (app + web) | `scc-mark*` | The master, untouched. |
+| Verse Companion (app + web) | `scc-mark*` | The master, untouched. |
 | Data Uploader | `uploader-mark*` | The master, untouched, with an **upward arrow** badge over the core — it pushes extracted data up into SCC. |
 | Starscape | `starscape-mark*` | The master, untouched, with a **monitor** badge over the core — it paints the verse across the desktop. |
 
@@ -70,7 +70,7 @@ data cannot. It carries **no text**: `resvg` resolves fonts from the host, so a 
 render differently on the Linux build machine and fail `--check` on nothing but a font.
 The legend therefore lives here:
 
-- **Columns**, left to right: SC Companion · Starscape · Data Uploader.
+- **Columns**, left to right: Verse Companion · Starscape · Data Uploader.
 - **Rows**, top to bottom: app tier at 128px · small tier at 48/32/24/16 · tray tier at 24/16.
 - **The two strips** at the bottom are the point of the exercise: small @24 then tray @16,
   on the Windows dark taskbar (`#1c1c1c`) and the light one (`#f3f3f3`). This is where a

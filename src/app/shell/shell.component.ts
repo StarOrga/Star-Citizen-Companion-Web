@@ -40,6 +40,7 @@ import { WishCartDialogComponent } from './cart/wish-cart-dialog.component';
 import { WishCartService } from './cart/wish-cart.service';
 import { RoleService } from '../auth/role.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
+import { BRAND_NAME } from '../core/brand';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { RouteLoadRecoveryService } from '../core/route-load-recovery.service';
 import { FooterComponent } from './footer.component';
@@ -114,7 +115,7 @@ import { avatarUrlOf } from './avatar-url';
         (click)="onNavActivate($event, '/verse')">
         <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="36" height="36" />
         <span class="wordmark">
-          <span class="title">Star Citizen Companion</span>
+          <span class="title">{{ brandName }}</span>
           <span class="alpha-badge">{{ 'nav.phaseBadge' | translate }}</span>
         </span>
       </a>
@@ -1050,6 +1051,7 @@ import { avatarUrlOf } from './avatar-url';
 })
 export class ShellComponent implements AfterViewInit {
   readonly skipToMain = skipToMain;
+  protected readonly brandName = BRAND_NAME;
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);

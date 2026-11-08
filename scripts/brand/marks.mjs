@@ -3,7 +3,7 @@
  *
  * ## Why this file exists
  *
- * Four products ship an icon: the SC Companion desktop app (a separate repo),
+ * Four products ship an icon: the Verse Companion desktop app (a separate repo),
  * this web app, the Data Uploader (Electron) and Starscape (Rust). The desktop
  * app's icon is the one people already know from their taskbar, so it is the
  * anchor of the family: every product has to be recognisable as *that* icon
