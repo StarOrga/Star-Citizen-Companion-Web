@@ -52,7 +52,7 @@ const SPECTRUM_THREAD_URL = `${RSI_BASE}/api/spectrum/forum/thread/nested`;
 const PATCH_NOTES_CHANNEL_ID = 190048;
 const STATUS_URL = 'https://status.robertsspaceindustries.com/issues/index.json';
 const KB_URL = 'https://support.robertsspaceindustries.com/api/v2/help_center/en-us/articles/360056254754.json';
-const USER_AGENT = 'SC-Companion/0.6 (+patch-stability)';
+const USER_AGENT = 'VerseCompanion/0.6 (+patch-stability)';
 
 const LIST_PAGES_DAILY = 3;
 const LIST_PAGES_BACKFILL = 6;

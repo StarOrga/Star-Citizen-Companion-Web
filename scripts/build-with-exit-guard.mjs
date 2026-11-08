@@ -11,7 +11,7 @@
 //   - once the child's output contains the completion marker, a grace
 //     timer starts (NG_BUILD_EXIT_GRACE_MS, default 30_000 ms)
 //   - if ng hasn't exited by the time it fires AND both
-//     dist/sc-companion/browser/index.html and .../ngsw.json exist, the
+//     dist/verse-companion/browser/index.html and .../ngsw.json exist, the
 //     child is killed and the guard exits 0
 //   - a hard ceiling (NG_BUILD_TIMEOUT_MS, default 300_000 ms) kills the
 //     child regardless of the marker and fails the build unless the same
@@ -32,8 +32,8 @@ const repoRoot = path.resolve(__dirname, '..');
 
 export const COMPLETION_MARKER = 'Application bundle generation complete';
 
-const DIST_INDEX = path.join(repoRoot, 'dist/sc-companion/browser/index.html');
-const DIST_NGSW = path.join(repoRoot, 'dist/sc-companion/browser/ngsw.json');
+const DIST_INDEX = path.join(repoRoot, 'dist/verse-companion/browser/index.html');
+const DIST_NGSW = path.join(repoRoot, 'dist/verse-companion/browser/ngsw.json');
 
 /**
  * True only when every file exists AND was written at/after `since` (epoch

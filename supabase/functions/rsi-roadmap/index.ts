@@ -49,7 +49,7 @@ const BOARD_URL = `${RSI_BASE}/api/roadmap/v1/boards/${ROADMAP_BOARD_ID}`;
 const SPECTRUM_THREAD_URL = `${RSI_BASE}/api/spectrum/forum/thread/nested`;
 /** The SC "Patch Notes" forum — the same channel fetch-verse-news reads. */
 const PATCH_NOTES_CHANNEL_ID = '190048';
-const USER_AGENT = 'SC-Companion/0.6 (+patch-board)';
+const USER_AGENT = 'VerseCompanion/0.6 (+patch-board)';
 
 const BOARD_CACHE_KEY = `board:${ROADMAP_BOARD_ID}`;
 const NOTE_CACHE_PREFIX = 'note:';

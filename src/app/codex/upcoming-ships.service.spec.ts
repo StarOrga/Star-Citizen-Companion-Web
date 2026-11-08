@@ -7,8 +7,10 @@ import { AuthService } from '../auth/auth.service';
 import { SearchWishlistService } from './search/search-wishlist.service';
 import { signal } from '@angular/core';
 
-const FAVORITES_KEY = 'sc-companion.upcoming.favorites';
-const BASELINE_KEY = 'sc-companion.upcoming.baseline';
+const FAVORITES_KEY = 'verse-companion.upcoming.favorites';
+const LEGACY_FAVORITES_KEY = 'sc-companion.upcoming.favorites';
+const BASELINE_KEY = 'verse-companion.upcoming.baseline';
+const LEGACY_BASELINE_KEY = 'sc-companion.upcoming.baseline';
 
 function feed(ships: { id: string; name: string; productionStatus?: string }[]): UpcomingShipsFeed {
   return {
@@ -75,6 +77,8 @@ describe('UpcomingShipsService', () => {
   beforeEach(() => {
     localStorage.removeItem(FAVORITES_KEY);
     localStorage.removeItem(BASELINE_KEY);
+    localStorage.removeItem(LEGACY_FAVORITES_KEY);
+    localStorage.removeItem(LEGACY_BASELINE_KEY);
   });
 
   afterEach(() => {
@@ -83,6 +87,8 @@ describe('UpcomingShipsService', () => {
     TestBed.resetTestingModule();
     localStorage.removeItem(FAVORITES_KEY);
     localStorage.removeItem(BASELINE_KEY);
+    localStorage.removeItem(LEGACY_FAVORITES_KEY);
+    localStorage.removeItem(LEGACY_BASELINE_KEY);
   });
 
   it('seeds the baseline on the first load so nothing is announced as new', async () => {
@@ -99,6 +105,15 @@ describe('UpcomingShipsService', () => {
     expect(svc.diff().added.map((s) => s.id)).toEqual(['b']);
     expect(svc.newIds().has('b')).toBeTrue();
     expect(svc.notificationCount()).toBe(1);
+  });
+
+  it('migrates a baseline stored under the pre-rename key instead of re-seeding it', async () => {
+    localStorage.setItem(LEGACY_BASELINE_KEY, JSON.stringify({ a: 'in-concept' }));
+    setup();
+    await flush(feed([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]));
+    expect(svc.diff().added.map((x) => x.id)).toEqual(['b']);
+    expect(localStorage.getItem(LEGACY_BASELINE_KEY)).toBeNull();
+    expect(localStorage.getItem(BASELINE_KEY)).not.toBeNull();
   });
 
   it('acknowledge() clears the notification and rewrites the baseline', async () => {
@@ -135,6 +150,18 @@ describe('UpcomingShipsService', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(addSpy).toHaveBeenCalledOnceWith('upcoming', 'a', 'Ship A');
+    expect(localStorage.getItem(FAVORITES_KEY)).toBeNull();
+  });
+
+  it('still moves a star list stored under the pre-rename sc-companion key, and removes it', async () => {
+    localStorage.setItem(LEGACY_FAVORITES_KEY, JSON.stringify(['a']));
+    setup();
+    await flush(feed([{ id: 'a', name: 'Ship A' }]));
+    TestBed.tick();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(addSpy).toHaveBeenCalledOnceWith('upcoming', 'a', 'Ship A');
+    expect(localStorage.getItem(LEGACY_FAVORITES_KEY)).toBeNull();
     expect(localStorage.getItem(FAVORITES_KEY)).toBeNull();
   });
 

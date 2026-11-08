@@ -248,7 +248,7 @@ async function fetchOgImage(pageUrl: string, timeoutMs = OG_FETCH_TIMEOUT_MS): P
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(pageUrl, {
-      headers: { 'Accept': 'text/html', 'User-Agent': 'SC-Companion/0.3 (+news-og-fallback)' },
+      headers: { 'Accept': 'text/html', 'User-Agent': 'VerseCompanion/0.3 (+news-og-fallback)' },
       signal: ctrl.signal,
     });
     if (!res.ok) return undefined;
@@ -471,7 +471,7 @@ async function spectrumThreads(channelId: number, page: number): Promise<Record<
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Tavern-Id': String(SPECTRUM_TAVERN_ID),
-      'User-Agent': 'SC-Companion/0.3 (+https://sc-companion.vercel.app)',
+      'User-Agent': 'VerseCompanion/0.3 (+https://versecompanion-alpha.vercel.app)',
     },
     body: JSON.stringify({ channel_id: channelId, page, sort: 'newest' }),
     signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
@@ -651,7 +651,7 @@ const STATUS_PRIORITY: Record<StatusLevel, number> = {
 async function fetchStatus(): Promise<VerseStatus | null> {
   try {
     const res = await fetch(STATUS_PAGE_URL, {
-      headers: { 'Accept': 'text/html', 'User-Agent': 'SC-Companion/0.3' },
+      headers: { 'Accept': 'text/html', 'User-Agent': 'VerseCompanion/0.3 (+https://versecompanion-alpha.vercel.app)' },
       signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`status HTTP ${res.status}`);
@@ -695,7 +695,7 @@ const STATUS_ISSUES_URL = 'https://status.robertsspaceindustries.com/issues/inde
 async function fetchScheduledDeployment(): Promise<ScheduledDeployment | null> {
   try {
     const res = await fetch(STATUS_ISSUES_URL, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'SC-Companion/0.3' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'VerseCompanion/0.3 (+https://versecompanion-alpha.vercel.app)' },
       signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`status issues HTTP ${res.status}`);
@@ -799,7 +799,7 @@ async function fetchImage(url: string, ext: string): Promise<{ bytes: Uint8Array
   try {
     // A valid Referer is what unlocks RSI's CDN for non-browser clients.
     const res = await fetch(url, {
-      headers: { 'Referer': RSI_BASE + '/', 'User-Agent': 'sc-companion/1.0 (+news-image-cache)' },
+      headers: { 'Referer': RSI_BASE + '/', 'User-Agent': 'VerseCompanion/1.0 (+news-image-cache)' },
       signal: ctrl.signal,
     });
     if (!res.ok) return null;

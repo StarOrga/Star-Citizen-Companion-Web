@@ -204,7 +204,7 @@ function makeImageFetcher(maxBytes: number): ImageFetcher {
     const t = setTimeout(() => ctrl.abort(), IMG_FETCH_TIMEOUT_MS);
     try {
       const res = await fetch(url, {
-        headers: { Referer: RSI_REFERER, 'User-Agent': 'sc-companion/1.0 (+starscape-summary)' },
+        headers: { Referer: RSI_REFERER, 'User-Agent': 'VerseCompanion/1.0 (+starscape-summary)' },
         signal: ctrl.signal,
       });
       if (!res.ok) return undefined;

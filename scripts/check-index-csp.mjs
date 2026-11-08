@@ -39,7 +39,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const index = join(root, 'dist', 'sc-companion', 'browser', 'index.html');
+const index = join(root, 'dist', 'verse-companion', 'browser', 'index.html');
 
 if (!existsSync(index)) {
   console.error(`✗ ${index} does not exist — cannot verify the built HTML against the CSP.`);

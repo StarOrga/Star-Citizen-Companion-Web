@@ -24,11 +24,15 @@ describe('ExtensionBridgeService', () => {
 
   beforeEach(() => {
     document.documentElement.removeAttribute('data-sc-companion-extension');
+    document.documentElement.removeAttribute('data-verse-companion-extension');
     TestBed.configureTestingModule({});
     svc = TestBed.inject(ExtensionBridgeService);
   });
 
-  afterEach(() => document.documentElement.removeAttribute('data-sc-companion-extension'));
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-sc-companion-extension');
+    document.documentElement.removeAttribute('data-verse-companion-extension');
+  });
 
   it('resolves a matching reply and marks the extension installed', fakeAsync(() => {
     let result: unknown = 'unset';
@@ -97,4 +101,75 @@ describe('ExtensionBridgeService', () => {
     expect(result).toBeTrue();
     expect(svc.version()).toBe('1.2.3');
   }));
+
+  describe('verse-companion ids (rename stage 2)', () => {
+    it('accepts a reply under the new extension id', fakeAsync(() => {
+      let result: unknown = 'unset';
+      void svc.requestPayload().then((p) => (result = p));
+      reply(
+        { origin: window.location.origin, source: window },
+        { source: 'verse-companion-extension', type: 'hangar-import:payload', payload: PAYLOAD },
+      );
+      tick();
+      expect(result).toEqual(PAYLOAD);
+    }));
+
+    it('accepts a reply under the legacy extension id', fakeAsync(() => {
+      let result: unknown = 'unset';
+      void svc.requestPayload().then((p) => (result = p));
+      reply(
+        { origin: window.location.origin, source: window },
+        { source: 'sc-companion-extension', type: 'hangar-import:payload', payload: PAYLOAD },
+      );
+      tick();
+      expect(result).toEqual(PAYLOAD);
+    }));
+
+    it('ignores an unknown source id', fakeAsync(() => {
+      let result: unknown = 'unset';
+      void svc.requestPayload().then((p) => (result = p));
+      reply(
+        { origin: window.location.origin, source: window },
+        { source: 'someone-else', type: 'hangar-import:payload', payload: PAYLOAD },
+      );
+      tick();
+      expect(result).toBe('unset');
+      tick(2500);
+    }));
+
+    it('detects the extension by either presence attribute', () => {
+      document.documentElement.setAttribute('data-verse-companion-extension', '0.1.4');
+      expect(svc.version()).toBe('0.1.4');
+      document.documentElement.removeAttribute('data-verse-companion-extension');
+      document.documentElement.setAttribute('data-sc-companion-extension', '0.1.3');
+      expect(svc.version()).toBe('0.1.3');
+    });
+
+    function sentSource(version: string | null): unknown {
+      if (version) document.documentElement.setAttribute('data-sc-companion-extension', version);
+      let source: unknown = null;
+      const spy = spyOn(window, 'postMessage').and.callFake(((msg: { source?: unknown }) => {
+        source = msg.source;
+      }) as never);
+      svc.discard();
+      expect(spy).toHaveBeenCalled();
+      return source;
+    }
+
+    it('talks the legacy app id to an old or unknown extension', () => {
+      expect(sentSource('0.1.3')).toBe('sc-companion-app');
+    });
+
+    it('talks the legacy app id when no extension announced itself', () => {
+      expect(sentSource(null)).toBe('sc-companion-app');
+    });
+
+    it('talks the new app id to an extension from 0.1.4 on', () => {
+      expect(sentSource('0.1.4')).toBe('verse-companion-app');
+    });
+
+    it('treats 0.2.0 as a new-id extensions', () => {
+      expect(sentSource('0.2.0')).toBe('verse-companion-app');
+    });
+  });
 });

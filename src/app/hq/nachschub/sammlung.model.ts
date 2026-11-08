@@ -15,7 +15,7 @@ export interface SammlungEntry {
 export const BLUEPRINT_PLACE = 'Blueprints';
 
 /** localStorage key of the old news bookmarks (the web's former "Merken"); copied into the account once. */
-export const NEWS_FAVORITES_STORAGE_KEY = 'sc-companion.news.favorites';
+export const NEWS_FAVORITES_STORAGE_KEY = 'verse-companion.news.favorites';
 
 /** Max news ids copied per call (the table caps a user at 500). */
 export const NEWS_COPY_MAX = 500;
