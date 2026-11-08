@@ -5506,12 +5506,9 @@
       "stepsAria": "Schritte",
       "step": {
         "1": "Auswählen",
-        "2": "Zusammenfassung",
-        "3": "Einsätze"
+        "2": "Einsätze"
       },
       "emptyWish": "Deine Wunschliste ist leer.",
-      "emptyHint": "Lege zuerst Dinge auf die Wunschliste, dann kannst du sie hier in einen Nachschub übernehmen.",
-      "fillWish": "Wunschliste füllen",
       "all": "Alles übernehmen",
       "none": "Nichts übernehmen",
       "picked": "{{n}} Positionen · {{p}} Stück",
@@ -5525,13 +5522,9 @@
       "less": "Weniger mitnehmen",
       "more": "Mehr mitnehmen",
       "nameLabel": "Name des Nachschubs",
-      "sumTitle": "In diesem Nachschub",
       "alreadyIn": "Schon im Nachschub",
       "forBp": "für {{name}}",
       "removeLine": "„{{name}}“ aus dem Nachschub nehmen",
-      "sumEmpty": "Noch nichts ausgewählt.",
-      "stays": "Bleibt auf der Wunschliste",
-      "staysNothing": "Nichts, alles wandert in den Nachschub.",
       "einsaetze": "Einsätze",
       "einsatzCount": "{{n}} Einsätze · {{s}} Schritte",
       "noNewLines": "Keine neuen Positionen, deshalb keine neuen Einsätze.",
@@ -5561,15 +5554,39 @@
       "back": "Zurück",
       "next": "Weiter",
       "create": "Nachschub anlegen",
-      "saveEdit": "Speichern"
+      "saveEdit": "Speichern",
+      "close": "Schließen",
+      "namePlaceholder": "Leer lassen, dann wird einer vorgeschlagen",
+      "wishTitle": "Wunschliste",
+      "emptyHintSearch": "Such oben, was du brauchst, und leg es auf die Wunschliste.",
+      "search": {
+        "label": "Mehr auf die Wunschliste",
+        "placeholder": "Gegenstand, Schiff oder Material suchen",
+        "searching": "Suche läuft …",
+        "none": "Nichts gefunden.",
+        "results": "Suchergebnisse",
+        "onList": "auf der Wunschliste",
+        "add": "Auf die Wunschliste",
+        "addAria": "„{{name}}“ auf die Wunschliste legen",
+        "addFailed": "Das ließ sich nicht auf die Wunschliste legen. Versuch es noch einmal."
+      },
+      "craft": {
+        "aria": "Was das Craften von {{name}} braucht",
+        "forItem": "für {{name}}",
+        "bpOwned": "Blaupause {{name}}: in deiner Sammlung",
+        "bpMissing": "Blaupause {{name}}: fehlt, eine Mission ist eingeplant",
+        "matOwned": "{{name}}: {{need}} gebraucht, {{have}} im Bestand",
+        "matMissing": "{{name}}: {{need}} gebraucht, {{have}} im Bestand, {{missing}} werden besorgt",
+        "noRecipe": "Für das Rezept ist noch kein Material bekannt.",
+        "source": "Blaupausen und Material meldet die Companion-App von selbst in Sammlung und Inventar; bis dahin zählt, was dort steht.",
+        "loading": "Rezept wird geladen …"
+      }
     },
     "panel": {
       "renameAria": "Neuer Name des Nachschubs",
       "rename": "Namen ändern",
       "positions": "Positionen",
       "edit": "Bearbeiten",
-      "run": "In Jetzt ausführen",
-      "empty": "Leeren",
       "noEinsaetze": "Dieser Nachschub hat noch keine Einsätze.",
       "noEinsaetzeHint": "Aus den Positionen entstehen Einsätze: kaufen, abbauen, Missionen, am Ende das Craften.",
       "proposeEinsaetze": "Einsätze vorschlagen",
@@ -5914,7 +5931,10 @@
         "inventory": {
           "opened": "Inventar geöffnet ({{location}})"
         },
-        "other": "Ereignis: {{type}}"
+        "other": "Ereignis: {{type}}",
+        "blueprint": {
+          "received": "Blaupause erhalten: {{name}}"
+        }
       }
     },
     "now": {
@@ -5990,8 +6010,24 @@
       "add": {
         "action": "Einsatz hinzufügen",
         "title": "Neuer Einsatz",
-        "label": "Name des Einsatzes (höchstens 40 Zeichen)",
-        "confirm": "Hinzufügen"
+        "confirm": "Hinzufügen",
+        "kindAria": "Was du tust",
+        "what": {
+          "buy": "Was kaufst du?",
+          "mission": "Was willst du dir erspielen?",
+          "mine": "Was baust du ab?",
+          "pickup": "Was holst du ab?"
+        },
+        "whatPh": {
+          "buy": "z. B. Medpen",
+          "mission": "z. B. Blaupause P4-AR",
+          "mine": "z. B. Quantanium",
+          "pickup": "z. B. Fracht vom Hangar"
+        },
+        "where": "Wo?",
+        "whereOptional": "Wo? (optional)",
+        "wherePh": "Ort wählen",
+        "qty": "Menge"
       },
       "rename": {
         "action": "Einsatz „{{name}}“ umbenennen",
@@ -7879,7 +7915,8 @@
       "dismiss": "{{name}} nicht vorschlagen"
     },
     "slotsFullHint": "Alle 7 Nachschub-Plätze sind belegt. Die Auswahl kommt in einen bestehenden Nachschub.",
-    "toExisting": "In einen bestehenden Nachschub"
+    "toExisting": "In einen bestehenden Nachschub",
+    "open": "„{{name}}“ im Codex öffnen"
   },
   "pathCtl": {
     "node": {

@@ -146,7 +146,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
     </section>
 
     @if (dialogOpen()) {
-      <div class="dialog-backdrop" (click)="closeCreateDialog()"></div>
+      <div class="dialog-backdrop"></div>
       <div class="dialog sc-card" role="dialog" aria-modal="true" aria-labelledby="tok-create-title"
            scDialog [scDialogReturnFocus]="newTokenBtn" (scDialogEscape)="onCreateEscape()">
         <h2 id="tok-create-title">{{ 'admin.tokens.dialog.title' | translate }}</h2>

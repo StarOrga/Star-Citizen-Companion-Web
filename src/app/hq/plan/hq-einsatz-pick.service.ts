@@ -40,7 +40,6 @@ export class HqEinsatzPickService {
       };
       const subs = [
         ref.instance.closed.subscribe((v) => finish(v)),
-        overlayRef.backdropClick().subscribe(() => finish(null)),
         overlayRef.detachments().subscribe(() => finish(null)),
       ];
     });

@@ -151,7 +151,7 @@ export function readContracts(state: Record<string, unknown> | null): LiveContra
     .filter((x) => x.name);
 }
 
-const KNOWN_EVENTS = ['shop.purchase', 'refinery.complete', 'contract.completed', 'qt.arrived', 'hangar.ready', 'inventory.opened'];
+const KNOWN_EVENTS = ['shop.purchase', 'refinery.complete', 'contract.completed', 'qt.arrived', 'hangar.ready', 'inventory.opened', 'blueprint.received'];
 
 /** i18n key + params of an event line; unknown types fall back to a generic line that names the type. */
 export function eventLabel(ev: Pick<HqLiveEventRow, 'type' | 'data'>): { key: string; params: Record<string, unknown> } {

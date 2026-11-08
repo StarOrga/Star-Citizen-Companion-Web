@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, InjectionToken, Signal, computed, effect, inject, signal, untracked } from '@angular/core';
+import { DestroyRef, Injectable, InjectionToken, Injector, Signal, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
@@ -9,6 +9,9 @@ import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { HqLiveStore } from './hq-live.store';
+import { CodexService, toLang } from '../../codex/codex.service';
+import { hitTitle } from '../../codex/search/codex-search-model';
+import { ItemPathService } from '../data/item-path.service';
 
 /**
  * The write side the live events apply to: the supplies / Einsatz services (`tickByClassName`,
@@ -26,6 +29,13 @@ export interface HqLiveApplyTargets {
   unmarkStep(einsatzId: string, ord: number): void;
   /** Puts a replaced inventory snapshot back (`inventory.snapshot` undo). */
   restoreSnapshot?(previous: unknown): Promise<boolean>;
+  /**
+   * `blueprint.received` (the game's "Received Blueprint: <name>"): find the blueprint by its display name and put it
+   * into the Sammlung. Null when the name matches no blueprint or the Sammlung has it already (nothing to undo).
+   */
+  collectBlueprint?(name: string): Promise<{ className: string; name: string } | null>;
+  /** Takes a blueprint collected by an event out of the Sammlung again (its undo). */
+  uncollectBlueprint?(className: string, name: string): Promise<boolean>;
   /** False until the supplies and Einsatz services finished their first pull (auto-apply waits). */
   ready?: Signal<boolean>;
   /** Pull the newest server state, right before a live tick is applied on top of it. */
@@ -38,6 +48,9 @@ export const HQ_LIVE_APPLY_TARGETS = new InjectionToken<HqLiveApplyTargets>('HQ_
     const supplies = inject(HqSuppliesService);
     const einsatz = inject(HqEinsatzService);
     const inventory = inject(HqInventoryService);
+    const codex = inject(CodexService);
+    // ItemPathService reads this service itself: resolved on first use, never at construction.
+    const injector = inject(Injector);
     const ready = computed(() => supplies.ready() && einsatz.ready());
     return {
       tickByClassName: (className, qty) => supplies.tickByClassName(className, qty),
@@ -45,6 +58,15 @@ export const HQ_LIVE_APPLY_TARGETS = new InjectionToken<HqLiveApplyTargets>('HQ_
       markStepDone: (match) => einsatz.markStepDone(match),
       unmarkStep: (einsatzId, ord) => einsatz.unmarkStep(einsatzId, ord),
       restoreSnapshot: (previous) => inventory.restoreSnapshot(previous),
+      collectBlueprint: async (name) => {
+        const hit = await findBlueprintByName(codex, name);
+        if (!hit) return null;
+        const path = injector.get(ItemPathService);
+        if ([...path.ownedBlueprints()].some((c) => c.toLowerCase() === hit.className.toLowerCase())) return null;
+        const res = await path.setBlueprintOwned(hit.className, hit.name, true);
+        return res.ok ? hit : null;
+      },
+      uncollectBlueprint: async (className, name) => (await injector.get(ItemPathService).setBlueprintOwned(className, name, false)).ok,
       ready,
       pull: async () => {
         await Promise.all([supplies.sync(), einsatz.sync()]);
@@ -54,6 +76,24 @@ export const HQ_LIVE_APPLY_TARGETS = new InjectionToken<HqLiveApplyTargets>('HQ_
 });
 
 /**
+ * The blueprint a "Received Blueprint: <name>" line names: an exact display-name match first, then the base name without
+ * a "(…)" qualifier when exactly one blueprint carries it (localizations rename items between patches).
+ */
+export async function findBlueprintByName(codex: Pick<CodexService, 'searchAll'>, raw: string): Promise<{ className: string; name: string } | null> {
+  const name = raw.replace(/:\s*$/, '').trim();
+  if (!name) return null;
+  const fold = (v: string): string => v.toLowerCase().replace(/\s+/g, ' ').trim();
+  const base = (v: string): string => fold(v.replace(/\([^)]*\)/g, ''));
+  const res = await codex.searchAll(name, 12);
+  const bps = res.hits.filter((h) => h.kind === 'blueprint' && !!h.classNameSlug);
+  const titled = bps.map((h) => ({ className: h.classNameSlug, names: [hitTitle(h, toLang('en')), hitTitle(h, toLang('de'))] }));
+  const exact = titled.find((h) => h.names.some((n) => fold(n) === fold(name)));
+  if (exact) return { className: exact.className, name: exact.names[0] };
+  const byBase = titled.filter((h) => h.names.some((n) => base(n) === base(name)));
+  return byBase.length === 1 ? { className: byBase[0].className, name: byBase[0].names[0] } : null;
+}
+
+/**
  * What an auto-apply did, stored in `applied` so undo reverts exactly that. A desktop-written
  * `inventory.snapshot` event carries `{replaced, previous}` without a `kind`: it reads as `snapshot`.
  */
@@ -61,6 +101,7 @@ export type HqLiveApplied =
   | { kind: 'supply'; id: string; qty: number }
   | { kind: 'step'; einsatzId: string; ord: number }
   | { kind: 'snapshot'; previous: unknown }
+  | { kind: 'blueprint'; className: string; name: string; einsatzId?: string; ord?: number }
   | { kind: 'none' }
   | { kind: 'pending'; at?: string };
 
@@ -71,7 +112,7 @@ export const LIVE_PENDING_STALE_MS = 2 * 60 * 1000;
 export function appliedKind(applied: Record<string, unknown> | null): HqLiveApplied['kind'] | null {
   if (!applied) return null;
   const k = applied['kind'];
-  if (k === 'supply' || k === 'step' || k === 'snapshot' || k === 'none' || k === 'pending') return k;
+  if (k === 'supply' || k === 'step' || k === 'snapshot' || k === 'blueprint' || k === 'none' || k === 'pending') return k;
   return 'previous' in applied ? 'snapshot' : null;
 }
 
@@ -240,7 +281,7 @@ export class HqLiveService {
       await this.targets.pull?.();
       if (this.uid !== uid) return;
       this.reportPrice(row);
-      const applied = this.doApply(row);
+      const applied = row.type === 'blueprint.received' ? await this.applyBlueprint(row) : this.doApply(row);
       await this.store.patch(uid, row.id, { applied: applied as unknown as Record<string, unknown> });
       this.setLocal(row.id, { applied: applied as unknown as Record<string, unknown> });
       if (applied.kind !== 'none') this.toast.set({ ...row, applied: applied as unknown as Record<string, unknown> });
@@ -277,6 +318,19 @@ export class HqLiveService {
   }
 
   /**
+   * A received blueprint goes into the Sammlung (the companion app reports the pickup, no hand entry needed) and closes
+   * the mission step a Nachschub planned to earn it.
+   */
+  async applyBlueprint(row: Pick<HqLiveEventRow, 'type' | 'data'>): Promise<HqLiveApplied> {
+    const raw = row.data?.['name'];
+    if (typeof raw !== 'string' || !raw.trim() || !this.targets.collectBlueprint) return { kind: 'none' };
+    const hit = await this.targets.collectBlueprint(raw);
+    if (!hit) return { kind: 'none' };
+    const step = this.targets.markStepDone({ kind: 'mission', missionRef: hit.className });
+    return { kind: 'blueprint', className: hit.className, name: hit.name, ...(step ?? {}) };
+  }
+
+  /**
    * Reverts exactly what the event applied and marks it `undone`. The undo is a conditional claim
    * (`undone = false`) first, so two tabs never revert twice; local state is reverted only once
    * the server accepted it.
@@ -299,18 +353,23 @@ export class HqLiveService {
       return;
     }
     if (this.uid !== uid) return;
-    if (kind === 'snapshot') {
-      // The restore is itself a server write: when it fails, hand the claim back so the user can retry.
-      const ok = (await this.targets.restoreSnapshot?.(a?.['previous'])) ?? false;
-      if (!ok) {
-        try {
-          await this.store.patch(uid, eventId, { undone: false });
-        } catch (err) {
-          logWarn('hq-live', 'undo release failed', err);
-        }
-        this.error.set(toErrorKey('hq-live', 'undo', new Error('snapshot restore failed')));
-        return;
+    // A revert that is itself a server write (snapshot restore, blueprint removal): when it fails, hand the claim back
+    // so the user can retry.
+    const release = async (what: string): Promise<void> => {
+      try {
+        await this.store.patch(uid, eventId, { undone: false });
+      } catch (err) {
+        logWarn('hq-live', 'undo release failed', err);
       }
+      this.error.set(toErrorKey('hq-live', 'undo', new Error(`${what} failed`)));
+    };
+    if (kind === 'snapshot') {
+      const ok = (await this.targets.restoreSnapshot?.(a?.['previous'])) ?? false;
+      if (!ok) return release('snapshot restore');
+    } else if (kind === 'blueprint') {
+      const ok = (await this.targets.uncollectBlueprint?.(String(a?.['className'] ?? ''), String(a?.['name'] ?? ''))) ?? false;
+      if (!ok) return release('blueprint removal');
+      if (a?.['einsatzId']) this.targets.unmarkStep(String(a['einsatzId']), Number(a['ord']));
     } else if (kind === 'supply') this.targets.untick(String(a?.['id']), Number(a?.['qty']));
     else if (kind === 'step') this.targets.unmarkStep(String(a?.['einsatzId']), Number(a?.['ord']));
     this.setLocal(eventId, { undone: true });
@@ -320,7 +379,7 @@ export class HqLiveService {
   /** True when an event changed something that can be taken back. */
   undoable(row: HqLiveEventRow): boolean {
     const k = appliedKind(row.applied);
-    return !row.undone && (k === 'supply' || k === 'step' || k === 'snapshot');
+    return !row.undone && (k === 'supply' || k === 'step' || k === 'snapshot' || k === 'blueprint');
   }
 
   /** Opt-in community data: an applied buy is a price report (class, shop, unit price). */

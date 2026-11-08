@@ -117,7 +117,7 @@ export interface HqTile {
     }
 
     @if (detail(); as d) {
-      <div class="backdrop" role="presentation" tabindex="-1" (click)="close()" (keydown.escape)="close()"></div>
+      <div class="backdrop" role="presentation"></div>
       <div
         class="dialog"
         scDialog

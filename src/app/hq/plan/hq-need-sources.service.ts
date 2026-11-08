@@ -1,7 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { CodexService, pickLocalized } from '../../codex/codex.service';
+import { type BlueprintDetail, CodexService, pickLocalized } from '../../codex/codex.service';
+import { humanizeClassName } from '../../codex/codex-format';
 import { BuyOption, UexShopService } from '../../codex/uex-shop.service';
 import { logWarn } from '../../core/log';
+import type { CraftRecipe } from './einsatz-proposal';
 import type { MapPlace } from './map/hq-map.types';
 import { placeDistance } from './map/hq-places';
 import { SourceHit, resolveSources } from './map/hq-sources';
@@ -23,6 +25,21 @@ export interface NeedSources {
   options: readonly NeedSource[];
   /** A blueprint that makes the item exists (Codex recipe), so the line can be crafted instead of bought. */
   craftable?: boolean;
+  /** That blueprint and its ingredients per crafted piece (only when `craftable`). */
+  recipe?: CraftRecipe | null;
+}
+
+/** The Codex recipe as the proposal reads it; ingredients without a resolved class are left out. */
+export function toCraftRecipe(detail: BlueprintDetail): CraftRecipe {
+  const row = detail.row;
+  const named = typeof row['name_localized'] === 'string' ? (row['name_localized'] as string).trim() : '';
+  return {
+    blueprintClassName: detail.classNameSlug,
+    blueprintName: named || humanizeClassName(detail.classNameSlug),
+    ingredients: detail.ingredients
+      .filter((i) => !!i.ingredientClassName && i.quantity > 0)
+      .map((i) => ({ className: i.ingredientClassName as string, name: i.nameLocalized?.trim() || humanizeClassName(i.ingredientClassName as string), qty: i.quantity })),
+  };
 }
 
 export function buyPlace(o: BuyOption): MapPlace | null {
@@ -105,20 +122,21 @@ export class HqNeedSourcesService {
           const name = (e.name ? pickLocalized(e.name, 'en') : '') || e.nameLocalized || c;
           options = e.kind === 'ship' ? await this.uex.whereToBuyShip({ name }, Infinity) : await this.uex.whereToBuyEntity(e.kind, name);
         }
-        const craftable = e && e.kind !== 'ship' && e.kind !== 'blueprint' ? await this.hasRecipe(c) : false;
-        this.set(c, { state: 'ready', kind: e?.kind ?? null, options: toNeedSources(options), craftable });
+        const recipe = e && e.kind !== 'ship' && e.kind !== 'blueprint' ? await this.recipeOf(c) : null;
+        this.set(c, { state: 'ready', kind: e?.kind ?? null, options: toNeedSources(options), craftable: recipe !== null, recipe });
       }
     };
     await Promise.all(Array.from({ length: IN_FLIGHT }, worker));
   }
 
-  /** Does a blueprint produce this class? A failed lookup reads as "no". */
-  private async hasRecipe(className: string): Promise<boolean> {
+  /** The blueprint that produces this class, with its ingredients. A failed lookup reads as "none". */
+  private async recipeOf(className: string): Promise<CraftRecipe | null> {
     try {
-      return (await this.codex.getCraftingRecipe(className)) !== null;
+      const detail = await this.codex.getCraftingRecipe(className);
+      return detail ? toCraftRecipe(detail) : null;
     } catch (err) {
       logWarn('hq', 'need sources: recipe lookup failed', err);
-      return false;
+      return null;
     }
   }
 

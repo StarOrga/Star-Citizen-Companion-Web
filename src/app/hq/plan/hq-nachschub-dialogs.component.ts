@@ -17,8 +17,8 @@ import { HQ_DIALOG_STYLES } from './hq-dialog.styles';
   imports: [TranslatePipe, ScActionDirective, ScDialogDirective, ScTristateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="scrim" (click)="cancelled.emit()">
-      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="cancelled.emit()" [attr.aria-labelledby]="'rm-title'" (click)="$event.stopPropagation()">
+    <div class="scrim">
+      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="cancelled.emit()" [attr.aria-labelledby]="'rm-title'">
         <header class="dlg-head">
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg></span>
           <h2 id="rm-title" class="dlg-title">
@@ -65,8 +65,8 @@ export class HqNachschubRemoveDialogComponent {
   imports: [TranslatePipe, ScActionDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="scrim" (click)="closed.emit()">
-      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="ar-title" (click)="$event.stopPropagation()">
+    <div class="scrim">
+      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="ar-title">
         <header class="dlg-head">
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17v4h-17z" /><path d="M5.5 9v10h13V9" /><path d="M10 13h4" /></svg></span>
           <h2 id="ar-title" class="dlg-title">{{ 'hq.slots.archive' | translate }}<small>{{ svc.newBlock() ? (svc.newBlock()! | translate) : ('hq.archive.slotFree' | translate) }}</small></h2>

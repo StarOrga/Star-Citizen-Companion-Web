@@ -10,7 +10,6 @@ import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component';
-import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { EventHqService } from '../events/event-hq.service';
 import { HqEventEndComponent } from '../events/hq-event-end.component';
 import { eventBinding, eventDrafts, eventSteps, eventsRewarding, rewardsOf } from '../events/event-hq.util';
@@ -25,19 +24,25 @@ import {
   clampName,
   freeSlot,
   positionKey,
-  takeFromWishlist,
 } from '../nachschub/nachschub.model';
 import { NachschubService, type NachschubResult } from '../nachschub/nachschub.service';
 import { NACHSCHUB_ICON_PATHS, STEP_ICON_PATHS, TRANSPORT_WHEELS } from '../nachschub/step-icons';
 import { HqNeedSourcesService, bestSource } from './hq-need-sources.service';
 import type { MapPlace } from './map/hq-map.types';
 import { pickablePlaces } from './map/hq-places';
+import { HqInventoryService } from '../data/hq-inventory.service';
+import { ItemPathService, PLACE_BLUEPRINTS } from '../data/item-path.service';
+import { parseStockRef } from '../stock/hq-stock-ref';
+import { HqWishSearchComponent, type WishAdded } from './hq-wish-search.component';
 import {
+  type CraftCheck,
   type DraftEinsatz,
   type LineMode,
   type LineSplit,
   type ProposalLine,
   availableModes,
+  craftCheck,
+  craftDerivedLines,
   defaultSplit,
   isBlueprintLine,
   isMaterialLine,
@@ -61,25 +66,28 @@ import {
   toggleGroup,
 } from './hq-nachschub-flow.util';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
 /**
- * "Neuer Nachschub" and "Bearbeiten" (round 4, s4a-s4c): three steps in one dialog.
- *  1 Auswählen      the wishlist, grouped; tick what goes into the Nachschub (or "Alles"), split a quantity
- *  2 Zusammenfassung everything in this Nachschub summed up, what stays on the wishlist, the name
- *  3 Einsätze       the proposed Einsätze with their count; each material is switchable and splittable
- *                   (buy / mine), crafting is always the last Einsatz
- * In edit mode the Nachschub's lines are shown and removable in step 2 and wishlist positions picked in step 1 are
- * added; Einsätze are proposed for the added lines only. Everything is written when the last step is confirmed.
+ * "Neuer Nachschub" and "Bearbeiten": two steps in one dialog, the name on top of both (proposed when left empty).
+ *  1 Auswählen  running events, then the Wunschliste, grouped, with its own search to put more on it in place; tick
+ *               what goes into the Nachschub (or "Alles"), split a quantity. In edit mode the Nachschub's lines are
+ *               listed above it and removable.
+ *  2 Einsätze   the proposed Einsätze with their count; each material is switchable and splittable (buy / mine), an
+ *               item is bought or crafted - crafting checks the blueprint (Sammlung) and the ingredients (Inventar) and
+ *               plans a mission for a missing blueprint and the missing material; crafting is always the last Einsatz.
+ * The cart's "In einen Nachschub" opens on step 2 (its selection is made already). Everything is written when the last
+ * step is confirmed. Only the X, Abbrechen or Escape close it - a click beside it would lose the picks.
  */
 @Component({
   selector: 'sc-hq-nachschub-flow',
   standalone: true,
-  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScDialogDirective, HqEventEndComponent, ScSelectComponent, ScTooltipDirective, ScTristateComponent],
+  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScDialogDirective, HqEventEndComponent, HqWishSearchComponent, ScSelectComponent, ScTooltipDirective, ScTristateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="scrim" (click)="closed.emit()">
-      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="flow-title" (click)="$event.stopPropagation()">
+    <!-- A click beside the sheet does not close it (the picks would be lost): the X, Abbrechen or Escape do. -->
+    <div class="scrim">
+      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="flow-title">
         <header class="dlg-head">
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg></span>
           <h2 id="flow-title" class="dlg-title">
@@ -93,10 +101,20 @@ type Step = 1 | 2 | 3;
               </li>
             }
           </ol>
+          <button type="button" scAction tier="tertiary" [attr.aria-label]="'hq.flow.close' | translate" [scTooltip]="'hq.flow.close' | translate" scTooltipTier="label" (click)="closed.emit()">
+            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
         </header>
 
         <div class="dlg-body">
           @if (error(); as e) { <p class="dlg-err" role="alert">{{ e | translate }}</p> }
+
+          <label class="name-field">
+            <span>{{ 'hq.flow.nameLabel' | translate }}</span>
+            <input type="text" class="input" [maxlength]="nameMax" [ngModel]="name()" (ngModelChange)="onName($event)"
+                   [placeholder]="'hq.flow.namePlaceholder' | translate" />
+            <small>{{ name().length }}/{{ nameMax }}</small>
+          </label>
 
           @if (step() === 1) {
             @if (events.open().length) {
@@ -127,105 +145,71 @@ type Step = 1 | 2 | 3;
                 }
               </section>
             }
-            @if (groups().length === 0) {
-              @if (!events.open().length) {
-              <div class="empty">
-                <p class="e-title">{{ 'hq.flow.emptyWish' | translate }}</p>
-                <p class="dlg-msg">{{ 'hq.flow.emptyHint' | translate }}</p>
-                <button type="button" scAction tier="secondary" (click)="searchWish()">{{ 'hq.flow.fillWish' | translate }}</button>
-              </div>
-              }
-            } @else {
-              <div class="pick-bar">
-                <button type="button" scAction tier="secondary" (click)="pickAll()">
-                  {{ (allPicked() ? 'hq.flow.none' : 'hq.flow.all') | translate }}
-                </button>
-                <span class="tally" role="status">{{ 'hq.flow.picked' | translate: { n: picks().size, p: pieces() } }}</span>
-              </div>
-              <div class="groups">
-                @for (g of groups(); track g.id) {
-                  <section class="grp" [attr.aria-label]="groupTitle(g)">
-                    <header>
-                      <sc-tristate variant="checkbox" [label]="groupTitle(g)" [value]="share(g)" (toggled)="onGroup(g)" />
-                      <h3>{{ groupTitle(g) }}</h3>
-                      @if (g.type === 'blueprint') { <span class="tag">{{ 'hq.flow.group.blueprint' | translate }}</span> }
-                    </header>
-                    <ul>
-                      @for (r of g.rows; track r.key) {
-                        @let q = picks().get(r.key) ?? 0;
-                        <li [class.on]="q > 0">
-                          <sc-tristate variant="checkbox" [label]="r.name || r.className" [value]="q >= r.qty ? 1 : q > 0 ? 0.5 : 0" (toggled)="onRow(g, r, q)" />
-                          <span class="nm">{{ rowName(r) }}</span>
-                          @if (q > 0) {
-                            <span class="stepper" role="group" [attr.aria-label]="'hq.flow.qtyOf' | translate: { name: rowName(r) }">
-                              <button type="button" class="step" [disabled]="q <= 1" [attr.aria-label]="'hq.flow.less' | translate" [scTooltip]="'hq.flow.less' | translate" scTooltipTier="label" (click)="onQty(g, r, q - 1)">−</button>
-                              <b class="n mono">{{ q }}<small> / {{ r.qty }}</small></b>
-                              <button type="button" class="step" [disabled]="q >= r.qty" [attr.aria-label]="'hq.flow.more' | translate" [scTooltip]="'hq.flow.more' | translate" scTooltipTier="label" (click)="onQty(g, r, q + 1)">+</button>
-                            </span>
-                            <span class="share" aria-hidden="true"><i [style.width.%]="(100 * q) / r.qty"></i></span>
-                          } @else {
-                            <b class="n mono">×{{ r.qty }}</b>
-                          }
-                        </li>
-                      }
-                    </ul>
-                  </section>
-                }
-              </div>
+            @if (mode() === 'edit' && existing().length) {
+              <section class="sum">
+                <h3>{{ 'hq.flow.alreadyIn' | translate }} <small>{{ 'hq.flow.picked' | translate: { n: existing().length, p: existingPieces() } }}</small></h3>
+                <ul class="lines">
+                  @for (l of existing(); track l.id) {
+                    <li>
+                      <span class="nm">{{ l.name }}</span>
+                      @if (l.forClassName) { <span class="for">{{ 'hq.flow.forBp' | translate: { name: bpName(l.forClassName) } }}</span> }
+                      <b class="n mono">×{{ l.qty }}</b>
+                      <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hq.flow.removeLine' | translate: { name: l.name }"
+                              [scTooltip]="'hq.flow.removeLine' | translate: { name: l.name }" scTooltipTier="label" (click)="removeExisting(l.id)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" /></svg>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              </section>
             }
+            <section class="wishsec" [attr.aria-labelledby]="'flow-wish-title'">
+              <h3 id="flow-wish-title">{{ 'hq.flow.wishTitle' | translate }}</h3>
+              <sc-hq-wish-search (added)="onWishAdded($event)" />
+              @if (groups().length === 0) {
+                <p class="dlg-msg">{{ 'hq.flow.emptyWish' | translate }} {{ 'hq.flow.emptyHintSearch' | translate }}</p>
+              } @else {
+                <div class="pick-bar">
+                  <button type="button" scAction tier="secondary" (click)="pickAll()">
+                    {{ (allPicked() ? 'hq.flow.none' : 'hq.flow.all') | translate }}
+                  </button>
+                  <span class="tally" role="status">{{ 'hq.flow.picked' | translate: { n: picks().size, p: pieces() } }}</span>
+                </div>
+                <div class="groups">
+                  @for (g of groups(); track g.id) {
+                    <section class="grp" [attr.aria-label]="groupTitle(g)">
+                      <header>
+                        <sc-tristate variant="checkbox" [label]="groupTitle(g)" [value]="share(g)" (toggled)="onGroup(g)" />
+                        <h3>{{ groupTitle(g) }}</h3>
+                        @if (g.type === 'blueprint') { <span class="tag">{{ 'hq.flow.group.blueprint' | translate }}</span> }
+                      </header>
+                      <ul>
+                        @for (r of g.rows; track r.key) {
+                          @let q = picks().get(r.key) ?? 0;
+                          <li [class.on]="q > 0">
+                            <sc-tristate variant="checkbox" [label]="r.name || r.className" [value]="q >= r.qty ? 1 : q > 0 ? 0.5 : 0" (toggled)="onRow(g, r, q)" />
+                            <span class="nm">{{ rowName(r) }}</span>
+                            @if (q > 0) {
+                              <span class="stepper" role="group" [attr.aria-label]="'hq.flow.qtyOf' | translate: { name: rowName(r) }">
+                                <button type="button" class="step" [disabled]="q <= 1" [attr.aria-label]="'hq.flow.less' | translate" [scTooltip]="'hq.flow.less' | translate" scTooltipTier="label" (click)="onQty(g, r, q - 1)">−</button>
+                                <b class="n mono">{{ q }}<small> / {{ r.qty }}</small></b>
+                                <button type="button" class="step" [disabled]="q >= r.qty" [attr.aria-label]="'hq.flow.more' | translate" [scTooltip]="'hq.flow.more' | translate" scTooltipTier="label" (click)="onQty(g, r, q + 1)">+</button>
+                              </span>
+                              <span class="share" aria-hidden="true"><i [style.width.%]="(100 * q) / r.qty"></i></span>
+                            } @else {
+                              <b class="n mono">×{{ r.qty }}</b>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    </section>
+                  }
+                </div>
+              }
+            </section>
           }
 
           @if (step() === 2) {
-            <label class="name-field">
-              <span>{{ 'hq.flow.nameLabel' | translate }}</span>
-              <input type="text" class="input" [maxlength]="nameMax" [ngModel]="name()" (ngModelChange)="onName($event)" />
-              <small>{{ name().length }}/{{ nameMax }}</small>
-            </label>
-            <div class="sum-grid">
-              <section class="sum">
-                <h3>{{ 'hq.flow.sumTitle' | translate }} <small>{{ 'hq.flow.picked' | translate: { n: sumCount(), p: sumPieces() } }}</small></h3>
-                @if (existing().length) {
-                  <h4>{{ 'hq.flow.alreadyIn' | translate }}</h4>
-                  <ul class="lines">
-                    @for (l of existing(); track l.id) {
-                      <li>
-                        <span class="nm">{{ l.name }}</span>
-                        @if (l.forClassName) { <span class="for">{{ 'hq.flow.forBp' | translate: { name: bpName(l.forClassName) } }}</span> }
-                        <b class="n mono">×{{ l.qty }}</b>
-                        @if (mode() === 'edit') {
-                          <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hq.flow.removeLine' | translate: { name: l.name }"
-                                  [scTooltip]="'hq.flow.removeLine' | translate: { name: l.name }" scTooltipTier="label" (click)="removeExisting(l.id)">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" /></svg>
-                          </button>
-                        }
-                      </li>
-                    }
-                  </ul>
-                }
-                @for (g of pickedGroups(); track g.id) {
-                  <h4>{{ groupTitle(g) }}</h4>
-                  <ul class="lines">
-                    @for (r of g.rows; track r.key) {
-                      <li><span class="nm">{{ rowName(r) }}</span><b class="n mono">×{{ r.qty }}</b></li>
-                    }
-                  </ul>
-                }
-                @if (!existing().length && !pickedGroups().length) { <p class="dlg-msg">{{ 'hq.flow.sumEmpty' | translate }}</p> }
-              </section>
-              <section class="sum rest">
-                <h3>{{ 'hq.flow.stays' | translate }}</h3>
-                @if (remaining().length) {
-                  <ul class="chips">
-                    @for (r of remaining(); track r.key) { <li>{{ rowName(r) }} <b class="mono">×{{ r.qty }}</b></li> }
-                  </ul>
-                } @else {
-                  <p class="dlg-msg">{{ 'hq.flow.staysNothing' | translate }}</p>
-                }
-              </section>
-            </div>
-          }
-
-          @if (step() === 3) {
             <div class="einsatz-head">
               <h3>{{ 'hq.flow.einsaetze' | translate }} <small role="status">{{ 'hq.flow.einsatzCount' | translate: { n: counts().einsaetze, s: counts().steps } }}</small></h3>
             </div>
@@ -253,7 +237,7 @@ type Step = 1 | 2 | 3;
                         @for (l of materialLines(); track l.key) {
                           @let sp = splitOf(l);
                           <li [class.out]="isExcluded(l)">
-                            <span class="nm">{{ l.name }} <b class="mono">×{{ l.qty }}</b></span>
+                            <span class="nm">{{ l.name }} <b class="mono">×{{ l.qty }}</b>@if (l.derivedFor && l.forName) { <small class="for">{{ 'hq.flow.craft.forItem' | translate: { name: l.forName } }}</small> }</span>
                             @if (isExcluded(l)) {
                               <ng-container *ngTemplateOutlet="restore; context: { $implicit: l }" />
                             } @else {
@@ -295,6 +279,9 @@ type Step = 1 | 2 | 3;
                               }
                               <ng-container *ngTemplateOutlet="wayOut; context: { $implicit: l }" />
                               <ng-container *ngTemplateOutlet="leave; context: { $implicit: l }" />
+                              @if (modeNow(l) === 'craft') {
+                                <ng-container *ngTemplateOutlet="craftBox; context: { $implicit: l }" />
+                              }
                             }
                           </li>
                         }
@@ -345,7 +332,7 @@ type Step = 1 | 2 | 3;
           @if (step() > 1) {
             <button type="button" scAction tier="secondary" (click)="back()">{{ 'hq.flow.back' | translate }}</button>
           }
-          @if (step() < 3) {
+          @if (step() < 2) {
             <button type="button" scAction tier="primary" [disabled]="!canNext()" (click)="next()">{{ 'hq.flow.next' | translate }}</button>
           } @else {
             <button type="button" scAction tier="primary" [busy]="busy()" [disabled]="busy() || !canSave()" (click)="save()">
@@ -365,6 +352,27 @@ type Step = 1 | 2 | 3;
     <ng-template #restore let-l>
       <span class="why">{{ 'hq.flow.leftOut' | translate }}</span>
       <button type="button" scAction tier="secondary" (click)="include(l)">{{ 'hq.flow.putBack' | translate }}</button>
+    </ng-template>
+    <ng-template #craftBox let-l>
+      @if (craftOf(l); as c) {
+        <div class="craft" [attr.aria-label]="'hq.flow.craft.aria' | translate: { name: l.name }" role="group">
+          <p class="crow" [class.ok]="c.blueprintOwned" [class.miss]="!c.blueprintOwned">
+            <span class="cmark" aria-hidden="true">{{ c.blueprintOwned ? '✓' : '!' }}</span>
+            <span>{{ (c.blueprintOwned ? 'hq.flow.craft.bpOwned' : 'hq.flow.craft.bpMissing') | translate: { name: c.blueprintName } }}</span>
+          </p>
+          @for (i of c.ingredients; track i.className) {
+            <p class="crow" [class.ok]="i.missing === 0" [class.miss]="i.missing > 0">
+              <span class="cmark" aria-hidden="true">{{ i.missing === 0 ? '✓' : '!' }}</span>
+              <span>{{ (i.missing === 0 ? 'hq.flow.craft.matOwned' : 'hq.flow.craft.matMissing') | translate: { name: i.name, need: i.need, have: i.have, missing: i.missing } }}</span>
+            </p>
+          } @empty {
+            <p class="crow">{{ 'hq.flow.craft.noRecipe' | translate }}</p>
+          }
+          <p class="hint">{{ 'hq.flow.craft.source' | translate }}</p>
+        </div>
+      } @else {
+        <span class="why">{{ 'hq.flow.craft.loading' | translate }}</span>
+      }
     </ng-template>
     <ng-template #wayOut let-l>
       @if (placeNameOf(l); as pn) {
@@ -406,7 +414,7 @@ type Step = 1 | 2 | 3;
       .grp header { display: flex; align-items: center; gap: var(--sc-space-2, 8px); padding: 4px 0 6px; }
       .grp h3 { margin: 0; font: 600 0.92rem var(--sc-font-display, inherit); flex: 1; min-width: 0; overflow-wrap: anywhere; }
       .tag { padding: 0 8px; border: 1px solid var(--sc-border); border-radius: 999px; color: var(--sc-fg-2); font-size: 0.72rem; }
-      .grp ul, .lines, .mats ul, .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+      .grp ul, .lines, .mats ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
       .grp li { display: flex; align-items: center; gap: var(--sc-space-2, 8px); padding: 4px 8px; border-radius: 8px; border: 1px solid transparent; position: relative; }
       .grp li.on { border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); background: color-mix(in srgb, var(--sc-accent) 7%, transparent); }
       .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -419,22 +427,17 @@ type Step = 1 | 2 | 3;
       .step:focus-visible, .seg button:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .share { position: absolute; left: 8px; right: 8px; bottom: 1px; height: 2px; border-radius: 2px; background: color-mix(in srgb, var(--sc-accent) 18%, transparent); }
       .share i { display: block; height: 100%; border-radius: inherit; background: var(--sc-accent); }
-      .name-field { display: grid; gap: 4px; max-width: 460px; }
+      .name-field { display: grid; gap: 4px; max-width: 460px; flex: none; }
       .name-field span { color: var(--sc-fg-2); font-size: 0.82rem; }
       .name-field small { color: var(--sc-fg-2); justify-self: end; }
       .input { min-height: 40px; padding: 0 var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 10px; background: var(--sc-bg-0); color: var(--sc-fg); font: inherit; }
       .input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; border-color: var(--sc-accent); }
-      .sum-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sc-space-3, 12px); align-items: start; }
-      @media (max-width: 860px) { .sum-grid { grid-template-columns: minmax(0, 1fr); } }
       .sum { border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0); padding: var(--sc-space-3, 12px); min-width: 0; }
       .sum h3 { margin: 0 0 6px; font: 600 0.95rem var(--sc-font-display, inherit); }
       .sum h3 small { font: 400 0.78rem var(--sc-font-body, inherit); color: var(--sc-fg-2); margin-left: 6px; }
       .sum h4 { margin: 8px 0 4px; color: var(--sc-fg-2); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
       .lines li { display: flex; align-items: center; gap: var(--sc-space-2, 8px); padding: 3px 4px; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
       .for { color: var(--sc-fg-2); font-size: 0.78rem; }
-      .chips { flex-direction: row; flex-wrap: wrap; }
-      .chips li { padding: 2px 10px; border: 1px solid var(--sc-border); border-radius: 999px; font-size: 0.82rem; }
-      .rest { border-style: dashed; }
       .einsatz-head h3 { margin: 0; font: 600 1rem var(--sc-font-display, inherit); }
       .einsatz-head small { font: 400 0.8rem var(--sc-font-body, inherit); color: var(--sc-fg-2); margin-left: 8px; }
       .e-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--sc-space-3, 12px); align-items: start; }
@@ -470,6 +473,14 @@ type Step = 1 | 2 | 3;
       .lbl { color: var(--sc-fg-2); font-size: 0.74rem; margin-right: 2px; }
       .good { padding: 0 8px; border: 1px solid var(--sc-border); border-radius: 999px; font-size: 0.78rem; }
       .have-card { opacity: 0.8; }
+      .wishsec { display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); }
+      .wishsec > h3 { margin: 0; font: 600 1rem var(--sc-font-display, inherit); }
+      .craft { flex: 1 0 100%; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; border-left: 2px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); background: color-mix(in srgb, var(--sc-accent) 5%, transparent); border-radius: 0 8px 8px 0; }
+      .crow { margin: 0; display: flex; align-items: baseline; gap: 6px; font-size: 0.8rem; color: var(--sc-fg-1); }
+      .crow.ok .cmark { color: var(--sc-success); }
+      .crow.miss .cmark { color: var(--sc-warning); }
+      .cmark { flex: none; width: 1em; text-align: center; font-weight: 700; }
+      .mats .for { margin-left: 6px; color: var(--sc-fg-2); font-size: 0.75rem; }
       button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       @media (pointer: coarse) { .step { width: 44px; height: 44px; } .seg button { min-height: 44px; } }
     `,
@@ -479,7 +490,7 @@ export class HqNachschubFlowComponent {
   readonly mode = input<'new' | 'edit'>('new');
   /** Edit mode: the Nachschub being edited. */
   readonly nachschubId = input<string | null>(null);
-  /** Jump straight to a step when opened (edit from the panel opens on step 3 when asked). */
+  /** Jump straight to a step when opened (the cart's selection and "Einsätze vorschlagen" open on step 2). */
   readonly startStep = input<Step>(1);
   /** Wishlist positions that start out picked (the cart's "In einen Nachschub"): `key` and the quantity to take. */
   readonly preselect = input<readonly { key: string; qty: number }[]>([]);
@@ -490,14 +501,15 @@ export class HqNachschubFlowComponent {
   private readonly einsatz = inject(HqEinsatzService);
   private readonly naming = inject(NachschubNamingService);
   private readonly sourcesSvc = inject(HqNeedSourcesService);
-  private readonly chrome = inject(ShellChromeService);
   private readonly i18n = inject(TranslateService);
+  private readonly itemPath = inject(ItemPathService);
+  private readonly inventory = inject(HqInventoryService);
   protected readonly events = inject(EventHqService);
   protected readonly rewardsOf = rewardsOf;
   /** Events picked next to the wishlist: event id -> the reward ids chosen (an empty set = sightseeing / nothing chosen). */
   protected readonly eventPicks = signal<ReadonlyMap<string, ReadonlySet<string>>>(new Map());
 
-  protected readonly stepList: readonly Step[] = [1, 2, 3];
+  protected readonly stepList: readonly Step[] = [1, 2];
   protected readonly nameMax = NACHSCHUB_NAME_MAX;
   protected readonly tray = NACHSCHUB_ICON_PATHS;
   protected readonly icons = STEP_ICON_PATHS;
@@ -543,15 +555,10 @@ export class HqNachschubFlowComponent {
       .map((g) => ({ ...g, rows: g.rows.filter((r) => (p.get(r.key) ?? 0) > 0).map((r) => ({ ...r, qty: p.get(r.key) ?? 0 })) }))
       .filter((g) => g.rows.length > 0);
   });
-  protected readonly remaining = computed<FlowRow[]>(() => {
-    const picks: WishPick[] = [...this.picks()].map(([key, qty]) => ({ key, qty }));
-    return takeFromWishlist(this.wish(), picks).remaining.map((r) => ({ ...r, key: positionKey(r) }));
-  });
-  protected readonly sumCount = computed(() => this.existing().length + this.picks().size);
-  protected readonly sumPieces = computed(() => this.existing().reduce((n, l) => n + l.qty, 0) + this.pieces());
+  protected readonly existingPieces = computed(() => this.existing().reduce((n, l) => n + l.qty, 0));
 
-  /** What the proposal reads: the picked rows as lines (edit mode: only the newly added ones). */
-  protected readonly proposalLines = computed<ProposalLine[]>(() => {
+  /** The picked rows as lines (edit mode: only the newly added ones), before crafting adds what it needs. */
+  private readonly baseLines = computed<ProposalLine[]>(() => {
     const picked: ProposalLine[] = this.pickedGroups().flatMap((g) =>
       g.rows.map((r) => ({
         key: r.key,
@@ -600,6 +607,37 @@ export class HqNachschubFlowComponent {
         };
       });
   });
+  /** Blueprints in the Sammlung (lower-cased class names) and the Inventar per class: what crafting is checked against. */
+  private readonly ownedBlueprints = computed(() => new Set([...this.itemPath.ownedBlueprints()].map((c) => c.toLowerCase())));
+  private readonly stockByClass = computed(() => {
+    const out = new Map<string, number>();
+    for (const i of this.inventory.items()) {
+      if (i.location === PLACE_BLUEPRINTS) continue;
+      const cls = parseStockRef(i.class_name)?.className.toLowerCase();
+      if (cls) out.set(cls, (out.get(cls) ?? 0) + Math.max(0, Number(i.qty) || 0));
+    }
+    return out;
+  });
+  /** The craft check per line the reader crafts, once its recipe is known. */
+  private readonly craftChecks = computed(() => {
+    const out = new Map<string, CraftCheck>();
+    const owned = this.ownedBlueprints();
+    const stock = this.stockByClass();
+    for (const l of this.baseLines()) {
+      if (this.modeNow(l) !== 'craft' || !l.className) continue;
+      const recipe = this.sourcesSvc.sources().get(l.className)?.recipe;
+      if (!recipe) continue;
+      out.set(l.key, craftCheck(l, recipe, { blueprint: (c) => owned.has(c.toLowerCase()), stock: (c) => stock.get(c.toLowerCase()) ?? 0 }));
+    }
+    return out;
+  });
+  /** What the proposal reads: the base lines plus, per crafted line, its missing blueprint and missing ingredients. */
+  protected readonly proposalLines = computed<ProposalLine[]>(() => {
+    const base = this.baseLines();
+    const checks = this.craftChecks();
+    if (!checks.size) return base;
+    return [...base, ...base.flatMap((l) => (checks.has(l.key) ? craftDerivedLines(l, checks.get(l.key)!) : []))];
+  });
   protected readonly materialLines = computed(() => this.proposalLines().filter((l) => isMaterialLine(l) && !isBlueprintLine(l)));
   /** Non-material, non-blueprint lines: bought or crafted per line (W5.4). */
   protected readonly itemLines = computed(() => this.proposalLines().filter((l) => !isMaterialLine(l) && !isBlueprintLine(l)));
@@ -616,7 +654,7 @@ export class HqNachschubFlowComponent {
   protected readonly nextSlot = computed(() => freeSlot(this.svc.packages()));
   protected readonly maxSlots = NACHSCHUB_MAX_SLOTS;
 
-  protected readonly canNext = computed(() => (this.step() === 1 ? this.picks().size > 0 || this.eventPicks().size > 0 || (this.mode() === 'edit' && this.existing().length > 0) : this.name().trim().length > 0));
+  protected readonly canNext = computed(() => this.picks().size > 0 || this.eventPicks().size > 0 || (this.mode() === 'edit' && this.existing().length > 0));
   protected readonly canSave = computed(() => this.name().trim().length > 0 && (this.picks().size > 0 || this.eventPicks().size > 0 || this.mode() === 'edit'));
 
   private preselected = false;
@@ -651,10 +689,15 @@ export class HqNachschubFlowComponent {
       const wanted = this.proposalLines().filter((l) => l.className && !isBlueprintLine(l)).map((l) => l.className as string);
       untracked(() => this.sourcesSvc.ensure(wanted));
     });
-    // Name proposals for the Einsaetze (what you do): asked on step 3 only, and only when an Einsatz' steps really changed.
+    // A new Nachschub reached its Einsätze without a name (the cart opens there): propose one, once.
+    effect(() => {
+      if (this.step() !== 2 || this.mode() !== 'new' || this.pickedGroups().length === 0) return;
+      untracked(() => void this.proposeName());
+    });
+    // Name proposals for the Einsaetze (what you do): asked on step 2 only, and only when an Einsatz' steps really changed.
     effect(() => {
       const drafts = this.drafts();
-      if (this.step() !== 3) return;
+      if (this.step() !== 2) return;
       untracked(() => {
         for (const d of drafts) {
           const steps = d.steps.map((s) => ({ kind: s.kind, label: s.label }));
@@ -715,11 +758,6 @@ export class HqNachschubFlowComponent {
     const next = new Map<string, number>();
     for (const g of this.groups()) for (const r of g.rows) next.set(r.key, r.qty);
     this.picks.set(next);
-  }
-
-  protected searchWish(): void {
-    this.closed.emit();
-    this.chrome.startSupplySearch();
   }
 
   protected onName(v: string): void {
@@ -881,11 +919,33 @@ export class HqNachschubFlowComponent {
   protected async next(): Promise<void> {
     if (!this.canNext()) return;
     this.error.set(null);
-    if (this.step() === 1 && !this.nameTouched && this.mode() === 'new' && !this.name()) {
-      const items = this.pickedGroups().flatMap((g) => g.rows.map((r) => ({ name: this.rowName(r), qty: r.qty })));
-      this.name.set(await this.naming.nachschubName(items));
-    }
-    this.step.update((s) => (s < 3 ? ((s + 1) as Step) : s));
+    await this.proposeName();
+    this.step.set(2);
+  }
+
+  private namingNow: Promise<void> | null = null;
+
+  /** A new Nachschub whose name the reader left empty gets one from what it holds (asked once at a time). */
+  private proposeName(): Promise<void> {
+    if (this.nameTouched || this.mode() !== 'new' || this.name()) return Promise.resolve();
+    const items = this.pickedGroups().flatMap((g) => g.rows.map((r) => ({ name: this.rowName(r), qty: r.qty })));
+    if (!items.length) return Promise.resolve();
+    this.namingNow ??= this.naming.nachschubName(items).then((n) => {
+      this.namingNow = null;
+      if (!this.nameTouched && !this.name()) this.name.set(n);
+    });
+    return this.namingNow;
+  }
+
+  /** A hit the reader put on the wishlist from the flow's search is ticked at once. */
+  protected onWishAdded(a: WishAdded): void {
+    const key = positionKey({ kind: a.kind, className: a.className, forClassName: null });
+    const qty = this.wish().find((r) => positionKey(r) === key)?.qty ?? 1;
+    this.picks.update((m) => new Map(m).set(key, Math.max(m.get(key) ?? 0, qty)));
+  }
+
+  protected craftOf(l: ProposalLine): CraftCheck | null {
+    return this.craftChecks().get(l.key) ?? null;
   }
 
   protected async save(): Promise<void> {

@@ -63,7 +63,6 @@ import { HqNachschubPanelComponent } from './hq-nachschub-panel.component';
         <sc-hq-nachschub-panel
           [nachschub]="sel"
           (edit)="flow.set({ mode: 'edit', id: sel.id, step: $event })"
-          (emptyIt)="askRemove(sel.id, 'empty')"
           (remove)="askRemove(sel.id, 'remove')" />
       } @else if (ns.loaded() || !ns.error()) {
         <section class="intro">
@@ -115,7 +114,7 @@ export class HqPlanComponent {
   protected readonly events = inject(EventHqService);
   protected readonly focus = inject(NachschubFocusService);
   private readonly nav = inject(HqPageNavService);
-  protected readonly flow = signal<{ mode: 'new' | 'edit'; id: string | null; step: 1 | 3 } | null>(null);
+  protected readonly flow = signal<{ mode: 'new' | 'edit'; id: string | null; step: 1 | 2 } | null>(null);
   protected readonly removing = signal<{ id: string; kind: 'remove' | 'empty' } | null>(null);
   protected readonly archiveOpen = signal(false);
   protected readonly notice = signal<{ key: string; params?: Record<string, string | number>; warn?: NachschubResult['warn']; undo?: () => Promise<NachschubResult> } | null>(null);
@@ -146,8 +145,9 @@ export class HqPlanComponent {
       this.pendingPick.set(false);
       if (this.flow()) return;
       // All 7 slots taken: a new Nachschub is impossible, so the picks go into an existing one (the shown one, else the first).
+      // The selection was made in the cart already: the flow opens on its Einsätze, "Zurück" still shows the wishlist.
       const target = this.ns.newBlock() ? (this.focus.selected() ?? this.ns.active()[0] ?? null) : null;
-      this.flow.set(target ? { mode: 'edit', id: target.id, step: 1 } : { mode: 'new', id: null, step: 1 });
+      this.flow.set(target ? { mode: 'edit', id: target.id, step: 2 } : { mode: 'new', id: null, step: 2 });
     });
   });
 

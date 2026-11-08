@@ -3,7 +3,7 @@ import { HqCommunityService } from '../data/hq-community.service';
 import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { AuthService } from '../../auth/auth.service';
 import { HqLiveEventRow, HqLiveStateRow } from '../data/hq-db.types';
-import { HQ_LIVE_APPLY_TARGETS, HqLiveService, LIVE_PAGE_SIZE, LIVE_POLL_MS } from './hq-live.service';
+import { HQ_LIVE_APPLY_TARGETS, HqLiveService, LIVE_PAGE_SIZE, LIVE_POLL_MS, findBlueprintByName } from './hq-live.service';
 import { HqLiveStore, LiveSubscription } from './hq-live.store';
 
 function ev(id: string, type: string, data: Record<string, unknown> = {}, over: Partial<HqLiveEventRow> = {}): HqLiveEventRow {
@@ -64,6 +64,8 @@ describe('HqLiveService', () => {
     markStepDone: jasmine.createSpy('mark').and.returnValue({ einsatzId: 'e1', ord: 2 }),
     unmarkStep: jasmine.createSpy('unmark'),
     restoreSnapshot: jasmine.createSpy('restore').and.resolveTo(true),
+    collectBlueprint: jasmine.createSpy('collect').and.resolveTo({ className: 'bp_p4ar', name: 'P4-AR Rifle' }),
+    uncollectBlueprint: jasmine.createSpy('uncollect').and.resolveTo(true),
     pull: jasmine.createSpy('pull').and.resolveTo(),
     ready: undefined as unknown as WritableSignal<boolean>,
   };
@@ -86,7 +88,7 @@ describe('HqLiveService', () => {
     store = new FakeStore();
     targets.ready = signal(true);
     reports.length = 0;
-    (['tickByClassName', 'untick', 'markStepDone', 'unmarkStep', 'restoreSnapshot', 'pull'] as const).forEach((k) => targets[k].calls.reset());
+    (['tickByClassName', 'untick', 'markStepDone', 'unmarkStep', 'restoreSnapshot', 'collectBlueprint', 'uncollectBlueprint', 'pull'] as const).forEach((k) => targets[k].calls.reset());
   });
 
   it('ticks a supply for a buy purchase and records exactly what it did', fakeAsync(() => {
@@ -148,6 +150,55 @@ describe('HqLiveService', () => {
     TestBed.tick();
     for (let i = 0; i < 6; i++) flushMicrotasks();
   }
+
+  it('blueprint.received puts the blueprint into the Sammlung, closes its mission step, and undo takes both back', fakeAsync(() => {
+    store.rows = [ev('b', 'blueprint.received', { name: 'P4-AR Rifle' })];
+    const s = make();
+    settle();
+    expect(targets.collectBlueprint).toHaveBeenCalledWith('P4-AR Rifle');
+    expect(targets.markStepDone).toHaveBeenCalledWith({ kind: 'mission', missionRef: 'bp_p4ar' });
+    expect(store.patches.find((p) => p.id === 'b' && (p.patch['applied'] as { kind?: string })?.kind === 'blueprint')?.patch['applied']).toEqual({
+      kind: 'blueprint', className: 'bp_p4ar', name: 'P4-AR Rifle', einsatzId: 'e1', ord: 2,
+    });
+    expect(s.undoable(s.events()[0])).toBeTrue();
+    void s.undo('b');
+    for (let i = 0; i < 4; i++) flushMicrotasks();
+    expect(targets.uncollectBlueprint).toHaveBeenCalledWith('bp_p4ar', 'P4-AR Rifle');
+    expect(targets.unmarkStep).toHaveBeenCalledWith('e1', 2);
+  }));
+
+  it('hands the undo claim back when the blueprint cannot be taken out of the Sammlung', fakeAsync(() => {
+    store.rows = [ev('b', 'blueprint.received', { name: 'P4-AR Rifle' })];
+    const s = make();
+    settle();
+    targets.uncollectBlueprint.and.resolveTo(false);
+    void s.undo('b');
+    for (let i = 0; i < 4; i++) flushMicrotasks();
+    expect(store.patches.at(-1)).toEqual({ id: 'b', patch: { undone: false } });
+    expect(targets.unmarkStep).not.toHaveBeenCalled();
+    expect(s.events()[0].undone).toBeFalse();
+    expect(s.error()).toBeTruthy();
+    targets.uncollectBlueprint.and.resolveTo(true);
+  }));
+
+  it('a blueprint the Sammlung has already (or no blueprint at all) changes nothing', fakeAsync(() => {
+    targets.collectBlueprint.and.resolveTo(null);
+    store.rows = [ev('b', 'blueprint.received', { name: 'Unbekannt' })];
+    make();
+    settle();
+    expect(targets.markStepDone).not.toHaveBeenCalled();
+    expect(store.patches.find((p) => p.id === 'b' && 'applied' in p.patch && (p.patch['applied'] as { kind?: string }).kind !== 'pending')?.patch['applied']).toEqual({ kind: 'none' });
+    targets.collectBlueprint.and.resolveTo({ className: 'bp_p4ar', name: 'P4-AR Rifle' });
+  }));
+
+  it('finds a blueprint by its display name, then by the base name without "(…)" when that is unique', async () => {
+    const hit = (cls: string, en: string) => ({ kind: 'blueprint', classNameSlug: cls, nameLocalized: null, name: { en, de: en } });
+    const codex = (hits: unknown[]) => ({ searchAll: async () => ({ hits, totals: {} }) }) as never;
+    expect(await findBlueprintByName(codex([hit('bp_a', 'P4-AR Rifle'), hit('bp_b', 'P4-AR Rifle (Black)')]), 'P4-AR Rifle: ')).toEqual({ className: 'bp_a', name: 'P4-AR Rifle' });
+    expect(await findBlueprintByName(codex([hit('bp_b', 'Arrowhead (Black)')]), 'Arrowhead')).toEqual({ className: 'bp_b', name: 'Arrowhead (Black)' });
+    expect(await findBlueprintByName(codex([hit('bp_b', 'Arrowhead (Black)'), hit('bp_c', 'Arrowhead (Red)')]), 'Arrowhead')).toBeNull();
+    expect(await findBlueprintByName(codex([{ kind: 'item', classNameSlug: 'x', nameLocalized: 'Arrowhead', name: null }]), 'Arrowhead')).toBeNull();
+  });
 
   it('waits for the first supplies / Einsatz pull before auto-applying, then applies', fakeAsync(() => {
     targets.ready = signal(false);

@@ -55,10 +55,14 @@ describe('ScConfirmService', () => {
     expect(await p).toBeFalse();
   });
 
-  it('resolves false on a backdrop click', async () => {
-    const p = service.confirm({ titleKey: 't' });
+  it('stays open on a backdrop click: only its buttons or Escape answer it', async () => {
+    let answered = false;
+    const p = service.confirm({ titleKey: 't' }).then((v) => ((answered = true), v));
     await settle();
     q<HTMLElement>('.sc-dialog-backdrop')!.click();
+    await settle();
+    expect(answered).toBeFalse();
+    q<HTMLButtonElement>('sc-confirm-dialog .cancel')!.click();
     expect(await p).toBeFalse();
   });
 

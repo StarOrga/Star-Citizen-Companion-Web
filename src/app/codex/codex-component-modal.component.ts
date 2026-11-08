@@ -71,7 +71,7 @@ export interface ComponentInspectEntry {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
-      <div class="cm-backdrop" (click)="closed.emit()">
+      <div class="cm-backdrop">
         <article class="cm-panel sc-card" role="dialog" aria-modal="true" tabindex="-1"
                  [attr.aria-label]="e.name" (click)="$event.stopPropagation()"
                  scDialog scDialogInitialFocus="container" (scDialogEscape)="closed.emit()">

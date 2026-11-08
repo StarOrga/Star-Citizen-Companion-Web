@@ -18,8 +18,8 @@ export interface OverlayNeighbour {
  *
  * Two modes, decided by `OverlayOriginService`:
  * - overlay (opened from its list): fixed takeover - centred sheet on desktop,
- *   wide sheet on tablet, full-screen (`dvh`) on phones; Escape, scrim and the
- *   close button emit `closed`, the host closes via `OverlayOriginService.close()` (history back, never a pushed entry).
+ *   wide sheet on tablet, full-screen (`dvh`) on phones; Escape and the
+ *   close button emit `closed` (a click on the scrim does not), the host closes via `OverlayOriginService.close()` (history back, never a pushed entry).
  * - page (direct load / refresh / shared link): the same content flows in the
  *   page frame, no scrim, no dialog semantics.
  * Prev/next are real anchors (`routerLink` leaves modified clicks to the browser).
@@ -31,9 +31,9 @@ export interface OverlayNeighbour {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (overlay()) {
-      <div class="scrim" (click)="closed.emit()">
+      <div class="scrim">
         <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()"
-             [attr.aria-label]="heading()" (click)="$event.stopPropagation()">
+             [attr.aria-label]="heading()">
           <ng-container *ngTemplateOutlet="inner" />
         </div>
       </div>
