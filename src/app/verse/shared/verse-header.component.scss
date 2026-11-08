@@ -44,9 +44,12 @@ sc-verse-header {
     --atm: color-mix(in srgb, var(--sc-accent) 55%, transparent);
     background: radial-gradient(circle at 40% 38%, #1d4e6e, #0a2233 68%, #04121c);
   }
-  .vh-emblem svg { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; }
-  .vh-emblem polyline { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 70%, transparent); stroke-width: 1; }
-  .vh-emblem circle { fill: #e8f6ff; }
+  // A projected real map (vhEmblem) stands free: no globe, no atmosphere.
+  .vh-emblem[data-world='starmap']:has(sc-starmap-mini) { background: none; box-shadow: none; border-radius: 0; }
+  .vh-emblem[data-world='starmap']:has(sc-starmap-mini)::after { content: none; }
+  .vh-emblem > svg { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; }
+  .vh-emblem > svg polyline { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 70%, transparent); stroke-width: 1; }
+  .vh-emblem > svg circle { fill: #e8f6ff; }
 
   // ── One slim line: small page name (the h1) + subtitle ─────────────────
   .vh-line {

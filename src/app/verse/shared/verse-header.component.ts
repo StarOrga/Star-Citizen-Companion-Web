@@ -69,9 +69,11 @@ import { VerseWorld } from './verse-world';
       @if (planet(); as p) {
         <span class="vh-emblem" [attr.data-world]="p" aria-hidden="true">
           @if (p === 'starmap') {
-            <svg viewBox="0 0 64 64"><polyline points="16,40 26,26 38,30 48,18" /><polyline points="38,30 42,44" />
-              <circle cx="16" cy="40" r="1.8" /><circle cx="26" cy="26" r="2.2" /><circle cx="38" cy="30" r="1.8" />
-              <circle cx="48" cy="18" r="2.4" /><circle cx="42" cy="44" r="1.6" /></svg>
+            <ng-content select="[vhEmblem]">
+              <svg viewBox="0 0 64 64"><polyline points="16,40 26,26 38,30 48,18" /><polyline points="38,30 42,44" />
+                <circle cx="16" cy="40" r="1.8" /><circle cx="26" cy="26" r="2.2" /><circle cx="38" cy="30" r="1.8" />
+                <circle cx="48" cy="18" r="2.4" /><circle cx="42" cy="44" r="1.6" /></svg>
+            </ng-content>
           }
         </span>
       }
