@@ -547,6 +547,8 @@ async function main() {
         craft_time_seconds: bp.craftTimeSeconds ?? null,
         dismantle_time_seconds: bp.dismantleTimeSeconds ?? null,
         dismantle_efficiency: bp.dismantleEfficiency ?? null,
+        dismantle_yield: bp.dismantleYield ?? null,
+        dismantlable: bp.dismantlable ?? null,
         output_class_name: outputClassName,
         is_default: bp.isDefault ?? null,
         is_variant: false,
