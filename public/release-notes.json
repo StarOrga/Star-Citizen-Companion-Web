@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.227.0",
+  "current": "0.228.0",
   "releases": [
+    {
+      "version": "0.228.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The app is now called Verse Companion – unofficial fan tool for Star Citizen. Name and public host live in one place (src/brand.json, scripts/apply-brand.mjs)."
+            },
+            {
+              "title": "",
+              "text": "New public address: https://versecompanion-alpha.vercel.app (sc-companion.vercel.app keeps working)."
+            },
+            {
+              "title": "",
+              "text": "The fan-site notice, the link to robertsspaceindustries.com and the trademark notice are now always visible in the footer, on the login page and on About, with the official Fan Kit \"Made By The Community\" logo."
+            },
+            {
+              "title": "",
+              "text": "Browser extension 0.1.2: clearer store description, new host."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.227.0",
       "date": "2026-11-08",
