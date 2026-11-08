@@ -39,7 +39,7 @@ export const BUILD_RECIPES: readonly BuildRecipe[] = [
     key: 'model3d',
     // Hulls, parts and interiors (glb). The converter binary and the bundled
     // gltf-transform / meshoptimizer versions are keyed separately.
-    revision: 1,
+    revision: 2,
     sources: [
       'data-uploader/python/sc_extract/hull3d.py',
       'data-uploader/python/sc_extract/glb_materials.py',
