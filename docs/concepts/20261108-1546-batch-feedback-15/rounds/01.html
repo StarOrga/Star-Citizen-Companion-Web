@@ -1,0 +1,484 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"biitte nochmal stark polishen und realistischer machen das konzept dann kann ich nochmal graphgfisch vor lalmen bewreten","attachments":[]},"designs":{},"screens":{},"views":{},"favorite":"sternbilder","userPins":[{"id":"up-mw7ydy99t5xq","design":"sternbilder","screen":"d2-s2","x":29.2,"y":38.9,"target":"button.vl-hq \"HQ · 2 neu\"","text":"irgednwas hq ähnlicheres relatable?!","attachments":[]},{"id":"up-mw7ye8p4j14m","design":"sternbilder","screen":"d2-s2","x":28.3,"y":40.8,"target":"span.vl-hq-label \"HQ · 2 neu\"","text":"2 neu hilft 0","attachments":[]},{"id":"up-mw7yedov8jzf","design":"sternbilder","screen":"d2-s2","x":38.2,"y":53.4,"target":"div.vl-pop \"✕Neu im HQ IAE 2956 · Event offen, noch \"","text":"schjau mal rechts bei der sonne wie dort die infos bei hover hover angezeigtr werden, das sollte hier auch so sein! keinen kasten","attachments":[]}]}</script>
+<style>
+/* Verse landing mocks — namespaced vl-*, [data-design] per-design rules d1-/d2-/d3- via variables. */
+:is([data-design],[data-design-id]) .vl-frame { position: relative; width: 100%; max-width: 1180px; aspect-ratio: 16 / 9; margin: 20px auto; border-radius: 14px; overflow: hidden;
+  container-type: inline-size; isolation: isolate; color: #e6f0f6; font-family: system-ui, "Segoe UI", sans-serif;
+  background: radial-gradient(ellipse 60% 50% at 80% 10%, rgba(120, 70, 160, .28), transparent 70%),
+              radial-gradient(ellipse 70% 60% at 20% 30%, rgba(30, 90, 140, .25), transparent 70%), #060d17;
+  --sun-s: 5.2cqw; --sun-r: 6.5cqw; --sun-t: 8.9%;
+  --map-s: 8cqw; --map-r: 12.5cqw; --map-t: 20.4%;
+  --pl: 1; }
+:is([data-design],[data-design-id]) .vl-frame::before { content: ''; position: absolute; inset: 0; z-index: 0; opacity: .7;
+  background-image: radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 33% 72%, #cfe, transparent),
+    radial-gradient(1px 1px at 58% 12%, #fff, transparent), radial-gradient(1px 1px at 77% 64%, #def, transparent),
+    radial-gradient(1px 1px at 91% 38%, #fff, transparent), radial-gradient(1px 1px at 46% 46%, #bcd, transparent),
+    radial-gradient(1px 1px at 6% 52%, #fff, transparent), radial-gradient(1px 1px at 68% 30%, #fff, transparent); }
+:is([data-design],[data-design-id]) .vl-head { position: absolute; z-index: 2; left: 2.4cqw; right: 2.4cqw; top: 2.4cqw; display: flex; align-items: center; gap: 1cqw; }
+:is([data-design],[data-design-id]) .vl-logo { width: 2cqw; height: 2cqw; border-radius: 50%; background: radial-gradient(circle, #9be4f7 0 16%, #2a7ea0 34%, #0c2333 64%); box-shadow: 0 0 10px rgba(90, 200, 232, .4); }
+:is([data-design],[data-design-id]) .vl-brand { font-size: max(9px, .85cqw); letter-spacing: .16em; font-weight: 700; text-transform: uppercase; }
+:is([data-design],[data-design-id]) .vl-brand small { display: block; color: #5ac8e8; font-size: .8em; letter-spacing: .3em; }
+:is([data-design],[data-design-id]) .vl-nav { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 4cqw; font-size: max(9px, .95cqw); letter-spacing: .22em; }
+:is([data-design],[data-design-id]) .vl-nav span { position: relative; color: #b9cad6; }
+:is([data-design],[data-design-id]) .vl-nav span.on { color: #fff; }
+:is([data-design],[data-design-id]) .vl-nav span.on::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: -.7cqw; height: 2px; background: #5ac8e8; border-radius: 2px; }
+:is([data-design],[data-design-id]) .vl-right { margin-left: auto; display: flex; gap: .8cqw; }
+:is([data-design],[data-design-id]) .vl-right i { display: block; height: 2.4cqw; min-width: 2.4cqw; border-radius: 999px; border: 1px solid #24445a; background: #0d2130; }
+:is([data-design],[data-design-id]) .vl-right i.w { min-width: 6cqw; }
+:is([data-design],[data-design-id]) .vl-hero { position: absolute; z-index: 2; left: 25%; right: 25%; top: 17%; text-align: center; }
+:is([data-design],[data-design-id]) .vl-eyebrow { font-size: max(8px, .75cqw); letter-spacing: .3em; color: #5ac8e8; }
+:is([data-design],[data-design-id]) .vl-title { margin: .8cqw 0 1.6cqw; font-size: 3.2cqw; line-height: 1.05; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+:is([data-design],[data-design-id]) .vl-search { margin: 0 auto; width: 70%; height: 3.2cqw; border-radius: 999px; border: 1px solid #24445a; background: rgba(8, 20, 30, .7);
+  display: flex; align-items: center; gap: .8cqw; padding: 0 1.4cqw; font-size: max(9px, .85cqw); color: #8aa3b3; box-sizing: border-box; }
+:is([data-design],[data-design-id]) .vl-planet { position: absolute; z-index: 2; border-radius: 50%; }
+:is([data-design],[data-design-id]) .vl-planet b { position: absolute; left: 50%; top: 104%; transform: translateX(-50%); font-size: max(8px, .7cqw); letter-spacing: .24em; color: #c9dbe6; font-weight: 500; white-space: nowrap; }
+:is([data-design],[data-design-id]) .vl-news { left: 7.6cqw; top: 58%; width: calc(6cqw * var(--pl)); aspect-ratio: 1;
+  background: repeating-linear-gradient(170deg, #c98f78 0 6%, #e9c9b4 6% 10%, #8e5a4a 10% 15%, #d8a690 15% 21%); box-shadow: inset -1.4cqw -1cqw 2cqw rgba(0, 0, 0, .75), 0 0 16px rgba(120, 180, 230, .25); }
+:is([data-design],[data-design-id]) .vl-patch { left: 19cqw; top: 53%; width: calc(4.5cqw * var(--pl)); aspect-ratio: 1;
+  background: radial-gradient(circle at 35% 35%, #a68d6a, #5b4a35 60%, #2b2218); box-shadow: inset -1cqw -.8cqw 1.6cqw rgba(0, 0, 0, .7), -2px 2px 8px rgba(255, 140, 40, .4); }
+:is([data-design],[data-design-id]) .vl-gal { right: 13.5cqw; top: 52%; width: calc(6cqw * var(--pl)); aspect-ratio: 1;
+  background: radial-gradient(circle at 40% 35%, #e9eef2, #8ea2b0 45%, #2b3a46 75%); box-shadow: inset -1.4cqw -1cqw 2cqw rgba(0, 0, 0, .7), 0 0 18px rgba(140, 200, 240, .35); }
+:is([data-design],[data-design-id]) .vl-horizon { position: absolute; z-index: 1; left: -20%; right: -20%; top: 66%; height: 160%; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 10%, #10263a, #050b12 55%); box-shadow: 0 -2px 30px rgba(90, 200, 232, .35); }
+:is([data-design],[data-design-id]) .vl-card { position: absolute; z-index: 2; left: 32%; right: 32%; top: 72%; padding: 1.2cqw 1.6cqw; text-align: center; clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, rgba(20, 50, 70, .85), rgba(10, 28, 40, .85)); border-top: 1px solid rgba(90, 200, 232, .5); }
+:is([data-design],[data-design-id]) .vl-card small { font-size: max(8px, .7cqw); letter-spacing: .3em; color: #5ac8e8; }
+:is([data-design],[data-design-id]) .vl-card b { display: block; margin-top: .4cqw; font-size: 1.6cqw; text-transform: uppercase; letter-spacing: .03em; }
+:is([data-design],[data-design-id]) .vl-sun { position: absolute; z-index: 2; right: var(--sun-r); top: var(--sun-t); width: var(--sun-s); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, #fff6d8 0 18%, #ffcf6a 38%, #f08a24 62%, #a2400f 70%, transparent 72%);
+  box-shadow: 0 0 calc(var(--sun-s) * .6) rgba(255, 170, 70, .55), 0 0 calc(var(--sun-s) * 1.4) rgba(255, 120, 40, .25); }
+:is([data-design],[data-design-id]) .vl-map { position: absolute; z-index: 2; right: var(--map-r); top: var(--map-t); width: var(--map-s); aspect-ratio: 8 / 5.6; }
+:is([data-design],[data-design-id]) .vl-map svg { width: 100%; height: 100%; overflow: visible; }
+:is([data-design],[data-design-id]) .vl-map line { stroke: #9fd8ee; stroke-width: 1; opacity: .8; }
+:is([data-design],[data-design-id]) .vl-map line.dim { stroke-dasharray: 2 3; opacity: .4; }
+:is([data-design],[data-design-id]) .vl-map circle { fill: #fff; filter: drop-shadow(0 0 3px #bfefff); }
+:is([data-design],[data-design-id]) .vl-map circle.off { fill: none; stroke: #9fd8ee; stroke-width: .8; filter: none; opacity: .7; }
+:is([data-design],[data-design-id]) .vl-hq { position: absolute; z-index: 3; display: inline-flex; align-items: center; gap: .6cqw; border: 0; background: transparent; color: #cfe6f2; font: inherit; cursor: pointer; padding: 0; }
+:is([data-design],[data-design-id]) .vl-ping { position: relative; width: .9cqw; height: .9cqw; min-width: 7px; min-height: 7px; border-radius: 50%; background: #5ac8e8; box-shadow: 0 0 8px #5ac8e8; }
+:is([data-design],[data-design-id]) .vl-ping::after { content: ''; position: absolute; inset: -60%; border-radius: 50%; border: 1px solid #5ac8e8; animation: vl-ping 2.4s ease-out infinite; }
+@keyframes vl-ping { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+:is([data-design],[data-design-id]) .vl-hq-label { font-size: max(8px, .7cqw); letter-spacing: .18em; text-transform: uppercase; white-space: nowrap; }
+:is([data-design],[data-design-id]) .vl-hq-label em { font-style: normal; color: #5ac8e8; }
+:is([data-design],[data-design-id]) .vl-pop { position: absolute; z-index: 4; width: 22cqw; padding: 1.2cqw 1.4cqw; border-radius: 12px; font-size: max(9px, .8cqw);
+  background: linear-gradient(180deg, rgba(20, 44, 62, .97), rgba(12, 28, 40, .97)); border: 1px solid rgba(90, 200, 232, .45); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+:is([data-design],[data-design-id]) .vl-pop h4 { margin: 0 0 .6cqw; font-size: max(8px, .7cqw); letter-spacing: .24em; color: #5ac8e8; text-transform: uppercase; }
+:is([data-design],[data-design-id]) .vl-pop p { margin: .4cqw 0; color: #c9dbe6; }
+:is([data-design],[data-design-id]) .vl-pop p b { color: #fff; }
+:is([data-design],[data-design-id]) .vl-pop .vl-go { display: inline-block; margin-top: .6cqw; color: #5ac8e8; }
+:is([data-design],[data-design-id]) .vl-pop button { position: absolute; right: .8cqw; top: .6cqw; border: 0; background: transparent; color: #8aa3b3; cursor: pointer; font: inherit; }
+
+/* d1 · Leiser Kompass — sun +35 %, [data-design] star map 70 % and pulled inward, [data-design] planets −12 %, [data-design] HQ hint sits on the HQ tab */
+:is([data-design],[data-design-id]) .d1 { --sun-s: 7cqw; --sun-r: 6cqw; --sun-t: 7%; --map-s: 5.6cqw; --map-r: 24cqw; --map-t: 15%; --pl: .88; }
+:is([data-design],[data-design-id]) .d1 .vl-hq { left: calc(50% + 7.2cqw); top: 2.9cqw; }
+:is([data-design],[data-design-id]) .d1 .vl-pop { left: calc(50% + 2cqw); top: 6cqw; }
+
+/* d2 · Zwei Sternbilder — sun +45 %, [data-design] star map 65 % between search and Galerie, [data-design] HQ hint as a mirrored mini-constellation left */
+:is([data-design],[data-design-id]) .d2 { --sun-s: 7.6cqw; --sun-r: 5cqw; --sun-t: 6%; --map-s: 5.2cqw; --map-r: 25cqw; --map-t: 43%; --pl: .88; }
+:is([data-design],[data-design-id]) .d2 .vl-hq { left: 12cqw; top: 26%; flex-direction: column; gap: .3cqw; }
+:is([data-design],[data-design-id]) .d2 .vl-hq svg { width: 3.6cqw; height: 2.4cqw; overflow: visible; }
+:is([data-design],[data-design-id]) .d2 .vl-hq svg line { stroke: #9fd8ee; stroke-width: 1; opacity: .6; }
+:is([data-design],[data-design-id]) .d2 .vl-hq svg circle { fill: #fff; }
+:is([data-design],[data-design-id]) .d2 .vl-hq svg circle.p { fill: #5ac8e8; }
+:is([data-design],[data-design-id]) .d2 .vl-pop { left: 9cqw; top: 38%; }
+
+/* d3 · Station im Orbit — sun +30 %, [data-design] star map 70 % closer to the sun's centre line, [data-design] HQ hint as a small station on the horizon */
+:is([data-design],[data-design-id]) .d3 { --sun-s: 6.8cqw; --sun-r: 7cqw; --sun-t: 8%; --map-s: 5.6cqw; --map-r: 17cqw; --map-t: 24%; --pl: .9; }
+:is([data-design],[data-design-id]) .d3 .vl-hq { left: 70%; top: 68%; }
+:is([data-design],[data-design-id]) .d3 .vl-station { width: 1.6cqw; height: .9cqw; position: relative; }
+:is([data-design],[data-design-id]) .d3 .vl-station::before { content: ''; position: absolute; left: 30%; right: 30%; top: 15%; bottom: 15%; border-radius: 2px; background: #cfe6f2; }
+:is([data-design],[data-design-id]) .d3 .vl-station::after { content: ''; position: absolute; left: 0; right: 0; top: 40%; height: 20%; background: #5ac8e8; }
+:is([data-design],[data-design-id]) .d3 .vl-pop { left: 58%; top: 40%; }
+@media (prefers-reduced-motion: reduce) { :is([data-design],[data-design-id]) .vl-ping::after { animation: none; } }
+</style>
+  <header class="iteration-intro">
+    <h2>{{iteration.tab}} 1 · Deine 15 Notizen als ein Plan</h2>
+    <p>Alle Notizen sind gegen den aktuellen Code geprüft (main ist eingemergt). Zwölf sind klar und laufen beim „Implementieren“ ohne Rückfrage mit. Offen sind drei Dinge: die <strong>Verse-Startseite</strong> (#11, die drei Designs hier), die <strong>Companion-Level</strong> (#9, Ansicht „Level-Namen“) und die <strong>Verkaufstexte im Apps-Menü</strong> (#5, Ansicht „App-Texte“).</p>
+    <ol>
+      <li><strong>#1 Frage + übernommen</strong> — Kein Update-Hinweis im Uploader: Der Updater startet fest auf dem Kanal „stable“ (<code>updater.ts:71</code>), dein Kanal (alpha/beta) kommt erst mit dem Login; der Refresh oben rechts lädt Daten neu, prüft aber kein Update. Wird per Log belegt, dann behoben — und der Refresh prüft künftig auch auf Updates.</li>
+      <li><strong>#2 übernommen</strong> — Dock unten links: Wort „Performance“ entfällt, der Tacho bleibt, daneben „Volle Leistung“ im Schriftstil des alten „Performance“.</li>
+      <li><strong>#3 übernommen</strong> — Holotisch: Block „Top 3 · Zuletzt gesehen &amp; Hangar“ entfällt (dafür gibt es Lesezeichen / Zuletzt geöffnet oben rechts).</li>
+      <li><strong>#4 übernommen</strong> — Perspektiven-Panel und Einsatz-Leiste werden ein lückenloser Kasten mit gemeinsamen runden Ecken.</li>
+      <li><strong>#5 teils offen</strong> — SCC App zeigt „Windows · vX.Y.Z · MB“ wie die anderen; „Nur für Collaborators“ entfällt (Rot sagt das schon); Fußtext auf höchstens 3 Zeilen; je App exakt zwei Zeilen Verkaufstext → Ansicht „App-Texte“.</li>
+      <li><strong>#6 mit #5 zusammengeführt</strong> — Starscape und Data Uploader bekommen im Apps-Menü dieselben Icons wie in Tray und Taskleiste.</li>
+      <li><strong>#7 Frage + übernommen</strong> — Komet-Tipp: Es gibt bisher keinen Zustand „verpasst“, darum steht nach dem 4.11. noch „wartet auf LIVE“. Neu: Tipp-Datum vorbei und Patch nicht LIVE → „verpasst“. Dazu eine Umbenennungs-Logik (4.11 → 5.0 laut CIG-Roadmap), die Tipp, Sternkarte und Patch-News gleich behandelt.</li>
+      <li><strong>#8 Frage + übernommen</strong> — Upvote gibt es heute nur in der Galerie-Liste, nicht in der Einzelansicht. Kommt in Einzelansicht und Vollbild.</li>
+      <li><strong>#9 offen</strong> — Companion-Level ohne „Companion Core“, kein „Im Orbit“ → Ansicht „Level-Namen“. Liegt im Repo der Companion-App, läuft dort als eigene Sitzung.</li>
+      <li><strong>#10 Frage + übernommen</strong> — Nein, die Zeit unten links ist nur eine Faustformel (Profil-Sekunden pro GB × Archivgröße, <code>performance.ts:157</code>). Neu: Schätzung über alle Phasen, aus lokal gemessenen Geschwindigkeiten früherer Läufe (versionsübergreifend, übersprungene Elemente ausgenommen).</li>
+      <li><strong>#11 offen (Design)</strong> — Startseite: Sternkarte kleiner und mehr zur Mitte, Sonne größer, Planeten einen Tick kleiner, dezenter „Neues im HQ“-Hinweis → drei Designs.</li>
+      <li><strong>#12 übernommen</strong> — Uploader-Fehler: Manifest-Placement-ID doppelt bei RSI Meteor Collector Military, cgf-converter liefert kein GLB für das Grin-Multitool, 20 Multitool-Pakete übersprungen; dazu das ganze Log nach weiteren Fehlern.</li>
+      <li><strong>#13 mit #12 zusammengeführt</strong> — bezieht sich auf den Data Uploader.</li>
+      <li><strong>#14 übernommen</strong> — Fortschrittsbalken: statt „221:58“ / „Rest 199:10“ künftig „3 h 41 m“ / „Rest 3 h 19 m“.</li>
+      <li><strong>#15 übernommen</strong> — Starscape-Tray-Menü bekommt den Stil des Data-Uploader-Tray-Menüs.</li>
+    </ol>
+    <p><strong>Bündel</strong> (laufen parallel, keine geteilte Datei): <em>B1 Uploader Dock/Zeit/Update</em> (#1, #2, #10, #14) · <em>B2 Uploader 3D-Fehler</em> (#12, #13) · <em>B3 Starscape-Tray</em> (#15) · <em>B4 Apps-Menü</em> (#5, #6) · <em>B5 Codex-Holotisch</em> (#3, #4) · <em>B6 Komet &amp; Patch-Umbenennung</em> (#7) · <em>B7 Galerie-Upvote</em> (#8) · <em>B8 Verse-Startseite</em> (#11) · <em>B9 Companion-Level</em> (#9, anderes Repo). Keine Widersprüche, nichts unmachbar.</p>
+    <p>Die drei Designs ändern nur Sonne, Sternkarte, Planetengröße und den neuen HQ-Hinweis; alles andere ist wie heute. Klick auf den HQ-Hinweis öffnet seinen Inhalt.</p>
+  </header>
+
+  <section data-design="kompass" data-nav-label="Leiser Kompass" data-design-active="true"
+           data-design-motto="Hinweis sitzt am HQ-Tab" data-design-traits="Sternkarte oben, zwischen Titel und Sonne|Sonne am deutlichsten größer (+35 %)|HQ-Hinweis als Punkt am Reiter „HQ“" data-design-icon="compass" data-design-color="#5ac8e8">
+    <section id="d1-s1" data-nav-label="Start" data-screen data-screen-active="true">
+      <div class="vl-frame d1">
+        <div class="vl-head"><span class="vl-logo"></span><span class="vl-brand">Star Citizen Companion<small>Alpha</small></span>
+          <div class="vl-nav"><span class="on">VERSE</span><span>CODEX</span><span>HQ</span></div>
+          <div class="vl-right"><i></i><i class="w"></i><i></i></div></div>
+        <button type="button" class="vl-hq" data-screen-link="d1-s2"><span class="vl-ping"></span><span class="vl-hq-label"><em>2</em> neu</span></button>
+        <div class="vl-hero"><div class="vl-eyebrow">PATCHES</div><div class="vl-title">PTU · Vanduul-Angriff und neues Skarnov-Gewehr</div><div class="vl-search">⌕ Suche in Schiffen, Patches, News …</div></div>
+        <span class="vl-sun"></span>
+        <span class="vl-map"><svg viewBox="0 0 80 56"><line x1="40" y1="4" x2="60" y2="34"/><line x1="60" y1="34" x2="56" y2="44"/><line x1="56" y1="44" x2="44" y2="50"/><line class="dim" x1="40" y1="4" x2="22" y2="38"/><line class="dim" x1="22" y1="38" x2="38" y2="50"/><circle cx="40" cy="4" r="2"/><circle cx="60" cy="34" r="2"/><circle cx="56" cy="44" r="1.8"/><circle cx="44" cy="50" r="1.8"/><circle class="off" cx="22" cy="38" r="1.6"/><circle class="off" cx="22" cy="46" r="1.6"/><circle cx="38" cy="50" r="1.4"/></svg></span>
+        <span class="vl-planet vl-news"><b>NEWS</b></span><span class="vl-planet vl-patch"><b>PATCHES</b></span><span class="vl-planet vl-gal"><b>GALERIE</b></span>
+        <div class="vl-horizon"></div>
+        <div class="vl-card"><small>NEWS</small><b>IAE 2956 – Save the Date</b></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d1-a1" data-anno-side="left" data-anno-target=".vl-map" style="--anno-x:72%;--anno-y:20%">
+          <button class="anno-pin" type="button" data-anno-pin="d1-a1" aria-expanded="false" aria-controls="anno-bubble-d1-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d1-a1" data-anno-bubble="d1-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d1-a1" aria-expanded="false" aria-controls="anno-bubble-d1-a1">
+              <span class="anno-bubble-question">Sternkarte auf 70 % und nach innen gerückt, über dem Titel-Rand: mittig genug, oder noch weiter zur Mitte?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d1-a1" data-annotation="d1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d1-a1"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d1-a2" data-anno-side="left" data-anno-target=".vl-sun" style="--anno-x:91%;--anno-y:14%">
+          <button class="anno-pin" type="button" data-anno-pin="d1-a2" aria-expanded="false" aria-controls="anno-bubble-d1-a2" aria-label="{{anno.pin_label}}">2</button>
+          <div class="anno-bubble" id="anno-bubble-d1-a2" data-anno-bubble="d1-a2" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d1-a2" aria-expanded="false" aria-controls="anno-bubble-d1-a2">
+              <span class="anno-bubble-question">Sonne +35 % (5,2 → 7 % der Breite), etwas höher: realistisch als ferner Stern, oder schon zu dominant?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d1-a2" data-annotation="d1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d1-a2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d1-a3" data-anno-side="right" data-anno-target=".vl-hq" style="--anno-x:58%;--anno-y:4%">
+          <button class="anno-pin" type="button" data-anno-pin="d1-a3" aria-expanded="false" aria-controls="anno-bubble-d1-a3" aria-label="{{anno.pin_label}}">3</button>
+          <div class="anno-bubble" id="anno-bubble-d1-a3" data-anno-bubble="d1-a3" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d1-a3" aria-expanded="false" aria-controls="anno-bubble-d1-a3">
+              <span class="anno-bubble-question">Pulsierender Punkt „2 neu“ direkt am Reiter HQ: dezent genug, und verstehst du ohne Klick, dass er zum HQ gehört?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d1-a3" data-annotation="d1-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d1-a3"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d1-a4" data-anno-side="right" data-anno-target=".vl-news" style="--anno-x:10%;--anno-y:62%">
+          <button class="anno-pin" type="button" data-anno-pin="d1-a4" aria-expanded="false" aria-controls="anno-bubble-d1-a4" aria-label="{{anno.pin_label}}">4</button>
+          <div class="anno-bubble" id="anno-bubble-d1-a4" data-anno-bubble="d1-a4" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d1-a4" aria-expanded="false" aria-controls="anno-bubble-d1-a4">
+              <span class="anno-bubble-question">Die drei Planeten −12 %: der „eine Tick kleiner“, den du meintest, oder mehr?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d1-a4" data-annotation="d1-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d1-a4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="d1-s2" data-nav-label="HQ-Hinweis offen" data-screen hidden>
+      <div class="vl-frame d1">
+        <div class="vl-head"><span class="vl-logo"></span><span class="vl-brand">Star Citizen Companion<small>Alpha</small></span>
+          <div class="vl-nav"><span class="on">VERSE</span><span>CODEX</span><span>HQ</span></div>
+          <div class="vl-right"><i></i><i class="w"></i><i></i></div></div>
+        <button type="button" class="vl-hq" data-screen-link="d1-s1"><span class="vl-ping"></span><span class="vl-hq-label"><em>2</em> neu</span></button>
+        <div class="vl-hero"><div class="vl-eyebrow">PATCHES</div><div class="vl-title">PTU · Vanduul-Angriff und neues Skarnov-Gewehr</div><div class="vl-search">⌕ Suche in Schiffen, Patches, News …</div></div>
+        <span class="vl-sun"></span>
+        <span class="vl-map"><svg viewBox="0 0 80 56"><line x1="40" y1="4" x2="60" y2="34"/><line x1="60" y1="34" x2="56" y2="44"/><line x1="56" y1="44" x2="44" y2="50"/><line class="dim" x1="40" y1="4" x2="22" y2="38"/><line class="dim" x1="22" y1="38" x2="38" y2="50"/><circle cx="40" cy="4" r="2"/><circle cx="60" cy="34" r="2"/><circle cx="56" cy="44" r="1.8"/><circle cx="44" cy="50" r="1.8"/><circle class="off" cx="22" cy="38" r="1.6"/><circle class="off" cx="22" cy="46" r="1.6"/><circle cx="38" cy="50" r="1.4"/></svg></span>
+        <span class="vl-planet vl-news"><b>NEWS</b></span><span class="vl-planet vl-patch"><b>PATCHES</b></span><span class="vl-planet vl-gal"><b>GALERIE</b></span>
+        <div class="vl-horizon"></div>
+        <div class="vl-card"><small>NEWS</small><b>IAE 2956 – Save the Date</b></div>
+        <div class="vl-pop"><button type="button" data-screen-link="d1-s1" aria-label="Schließen">✕</button><h4>Neu im HQ</h4>
+          <p><b>IAE 2956</b> · Event offen, noch 5 Tage</p><p><b>Nachschub</b> · 1 Wunsch wieder lieferbar</p><span class="vl-go">Zum HQ →</span></div>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="sternbilder" data-nav-label="Zwei Sternbilder" hidden
+           data-design-motto="Sternkarte mitten im Bild" data-design-traits="Sternkarte auf halber Höhe neben der Galerie|Sonne am größten (+45 %), allein oben rechts|HQ-Hinweis als zweites Mini-Sternbild links" data-design-icon="star" data-design-color="#a48bff">
+    <section id="d2-s1" data-nav-label="Start" data-screen data-screen-active="true">
+      <div class="vl-frame d2">
+        <div class="vl-head"><span class="vl-logo"></span><span class="vl-brand">Star Citizen Companion<small>Alpha</small></span>
+          <div class="vl-nav"><span class="on">VERSE</span><span>CODEX</span><span>HQ</span></div>
+          <div class="vl-right"><i></i><i class="w"></i><i></i></div></div>
+        <button type="button" class="vl-hq" data-screen-link="d2-s2"><svg viewBox="0 0 36 24"><line x1="4" y1="18" x2="16" y2="6"/><line x1="16" y1="6" x2="32" y2="12"/><circle cx="4" cy="18" r="1.4"/><circle class="p" cx="16" cy="6" r="2"/><circle cx="32" cy="12" r="1.4"/></svg><span class="vl-hq-label">HQ · <em>2</em> neu</span></button>
+        <div class="vl-hero"><div class="vl-eyebrow">PATCHES</div><div class="vl-title">PTU · Vanduul-Angriff und neues Skarnov-Gewehr</div><div class="vl-search">⌕ Suche in Schiffen, Patches, News …</div></div>
+        <span class="vl-sun"></span>
+        <span class="vl-map"><svg viewBox="0 0 80 56"><line x1="40" y1="4" x2="60" y2="34"/><line x1="60" y1="34" x2="56" y2="44"/><line x1="56" y1="44" x2="44" y2="50"/><line class="dim" x1="40" y1="4" x2="22" y2="38"/><line class="dim" x1="22" y1="38" x2="38" y2="50"/><circle cx="40" cy="4" r="2"/><circle cx="60" cy="34" r="2"/><circle cx="56" cy="44" r="1.8"/><circle cx="44" cy="50" r="1.8"/><circle class="off" cx="22" cy="38" r="1.6"/><circle class="off" cx="22" cy="46" r="1.6"/><circle cx="38" cy="50" r="1.4"/></svg></span>
+        <span class="vl-planet vl-news"><b>NEWS</b></span><span class="vl-planet vl-patch"><b>PATCHES</b></span><span class="vl-planet vl-gal"><b>GALERIE</b></span>
+        <div class="vl-horizon"></div>
+        <div class="vl-card"><small>NEWS</small><b>IAE 2956 – Save the Date</b></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d2-a1" data-anno-side="left" data-anno-target=".vl-map" style="--anno-x:72%;--anno-y:48%">
+          <button class="anno-pin" type="button" data-anno-pin="d2-a1" aria-expanded="false" aria-controls="anno-bubble-d2-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d2-a1" data-anno-bubble="d2-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d2-a1" aria-expanded="false" aria-controls="anno-bubble-d2-a1">
+              <span class="anno-bubble-question">Sternkarte auf halber Höhe zwischen Suche und Galerie: gehört sie dort zum Bild, oder konkurriert sie mit der Galerie?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d2-a1" data-annotation="d2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d2-a1"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d2-a2" data-anno-side="left" data-anno-target=".vl-sun" style="--anno-x:92%;--anno-y:12%">
+          <button class="anno-pin" type="button" data-anno-pin="d2-a2" aria-expanded="false" aria-controls="anno-bubble-d2-a2" aria-label="{{anno.pin_label}}">2</button>
+          <div class="anno-bubble" id="anno-bubble-d2-a2" data-anno-bubble="d2-a2" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d2-a2" aria-expanded="false" aria-controls="anno-bubble-d2-a2">
+              <span class="anno-bubble-question">Sonne +45 % und allein in der Ecke: wirkt sie jetzt als Lichtquelle der Szene, oder zu groß?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d2-a2" data-annotation="d2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d2-a2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d2-a3" data-anno-side="right" data-anno-target=".vl-hq" style="--anno-x:13%;--anno-y:28%">
+          <button class="anno-pin" type="button" data-anno-pin="d2-a3" aria-expanded="false" aria-controls="anno-bubble-d2-a3" aria-label="{{anno.pin_label}}">3</button>
+          <div class="anno-bubble" id="anno-bubble-d2-a3" data-anno-bubble="d2-a3" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d2-a3" aria-expanded="false" aria-controls="anno-bubble-d2-a3">
+              <span class="anno-bubble-question">HQ-Hinweis als kleines Sternbild links, gespiegelt zur Sternkarte: passt das als „sehr dezentes Element wie die Sternkarte“?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d2-a3" data-annotation="d2-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d2-a3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="d2-s2" data-nav-label="HQ-Hinweis offen" data-screen hidden>
+      <div class="vl-frame d2">
+        <div class="vl-head"><span class="vl-logo"></span><span class="vl-brand">Star Citizen Companion<small>Alpha</small></span>
+          <div class="vl-nav"><span class="on">VERSE</span><span>CODEX</span><span>HQ</span></div>
+          <div class="vl-right"><i></i><i class="w"></i><i></i></div></div>
+        <button type="button" class="vl-hq" data-screen-link="d2-s1"><svg viewBox="0 0 36 24"><line x1="4" y1="18" x2="16" y2="6"/><line x1="16" y1="6" x2="32" y2="12"/><circle cx="4" cy="18" r="1.4"/><circle class="p" cx="16" cy="6" r="2"/><circle cx="32" cy="12" r="1.4"/></svg><span class="vl-hq-label">HQ · <em>2</em> neu</span></button>
+        <div class="vl-hero"><div class="vl-eyebrow">PATCHES</div><div class="vl-title">PTU · Vanduul-Angriff und neues Skarnov-Gewehr</div><div class="vl-search">⌕ Suche in Schiffen, Patches, News …</div></div>
+        <span class="vl-sun"></span>
+        <span class="vl-map"><svg viewBox="0 0 80 56"><line x1="40" y1="4" x2="60" y2="34"/><line x1="60" y1="34" x2="56" y2="44"/><line x1="56" y1="44" x2="44" y2="50"/><line class="dim" x1="40" y1="4" x2="22" y2="38"/><line class="dim" x1="22" y1="38" x2="38" y2="50"/><circle cx="40" cy="4" r="2"/><circle cx="60" cy="34" r="2"/><circle cx="56" cy="44" r="1.8"/><circle cx="44" cy="50" r="1.8"/><circle class="off" cx="22" cy="38" r="1.6"/><circle class="off" cx="22" cy="46" r="1.6"/><circle cx="38" cy="50" r="1.4"/></svg></span>
+        <span class="vl-planet vl-news"><b>NEWS</b></span><span class="vl-planet vl-patch"><b>PATCHES</b></span><span class="vl-planet vl-gal"><b>GALERIE</b></span>
+        <div class="vl-horizon"></div>
+        <div class="vl-card"><small>NEWS</small><b>IAE 2956 – Save the Date</b></div>
+        <div class="vl-pop"><button type="button" data-screen-link="d2-s1" aria-label="Schließen">✕</button><h4>Neu im HQ</h4>
+          <p><b>IAE 2956</b> · Event offen, noch 5 Tage</p><p><b>Nachschub</b> · 1 Wunsch wieder lieferbar</p><span class="vl-go">Zum HQ →</span></div>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="station" data-nav-label="Station im Orbit" hidden
+           data-design-motto="Hinweis kreist am Horizont" data-design-traits="Sternkarte nah an der Sonne, leicht tiefer|Sonne moderat größer (+30 %)|HQ-Hinweis als kleine Station über dem Horizont" data-design-icon="globe" data-design-color="#e0a060">
+    <section id="d3-s1" data-nav-label="Start" data-screen data-screen-active="true">
+      <div class="vl-frame d3">
+        <div class="vl-head"><span class="vl-logo"></span><span class="vl-brand">Star Citizen Companion<small>Alpha</small></span>
+          <div class="vl-nav"><span class="on">VERSE</span><span>CODEX</span><span>HQ</span></div>
+          <div class="vl-right"><i></i><i class="w"></i><i></i></div></div>
+        <div class="vl-hero"><div class="vl-eyebrow">PATCHES</div><div class="vl-title">PTU · Vanduul-Angriff und neues Skarnov-Gewehr</div><div class="vl-search">⌕ Suche in Schiffen, Patches, News …</div></div>
+        <span class="vl-sun"></span>
+        <span class="vl-map"><svg viewBox="0 0 80 56"><line x1="40" y1="4" x2="60" y2="34"/><line x1="60" y1="34" x2="56" y2="44"/><line x1="56" y1="44" x2="44" y2="50"/><line class="dim" x1="40" y1="4" x2="22" y2="38"/><line class="dim" x1="22" y1="38" x2="38" y2="50"/><circle cx="40" cy="4" r="2"/><circle cx="60" cy="34" r="2"/><circle cx="56" cy="44" r="1.8"/><circle cx="44" cy="50" r="1.8"/><circle class="off" cx="22" cy="38" r="1.6"/><circle class="off" cx="22" cy="46" r="1.6"/><circle cx="38" cy="50" r="1.4"/></svg></span>
+        <span class="vl-planet vl-news"><b>NEWS</b></span><span class="vl-planet vl-patch"><b>PATCHES</b></span><span class="vl-planet vl-gal"><b>GALERIE</b></span>
+        <div class="vl-horizon"></div>
+        <button type="button" class="vl-hq" data-screen-link="d3-s2"><span class="vl-station"></span><span class="vl-ping"></span><span class="vl-hq-label">HQ · <em>2</em> neu</span></button>
+        <div class="vl-card"><small>NEWS</small><b>IAE 2956 – Save the Date</b></div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+        <div class="anno" data-anno="d3-a1" data-anno-side="left" data-anno-target=".vl-map" style="--anno-x:79%;--anno-y:28%">
+          <button class="anno-pin" type="button" data-anno-pin="d3-a1" aria-expanded="false" aria-controls="anno-bubble-d3-a1" aria-label="{{anno.pin_label}}">1</button>
+          <div class="anno-bubble" id="anno-bubble-d3-a1" data-anno-bubble="d3-a1" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a1" aria-expanded="false" aria-controls="anno-bubble-d3-a1">
+              <span class="anno-bubble-question">Sternkarte bleibt bei der Sonne, rückt nur leicht tiefer und nach innen: reicht dir das „mehr zur Mitte“?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d3-a1" data-annotation="d3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d3-a1"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d3-a2" data-anno-side="left" data-anno-target=".vl-hq" style="--anno-x:72%;--anno-y:70%">
+          <button class="anno-pin" type="button" data-anno-pin="d3-a2" aria-expanded="false" aria-controls="anno-bubble-d3-a2" aria-label="{{anno.pin_label}}">2</button>
+          <div class="anno-bubble" id="anno-bubble-d3-a2" data-anno-bubble="d3-a2" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a2" aria-expanded="false" aria-controls="anno-bubble-d3-a2">
+              <span class="anno-bubble-question">HQ als kleine Station über dem Horizont, die langsam über den Planeten zieht: stimmig, oder lenkt sie von der News-Karte ab?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d3-a2" data-annotation="d3-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d3-a2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="anno" data-anno="d3-a3" data-anno-side="right" data-anno-target=".vl-gal" style="--anno-x:86%;--anno-y:58%">
+          <button class="anno-pin" type="button" data-anno-pin="d3-a3" aria-expanded="false" aria-controls="anno-bubble-d3-a3" aria-label="{{anno.pin_label}}">3</button>
+          <div class="anno-bubble" id="anno-bubble-d3-a3" data-anno-bubble="d3-a3" data-open="false">
+            <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a3" aria-expanded="false" aria-controls="anno-bubble-d3-a3">
+              <span class="anno-bubble-question">Was soll der HQ-Hinweis zeigen, wenn kein Event offen ist: andere HQ-Neuigkeiten (Nachschub, Statistik) oder gar nichts?</span>
+              <span class="anno-chevron" aria-hidden="true">›</span>
+            </button>
+            <div class="anno-bubble-body">
+              <textarea class="anno-answer" data-comment="anno-d3-a3" data-annotation="d3-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea>
+              <div class="attach-slot" data-attach-slot="anno-d3-a3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="d3-s2" data-nav-label="HQ-Hinweis offen" data-screen hidden>
+      <div class="vl-frame d3">
+        <div class="vl-head"><span class="vl-logo"></span><span class="vl-brand">Star Citizen Companion<small>Alpha</small></span>
+          <div class="vl-nav"><span class="on">VERSE</span><span>CODEX</span><span>HQ</span></div>
+          <div class="vl-right"><i></i><i class="w"></i><i></i></div></div>
+        <div class="vl-hero"><div class="vl-eyebrow">PATCHES</div><div class="vl-title">PTU · Vanduul-Angriff und neues Skarnov-Gewehr</div><div class="vl-search">⌕ Suche in Schiffen, Patches, News …</div></div>
+        <span class="vl-sun"></span>
+        <span class="vl-map"><svg viewBox="0 0 80 56"><line x1="40" y1="4" x2="60" y2="34"/><line x1="60" y1="34" x2="56" y2="44"/><line x1="56" y1="44" x2="44" y2="50"/><line class="dim" x1="40" y1="4" x2="22" y2="38"/><line class="dim" x1="22" y1="38" x2="38" y2="50"/><circle cx="40" cy="4" r="2"/><circle cx="60" cy="34" r="2"/><circle cx="56" cy="44" r="1.8"/><circle cx="44" cy="50" r="1.8"/><circle class="off" cx="22" cy="38" r="1.6"/><circle class="off" cx="22" cy="46" r="1.6"/><circle cx="38" cy="50" r="1.4"/></svg></span>
+        <span class="vl-planet vl-news"><b>NEWS</b></span><span class="vl-planet vl-patch"><b>PATCHES</b></span><span class="vl-planet vl-gal"><b>GALERIE</b></span>
+        <div class="vl-horizon"></div>
+        <button type="button" class="vl-hq" data-screen-link="d3-s1"><span class="vl-station"></span><span class="vl-ping"></span><span class="vl-hq-label">HQ · <em>2</em> neu</span></button>
+        <div class="vl-card"><small>NEWS</small><b>IAE 2956 – Save the Date</b></div>
+        <div class="vl-pop"><button type="button" data-screen-link="d3-s1" aria-label="Schließen">✕</button><h4>Neu im HQ</h4>
+          <p><b>IAE 2956</b> · Event offen, noch 5 Tage</p><p><b>Nachschub</b> · 1 Wunsch wieder lieferbar</p><span class="vl-go">Zum HQ →</span></div>
+      </div>
+    </section>
+  </section>
+
+  <section data-view="v-levels" data-view-kind="decision" data-nav-label="Level-Namen" hidden>
+  <div class="view-frame">
+    <h2>#9 · Wie sollen die fünf Companion-Level heißen?</h2>
+    <p>Heute (Companion-App): <em>Sucht Star Citizen · Startfreigabe · Im Orbit · Quantum bereit · Im Verse zu Hause</em>, der Tooltip sagt „Die Stufe deines Companion Core“. Die Stufen bedeuten: 0 Spiel nicht gefunden · 1 Spiel gefunden, nicht angemeldet · 2 angemeldet, Intel noch nicht eingerichtet · 3 Intel eingerichtet, noch nicht alles · 4 alles eingerichtet. Fest steht: Das Level gehört dem <strong>Companion</strong>, nicht einem „Core“ — Tooltip, Seitentitel „Companion Core“ und Texte sprechen künftig vom „Companion-Level“. Offen ist nur das Namensset (Stufe 0 → 4).</p>
+    <div class="variant-evaluation" data-decision="lv-team" data-label="Wir werden ein Team">
+      <h3>Wir werden ein Team (Empfehlung)</h3>
+      <p><strong>Funkstille · Erster Kontakt · Lernt dich kennen · Eingespielt · Unzertrennlich</strong> — erzählt, dass der Companion mit dir wächst; jede Stufe ist ein Fortschritt in der Beziehung, nicht ein technischer Zustand.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lv-team" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lv-team" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lv-team-note">{{decision.comment_label}}</label>
+        <textarea id="lv-team-note" data-comment="lv-team-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lv-rank" data-label="Pilotenränge">
+      <h3>Pilotenränge</h3>
+      <p><strong>Ohne Signal · Rekrut · Pilot · Kommandant · Legende</strong> — klassische Rangleiter, sofort als Fortschritt lesbar und motivierend; sagt aber nicht, was als Nächstes zu tun ist.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lv-rank" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lv-rank" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lv-rank-note">{{decision.comment_label}}</label>
+        <textarea id="lv-rank-note" data-comment="lv-rank-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lv-clear" data-label="Klartext">
+      <h3>Klartext</h3>
+      <p><strong>Sucht das Spiel · Spiel gefunden · Verbunden · Einsatzbereit · Voll ausgestattet</strong> — jede Stufe sagt genau, was erreicht ist. Am verständlichsten, am wenigsten Gefühl.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lv-clear" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lv-clear" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lv-clear-note">{{decision.comment_label}}</label>
+        <textarea id="lv-clear-note" data-comment="lv-clear-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lv-ship" data-label="Schiff klarmachen">
+      <h3>Schiff klarmachen</h3>
+      <p><strong>Hangar dunkel · Systeme an · Startklar · Auf Kurs · Flaggschiff</strong> — Star-Citizen-Bild ohne „Orbit“: vom kalten Hangar bis zum voll ausgerüsteten Schiff.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lv-ship" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lv-ship" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lv-ship-note">{{decision.comment_label}}</label>
+        <textarea id="lv-ship-note" data-comment="lv-ship-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lv-license" data-label="Lizenzen">
+      <h3>Lizenzen</h3>
+      <p><strong>Ohne Lizenz · Lernlizenz · Pilotenlizenz · Kapitänspatent · Admiralspatent</strong> — wie Flugscheine: jede Stufe wird „verliehen“, stark für Abzeichen und Glückwunsch-Momente.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lv-license" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lv-license" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lv-license-note">{{decision.comment_label}}</label>
+        <textarea id="lv-license-note" data-comment="lv-license-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="lv-next" data-label="Nächster Schritt darunter">
+      <h3>Zusatz: nächster Schritt unter dem Namen (Empfehlung)</h3>
+      <p>Unabhängig vom Namensset steht unter dem Level-Namen eine kleine Zeile, was zur nächsten Stufe fehlt, z. B. „Nächste Stufe: Intel einrichten“. So motiviert der Name und die Zeile sagt, was zu tun ist.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-lv-next" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-lv-next" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="lv-next-note">{{decision.comment_label}}</label>
+        <textarea id="lv-next-note" data-comment="lv-next-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+  </div>
+  </section>
+
+  <section data-view="v-apps" data-view-kind="decision" data-nav-label="App-Texte" hidden>
+  <div class="view-frame">
+    <h2>#5 · Welcher Ton für die zwei Zeilen unter jedem App-Namen?</h2>
+    <p>Fest steht: genau zwei Zeilen pro App (bei der Menübreite ~70 Zeichen, im Build per Zeilenzahl geprüft), darunter die Metazeile „Windows · vX.Y.Z · MB“ — jetzt auch für die SCC App. „Nur für Collaborators“ entfällt. Der Fußtext wird auf drei Zeilen gekürzt:</p>
+    <p><em>„Hier lädst du die stabile Version. Beta und Alpha wählst du nach dem Login in der App — welche Kanäle du siehst, hängt von deiner Rolle ab.“</em></p>
+    <p>Offen ist der Ton der Verkaufstexte. Je Ton die drei Texte (SCC App · Starscape · Data Uploader):</p>
+    <div class="variant-evaluation" data-decision="tx-benefit" data-label="Nutzen zuerst">
+      <h3>Nutzen zuerst (Empfehlung)</h3>
+      <p><strong>SCC App:</strong> Dein Begleiter neben dem Spiel: Live-Infos, Overlays und Tastenbelegung, ohne Alt-Tab.<br>
+         <strong>Starscape:</strong> Dein Desktop wird zum Fenster ins Verse — jeden Tag ein neues Bild aus der Galerie.<br>
+         <strong>Data Uploader:</strong> Liest dein Star Citizen aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-tx-benefit" value="discard"><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-tx-benefit" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="tx-benefit-note">{{decision.comment_label}}</label>
+        <textarea id="tx-benefit-note" data-comment="tx-benefit-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="tx-func" data-label="Funktion zuerst">
+      <h3>Funktion zuerst</h3>
+      <p><strong>SCC App:</strong> Desktop-App für Star Citizen: Overlays, Tastenbelegung, Benachrichtigungen und Spielstatus.<br>
+         <strong>Starscape:</strong> Wallpaper-App: wechselt dein Hintergrundbild automatisch durch die Starscape-Galerie.<br>
+         <strong>Data Uploader:</strong> Extrahiert Spieldaten aus deiner Installation und lädt sie in den Codex hoch.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-tx-func" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-tx-func" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="tx-func-note">{{decision.comment_label}}</label>
+        <textarea id="tx-func-note" data-comment="tx-func-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="variant-evaluation" data-decision="tx-mood" data-label="Atmosphäre">
+      <h3>Atmosphäre</h3>
+      <p><strong>SCC App:</strong> Dein Copilot auf dem Desktop — er kennt das Verse und sagt dir, was gerade zählt.<br>
+         <strong>Starscape:</strong> Hol dir den Blick aus dem Cockpit auf den Bildschirm, jeden Tag ein neuer Himmel.<br>
+         <strong>Data Uploader:</strong> Für Datensammler: Du bringst die Daten ins Verse, der Codex macht sie für alle sichtbar.</p>
+      <div class="eval-group">
+        <label class="eval-option"><input type="radio" name="eval-tx-mood" value="discard" checked><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-tx-mood" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+      </div>
+      <div class="field-row decision-comment-row">
+        <label for="tx-mood-note">{{decision.comment_label}}</label>
+        <textarea id="tx-mood-note" data-comment="tx-mood-note" data-attachable placeholder="{{decision.comment_placeholder}}" rows="2"></textarea>
+      </div>
+    </div>
+  </div>
+  </section>
+</section>
