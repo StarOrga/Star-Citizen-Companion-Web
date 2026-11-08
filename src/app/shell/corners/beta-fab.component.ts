@@ -39,12 +39,12 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
                       [disabled]="beta.locked()[a]"
                       (click)="beta.toggle(a)">
                 <span class="label">{{ ('beta.area.' + a) | translate }}
-                  @if (staff() && a === 'shell') { <span class="only">{{ 'beta.staffOnly' | translate }}</span> }
+                  @if (staff() && a === 'shell') { <span class="sc-sr-only">{{ 'beta.staffOnly' | translate }}</span> }
                 </span>
                 <span class="knob-track" aria-hidden="true"><span class="knob"></span></span>
               </button>
             }
-            @if (staff()) { <p class="note">{{ 'beta.chip.note' | translate }}</p> }
+            @if (staff()) { <p class="sc-sr-only">{{ 'beta.chip.note' | translate }}</p> }
           </div>
         }
       </aside>
@@ -70,9 +70,9 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       border: 1px solid var(--sc-border); background: var(--sc-bg-1); color: var(--sc-accent);
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     }
-    .staff .fab { color: var(--sc-accent-hot); border-color: color-mix(in srgb, var(--sc-accent-hot) 55%, var(--sc-border)); }
+    .staff .fab { color: var(--sc-accent-collab); border-color: color-mix(in srgb, var(--sc-accent-collab) 55%, var(--sc-border)); }
     .fab:hover, .fab[aria-expanded='true'] { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); border-color: var(--sc-accent); }
-    .staff .fab:hover, .staff .fab[aria-expanded='true'] { background: color-mix(in srgb, var(--sc-accent-hot) 14%, var(--sc-bg-1)); border-color: var(--sc-accent-hot); }
+    .staff .fab:hover, .staff .fab[aria-expanded='true'] { background: color-mix(in srgb, var(--sc-accent-collab) 14%, var(--sc-bg-1)); border-color: var(--sc-accent-collab); }
     .fab:focus-visible, .sw:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .mark { font-family: var(--sc-font-display); font-weight: 700; font-size: 1.1rem; }
     .panel {
@@ -96,7 +96,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .sw:hover { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
     .sw:disabled { opacity: 0.45; cursor: not-allowed; }
     .label { font-size: max(0.82rem, var(--sc-fs-floor)); }
-    .only { margin-inline-start: var(--sc-space-1); font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-accent-hot); text-transform: uppercase; letter-spacing: 0.06em; }
+    .only { margin-inline-start: var(--sc-space-1); font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-accent-collab); text-transform: uppercase; letter-spacing: 0.06em; }
     .knob-track { position: relative; flex: none; width: 38px; height: 22px; border-radius: 999px;
       background: var(--sc-bg-2); border: 1px solid var(--sc-border); transition: background 0.16s; }
     .knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;

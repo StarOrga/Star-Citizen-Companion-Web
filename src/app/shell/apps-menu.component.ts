@@ -144,11 +144,11 @@ export interface AppEntry {
       display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
     }
     .meta { font-size: 0.72rem; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
-    .entry.elevated { margin-top: 4px; border-top: 1px solid color-mix(in srgb, var(--sc-accent-hot) 40%, transparent); border-radius: 0 0 8px 8px; }
-    .entry.elevated .ico { color: var(--sc-accent-hot); background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); }
-    .entry.elevated strong { color: var(--sc-accent-hot); }
-    .entry.elevated:hover, .entry.elevated:focus-visible { background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent); }
-    .entry.elevated:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent-hot); }
+    .entry.elevated { margin-top: 4px; border-top: 1px solid color-mix(in srgb, var(--sc-accent-collab) 40%, transparent); border-radius: 0 0 8px 8px; }
+    .entry.elevated .ico { color: var(--sc-accent-collab); background: color-mix(in srgb, var(--sc-accent-collab) 14%, transparent); }
+    .entry.elevated strong { color: var(--sc-accent-collab); }
+    .entry.elevated:hover, .entry.elevated:focus-visible { background: color-mix(in srgb, var(--sc-accent-collab) 12%, transparent); }
+    .entry.elevated:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent-collab); }
     .hint {
       margin: 4px 0 0; padding: 8px 10px 4px; border-top: 1px solid var(--sc-border);
       font-size: 0.72rem; line-height: 1.4; color: var(--sc-fg-2);
