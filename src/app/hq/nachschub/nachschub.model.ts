@@ -141,6 +141,11 @@ export function followBlueprintQty(blueprintQty: number, shares: readonly number
   return Math.max(1, Math.min(blueprintQty, Math.ceil(blueprintQty * max - 1e-9)));
 }
 
+/** How much of `add` does not fit on a wish that already holds `have` (a wish tops out at {@link WISH_QTY_MAX}). */
+export function wishOverflow(have: number, add: number): number {
+  return Math.max(0, Math.round(have) + Math.round(add) - WISH_QTY_MAX);
+}
+
 /** Add `qty` to a position (or create it) - the way returned lines "count up" on the wishlist. */
 export function addToWishlist(wish: readonly WishPosition[], add: WishPosition): readonly WishPosition[] {
   const k = positionKey(add);
@@ -184,10 +189,11 @@ const EPS = 1e-9;
  * number of copies in the Hangar. A line without a baseline (migrated, or added after planning) reports
  * `baseline: null`: the caller stores `current` as its baseline (see {@link withBaseline}).
  */
-export function lineStatus(line: LineState, snapshot: Readonly<Record<string, number>>, current: number): LineStatus {
+export function lineStatus(line: LineState, snapshot: Readonly<Record<string, number>>, current: number, consumed = 0): LineStatus {
   const base = snapshot[line.id];
   const baseline = typeof base === 'number' && Number.isFinite(base) ? base : null;
-  const rise = baseline === null ? 0 : Math.max(0, current - baseline);
+  // `consumed` = the part of the rise that older lines of the same class already took (see {@link evaluateNachschub}).
+  const rise = baseline === null ? 0 : Math.max(0, current - baseline - Math.max(0, consumed));
   if (line.ticked) return { closed: true, rise, baseline, by: 'tick' };
   if (baseline !== null && rise + EPS >= line.need) return { closed: true, rise, baseline, by: 'inventory' };
   return { closed: false, rise, baseline, by: null };
@@ -327,21 +333,47 @@ export interface Evaluation {
 }
 
 /**
- * One pass over a Nachschub: status per line, missing baselines filled from the CURRENT stock (a migrated or
- * later added line starts counting from now), which lines close by inventory, and whether the Nachschub is done.
- * `owned(line)` is the current Inventar quantity (or Hangar copies for a ship line).
+ * Rise already handed to lines of a class during one evaluation pass, keyed by {@link riseKey}. One pool is shared
+ * across all active Nachschuebe (oldest first) so a single stock gain closes ONE line of a class, not every line
+ * that happens to ask for the same thing (H4).
  */
-export function evaluateNachschub(lines: readonly EvalLine[], snapshot: Readonly<Record<string, number>>, owned: (line: EvalLine) => number): Evaluation {
+export type RisePool = Map<string, number>;
+
+export function riseKey(l: Pick<EvalLine, 'ship' | 'className'>): string | null {
+  const c = (l.className ?? '').trim().toLowerCase();
+  return c ? `${l.ship ? 's' : 'i'}:${c}` : null;
+}
+
+/**
+ * One pass over a Nachschub: status per line, baselines, which lines close by inventory, and whether it is done.
+ * `owned(line)` is the current Inventar quantity (or Hangar copies for a ship line).
+ *
+ * Baseline rules:
+ *  - a missing baseline (migrated or later added line) is filled from the CURRENT stock: the line counts from now;
+ *  - a baseline above the current stock is LOWERED to it (M1): the stock fell (used up, row deleted), so a later
+ *    purchase must raise it from the new low, otherwise the line could never close again.
+ * Sharing (H4): with a `pool`, every line of a class first sees the rise minus what older lines took, then takes
+ * `min(need, rise)` itself - open or closed alike, so a closed line keeps its share on the next pass. Lines are
+ * handled in the order given; the caller passes the Nachschuebe oldest first.
+ */
+export function evaluateNachschub(
+  lines: readonly EvalLine[],
+  snapshot: Readonly<Record<string, number>>,
+  owned: (line: EvalLine) => number,
+  pool?: RisePool,
+): Evaluation {
   let snap = snapshot;
   const statuses = new Map<string, LineStatus>();
   const closeIds: string[] = [];
   for (const l of lines) {
-    const current = owned(l);
-    let st = lineStatus(l, snap, current);
-    if (st.baseline === null) {
-      snap = withBaseline(snap, l.id, current);
-      st = lineStatus(l, snap, current);
-    }
+    const current = Math.max(0, owned(l));
+    const have = snap[l.id];
+    if (typeof have !== 'number' || !Number.isFinite(have)) snap = withBaseline(snap, l.id, current);
+    else if (current < have) snap = { ...snap, [l.id]: current };
+    const key = pool ? riseKey(l) : null;
+    const used = key ? (pool?.get(key) ?? 0) : 0;
+    const st = lineStatus(l, snap, current, used);
+    if (key && pool) pool.set(key, used + Math.min(l.need, st.rise));
     if (st.closed && st.by === 'inventory') closeIds.push(l.id);
     statuses.set(l.id, st);
   }

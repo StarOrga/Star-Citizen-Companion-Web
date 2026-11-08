@@ -5357,6 +5357,7 @@
     },
     "run": {
       "aria": "Nachschub, den Jetzt bedient",
+      "archived": "Abgeschlossen: Dieser Nachschub liegt im Archiv, seine Einsätze laufen hier weiter. Unter Planen › Archiv kannst du ihn wieder aktivieren.",
       "for": "für",
       "stepOf": "Schritt {{n}} von {{total}}",
       "switch": "Nachschub wechseln",
@@ -5426,6 +5427,12 @@
     "nachschub": {
       "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
       "nothingPicked": "Wähle mindestens einen Gegenstand von der Wunschliste.",
+      "linesFull": "Deine Nachschub-Liste ist voll (100 Positionen). Entferne erst Positionen, dann kann die Wunschliste einziehen.",
+      "partial": "{{count}} Positionen sind geblieben: Deine Nachschub-Liste ist voll.",
+      "wishlistFailed": "Die Wunschliste konnte nicht geändert werden. Es wurde nichts verschoben.",
+      "wishCapped": "{{count}} Stück passen nicht mehr auf die Wunschliste (höchstens 999 je Eintrag) und gehen verloren.",
+      "gone": "Dieser Nachschub existiert nicht mehr (auf einem anderen Gerät gelöscht). Die Ansicht wird aktualisiert.",
+      "capReached": "Du hast das Limit an gespeicherten Nachschüben erreicht. Lösche alte aus dem Archiv, dann klappt es wieder.",
       "newName": "Neuer Nachschub",
       "newEinsatz": "Neuer Einsatz",
       "verb": {
