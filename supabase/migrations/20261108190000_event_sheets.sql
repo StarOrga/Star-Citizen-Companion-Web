@@ -1,3 +1,4 @@
+-- Renumbered from 20261108140000: that version is taken on the remote ledger by hq_supply_packages_caps (#1009), so this file would have been skipped silently.
 -- Events als Nachschub, wave 1a - the event data sheet (concept 20261108-1130-hq-events-nachschub, C1/C3).
 --
 --   sc_events.sheet / sheet_schema   the PUBLIC data sheet of an event (docs/contracts/event-sheet.md): every field
