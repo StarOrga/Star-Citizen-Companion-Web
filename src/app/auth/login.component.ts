@@ -236,6 +236,12 @@ type Panel = 'signIn' | 'apply' | 'reset';
               <span aria-hidden="true">·</span>
               <a routerLink="/legal/imprint">{{ 'footer.links.imprint' | translate }}</a>
             </nav>
+            <!-- CIG Fankit and Fandom FAQ: the fan-site notice is open and obvious on
+                 the public entry page, not only behind a link. -->
+            <p class="fan-notice">
+              {{ 'footer.disclaimer' | translate }}
+              <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a>
+            </p>
           </div>
         </div>
       </main>
@@ -415,6 +421,15 @@ type Panel = 'signIn' | 'apply' | 'reset';
       transition: color 0.16s ease;
     }
     .trust-links a:hover { color: var(--sc-accent); }
+    .fan-notice {
+      margin: 10px 0 0;
+      font-size: max(0.7rem, var(--sc-fs-floor));
+      line-height: 1.4;
+      color: var(--sc-fg-2);
+      text-align: center;
+    }
+    .fan-notice a { color: var(--sc-fg-1); text-decoration: underline; text-underline-offset: 2px; }
+    .fan-notice a:hover { color: var(--sc-accent); }
     label {
       display: block;
       margin-bottom: 14px;

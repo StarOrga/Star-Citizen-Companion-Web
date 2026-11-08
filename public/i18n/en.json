@@ -5691,7 +5691,7 @@
         "title": "Game not detected — start the Companion app",
         "hint": "The Companion app reports your location and actions here, live.",
         "syncOffTitle": "Companion app connected — no live data yet",
-        "syncOffHint": "In the Companion app, turn on live sync under Settings → Overlay → Web HQ, then start the game.",
+        "syncOffHint": "In the Companion app, turn on live sync under Settings → Overlay → Verse Companion Web HQ, then start the game.",
         "explain": {
           "aria": "What Now shows",
           "what": "Now is your live state from the game: where you are, what comes next on your route, and what happened last.",
