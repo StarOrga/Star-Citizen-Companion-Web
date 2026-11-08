@@ -7047,17 +7047,17 @@
     "aria": "Apps herunterladen",
     "scc": {
       "name": "Companion-App",
-      "desc": "Live-Infos, Overlays und Tastenbelegung direkt neben dem Spiel, ohne Alt-Tab."
+      "desc": "Dein Begleiter neben dem Spiel: Live-Infos, Overlays und Tastenbelegung, ohne Alt-Tab."
     },
     "starscape": {
       "name": "Starscape",
-      "desc": "Dein Desktop als Fenster ins Verse, jeden Tag mit einem neuen Galeriebild."
+      "desc": "Dein Desktop wird zum Fenster ins Verse — jeden Tag ein neues Bild aus der Galerie."
     },
     "uploader": {
       "name": "Data Uploader",
-      "desc": "Liest dein Spiel aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen."
+      "desc": "Liest dein Star Citizen aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen."
     },
-    "footer": "Hier gibt es die stabile Version. Beta und Alpha wählst du nach dem Login in der App, je nach deiner Rolle."
+    "footer": "Hier lädst du die stabile Version. Beta und Alpha wählst du nach dem Login in der App — welche Kanäle du siehst, hängt von deiner Rolle ab."
   },
   "appNotice": {
     "aria": "App-Hinweis",
