@@ -550,6 +550,27 @@ describe('CodexDetailComponent — armour hero icon (part glyph)', () => {
   });
 });
 
+describe('CodexDetailComponent — missile on the item stage', () => {
+  it('renders the holotable item stage with the missile values and rank, not the classic hero', async () => {
+    const fixture = await setup('weapon', [], NOMAD_PAYLOAD, {
+      silhouette: async () => null,
+      getMissileCohort: async () => [],
+      getDetail: async () => ({
+        classNameSlug: 'misl_s02_ir_novp_rattler',
+        kind: 'component',
+        row: { attach_type: 'Missile', size: 2 },
+        payload: {},
+        ports: [],
+        strings: [],
+      }),
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.item-page sc-codex-item-stage')).not.toBeNull();
+    expect(el.querySelector('header.hero')).toBeNull();
+    expect(el.querySelector('.it-pane sc-codex-rank-card')).not.toBeNull();
+  });
+});
+
 describe('CodexDetailComponent — crafting recipe (#187)', () => {
   const BP = 'BP_CRAFT_KLWE_LaserRepeater_S3';
   const ingredient = (ingredientIndex: number, ingredientClassName: string, quantity: number) => ({

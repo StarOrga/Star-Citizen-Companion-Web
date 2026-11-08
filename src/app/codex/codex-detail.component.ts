@@ -349,6 +349,13 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               <h1>{{ displayName() }}</h1>
               @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
               <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
+              @if (missileKeywords().length > 0) {
+                <ul class="mchips" [attr.aria-label]="'codex.missile.keywordsLabel' | translate">
+                  @for (k of missileKeywords(); track k.id) {
+                    <li class="mchip" tabindex="0" [scTooltip]="k.tipKey | translate">{{ k.labelKey | translate }}</li>
+                  }
+                </ul>
+              }
             </div>
             @if (fromHq() && holdingNachschub(); as h) {
               <p class="hq-note ce" style="--ce: 1" role="status">
@@ -1013,6 +1020,37 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     }
 
     @if (showTab('info')) { <ng-container [ngTemplateOutlet]="whereToBuy" /> }
+
+    <!-- ── Missile: its own stat groups, then where it ranks among all missiles (item stage only; the classic page renders both above) ── -->
+    @if (itemStage() && isMissile() && showTab('werte')) {
+      @if (missileStats().length > 0) {
+        <section class="sc-card block" [scFeedbackSpot]="'codex.missile.data.title'">
+          <h2>{{ 'codex.missile.data.title' | translate }}</h2>
+          @for (g of missileStats(); track g.id) {
+            <h3 class="sg-head">{{ ('codex.missile.group.' + g.id) | translate }}</h3>
+            <div class="stat-grid">
+              @for (s of g.rows; track s.key) {
+                <div class="stat"><span class="s-label">{{ s.labelKey | translate }}</span><span class="s-value">@if (s.valueKey) { {{ s.valueKey | translate }} } @else { {{ fmt(s.value!) }} }@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+              }
+            </div>
+          }
+          @if (missileCombatMissing()) {
+            <p class="hint">{{ 'codex.missile.data.combatMissing' | translate }}</p>
+          }
+        </section>
+      }
+      <sc-codex-rank-card
+        [shipName]="displayName()"
+        [sizeClass]="missileRecord()?.size ?? null"
+        [result]="missileRank()"
+        [loading]="missileCohortLoading()"
+        [profiles]="[]"
+        [scopes]="missileRankScopes"
+        [copy]="missileRankCopy"
+        [gapKey]="missileRankGapKey()"
+        [scope]="missileRankScope()"
+        (scopeChange)="missileScopeChoice.set($event)" />
+    }
 
     <!-- ── Ammunition: damage + ballistics ───────────────────── -->
     @if (showTab('werte') && damage().length > 0) {
@@ -1725,8 +1763,8 @@ export class CodexDetailComponent implements OnInit {
     return (this.nachschubSvc ??= this.lazyInjector.get(NachschubService));
   }
   protected readonly nachschubIcon = NACHSCHUB_ICON_PATHS;
-  /** Every kind but ships and missiles (those keep their own stages) gets the stage layout. */
-  protected readonly itemStage = computed(() => !!this.detail() && this.kind() !== 'ship' && !this.isMissile());
+  /** Every kind but ships (which keep their own stage) gets the stage layout; a missile too, with its own values and rank. */
+  protected readonly itemStage = computed(() => !!this.detail() && this.kind() !== 'ship');
   protected readonly itemTab = signal<'werte' | 'herstellung' | 'info'>('werte');
   /** Opened from the HQ (the crumb leads back there): the page quietly says which Nachschub holds the item. */
   protected readonly fromHq = computed(() => (this.navOrigin.previous()?.path ?? '').startsWith('/hq'));
