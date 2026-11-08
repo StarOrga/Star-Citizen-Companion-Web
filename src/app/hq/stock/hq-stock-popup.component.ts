@@ -949,7 +949,7 @@ export class HqStockPopupComponent implements OnInit {
 
   valid(): boolean {
     const p = this.picked();
-    return (!!p ? p.title === this.itemText().trim() : this.unknown()) && !!this.location.trim() && Number(this.qty) > 0;
+    return (p ? p.title === this.itemText().trim() : this.unknown()) && !!this.location.trim() && Number(this.qty) > 0;
   }
 
   async add(): Promise<void> {
