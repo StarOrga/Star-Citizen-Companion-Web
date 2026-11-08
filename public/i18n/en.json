@@ -7037,17 +7037,17 @@
     "platform": "Windows · always the latest version",
     "scc": {
       "name": "Companion App",
-      "desc": "The Companion app for your desktop."
+      "desc": "Your companion next to the game: live info, overlays and keybindings, no alt-tabbing."
     },
     "starscape": {
       "name": "Starscape",
-      "desc": "Rotates your wallpaper through the Starscape gallery."
+      "desc": "Your desktop becomes a window into the Verse — a new picture from the gallery every day."
     },
     "uploader": {
       "name": "Data Uploader",
-      "tag": "For collaborators only",
-      "desc": "Reads your Star Citizen install and uploads the Codex data."
-    }
+      "desc": "Reads your Star Citizen install and fills the Codex with ships, stats and 3D models."
+    },
+    "footer": "This is the stable version. Pick Beta and Alpha in the app after logging in — which channels you see depends on your role."
   },
   "appNotice": {
     "aria": "App notice",
