@@ -146,7 +146,7 @@ export interface HangarShip {
   pinnedRank: number | null;
   selectedSkinId: string | null;
   notes: string | null;
-  /** Copies owned or wished (second copy allowed), 1..999. Column `qty`, migration 20261107190000. */
+  /** Copies owned or wished (second copy allowed), 1..999. Column `qty`, migration 20261108130000. */
   qty?: number;
   /** Where the ship came from; null = not stated. Column `origin`. */
   origin?: HangarShipOrigin | null;

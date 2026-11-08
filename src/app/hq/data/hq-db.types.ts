@@ -31,7 +31,7 @@ export interface HqSupplyRow {
   unit?: 'pcs' | 'scu' | null;
   /** Class name of the blueprint this material line was added for. */
   for_class_name?: string | null;
-  /** hq_supply_packages.id (migration 20261107190100); null = a loose line. */
+  /** hq_supply_packages.id (migration 20261108130100); null = a loose line. */
   package_id?: string | null;
   deleted_at: string | null;
   created_at: string;
@@ -48,7 +48,7 @@ export interface HqEinsatzRow {
   status: 'planned' | 'active' | 'done' | 'archived';
   planned_at: string | null;
   start_location: string | null;
-  /** hq_supply_packages.id (migration 20261107190100). */
+  /** hq_supply_packages.id (migration 20261108130100). */
   package_id?: string | null;
   deleted_at: string | null;
   created_at: string;
