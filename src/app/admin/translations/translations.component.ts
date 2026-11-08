@@ -5,7 +5,11 @@ import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import type { PageCrumb } from '../../shared/page-header/nav-origin.service';
+import { TranslationAlertsComponent } from './translation-alerts.component';
+import { TranslationCardsComponent } from './translation-cards.component';
 import { TranslationGlossaryComponent } from './translation-glossary.component';
+import { TranslationOutreachComponent } from './translation-outreach.component';
+import { TranslationSourcesComponent } from './translation-sources.component';
 import {
   CurrentBuild,
   TranslationJob,
@@ -15,7 +19,7 @@ import {
 } from './translations.service';
 import { canApprove, canCancel, jobErrorKey, judgeScore, spendPercent } from './translations.logic';
 
-type Tab = 'overview' | 'glossary';
+type Tab = 'overview' | 'cards' | 'sources' | 'outreach' | 'alerts' | 'glossary';
 
 /**
  * `/admin/translations` — admin only (roleGuard on the route). Switch + caps of
@@ -25,7 +29,16 @@ type Tab = 'overview' | 'glossary';
 @Component({
   selector: 'sc-admin-translations',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, PageHeaderComponent, TranslationGlossaryComponent],
+  imports: [
+    TranslatePipe,
+    ScDatePipe,
+    PageHeaderComponent,
+    TranslationGlossaryComponent,
+    TranslationCardsComponent,
+    TranslationSourcesComponent,
+    TranslationOutreachComponent,
+    TranslationAlertsComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-page-header
@@ -49,6 +62,14 @@ type Tab = 'overview' | 'glossary';
 
     @if (tab() === 'glossary') {
       <sc-translation-glossary [languages]="languages()" />
+    } @else if (tab() === 'cards') {
+      <sc-translation-cards [languages]="languages()" />
+    } @else if (tab() === 'sources') {
+      <sc-translation-sources />
+    } @else if (tab() === 'outreach') {
+      <sc-translation-outreach />
+    } @else if (tab() === 'alerts') {
+      <sc-translation-alerts />
     } @else if (loadError()) {
       <div class="sc-card state error" role="alert">
         <p>{{ loadError()! | translate }}</p>
@@ -237,7 +258,7 @@ export class AdminTranslationsComponent implements OnInit {
   private readonly svc = inject(TranslationsService);
   private readonly confirmSvc = inject(ScConfirmService);
 
-  readonly tabs: readonly Tab[] = ['overview', 'glossary'];
+  readonly tabs: readonly Tab[] = ['overview', 'cards', 'sources', 'outreach', 'alerts', 'glossary'];
   readonly crumbs: PageCrumb[] = [{ labelKey: 'adminHub.title', link: '/admin/hub' }];
   readonly tab = signal<Tab>('overview');
   readonly loading = signal(true);
