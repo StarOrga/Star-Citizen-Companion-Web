@@ -8,7 +8,7 @@ import { LoadoutShareService } from '../../social/loadout-share.service';
 import { SharedWithMeRow } from '../../social/loadout-share.types';
 import { SocialService } from '../../social/social.service';
 import { SharedShipConfig, friendPath } from '../../social/social.types';
-import { hqHangar, hqLocker } from '../hq-routes';
+import { hqHangar, hqStockLink } from '../hq-routes';
 
 /**
  * "Von Freunden geteilt" in Bestand (C14, C13): the sets and ship variants friends shared with the
@@ -47,7 +47,7 @@ import { hqHangar, hqLocker } from '../hq-routes';
                 {{ 'share.view.by' | translate: { name: '' } }}<a [routerLink]="path(s.owner_id, s.owner_handle)">{{ s.owner_handle || s.owner_name || '—' }}</a></span>
             </div>
             @if (adopted().has(s.share_id)) {
-              <a class="done" [routerLink]="lockerLink">{{ 'hq.friends.stock.adopted' | translate }} ›</a>
+              <a class="done" [routerLink]="setsLink.commands" [queryParams]="setsLink.queryParams" [fragment]="setsLink.fragment">{{ 'hq.friends.stock.adopted' | translate }} ›</a>
             } @else {
               <button type="button" class="sc-btn tiny" [disabled]="busy()" (click)="adoptSet(s)">{{ 'hq.friends.stock.adopt' | translate }}</button>
             }
@@ -96,7 +96,8 @@ export class HqStockSharedComponent implements OnInit {
   private readonly shares = inject(LoadoutShareService);
   private readonly hangar = inject(HangarService);
 
-  protected readonly lockerLink = hqLocker;
+  /** Sets live in Bestand › Inventar › Sets (S2, R1 q-sets=inv), no longer on /hq/locker. */
+  protected readonly setsLink = hqStockLink({ tab: 'inventar', cat: 'sets' });
   protected readonly hangarLink = hqHangar;
 
   protected readonly sets = signal<SharedWithMeRow[]>([]);
