@@ -44,6 +44,8 @@ export interface LandingCodexEntry {
   announced: boolean;
   /** In the previous build too, its values changed in this patch — rendered with the "aktualisiert" tag. */
   updated?: boolean;
+  /** New in this patch (a real new entry, not a discovery pick) - rendered with the "neu" tag. */
+  isNew?: boolean;
 }
 
 /** One category row of the Codex list: its new and updated items of the current patch. */
@@ -55,6 +57,8 @@ export interface LandingCodexCategory {
   entries: LandingCodexEntry[];
   /** Announced ships of this category (ships only, else 0). */
   announced: number;
+  /** Nothing new or updated: `entries` are picks of the category to discover (`count` is 0). */
+  discover?: boolean;
 }
 
 export interface LandingCodex {
