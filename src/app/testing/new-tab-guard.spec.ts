@@ -17,6 +17,9 @@
  * fails the spec that made it, by name. The fix is on the spec's side —
  * swallow the default action once the code under test has had its say, e.g.
  * with a `preventDefault()` listener on `window` (see the HangarPicker spec).
+ *
+ * Karma only. The specs that already run under Vitest get the same guard from
+ * `vitest-setup.ts`; this file goes when the last Karma spec does.
  */
 
 interface LinkClick {
