@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.239.2",
+  "current": "0.239.3",
   "releases": [
+    {
+      "version": "0.239.3",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse: the auroras over the background planet are always visible, drifting slowly between weaker and stronger phases with more frequent strong bursts (a faint still aurora under reduced motion)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.239.2",
       "date": "2026-11-08",
