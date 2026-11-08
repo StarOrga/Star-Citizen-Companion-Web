@@ -1,0 +1,129 @@
+<section data-iteration="3" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Community-Pakete lassen sich jetzt als Startbestand importieren, und die Pipeline lernt danach ohne viele Tokens weiter.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">📥</span><span><b>Seed-Import</b> für 5 Sprachen, CIG geht immer vor.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧠</span><span><b>Lernschritt</b> mit Glossar, Stil, Schiedsrichter und Hysterese.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🗂</span><span><b>Karteikarten</b> mit Punkten, Serie und Rangliste.</span></li>
+      </ul>
+      <a class="fr-try" href="https://sc-companion.vercel.app/admin/translations" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
+      <p class="fr-try-auth">🔑 Admin-Konto; erst nach dem Einspielen der drei neuen Migrationen.</p>
+    </div>
+    <div class="fr-ba">
+      <ol class="fr-flow">
+        <li>Paket laden, CIG-Keys überspringen, Platzhalter prüfen</li>
+        <li>Lücken und neue Patches übersetzt die KI</li>
+        <li>Paket gegen KI: Regeln, dann Vergleich in beiden Reihenfolgen</li>
+        <li>Unsicheres landet als Karteikarte bei dir</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="434 Function-Tests und 6226 Karma-Specs grün, typecheck, lint und build grün (geschätzt: Anforderung alle Gates grün).">
+        <span class="fr-meter-name">✅ Gates</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">5 / 5</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 90%" data-tip="Unabhängige Prüfung: alle Checklistenpunkte erfüllt bis auf die nie gelaufene Migration und den ungetesteten Zip-Pfad für Chinesisch (geschätzt).">
+        <span class="fr-meter-name">📋 Checkliste</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">26 / 29</b>
+      </div>
+      <div class="fr-meter" data-grade="open" style="--fr-fill: 0%" data-tip="Migration und pgTAP sind nie gelaufen, kein Docker hier; ein echter Seed-Import mit dem 12-MB-Paket steht aus (geschätzt).">
+        <span class="fr-meter-name">🗄 Echtbetrieb</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">offen</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="3 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ○ {{final.level_local}} · ○ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_interplay}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_local}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 3 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-app"
+          data-issue-title="[FEATURE] SCC app: community languages, ru via korean slot, attribution line"
+          data-issue-type="feature"
+          data-issue-body="Approved in the concept 20261108-1130-spieluebersetzung-community-seed (d-langs, d-credit), not built here because the SCC desktop app is a separate repo (Star-Citizen-Companion-App). Needed: LANGUAGES for it, pt-BR, ja, ru (+ fr/zh once permitted); ru writes into korean_(south_korea) with use_cig_table=false; write the overlay `attribution` into Frontend_PU_Version; picker label from overlay `sources` instead of the old AI-only label. Contract: docs/translation/ARCHITECTURE.md (overlay v1 extension)."
+          data-issue-module="desktop-app"
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="anderes-repo">
+        <span class="oq-label">SCC-App: Sprachen + Herkunft</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Sprachwahl, russischer Umweg über den koreanischen Ordner und Herkunftszeile in der App sind nicht gebaut.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Repo Star-Citizen-Companion-App, translation-service.js</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt, als eigene Session im App-Repo; der Overlay-Vertrag steht.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-zip" data-routed="now"
+          data-issue-title="[CHORE] Test the zip unpack path of the community seed import"
+          data-issue-type="chore"
+          data-issue-body="_pack.ts unpacks 42Kit's data.zip with npm:fflate; no test covers it and the edge memory limit is untested. Chinese stays blocked until 42Kit grants permission, so this only matters then. Add a fixture test before zh is permitted."
+          data-issue-module="translation"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="später-nötig">
+        <span class="oq-label">Zip-Pfad ungetestet</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Das Entpacken des chinesischen Pakets hat keinen Test.</dd>
+          <dt>{{final.fund_where}}</dt><dd>translate-orchestrator/_pack.ts</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, Chinesisch ist ohnehin bis zur Zusage gesperrt.</dd>
+        </dl>
+        <p class="oq-done">umgesetzt — Entpacken austauschbar, 5 Tests mit eigenem Zip (Treffer, fehlender Eintrag, BOM, Größengrenze); das Speicherlimit der Edge-Funktion bleibt ungetestet.</p>
+      </li>
+      <li data-oq-id="oq-ledger" data-routed="now"
+          data-issue-title="[CHORE] Ledger rows without a job for learning spend"
+          data-issue-type="chore"
+          data-issue-body="translation_ledger.job_id is NOT NULL, so learning/arbiter/web spend is booked on the newest translation job of the language and the web cap is summed from R2 learn-spend files. Cleaner: job_id nullable plus a kind column, then sum the web cap from the ledger."
+          data-issue-module="translation"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="aufräumen">
+        <span class="oq-label">Lern-Kosten im Ledger</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Lernkosten hängen am neuesten Job, der Deckel greift trotzdem.</dd>
+          <dt>{{final.fund_where}}</dt><dd>translation_ledger, _learn_batch.ts</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue, funktioniert, ist aber unsauber.</dd>
+        </dl>
+        <p class="oq-done">umgesetzt — Lernkosten stehen als eigene Zeilen mit Art und Sprache im Ledger, der Web-Deckel zählt dort; dritte Migration 20261108180000.</p>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/sc-translations-automated-learning-6008c4</code> · Commit <code>baf70811</code></li>
+      <li><code>supabase/migrations/20261108160000_translation_community_seed.sql</code>, <code>…170000_translation_source_sync_cron.sql</code>, <code>…180000_translation_ledger_kind.sql</code></li>
+      <li><code>translate-orchestrator/_learn.ts</code>, <code>_arbiter.ts</code>, <code>_sources.ts</code> · Admin: <code>src/app/admin/translations/</code></li>
+      <li>Tests: test:functions 442 grün · Karma 6226 grün · typecheck, lint, build grün · pgTAP und Deno-Check nicht gelaufen</li>
+      <li>Docs: <code>docs/translation/ARCHITECTURE.md</code>, <code>OPERATIONS.md</code>, <code>PUBLIC-RELEASE.md</code></li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-seed-de" data-crit="high" data-guide="">Deutsch-Seed einmal echt importieren</li>
+      <li data-todo-id="t-admin-ui" data-crit="mid" data-guide="">Admin-Tabs mit echten Daten ansehen</li>
+    </ul>
+  </section>
+  <section data-handoffs hidden aria-label="{{final.group_handoffs}}">
+    <ul>
+      <li data-todo-id="h-migrate" data-crit="high" data-guide="">Migrationen lokal testen, dann einspielen</li>
+      <li data-todo-id="h-enable" data-crit="mid" data-guide="">Pipeline im Admin einschalten</li>
+    </ul>
+  </section>
+</section>

@@ -1,0 +1,456 @@
+<section data-iteration="2" data-iteration-template="decision" data-analysis="full" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
+  <section id="r2-briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Runde 1 steht: Community-Paket als Startbestand, Lernen mit allen sieben Bausteinen, Pakete täglich abgleichen plus KI-Delta sofort, Herkunft in Sprachwahl und global.ini. Korrektur: In Runde 1 stand, CIG und das Deutsch-Paket weichen in etwa 7 % der CIG-Keys ab. Das war falsch: Von 13 799 Keys, die beide übersetzen, unterscheiden sich 10 280 wirklich. Deine Briefing-Notiz gilt als Regel: CIGs eigene Übersetzung geht immer vor und wird ungeprüft übernommen, nur eine Admin-Korrektur steht darüber.</p>
+    <p data-briefing-why>Drei Punkte deiner Notizen brauchen noch eine Form: der Konsistenz-Mechanismus, der Schiedsrichter pro Key und die Karteikarten. Dazu kommen Französisch, Chinesisch und Spanisch, deren Pakete keine Lizenz haben, die wir einhalten könnten.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"10 280","unit":"Keys","label":"CIG und Paket verschieden (DE)","delta":"Korrektur: nicht 7 %"}'>10 280 Keys</div>
+    <a data-briefing-topic="t2-lic" data-share="30">Lizenzen nachgeschärft</a>
+    <a data-briefing-topic="t2-cons" data-share="45">Konsistenz und Revision</a>
+    <a data-briefing-topic="t2-cards" data-share="25">Admin-Karteikarten</a>
+    <p data-briefing-duration>≈ 5 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"10 280","unit":"Keys","label":"von 13 799 gemeinsamen Keys verschieden"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="checklist" data-viz-spec='{"items":[{"label":"Release-Plan: vor der Bewerbung über Bekannte hinaus alle Paket-Maintainer informieren","state":"ok"},{"label":"Anschreiben als Entwurf je Lizenz, Versand nur nach Freigabe durch einen geschützten Admin, nie automatisch","state":"ok"},{"label":"Release-Plan: Koreanisch und Polnisch fehlen noch, Thord82 anfragen","state":"ok"},{"label":"Admin-Glossar bleibt je Sprache jederzeit editierbar (/admin/translations, gibt es schon)","state":"ok"},{"label":"Vorrang fest: Admin-Korrektur, dann CIG ungeprüft, dann Paket und KI","state":"ok"},{"label":"Ändert CIG das Original eines Keys mit Admin-Korrektur: Hinweis für Admins mit Diff (Englisch alt/neu, CIG alt/neu), damit sie ihre Korrektur prüfen","state":"ok"}],"text":"Notiert für den Umsetzungsauftrag, ohne eigene Frage."}'></div>
+        <p>Diese Punkte aus deinen Notizen stehen fest im Umsetzungsauftrag. Die Lizenzfrage für Französisch, Chinesisch und Spanisch hängt dagegen nicht an der öffentlichen Bewerbung: Sie gilt für jede Auslieferung, siehe „Lizenzen nachgeschärft“.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="t2-lic" data-topic data-nav-label="Lizenzen nachgeschärft">
+    <div data-alevel="2" data-title="Lizenzen nachgeschärft">
+      <div data-slot="short">Für Deutsch und Russisch reicht Einhalten, für Französisch, Chinesisch und Spanisch braucht es eine Erlaubnis.</div>
+      <div data-slot="long">
+        <div data-viz="table" data-viz-spec='{"columns":["Lizenz","Was wir brauchen"],"rows":[{"label":"Deutsch · rjcncpt","cells":["CC-BY-NC-SA 4.0","einhalten: Nennung, kostenlos, gleiche Lizenz"]},{"label":"Russisch · n1ghter","cells":["CC-BY-NC-SA 4.0","einhalten wie Deutsch"]},{"label":"It · Pt-BR · Ja","cells":["MIT","Nennung"]},{"label":"Französisch · circuspes.fr","cells":["keine, nur Copyright-Vermerk","Erlaubnis"]},{"label":"Chinesisch · 42Kit","cells":["keine","Erlaubnis"]},{"label":"Spanisch · Thord82","cells":["nur persönliche Nutzung","Erlaubnis"]}],"text":"Lizenzdateien und Quellvermerke erneut gelesen."}'></div>
+        <p>Das MIT des Dymerz-Repos gibt keine Rechte, die die französische Quelle nie vergeben hat. Ohne Lizenz gilt: alle Rechte vorbehalten. Das ist keine Rechtsberatung.</p>
+      </div>
+    </div>
+
+    <section id="d2-license" data-nav-label="Regel DE und RU" data-decision="d2-license" data-decision-mode="verify" data-label="Lizenzregel Deutsch und Russisch" data-rec="ok" data-rec-why="die Regel fasst deine Wahl „Lizenz einhalten“ aus Runde 1 und deine Notiz zum Release-Plan in einem Satz zusammen." data-applies-to="Deutsch (rjcncpt), Russisch (n1ghter)" data-finding="f2-license">
+      <p data-applies>Gilt für: Deutsch (rjcncpt), Russisch (n1ghter)</p>
+      <p data-situation>Die Regel lautet: „Für Deutsch und Russisch: Overlay unter CC-BY-NC-SA 4.0 mit Namensnennung, SCC bleibt für diese Sprachen kostenlos, und die Maintainer werden vor der öffentlichen Bewerbung per Admin-Entwurf informiert.“</p>
+      <h3 data-question>Stimmt diese Lizenzregel für Deutsch und Russisch?</h3>
+      <p data-context>Bei „Teilweise“ oder „Stimmt nicht“ schreib kurz, was anders sein soll.</p>
+      <p data-stakes>Ob SCC für Deutsch und Russisch dauerhaft kostenlos bleiben muss.</p>
+      <div data-options>
+        <label data-opt="ok" data-recommended>
+          <input type="radio" name="dm-d2-license" value="ok" checked>
+          <span data-opt-label>Stimmt, so umsetzen</span>
+          <span data-opt-consequence>Overlay DE und RU unter CC-BY-NC-SA, Nennung in App und global.ini, Entwürfe an rjcncpt und n1ghter vor der Bewerbung.</span>
+        </label>
+        <label data-opt="partial">
+          <input type="radio" name="dm-d2-license" value="partial">
+          <span data-opt-label>Stimmt teilweise</span>
+          <span data-opt-consequence>Deine Korrektur ersetzt den betroffenen Teil, der Rest der Regel gilt.</span>
+        </label>
+        <label data-opt="wrong">
+          <input type="radio" name="dm-d2-license" value="wrong">
+          <span data-opt-label>Stimmt nicht</span>
+          <span data-opt-consequence>Die Regel wird mit deiner Korrektur neu gefasst und noch einmal vorgelegt.</span>
+        </label>
+      </div>
+      <input type="text" name="dm-d2-license-fix" value="" placeholder="Was stimmt nicht?">
+      <textarea data-comment="d2-license-note" placeholder="Notiz (optional)">Lass uns die namensnennung einfach immer machen in gleicher form, egal was ide lizenz sagt, solange es lizenzkonform ist ! Und auch in den bewerbungen festgehalten wer wie infomriert wird, diese dann aber erst später wie ebsprochen</textarea>
+      <input type="hidden" name="dm-d2-license-none" value="">
+      <input type="hidden" name="dm-d2-license-hes" value="{&quot;ms&quot;:67029,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-license-touched" value="1">
+      <input type="hidden" name="dm-d2-license-issue" value="">
+      <input type="hidden" name="dm-d2-license-epic" value="">
+      <div data-alevel="3" data-title="Lizenzregel Deutsch und Russisch">
+        <div data-slot="short">CC-BY-NC-SA verlangt Nennung, keine kommerzielle Nutzung und dieselbe Lizenz für unser Overlay.</div>
+        <div data-slot="long">
+          <div data-viz="checklist" data-viz-spec='{"items":[{"label":"Namensnennung: Sprachwahl und erste Zeile der global.ini (Runde 1)","state":"ok"},{"label":"Nicht kommerziell: SCC bleibt für DE und RU kostenlos","state":"ok"},{"label":"Gleiche Lizenz: Overlay-Feld license = CC-BY-NC-SA-4.0","state":"ok"},{"label":"Maintainer informieren: Admin-Entwurf vor der Bewerbung","state":"ok"}],"text":"Alle vier Bedingungen sind mit den Antworten aus Runde 1 erfüllbar."}'></div>
+          <p>Eine Anfrage verlangt die Lizenz nicht, die Information vor der Bewerbung ist deine eigene Wahl aus der Notiz. rjcncpt hat 2025 ein Repo ohne Namensnennung per DMCA entfernen lassen, deshalb steht die Nennung an erster Stelle.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d2-unlicensed" data-nav-label="Ohne Erlaubnis" data-decision="d2-unlicensed" data-decision-mode="single" data-label="Pakete ohne Erlaubnis" data-rec="draft" data-rec-why="ohne Lizenz gilt „alle Rechte vorbehalten“, und eine Anfrage passt zu deiner Wahl, Sprachen ohne Paket nicht anzubieten." data-applies-to="Französisch (circuspes.fr), Chinesisch (42Kit), Spanisch (Thord82)" data-finding="f2-unlicensed">
+      <p data-applies>Gilt für: Französisch (circuspes.fr), Chinesisch (42Kit), Spanisch (Thord82)</p>
+      <p data-situation>Zu deiner Frage: Ja, Thord82 verlangt es. Seine COPYRIGHT.md erlaubt nur persönliche Nutzung, jede Weitergabe braucht vorher seine ausdrückliche Erlaubnis, eine Nennung ersetzt sie nicht. Französisch und Chinesisch haben gar keine Lizenz.</p>
+      <h3 data-question>Wie behandeln wir Pakete ohne erteilte Erlaubnis?</h3>
+      <p data-stakes>Ob wir fremde, geschützte Texte ausliefern.</p>
+      <div data-options>
+        <label data-opt="draft" data-recommended>
+          <input type="radio" name="dm-d2-unlicensed" value="draft" checked>
+          <span data-opt-label>Anfrage als Admin-Entwurf anlegen, Import nur mit Zusage</span>
+          <span data-opt-consequence>Bis zur Zusage gibt es dort nur CIG, wie bei den Sprachen ohne Paket. Mit Zusage läuft der normale Seed.</span>
+        </label>
+        <label data-opt="learn">
+          <input type="radio" name="dm-d2-unlicensed" value="learn">
+          <span data-opt-label>Nur intern zum Lernen nutzen, nicht ausliefern</span>
+          <span data-opt-consequence>Glossar und Stil kämen aus den Paketen. Auch das nutzt geschützten Text, das Risiko bleibt, nur leiser.</span>
+        </label>
+        <label data-opt="ship">
+          <input type="radio" name="dm-d2-unlicensed" value="ship">
+          <span data-opt-label>Trotzdem importieren</span>
+          <span data-opt-consequence>Sofort fast vollständiger Text, aber ohne Rechte. Ein Takedown wie im DMCA-Fall von rjcncpt träfe dann uns.</span>
+        </label>
+      </div>
+      <textarea data-comment="d2-unlicensed-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d2-unlicensed-none" value="">
+      <input type="hidden" name="dm-d2-unlicensed-hes" value="{&quot;ms&quot;:34901,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-unlicensed-touched" value="1">
+      <input type="hidden" name="dm-d2-unlicensed-issue" value="">
+      <input type="hidden" name="dm-d2-unlicensed-epic" value="">
+      <div data-alevel="3" data-title="Pakete ohne Erlaubnis">
+        <div data-slot="short">Drei Pakete, keine Lizenz, die wir einhalten könnten: Nur eine Erlaubnis öffnet sie.</div>
+        <div data-slot="long">
+          <div data-viz="quote" data-viz-spec='{"quote":"No se concede … una autorización general para reproducir, publicar, redistribuir …","source":"Thord82, COPYRIGHT.md","text":"Ein Link oder eine Nennung ersetzt die vorherige Erlaubnis ausdrücklich nicht."}'></div>
+          <p>Die französische Datei bei Dymerz sagt selbst, dass sie aus traduction.circuspes.fr stammt („Fichier traduit par le Cirque Lisoir et la communauté FR“). Die Seite nennt nur einen Copyright-Vermerk, keine Lizenz. 42Kit und StarCitizenToolBox/LocalizationData (Stand 25.10.2026) haben ebenfalls keine.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d2-drafts" data-nav-label="Anfrage-Entwürfe" data-decision="d2-drafts" data-decision-mode="multi" data-label="Inhalt der Anfrage-Entwürfe" data-rec="lic stats lang approve log" data-rec-why="so bekommt jeder Maintainer eine Nachricht, die zu seiner Lizenz passt, und keine geht ohne dich hinaus." data-applies-to="Admin-Bereich Übersetzungen (/admin/translations)" data-finding="f2-drafts">
+      <p data-applies>Gilt für: Admin-Bereich Übersetzungen (/admin/translations)</p>
+      <p data-situation>Deine Notiz aus Runde 1: Ansprache je nach Lizenz, nur Entwürfe, Freigabe nur durch geschützte Admins, nie automatisch versendet. Ein automatischer Versand steht deshalb nicht zur Wahl.</p>
+      <h3 data-question>Was gehört zu einem Anfrage-Entwurf?</h3>
+      <p data-context>Mehrfachauswahl.</p>
+      <div data-options>
+        <label data-opt="lic" data-recommended>
+          <input type="checkbox" name="dm-d2-drafts.lic" checked>
+          <span data-opt-label>Ansprache je Lizenz wählen</span>
+          <span data-opt-consequence>CC-BY-NC-SA: Information und Nennung. Ohne Lizenz: Bitte um Erlaubnis.</span>
+        </label>
+        <label data-opt="stats" data-recommended>
+          <input type="checkbox" name="dm-d2-drafts.stats" checked>
+          <span data-opt-label>Nennen, was wir nutzen</span>
+          <span data-opt-consequence>Abdeckung, Zahl der Keys, Stand und wie wir sie nennen.</span>
+        </label>
+        <label data-opt="lang" data-recommended>
+          <input type="checkbox" name="dm-d2-drafts.lang" checked>
+          <span data-opt-label>In der Sprache des Maintainers schreiben</span>
+          <span data-opt-consequence>Deutsch an rjcncpt, Spanisch an Thord82, Französisch an den Cirque Lisoir.</span>
+        </label>
+        <label data-opt="approve" data-recommended>
+          <input type="checkbox" name="dm-d2-drafts.approve" checked>
+          <span data-opt-label>Freigabe nur durch geschützten Admin, Versand von Hand</span>
+          <span data-opt-consequence>Der Entwurf zeigt einen Kopieren-und-Senden-Schritt, das System selbst verschickt nichts.</span>
+        </label>
+        <label data-opt="log" data-recommended>
+          <input type="checkbox" name="dm-d2-drafts.log" checked>
+          <span data-opt-label>Antworten und Zusagen im Admin-Bereich festhalten</span>
+          <span data-opt-consequence>Eine Zusage schaltet den Import der Sprache frei, eine Absage sperrt ihn.</span>
+        </label>
+      </div>
+      <textarea data-comment="d2-drafts-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d2-drafts-none" value="">
+      <input type="hidden" name="dm-d2-drafts-hes" value="{&quot;ms&quot;:13553,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-drafts-touched" value="">
+      <input type="hidden" name="dm-d2-drafts-issue" value="">
+      <input type="hidden" name="dm-d2-drafts-epic" value="">
+      <div data-alevel="3" data-title="Inhalt der Anfrage-Entwürfe">
+        <div data-slot="short">Ein Entwurf je Maintainer, kein Versand ohne geschützten Admin.</div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"System","value":"schreibt den Entwurf je Lizenz"},{"label":"Geschützter Admin","value":"prüft und gibt frei"},{"label":"Admin","value":"sendet von Hand"},{"label":"Admin-Bereich","value":"hält Antwort fest"},{"label":"Zusage","value":"schaltet den Import frei"}]}'></div>
+          <p>Die Entwürfe für rjcncpt und n1ghter sind Information, die für Thord82, 42Kit und den Cirque Lisoir eine Bitte. Beide Arten laufen durch denselben Freigabeschritt.</p>
+        </div>
+        <div data-example><pre>An: rjcncpt (GitHub)        Lizenz: CC-BY-NC-SA 4.0 · Art: Information
+Hallo rjcncpt,
+SC Companion nutzt dein Paket StarCitizen-Deutsch-INI (Stand 4.10.2) als Grundlage
+für die deutsche Übersetzung. Wir nennen dich in der Sprachwahl und in der ersten
+Zeile der global.ini, das Overlay steht unter CC-BY-NC-SA 4.0, SCC bleibt kostenlos.
+…
+[ Freigeben ]   [ Kopieren und selbst senden ]   Status: Entwurf</pre></div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t2-cons" data-topic data-nav-label="Konsistenz und Revision">
+    <div data-alevel="2" data-title="Konsistenz und Revision">
+      <div data-slot="short">Die Unterschiede sind Stil, keine Fehler. Frei pro Key gemischt hätte das Spiel zwei Stile.</div>
+      <div data-slot="long">
+        <div data-viz="donut" data-viz-spec='{"parts":[{"label":"wirklich verschieden","value":10280},{"label":"gleich","value":2965},{"label":"nur Satzzeichen oder Leerzeichen","value":554}],"text":"13 799 Keys, die CIG und das Deutsch-Paket beide übersetzen."}'></div>
+        <p>Korrektur zu Runde 1: Nicht etwa 7 %, sondern 10 280 Keys weichen ab, zusammen 1,2 Mio. englische Zeichen. rjcncpt schreibt ein „Hybrid“-Deutsch mit englischen Spielbegriffen, UI in Großbuchstaben und mehr Information. Da CIG immer gewinnt, stehen im Spiel CIG-Zeilen (20 %) neben Paket-Zeilen (74 %), also „Fackelmunition“ hier und „Flares“ dort. Das widerspricht deinem Konsistenz-Wunsch, darum fragt die erste Frage, wie weit sich die Paket-Zeilen an CIGs Begriffe angleichen.</p>
+      </div>
+    </div>
+
+    <section id="d2-base" data-nav-label="Angleichung an CIG" data-decision="d2-base" data-decision-mode="single" data-label="Angleichung der Paket-Zeilen an CIG" data-rec="terms" data-rec-why="CIGs Begriffe bleiben maßgeblich, und das Paket behält seinen Text überall dort, wo es CIG nicht widerspricht." data-applies-to="Deutsch; jede Sprache mit Paket nach demselben Muster" data-finding="f2-base">
+      <p data-applies>Gilt für: Deutsch; jede Sprache mit Paket nach demselben Muster</p>
+      <p data-situation>CIG gewinnt in allen 18 462 Keys, die es selbst übersetzt, ungeprüft. Die übrigen 74 % des Texts kommen aus dem Paket, im Hybrid-Stil mit englischen Spielbegriffen. So steht „Fackelmunition“ in einer CIG-Zeile und „Flares“ in einer Paket-Zeile.</p>
+      <h3 data-question>Wie weit gleichen sich die Paket-Zeilen an CIGs Begriffe an?</h3>
+      <p data-context>CIG-Zeilen selbst ändern sich in keiner Option.</p>
+      <p data-stakes>Ob das Spiel einheitliche Begriffe hat und was das an KI kostet.</p>
+      <div data-options>
+        <label data-opt="terms" data-recommended>
+          <input type="radio" name="dm-d2-base" value="terms" checked>
+          <span data-opt-label>Nur Paket-Zeilen mit abweichendem CIG-Begriff umschreiben</span>
+          <span data-opt-consequence>Der Lernschritt zieht Begriffe aus CIGs Zeilen ins Glossar und findet Paket-Zeilen, die denselben Begriff anders übersetzen. Nur diese schreibt die KI um.</span>
+        </label>
+        <label data-opt="mix">
+          <input type="radio" name="dm-d2-base" value="mix">
+          <span data-opt-label>Den Mix aus CIG- und Paket-Begriffen hinnehmen</span>
+          <span data-opt-consequence>Keine Kosten und das Paket bleibt unverändert, aber derselbe Gegenstand heißt im Spiel je nach Zeile anders.</span>
+        </label>
+        <label data-opt="restyle">
+          <input type="radio" name="dm-d2-base" value="restyle">
+          <span data-opt-label>Alle Paket-Zeilen in CIGs Stil umschreiben</span>
+          <span data-opt-consequence>Durchgehend CIG-Deutsch, kostet aber fast so viel wie eine KI-Vollübersetzung, etwa 40–80 USD, und vom Paket bleibt kaum etwas.</span>
+        </label>
+      </div>
+      <textarea data-comment="d2-base-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d2-base-none" value="">
+      <input type="hidden" name="dm-d2-base-hes" value="{&quot;ms&quot;:35679,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-base-touched" value="">
+      <input type="hidden" name="dm-d2-base-issue" value="">
+      <input type="hidden" name="dm-d2-base-epic" value="">
+      <div data-alevel="3" data-title="Angleichung der Paket-Zeilen an CIG">
+        <div data-slot="short">Das Paket weicht im Stil ab, nicht im Inhalt: englische Spielbegriffe, UI in Großbuchstaben, mehr Information.</div>
+        <div data-slot="long">
+          <div data-viz="scorecard" data-viz-spec='{"criteria":["einheitliche Begriffe","Paket bleibt erhalten","wenig KI-Kosten"],"options":[{"label":"Abweichende Begriffe angleichen","marks":["ok","part","ok"]},{"label":"Mix hinnehmen","marks":["no","ok","ok"]},{"label":"Alles in CIG-Stil","marks":["ok","no","no"]}],"text":"Nur die gezielte Angleichung ist einheitlich und günstig zugleich."}'></div>
+          <p>MQM (Lommel u. a. 2014) zählt Inkonsistenz und falsche Terminologie als eigene Fehlerklassen. Wie viele Paket-Zeilen einen abweichenden CIG-Begriff enthalten, misst erst der erste Lernlauf. Ich schätze dafür keine Zahl. Die Beispiele sind echte Zeilen aus LIVE 4.10.2, und in diesen Keys gilt ohnehin CIG.</p>
+        </div>
+        <div data-example><pre>EN         Aegis Avenger Flares Ammo
+CIG        Aegis Avenger: Fackelmunition        ← gilt
+Community  Aegis Avenger - Flares Ammo
+
+EN         Customize and Maintain Various Vehicle Loadouts
+CIG        Fahrzeugausrüstung anpassen und warten   ← gilt
+Community  Verschiedene Vehikel-Loadouts anpassen und verwalten
+
+Paket-Zeile ohne CIG-Übersetzung, aber mit „Flares“
+  → Glossar aus CIG: Flares = Fackel…  → diese Zeile schreibt die KI um</pre></div>
+      </div>
+    </section>
+
+    <section id="d2-arbiter" data-nav-label="Schiedsrichter" data-decision="d2-arbiter" data-decision-mode="single" data-label="Schiedsrichter pro Key" data-rec="guarded" data-rec-why="Regeln entscheiden die klaren Fälle ohne Tokens, und der Vergleich in beiden Reihenfolgen gleicht die bekannte Positionsverzerrung von Sprachmodellen aus." data-applies-to="translate-orchestrator, Lernschritt, Admin-Karteikarten" data-finding="f2-arbiter">
+      <p data-applies>Gilt für: translate-orchestrator, Lernschritt, Admin-Karteikarten</p>
+      <p data-situation>Deine Notizen: Admin vor CIG, CIG ungeprüft vor allem anderen. Für die übrigen Keys entscheidet die KI pro Key zwischen Paket und eigener Übersetzung, und was sie nicht entscheiden kann, legt sie dem Admin vor.</p>
+      <h3 data-question>Wie entscheidet der Schiedsrichter pro Key?</h3>
+      <p data-stakes>Wie viele Konflikte richtig entschieden werden und wie viele bei dir landen.</p>
+      <div data-options>
+        <label data-opt="guarded" data-recommended>
+          <input type="radio" name="dm-d2-arbiter" value="guarded" checked>
+          <span data-opt-label>Regel-Filter plus KI-Paarvergleich, Konsistenz als Pflichtkriterium</span>
+          <span data-opt-consequence>CIG-Key: CIG gilt ohne Prüfung. Sonst verliert die Seite mit Platzhalter-Fehler, veraltetem Hash oder Glossarbruch. Den Rest vergleicht die KI in beiden Reihenfolgen, uneinig oder unsicher wird zur Karteikarte.</span>
+        </label>
+        <label data-opt="plain">
+          <input type="radio" name="dm-d2-arbiter" value="plain">
+          <span data-opt-label>Jeden Konflikt direkt an die KI geben</span>
+          <span data-opt-consequence>Einfacher bei etwa gleichen Kosten, aber ohne Kontrolle der Positionsverzerrung und ohne Regeln vorab.</span>
+        </label>
+        <label data-opt="fixed">
+          <input type="radio" name="dm-d2-arbiter" value="fixed">
+          <span data-opt-label>Feste Reihenfolge Admin &gt; CIG &gt; Community &gt; KI</span>
+          <span data-opt-consequence>Keine Kosten. Das Paket gewinnt immer gegen die KI, auch wo die KI-Zeile besser zu Glossar und CIG passt.</span>
+        </label>
+      </div>
+      <textarea data-comment="d2-arbiter-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d2-arbiter-none" value="">
+      <input type="hidden" name="dm-d2-arbiter-hes" value="{&quot;ms&quot;:9933,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-arbiter-touched" value="">
+      <input type="hidden" name="dm-d2-arbiter-issue" value="">
+      <input type="hidden" name="dm-d2-arbiter-epic" value="">
+      <div data-alevel="3" data-title="Schiedsrichter pro Key">
+        <div data-slot="short">Da CIG immer gilt, bleiben nur Konflikte zwischen Paket und KI: wenige Dutzend Keys je Patch.</div>
+        <div data-slot="long">
+          <div data-viz="compare" data-viz-spec='{"before":{"label":"ohne CIG-Regel","value":10280},"after":{"label":"mit CIG-Regel","value":0},"unit":"Konflikte CIG gegen Paket (DE)"}'></div>
+          <p>Der große Lauf über 10 280 Keys (etwa 2–8 USD) entfällt, weil CIG dort ungeprüft gilt. Es bleiben Paket gegen KI, vor allem wenn das KI-Delta sofort läuft und das Paket später nachzieht: Cent-Beträge je Patch. Zheng u. a. (2023) zeigen, dass ein Sprachmodell als Richter die zuerst genannte Antwort bevorzugt, der Vergleich in beiden Reihenfolgen gleicht das aus.</p>
+        </div>
+        <div data-example><pre>0 Regel   Admin-Korrektur da?                  → gilt
+  Regel   CIG übersetzt den Key?               → CIG gilt, ungeprüft
+Konflikt: Paket ≠ KI (KI-Delta lief, Paket zog später nach)
+1 Regel   gleich bis auf Satzzeichen?          nein
+2 Regel   Platzhalter / QA ok?                 beide ok
+3 Regel   Hash zum aktuellen Englisch?         beide aktuell
+4 Regel   Glossar (aus CIG) eingehalten?       Paket bricht „Fackel…“
+          → KI-Zeile gewinnt, keine Tokens
+sonst     KI: A gegen B und B gegen A, Kriterium Konsistenz mit Basis + Glossar
+          beide Reihenfolgen einig und sicher → Sieger
+          uneinig oder unsicher               → Karteikarte</pre></div>
+      </div>
+    </section>
+
+    <section id="d2-revise" data-nav-label="Revision" data-decision="d2-revise" data-decision-mode="single" data-label="Revision bestehender Einträge" data-rec="hysteresis" data-rec-why="eine Änderung braucht einen klaren Vorsprung und gilt dann überall, so bleibt die Übersetzung meist stabil, ohne für immer am alten Wortlaut zu kleben." data-applies-to="translation_glossary, Übersetzungsspeicher (TM), Lernschritt" data-finding="f2-revise">
+      <p data-applies>Gilt für: translation_glossary, Übersetzungsspeicher (TM), Lernschritt</p>
+      <p data-situation>Dein Wunsch: meistens Konsistenz, aber alte Einträge dürfen sich ändern, damit wir nicht für immer an altem Wording hängen. Heute gibt es dafür nur die Admin-Sperre locked und das Feld needs_retranslate.</p>
+      <h3 data-question>Wann darf ein bestehender Eintrag ersetzt werden?</h3>
+      <p data-stakes>Ob die Übersetzung stabil bleibt und trotzdem besser werden kann.</p>
+      <div data-options>
+        <label data-opt="hysteresis" data-recommended>
+          <input type="radio" name="dm-d2-revise" value="hysteresis" checked>
+          <span data-opt-label>Nur bei klarem Vorsprung ersetzen, dann überall auf einmal</span>
+          <span data-opt-consequence>Sieg im Vergleich in beiden Reihenfolgen plus Belegvorsprung. Dann ändern sich alle Strings mit dem Begriff, nie einer allein, höchstens etwa 2 % je Sprache und Release.</span>
+        </label>
+        <label data-opt="freeze">
+          <input type="radio" name="dm-d2-revise" value="freeze">
+          <span data-opt-label>Bestehende Einträge nur durch den Admin ändern lassen</span>
+          <span data-opt-consequence>Maximal stabil, aber altes Wording bleibt, bis du es selbst änderst.</span>
+        </label>
+        <label data-opt="latest">
+          <input type="radio" name="dm-d2-revise" value="latest">
+          <span data-opt-label>Die neueste Quelle immer gewinnen lassen</span>
+          <span data-opt-consequence>Immer aktuell, aber Begriffe springen zwischen den Quellen hin und her.</span>
+        </label>
+      </div>
+      <textarea data-comment="d2-revise-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d2-revise-none" value="">
+      <input type="hidden" name="dm-d2-revise-hes" value="{&quot;ms&quot;:30232,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-revise-touched" value="1">
+      <input type="hidden" name="dm-d2-revise-issue" value="">
+      <input type="hidden" name="dm-d2-revise-epic" value="">
+      <div data-alevel="3" data-title="Revision bestehender Einträge">
+        <div data-slot="short">Gestützt auf MQM, Studien zu Sprachmodellen als Richter und die Margin-Regel aus Ranking-Systemen.</div>
+        <div data-slot="long">
+          <div data-viz="table" data-viz-spec='{"columns":["Befund","Folge im Mechanismus"],"rows":[{"label":"MQM (Lommel u. a. 2014; Freitag u. a. 2021)","cells":["Inkonsistenz und Terminologie sind Fehler","Konsistenz ist Pflichtkriterium"]},{"label":"LLM als Richter (Zheng u. a. 2023)","cells":["Positionsverzerrung","Vergleich in beiden Reihenfolgen"]},{"label":"Beispiele aus eigenem TM (Moslem u. a. 2023)","cells":["bessere LLM-Übersetzung","ähnliche Paare im Prompt"]},{"label":"Hysterese / Margin","cells":["verhindert Hin und Her","Vorsprung plus Änderungsbudget"]}],"text":"Gestützt auf diese Arbeiten, nicht bewiesen."}'></div>
+          <p>Die Schwellen, also der Belegvorsprung und die etwa 2 % je Release, sind Startwerte, die wir an echten Daten nachstellen. Admin-gesperrte Einträge und CIG-Zeilen bewegen sich nie. CIG-Zeilen ändert nur CIG selbst mit einem Patch.</p>
+        </div>
+        <div data-example><pre>Herausforderer ersetzt den bestehenden Eintrag, wenn
+  gewinnt(neu gegen alt) UND gewinnt(alt gegen neu, vertauscht)
+  UND bei Begriffen: belege(neu) ≥ belege(alt) + Vorsprung
+  UND nicht locked (Admin)
+  UND Änderungen im Release &lt; 2 % der Strings der Sprache
+→ Glossar-Eintrag ersetzen, jeder String mit dem Begriff: needs_retranslate</pre></div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t2-cards" data-topic data-nav-label="Admin-Karteikarten">
+    <div data-alevel="2" data-title="Admin-Karteikarten">
+      <div data-slot="short">Karteikarten sind der letzte Ausweg: nur wenn der Schiedsrichter uneinig oder sehr unsicher ist.</div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Konflikt","value":"Paket und KI uneins"},{"label":"Regel-Filter","value":"klare Fälle ohne Tokens"},{"label":"KI-Paarvergleich","value":"beide Reihenfolgen"},{"label":"Karteikarte","value":"nur bei Uneinigkeit oder Unsicherheit"},{"label":"Antwort","value":"wird Glossar- oder Stilregel"}]}'></div>
+        <p>Deine Notiz: A oder B und/oder eine Notiz, bevorzugt Meta-Fragen, zur Not Wording, ganz zur Not Stil, als priorisierte Liste mit etwas Spielgefühl. Wie viele Karten anfallen, kann ich erst nach dem ersten Schiedslauf messen, ich schätze dafür keinen Wert.</p>
+      </div>
+    </div>
+
+    <section id="d2-card-order" data-nav-label="Sortierung" data-decision="d2-card-order" data-decision-mode="order" data-label="Sortierung der Kartenliste" data-rec="spread,reach,kind,doubt,fresh" data-rec-why="eine Antwort, die viele Strings festlegt, bringt pro Admin-Minute am meisten, und oft gesehener Text zählt vor selten gelesener Lore." data-applies-to="Admin-Bereich Übersetzungen, Kartenliste" data-finding="f2-card-order">
+      <p data-applies>Gilt für: Admin-Bereich Übersetzungen, Kartenliste</p>
+      <p data-situation>Die Liste soll die wichtigsten Karten vorn zeigen. Fünf Merkmale können sortieren, das oberste zählt am stärksten.</p>
+      <h3 data-question>Wonach sortiert sich die Kartenliste?</h3>
+      <div data-options>
+        <div data-opt="spread" data-recommended>
+          <span data-opt-label>Wie viele Strings die Antwort betrifft</span>
+          <span data-opt-consequence>Ein Begriff mit vielen Vorkommen vor einem Einzelsatz.</span>
+        </div>
+        <div data-opt="reach">
+          <span data-opt-label>Wie oft der Text im Spiel zu sehen ist</span>
+          <span data-opt-consequence>UI und HUD vor Lore und Missionstexten.</span>
+        </div>
+        <div data-opt="kind">
+          <span data-opt-label>Fragetyp</span>
+          <span data-opt-consequence>Meta-Frage vor Wording vor Stil, wie in deiner Notiz.</span>
+        </div>
+        <div data-opt="doubt">
+          <span data-opt-label>Wie unsicher die KI ist</span>
+          <span data-opt-consequence>Die knappsten Entscheidungen rücken vor.</span>
+        </div>
+        <div data-opt="fresh">
+          <span data-opt-label>Ob der Text aus dem aktuellen Patch stammt</span>
+          <span data-opt-consequence>Neue Inhalte, die Spieler gerade sehen, rücken vor.</span>
+        </div>
+      </div>
+      <input type="hidden" name="dm-d2-card-order" value="spread,reach,kind,doubt,fresh">
+      <textarea data-comment="d2-card-order-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d2-card-order-none" value="">
+      <input type="hidden" name="dm-d2-card-order-hes" value="{&quot;ms&quot;:26404,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-card-order-touched" value="1">
+      <input type="hidden" name="dm-d2-card-order-issue" value="">
+      <input type="hidden" name="dm-d2-card-order-epic" value="">
+      <div data-alevel="3" data-title="Sortierung der Kartenliste">
+        <div data-slot="short">Die Reihenfolge wird zu einer gewichteten Punktzahl je Karte, das oberste Merkmal wiegt am meisten.</div>
+        <div data-slot="long">
+          <div data-viz="flow" data-viz-spec='{"steps":[{"label":"Betroffene Strings","value":"stärkstes Gewicht"},{"label":"Sichtbarkeit im Spiel","value":"zweites"},{"label":"Fragetyp","value":"drittes"},{"label":"Unsicherheit","value":"viertes"},{"label":"Aktueller Patch","value":"schwächstes"}],"text":"Empfohlene Reihenfolge als Gewichtung."}'></div>
+          <p>Sichtbarkeit lässt sich aus dem Key ablesen: UI-, HUD- und Item-Keys haben eigene Präfixe, Lore und Missionen auch. Die Zahl der betroffenen Strings kennt das Glossar über seine Belege.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d2-card-form" data-nav-label="Kartenaufbau" data-decision="d2-card-form" data-decision-mode="multi" data-label="Aufbau einer Karteikarte" data-rec="ab own note rule ctx skip" data-rec-why="jede dieser Möglichkeiten kostet wenig Bau, und Überspringen hält die Liste in Bewegung, statt an einer schweren Karte zu hängen." data-applies-to="Admin-Bereich Übersetzungen, Karteikarte" data-finding="f2-card-form">
+      <p data-applies>Gilt für: Admin-Bereich Übersetzungen, Karteikarte</p>
+      <p data-situation>Deine Notiz: wählen zwischen A und B und/oder eine Notiz als zusätzlichen Hinweis. Eine Karte fragt bevorzugt nach Bedeutung, zur Not nach Wording, ganz zur Not nach Stil.</p>
+      <h3 data-question>Was bietet eine Karteikarte?</h3>
+      <p data-context>Mehrfachauswahl.</p>
+      <div data-options>
+        <label data-opt="ab" data-recommended>
+          <input type="checkbox" name="dm-d2-card-form.ab" checked>
+          <span data-opt-label>Wahl zwischen A und B</span>
+          <span data-opt-consequence>Die zwei stärksten Kandidaten nebeneinander, mit ihrer Herkunft.</span>
+        </label>
+        <label data-opt="own" data-recommended>
+          <input type="checkbox" name="dm-d2-card-form.own" checked>
+          <span data-opt-label>„Beides falsch“ mit eigenem Text</span>
+          <span data-opt-consequence>Dein Text wird ein Admin-Eintrag und schlägt beide.</span>
+        </label>
+        <label data-opt="note" data-recommended>
+          <input type="checkbox" name="dm-d2-card-form.note" checked>
+          <span data-opt-label>Notiz als Hinweis für die KI</span>
+          <span data-opt-consequence>Landet im Prompt der Strings, die diesen Begriff oder Key betreffen.</span>
+        </label>
+        <label data-opt="rule" data-recommended>
+          <input type="checkbox" name="dm-d2-card-form.rule" checked>
+          <span data-opt-label>Antwort als Glossar- oder Stilregel speichern</span>
+          <span data-opt-consequence>Gilt für jeden String mit dem Begriff, betroffene Strings werden neu übersetzt.</span>
+        </label>
+        <label data-opt="ctx" data-recommended>
+          <input type="checkbox" name="dm-d2-card-form.ctx" checked>
+          <span data-opt-label>Kontext zeigen</span>
+          <span data-opt-consequence>Key, Nachbarzeilen, englisches Original und wo der Text im Spiel steht.</span>
+        </label>
+        <label data-opt="skip" data-recommended>
+          <input type="checkbox" name="dm-d2-card-form.skip" checked>
+          <span data-opt-label>Karte überspringen</span>
+          <span data-opt-consequence>Die Karte rutscht ans Ende, die Liste bleibt in Bewegung.</span>
+        </label>
+      </div>
+      <textarea data-comment="d2-card-form-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d2-card-form-none" value="">
+      <input type="hidden" name="dm-d2-card-form-hes" value="{&quot;ms&quot;:20167,&quot;revisits&quot;:0,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-card-form-touched" value="1">
+      <input type="hidden" name="dm-d2-card-form-issue" value="">
+      <input type="hidden" name="dm-d2-card-form-epic" value="">
+      <div data-alevel="3" data-title="Aufbau einer Karteikarte">
+        <div data-slot="short">Eine als Regel gespeicherte Antwort wirkt auf jeden String mit diesem Begriff, nicht nur auf die Karte.</div>
+        <div data-slot="long">
+          <div data-viz="table" data-viz-spec='{"columns":["Wirkung"],"rows":[{"label":"A oder B","cells":["entscheidet diesen Konflikt"]},{"label":"Eigener Text","cells":["Admin-Eintrag, schlägt alle Quellen"]},{"label":"Notiz","cells":["Hinweis im Prompt"]},{"label":"Als Regel","cells":["Glossar oder Stil, wirkt überall"]},{"label":"Kontext","cells":["sicherere Antwort"]},{"label":"Überspringen","cells":["Karte ans Listenende"]}],"text":"Admin-Einträge schlagen weiterhin alles."}'></div>
+          <p>Die Karte nutzt das vorhandene Admin-Glossar unter /admin/translations, ein gespeicherter Eintrag ist dort sichtbar und änderbar.</p>
+        </div>
+        <div data-example><pre>Karte · Meta-Frage · betrifft viele Strings        (Beispielkarte)
+Frage der KI: Stehen Steuerungshinweise in Großbuchstaben?
+  A  SCHILDE NACH VORN       Paket rjcncpt
+  B  Schilde nach vorn       KI, Stil der CIG-Zeilen
+  [ Beides falsch: ________ ]   [ Notiz ]   [x] als Glossarregel speichern
+  Kontext: Steuerungshinweis im HUD · englisch „SHIELDS TO FRONT“ (Beispieltext)
+  [ Überspringen ]</pre></div>
+      </div>
+    </section>
+
+    <section id="d2-gamify" data-nav-label="Motivation" data-decision="d2-gamify" data-decision-mode="single" data-label="Motivation der Kartenliste" data-rec="quiet" data-rec-why="eine Rangliste braucht mehrere Admins, und sichtbare Wirkung belohnt jede einzelne Antwort." data-applies-to="Admin-Bereich Übersetzungen" data-finding="f2-gamify">
+      <p data-applies>Gilt für: Admin-Bereich Übersetzungen</p>
+      <p data-situation>Deine Notiz wünscht eine Gamification, die dazu animiert, hin und wieder die Übersetzung zu verbessern. Karten sind dabei nur der letzte Ausweg.</p>
+      <h3 data-question>Wie motiviert die Kartenliste?</h3>
+      <p data-stakes>Ob du gern hin und wieder Karten beantwortest.</p>
+      <div data-options>
+        <label data-opt="quiet" data-recommended>
+          <input type="radio" name="dm-d2-gamify" value="quiet" checked>
+          <span data-opt-label>Fortschritt und Wirkung zeigen</span>
+          <span data-opt-consequence>Etwa „Diese Antwort hat 214 Strings vereinheitlicht“, Tagesziel und Serie, nur im Admin-Bereich.</span>
+        </label>
+        <label data-opt="points">
+          <input type="radio" name="dm-d2-gamify" value="points">
+          <span data-opt-label>Punkte und Rangliste unter Admins vergeben</span>
+          <span data-opt-consequence>Lohnt sich mit mehreren Admins. Allein ist eine Rangliste leer.</span>
+        </label>
+        <label data-opt="none">
+          <input type="radio" name="dm-d2-gamify" value="none">
+          <span data-opt-label>Schlichte Liste ohne Spielelemente zeigen</span>
+          <span data-opt-consequence>Am wenigsten Bau, aber nichts erinnert an offene Karten.</span>
+        </label>
+      </div>
+      <textarea data-comment="d2-gamify-note" placeholder="Notiz (optional)">gern auch rangliste und punkte!</textarea>
+      <input type="hidden" name="dm-d2-gamify-none" value="">
+      <input type="hidden" name="dm-d2-gamify-hes" value="{&quot;ms&quot;:27221,&quot;revisits&quot;:1,&quot;median&quot;:27221}">
+      <input type="hidden" name="dm-d2-gamify-touched" value="1">
+      <input type="hidden" name="dm-d2-gamify-issue" value="">
+      <input type="hidden" name="dm-d2-gamify-epic" value="">
+      <div data-alevel="3" data-title="Motivation der Kartenliste">
+        <div data-slot="short">Die Wirkung in Strings ist die ehrlichste Kennzahl: Sie zeigt, was eine Antwort im Spiel ändert.</div>
+        <div data-slot="long">
+          <div data-viz="quote" data-viz-spec='{"quote":"Wie eine gamification die den admin dazu animiert mal hin und wieder die übersetzung zu verbessern.","source":"Runde 1, Notiz zur Freigabe","text":"Der Wunsch kommt aus deiner Notiz."}'></div>
+          <p>Das Tagesziel ist klein gedacht, etwa drei Karten, die Serie zählt Tage mit mindestens einer Antwort. Weil Karten nur der letzte Ausweg sind, kann die Liste leer sein, und das zeigt sie als Erfolg.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>

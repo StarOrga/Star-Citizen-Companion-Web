@@ -3676,6 +3676,10 @@
       "subtitle": "Claude-Übersetzung der Spieltexte: Schalter, Limits, Sprachen, Aufträge und Glossar.",
       "tabs": {
         "overview": "Übersicht",
+        "cards": "Karteikarten",
+        "sources": "Quellen",
+        "outreach": "Anfragen",
+        "alerts": "Hinweise",
         "glossary": "Glossar"
       },
       "loading": "Lädt …",
@@ -3793,7 +3797,9 @@
         "origins": {
           "cig": "CIG",
           "ai": "KI",
-          "admin": "Admin"
+          "admin": "Admin",
+          "mined": "Gelernt",
+          "community": "Community"
         },
         "categories": {
           "term": "Begriff",
@@ -3801,6 +3807,156 @@
           "unit": "Einheit",
           "dnt": "Nicht übersetzen"
         }
+      },
+      "cards": {
+        "title": "Karteikarten",
+        "intro": "Nur wenn die KI nicht weiterkommt: eine Frage, eine Antwort. Die wichtigsten Karten stehen vorn.",
+        "lang": "Sprache",
+        "goal": "Tagesziel: {{done}} von {{goal}} Karten",
+        "goalLabel": "Fortschritt zum Tagesziel",
+        "streak": "Serie: {{days}} Tage",
+        "open": "{{count}} offen",
+        "skippedBefore": "Übersprungen",
+        "fresh": "Aktueller Patch",
+        "spread": "betrifft {{count}} Strings",
+        "choose": "Welche Übersetzung ist besser?",
+        "option": {
+          "a": "Option A",
+          "b": "Option B"
+        },
+        "bothWrong": "Beides falsch – eigener Text",
+        "ownText": "Dein Text (wird als Admin-Korrektur übernommen)",
+        "note": "Notiz als Hinweis für die KI (optional)",
+        "saveRule": "Als Regel speichern (gilt überall)",
+        "submit": "Antwort speichern",
+        "skip": "Überspringen",
+        "kinds": {
+          "meta": "Meta",
+          "wording": "Wortwahl",
+          "style": "Stil"
+        },
+        "context": {
+          "title": "Kontext",
+          "key": "Schlüssel",
+          "en": "Englisches Original",
+          "where": "Wo im Spiel",
+          "neighbours": "Nachbarzeilen",
+          "research": "Recherche"
+        },
+        "thanks": "Danke, gespeichert.",
+        "impact": "Diese Antwort hat {{count}} Strings vereinheitlicht.",
+        "points": "+{{points}} Punkte",
+        "next": "Nächste Karte",
+        "done": "Fertig",
+        "emptyTitle": "Nichts zu entscheiden",
+        "empty": "Die KI kommt gerade allein zurecht – es gibt keine offenen Karten.",
+        "leaderboard": "Rangliste",
+        "leaderboardEmpty": "Noch keine Antworten – die erste Karte bringt dich nach vorn.",
+        "boardAnswers": "{{count}} Antworten",
+        "boardPoints": "{{points}} Punkte"
+      },
+      "sources": {
+        "title": "Quellen",
+        "intro": "Community-Pakete, aus denen die Übersetzung startet. Import nur bei geklärter Lizenz.",
+        "syncAll": "Jetzt abgleichen",
+        "syncTitle": "Alle Quellen abgleichen?",
+        "syncText": "Prüft jede aktive Quelle auf Änderungen und importiert geänderte neu.",
+        "import": "Seed importieren",
+        "importTitle": "Seed von {{name}} importieren?",
+        "importText": "Das Paket für {{lang}} wird geprüft und in die Übersetzungsbasis übernommen. CIG-Zeilen bleiben unberührt.",
+        "importLocked": "Erst möglich, wenn die Lizenz geklärt ist (lizenziert oder erlaubt).",
+        "importResult": "Ergebnis des Imports",
+        "imported": "{{name}}: {{count}} Zeilen importiert.",
+        "synced": "Abgeglichen: {{checked}} geprüft, {{changed}} geändert, {{errors}} Fehler.",
+        "learn": "Lernen",
+        "learnTitle": "Lernschritt für {{lang}} starten?",
+        "learnText": "Leitet Begriffe, Stil und Karten für {{lang}} aus dem Bestand ab. Kann Kosten verursachen.",
+        "learnResult": "Ergebnis des Lernschritts",
+        "draft": "Anfrage-Entwurf erstellen",
+        "drafted": "Entwurf für {{name}} erstellt – siehe Anfragen.",
+        "empty": "Keine Quellen eingetragen.",
+        "never": "nie",
+        "cols": {
+          "lang": "Sprache",
+          "name": "Quelle",
+          "license": "Lizenz",
+          "status": "Status",
+          "coverage": "Abdeckung",
+          "synced": "Letzter Abgleich",
+          "folder": "Spielordner"
+        },
+        "kinds": {
+          "permissive": "freizügig",
+          "nc_sa": "NC-SA",
+          "none": "keine Lizenz"
+        },
+        "status": {
+          "licensed": "Lizenziert",
+          "awaiting_permission": "Erlaubnis offen",
+          "permitted": "Erlaubt",
+          "refused": "Abgelehnt"
+        }
+      },
+      "outreach": {
+        "title": "Anfragen an Maintainer",
+        "noAutoSend": "Hier wird nichts automatisch gesendet. Entwürfe werden von einem geschützten Admin freigegeben, der Text von Hand kopiert und verschickt und danach als gesendet markiert.",
+        "intro": "Entwürfe entstehen aus Vorlagen pro Lizenzart. Sie nennen, was wir nutzen und wie wir nennen.",
+        "empty": "Keine Entwürfe. Unter Quellen lässt sich pro Quelle einer erstellen.",
+        "subject": "Betreff",
+        "body": "Text",
+        "messageLang": "Sprache der Nachricht",
+        "langs": {
+          "de": "Deutsch",
+          "en": "Englisch"
+        },
+        "kinds": {
+          "notify": "Information",
+          "permission": "Erlaubnis-Anfrage"
+        },
+        "status": {
+          "draft": "Entwurf",
+          "approved": "Freigegeben",
+          "sent": "Gesendet",
+          "answered": "Beantwortet"
+        },
+        "decisions": {
+          "granted": "Erlaubt",
+          "refused": "Abgelehnt"
+        },
+        "save": "Entwurf speichern",
+        "approve": "Freigeben",
+        "approveLocked": "Nur geschützte Admins dürfen Anfragen freigeben.",
+        "approveTitle": "Anfrage an {{name}} freigeben?",
+        "approveText": "Die Freigabe sendet nichts. Danach lässt sich der Text kopieren und von Hand verschicken.",
+        "approved": "Freigegeben. Gesendet wurde nichts.",
+        "copy": "Text kopieren",
+        "copied": "Text in die Zwischenablage kopiert.",
+        "markSent": "Als gesendet markieren",
+        "markSentTitle": "Als gesendet markieren?",
+        "markSentText": "Du hast die Nachricht an {{name}} selbst verschickt. Das hier hält es nur fest.",
+        "recordAnswer": "Antwort erfassen",
+        "answerText": "Antwort des Maintainers",
+        "decision": "Entscheidung",
+        "saveAnswer": "Antwort speichern",
+        "answerRecorded": "Antwort:",
+        "cancel": "Abbrechen"
+      },
+      "alerts": {
+        "title": "Hinweise",
+        "intro": "CIG hat das Original oder die eigene Übersetzung einer Zeile geändert, für die es eine Admin-Korrektur gibt. Prüfe, ob sie noch stimmt.",
+        "emptyTitle": "Keine offenen Hinweise",
+        "empty": "Alle Admin-Korrekturen passen noch zum aktuellen Original.",
+        "enOld": "Englisch vorher",
+        "enNew": "Englisch jetzt",
+        "cigOld": "CIG-Übersetzung vorher",
+        "cigNew": "CIG-Übersetzung jetzt",
+        "adminText": "Deine Korrektur",
+        "keep": "Meine behalten",
+        "adopt": "CIG übernehmen",
+        "edit": "Bearbeiten",
+        "editLabel": "Neuer Text",
+        "saveEdit": "Text speichern",
+        "resolved": "Hinweis erledigt."
       }
     },
     "searchMisses": {

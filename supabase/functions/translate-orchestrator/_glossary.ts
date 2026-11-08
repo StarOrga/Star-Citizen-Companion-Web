@@ -1,8 +1,11 @@
 // Glossary derivation: CIG label pairs and frequent proper-noun n-grams.
-// Precedence on conflict: admin > cig > ai; a locked row is never touched.
+// Precedence on conflict: admin > cig > mined > community > ai; a locked row is never touched.
+// Origins: cig/ai derived here; mined = promoted by the learning step (_learn.ts, with evidence);
+// community = a term taken from a licensed community pack; admin = an admin's own entry or card rule.
 
 import { isCigValid } from './_diff.ts';
 import { tokensOf } from './_mask.ts';
+import { containsTerm } from './_qa.ts';
 import type { GlossaryRow } from './_prompt.ts';
 
 const LABEL_KEY_RE = /^(item_Name|vehicle_Name|ui_|hud_|mobiGlas)/i;
@@ -78,5 +81,33 @@ export function newRows(db: GlossaryRow[], derived: GlossaryRow[]): GlossaryRow[
     have.add(k);
     out.push(g);
   }
+  return out;
+}
+
+export type GlossaryOrigin = 'cig' | 'ai' | 'admin' | 'mined' | 'community';
+
+export interface JudgeTerm {
+  source: string;
+  target: string;
+}
+
+/**
+ * C5: term corrections from the judge's answer. Kept only when the source term really occurs in
+ * the sample's English, is short (at most 4 words, no placeholders) and the target is not blank.
+ */
+export function extractJudgeTerms(r: unknown[], ens: string[]): JudgeTerm[] {
+  const out: JudgeTerm[] = [];
+  r.forEach((x, i) => {
+    const terms = (x as { terms?: unknown })?.terms;
+    if (!Array.isArray(terms)) return;
+    for (const t of terms.slice(0, 5)) {
+      const source = String((t as JudgeTerm)?.source ?? '').trim();
+      const target = String((t as JudgeTerm)?.target ?? '').trim();
+      if (!source || !target || source.length > 40 || target.length > 60) continue;
+      if (source.split(/\s+/).length > 4 || tokensOf(source).length || tokensOf(target).length) continue;
+      if (!containsTerm(ens[i] ?? '', source)) continue;
+      out.push({ source, target });
+    }
+  });
   return out;
 }

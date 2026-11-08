@@ -1,0 +1,197 @@
+[
+  {
+    "iteration": 1,
+    "submitted_at": "2026-11-08T11:05:04.828Z",
+    "action": "iterate",
+    "decisions": [
+      {
+        "id": "d-seed",
+        "label": "Startbestand",
+        "value": "seed",
+        "rec": "seed",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d-license",
+        "label": "Umgang mit Lizenzen",
+        "value": "comply",
+        "rec": "ask",
+        "deviates": true,
+        "note": "aber bitte notiere irgendwo im final public release plan, also wenn wir mit der app mehr als nur bekannte werben, dass wir dann die maintainer informieren, dabei alle je nach lizenz entsprechende ansprache aber nur mit freigabe durch geschützte admins und nur entwürfe, keine automatischen absendugnen ."
+      },
+      {
+        "id": "d-langs",
+        "label": "Sprachen mit Seed",
+        "value": [
+          "de",
+          "it",
+          "ptbr",
+          "ja",
+          "fr",
+          "zh",
+          "ru"
+        ],
+        "rec": "de it ptbr ja",
+        "deviates": true,
+        "note": ""
+      },
+      {
+        "id": "d-learn",
+        "label": "Lernbausteine",
+        "value": [
+          "mine",
+          "dnt",
+          "style",
+          "fewshot",
+          "judge",
+          "haiku",
+          "web"
+        ],
+        "rec": "mine dnt style fewshot judge",
+        "deviates": true,
+        "note": ""
+      },
+      {
+        "id": "d-promote",
+        "label": "Freigabe gelernter Begriffe",
+        "value": "auto",
+        "rec": "auto",
+        "deviates": false,
+        "note": "Gern auch in scc web für admins in der ü+bersetzung eine art karteikarten mit auswahl machen a oder b und/oder notiz. Sprich man kann der ki übersetzung input geben wenn die ki übersetzungh nicht weiterkommt und nachfragt, dann kann der admin wählen zwischen a oder b option, präferiert meta fragen aber zur not auch zum wording oder ganz zur not auch zum stil und ggf. eine notiz als zusätzlichen hinweis ergänzen. Wie eine gamification die den admin dazu animiert mal hin und wieder die übersetzung zu verbessern. Dabie bitte priorisierte liste, damit die wichtigsten vorne stehen und wie gesagt, das ist nur last resort wenn die ki nicht weiterkommt oder sich extrem unsicher ist !\n\nGenau, das glossar kann ja zusätzlich durch admins jederzeit angepasst werden für die sprachen"
+      },
+      {
+        "id": "d-sync",
+        "label": "Spätere Community-Updates",
+        "value": "both",
+        "rec": "grace",
+        "deviates": true,
+        "note": ""
+      },
+      {
+        "id": "d-order",
+        "label": "Vorrang der Quellen",
+        "value": "cig",
+        "rec": "cig",
+        "deviates": false,
+        "note": "Also ich würde das klassifizieren lassen, manchmal steht community direkt nach admin, manchmal ganz am ende hinter ki, ich würde die ki entscheiden lassen wo es nach admin seinen platz einnimmt bzgl. der spezifischen übersetzung, denn das mag für einen key so sein, für einen andernen key keinen sinn machen, naja und wenn selbst die ki nicht entscheiden kann was das beste ist (auch konsistenz der eigenen übersetzung warend), dann legt es die entscheidung dem admin vor"
+      },
+      {
+        "id": "d-credit",
+        "label": "Herkunft sichtbar machen",
+        "value": "both",
+        "rec": "both",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d-nopack",
+        "label": "Sprachen ohne Paket",
+        "value": "skip",
+        "rec": "ai",
+        "deviates": true,
+        "note": "Gern als hinweis beim public release bewerbend auch rein, dass wir hier nochmal nachholen müssen (insb. koreanisch und polnisch). Aber bei thord82 fragen, warum? Verlangt das seine lizenzbestimmung? Wenn nicht nutzen wir es und dann wenn public releasee schreiben wir ihn an!? so wie bei den anderen auch."
+      }
+    ],
+    "general": "Btw, wir sollten generell auch nochmal einen konsistenz mechanismus drin haben, beei den verschiedensten quellen und co. sollte wissenschaftlich belegt sich für konsistenz in den meisten fällen entschieden werden,a ber auch ggf. manchmal, dass auch alte einträge geändert werden und aktualsiiert, damit wir nicht nur z. B. auf  alten wording oder phrasierung etc. beharren für immer. Überlege dir da einen ausgeklügelten mechanismus der wissenschaftlich belegft ist."
+  },
+  {
+    "iteration": 2,
+    "submitted_at": "2026-11-08T11:57:52.119Z",
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "d2-license",
+        "label": "Lizenzregel Deutsch und Russisch",
+        "value": "ok",
+        "rec": "ok",
+        "deviates": false,
+        "note": "Lass uns die namensnennung einfach immer machen in gleicher form, egal was ide lizenz sagt, solange es lizenzkonform ist ! Und auch in den bewerbungen festgehalten wer wie infomriert wird, diese dann aber erst später wie ebsprochen"
+      },
+      {
+        "id": "d2-unlicensed",
+        "label": "Pakete ohne Erlaubnis",
+        "value": "draft",
+        "rec": "draft",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d2-drafts",
+        "label": "Inhalt der Anfrage-Entwürfe",
+        "value": [
+          "lic",
+          "stats",
+          "lang",
+          "approve",
+          "log"
+        ],
+        "rec": "lic stats lang approve log",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d2-base",
+        "label": "Angleichung der Paket-Zeilen an CIG",
+        "value": "terms",
+        "rec": "terms",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d2-arbiter",
+        "label": "Schiedsrichter pro Key",
+        "value": "guarded",
+        "rec": "guarded",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d2-revise",
+        "label": "Revision bestehender Einträge",
+        "value": "hysteresis",
+        "rec": "hysteresis",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d2-card-order",
+        "label": "Sortierung der Kartenliste",
+        "value": [
+          "spread",
+          "reach",
+          "kind",
+          "doubt",
+          "fresh"
+        ],
+        "rec": "spread,reach,kind,doubt,fresh",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d2-card-form",
+        "label": "Aufbau einer Karteikarte",
+        "value": [
+          "ab",
+          "own",
+          "note",
+          "rule",
+          "ctx",
+          "skip"
+        ],
+        "rec": "ab own note rule ctx skip",
+        "deviates": false,
+        "note": ""
+      },
+      {
+        "id": "d2-gamify",
+        "label": "Motivation der Kartenliste",
+        "value": "quiet",
+        "rec": "quiet",
+        "deviates": false,
+        "note": "gern auch rangliste und punkte!"
+      }
+    ],
+    "general": ""
+  }
+]

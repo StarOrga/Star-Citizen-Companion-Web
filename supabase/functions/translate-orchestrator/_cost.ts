@@ -4,7 +4,12 @@
 export const PRICES = {
   'claude-sonnet-5-5': { in: 2, out: 10 },
   'claude-opus-5-5': { in: 4, out: 20 },
+  // Batch rate for prompts up to 100k tokens (the learning step never sends more); checked 2026-11-08.
+  'claude-haiku-5-5': { in: 0.05, out: 0.25 },
 } as const;
+
+/** Web search tool: USD 10 per 1 000 searches, billed on top of tokens, same in batches (docs 2026-11-08). */
+export const WEB_SEARCH_USD = 0.01;
 
 export type ModelId = keyof typeof PRICES;
 
@@ -25,6 +30,7 @@ export interface Usage {
   output_tokens?: number;
   cache_read_input_tokens?: number;
   cache_creation_input_tokens?: number;
+  server_tool_use?: { web_search_requests?: number };
 }
 
 export function priceOf(model: string): { in: number; out: number } {
@@ -62,7 +68,9 @@ export function usageCostUsd(model: string, u: Usage): number {
   const read = u.cache_read_input_tokens ?? 0;
   const write = u.cache_creation_input_tokens ?? 0;
   const out = u.output_tokens ?? 0;
-  return (inTok * p.in + read * p.in * CACHE_READ_FACTOR + write * p.in * CACHE_WRITE_1H_FACTOR + out * p.out) / 1e6;
+  const searches = u.server_tool_use?.web_search_requests ?? 0;
+  return (inTok * p.in + read * p.in * CACHE_READ_FACTOR + write * p.in * CACHE_WRITE_1H_FACTOR + out * p.out) / 1e6 +
+    searches * WEB_SEARCH_USD;
 }
 
 export interface Estimate {
