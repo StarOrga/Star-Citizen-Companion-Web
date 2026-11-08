@@ -120,5 +120,208 @@
         "attachments": []
       }
     ]
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "favorite": "frachtdeck",
+    "decisions": [
+      {
+        "id": "q-quality",
+        "value": "app",
+        "rec": "app",
+        "note": ""
+      },
+      {
+        "id": "q-scrap",
+        "value": "extract",
+        "rec": "extract",
+        "note": ""
+      },
+      {
+        "id": "q-places",
+        "value": "grouped",
+        "rec": "grouped",
+        "note": ""
+      },
+      {
+        "id": "q-pickup",
+        "value": "gather",
+        "rec": "gather",
+        "note": ""
+      },
+      {
+        "id": "q-sell",
+        "value": "type",
+        "rec": "type",
+        "note": ""
+      },
+      {
+        "id": "q-reserve",
+        "value": [
+          "friend",
+          "text",
+          "notify",
+          "expire"
+        ],
+        "rec": "friend text",
+        "note": ""
+      },
+      {
+        "id": "q-alt",
+        "value": [
+          "elsewhere",
+          "wish",
+          "swap",
+          "craft"
+        ],
+        "rec": "elsewhere wish swap",
+        "note": ""
+      },
+      {
+        "id": "q-reorder",
+        "value": "",
+        "rec": "week",
+        "note": "eher anhand der letzten aktiviätetn fest machen, egal wann sie waren..."
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-a-1",
+          "text": "Filter super! Relative größe auch gut, abhängig dann von dem oben, aber bitte nicht nach scu only filtern oder stück zahl, lass die beiden angaben einfach weg!",
+          "attachments": []
+        },
+        {
+          "id": "anno-a-2",
+          "text": "ok, also durschnittliche qualität? in dieser ansicht sollten alle eisen aggregiert sein... an einem standort zumindest",
+          "attachments": []
+        },
+        {
+          "id": "anno-a-3",
+          "text": "Finde ich gut aber sollte dann noch ein stück höher geozgen werden, dort wo jetzt orte sind. Außerdem bitte auch filter hierauf anwenden etc. !",
+          "attachments": []
+        },
+        {
+          "id": "anno-a-4",
+          "text": "Ja, aber was mit teilfiltern, rüstung=> Helme etc...",
+          "attachments": []
+        },
+        {
+          "id": "anno-a-5",
+          "text": "sehr gute idee, aber bitte nur reserviertes schraffieren in einem balken, nicht den gesamten balken!",
+          "attachments": []
+        },
+        {
+          "id": "anno-a-7",
+          "text": "ja sehr gut, aber nachscub anlegen klingt nicht intuitiv aber gut, können wir jetzt nicht lösen, ggf. als issue erstellen mit hinweis, dass das wording nachschub nochmal concpeted werden muss ob eins behalten oder warenkorb vs Besorgungen vs... aber was wenn man mehrere für eine route (mehrere einsätze mischt)..",
+          "attachments": []
+        },
+        {
+          "id": "anno-c-3",
+          "text": "Eigentlich sehr interessant, aber sooo interessant, hmmm, letzten drei interessant zu sehen... was sich so im bestand ändert ggf. extendable",
+          "attachments": []
+        },
+        {
+          "id": "q-reorder-note",
+          "text": "eher anhand der letzten aktiviätetn fest machen, egal wann sie waren...",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": [
+      {
+        "id": "a-1",
+        "screen": "a-s1",
+        "design": "frachtdeck",
+        "question": "Jeder Ort ist eine Ladebucht. Die Breite folgt der gelagerten Menge, sortiert von groß nach klein. Ein Klick filtert das Deck auf diesen Ort. Beantwortet das „Was habe ich in Area18?“ schnell genug?",
+        "answer": "Filter super! Relative größe auch gut, abhängig dann von dem oben, aber bitte nicht nach scu only filtern oder stück zahl, lass die beiden angaben einfach weg!"
+      },
+      {
+        "id": "a-2",
+        "screen": "a-s1",
+        "design": "frachtdeck",
+        "question": "Rohstoffe sind Container in echter SCU-Größe (1 bis 32), mit einem Streifen in der Farbe ihrer Qualität. Waffen und Kleinteile sind Kisten. Ist die Containergröße als Mengenmaß verständlich?",
+        "answer": "ok, also durschnittliche qualität? in dieser ansicht sollten alle eisen aggregiert sein... an einem standort zumindest"
+      },
+      {
+        "id": "a-3",
+        "screen": "a-s1",
+        "design": "frachtdeck",
+        "question": "Rechts steht das Ladeprotokoll: Summen, Reservierungen, Zerlegbares und „Kürzlich aufgebraucht“ (7 statt 48 Stunden) mit „Nachbestellen …“ für alles, nicht nur das letzte. Gehört das hierhin oder in eine eigene Ansicht?",
+        "answer": "Finde ich gut aber sollte dann noch ein stück höher geozgen werden, dort wo jetzt orte sind. Außerdem bitte auch filter hierauf anwenden etc. !"
+      },
+      {
+        "id": "a-4",
+        "screen": "a-s1",
+        "design": "frachtdeck",
+        "question": "Filter sind immer vollständig: „Alle“ ohne Zahl, leere Arten gedimmt mit 0, alle Orte im Auswahlfeld, dazu die Schalter Reserviert und Zerlegbar. So deterministisch, wie du es wolltest?",
+        "answer": "Ja, aber was mit teilfiltern, rüstung=> Helme etc..."
+      },
+      {
+        "id": "a-5",
+        "screen": "a-s3",
+        "design": "frachtdeck",
+        "question": "Eisen als Spektrum: Qualität von 0 bis 1000 nach rechts, Menge nach oben, Farbe nach Qualität, eine Linie bei 700 als Crafting-Schwelle. Die reservierte Menge ist schraffiert. Liest sich das?",
+        "answer": "sehr gute idee, aber bitte nur reserviertes schraffieren in einem balken, nicht den gesamten balken!"
+      },
+      {
+        "id": "a-7",
+        "screen": "a-s6",
+        "design": "frachtdeck",
+        "question": "Aus der Auswahl wird ein Nachschub: Abholen sammelt Agricium aus drei Orten in eine Route, sortiert nach Menge, mit Ziel und freiem Slot. Verkaufen und Reservieren sind die beiden anderen Reiter desselben Dialogs. Passt der eine Dialog für alle drei?",
+        "answer": "ja sehr gut, aber nachscub anlegen klingt nicht intuitiv aber gut, können wir jetzt nicht lösen, ggf. als issue erstellen mit hinweis, dass das wording nachschub nochmal concpeted werden muss ob eins behalten oder warenkorb vs Besorgungen vs... aber was wenn man mehrere für eine route (mehrere einsätze mischt).."
+      },
+      {
+        "id": "c-3",
+        "screen": "c-s1",
+        "design": "scanner",
+        "question": "Rechts läuft das Terminal-Log: was die App gelesen hat, was aufgebraucht wurde, was reserviert ist. Nützlich, oder Platz für etwas anderes?",
+        "answer": "Eigentlich sehr interessant, aber sooo interessant, hmmm, letzten drei interessant zu sehen... was sich so im bestand ändert ggf. extendable"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw8d5krydmju",
+        "design": "frachtdeck",
+        "screen": "a-s1",
+        "x": 29,
+        "y": 14.2,
+        "target": "a.on \"Inventar24 SCU · 7\"",
+        "text": "Hier brauchen wir die auswahl alles noch!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8d5qx5cnav",
+        "design": "frachtdeck",
+        "screen": "a-s1",
+        "x": 35.6,
+        "y": 14.7,
+        "target": "a.on \"Inventar24 SCU · 7\"",
+        "text": "scu und zahlen dort in der leiste sind nich t hilfreich",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8d6uj17ilr",
+        "design": "frachtdeck",
+        "screen": "a-s3",
+        "x": 45.1,
+        "y": 59,
+        "target": "span \"6 SCU · Area18\"",
+        "text": "Die sollten genauso aussehen wie auf der startseite nur mit quaLITÄT label! hervorgehoben und reservierungen.\n\nWiedererkkennungswert, gleicher kasten, etwas mehr info",
+        "attachments": []
+      }
+    ],
+    "issues": [
+      1033,
+      1037
+    ]
   }
 ]
