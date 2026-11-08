@@ -1,5 +1,6 @@
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ItemPathService } from '../hq/data/item-path.service';
+import { NachschubService } from '../hq/nachschub/nachschub.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -194,6 +195,7 @@ function configureSetup(
       provideNoShipBlueprints(),
       provideRouter([]),
       { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(payload), ...svc } },
       {
@@ -573,6 +575,9 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
 
   it('prints each material amount in SCU without the float noise', async () => {
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getCraftingRecipe: async () => RECIPE });
+    // The recipe lives behind the "Herstellung" tab of the item page.
+    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.it-tab')[1].click();
+    fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const section = Array.from(el.querySelectorAll('section')).find((s) =>
       s.querySelector('h2')?.textContent?.includes('codex.detail.craftedFrom'),
@@ -594,6 +599,9 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
       ],
     };
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getCraftingRecipe: async () => recipe });
+    // The recipe lives behind the "Herstellung" tab of the item page.
+    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.it-tab')[1].click();
+    fixture.detectChanges();
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('en', { codex: { detail: { minQuality: 'min. quality {{value}}' } } });
     translate.use('en');
@@ -741,6 +749,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
       provideNoShipBlueprints(),
       provideRouter([]),
       { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(NOMAD_PAYLOAD), ...opts.svc } },
       {

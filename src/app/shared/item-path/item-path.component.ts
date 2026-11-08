@@ -348,7 +348,7 @@ export class ItemPathComponent implements OnDestroy {
   readonly leave = output<void>();
 
   private readonly path = inject(ItemPathService);
-  private readonly cart = inject(WishCartService);
+  /** Resolved on click only: building the cart (wishlist store, Supabase client) is not the price of drawing a path control. */
   private readonly toast = inject(UndoToastService);
   private readonly overlay = inject(Overlay);
   private readonly vcr = inject(ViewContainerRef);
@@ -479,7 +479,7 @@ export class ItemPathComponent implements OnDestroy {
     ev.preventDefault();
     this.closePop();
     this.leave.emit();
-    void this.cart.open();
+    void this.injector.get(WishCartService).open();
   }
 
   private async fill(step: PathStep, at: HTMLElement): Promise<void> {
