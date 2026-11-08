@@ -1007,9 +1007,20 @@
         "cohortRole": "{{n}} × {{role}}",
         "dockAria": "Energy and perspectives"
       },
-      "below": {"parts": "Components in detail", "partsCount": "{{n}} fitted", "areaEmpty": "No components in this area."},
-      "persp": {"lead": "Rated as {{mission}}, compared with {{n}} ships.", "leadNoCohort": "Rated as {{mission}}.", "allShow": "All values of all four ▾", "allHide": "Collapse all values ▴"},
-      "side": {"variants": "Variants & compare"},
+      "below": {
+        "parts": "Components in detail",
+        "partsCount": "{{n}} fitted",
+        "areaEmpty": "No components in this area."
+      },
+      "persp": {
+        "lead": "Rated as {{mission}}, compared with {{n}} ships.",
+        "leadNoCohort": "Rated as {{mission}}.",
+        "allShow": "All values of all four ▾",
+        "allHide": "Collapse all values ▴"
+      },
+      "side": {
+        "variants": "Variants & compare"
+      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -3867,8 +3878,8 @@
   "footer": {
     "madeByCommunity": "Made by the Community",
     "badgeAlt": "Star Citizen — Made by the Community fan site badge",
-    "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content not authored by this site's host or its users is the property of its respective owner.",
-    "trademarks": "Cloud Imperium®, Roberts Space Industries®, RSI®, Star Citizen®, Squadron 42® and SQ42™ are trademarks of Cloud Imperium Rights LLC.",
+    "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
+    "trademarks": "Star Citizen®, Squadron 42®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.",
     "disclaimerExpand": "Show full disclaimer",
     "disclaimerCollapse": "Collapse disclaimer",
     "legalNav": "Legal and project information",
@@ -3880,7 +3891,10 @@
       "aboutNew": "new",
       "news": "What's new"
     },
-    "disclaimerTitle": "Fan-site notice"
+    "disclaimerTitle": "Fan-site notice",
+    "rsiLink": "Official Star Citizen site: robertsspaceindustries.com",
+    "noticeOriginal": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
+    "noticeOriginalLabel": "Original wording"
   },
   "legal": {
     "about": {
@@ -3903,7 +3917,7 @@
       },
       "affiliation": {
         "title": "Fan project — not affiliated",
-        "p1": "Verse Companion is an unofficial fan project made by the community. It is not affiliated with, endorsed by, or sponsored by Cloud Imperium Games or Roberts Space Industries, and it never asks for your RSI account credentials."
+        "p1": "Verse Companion – unofficial fan tool for Star Citizen. It is made by the community and is not affiliated with, endorsed by, or sponsored by the Cloud Imperium group of companies or Roberts Space Industries, and it never asks for your RSI account credentials."
       },
       "contact": {
         "title": "Contact",
@@ -4026,7 +4040,13 @@
       "badge": "Your flagship",
       "mark": "Flagship"
     },
-    "manage": { "toggle": "Manage", "variants": "Variants", "noVariants": "No variant yet. Create one on the ship's Codex page.", "active": "Active", "openVariant": "View variant" },
+    "manage": {
+      "toggle": "Manage",
+      "variants": "Variants",
+      "noVariants": "No variant yet. Create one on the ship's Codex page.",
+      "active": "Active",
+      "openVariant": "View variant"
+    },
     "status": {
       "owned": "Owned",
       "wishlist": "Wishlist"
@@ -5501,10 +5521,25 @@
       "empty": "Nothing on the supplies list yet.",
       "emptyHint": "Search for an item and add it to Supplies: Plan then shows where to get it and how to get there.",
       "tabsAria": "Lists",
-      "tabs": { "wish": "Wishlist", "nachschub": "Supplies" },
-      "wish": { "empty": "Nothing on the wishlist yet.", "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.", "toNachschub": "To Supplies", "remove": "Take {{name}} off the wishlist", "notYet": "not in the game yet" },
+      "tabs": {
+        "wish": "Wishlist",
+        "nachschub": "Supplies"
+      },
+      "wish": {
+        "empty": "Nothing on the wishlist yet.",
+        "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.",
+        "toNachschub": "To Supplies",
+        "remove": "Take {{name}} off the wishlist",
+        "notYet": "not in the game yet"
+      },
       "got": "Got it",
-      "place": { "title": "Where is it now?", "other": "Other place …", "otherPlaceholder": "Enter a place", "store": "Put down", "tickOnly": "Just tick off" }
+      "place": {
+        "title": "Where is it now?",
+        "other": "Other place …",
+        "otherPlaceholder": "Enter a place",
+        "store": "Put down",
+        "tickOnly": "Just tick off"
+      }
     },
     "ops": {
       "title": "Ops",
@@ -5805,16 +5840,40 @@
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to your inventory.",
-      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
-      "totals": { "title": "Total", "items": "items", "places": "places" },
-      "places": { "title": "Largest places" },
-      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
-      "cats": { "title": "Categories" },
-      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
+      "actions": {
+        "browse": "Browse",
+        "find": "Where is …?",
+        "add": "Add"
+      },
+      "totals": {
+        "title": "Total",
+        "items": "items",
+        "places": "places"
+      },
+      "places": {
+        "title": "Largest places"
+      },
+      "stale": {
+        "title": "Stand older than 7 days",
+        "none": "All places are up to date."
+      },
+      "cats": {
+        "title": "Categories"
+      },
+      "cat": {
+        "materials": "Raw materials",
+        "weapons": "Weapons",
+        "armor": "Armor",
+        "other": "Other"
+      },
       "popup": {
         "title": "Inventory",
         "modes": "What to do",
-        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+        "mode": {
+          "browse": "Browse",
+          "find": "Where is …?",
+          "add": "Add"
+        },
         "search": "Search inventory",
         "searchHint": "Item or place",
         "filters": "Filters",

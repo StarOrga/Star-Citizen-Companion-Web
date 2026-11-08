@@ -1007,9 +1007,20 @@
         "cohortRole": "{{n}} × {{role}}",
         "dockAria": "Energie und Perspektiven"
       },
-      "below": {"parts": "Bauteile im Detail", "partsCount": "{{n}} verbaut", "areaEmpty": "Keine Bauteile in diesem Bereich."},
-      "persp": {"lead": "Bewertet als {{mission}}, verglichen mit {{n}} Schiffen.", "leadNoCohort": "Bewertet als {{mission}}.", "allShow": "Alle Werte aller vier ▾", "allHide": "Alle Werte zuklappen ▴"},
-      "side": {"variants": "Varianten & Vergleich"},
+      "below": {
+        "parts": "Bauteile im Detail",
+        "partsCount": "{{n}} verbaut",
+        "areaEmpty": "Keine Bauteile in diesem Bereich."
+      },
+      "persp": {
+        "lead": "Bewertet als {{mission}}, verglichen mit {{n}} Schiffen.",
+        "leadNoCohort": "Bewertet als {{mission}}.",
+        "allShow": "Alle Werte aller vier ▾",
+        "allHide": "Alle Werte zuklappen ▴"
+      },
+      "side": {
+        "variants": "Varianten & Vergleich"
+      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -3868,7 +3879,7 @@
     "madeByCommunity": "Made by the Community",
     "badgeAlt": "Star Citizen — Made by the Community Fan-Site-Badge",
     "disclaimer": "Dies ist eine inoffizielle Star-Citizen-Fan-Site, nicht verbunden mit der Cloud-Imperium-Unternehmensgruppe. Alle Inhalte, die nicht vom Betreiber dieser Seite oder ihren Nutzern erstellt wurden, sind Eigentum der jeweiligen Rechteinhaber.",
-    "trademarks": "Cloud Imperium®, Roberts Space Industries®, RSI®, Star Citizen®, Squadron 42® und SQ42™ sind Marken von Cloud Imperium Rights LLC.",
+    "trademarks": "Star Citizen®, Squadron 42®, Roberts Space Industries® und Cloud Imperium® sind eingetragene Marken von Cloud Imperium Rights LLC.",
     "disclaimerExpand": "Vollständigen Haftungsausschluss anzeigen",
     "disclaimerCollapse": "Haftungsausschluss einklappen",
     "legalNav": "Rechtliches und Projekt-Informationen",
@@ -3880,7 +3891,10 @@
       "aboutNew": "neu",
       "news": "Neuigkeiten"
     },
-    "disclaimerTitle": "Hinweis zur Fan-Site"
+    "disclaimerTitle": "Hinweis zur Fan-Site",
+    "rsiLink": "Offizielle Star-Citizen-Seite: robertsspaceindustries.com",
+    "noticeOriginal": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
+    "noticeOriginalLabel": "Originalwortlaut (Englisch)"
   },
   "legal": {
     "about": {
@@ -3903,7 +3917,7 @@
       },
       "affiliation": {
         "title": "Fan-Projekt — nicht affiliiert",
-        "p1": "Verse Companion ist ein inoffizielles Fan-Projekt aus der Community. Es ist nicht mit Cloud Imperium Games oder Roberts Space Industries verbunden, wird von ihnen weder unterstützt noch gesponsert — und fragt niemals nach deinen RSI-Zugangsdaten."
+        "p1": "Verse Companion – inoffizielles Fan-Tool für Star Citizen. Es entsteht in der Community und ist nicht mit der Cloud-Imperium-Unternehmensgruppe oder Roberts Space Industries verbunden, wird von ihnen weder unterstützt noch gesponsert — und fragt niemals nach deinen RSI-Zugangsdaten."
       },
       "contact": {
         "title": "Kontakt",
@@ -4026,7 +4040,13 @@
       "badge": "Dein Flaggschiff",
       "mark": "Flaggschiff"
     },
-    "manage": { "toggle": "Verwalten", "variants": "Varianten", "noVariants": "Noch keine Variante. Im Codex-Eintrag des Schiffs legst du sie an.", "active": "Aktiv", "openVariant": "Variante ansehen" },
+    "manage": {
+      "toggle": "Verwalten",
+      "variants": "Varianten",
+      "noVariants": "Noch keine Variante. Im Codex-Eintrag des Schiffs legst du sie an.",
+      "active": "Aktiv",
+      "openVariant": "Variante ansehen"
+    },
     "status": {
       "owned": "Im Besitz",
       "wishlist": "Wunschliste"
@@ -5501,10 +5521,25 @@
       "empty": "Noch nichts auf der Nachschub-Liste.",
       "emptyHint": "Such einen Gegenstand und leg ihn in den Nachschub: dann siehst du unter Planen, wo es ihn gibt und wie du hinkommst.",
       "tabsAria": "Listen",
-      "tabs": { "wish": "Wunschliste", "nachschub": "Nachschub" },
-      "wish": { "empty": "Noch nichts auf der Wunschliste.", "emptyHint": "Such einen Gegenstand oder ein Schiff und leg es auf die Wunschliste. Von hier wandert es mit einem Klick in den Nachschub.", "toNachschub": "In den Nachschub", "remove": "{{name}} von der Wunschliste nehmen", "notYet": "noch nicht im Spiel" },
+      "tabs": {
+        "wish": "Wunschliste",
+        "nachschub": "Nachschub"
+      },
+      "wish": {
+        "empty": "Noch nichts auf der Wunschliste.",
+        "emptyHint": "Such einen Gegenstand oder ein Schiff und leg es auf die Wunschliste. Von hier wandert es mit einem Klick in den Nachschub.",
+        "toNachschub": "In den Nachschub",
+        "remove": "{{name}} von der Wunschliste nehmen",
+        "notYet": "noch nicht im Spiel"
+      },
       "got": "Besorgt",
-      "place": { "title": "Wo liegt es jetzt?", "other": "Anderer Ort …", "otherPlaceholder": "Ort eingeben", "store": "Ablegen", "tickOnly": "Nur abhaken" }
+      "place": {
+        "title": "Wo liegt es jetzt?",
+        "other": "Anderer Ort …",
+        "otherPlaceholder": "Ort eingeben",
+        "store": "Ablegen",
+        "tickOnly": "Nur abhaken"
+      }
     },
     "ops": {
       "title": "Einsätze",
@@ -5805,16 +5840,40 @@
       "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Inventar eingetragen.",
-      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
-      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
-      "places": { "title": "Größte Orte" },
-      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
-      "cats": { "title": "Kategorien" },
-      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
+      "actions": {
+        "browse": "Durchsuchen",
+        "find": "Wo liegt …?",
+        "add": "Hinzufügen"
+      },
+      "totals": {
+        "title": "Gesamt",
+        "items": "Gegenstände",
+        "places": "Orte"
+      },
+      "places": {
+        "title": "Größte Orte"
+      },
+      "stale": {
+        "title": "Stand älter als 7 Tage",
+        "none": "Alle Orte sind aktuell."
+      },
+      "cats": {
+        "title": "Kategorien"
+      },
+      "cat": {
+        "materials": "Rohstoffe",
+        "weapons": "Waffen",
+        "armor": "Rüstung",
+        "other": "Sonstiges"
+      },
       "popup": {
         "title": "Inventar",
         "modes": "Was möchtest du tun",
-        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "mode": {
+          "browse": "Durchsuchen",
+          "find": "Wo liegt …?",
+          "add": "Hinzufügen"
+        },
         "search": "Inventar durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",

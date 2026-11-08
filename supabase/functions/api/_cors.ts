@@ -9,6 +9,10 @@ import { json } from './_router.ts';
 const TRUSTED_ORIGINS = new Set([
   'https://sc-companion.vercel.app',
   'https://star-citizen-companion-website.vercel.app',
+  // Verse Companion rename: the new primary domain and the renamed Vercel project.
+  'https://verse-companion.app',
+  'https://www.verse-companion.app',
+  'https://verse-companion.vercel.app',
   'http://127.0.0.1:4200',
   'http://localhost:4200',
 ]);

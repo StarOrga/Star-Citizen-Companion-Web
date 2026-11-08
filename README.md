@@ -2,7 +2,7 @@
 
 **Version: 0.226.1**
 
-> Star Citizen companion — Verse News, P4K analyzer, and more.
+> Verse Companion – unofficial fan tool for Star Citizen. Your terminal to the verse: Verse News, codex, hangar and loadout tools.
 > Built with Angular 22 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
 
 [![Live](https://img.shields.io/badge/live-sc--companion.vercel.app-00d4ff)](https://sc-companion.vercel.app)
@@ -12,9 +12,11 @@
 
 **Production:** <https://sc-companion.vercel.app>
 
-A fan-made Star Citizen companion: log in, follow the Verse News (Comm-Link + Spectrum + RSI status) 1:1, drop a `Data.p4k` to extract metadata automatically (with channel detection: live / ptu / eptu / tech-preview). Long-term goal: do everything erkul.games does, plus more.
+A fan-made Star Citizen companion: log in, follow the Verse News (Comm-Link + Spectrum + RSI status: titles, dates, short summaries and links to the originals), drop a `Data.p4k` to extract metadata automatically (with channel detection: live / ptu / eptu / tech-preview). Long-term goal: do everything erkul.games does, plus more.
 
-> **Not affiliated with Cloud Imperium Games or Roberts Space Industries.** See [LICENSE](LICENSE).
+> **Fan-site notice.** This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.
+> Star Citizen®, Squadron 42®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.
+> Official site: <https://robertsspaceindustries.com>. No donations, ads or paywalls. See [LICENSE](LICENSE).
 
 ## Quick start
 

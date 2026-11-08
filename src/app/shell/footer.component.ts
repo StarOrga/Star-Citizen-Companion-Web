@@ -59,10 +59,18 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
           <span aria-hidden="true">·</span>
           <a routerLink="/legal/imprint">{{ 'footer.links.imprint' | translate }}</a>
         </nav>
+        <!-- CIG Fankit and Fandom FAQ: the fan-site notice must be open and
+             obvious, never hover- or tooltip-only. It stays visible as its own
+             line under the footer row, with the link to the official site. -->
+        <p class="sf-notice">
+          {{ 'footer.disclaimer' | translate }}
+          <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a>
+        </p>
       </footer>
       <ng-template #disclaimerBody>
         <p>{{ 'footer.disclaimer' | translate }}</p>
         <p class="sf-tm">{{ 'footer.trademarks' | translate }}</p>
+        <p><a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a></p>
       </ng-template>
       @if (auth.user()) {
         <sc-handoff-button />
@@ -80,7 +88,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         <div class="meta">
           <p class="brand">Verse Companion</p>
           @if (expanded()) {
-            <p class="disclaimer">{{ 'footer.disclaimer' | translate }}</p>
+            <p class="disclaimer">{{ 'footer.disclaimer' | translate }}
+              <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a></p>
             <p class="copyright">
               {{ 'footer.trademarks' | translate }}
               <button type="button" class="disclaimer-toggle"
@@ -194,6 +203,14 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .sf-areas a:hover, .sf-areas a[aria-current] { color: var(--sc-accent); }
     .sf-areas a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
     @media (min-width: 721px) { .sf-badge, .sf-links { flex: 1 1 0; min-width: 0; } }
+    .sf { flex-wrap: wrap; }
+    .sf-notice {
+      order: 10; flex: 1 0 100%; margin: 0;
+      font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1.4; color: var(--sc-fg-2);
+    }
+    .sf-notice a { color: var(--sc-fg-1); text-decoration: underline; text-underline-offset: 2px; }
+    .sf-notice a:hover { color: var(--sc-accent); }
+    .sf-notice a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 3px; }
     .sf-links {
       display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sc-space-2);
       font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
@@ -400,7 +417,7 @@ export class FooterComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   /** Whether the full legal disclaimer + trademark line is shown. */
-  readonly expanded = signal(false);
+  readonly expanded = signal(true);
 
   /** Full, localized disclaimer text — kept in sync with the active language. */
   private readonly disclaimerFull = signal('');

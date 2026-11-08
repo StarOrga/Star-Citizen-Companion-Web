@@ -10,7 +10,9 @@ Components: Angular, Supabase
 Hosting: Vercel
 
 /* NOTE */
-Verse Companion is an unofficial fan project.
-It is not affiliated with the Cloud Imperium group of companies.
-Star Citizen, Roberts Space Industries and Cloud Imperium are
-trademarks of Cloud Imperium Rights LLC.
+Verse Companion – unofficial fan tool for Star Citizen.
+This is an unofficial Star Citizen fan site, not affiliated with the
+Cloud Imperium group of companies. All content on this site not authored
+by its host or users are property of their respective owners.
+Star Citizen®, Squadron 42®, Roberts Space Industries® and Cloud Imperium®
+are registered trademarks of Cloud Imperium Rights LLC.
