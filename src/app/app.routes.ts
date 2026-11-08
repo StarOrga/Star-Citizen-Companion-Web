@@ -8,7 +8,7 @@ import { OVERLAY_ROUTE_DATA } from './core/overlay-route-scroll';
 import { BetaService } from './core/beta.service';
 import { PRELOAD_ROUTE_DATA } from './core/idle-preloading.strategy';
 import { shellBetaOn } from './core/layout/shell-beta.guard';
-import { hqPageHref } from './hq/hq-routes';
+import { HQ_ROOT, HQ_STOCK_TAB_PARAM, hqPageHref } from './hq/hq-routes';
 import { CODEX_MORE_ANCHOR } from './codex/codex-more-anchor';
 
 // Guard policy (access-control design, 2026-08-05, supersedes #131): the app
@@ -37,7 +37,9 @@ export function fpsEquipMode(): boolean {
  * Never prefix the target with `/` — an absolute string redirect drops the
  * query. Pinned in app.routes.spec.ts (AUD-144). Old aliases (news, hangar,
  * codex/set, tools/extension, ...) are NOT bridged any more (alpha cleanup,
- * concept 2026-10-30): they fall through to '**'.
+ * concept 2026-10-30): they fall through to '**'. The app bridges (/hangar/import, /starscape,
+ * /uploader/auth, /desktop/connect) went on 2026-11-08: every binary that called them talks to
+ * the removed sc-companion host, so they could no longer be reached.
  */
 export const routes: Routes = [
   {
@@ -167,12 +169,6 @@ export const routes: Routes = [
         data: { [PRELOAD_ROUTE_DATA]: true },
         loadChildren: () => import('./verse/verse.routes').then((m) => m.VERSE_ROUTES),
       },
-      // The two bridges installed apps still open (concept 2026-10-30): the
-      // browser extension hands imports to /hangar/import and the Starscape
-      // tray opens /starscape. Both sources already call the new paths; drop
-      // these once those releases are out. Relative, so the query survives.
-      { path: 'hangar/import', pathMatch: 'full', redirectTo: 'hq/hangar/import' },
-      { path: 'starscape', pathMatch: 'full', redirectTo: 'verse/gallery' },
       {
         // Codex front door = "the composed depth-field landing": Archive
         // Terminal poly-search + ICH/MEINE-FLOTTE hero panels + WELT lanes.
@@ -298,8 +294,11 @@ export const routes: Routes = [
             loadComponent: () => import('./hq/hq-landing.component').then((m) => m.HqLandingComponent),
           },
           {
+            // The old tab page (fleet dashboard). With the shell beta it is gone: HQ Bestand ▸ Hangar is the fleet,
+            // so /hq/hangar leads there (2026-11-08). β off keeps the page. Redirecting canMatch, see ops below.
             path: 'hangar',
             data: { layout: 'tool', section: 'hangar' },
+            canMatch: [() => (inject(BetaService).isEnabled('shell')() ? inject(Router).createUrlTree([HQ_ROOT], { queryParams: { [HQ_STOCK_TAB_PARAM]: 'hangar' }, fragment: 'inventar' }) : true)],
             loadComponent: () =>
               import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
           },
@@ -376,15 +375,6 @@ export const routes: Routes = [
         // redirect back here, instead of bouncing silently to /news) — the
         // blanket gate above already covers the auth+approval part.
         path: 'apps/uploader/auth',
-        data: { layout: 'cinematic' },
-        loadComponent: () =>
-          import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
-      },
-      {
-        // Legacy alias of apps/uploader/auth: installed uploader binaries call
-        // /uploader/auth until the next uploader release (only /desktop/auth
-        // was dropped).
-        path: 'uploader/auth',
         data: { layout: 'cinematic' },
         loadComponent: () =>
           import('./desktop/desktop-auth.component').then((m) => m.DesktopAuthComponent),
@@ -500,15 +490,6 @@ export const routes: Routes = [
     // authGuard — a self-registered-but-unapproved account must not reach a
     // desktop-app auth handoff any more than it can reach the rest of the app.
     path: 'apps/starscape/connect',
-    data: { layout: 'cinematic' },
-    canActivate: [...PRIVATE],
-    loadComponent: () =>
-      import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),
-  },
-  {
-    // Legacy alias of apps/starscape/connect: installed Starscape binaries
-    // call /desktop/connect until the next Starscape release.
-    path: 'desktop/connect',
     data: { layout: 'cinematic' },
     canActivate: [...PRIVATE],
     loadComponent: () =>
