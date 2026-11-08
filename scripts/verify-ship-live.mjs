@@ -63,7 +63,9 @@
 import { execFileSync } from 'node:child_process';
 
 const REPO = 'StarOrga/Star-Citizen-Companion-Web';
-const SITE = 'https://sc-companion.vercel.app';
+// The live host since the Verse Companion rebrand (#1008). sc-companion.vercel.app still serves, but behind
+// Vercel's Security Checkpoint, so a scripted probe there never sees the new bytes.
+const SITE = process.env.VERIFY_SITE || 'https://versecompanion-alpha.vercel.app';
 
 const argv = process.argv.slice(2);
 const flag = (name, fallback = null) => {

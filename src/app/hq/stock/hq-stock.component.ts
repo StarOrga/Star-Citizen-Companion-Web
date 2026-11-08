@@ -34,6 +34,7 @@ import { HqLiveService } from '../now/hq-live.service';
 import { lastDestroyedAt, placeLabel } from '../now/hq-live.util';
 import { BetaService } from '../../core/beta.service';
 import { STOCK_CATEGORIES, type StockCategory } from './hq-stock-model';
+import { HqBlueprintPickerComponent, PickedBlueprint } from './hq-blueprint-picker.component';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 import { HqStockSharedComponent } from './hq-stock-shared.component';
 import { WISH_CART_ICON, type StockWishTarget, StockWishService } from './hq-stock-wish';
@@ -62,7 +63,7 @@ type Cell =
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [ScPopoverDismissDirective, TranslatePipe, DatePipe, ScDatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
+  imports: [ScPopoverDismissDirective, TranslatePipe, DatePipe, ScDatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent, HqBlueprintPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
@@ -216,6 +217,9 @@ type Cell =
     @if (popup(); as start) {
       <sc-hq-stock-popup [start]="start" (closed)="popup.set(null)" />
     }
+    @if (bpPicking()) {
+      <sc-hq-blueprint-picker [owned]="ownedBlueprints()" (picked)="addPickedBlueprint($event)" (closed)="bpPicking.set(false)" />
+    }
   `,
   styles: [
     `
@@ -332,6 +336,10 @@ export class HqStockComponent implements OnInit {
   readonly usedOpen = signal(false);
   readonly focusKey = signal<string | null>(null);
   readonly errorKey = signal<string | null>(null);
+  /** The Codex picker of "Blaupause anlegen" is open. */
+  protected readonly bpPicking = signal(false);
+  /** Class names (lower-cased) already in the Sammlung: the picker shows them as owned. */
+  protected readonly ownedBlueprints = computed(() => new Set(this.blueprints().map((b) => String(b.id).toLowerCase())));
   private pendingFocus: string | null = null;
   private readonly clock = signal(Date.now());
 
@@ -470,17 +478,19 @@ export class HqStockComponent implements OnInit {
 
   protected add(): void {
     if (this.tab() === 'inventar') this.popup.set({ mode: 'add' });
-    else if (this.tab() === 'sammlung') void this.addBlueprint();
+    else if (this.tab() === 'sammlung') this.addBlueprint();
     else void this.addShip();
   }
 
-  /** Blueprints come in by hand as a stock row at the blueprint place (the Sammlung reads them from there). */
-  private async addBlueprint(): Promise<void> {
-    const name = await this.confirm.prompt({ titleKey: 'hq.bestand.addBlueprint', inputLabelKey: 'hq.bestand.addBlueprintLabel', inputMaxLength: 80 });
-    const n = name?.trim();
-    if (!n) return;
-    const ok = await this.inv.addManual(BLUEPRINT_PLACE, n, 1, 'pcs', null);
+  /** Blueprints are picked from the Codex (never typed): the Sammlung row carries the real class name. */
+  private addBlueprint(): void {
+    this.bpPicking.set(true);
+  }
+
+  protected async addPickedBlueprint(b: PickedBlueprint): Promise<void> {
+    const ok = await this.inv.addManual(BLUEPRINT_PLACE, b.name, 1, 'pcs', b.className);
     this.errorKey.set(ok ? null : (this.inv.error() ?? 'errors.generic'));
+    if (ok) this.bpPicking.set(false);
   }
 
   private async addShip(): Promise<void> {

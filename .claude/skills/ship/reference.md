@@ -26,14 +26,14 @@ watcher parses only that fence.
 ```yaml
 surfaces:
   - name: "Web app (Vercel)"
-    url: https://sc-companion.vercel.app/?ngsw-bypass=true
+    url: https://versecompanion-alpha.vercel.app/?ngsw-bypass=true
     selector: 'meta[name="app-version"]'
     attribute: content
     expected: "$VERSION"
 
 verify:
   mode: http
-  url: https://sc-companion.vercel.app/?ngsw-bypass=true
+  url: https://versecompanion-alpha.vercel.app/?ngsw-bypass=true
   expected_status: 200
   selector: '<meta name="app-version" content="([^"]+)"'
   expected: "$VERSION"

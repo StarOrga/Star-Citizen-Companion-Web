@@ -1,7 +1,43 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.230.0",
+  "current": "0.232.0",
   "releases": [
+    {
+      "version": "0.232.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Bestand: \"Blaupause anlegen\" picks the blueprint from the Codex instead of free text, so it links to its page and its materials"
+            },
+            {
+              "title": "",
+              "text": "Ship verification probes the Verse Companion host"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.230.1",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Event migrations renumbered past a version already taken on the remote ledger, so db push applies them instead of skipping the event data sheet."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.230.0",
       "date": "2026-11-08",
