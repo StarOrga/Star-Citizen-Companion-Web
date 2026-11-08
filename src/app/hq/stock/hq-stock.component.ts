@@ -14,6 +14,9 @@ import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { PATH_ICONS } from '../../shared/item-path/path-icons';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
+import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.component';
+import { HqReserveDialog } from './hq-reserve-dialog';
+import { reservationFriends } from './hq-reserve';
 import { FriendsService } from '../../social/friends.service';
 import { SHIP_ROLES, type ShipRole } from '../../codex/codex-ship-filters';
 import { HqInventoryService } from '../data/hq-inventory.service';
@@ -89,6 +92,7 @@ const SAMMLUNG_KINDS = ['blueprints', 'ruf', 'news', 'gallery'] as const;
 type SammlungKind = (typeof SAMMLUNG_KINDS)[number];
 /** URL params beside tab/cat/sub/ort (brief f7: a filtered view is a shareable anchor). */
 const P_RES = 'res';
+const P_FRIEND = 'resfor';
 const P_SCRAP = 'zerlegbar';
 const P_ORIGIN = 'herkunft';
 const P_ROLE = 'rolle';
@@ -112,7 +116,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
   standalone: true,
   imports: [
     TranslatePipe, DatePipe, NgTemplateOutlet, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent,
-    HqBlueprintPickerComponent, HqCrateComponent, HqPlaceSelectComponent, HqStockLogComponent, HqStockTableComponent,
+    HqBlueprintPickerComponent, HqCrateComponent, HqPlaceSelectComponent, ScSelectComponent, HqStockLogComponent, HqStockTableComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -185,6 +189,10 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
           <button type="button" class="tog" [attr.aria-pressed]="reserved()" (click)="setToggle(P_RES, !reserved())">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9H5z" /></svg>{{ 'hq.bestand.deck.reserved' | translate }}
           </button>
+          @if (reserved() && friendOptions().length) {
+            <sc-select class="place" [options]="friendOptions()" [value]="friend()" [allowEmpty]="true" placeholderKey="hq.bestand.deck.rsv.allFriends"
+                       [ariaLabel]="'hq.bestand.deck.rsv.byFriend' | translate" (valueChange)="setParam(P_FRIEND, $event)" />
+          }
           <button type="button" class="tog" [attr.aria-pressed]="scrapOnly()" (click)="setToggle(P_SCRAP, !scrapOnly())">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z" /></svg>{{ 'hq.bestand.deck.scrapOnly' | translate }}
           </button>
@@ -315,7 +323,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
 
             @if (mode() === 'table') {
               <sc-hq-stock-table [rows]="pageCrates()" [isSelected]="isSelected" [placeLabel]="crateLabel" [scrap]="scrapOf" (rowToggle)="toggleSel($event)"
-                                 (amountChange)="setAmount($event.crate, $event.qty)" (remove)="deleteOne($event)" />
+                                 (amountChange)="setAmount($event.crate, $event.qty)" (remove)="deleteOne($event)" (reservations)="openReserve([$event])" />
             } @else {
               <div #deck class="deck">
                 @for (l of lanes(); track l.kind) {
@@ -635,6 +643,7 @@ export class HqStockComponent implements OnInit {
   private readonly edge = inject(NachschubEdgeService);
   private readonly confirm = inject(ScConfirmService);
   private readonly picker = inject(NachschubTargetPicker);
+  private readonly reserveDialog = inject(HqReserveDialog);
   private readonly scrapSvc = inject(ScrapInfoService);
   private readonly friends = inject(FriendsService);
   private readonly chrome = inject(ShellChromeService);
@@ -655,6 +664,7 @@ export class HqStockComponent implements OnInit {
   protected readonly nowLink = hqPage('jetzt');
   protected readonly emptySel: ReadonlySet<string> = new Set();
   protected readonly P_RES = P_RES;
+  protected readonly P_FRIEND = P_FRIEND;
   protected readonly P_SCRAP = P_SCRAP;
   protected readonly P_ORIGIN = P_ORIGIN;
   protected readonly P_ROLE = P_ROLE;
@@ -666,6 +676,7 @@ export class HqStockComponent implements OnInit {
   readonly sub = signal<string | null>(null);
   readonly place = signal<string | null>(null);
   readonly reserved = signal(false);
+  readonly friend = signal<string | null>(null);
   readonly scrapOnly = signal(false);
   readonly origin = signal<HangarShipOrigin | null>(null);
   readonly role = signal<ShipRole | null>(null);
@@ -690,7 +701,7 @@ export class HqStockComponent implements OnInit {
   protected readonly filter = computed<DeckFilter>(() => {
     const k = this.kind();
     const inv: InvKind | null = k === 'ships' || k === 'sammlung' ? null : k;
-    return { kind: inv, sub: this.sub(), place: this.place(), reserved: this.reserved(), scrap: this.scrapOnly(), text: this.query().text, minQ: this.query().minQ };
+    return { kind: inv, sub: this.sub(), place: this.place(), reserved: this.reserved(), friend: this.friend(), scrap: this.scrapOnly(), text: this.query().text, minQ: this.query().minQ };
   });
   protected readonly scrapOf = (c: DeckCrate) => this.scrapSvc.info(parseStockRef(c.className)?.className ?? null).state;
   private readonly scrapYes = (c: DeckCrate): boolean => this.scrapOf(c) === 'yes';
@@ -699,6 +710,11 @@ export class HqStockComponent implements OnInit {
     const f = this.friends.graph().friends.find((x) => x.user_id === id);
     return f ? (f.display_name || f.username) : null;
   };
+
+  /** Friends holding a reservation in the Bestand (filter "Reserviert" grouped by friend, D2). */
+  protected readonly friendOptions = computed<ScSelectOption[]>(() =>
+    reservationFriends(this.crates()).map((f) => ({ value: f.id, labelKey: 'common.select.none', label: `${this.friendName(f.id) ?? f.id} (${f.count})` })),
+  );
 
   protected readonly crates = computed(() => buildCrates(this.inv.items(), this.inv.kinds(), BLUEPRINT_PLACE));
   /** Inventar containers under the filter; on Alles with the Schiffe / Sammlung kind none. */
@@ -918,6 +934,7 @@ export class HqStockComponent implements OnInit {
     this.sub.set(k && sub && (SUBS_OF[k as InvKind] ?? []).includes(sub) ? sub : null);
     this.place.set(q.get(HQ_STOCK_PLACE_PARAM) || null);
     this.reserved.set(q.get(P_RES) === '1');
+    this.friend.set(q.get(P_RES) === '1' ? q.get(P_FRIEND) || null : null);
     this.scrapOnly.set(q.get(P_SCRAP) === '1');
     const o = q.get(P_ORIGIN);
     this.origin.set((ORIGINS as readonly string[]).includes(o ?? '') ? (o as HangarShipOrigin) : null);
@@ -939,7 +956,7 @@ export class HqStockComponent implements OnInit {
   }
 
   protected setToggle(key: string, on: boolean): void {
-    this.nav({ [key]: on ? '1' : null });
+    this.nav(key === P_RES && !on ? { [key]: null, [P_FRIEND]: null } : { [key]: on ? '1' : null });
   }
 
   /** Clicking the active kind again returns to "Alle"; a new kind clears the sub-kind (brief f7). */
@@ -957,7 +974,7 @@ export class HqStockComponent implements OnInit {
   }
 
   protected resetFilters(): void {
-    this.nav({ [HQ_STOCK_CAT_PARAM]: null, [HQ_STOCK_SUB_PARAM]: null, [HQ_STOCK_PLACE_PARAM]: null, [P_RES]: null, [P_SCRAP]: null, [P_ORIGIN]: null, [P_ROLE]: null, [P_ART]: null });
+    this.nav({ [HQ_STOCK_CAT_PARAM]: null, [HQ_STOCK_SUB_PARAM]: null, [HQ_STOCK_PLACE_PARAM]: null, [P_RES]: null, [P_FRIEND]: null, [P_SCRAP]: null, [P_ORIGIN]: null, [P_ROLE]: null, [P_ART]: null });
   }
 
   /** Roving focus inside a radiogroup: arrows move, Home/End jump; selection stays on Space/Enter (brief f7 keyboard). */
@@ -1139,21 +1156,14 @@ export class HqStockComponent implements OnInit {
     }
   }
 
-  /** Reservieren (I8): the free amount of each selected container, for the note typed (friend picker: popup). */
-  protected async reserveSel(): Promise<void> {
-    const note = await this.confirm.prompt({ titleKey: 'hq.bestand.deck.reserveTitle', inputLabelKey: 'hq.bestand.deck.reserveLabel', inputMaxLength: 120 });
-    if (note === null) return;
-    if (!note.trim()) {
-      this.errorKey.set('hq.bestand.deck.reserveNeedsNote');
-      return;
-    }
-    let failed = false;
-    for (const c of this.selectedCrates()) {
-      if (c.available <= 0) continue;
-      if (!(await this.inv.reserve({ location: c.location, name: c.name }, c.available, note.trim()))) failed = true;
-    }
-    this.errorKey.set(failed ? (this.inv.error() ?? 'errors.generic') : null);
-    if (!failed) this.selection.set(new Set());
+  /** Reservieren (I8, D2): the dialog asks for the friend or a text, amount, quality stack and expiry. */
+  protected async openReserve(list: readonly DeckCrate[]): Promise<void> {
+    const done = await this.reserveDialog.open(list);
+    if (done) this.selection.set(new Set());
+  }
+
+  protected reserveSel(): Promise<void> {
+    return this.openReserve(this.selectedCrates());
   }
 
   protected async deleteSel(): Promise<void> {

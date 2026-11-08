@@ -32,6 +32,8 @@ export interface DeckFilter {
   readonly text: string;
   /** Minimum quality from the query (`eisen q>700`), null = none. */
   readonly minQ: number | null;
+  /** Only containers holding a reservation for this friend (id); with `reserved` = the "Reserviert" view grouped by friend. */
+  readonly friend?: string | null;
 }
 
 export const NO_DECK_FILTER: DeckFilter = { kind: null, sub: null, place: null, reserved: false, scrap: false, text: '', minQ: null };
@@ -86,6 +88,7 @@ export function crateMatches(c: DeckCrate, f: DeckFilter, scrapYes: (c: DeckCrat
   if (skip !== 'sub' && f.sub && c.sub !== f.sub) return false;
   if (skip !== 'place' && f.place && c.location !== f.place) return false;
   if (f.reserved && !(c.reserved > 0)) return false;
+  if (f.friend && ![...c.anyReservations, ...c.stacks.flatMap((s) => s.reservations)].some((r) => r.friendId === f.friend)) return false;
   if (f.scrap && !scrapYes(c)) return false;
   if (f.minQ !== null && !((c.max ?? 0) >= f.minQ)) return false;
   return textMatches(c.name, c.className, f.text);

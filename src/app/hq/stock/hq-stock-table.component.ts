@@ -43,7 +43,12 @@ import type { DeckCrate } from './hq-stock-deck';
                        (click)="$event.stopPropagation()" (keydown.enter)="commit($event, c)" (keydown.space)="$event.stopPropagation()" (change)="commit($event, c)" />
                 <small>{{ c.unit === 'scu' ? 'SCU' : '×' }}</small>
               </td>
-              <td class="num">{{ c.reserved ? fmt(c.reserved) : '' }}</td>
+              <td class="num">
+                @if (c.reserved) {
+                  <button type="button" class="rsv" [attr.aria-label]="'hq.bestand.deck.rsv.editFor' | translate: { name: c.name }"
+                          [scTooltip]="'hq.bestand.deck.rsv.editFor' | translate: { name: c.name }" scTooltipTier="label" (click)="$event.stopPropagation(); reservations.emit(c)">{{ fmt(c.reserved) }}</button>
+                }
+              </td>
               <td><span class="scr" [attr.data-scrap]="scrap()(c)">{{ 'hq.bestand.deck.scrap.' + scrap()(c) | translate }}</span></td>
               <td class="act">
                 <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hq.bestand.deck.deleteOne' | translate: { name: c.name }"
@@ -74,9 +79,12 @@ import type { DeckCrate } from './hq-stock-deck';
       .amt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
       .scr[data-scrap='unknown'] { color: var(--sc-fg-2); }
       .scr[data-scrap='no'] { color: var(--sc-warning); }
+      .rsv { min-height: 30px; padding: 0 10px; border: 1px dashed color-mix(in srgb, var(--sc-accent) 60%, transparent); border-radius: 999px; background: transparent; color: var(--sc-accent); font: inherit; cursor: pointer; }
+      .rsv:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+      .rsv:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .act { width: 1%; }
       .act svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-      @media (pointer: coarse) { .amt { min-height: 48px; } }
+      @media (pointer: coarse) { .amt, .rsv { min-height: 48px; } }
     `,
   ],
 })
@@ -89,6 +97,8 @@ export class HqStockTableComponent {
   readonly rowToggle = output<DeckCrate>();
   readonly amountChange = output<{ crate: DeckCrate; qty: number }>();
   readonly remove = output<DeckCrate>();
+  /** Opens the reservation dialog of this row (edit, release, hand out). */
+  readonly reservations = output<DeckCrate>();
 
   protected onRow(ev: Event, c: DeckCrate): void {
     if ((ev.target as HTMLElement).closest('input, button')) return;
