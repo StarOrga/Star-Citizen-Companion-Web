@@ -108,6 +108,11 @@ def lod1_sibling(mesh: str) -> Optional[str]:
     return f"{stem}_lod1.{ext}"
 
 
+def _is_item(entities: List[Dict[str, Any]]) -> bool:
+    """A mesh is an item unless a ship uses it (ships keep the top-down view)."""
+    return not any(e["kind"] == "ship" for e in entities)
+
+
 def _skip_entry(kind: str, class_name: str, reason: str, detail: str) -> Dict[str, Any]:
     # Detail is a log line, not a document: keep it short for the admin tile.
     return {"kind": kind, "className": class_name, "reason": reason, "detail": (detail or "")[:300]}
@@ -282,7 +287,7 @@ def build_rows(
     try:
         for mesh in by_mesh:
             try:
-                src = exporter.source(mesh, tolerance_m)
+                src = exporter.source(mesh, tolerance_m, _is_item(by_mesh[mesh]))
             except FileNotFoundError:
                 finish(mesh, None, False, (SKIP_NO_MESH, f"not in archive: {mesh}"))
                 continue
@@ -317,7 +322,7 @@ def build_rows(
             if on_progress:
                 on_progress(done_entities, total, label)
             try:
-                src = exporter.source(lod, tolerance_m)
+                src = exporter.source(lod, tolerance_m, _is_item(by_mesh[mesh]))
             except FileNotFoundError:
                 finish(mesh, None, False, (skip[0], f"{skip[1]}; no _lod1 sibling"))
                 continue

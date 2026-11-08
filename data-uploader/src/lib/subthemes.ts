@@ -154,7 +154,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 8: meshes deep in the P4K no longer die on WinError 267, so a build
     //    already on the server gets their silhouettes. The recipe stays: every
     //    existing blob is byte-identical, only the missing ones are built.
-    revision: 8,
+    // 9: item outlines — largest view, relative tolerance, proxy nodes dropped,
+    //    inner `edges` path (stored in meta.edges); every item blob is rebuilt.
+    revision: 9,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',
