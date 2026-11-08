@@ -501,6 +501,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [allowFiles]="true"
               [complexToggle]="true"
               [frameless]="true"
+              [focusOnOpen]="true"
               placeholder="adminFeedback.compose.placeholder"
               sendLabel="adminFeedback.compose.send"
               [onSubmit]="createComposerBound" />
