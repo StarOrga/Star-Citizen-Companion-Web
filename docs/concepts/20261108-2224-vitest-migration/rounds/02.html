@@ -31,10 +31,10 @@
         <div class="fr-meter-bar" aria-hidden="true"></div>
         <b class="fr-meter-value">46 s</b>
       </div>
-      <div class="fr-meter" data-grade="part" style="--fr-fill: 75%" data-tip="Zwei echte Flakes behoben (i18n-fetch unter Last, Testreihenfolge bei codex-page, danach 6 von 6 grün); offen bleibt ein einmaliges „No test suite found“. Anforderung: kein Flake (geschätzt).">
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 75%" data-tip="Drei Flakes behoben: i18n-fetch unter Last, Testreihenfolge bei codex-page, ein Spec, der aus einem anderen Spec importierte („No test suite found“). Danach 5 von 6 vollen Läufen grün; einmal rot: pause-offscreen, Ursache offen. Anforderung: kein Flake (geschätzt).">
         <span class="fr-meter-name">🔁 Stabilität</span>
         <div class="fr-meter-bar" aria-hidden="true"></div>
-        <b class="fr-meter-value">2 behoben, 1 offen</b>
+        <b class="fr-meter-value">5 / 6 Läufe</b>
       </div>
     </div>
   </div>
@@ -73,7 +73,7 @@
       <li>Commit <code>2465b65c</code> · Treiber <code>scripts/jasmine-to-vitest.mjs</code>, Setup <code>src/app/testing/vitest-setup.ts</code>, <code>viewport.ts</code></li>
       <li>Handarbeit: <code>pending()</code> → <code>context.skip</code> (das Schematic hatte 10 Tests ganz abgeschaltet), kein <code>compileComponents()</code> in fakeAsync, Catch-all-Routen, −0 / toBeCloseTo</li>
       <li>Tests: 547 Dateien, 6489 grün, 1 übersprungen · <code>test:gate</code> 127 grün · Lint 0 Fehler · Typecheck grün</li>
-      <li>Nach QA: i18n-Kataloge per Import statt fetch (6 Specs), holdOnLower-Specs starten in neuem Task; main gemergt, 2 Konflikt-Specs auf Vitest umgestellt</li>
+      <li>Nach QA: i18n-Kataloge per Import statt fetch (6 Specs), holdOnLower-Specs starten in neuem Task, Asset-Package-Fixtures in <code>asset-package.testing.ts</code> (Gate verbietet Spec-Importe); main gemergt, 2 Konflikt-Specs auf Vitest umgestellt</li>
       <li><code>d-guards</code> war unberührt (5 s): gebaut mit der Vorauswahl, keine Änderung gegenüber dem Pilot</li>
       <li>Ausnahme vom Agenten-Pfad: ein Bereich, streng aufeinander aufbauende Schritte, darum inline gebaut; geprüft von einem unabhängigen QA-Agenten</li>
     </ul>

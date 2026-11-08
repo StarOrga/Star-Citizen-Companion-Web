@@ -2,7 +2,7 @@ import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AssetPackageService } from './asset-package.service';
-import { manifestFixture } from './asset-package.model.spec';
+import { manifestFixture } from './asset-package.testing';
 
 function supabaseStub(result: { data: unknown[] | null; error: unknown }) {
   const calls: { col: string; v: unknown }[] = [];

@@ -6,7 +6,7 @@ import { AssetPackageService } from './asset-package.service';
 import { CodexService } from '../codex.service';
 import { parseManifest, type AssetPackageRow } from './asset-package.model';
 import { calloutSize } from './holo-overlay';
-import { manifestFixture, placementFixture } from './asset-package.model.spec';
+import { manifestFixture, placementFixture } from './asset-package.testing';
 
 const ROW: AssetPackageRow = {
   kind: 'ship', entityClass: 'AEGS_Gladius', shipId: 'AEGS_Gladius', manifestSha256: 'm', rootSha256: 'root',

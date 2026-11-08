@@ -54,3 +54,13 @@ test('no spec or test helper still calls the Jasmine API', () => {
   }
   assert.deepEqual(offenders, []);
 });
+
+test('no spec imports another spec (its tests would vanish, isolate is off)', () => {
+  const offenders = [];
+  for (const f of readdirSync('src', { recursive: true })) {
+    const file = join('src', String(f));
+    if (!file.endsWith('.ts')) continue;
+    if (/from '[^']*\.spec'/.test(readFileSync(file, 'utf8'))) offenders.push(file);
+  }
+  assert.deepEqual(offenders, []);
+});

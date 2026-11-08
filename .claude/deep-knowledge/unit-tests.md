@@ -51,4 +51,6 @@ whole files). It also applies the follow-ups above that have one right answer (`
 `lastCall!`, `mockResolvedValue(undefined)`, typed empty spies). It reads the schematic's internals of
 `@schematics/angular` 22.2.x; delete it once nothing Jasmine-shaped is left to convert.
 
-Known flake: once in four full runs a file reported "No test suite found" and passed on rerun.
+"No test suite found" for a spec that passes alone means another spec imported it: with `isolate`
+off the module is evaluated once per worker, inside the importer's run. Shared fixtures go into a
+`*.testing.ts` file (`asset-package.testing.ts`); `vitest-scope.test.mjs` refuses an import from a spec.
