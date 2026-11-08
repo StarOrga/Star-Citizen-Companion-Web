@@ -25,7 +25,7 @@ import { NACHSCHUB_ICON_PATHS } from '../nachschub/step-icons';
 import { routeFilterKey } from '../plan/route/route-filter.store';
 import { HqRouteGraphicComponent, type RouteSharedStop } from '../plan/route/route-graphic.component';
 import type { RouteGraphStep } from '../plan/route/route-layout';
-import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
+import { HqAppConnectionService } from './hq-app-connection.service';
 import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqNowFriendsComponent } from './hq-now-friends.component';
@@ -350,7 +350,7 @@ const UPCOMING = 4;
 })
 export class HqNowComponent {
   readonly live = inject(HqLiveService);
-  private readonly conn = inject(DesktopConnectionService);
+  private readonly conn = inject(HqAppConnectionService);
   private readonly pathSig = inject(HQ_NOW_PATH);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly toastEl = viewChild<ElementRef<HTMLElement>>('toast');
@@ -468,7 +468,7 @@ export class HqNowComponent {
   readonly zones = computed(() => readZones(this.live.events()));
   readonly lastSignal = computed(() => presenceAt(this.live.state()) ?? this.live.stateUpdatedAt());
   /** Signed-in app without any live state yet: the app is there, only the opt-in sync or the game is missing. */
-  readonly appConnected = computed(() => this.conn.stateFor('starscape') === 'connected');
+  readonly appConnected = this.conn.connected;
 
   private timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -492,9 +492,6 @@ export class HqNowComponent {
     this.eventHq.ensure();
     const ticker = setInterval(() => this.clock.set(Date.now()), PRESENCE_TICK_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(ticker));
-    effect(() => {
-      if (this.live.loaded() && !this.live.state()) untracked(() => void this.conn.refresh(true));
-    });
     effect(() => {
       const t = this.live.toast();
       untracked(() => {

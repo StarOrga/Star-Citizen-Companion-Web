@@ -6210,7 +6210,7 @@
       "noResponse": "The Companion app didn't respond. Start it by hand or download it again.",
       "retry": "Already installed? Start again",
       "download": "Download Companion app",
-      "downloadCta": "Download Companion App",
+      "downloadCta": "Download app",
       "downloadStarted": "The download is running (about 500 MB). Run the setup afterwards.",
       "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start Companion App”. You can always find it again under Apps at the top right.",
       "tipLaunch": "Opens the Companion App on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
@@ -6259,7 +6259,8 @@
     },
     "events": {
       "teaser": "Event available",
-      "marker": "{{n}} event(s) open",
+      "markerOne": "{{n}} open event",
+      "marker": "{{n}} open events",
       "dot": "Events open",
       "end": {
         "official": "until {{date}}",

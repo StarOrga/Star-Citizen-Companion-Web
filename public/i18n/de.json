@@ -6210,7 +6210,7 @@
       "noResponse": "Die Companion-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
       "retry": "Schon installiert? Erneut starten",
       "download": "Companion-App herunterladen",
-      "downloadCta": "Companion-App downloaden",
+      "downloadCta": "App downloaden",
       "downloadStarted": "Der Download läuft (rund 500 MB). Führe danach das Setup aus.",
       "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „Companion-App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "tipLaunch": "Öffnet die Companion-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
@@ -6259,7 +6259,8 @@
     },
     "events": {
       "teaser": "Event verfügbar",
-      "marker": "{{n}} Event(s) offen",
+      "markerOne": "{{n}} offenes Event",
+      "marker": "{{n}} offene Events",
       "dot": "Events offen",
       "end": {
         "official": "bis {{date}}",
