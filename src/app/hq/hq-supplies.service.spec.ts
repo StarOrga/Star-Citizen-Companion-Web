@@ -330,6 +330,25 @@ describe('HqSuppliesService', () => {
       expect(s.items()[0].amount).toBe(0.36);
     });
 
+    it('restore() still brings a line back after the sync dropped its pushed tombstone (AUD-3)', async () => {
+      const s = make();
+      s.add('Rifle', 2, { className: 'RIFLE', packageId: 'p1' });
+      s.add('Helmet', 1, { className: 'HELM', packageId: 'p1' });
+      await s.sync();
+      const ids = s.items().map((i) => i.id);
+      s.removeMany(ids);
+      await s.sync(); // pushes the tombstones; the clean ones are dropped from the local rows
+      expect(s.items()).toEqual([]);
+      expect(server.every((r) => r.deleted_at !== null)).toBeTrue();
+      for (const id of ids) s.restore(id);
+      expect(s.items().map((i) => [i.id, i.name, i.qty, i.packageId, i.dirty])).toEqual([
+        [ids[0], 'Rifle', 2, 'p1', true],
+        [ids[1], 'Helmet', 1, 'p1', true],
+      ]);
+      await s.sync();
+      expect(server.map((r) => r.deleted_at)).toEqual([null, null]);
+    });
+
     it('pushes the new columns only on lines that have them (rows without them write what they always did)', async () => {
       const s = make();
       await s.sync();

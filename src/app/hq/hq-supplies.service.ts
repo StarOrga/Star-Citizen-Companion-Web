@@ -112,6 +112,7 @@ const STEP_KINDS_SET = new Set(['buy', 'mission', 'mine', 'refine', 'craft', 'tr
 const PUSH_BATCH = 200;
 const PULL_PAGE = 500;
 const PUSH_DEBOUNCE_MS = 500;
+const REMOVED_SNAPSHOT_MAX = 200;
 
 interface CacheShape {
   uid: string;
@@ -141,6 +142,8 @@ export class HqSuppliesService {
   private watermark: string | null = null;
   private inFlight: Promise<void> | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  /** Undo source for {@link restore}, oldest first; bounded. */
+  private readonly removedSnapshots = new Map<string, SupplyItem>();
 
   readonly items = computed(() => this.rows().filter((i) => !i.deletedAt));
   readonly open = computed(() => this.items().filter((i) => !i.done));
@@ -280,10 +283,22 @@ export class HqSuppliesService {
     this.patch(id, { qty: clampQty(qty), amount: amount === null ? null : roundAmount(amount) });
   }
 
-  /** Brings back a removed line (undo of {@link remove}); a newer edit clears the tombstone. */
+  /**
+   * Brings back a removed line (undo of {@link remove}); a newer edit clears the tombstone. A tombstone the sync
+   * already dropped (clean + pushed, ~500 ms after the removal) is re-inserted from the snapshot taken at removal,
+   * as a dirty row with the same id, so it pushes again and the server tombstone is overwritten.
+   */
   restore(id: string): void {
     const i = this.rows().find((x) => x.id === id);
-    if (i?.deletedAt) this.patch(id, { deletedAt: null });
+    if (i) {
+      if (i.deletedAt) this.patch(id, { deletedAt: null });
+      this.removedSnapshots.delete(id);
+      return;
+    }
+    const snap = this.removedSnapshots.get(id);
+    if (!snap) return;
+    this.removedSnapshots.delete(id);
+    this.commit([...this.rows(), { ...snap, deletedAt: null, updatedAt: nowIso(), dirty: true }]);
   }
 
   /** Lines of one Nachschub (open and closed). */
@@ -302,6 +317,7 @@ export class HqSuppliesService {
   removeMany(ids: readonly string[]): void {
     const set = new Set(ids);
     const now = nowIso();
+    this.rememberRemoved(this.rows().filter((i) => set.has(i.id) && !i.deletedAt));
     this.commit(this.rows().map((i) => (set.has(i.id) && !i.deletedAt ? { ...i, deletedAt: now, updatedAt: now, dirty: true } : i)));
   }
 
@@ -314,6 +330,7 @@ export class HqSuppliesService {
 
   remove(id: string): void {
     const now = nowIso();
+    this.rememberRemoved(this.rows().filter((i) => i.id === id && !i.deletedAt));
     this.commit(this.rows().map((i) => (i.id === id ? { ...i, deletedAt: now, updatedAt: now, dirty: true } : i)));
   }
 
@@ -362,6 +379,19 @@ export class HqSuppliesService {
     return this.inFlight;
   }
 
+  /** Full copies of just-removed lines: the tombstone itself is dropped by the sync once the server has it. */
+  private rememberRemoved(rows: readonly SupplyItem[]): void {
+    for (const r of rows) {
+      this.removedSnapshots.delete(r.id);
+      this.removedSnapshots.set(r.id, r);
+    }
+    while (this.removedSnapshots.size > REMOVED_SNAPSHOT_MAX) {
+      const oldest = this.removedSnapshots.keys().next().value;
+      if (oldest === undefined) break;
+      this.removedSnapshots.delete(oldest);
+    }
+  }
+
   private patch(id: string, change: Partial<SupplyItem>): void {
     const now = nowIso();
     this.commit(this.rows().map((i) => (i.id === id ? { ...i, ...change, updatedAt: now, dirty: true } : i)));
@@ -387,6 +417,7 @@ export class HqSuppliesService {
     const prev = this.uid;
     const prevRows = this.rows();
     this.uid = id;
+    this.removedSnapshots.clear();
     this.watermark = null;
     this.ready.set(false);
     this.syncError.set(null);

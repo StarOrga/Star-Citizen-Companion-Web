@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.229.0] - 2026-11-08
+
+### Fixed
+- Nachschub audit: an owned ship can be wished again with a quantity, and buying a wished ship fulfils one copy
+- Nachschub lines close once per stock gain, counted from each line's own starting stock; arrivals are no longer counted twice
+- Undo of "Leeren" and "Löschen" brings the Nachschub lines back
+- Einsätze can be proposed for existing lines, renamed and added by hand; the cart handles all 7 slots taken
+- Esc and outside click close dialogs and popovers reliably; locale dates and retired wording fixed
+- Blueprint material wishes use one multiplier; the ship detail page has a wish stepper
+
 ## [0.228.0] - 2026-11-08
 
 ### Changed

@@ -2,7 +2,7 @@ import { ItemPathService } from '../../hq/data/item-path.service';
 import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, type Routes, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
@@ -20,12 +20,12 @@ describe('HqPlanComponent', () => {
   beforeEach(clean);
   afterEach(clean);
 
-  function make(withSupplies = true) {
+  function make(withSupplies = true, routes: Routes = []) {
     TestBed.resetTestingModule();
     const fake = fakeSupabase();
     TestBed.configureTestingModule({
       providers: [ { provide: ItemPathService, useValue: fakeItemPath() },
-        provideRouter([]),
+        provideRouter(routes),
         provideTranslateService(),
         fake.provider,
         { provide: AuthService, useValue: { user: signal(null) } },
@@ -57,6 +57,34 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('.classic')).toBeNull();
     click(f, el.querySelector('.board .slot.free .hit'));
     expect(el.querySelector('sc-hq-nachschub-flow')).not.toBeNull();
+  });
+
+  describe('"In einen Nachschub" from the cart', () => {
+    const nach = (i: number) => ({ id: `n${i}`, name: `N${i}`, status: 'active' as const, slot: i, snapshot: {}, createdAt: '2026-11-07T10:00:00Z', archivedAt: null });
+    const pick = async (active: number) => {
+      localStorage.removeItem('sc.hq.nachschub.focus');
+      const { f, el } = make(false, [{ path: '**', children: [] }]);
+      const ns = f.componentInstance['ns'];
+      ns.packages.set(Array.from({ length: active }, (_, i) => nach(i + 1)));
+      ns.loaded.set(true);
+      await TestBed.inject(Router).navigateByUrl('/hq?pick=' + encodeURIComponent('item:medpen~2'));
+      f.detectChanges();
+      await f.whenStable();
+      f.detectChanges();
+      return el;
+    };
+
+    it('opens a new Nachschub while a slot is free', async () => {
+      const el = await pick(3);
+      expect(el.querySelector('sc-hq-nachschub-flow .dlg-title')?.textContent).toContain('hq.flow.titleNew');
+    });
+
+    it('with all 7 slots taken it adds to an existing Nachschub instead of a doomed "new" flow', async () => {
+      const el = await pick(7);
+      const title = el.querySelector('sc-hq-nachschub-flow .dlg-title');
+      expect(title?.textContent).toContain('hq.flow.titleEdit');
+      expect(title?.querySelector('small')).toBeNull();
+    });
   });
 
   it('the archive opens from the end of the board', () => {

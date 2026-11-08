@@ -82,11 +82,10 @@ export interface RowOwnership {
   fittedOn: { shipId: string; name: string; count: number }[];
 }
 
-/** The three standard icons (B8/B9). `lager` on a ship means "In den Hangar". */
+/** The standard icons (B8/B9). `lager` on a ship means "In den Hangar". */
 export interface SearchRowIcons {
   wishlist: boolean;
   lager: boolean;
-  nachschub: boolean;
 }
 
 export type SearchCtaId =

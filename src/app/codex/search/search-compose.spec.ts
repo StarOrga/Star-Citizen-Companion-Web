@@ -139,7 +139,7 @@ describe('composeSearchResult', () => {
     const r = composeSearchResult({ ...base, groups: [ships], context: searchContextOf('/codex'), chips: [], flagshipClassName: 'DRAK_Cutlass' });
     const row = r.groups[0].rows[0];
     expect(row.cta?.id).toBe('compareWith');
-    expect(row.icons).toEqual({ wishlist: true, lager: true, nachschub: true });
+    expect(row.icons).toEqual({ wishlist: true, lager: true });
   });
 
   it('the fit badge is carried when a chip names a ship (B5)', () => {

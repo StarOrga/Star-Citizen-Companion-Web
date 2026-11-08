@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { fakeSupabase } from '../../testing/fake-supabase';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
@@ -146,6 +147,113 @@ describe('Nachschub board, panel and dialogs', () => {
     expect((spy.calls.mostRecent().args[1] as string).length).toBeLessThanOrEqual(28);
   });
 
+  it('panel: the rename field takes the focus when it appears and the pen gets it back afterwards', async () => {
+    const svc = setup();
+    svc.packages.set([nach('a', 'Rattler-Vorrat', 1)]);
+    spyOn(svc, 'rename').and.resolveTo(true);
+    const f = TestBed.createComponent(HqNachschubPanelComponent);
+    f.componentRef.setInput('nachschub', svc.packages()[0]);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    click(f, el.querySelector('.name .pen'));
+    await f.whenStable();
+    f.detectChanges();
+    const input = el.querySelector('input.rename') as HTMLInputElement;
+    expect(document.activeElement).toBe(input);
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    expect(el.querySelector('input.rename')).toBeNull();
+    expect(document.activeElement).toBe(el.querySelector('.name .pen'));
+  });
+
+  describe('Einsatz names', () => {
+    const one = (title: string) => ({
+      title,
+      packageId: 'a',
+      steps: [{ kind: 'buy' as const, label: 'X', location: null, system: null, className: 'x', qty: 1, supplyId: null, missionRef: null }],
+    });
+    function mountPanel() {
+      const svc = setup();
+      svc.packages.set([nach('a', 'Rattler-Vorrat', 1)]);
+      const einsatz = TestBed.inject(HqEinsatzService);
+      einsatz.create(one('Einkauf'));
+      const f = TestBed.createComponent(HqNachschubPanelComponent);
+      f.componentRef.setInput('nachschub', svc.packages()[0]);
+      f.detectChanges();
+      return { f, el: f.nativeElement as HTMLElement, einsatz };
+    }
+    const key = (input: HTMLInputElement, k: string) => input.dispatchEvent(new KeyboardEvent('keydown', { key: k }));
+    const type = (input: HTMLInputElement, v: string) => {
+      input.value = v;
+      input.dispatchEvent(new Event('input'));
+    };
+
+    it('renames an Einsatz in its card: 40 characters, Enter saves, the pen gets the focus back', async () => {
+      const { f, el, einsatz } = mountPanel();
+      click(f, el.querySelector('.ecard .epen'));
+      await f.whenStable();
+      f.detectChanges();
+      const input = el.querySelector('input.erename') as HTMLInputElement;
+      expect(input.maxLength).toBe(40);
+      expect(document.activeElement).toBe(input);
+      type(input, 'Alles bei Area18 kaufen');
+      key(input, 'Enter');
+      f.detectChanges();
+      await f.whenStable();
+      f.detectChanges();
+      expect(einsatz.ofPackage('a')[0].title).toBe('Alles bei Area18 kaufen');
+      expect(el.querySelector('.ecard .pick')?.textContent).toBe('Alles bei Area18 kaufen');
+      expect(document.activeElement).toBe(el.querySelector('.ecard .epen'));
+    });
+
+    it('Escape drops the edit; a blank name is not saved and says why', () => {
+      const { f, el, einsatz } = mountPanel();
+      click(f, el.querySelector('.ecard .epen'));
+      let input = el.querySelector('input.erename') as HTMLInputElement;
+      type(input, 'Anders');
+      key(input, 'Escape');
+      f.detectChanges();
+      expect(einsatz.ofPackage('a')[0].title).toBe('Einkauf');
+      expect(el.querySelector('input.erename')).toBeNull();
+      click(f, el.querySelector('.ecard .epen'));
+      input = el.querySelector('input.erename') as HTMLInputElement;
+      type(input, '   ');
+      key(input, 'Enter');
+      f.detectChanges();
+      expect(el.querySelector('.eerr')?.textContent).toContain('hq.einsatz.rename.empty');
+      expect(einsatz.ofPackage('a')[0].title).toBe('Einkauf');
+    });
+
+    it('"Einsatz hinzufügen" asks for a title (40 characters) and adds one Einsatz to this Nachschub', async () => {
+      const { f, el, einsatz } = mountPanel();
+      const prompt = spyOn(TestBed.inject(ScConfirmService), 'prompt').and.resolveTo('Fracht holen');
+      const add = [...el.querySelectorAll('.acts button')].find((b) => b.textContent?.includes('hq.einsatz.add.action'))!;
+      click(f, add);
+      await f.whenStable();
+      f.detectChanges();
+      expect(prompt.calls.mostRecent().args[0].inputMaxLength).toBe(40);
+      const list = einsatz.ofPackage('a');
+      expect(list.map((e) => e.title)).toEqual(['Einkauf', 'Fracht holen']);
+      expect(list[1].steps.length).toBe(1);
+      expect(el.querySelectorAll('.ecard').length).toBe(2);
+    });
+
+    it('a cancelled or empty title adds nothing', async () => {
+      const { f, el, einsatz } = mountPanel();
+      const prompt = spyOn(TestBed.inject(ScConfirmService), 'prompt');
+      const add = [...el.querySelectorAll('.acts button')].find((b) => b.textContent?.includes('hq.einsatz.add.action'))!;
+      prompt.and.resolveTo(null);
+      click(f, add);
+      await f.whenStable();
+      prompt.and.resolveTo('   ');
+      click(f, add);
+      await f.whenStable();
+      expect(einsatz.ofPackage('a').length).toBe(1);
+    });
+  });
+
   it('panel: a Nachschub without Einsätze offers to propose them (opens the flow on step 3)', () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Leer', 1)]);
@@ -235,11 +343,16 @@ describe('HqNachschubFlowComponent', () => {
   });
   const WISH = [w('item', 'medpen', 12, null, 'Medpen'), w('blueprint', 'gallant', 2, null, 'Gallant'), w('material', 'aluminium', 16, 'gallant', 'Aluminium')];
 
-  function setup(wish: WishPosition[] = WISH, sources = new Map<string, unknown>()) {
+  function setup(wish: WishPosition[] = WISH, sources = new Map<string, unknown>(), drain = false) {
     TestBed.resetTestingModule();
-    const created = jasmine.createSpy('createFromWishlist').and.callFake(async () => ({ ok: true, key: 'hq.nachschub.done.created', id: 'new' }));
+    // The real service empties the wishlist of what it took; `drain` makes the fake do the same (H5).
+    const live = signal<readonly WishPosition[]>(wish);
+    const created = jasmine.createSpy('createFromWishlist').and.callFake(async () => {
+      if (drain) live.set([]);
+      return { ok: true, key: 'hq.nachschub.done.created', id: 'new' };
+    });
     const fake = {
-      wishPositions: () => wish,
+      wishPositions: () => live(),
       packages: signal<Nachschub[]>([]),
       linesOf: () => [],
       createFromWishlist: created,
@@ -330,6 +443,23 @@ describe('HqNachschubFlowComponent', () => {
     expect(done.length).toBe(1);
   });
 
+  it('H5: the Einsätze are written from the proposal as it was BEFORE the wishlist emptied', async () => {
+    const { f, el, created } = setup(WISH, new Map(), true);
+    const einsatz = TestBed.inject(HqEinsatzService);
+    click(f, el.querySelector('.pick-bar button'));
+    click(f, el.querySelector('.dlg-foot button:last-child'));
+    await whenIdle(f);
+    click(f, el.querySelector('.dlg-foot button:last-child'));
+    await whenIdle(f);
+    const cards = el.querySelectorAll('.ecard').length;
+    expect(cards).toBeGreaterThanOrEqual(2);
+    click(f, el.querySelector('.dlg-foot button:last-child')); // Nachschub anlegen: the wishlist is empty from here on
+    await whenIdle(f);
+    expect(created).toHaveBeenCalledTimes(1);
+    expect(einsatz.ofPackage('new').length).toBe(cards);
+    expect(einsatz.ofPackage('new').every((e) => e.steps.length > 0)).toBeTrue();
+  });
+
   async function toStep3(r: ReturnType<typeof setup>) {
     click(r.f, r.el.querySelector('.pick-bar button'));
     click(r.f, r.el.querySelector('.dlg-foot button:last-child'));
@@ -379,6 +509,79 @@ describe('HqNachschubFlowComponent', () => {
     click(f, el.querySelector('.dlg-foot button:last-child'));
     await whenIdle(f);
     expect(el.querySelector('.rest .chips li')?.textContent).toContain('Medpen');
+  });
+
+  describe('edit mode: Einsätze for the lines a Nachschub already has', () => {
+    const line = (id: string, kind: string, className: string, qty: number, forClassName: string | null, done = false) => ({
+      id, name: className, qty, done, entityKind: kind, className, forClassName,
+    });
+    const LINES = [line('l1', 'blueprint', 'gallant', 2, null), line('l2', 'material', 'aluminium', 16, 'gallant'), line('l3', 'material', 'titan', 4, null, true)];
+
+    function setupEdit(lines: unknown[], withEinsatz = false) {
+      TestBed.resetTestingModule();
+      const fake = {
+        wishPositions: () => [],
+        packages: signal<Nachschub[]>([nach('p1', 'Gallant-Ausrüstung', 1)]),
+        linesOf: () => lines,
+        rename: jasmine.createSpy('rename').and.resolveTo(true),
+        addFromWishlist: jasmine.createSpy('addFromWishlist'),
+        removeLine: jasmine.createSpy('removeLine'),
+      };
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([]),
+          provideTranslateService(),
+          fakeSupabase().provider,
+          { provide: AuthService, useValue: { user: signal(null) } },
+          { provide: NachschubService, useValue: fake },
+          { provide: NachschubNamingService, useValue: { nachschubName: () => Promise.resolve('X'), einsatzName: () => Promise.resolve('Mein Einsatz') } },
+          { provide: HqNeedSourcesService, useValue: { ensure: () => undefined, sources: signal(new Map<string, unknown>()) } },
+          { provide: ShellChromeService, useValue: { startSupplySearch: () => undefined } },
+        ],
+      });
+      const einsatz = TestBed.inject(HqEinsatzService);
+      if (withEinsatz) {
+        einsatz.create({ title: 'Schon da', packageId: 'p1', steps: [{ kind: 'buy', label: 'A', location: null, system: null, className: 'a', qty: 1, supplyId: null, missionRef: null }] });
+      }
+      const f = TestBed.createComponent(HqNachschubFlowComponent);
+      f.componentRef.setInput('mode', 'edit');
+      f.componentRef.setInput('nachschubId', 'p1');
+      f.componentRef.setInput('startStep', 3);
+      f.detectChanges();
+      return { f, el: f.nativeElement as HTMLElement, einsatz };
+    }
+
+    it('proposes Einsätze from the open lines when the Nachschub has none, and writes them on save', async () => {
+      const { f, el, einsatz } = setupEdit(LINES);
+      await whenIdle(f);
+      expect(el.querySelector('.dlg-msg')).toBeNull();
+      const cards = el.querySelectorAll('.ecard:not(.have-card)');
+      expect(cards.length).toBeGreaterThan(0);
+      // Only the open lines count: the ticked titan line is not proposed again.
+      expect(el.textContent).not.toContain('titan');
+      click(f, el.querySelector('.dlg-foot button:last-child'));
+      await whenIdle(f);
+      const made = einsatz.ofPackage('p1');
+      expect(made.length).toBe(cards.length);
+      expect(made.flatMap((e) => e.steps).every((s) => s.supplyId === 'l1' || s.supplyId === 'l2' || s.supplyId === null)).toBeTrue();
+    });
+
+    it('proposes nothing new once the Nachschub has Einsätze', async () => {
+      const { f, el } = setupEdit(LINES, true);
+      await whenIdle(f);
+      expect(el.querySelector('.dlg-msg')?.textContent).toContain('hq.flow.noNewLines');
+      expect(el.querySelectorAll('.ecard:not(.have-card)').length).toBe(0);
+      expect(el.querySelectorAll('.have-card').length).toBe(1);
+    });
+  });
+
+  it('new mode shows the slot number only while a slot is free (never a taken one)', () => {
+    const { f, el } = setup();
+    expect(el.querySelector('.dlg-title small')?.textContent).toContain('hq.flow.slotOf');
+    const fake = TestBed.inject(NachschubService) as unknown as { packages: { set(v: Nachschub[]): void } };
+    fake.packages.set(Array.from({ length: 7 }, (_, i) => nach(`n${i}`, `N${i}`, i + 1)));
+    f.detectChanges();
+    expect(el.querySelector('.dlg-title small')).toBeNull();
   });
 
   it('a blueprint follows its material when only part of the material is taken (2x becomes 1x)', () => {

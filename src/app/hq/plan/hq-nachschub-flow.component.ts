@@ -81,7 +81,7 @@ type Step = 1 | 2 | 3;
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg></span>
           <h2 id="flow-title" class="dlg-title">
             {{ (mode() === 'new' ? 'hq.flow.titleNew' : 'hq.flow.titleEdit') | translate }}
-            @if (mode() === 'new') { <small>{{ 'hq.flow.slotOf' | translate: { n: nextSlot() ?? maxSlots, max: maxSlots } }}</small> }
+            @if (mode() === 'new' && nextSlot() !== null) { <small>{{ 'hq.flow.slotOf' | translate: { n: nextSlot(), max: maxSlots } }}</small> }
           </h2>
           <ol class="steps" [attr.aria-label]="'hq.flow.stepsAria' | translate">
             @for (s of stepList; track s) {
@@ -502,8 +502,8 @@ export class HqNachschubFlowComponent {
   protected readonly sumPieces = computed(() => this.existing().reduce((n, l) => n + l.qty, 0) + this.pieces());
 
   /** What the proposal reads: the picked rows as lines (edit mode: only the newly added ones). */
-  protected readonly proposalLines = computed<ProposalLine[]>(() =>
-    this.pickedGroups().flatMap((g) =>
+  protected readonly proposalLines = computed<ProposalLine[]>(() => {
+    const picked: ProposalLine[] = this.pickedGroups().flatMap((g) =>
       g.rows.map((r) => ({
         key: r.key,
         name: this.rowName(r),
@@ -514,8 +514,42 @@ export class HqNachschubFlowComponent {
         forName: g.type === 'blueprint' ? g.title : null,
         craftable: !!(r.className && this.sourcesSvc.sources().get(r.className)?.craftable),
       })),
-    ),
-  );
+    );
+    const open = this.openLines();
+    if (!open.length) return picked;
+    // A newly picked position that is already on the Nachschub joins its line instead of doubling it.
+    const byKey = new Map(open.map((l) => [l.key, l] as const));
+    const merged = picked.map((l) => {
+      const o = byKey.get(l.key);
+      if (!o) return l;
+      byKey.delete(l.key);
+      return { ...l, qty: l.qty + o.qty };
+    });
+    return [...byKey.values(), ...merged];
+  });
+  /**
+   * Edit mode, Nachschub without any Einsatz yet: its open lines are proposed Einsaetze like new picks
+   * (otherwise "Einsaetze vorschlagen" could never produce any for lines added earlier).
+   */
+  private readonly openLines = computed<ProposalLine[]>(() => {
+    if (this.mode() !== 'edit' || this.existingEinsaetze().length > 0) return [];
+    return this.existing()
+      .filter((l) => !l.done && !!l.className)
+      .map((l) => {
+        const kind = l.entityKind ?? 'item';
+        const forClassName = (l.forClassName ?? '').trim() || null;
+        return {
+          key: positionKey({ kind, className: l.className as string, forClassName }),
+          name: l.name?.trim() || humanizeClassName(l.className as string),
+          className: l.className,
+          kind,
+          qty: l.qty,
+          forClassName,
+          forName: forClassName ? this.bpName(forClassName) : null,
+          craftable: !!(l.className && this.sourcesSvc.sources().get(l.className)?.craftable),
+        };
+      });
+  });
   protected readonly materialLines = computed(() => this.proposalLines().filter((l) => isMaterialLine(l) && !isBlueprintLine(l)));
   /** Non-material, non-blueprint lines: bought or crafted per line (W5.4). */
   protected readonly itemLines = computed(() => this.proposalLines().filter((l) => !isMaterialLine(l) && !isBlueprintLine(l)));
@@ -756,6 +790,8 @@ export class HqNachschubFlowComponent {
     try {
       const picks: WishPick[] = [...this.picks()].map(([key, qty]) => ({ key, qty }));
       const name = clampName(this.name(), NACHSCHUB_NAME_MAX);
+      // The proposal reads the wishlist: taking the picks empties it. Hold the Einsaetze and their lines BEFORE the write.
+      const plan: EinsatzPlan = { drafts: this.drafts(), lines: this.proposalLines(), names: this.names() };
       let result: NachschubResult;
       let id: string | undefined;
       if (this.mode() === 'new') {
@@ -772,7 +808,7 @@ export class HqNachschubFlowComponent {
         this.error.set(result.key);
         return;
       }
-      await this.writeEinsaetze(id);
+      await this.writeEinsaetze(id, plan);
       this.done.emit(result);
     } finally {
       this.busy.set(false);
@@ -780,16 +816,16 @@ export class HqNachschubFlowComponent {
   }
 
   /** Create the proposed Einsaetze for the lines just added, with the supply line each step serves. */
-  private async writeEinsaetze(packageId: string): Promise<void> {
+  private async writeEinsaetze(packageId: string, plan: EinsatzPlan): Promise<void> {
     const lines = this.svc.linesOf(packageId);
     const lineId = (key: string): string | null => {
-      const src = this.proposalLines().find((l) => l.key === key);
+      const src = plan.lines.find((l) => l.key === key);
       if (!src) return null;
       const f = (src.forClassName ?? '').toLowerCase();
       return lines.find((l) => (l.className ?? '').toLowerCase() === (src.className ?? '').toLowerCase() && (l.forClassName ?? '').toLowerCase() === f)?.id ?? null;
     };
-    for (const d of this.drafts()) {
-      const title = clampName(this.names().get(d.role) ?? (await this.naming.einsatzName(d.steps.map((s) => ({ kind: s.kind, label: s.label })))), EINSATZ_NAME_MAX);
+    for (const d of plan.drafts) {
+      const title = clampName(plan.names.get(d.role) ?? (await this.naming.einsatzName(d.steps.map((s) => ({ kind: s.kind, label: s.label })))), EINSATZ_NAME_MAX);
       this.einsatz.create({
         title,
         packageId,
@@ -807,4 +843,11 @@ export class HqNachschubFlowComponent {
       });
     }
   }
+}
+
+/** What the proposal looked like when "Speichern" was pressed (the wishlist it reads shrinks with the write). */
+interface EinsatzPlan {
+  readonly drafts: readonly DraftEinsatz[];
+  readonly lines: readonly ProposalLine[];
+  readonly names: ReadonlyMap<string, string>;
 }

@@ -98,6 +98,20 @@ describe('HqEinsatzService', () => {
     expect(s.upcoming().length).toBe(1);
   });
 
+  it('renames an Einsatz; a Nachschub Einsatz is held to 40 characters, a loose one is not', () => {
+    const s = make();
+    const loose = s.create({ title: 'Loose', steps })!;
+    const pkg = s.create({ title: 'In a Nachschub', packageId: 'p1', steps })!;
+    const long = 'x'.repeat(90);
+    expect(s.rename(pkg.id, `  ${long}  `)).toBeTrue();
+    expect(s.items().find((e) => e.id === pkg.id)!.title.length).toBe(40);
+    expect(s.rename(loose.id, long)).toBeTrue();
+    expect(s.items().find((e) => e.id === loose.id)!.title.length).toBe(90);
+    expect(s.rename(pkg.id, '   ')).toBeFalse();
+    expect(s.rename('nope', 'Name')).toBeFalse();
+    expect(s.create({ title: long, packageId: 'p1', steps })!.title.length).toBe(40);
+  });
+
   it('pushes the Einsatz and its steps, and a second device pulls both', async () => {
     const s = make();
     s.create({ title: 'Pembroke run', steps });

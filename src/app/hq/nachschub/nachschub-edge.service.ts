@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarShipOrigin } from '../../hangar/hangar.types';
 import { HqInventoryService } from '../data/hq-inventory.service';
@@ -28,6 +29,7 @@ export class NachschubEdgeService {
   private readonly inventory = inject(HqInventoryService);
   private readonly hangar = inject(HangarService);
   private readonly wish = inject(WishlistStore);
+  private readonly searchWish = inject(SearchWishlistService);
 
   /** i18n key of the last failure, else null. */
   lastError: string | null = null;
@@ -60,8 +62,16 @@ export class NachschubEdgeService {
       return 1;
     }
     if (have.status === 'wishlist') {
-      // Owning fulfils the wish: the row flips to owned and keeps its count.
-      return (await this.hangar.updateShip(have.id, { status: 'owned', ...(origin ? { origin } : {}) })) ? (have.qty ?? 1) : 0;
+      // Owning fulfils ONE copy of the wish: the row flips to owned with 1 copy, the other wished copies stay wished
+      // (3 wished + buy 1 = owned 1, wished 2) - as an extra-copies wish in the store, which SearchWishlistService owns.
+      const wished = have.qty ?? 1;
+      if (!(await this.hangar.updateShip(have.id, { status: 'owned', qty: 1, ...(origin ? { origin } : {}) }))) return 0;
+      if (wished > 1 && !(await this.searchWish.setQty('ship', shipClassName, have.customName, wished - 1))) {
+        // The other wished copies could not be kept: back to the wished row as it was, nothing half done.
+        await this.hangar.updateShip(have.id, { status: 'wishlist', qty: wished });
+        return 0;
+      }
+      return 1;
     }
     const next = nextShipCopies(have.qty);
     return (await this.hangar.updateShip(have.id, { qty: next })) ? next : 0;

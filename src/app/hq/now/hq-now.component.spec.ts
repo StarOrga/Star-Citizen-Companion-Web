@@ -246,6 +246,32 @@ describe('HqNowComponent', () => {
       expect(el.querySelector('.run-t b')?.textContent).toBe('Medpens');
     });
 
+    it('M10: a focused Nachschub that archives stays in Jetzt, says so, and still shows its Einsätze', () => {
+      const { f, el } = mountRun();
+      const ns = TestBed.inject(NachschubService);
+      ns.packages.update((ps) => ps.map((p) => (p.id === 'n1' ? { ...p, status: 'archived' as const, slot: null, archivedAt: '2026-11-08T10:00:00Z' } : p)));
+      f.detectChanges();
+      expect(el.querySelector('.run-t b')?.textContent).toBe('Rattler-Vorrat');
+      expect(el.querySelector('.run-a')).not.toBeNull();
+      expect(el.querySelector('sc-hq-route-graphic')).not.toBeNull();
+      // The other, still active Nachschub can be switched to.
+      expect(el.querySelector('.sw button')).not.toBeNull();
+    });
+
+    it('a Nachschub without Einsätze shows one empty state naming it, with a link to Planen (no doubled sentence)', () => {
+      const f = mount(fakeLive({}));
+      TestBed.inject(NachschubService).packages.set([nach('n9', 'Leerer Vorrat', 1)]);
+      f.detectChanges();
+      const el = f.nativeElement as HTMLElement;
+      const empty = el.querySelector('.empty')!;
+      expect(empty.querySelector('.e-title')?.textContent).toContain('hq.einsatz.noneYet.title');
+      expect(empty.textContent).not.toContain('hq.run.emptyTitle');
+      expect(empty.querySelector('a')).not.toBeNull();
+      // The step column stays quiet instead of repeating "no operation".
+      expect(el.querySelector('.stepcol')?.textContent).not.toContain('hq.now.path.empty');
+      expect(el.textContent).not.toContain('hq.run.emptyTitle');
+    });
+
     it('without any Nachschub it explains itself and leads to Planen', () => {
       const f = mount(fakeLive({}));
       const el = f.nativeElement as HTMLElement;

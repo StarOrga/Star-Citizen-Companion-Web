@@ -11,7 +11,20 @@ export type Locale = 'de' | 'en';
 export interface NameItem { name: string; qty: number }
 export interface NameRequest { kind: NameKind; locale: Locale; items: NameItem[] }
 
-const text = (v: unknown, max: number): string => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+/**
+ * Control characters, soft hyphen, zero-width and bidi marks/overrides/isolates: invisible in a name, usable to spoof one
+ * (a right-to-left override flips the text after it) or to smuggle text past a reader. Whitespace controls (tab, newline)
+ * are not in the set - they collapse to one space.
+ */
+// eslint-disable-next-line no-control-regex
+const INVISIBLE = /[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F\u00AD\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF]/g;
+export const stripInvisible = (v: unknown): string => String(v ?? '').replace(INVISIBLE, '');
+
+/** A standalone "AI" / "KI" (also "A.I."): a name is never labelled as machine made. */
+const AI_WORD = /(^|[^\p{L}\p{N}])(ai|ki|a\.i\.|k\.i\.)(?=$|[^\p{L}\p{N}])/iu;
+export const mentionsAi = (v: string): boolean => AI_WORD.test(v);
+
+const text = (v: unknown, max: number): string => stripInvisible(v).replace(/\s+/g, ' ').trim().slice(0, max);
 
 /** Request body -> a clean request, or null when it is unusable. Every field is capped; nothing is trusted. */
 export function parseRequest(body: unknown): NameRequest | null {
@@ -38,7 +51,7 @@ export function limitOf(kind: NameKind): number {
 
 /** One name: collapsed whitespace, no quotes / trailing dots, cut at a word to the limit. */
 export function clampName(v: unknown, max: number): string {
-  const t = String(v ?? '').replace(/\s+/g, ' ').replace(/^["'„“]+|["'“”.]+$/g, '').trim();
+  const t = stripInvisible(v).replace(/\s+/g, ' ').replace(/^["'„“]+|["'“”.]+$/g, '').trim();
   const cps = Array.from(t);
   if (cps.length <= max) return t;
   const cut = cps.slice(0, max).join('');
@@ -51,7 +64,9 @@ export function parseName(replyText: string, max: number): string | null {
   if (!m) return null;
   try {
     const v = JSON.parse(m[0]) as { name?: unknown };
-    return clampName(v.name, max) || null;
+    const name = clampName(v.name, max);
+    // A name that calls itself AI/KI is dropped: the client then uses its rule-based fallback name.
+    return name && !mentionsAi(name) ? name : null;
   } catch {
     return null;
   }

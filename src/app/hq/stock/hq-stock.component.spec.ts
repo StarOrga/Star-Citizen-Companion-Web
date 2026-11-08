@@ -5,6 +5,8 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { WishlistStore } from '../data/wishlist.store';
@@ -17,6 +19,7 @@ import { HqLiveService } from '../now/hq-live.service';
 import { HqStockComponent } from './hq-stock.component';
 
 describe('HqStockComponent', () => {
+  afterEach(() => TestBed.inject(UndoToastService).flush());
   const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 
   interface Opts {
@@ -46,11 +49,18 @@ describe('HqStockComponent', () => {
       addManual: jasmine.createSpy('addManual').and.resolveTo(true),
     };
     const wish = {
-      totalQty: (_k: string, c: string) => (c === 'ksar_rifle_p4ar' ? 2 : 0),
+      totalQty: (k: string, c: string) => (c === 'ksar_rifle_p4ar' || (k === 'blueprint' && c === 'gallant_bp') ? 2 : 0),
       qtyOf: () => 1,
       setQty: jasmine.createSpy('setQty').and.resolveTo(true),
+      remove: jasmine.createSpy('remove').and.resolveTo(true),
       ensureLoaded: () => Promise.resolve(),
       error: signal<string | null>(null),
+    };
+    const shipWishes = {
+      qtyOf: (k: string, c: string) => (k === 'ship' && c === 'AEGS_Gladius' ? 3 : 0),
+      setQty: jasmine.createSpy('shipSetQty').and.resolveTo(true),
+      add: jasmine.createSpy('shipAdd').and.resolveTo(true),
+      remove: jasmine.createSpy('shipRemove').and.resolveTo(true),
     };
     const ships = [
       { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Pfeil', status: 'owned', pinnedRank: 1, qty: 2, origin: 'pledge' },
@@ -69,6 +79,7 @@ describe('HqStockComponent', () => {
         { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve(), configsForShip: () => [] } },
         { provide: HqInventoryService, useValue: inv },
         { provide: WishlistStore, useValue: wish },
+        { provide: SearchWishlistService, useValue: shipWishes },
         { provide: HqSuppliesService, useValue: { items: signal([]) } },
         { provide: NachschubService, useValue: { packages: signal([]), ensureLoaded: () => Promise.resolve() } },
         { provide: SammlungService, useValue: { blueprints: signal([{ kind: 'blueprint', id: 'gallant_bp', name: 'Gallant' }]), load: () => Promise.resolve() } },
@@ -78,7 +89,7 @@ describe('HqStockComponent', () => {
     });
     const fixture = TestBed.createComponent(HqStockComponent);
     fixture.detectChanges();
-    return { fixture, inv, wish, el: fixture.nativeElement as HTMLElement };
+    return { fixture, inv, wish, shipWishes, el: fixture.nativeElement as HTMLElement };
   }
 
   const click = (f: { detectChanges(): void }, b: Element | null) => {
@@ -109,7 +120,61 @@ describe('HqStockComponent', () => {
     const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
     expect(p4ar.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
     click(fixture, p4ar.querySelector('.nach'));
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'item', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 2);
+    // A bare class name is a guess: the kind comes from the category (a rifle is a weapon, as the Codex files it).
+    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'weapon', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 2);
+  });
+
+  it('Nachholen on a tile offers an undo toast that puts the former quantity back (AUD-7)', async () => {
+    const { fixture, wish, el } = mount();
+    const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
+    click(fixture, p4ar.querySelector('.nach'));
+    await new Promise((r) => setTimeout(r, 0));
+    const toast = TestBed.inject(UndoToastService);
+    expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
+    wish.setQty.calls.reset();
+    // The write landed (1 + 1) and someone wished 3 more meanwhile: undo takes off only its own one.
+    wish.qtyOf = () => 5;
+    toast.undo();
+    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'weapon', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 4);
+  });
+
+  it('a failed wishlist write shows the error and no success toast', async () => {
+    const { fixture, wish, el } = mount();
+    wish.setQty.and.resolveTo(false);
+    const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
+    click(fixture, p4ar.querySelector('.nach'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(TestBed.inject(UndoToastService).current()).toBeNull();
+    expect(el.querySelector('p.err[role=alert]')).not.toBeNull();
+  });
+
+  it('a material tile wishes the plain material of its crate, as the blueprint recipes name it (AUD-7)', () => {
+    const { fixture, inv, wish, el } = mount();
+    inv.items.update((rs) => [...rs, { location: 'Area18', name: 'Iron', class_name: 'Carryable_TBO_FL_32SCU_Commodity_Metal_Iron', qty: 2, unit: 'scu' }]);
+    fixture.detectChanges();
+    const iron = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('Iron'))!;
+    click(fixture, iron.querySelector('.nach'));
+    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'material', className: 'Iron', name: 'Iron' }, 2);
+  });
+
+  it('Hangar tiles carry the wish hint and Nachholen too, the name stays an anchor beside the button (AUD-6)', () => {
+    const { fixture, shipWishes, el } = mount();
+    click(fixture, el.querySelectorAll('.tabs .tab')[1]);
+    const gladius = [...el.querySelectorAll('.grid .tile.ship')].find((t) => t.textContent?.includes('Pfeil'))!;
+    expect(gladius.querySelector('a.tile-link')?.getAttribute('href')).toContain('/codex/ship/');
+    expect(gladius.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
+    click(fixture, gladius.querySelector('.nach'));
+    expect(shipWishes.setQty).toHaveBeenCalledWith('ship', 'AEGS_Gladius', 'Pfeil', 4);
+  });
+
+  it('Sammlung tiles carry the wish hint and Nachholen too (AUD-6)', () => {
+    const { fixture, wish, el } = mount();
+    click(fixture, el.querySelectorAll('.tabs .tab')[2]);
+    const bp = el.querySelector('.grid .tile.bp')!;
+    expect(bp.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
+    click(fixture, bp.querySelector('.nach'));
+    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'blueprint', className: 'gallant_bp', name: 'Gallant' }, 2);
   });
 
   it('the plus tile opens the stock popup in add mode', () => {
@@ -173,17 +238,16 @@ describe('HqStockComponent', () => {
     click(fixture, el.querySelectorAll('.tabs .tab')[2]);
     const tiles = [...el.querySelectorAll('.grid .tile')];
     expect(tiles[0].classList).toContain('add');
-    expect(tiles[1].tagName).toBe('A');
-    expect(tiles[1].getAttribute('href')).toContain('/codex/blueprint/gallant_bp');
+    expect(tiles[1].querySelector('a.tile-link')?.getAttribute('href')).toContain('/codex/blueprint/gallant_bp');
     expect(el.querySelector('[data-ruf] .empty')).not.toBeNull();
   });
 
   it('Hangar: owned ships only, as anchors to their page, with copies and origin', () => {
     const { fixture, el } = mount();
     click(fixture, el.querySelectorAll('.tabs .tab')[1]);
-    const ships = [...el.querySelectorAll('.grid a.tile')];
+    const ships = [...el.querySelectorAll('.grid .tile.ship')];
     expect(ships.length).toBe(2);
-    expect(ships.every((s) => s.getAttribute('href')?.includes('/codex/ship/'))).toBeTrue();
+    expect(ships.every((s) => s.querySelector('a.tile-link')?.getAttribute('href')?.includes('/codex/ship/'))).toBeTrue();
     // The flagship stands first; the pledged Gladius carries its origin.
     expect(ships.find((t) => t.textContent?.includes('Pfeil'))?.textContent).toContain('hq.bestand.origin.pledge');
   });

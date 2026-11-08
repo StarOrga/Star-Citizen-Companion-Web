@@ -44,7 +44,8 @@
     },
     "dialog": {
       "confirm": "Bestätigen",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "close": "Schließen"
     },
     "undo": "Rückgängig"
   },
@@ -4988,7 +4989,7 @@
   "consent": {
     "banner": {
       "title": "Browser-Speicher",
-      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und Lesezeichen sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
+      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und deine Sammlung sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
       "acceptAll": "Alle erlauben",
       "essentialOnly": "Nur notwendige"
     },
@@ -5004,7 +5005,7 @@
       },
       "preferences": {
         "label": "Präferenzen",
-        "desc": "News-Kanalfilter, Lesezeichen und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
+        "desc": "News-Kanalfilter, Sammlung und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
       },
       "statistics": {
         "label": "Statistik",
@@ -5534,6 +5535,7 @@
     },
     "run": {
       "aria": "Nachschub, den Jetzt bedient",
+      "archived": "Abgeschlossen: Dieser Nachschub liegt im Archiv, seine Einsätze laufen hier weiter. Unter Planen › Archiv kannst du ihn wieder aktivieren.",
       "for": "für",
       "stepOf": "Schritt {{n}} von {{total}}",
       "switch": "Nachschub wechseln",
@@ -5603,6 +5605,12 @@
     "nachschub": {
       "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
       "nothingPicked": "Wähle mindestens einen Gegenstand von der Wunschliste.",
+      "linesFull": "Deine Nachschub-Liste ist voll (100 Positionen). Entferne erst Positionen, dann kann die Wunschliste einziehen.",
+      "partial": "{{count}} Positionen sind geblieben: Deine Nachschub-Liste ist voll.",
+      "wishlistFailed": "Die Wunschliste konnte nicht geändert werden. Es wurde nichts verschoben.",
+      "wishCapped": "{{count}} Stück passen nicht mehr auf die Wunschliste (höchstens 999 je Eintrag) und gehen verloren.",
+      "gone": "Dieser Nachschub existiert nicht mehr (auf einem anderen Gerät gelöscht). Die Ansicht wird aktualisiert.",
+      "capReached": "Du hast das Limit an gespeicherten Nachschüben erreicht. Lösche alte aus dem Archiv, dann klappt es wieder.",
       "newName": "Neuer Nachschub",
       "newEinsatz": "Neuer Einsatz",
       "verb": {
@@ -5620,8 +5628,6 @@
         "reactivated": "Nachschub ist wieder aktiv.",
         "emptied": "Nachschub geleert.",
         "removed": "Nachschub gelöscht.",
-        "nothingWished": "Nichts auf der Wunschliste.",
-        "fulfilled": "Von der Wunschliste abgehakt.",
         "added": "Zum Nachschub hinzugefügt.",
         "lineRemoved": "Position entfernt.",
         "edited": "Nachschub gespeichert."
@@ -5794,11 +5800,11 @@
       },
       "planen": {
         "empty": "Noch nichts geplant",
-        "emptyHint": "Aus Nachschub wird eine Route.",
+        "emptyHint": "Aus dem Nachschub wird ein Einsatz.",
         "go": "Jetzt planen",
         "count": "{{n}} offen",
         "needs": "{{n}} im Nachschub",
-        "route": "Route öffnen"
+        "route": "Einsatz öffnen"
       },
       "stats": {
         "missions": "{{n}} Missionen",
@@ -5910,7 +5916,10 @@
         "message": "„{{name}}“ kommt als Missionsschritt dazu.",
         "none": "Du hast noch keinen geplanten oder laufenden Einsatz.",
         "new": "Neuer Einsatz"
-      }
+      },
+      "add": {"action":"Einsatz hinzufügen","title":"Neuer Einsatz","label":"Name des Einsatzes (höchstens 40 Zeichen)","confirm":"Hinzufügen"},
+      "rename": {"action":"Einsatz „{{name}}“ umbenennen","aria":"Neuer Name des Einsatzes","empty":"Der Name darf nicht leer sein."},
+      "noneYet": {"title":"„{{name}}“ hat noch keine Einsätze","hint":"Schlage in Planen Einsätze aus den Positionen vor oder füge einen hinzu."}
     },
     "activity": {
       "kopfgeld": "Kopfgeld",
@@ -6050,8 +6059,7 @@
         "noMatch": "Nichts passt zu diesen Filtern.",
         "empty": "Noch nichts im Inventar erfasst.",
         "ships": "Schiffe im Terminal",
-        "nachholen": "Nachholen",
-        "nachholenAria": "Nachholen: {{name}}"
+        "onWishlist": "Auf die Wunschliste"
       },
       "retry": "Erneut versuchen",
       "destroyed": "Zuletzt zerstört: {{at}}",
@@ -7019,7 +7027,6 @@
       "allInHq": "Alle {{n}} im HQ öffnen",
       "mission": "Missionen"
     },
-    "supplyHint": "Such den Gegenstand und leg ihn mit diesem Symbol in den Nachschub.",
     "own": {
       "ship": "dein Schiff",
       "fitted": "auf deinem Schiff verbaut",
@@ -7586,17 +7593,11 @@
     "done": {
       "wishOn": "„{{name}}“ ist auf der Wunschliste",
       "wishOff": "„{{name}}“ ist nicht mehr auf der Wunschliste",
-      "nachschub": "„{{name}}“ ist im Nachschub",
-      "moved": "„{{name}}“ ist jetzt im Nachschub, nicht mehr auf der Wunschliste",
-      "nachschubMaterial": "„{{name}}“ ist im Nachschub, dazu {{n}} Material",
-      "movedMaterial": "„{{name}}“ ist jetzt im Nachschub, dazu {{n}} Material, nicht mehr auf der Wunschliste",
-      "nachschubOff": "„{{name}}“ ist nicht mehr im Nachschub",
-      "nachschubOffMaterial": "„{{name}}“ und {{n}} Material sind nicht mehr im Nachschub",
-      "qty": "„{{name}}“: {{qty}} im Nachschub",
-      "nachholen": "{{qty}} × „{{name}}“ wieder im Nachschub",
       "inventar": "„{{name}}“ liegt jetzt in {{where}}",
-      "ticked": "„{{name}}“ abgehakt",
       "hangar": "„{{name}}“ ist im Hangar",
+      "hangarCopy": "„{{name}}“ ist jetzt {{n}}× im Hangar",
+      "ownWish": "„{{name}}“ ist da – Wunsch erfüllt",
+      "ownWishLeft": "„{{name}}“ ist da – noch {{left}} auf der Wunschliste",
       "undone": "Rückgängig gemacht",
       "inventarOff": "„{{name}}“ ist nicht mehr im Inventar",
       "inventarWithMe": "„{{name}}“ hast du jetzt bei dir",
@@ -7605,72 +7606,10 @@
     },
     "err": {
       "failed": "Das hat nicht geklappt. Versuch es noch einmal.",
-      "unavailable": "Diesen Schritt gibt es hier nicht.",
-      "listFull": "Der Nachschub ist voll.",
-      "noLine": "Dafür gibt es keine offene Zeile im Nachschub.",
-      "alreadyOwned": "Das Schiff ist schon im Hangar."
+      "unavailable": "Diesen Schritt gibt es hier nicht."
     },
     "hint": {
       "notYetInGame": "noch nicht im Spiel"
-    },
-    "step": {
-      "wish": "Wunschliste",
-      "nachschub": "Nachschub",
-      "inventar": "Inventar",
-      "hangar": "Hangar"
-    },
-    "node": {
-      "wish": {
-        "off": "Auf die Wunschliste",
-        "on": "Auf der Wunschliste"
-      },
-      "nachschub": {
-        "off": "In den Nachschub legen",
-        "on": "{{qty}}× im Nachschub"
-      },
-      "inventar": {
-        "off": "Ins Inventar legen",
-        "on": "{{qty}}× im Inventar"
-      },
-      "hangar": {
-        "off": "In den Hangar legen",
-        "on": "Im Hangar"
-      }
-    },
-    "go": {
-      "wish": "Auf die Wunschliste",
-      "nachschub": "In den Nachschub",
-      "inventar": "Ins Inventar",
-      "hangar": "In den Hangar"
-    },
-    "full": {
-      "wish": "Für später vormerken.",
-      "wishOn": "steht drauf",
-      "nachschub": "Jetzt holen. Mit Menge und Quelle.",
-      "nachschubOn": "{{qty}}× offen",
-      "inventar": "Hab ich. Mit Ort und Menge.",
-      "inventarOn": "{{inv}}× an {{places}} Ort(en)",
-      "inventarBlueprint": "Gesammelt. Immer verfügbar.",
-      "hangar": "Hab ich. Schon gekauft oder erspielt.",
-      "hangarOn": "steht im Hangar",
-      "change": "Ändern",
-      "direct": "Direkt hierhin"
-    },
-    "pop": {
-      "less": "Weniger",
-      "more": "Mehr",
-      "remove": "Entfernen",
-      "viewWish": "Auf der Wunschliste ansehen ›",
-      "viewNachschub": "Im Nachschub ansehen ›",
-      "toMission": "Zum Einsatz ›",
-      "viewInventar": "Im Inventar ansehen ›",
-      "viewHangar": "Im Hangar ansehen ›",
-      "whereTitle": "Wo liegt es?",
-      "otherPlace": "Anderer Ort …",
-      "otherPlaceholder": "Ort eingeben",
-      "store": "Ablegen",
-      "removeHangarTitle": "Aus dem Hangar entfernen?",
-      "removeHangarMessage": "„{{name}}“ wird samt Varianten, deren Freigaben für Freunde und Notizen gelöscht. Das lässt sich nicht rückgängig machen."
     }
   },
   "quick": {
@@ -7679,6 +7618,8 @@
     "more": "Mehr anzeigen",
     "less": "Weniger anzeigen",
     "emptyRecent": "Noch nichts geöffnet.",
+    "recentNeedsConsent": "Geöffnete Seiten merkt sich dieses Gerät nur mit der Einwilligung „Präferenzen“.",
+    "recentConsentLink": "Einstellungen öffnen",
     "wish": "Wunschliste",
     "lastAdded": "zuletzt hinzugefügt",
     "emptyWish": "Noch nichts auf der Wunschliste.",
@@ -7731,6 +7672,8 @@
     "selected": "gewählt",
     "clear": "Alle abwählen",
     "toNachschub": "In einen Nachschub",
+    "slotsFullHint": "Alle 7 Nachschub-Plätze sind belegt. Die Auswahl kommt in einen bestehenden Nachschub.",
+    "toExisting": "In einen bestehenden Nachschub",
     "kind": {
       "ship": "Schiff",
       "vehicle": "Fahrzeug",
