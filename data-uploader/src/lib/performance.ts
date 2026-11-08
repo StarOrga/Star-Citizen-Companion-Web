@@ -188,3 +188,16 @@ function formatDuration(seconds: number): string {
   const mins = minutes % 60;
   return mins === 0 ? `${hours} h` : `${hours} h ${mins} min`;
 }
+
+/**
+ * Clock-style duration with labelled units: "45 s" under a minute, "41 m" under
+ * an hour, "3 h 41 m" beyond. Whole minutes are floored — an elapsed counter
+ * must never run ahead of the wall clock. Used by the progress bar.
+ */
+export function formatClock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  if (s < 60) return `${s} s`;
+  const totalMin = Math.floor(s / 60);
+  if (totalMin < 60) return `${totalMin} m`;
+  return `${Math.floor(totalMin / 60)} h ${totalMin % 60} m`;
+}

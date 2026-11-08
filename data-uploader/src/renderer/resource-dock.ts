@@ -805,7 +805,6 @@ function render(): void {
       <div class="res-tab">
         <button type="button" class="res-toggle" id="res-toggle" aria-expanded="${expanded}" aria-controls="res-body"${expanded ? ` aria-label="${esc(t('res.collapseAria'))}"` : ''} data-tip="${esc(toggleTip())}" data-tip-key="T">
           ${icon('gauge')}
-          <span class="res-title">${t('res.title')}</span>
           <span class="res-preset-name">${esc(presetName())}</span>
           <span class="res-eta">${esc(tabEta())}</span>
           <span class="res-caret" aria-hidden="true">${expanded ? '▾' : '▴'}</span>

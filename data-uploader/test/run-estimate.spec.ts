@@ -5,6 +5,7 @@ import {
   estimateFor,
   estimateRun,
   formatApprox,
+  mergeRecord,
   parseHistory,
   relativeTime,
   scaleSeconds,
@@ -171,5 +172,60 @@ describe('run-estimate · parseHistory', () => {
     ).toEqual({ codex: { ms: 1000, workers: 2 } });
     expect(parseHistory(null)).toEqual({});
     expect(parseHistory('x')).toEqual({});
+  });
+});
+
+describe('run-estimate · skipped items and rolling history', () => {
+  it('a step that came in half-done is scaled to a whole step, not recorded as quick', () => {
+    const tr = new RunTracker();
+    tr.note('models', 50, 0, 2); // resume: half of the rail was already current
+    tr.note('models', 100, 10 * MIN, 2);
+    expect(tr.finish(10 * MIN)).toEqual({ step: 'models', record: { ms: 20 * MIN, workers: 2 } });
+  });
+
+  it('a step that was all skipped teaches nothing', () => {
+    const tr = new RunTracker();
+    tr.note('models', 100, 0, 2);
+    expect(tr.finish(5000)).toBeNull();
+  });
+
+  it('averages runs instead of keeping only the last, normalised to the new worker count', () => {
+    const a = mergeRecord(undefined, { ms: 10 * MIN, workers: 2 });
+    expect(a).toEqual({ ms: 10 * MIN, workers: 2, runs: 1 });
+    const b = mergeRecord(a, { ms: 20 * MIN, workers: 2 });
+    expect(b.ms).toBeCloseTo(15 * MIN);
+    expect(b.runs).toBe(2);
+    // an earlier run at 1 worker is scaled to the new run's 2 workers first
+    const c = mergeRecord({ ms: 10 * MIN, workers: 1, runs: 1 }, { ms: 7 * MIN, workers: 2 });
+    expect(c.ms).toBeCloseTo(7 * MIN);
+  });
+
+  it('caps the remembered runs so the average keeps moving', () => {
+    let r = mergeRecord(undefined, { ms: 10 * MIN, workers: 2 });
+    for (let i = 0; i < 20; i++) r = mergeRecord(r, { ms: 20 * MIN, workers: 2 });
+    expect(r.runs).toBe(5);
+    expect(r.ms).toBeGreaterThan(19 * MIN);
+  });
+
+  it('survives a round trip through storage (across uploader versions)', () => {
+    const stored = JSON.parse(JSON.stringify({ models: mergeRecord(undefined, { ms: 5 * MIN, workers: 3 }) }));
+    expect(parseHistory(stored).models).toEqual({ ms: 5 * MIN, workers: 3, runs: 1 });
+  });
+
+  it('whole run = every remaining phase; the profile formula fills only unmeasured phases', () => {
+    const e = estimateRun({
+      now: 0,
+      current: null,
+      upcoming: ['codex', 'silhouettes', 'models'],
+      history: { silhouettes: { ms: 10 * MIN, workers: 4 }, models: { ms: 30 * MIN, workers: 4 } },
+      fallback: { codex: { ms: 20 * MIN, workers: 4 }, models: { ms: 999 * MIN, workers: 4 } },
+      workers: 4,
+    });
+    expect(e?.scope).toBe('run');
+    expect(e?.seconds).toBe(60 * 60); // 20 (fallback) + 10 + 30 (measured beats fallback)
+  });
+
+  it('without history and without fallback there is no invented figure', () => {
+    expect(estimateRun({ now: 0, current: null, upcoming: ['codex'], history: {}, workers: 4 })).toBeNull();
   });
 });
