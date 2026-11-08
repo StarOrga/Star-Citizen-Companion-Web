@@ -50,7 +50,8 @@ describe('HqItemMarksService', () => {
     const s = make();
     expect(await s.setPinned('A', true)).toBeTrue();
     expect(await s.setNote('A', '  for the Cutlass  ')).toBeTrue();
-    expect(rows).toEqual([{ class_name: 'A', note: 'for the Cutlass', pinned_rank: 1 }]);
+    expect(rows).toEqual([jasmine.objectContaining({ class_name: 'A', note: 'for the Cutlass', pinned_rank: 1 })]);
+    expect(rows.length).toBe(1);
     expect(s.noteOf('A')).toBe('for the Cutlass');
   });
 

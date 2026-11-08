@@ -2,6 +2,8 @@
 // SEPARATE file from codex-detail.component.spec.ts on purpose: that file
 // "must stay green untouched" (no edits), so this one owns the new
 // assertions instead, reusing the same Nomad fixture/stub shape.
+import { HqItemMarksService } from '../hq/data/hq-item-marks.service';
+import { fakeItemMarks } from '../hq/data/hq-item-marks.testing';
 import { PageCornerService } from '../shell/corners/page-corner.service';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
@@ -138,7 +140,7 @@ async function setup(queryParams: Record<string, string> = {}): Promise<Componen
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
-      { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: ItemPathService, useValue: fakeItemPath() }, { provide: HqItemMarksService, useValue: fakeItemMarks() },
       provideTranslateService({}),
       { provide: CodexService, useValue: makeCodexServiceStub() },
       {

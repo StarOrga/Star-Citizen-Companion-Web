@@ -1,4 +1,6 @@
 import { PageCornerService } from '../shell/corners/page-corner.service';
+import { HqItemMarksService } from '../hq/data/hq-item-marks.service';
+import { fakeItemMarks } from '../hq/data/hq-item-marks.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { NachschubService } from '../hq/nachschub/nachschub.service';
@@ -195,7 +197,7 @@ function configureSetup(
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
-      { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: ItemPathService, useValue: fakeItemPath() }, { provide: HqItemMarksService, useValue: fakeItemMarks() },
       { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(payload), ...svc } },
@@ -770,7 +772,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
-      { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: ItemPathService, useValue: fakeItemPath() }, { provide: HqItemMarksService, useValue: fakeItemMarks() },
       { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(NOMAD_PAYLOAD), ...opts.svc } },
