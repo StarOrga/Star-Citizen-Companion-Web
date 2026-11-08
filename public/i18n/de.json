@@ -4967,7 +4967,7 @@
   "consent": {
     "banner": {
       "title": "Browser-Speicher",
-      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und Lesezeichen sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
+      "text": "Diese App setzt keine Cookies. Sie speichert deine Login-Sitzung und Sprache in diesem Browser (erforderlich) und — nur wenn du es erlaubst — Komfort-Einstellungen wie News-Filter und deine Sammlung sowie anonyme Nutzungsstatistiken. Änderbar jederzeit in den Einstellungen.",
       "acceptAll": "Alle erlauben",
       "essentialOnly": "Nur notwendige"
     },
@@ -4983,7 +4983,7 @@
       },
       "preferences": {
         "label": "Präferenzen",
-        "desc": "News-Kanalfilter, Lesezeichen und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
+        "desc": "News-Kanalfilter, Sammlung und ähnlicher Komfort-Status. Beim Abschalten werden die gespeicherten Werte gelöscht."
       },
       "statistics": {
         "label": "Statistik",
@@ -5763,11 +5763,11 @@
       },
       "planen": {
         "empty": "Noch nichts geplant",
-        "emptyHint": "Aus Nachschub wird eine Route.",
+        "emptyHint": "Aus dem Nachschub wird ein Einsatz.",
         "go": "Jetzt planen",
         "count": "{{n}} offen",
         "needs": "{{n}} im Nachschub",
-        "route": "Route öffnen"
+        "route": "Einsatz öffnen"
       },
       "stats": {
         "missions": "{{n}} Missionen",
@@ -7554,6 +7554,8 @@
     "more": "Mehr anzeigen",
     "less": "Weniger anzeigen",
     "emptyRecent": "Noch nichts geöffnet.",
+    "recentNeedsConsent": "Geöffnete Seiten merkt sich dieses Gerät nur mit der Einwilligung „Präferenzen“.",
+    "recentConsentLink": "Einstellungen öffnen",
     "wish": "Wunschliste",
     "lastAdded": "zuletzt hinzugefügt",
     "emptyWish": "Noch nichts auf der Wunschliste.",

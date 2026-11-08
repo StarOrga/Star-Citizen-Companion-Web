@@ -16,14 +16,38 @@ export type StoredRow =
   | Omit<Extract<SearchResultRow, { type: 'hit' }>, 'cta' | 'icons'>
   | Omit<Extract<SearchResultRow, { type: 'own' }>, 'cta' | 'icons'>;
 
+const fold = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * What a row opens, for the "same thing twice" check: a ship found in the catalog (`hit-ship-<class>`) and the same
+ * ship from the Hangar (`own-ship-<id>`) are one entry in "Zuletzt geöffnet". Own data without a catalog class
+ * (a loadout, a set) is its own thing and keys on its id.
+ */
+export function recentRowKey(r: StoredRow): string {
+  if (r.type === 'hit') return `${r.hit.kind}:${fold(r.hit.classNameSlug)}`;
+  if (r.ownKind === 'ship' && r.classNameSlug) return `ship:${fold(r.classNameSlug)}`;
+  return r.id;
+}
+
+/** The list without a second row for the same class; the first (newest) one stays. */
+export function dedupeRecentRows<T extends StoredRow>(list: readonly T[]): T[] {
+  const seen = new Set<string>();
+  return list.filter((r) => {
+    const k = recentRowKey(r);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
 export function readRecentRows(storage: Storage | null): StoredRow[] {
   try {
     const raw = storage?.getItem(RECENT_ROWS_KEY);
     const list = raw ? (JSON.parse(raw) as unknown) : [];
     if (!Array.isArray(list)) return [];
-    return list
-      .filter((r): r is StoredRow => !!r && typeof r === 'object' && (r.type === 'hit' || r.type === 'own') && !!r.id && !!r.target)
-      .slice(0, RECENT_ROWS_MAX);
+    return dedupeRecentRows(
+      list.filter((r): r is StoredRow => !!r && typeof r === 'object' && (r.type === 'hit' || r.type === 'own') && !!r.id && !!r.target),
+    ).slice(0, RECENT_ROWS_MAX);
   } catch {
     return [];
   }
@@ -40,7 +64,8 @@ export function pushRecentRow(storage: Storage | null, list: readonly StoredRow[
 
 /** Put an already-stored row first and write the list; the page the reader opened writes the same shape the search does. */
 export function rememberRow(storage: Storage | null, list: readonly StoredRow[], stored: StoredRow): StoredRow[] {
-  const next = [stored, ...list.filter((r) => r.id !== stored.id)].slice(0, RECENT_ROWS_MAX);
+  const key = recentRowKey(stored);
+  const next = [stored, ...list.filter((r) => r.id !== stored.id && recentRowKey(r) !== key)].slice(0, RECENT_ROWS_MAX);
   try {
     storage?.setItem(RECENT_ROWS_KEY, JSON.stringify(next));
   } catch {

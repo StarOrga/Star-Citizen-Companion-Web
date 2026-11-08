@@ -11,6 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
@@ -49,6 +50,7 @@ const UPCOMING = 4;
   imports: [
     TranslatePipe,
     DatePipe,
+    ScDatePipe,
     RouterLink,
     ScActionDirective,
     ScStepComponent,
@@ -199,7 +201,7 @@ const UPCOMING = 4;
               </p>
             }
             @if (lastSignal(); as at) {
-              <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</p>
+              <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | scDate: 'datetime') } }}</p>
             }
           </section>
         }
