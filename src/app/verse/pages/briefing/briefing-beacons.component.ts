@@ -7,6 +7,8 @@ import { TREND_GLYPH, StabilityTrend, stabilityWord } from '../../../news/patch-
 import { PatchStabilityService } from '../../../news/patch-stability.service';
 import { splitChars } from './briefing.model';
 import { BodyCanvasDirective } from './bodies/body.directive';
+import { BriefingStationComponent } from './briefing-station.component';
+import { BriefingHqLineService } from './briefing-hq-line';
 
 /** Quiet time (no scroll, no pointer movement, window focused) before the idle hint. */
 export const IDLE_HINT_MS = 8000;
@@ -14,9 +16,12 @@ export const IDLE_HINT_MS = 8000;
 export const IDLE_SHOW_MS = 5000;
 
 /**
- * The stage's two beacons, top right, both real anchors: the sun (→ the LIVE
- * patch's status) and the current patch's constellation below-left of it
- * (→ the star map). Hover: the sun's corona brightens and grows, a flare
+ * The stage's three beacons, all real anchors: the sun top right (→ the LIVE
+ * patch's status), the current patch's constellation at half height between
+ * the search and the Galerie planet (→ the star map), and the HQ station in the
+ * left sky (→ /hq; concept 2026-11-08 batch-feedback-15, round 3 "Olisar-Kreuz"),
+ * whose one value line names a running event, else the open Nachschübe, else
+ * "Alles ruhig im HQ" ({@link BriefingHqLineService}). Hover: the sun's corona brightens and grows, a flare
  * streak crosses it (the sun itself: concept 2026-10-31 "Sonne & Planeten" —
  * live in WebGL (bodies/body-shaders.ts): a boiling, limb-darkened photosphere
  * with a turning spot group, flames streaming out of the chromosphere,
@@ -34,7 +39,7 @@ export const IDLE_SHOW_MS = 5000;
 @Component({
   selector: 'sc-briefing-beacons',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, BriefingSkyComponent, BodyCanvasDirective],
+  imports: [RouterLink, TranslatePipe, BriefingSkyComponent, BodyCanvasDirective, BriefingStationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-beacons.component.scss',
   template: `
@@ -63,6 +68,15 @@ export const IDLE_SHOW_MS = 5000;
         @if (sunValue) {
           <span class="lab-v">{{ sunValue }}@if (sunScore) { <span class="sw" [attr.data-word]="word()">{{ sunScore }}</span>}</span>
         }
+      </span>
+    </a>
+    @let hqName = 'verse.hub.hq' | translate;
+    @let hqValue = hqLine().key | translate: hqLine().params;
+    <a class="hq-l" routerLink="/hq" [class.idle]="idle()" [attr.aria-label]="hqName + ' · ' + hqValue">
+      <span class="obj" aria-hidden="true"><sc-briefing-station /></span>
+      <span class="lab" aria-hidden="true">
+        <span class="lab-n">@for (ch of chars(hqName); track ch.i) {<i [style.--n]="ch.i">{{ ch.c }}</i>}</span>
+        <span class="lab-v">{{ hqValue }}</span>
       </span>
     </a>
     @if (skyReady()) {
@@ -109,12 +123,17 @@ export class BriefingBeaconsComponent {
     { a: '-12deg', d: '19.3s', w: '-15.8s', z: '0.6' },
   ] as const;
 
+  /** The HQ station's one value line: running event > open Nachschübe > all-clear. */
+  readonly hqLine = inject(BriefingHqLineService).line;
+
   /** The idle hint is showing. */
   readonly idle = signal(false);
 
   constructor() {
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const destroyRef = inject(DestroyRef);
+    const hq = inject(BriefingHqLineService);
+    afterNextRender(() => hq.watch(destroyRef));
     if (reduced) return;
     afterNextRender(() => {
       let timer: ReturnType<typeof setTimeout> | null = null;
