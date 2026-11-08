@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed,
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ConsentService } from '../../core/consent.service';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { SilThumbComponent } from '../../shared/sil-thumb/sil-thumb.component';
@@ -59,6 +60,10 @@ const FRAME_ICON = ['M4 6.5h16V20H4z', 'M9.5 6.5v6.5l2.5-2 2.5 2V6.5'] as const;
               }
             } @else {
               <p class="empty">{{ 'quick.emptyRecent' | translate }}</p>
+              @if (!consent.preferencesAllowed()) {
+                <!-- Nothing is written without the Präferenzen consent: say why the list stays empty and where to change it. -->
+                <p class="empty need-consent">{{ 'quick.recentNeedsConsent' | translate }} <a routerLink="/settings" (click)="close()">{{ 'quick.recentConsentLink' | translate }}</a></p>
+              }
             }
           </section>
 
@@ -115,7 +120,7 @@ const FRAME_ICON = ['M4 6.5h16V20H4z', 'M9.5 6.5v6.5l2.5-2 2.5 2V6.5'] as const;
       h4 small { font: 500 0.75rem var(--sc-font-body, inherit); letter-spacing: 0; text-transform: none; color: var(--sc-fg-2); }
       .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
       .tile { display: flex; flex-direction: column; gap: 5px; padding: 6px; border: 1px solid var(--sc-border); border-radius: 10px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent); color: var(--sc-fg-0); text-decoration: none; min-width: 0; font-size: 0.78rem; }
-      .tile b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tile b { font-weight: 500; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; line-height: 1.25; }
       .img { display: block; height: 50px; padding: 6px; border-radius: 7px; color: var(--sc-fg-1); background: color-mix(in srgb, var(--sc-accent) 6%, transparent); }
       .tile:hover, .tile:focus-visible, .qrow:hover, .qrow:focus-visible { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); outline: none; }
       .tile:focus-visible, .qrow:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent); }
@@ -128,6 +133,9 @@ const FRAME_ICON = ['M4 6.5h16V20H4z', 'M9.5 6.5v6.5l2.5-2 2.5 2V6.5'] as const;
       .all, .more { display: inline-flex; align-items: center; min-height: 36px; padding: 0 4px; border: 0; background: none; font: inherit; font-size: 0.85rem; color: var(--sc-accent); text-decoration: none; cursor: pointer; }
       .all:hover, .more:hover { text-decoration: underline; }
       .all:focus-visible, .more:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
+      .need-consent a { color: var(--sc-accent); }
+      .need-consent a:hover { text-decoration: underline; }
+      .need-consent a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .empty { margin: 4px 4px 8px; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor, 0.75rem)); }
       /* Phone: a sheet above the feedback launcher's lane, never cut by the mobile URL bar. */
       @media (max-width: 749px) {
@@ -149,6 +157,7 @@ const FRAME_ICON = ['M4 6.5h16V20H4z', 'M9.5 6.5v6.5l2.5-2 2.5 2V6.5'] as const;
 })
 export class MerklisteComponent {
   protected readonly svc = inject(MerklisteService);
+  protected readonly consent = inject(ConsentService);
   private readonly cart = inject(WishCartService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 

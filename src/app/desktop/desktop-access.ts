@@ -21,7 +21,7 @@ export type ReleaseRing = 'alpha' | 'beta' | 'stable';
  * The ONE ring the website hands out. Every download surface offers stable and
  * nothing else; beta and alpha are picked INSIDE each app (Starscape tray menu,
  * Data Uploader connection bar, SCC App settings) after the user signs in with
- * their SC Companion account, because only the signed-in role says whether a
+ * their Verse Companion account, because only the signed-in role says whether a
  * pre-release ring is reachable at all. Handing out a pre-release build here
  * would pin an install to a ring before anybody knows the account behind it.
  */

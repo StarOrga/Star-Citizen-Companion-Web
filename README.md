@@ -1,20 +1,22 @@
-# SC Companion
+# Verse Companion
 
-**Version: 0.227.0**
+**Version: 0.229.0**
 
-> Star Citizen companion — Verse News, P4K analyzer, and more.
+> Verse Companion – unofficial fan tool for Star Citizen. Your terminal to the verse: Verse News, codex, hangar and loadout tools.
 > Built with Angular 22 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
 
-[![Live](https://img.shields.io/badge/live-sc--companion.vercel.app-00d4ff)](https://sc-companion.vercel.app)
+[![Live](https://img.shields.io/badge/live-sc--companion.vercel.app-00d4ff)](https://versecompanion-alpha.vercel.app)
 [![Stack](https://img.shields.io/badge/stack-Angular%2021%20%C2%B7%20Supabase%20%C2%B7%20Vercel-00d4ff)](#)
 [![Phase](https://img.shields.io/badge/phase-alpha-fbbf24)](#)
 [![License](https://img.shields.io/badge/license-MIT-4ade80)](LICENSE)
 
-**Production:** <https://sc-companion.vercel.app>
+**Production:** <https://versecompanion-alpha.vercel.app>
 
-A fan-made Star Citizen companion: log in, follow the Verse News (Comm-Link + Spectrum + RSI status) 1:1, drop a `Data.p4k` to extract metadata automatically (with channel detection: live / ptu / eptu / tech-preview). Long-term goal: do everything erkul.games does, plus more.
+A fan-made Star Citizen companion: log in, follow the Verse News (Comm-Link + Spectrum + RSI status: titles, dates, short summaries and links to the originals), drop a `Data.p4k` to extract metadata automatically (with channel detection: live / ptu / eptu / tech-preview). Long-term goal: do everything erkul.games does, plus more.
 
-> **Not affiliated with Cloud Imperium Games or Roberts Space Industries.** See [LICENSE](LICENSE).
+> **Fan-site notice.** This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.
+> Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.
+> Official site: <https://robertsspaceindustries.com>. No donations, ads or paywalls. See [LICENSE](LICENSE).
 
 ## Quick start
 
@@ -46,7 +48,7 @@ npx supabase functions serve fetch-verse-news --no-verify-jwt
 
 ### Vercel
 
-- **Production:** <https://sc-companion.vercel.app> — auto-deployed from `main`. Vercel's project default `star-citizen-companion-website.vercel.app` redirects here.
+- **Production:** <https://versecompanion-alpha.vercel.app> — auto-deployed from `main`. Vercel's project default `star-citizen-companion-website.vercel.app` redirects here.
 - `vercel.json` configures SPA rewrites, security headers, and a CSP that allows Supabase + Google OAuth.
 - The build output is `dist/sc-companion/browser`.
 - **Initial connect (one-time):** open https://vercel.com/new, import `StarOrga/Star-Citizen-Companion-Web`, accept the defaults. Subsequent pushes to `main` deploy automatically.

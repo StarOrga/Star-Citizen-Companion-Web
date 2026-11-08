@@ -6,18 +6,29 @@ import { CodexService } from '../../codex/codex.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { ItemPathService } from '../data/item-path.service';
+import { WishlistStore } from '../data/wishlist.store';
+import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
+import { HqSuppliesService } from '../hq-supplies.service';
+import { NachschubService } from '../nachschub/nachschub.service';
 import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { HqLiveService } from '../now/hq-live.service';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 
 describe('HqStockPopupComponent: capture and links', () => {
+  afterEach(() => TestBed.inject(UndoToastService).flush());
   interface Hit { kind: string; classNameSlug: string; nameLocalized: string }
   interface Row { location: string; name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu' }
 
   function mount(start: StockStart, opts: { hits?: Hit[]; items?: Row[] } = {}) {
     const items = opts.items ?? [];
     const path = fakeItemPath();
+    const wish = {
+      totalQty: () => 0,
+      qtyOf: () => 0,
+      setQty: jasmine.createSpy('setQty').and.resolveTo(true),
+      remove: jasmine.createSpy('remove').and.resolveTo(true),
+    };
     const inv = {
       loaded: signal(true),
       error: signal<string | null>(null),
@@ -36,6 +47,10 @@ describe('HqStockPopupComponent: capture and links', () => {
         { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
         { provide: HqInventoryService, useValue: inv },
         { provide: ItemPathService, useValue: path },
+        { provide: WishlistStore, useValue: wish },
+        { provide: SearchWishlistService, useValue: { qtyOf: () => 0, add: () => Promise.resolve(true), setQty: () => Promise.resolve(true), remove: () => Promise.resolve(true) } },
+        { provide: HqSuppliesService, useValue: { items: signal([]) } },
+        { provide: NachschubService, useValue: { packages: signal([]) } },
         { provide: HqLiveService, useValue: { state: signal({ location: 'Area18' }), events: signal([]) } },
         { provide: CodexService, useValue: { searchAll: () => Promise.resolve({ hits: opts.hits ?? [], totals: {} }) } },
       ],
@@ -43,7 +58,7 @@ describe('HqStockPopupComponent: capture and links', () => {
     const fixture = TestBed.createComponent(HqStockPopupComponent);
     fixture.componentRef.setInput('start', start);
     fixture.detectChanges();
-    return { fixture, inv, path };
+    return { fixture, inv, path, wish };
   }
 
   async function type(fixture: ReturnType<typeof mount>['fixture'], text: string) {
@@ -120,35 +135,41 @@ describe('HqStockPopupComponent: capture and links', () => {
     expect(note.querySelector('.again')).toBeNull();
   });
 
-  it('Nachholen puts the quantity back into Nachschub through the path service and offers an undo; stock is not written', async () => {
-    const { fixture, inv, path } = mount(
+  it('Nachholen puts the row on the wishlist like the tile button, with an undo toast; Nachschub and stock are not written (AUD-5)', async () => {
+    const { fixture, inv, path, wish } = mount(
       { mode: 'browse' },
-      { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'Medpen_01', qty: 4, unit: 'pcs' }] },
+      { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'item:Medpen_01', qty: 4, unit: 'pcs' }] },
     );
-    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 0));
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    (el.querySelector('li.row button.again') as HTMLButtonElement).click();
+    const btn = el.querySelector('li.row button.again') as HTMLButtonElement;
+    expect(btn.textContent).toContain('hq.stock.popup.onWishlist');
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
     fixture.detectChanges();
-    expect(path.nachholen).toHaveBeenCalledOnceWith('item', 'Medpen_01', 'Medpen', 4);
+    expect(wish.setQty).toHaveBeenCalledOnceWith({ kind: 'item', className: 'Medpen_01', name: 'Medpen' }, 1);
+    expect(path.nachholen).not.toHaveBeenCalled();
     expect(inv.addManual).not.toHaveBeenCalled();
     const toast = TestBed.inject(UndoToastService);
-    expect(toast.current()?.messageKey).toBe('itemPath.done.nachholen');
+    expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
+    wish.setQty.calls.reset();
     toast.undo();
-    expect(el.querySelector('[role=alert].warn')).toBeNull();
+    expect(wish.remove).toHaveBeenCalledWith('item', 'Medpen_01', 'Medpen');
   });
 
-  it('Nachholen shows the failure inline when the path refuses', async () => {
-    const { fixture, path } = mount(
+  it('Nachholen shows the failure inline when the wishlist write fails', async () => {
+    const { fixture, wish } = mount(
       { mode: 'browse' },
-      { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'Medpen_01', qty: 1, unit: 'pcs' }] },
+      { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'item:Medpen_01', qty: 1, unit: 'pcs' }] },
     );
-    path.nachholen.and.returnValue({ ok: false, key: 'itemPath.err.listFull' });
+    wish.setQty.and.resolveTo(false);
     await fixture.whenStable();
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('li.row button.again') as HTMLButtonElement).click();
+    await fixture.whenStable();
     fixture.detectChanges();
-    expect(el.querySelector('[role=alert].warn')?.textContent).toContain('itemPath.err.listFull');
+    expect(el.querySelector('[role=alert].warn')?.textContent).toContain('errors.generic');
   });
 });

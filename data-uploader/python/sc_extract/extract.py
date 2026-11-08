@@ -391,7 +391,7 @@ def _stub_extract(cfg: ExtractConfig) -> ExtractResult:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="SC Companion P4K extractor")
+    parser = argparse.ArgumentParser(description="Verse Companion P4K extractor")
     parser.add_argument("--p4k", required=True, type=Path, help="Path to Data.p4k")
     parser.add_argument("--out", required=True, type=Path, help="Output dir")
     parser.add_argument("--channel", required=True)

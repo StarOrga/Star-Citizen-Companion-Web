@@ -61,7 +61,7 @@ export const RECENT_TERMS_SHOWN = 7;
 /** App pages matched by name: a quiet group at the end, never a CTA or icons. */
 const PLACES_SHOWN = 3;
 
-const NO_ICONS: SearchRowIcons = { wishlist: false, lager: false, nachschub: false };
+const NO_ICONS: SearchRowIcons = { wishlist: false, lager: false };
 
 /** An app page found by name — a row without CTA or icons (B10). */
 interface PlaceRow {
@@ -238,12 +238,6 @@ const FITTED_SHOWN = 2;
 
     @if (open()) {
       <div class="panel" [class.has-term]="hasText()">
-        @if (chrome.supplySearch()) {
-          <p class="supply-hint" role="status">
-            <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of actionIcons.nachschub; track $index) { <path [attr.d]="d" /> }</svg>
-            <span>{{ 'search.supplyHint' | translate }}</span>
-          </p>
-        }
         @if (hasText() && engine.error(); as err) {
           <div class="state err" role="alert">
             <span>{{ 'codex.search.bar.failed' | translate }} — {{ err | translate }}</span>
@@ -607,9 +601,6 @@ const FITTED_SHOWN = 2;
     }
     .cta:disabled { opacity: 0.6; cursor: default; }
     .sep { width: 1px; height: 20px; margin: 0 4px; background: var(--sc-border); }
-    /* "In den Nachschub" as the task at hand: the hint names the icon, the rows mark it. */
-    .supply-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); border-radius: 8px; background: color-mix(in srgb, var(--sc-accent) 10%, transparent); color: var(--sc-fg-0); font-size: max(0.85rem, var(--sc-fs-floor)); }
-    .supply-hint svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--sc-accent); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
     .more-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
     .expand { border: 0; background: transparent; color: var(--sc-accent); font: inherit; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
     .expand:hover { background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
@@ -1108,7 +1099,7 @@ export class FusionSearchComponent {
   }
 
   hasIcons(r: ViewRow): boolean {
-    return r.icons.wishlist || r.icons.lager || r.icons.nachschub;
+    return r.icons.wishlist || r.icons.lager;
   }
 
   kindIcon(r: ViewRow): readonly string[] {

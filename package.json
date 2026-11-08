@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.227.0",
+  "version": "0.229.0",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "gen:body-maps": "node scripts/bake-body-maps.mjs",
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
-    "prebuild": "node scripts/gen-release-notes.js && node scripts/build-brand-icons.mjs --check && node scripts/bake-planet.mjs --check && node scripts/bake-body-maps.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs && node scripts/check-routine-prompts.mjs && node scripts/check-native-ui.mjs && node scripts/check-overlay-sizes.mjs && node scripts/check-raw-errors.mjs",
+    "prebuild": "node scripts/gen-release-notes.js && node scripts/apply-brand.mjs --check && node scripts/build-brand-icons.mjs --check && node scripts/bake-planet.mjs --check && node scripts/bake-body-maps.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs && node scripts/check-routine-prompts.mjs && node scripts/check-native-ui.mjs && node scripts/check-overlay-sizes.mjs && node scripts/check-raw-errors.mjs",
     "build": "node scripts/build-with-exit-guard.mjs",
     "postbuild": "node scripts/stamp-index-version.mjs && node scripts/check-index-csp.mjs && node scripts/stamp-ngsw-worker.mjs",
     "watch": "ng build --watch --configuration development",

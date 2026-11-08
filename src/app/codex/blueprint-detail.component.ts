@@ -46,7 +46,7 @@ import { blueprintMissions } from './blueprint-missions';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
 import { WishlistStore } from '../hq/data/wishlist.store';
-import { blueprintMaterialWishes } from '../hq/nachschub/nachschub.model';
+import { blueprintMaterialWishes, clampWishQty } from '../hq/nachschub/nachschub.model';
 
 @Component({
   selector: 'sc-blueprint-detail',
@@ -146,6 +146,7 @@ import { blueprintMaterialWishes } from '../hq/nachschub/nachschub.model';
                     <span>{{ 'blueprintWish.button' | translate: { n: craftTimes() } }}</span>
                   </button>
                 </div>
+                @if (wishError(); as e) { <p class="wish-err" role="alert">{{ e | translate }}</p> }
               }
               @if (ingredients().length === 0) {
                 <p class="muted">{{ 'blueprint.detail.noIngredients' | translate }}</p>
@@ -261,6 +262,7 @@ import { blueprintMaterialWishes } from '../hq/nachschub/nachschub.model';
     .mission-row { align-items: center; flex-wrap: wrap; }
     .mission-meta { font-size: 0.8rem; color: var(--sc-fg-2); }
     .mission-more { margin: 10px 0 0; font-size: 0.85rem; }
+    .wish-err { margin: 0 0 var(--sc-space-2, 8px); color: var(--sc-warning); font-size: 0.85rem; }
     .ing-unit { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; color: var(--sc-fg-2); }
     .ingredient-row, .output-row {
       display: flex; gap: 14px; align-items: flex-start;
@@ -352,8 +354,17 @@ export class BlueprintDetailComponent implements OnInit {
     return (
       fromPayload ||
       cleanLocaleValue(this.detail()?.row['name_localized'] as string) ||
+      // No name on the blueprint itself: it is named after what it crafts, not after its slug.
+      this.outputName() ||
       humanizeBlueprintName(this.detail()?.classNameSlug)
     );
+  });
+
+  /** The crafted thing's catalogue name once resolved ('' until then, or when the catalogue has none). */
+  private readonly outputName = computed(() => {
+    const e = this.outputEntity();
+    if (!e) return '';
+    return (e.name ? pickLocalized(e.name, this.lang) : '') || cleanLocaleValue(e.nameLocalized) || '';
   });
 
   readonly description = computed(() => {
@@ -445,6 +456,8 @@ export class BlueprintDetailComponent implements OnInit {
   private readonly undoToast = inject(UndoToastService);
   protected readonly craftTimes = signal(1);
   protected readonly wishBusy = signal(false);
+  /** i18n key of a failed "Material ×N" write; the success toast only comes when every write landed. */
+  protected readonly wishError = signal<string | null>(null);
   /** The ingredients that can be wished: the ones the catalogue resolved to a class name. */
   protected readonly wishableMaterial = computed(() =>
     this.ingredients()
@@ -452,19 +465,34 @@ export class BlueprintDetailComponent implements OnInit {
       .map((i) => ({ className: i.ingredientClassName as string, name: this.ingredientName(i), perBlueprint: i.quantity })),
   );
 
-  /** N crafts: the blueprint (quantity N, at least) and its material on the wishlist, counted up where they are already; one undo toast. */
+  /** N more crafts: the blueprint's group quantity rises by N and its material is set from the total; one undo toast. */
   protected async wishMaterial(): Promise<void> {
     const d = this.detail();
     if (!d || this.wishBusy()) return;
     this.wishBusy.set(true);
+    this.wishError.set(null);
     try {
+      // One multiplier: the blueprint's wished quantity is the group quantity N (what is already there plus this
+      // click), and every material is SET to ceil(N x perBlueprint) from that total - never added per click, so
+      // fractional amounts do not round up again with each click.
       const times = this.craftTimes();
+      const current = this.wishStore.qtyOf('blueprint', d.classNameSlug, this.displayName(), null);
+      const total = clampWishQty(current + times);
       const entries = [
-        { kind: 'blueprint', className: d.classNameSlug, name: this.displayName(), forClassName: null as string | null, qty: times },
-        ...blueprintMaterialWishes(d.classNameSlug, this.wishableMaterial(), times).map((w) => ({ kind: w.kind, className: w.className, name: w.name, forClassName: w.forClassName ?? null, qty: w.qty })),
+        { kind: 'blueprint', className: d.classNameSlug, name: this.displayName(), forClassName: null as string | null, qty: total },
+        ...blueprintMaterialWishes(d.classNameSlug, this.wishableMaterial(), total).map((w) => ({ kind: w.kind, className: w.className, name: w.name, forClassName: w.forClassName ?? null, qty: w.qty })),
       ];
       const before = entries.map((e) => this.wishStore.qtyOf(e.kind, e.className, e.name, e.forClassName));
-      for (const e of entries) await this.wishStore.addQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, e.qty);
+      const results: boolean[] = [];
+      for (const e of entries) results.push(await this.wishStore.setQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, e.qty));
+      if (results.includes(false)) {
+        // Say so, and take back what did land: a half-filled list under a success toast is worse than none.
+        for (const [i, e] of entries.entries()) {
+          if (results[i]) await this.wishStore.setQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, before[i]);
+        }
+        this.wishError.set('errors.generic');
+        return;
+      }
       this.undoToast.offer({
         messageKey: 'blueprintWish.done',
         messageParams: { n: times, name: this.displayName() },
@@ -553,7 +581,11 @@ export class BlueprintDetailComponent implements OnInit {
     if (!out?.className) return;
     try {
       const map = await this.svc.resolveEntities([out.className]);
-      if (seq === this.loadSeq) this.outputEntity.set(map.get(out.className) ?? null);
+      if (seq !== this.loadSeq) return;
+      this.outputEntity.set(map.get(out.className) ?? null);
+      // The recent-pages row was written with the slug name before the lookup; write it again with the real one.
+      const d = this.detail();
+      if (d && this.outputName()) noteOpenedPage({ kind: 'blueprint', className: d.classNameSlug, title: this.displayName(), manufacturerCode: null });
     } catch {
       /* the plain humanized line stays */
     }

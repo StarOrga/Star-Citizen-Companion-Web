@@ -1,3 +1,4 @@
+import { BRAND_INITIALS } from '../../core/brand';
 import { ConstellationRenderOptions, Ctx2D, constellationBoxes, renderConstellationWallpaper } from './constellation-render';
 import { FALLBACK_POINTS } from './starmap.model';
 
@@ -63,10 +64,10 @@ describe('constellation renderer', () => {
     expect(r.log.slice(0, i).reverse().find((l) => l.startsWith('globalAlpha='))).toBe('globalAlpha=0.07');
   });
 
-  it('adds the subtle SCC hint only to the supernova', () => {
+  it('adds the subtle brand-initials hint only to the supernova', () => {
     const r = recorder();
     renderConstellationWallpaper(r.ctx, { ...opts, supernova: true });
-    expect(r.log.some((l) => l.startsWith('fillText(SCC'))).toBeTrue();
+    expect(r.log.some((l) => l.startsWith(`fillText(${BRAND_INITIALS}`))).toBeTrue();
   });
 
   it('draws only the current constellation large', () => {

@@ -120,7 +120,7 @@ const text = (s) => Buffer.from(s, 'utf-8');
 if (!existsSync(MASTER)) {
   console.error(
     `missing master mark: ${relative(ROOT, MASTER)}\n` +
-      'It is vendored from the SC Companion desktop app repo ' +
+      'It is vendored from the Verse Companion desktop app repo ' +
       '(modules/desktop/resources/app-icon-taskbar.svg). See public/icons/brand/README.md.',
   );
   process.exit(1);

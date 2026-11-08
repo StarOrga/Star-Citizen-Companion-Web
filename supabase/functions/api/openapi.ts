@@ -7,7 +7,7 @@ import type { Context } from './_router.ts';
 export const SPEC = {
   openapi: '3.1.0',
   info: {
-    title: 'SC Companion Public API',
+    title: 'Verse Companion Public API',
     version: '1.0.0',
     description:
       'Read-only access to Star Citizen Verse data — patch versions, news, ships, components. ' +
@@ -15,8 +15,8 @@ export const SPEC = {
       'Rate-limited per token; see response headers `X-RateLimit-*`. ' +
       'Patch-version-aware: pass `?patch=` or omit for the current LIVE version.',
     contact: {
-      name: 'SC Companion',
-      url: 'https://sc-companion.vercel.app',
+      name: 'Verse Companion',
+      url: 'https://versecompanion-alpha.vercel.app',
     },
     license: { name: 'MIT' },
   },

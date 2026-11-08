@@ -1,20 +1,20 @@
 ---
 title: Getting Started
-excerpt: Make your first authenticated call against the SC Companion Public API in under five minutes.
+excerpt: Make your first authenticated call against the Verse Companion Public API in under five minutes.
 metadata:
-  title: SC Companion Public API — Getting Started
-  description: Base URL, tokens, scopes and your first authenticated request against the read-only SC Companion Public API.
+  title: Verse Companion Public API — Getting Started
+  description: Base URL, tokens, scopes and your first authenticated request against the read-only Verse Companion Public API.
 ---
 
-The **SC Companion Public API** gives you read-only access to Star Citizen Verse
-data that SC Companion already aggregates: patch versions, Verse News from
+The **Verse Companion Public API** gives you read-only access to Star Citizen Verse
+data that Verse Companion already aggregates: patch versions, Verse News from
 Comm-Link / Spectrum / YouTube, and (as the ingestion pipelines land) ships and
 components.
 
 New to the project itself? Start at
-[What is SC Companion?](doc:overview) instead.
+[What is Verse Companion?](doc:overview) instead.
 
-> 🚧 **Alpha.** SC Companion is in its alpha phase. Endpoints marked *stub*
+> 🚧 **Alpha.** Verse Companion is in its alpha phase. Endpoints marked *stub*
 > return an empty `data` array with an explanatory `meta.message` until their
 > ingestion pipeline ships. The response envelope itself is stable.
 
@@ -35,13 +35,13 @@ GET https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/api/openapi.json
 
 ## 1. Get a token
 
-API tokens are issued from the SC Companion **Integrations** page (profile menu
+API tokens are issued from the Verse Companion **Integrations** page (profile menu
 → Integrations, i.e.
-[`/admin/api-tokens`](https://sc-companion.vercel.app/admin/api-tokens)) by a
+[`/admin/api-tokens`](https://versecompanion-alpha.vercel.app/admin/api-tokens)) by a
 user with the `admin` role.
 
 A token looks like `scc_live_<32 chars>`. It is **shown exactly once** at
-creation — SC Companion stores only a SHA-256 hash, so it cannot be recovered
+creation — Verse Companion stores only a SHA-256 hash, so it cannot be recovered
 later. Lost it? Revoke and create a new one.
 
 Each token carries one or more **scopes**, which decide what it may read:
@@ -102,5 +102,5 @@ See [Rate Limits](doc:rate-limits) for the full contract.
 
 ---
 
-*SC Companion is a fan-made project and is **not affiliated with Cloud Imperium
+*Verse Companion is a fan-made project and is **not affiliated with Cloud Imperium
 Games or Roberts Space Industries**.*

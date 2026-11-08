@@ -5,7 +5,7 @@ excerpt: Sign in, set your callsign, and find your way around the app in about t
 
 ## 1. Just look around — no account needed
 
-Open <https://sc-companion.vercel.app>. **Verse News**, the **Codex**,
+Open <https://versecompanion-alpha.vercel.app>. **Verse News**, the **Codex**,
 **Starscape** and the release notes are all public: you can browse them signed
 out. Only the personal surfaces (Hangar, Settings, admin) require an account.
 
@@ -16,7 +16,7 @@ its own window, keeps a service-worker cache, and survives a flaky connection.
 
 Registration is currently **invite-only** while the project is in alpha. If you
 have an invite, you can sign in with e-mail or with Google OAuth — both land on
-the same account when the address matches. SC Companion never asks for your RSI
+the same account when the address matches. Verse Companion never asks for your RSI
 credentials.
 
 ## 3. Pick a callsign

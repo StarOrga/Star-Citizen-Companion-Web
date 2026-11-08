@@ -590,7 +590,7 @@ export function taskXml(user = shOk('whoami', [])) {
   const start = new Date(Date.now() + 60_000).toISOString().slice(0, 19);
   return `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-  <RegistrationInfo><Description>Polls the SC Companion feedback board without a model; starts a headless Claude run only when there is work. docs/feedback-routine/watcher.md</Description></RegistrationInfo>
+  <RegistrationInfo><Description>Polls the Verse Companion feedback board without a model; starts a headless Claude run only when there is work. docs/feedback-routine/watcher.md</Description></RegistrationInfo>
   <Triggers>
     <TimeTrigger><Repetition><Interval>PT${WATCH_INTERVAL_MIN}M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition><StartBoundary>${start}</StartBoundary><Enabled>true</Enabled></TimeTrigger>
     <LogonTrigger><Enabled>true</Enabled><UserId>${esc(user)}</UserId></LogonTrigger>

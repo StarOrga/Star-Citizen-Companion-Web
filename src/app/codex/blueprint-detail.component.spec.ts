@@ -9,6 +9,7 @@ import { CodexBlueprintIngredient } from './codex.types';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { type FakeItemPath, fakeItemPath } from '../shared/item-path/item-path.testing';
 import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
+import { WishlistStore } from '../hq/data/wishlist.store';
 
 const MICROSAT = 'BP_CRAFT_Carryable_2H_FL_MissionItem_Microsatellite_a';
 
@@ -156,7 +157,8 @@ describe('BlueprintDetailComponent — mission (A9)', () => {
     const fixture = await setup(withMission());
     click(pill(fixture)!);
     await tick();
-    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
+    expect(pathOf().addWish).not.toHaveBeenCalled();
+    expect(pathOf().moveToInventar).not.toHaveBeenCalled();
   });
 });
 
@@ -399,5 +401,75 @@ describe('BlueprintDetailComponent — hero and output', () => {
     expect(el.querySelector('.output-row a.ing-name')).toBeNull();
     expect(el.querySelector('.output-row .ing-name')?.textContent?.trim()).toBe('Carryable 2H FL Mission Item Microsatellite a');
     expect(el.querySelector('.err')).toBeNull();
+  });
+});
+
+describe('BlueprintDetailComponent — Material ×N', () => {
+  function wishStore(setQty: (e: { className: string }) => Promise<boolean>, qtyOf: (kind: string, cls: string) => number = () => 0) {
+    const store = {
+      qtyOf: jasmine.createSpy('qtyOf').and.callFake(qtyOf),
+      setQty: jasmine.createSpy('setQty').and.callFake((e: { className: string }) => setQty(e)),
+    };
+    TestBed.configureTestingModule({ providers: [{ provide: WishlistStore, useValue: store }] });
+    return store;
+  }
+
+  afterEach(() => TestBed.inject(UndoToastService).flush());
+
+  it('offers the success toast only when every write landed', async () => {
+    wishStore(async () => true);
+    const fixture = await setup(blueprint([{ ...ingredient(0, 'Agricium', 0.36), nameLocalized: 'Agricium' }]));
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.wish-mat .sc-action') as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+    expect(TestBed.inject(UndoToastService).current()?.messageKey).toBe('blueprintWish.done');
+    expect(el.querySelector('.wish-err')).toBeNull();
+  });
+
+  it('names the failure and takes back what landed when a write fails (AUD-11)', async () => {
+    const store = wishStore(async (e) => e.className !== 'Agricium');
+    const fixture = await setup(blueprint([{ ...ingredient(0, 'Agricium', 0.36), nameLocalized: 'Agricium' }]));
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.wish-mat .sc-action') as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+    expect(TestBed.inject(UndoToastService).current()).toBeNull();
+    expect(el.querySelector('.wish-err')?.textContent).toContain('errors.generic');
+    // The blueprint itself landed and went back to its former quantity.
+    expect(store.setQty).toHaveBeenCalledWith(jasmine.objectContaining({ kind: 'blueprint' }), 0);
+  });
+
+  it('is one multiplier: the blueprint is the group quantity, material is set from the total (AUD-11)', async () => {
+    // 0.15 SCU per craft. Two clicks of x1 must give 2 blueprints and ceil(0.3) = 1 SCU, not 1 + 1 = 2.
+    const wished = new Map<string, number>();
+    const store = wishStore(
+      async () => true,
+      (kind, cls) => wished.get(`${kind}:${cls}`) ?? 0,
+    );
+    store.setQty.and.callFake(async (e: { kind: string; className: string }, qty: number) => {
+      wished.set(`${e.kind}:${e.className}`, qty);
+      return true;
+    });
+    const fixture = await setup(blueprint([{ ...ingredient(0, 'Riccite', 0.15), nameLocalized: 'Riccite' }]));
+    const el: HTMLElement = fixture.nativeElement;
+    const click = async () => {
+      (el.querySelector('.wish-mat .sc-action') as HTMLButtonElement).click();
+      await new Promise((r) => setTimeout(r, 0));
+      fixture.detectChanges();
+    };
+    await click();
+    expect(wished.get('material:Riccite')).toBe(1);
+    await click();
+    const bp = [...wished.entries()].find(([k]) => k.startsWith('blueprint:'));
+    expect(bp?.[1]).toBe(2);
+    expect(wished.get('material:Riccite')).toBe(1);
+    // x3 more: 5 blueprints, ceil(0.75) = 1.
+    (el.querySelectorAll('.wish-mat .st button')[1] as HTMLButtonElement).click();
+    (el.querySelectorAll('.wish-mat .st button')[1] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await click();
+    expect([...wished.entries()].find(([k]) => k.startsWith('blueprint:'))?.[1]).toBe(5);
+    expect(wished.get('material:Riccite')).toBe(1);
   });
 });

@@ -2,7 +2,7 @@
 name = "starscape-wallpaper"
 version = "0.11.0"
 edition = "2021"
-description = "Star Citizen Companion — dynamic desktop wallpaper from the Starscape gallery"
+description = "Verse Companion — dynamic desktop wallpaper from the Starscape gallery"
 license = "MIT"
 repository = "https://github.com/StarOrga/Star-Citizen-Companion-Web"
 

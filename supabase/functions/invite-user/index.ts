@@ -56,7 +56,7 @@ const ALLOWED_ROLES = new Set(['admin', 'collaborator', 'viewer']);
  * landing to /set-password itself (see src/app/auth/auth-link.ts), so a missing
  * allow-list entry costs the direct link, not the flow.
  */
-const SITE_URL = (Deno.env.get('PUBLIC_SITE_URL') ?? 'https://sc-companion.vercel.app')
+const SITE_URL = (Deno.env.get('PUBLIC_SITE_URL') ?? 'https://versecompanion-alpha.vercel.app')
   .replace(/\/+$/, '');
 const INVITE_REDIRECT = `${SITE_URL}/set-password`;
 

@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.229.0] - 2026-11-08
+
+### Fixed
+- Nachschub audit: an owned ship can be wished again with a quantity, and buying a wished ship fulfils one copy
+- Nachschub lines close once per stock gain, counted from each line's own starting stock; arrivals are no longer counted twice
+- Undo of "Leeren" and "Löschen" brings the Nachschub lines back
+- Einsätze can be proposed for existing lines, renamed and added by hand; the cart handles all 7 slots taken
+- Esc and outside click close dialogs and popovers reliably; locale dates and retired wording fixed
+- Blueprint material wishes use one multiplier; the ship detail page has a wish stepper
+
+## [0.228.0] - 2026-11-08
+
+### Changed
+- The app is now called **Verse Companion** – unofficial fan tool for Star Citizen. Name and public host live in one place (`src/brand.json`, `scripts/apply-brand.mjs`).
+- New public address: https://versecompanion-alpha.vercel.app (sc-companion.vercel.app keeps working).
+- The fan-site notice, the link to robertsspaceindustries.com and the trademark notice are now always visible in the footer, on the login page and on About, with the official Fan Kit "Made By The Community" logo.
+- Browser extension 0.1.2: clearer store description, new host.
+
 ## [0.227.0] - 2026-11-08
 
 ### Added

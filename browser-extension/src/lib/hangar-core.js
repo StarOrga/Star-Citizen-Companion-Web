@@ -1,5 +1,5 @@
 /**
- * Pure, dependency-free core of the SC Companion hangar-import extension.
+ * Pure, dependency-free core of the Verse Companion hangar-import extension.
  *
  * Everything in this module is a plain function over data or over a `Document`
  * handed in by the caller. It touches NO chrome.* API, no globals, no network.

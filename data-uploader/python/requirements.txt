@@ -1,4 +1,4 @@
-# Star Citizen Companion - Data Uploader · Python sidecar
+# Verse Companion - Data Uploader · Python sidecar
 # Pinned for reproducible builds.
 #
 # We use scdatatools ONLY as a P4K reader (zip central-directory + AES + zstd).

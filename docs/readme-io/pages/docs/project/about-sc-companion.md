@@ -1,15 +1,15 @@
 ---
-title: About SC Companion
-excerpt: What SC Companion is, what the API is for, and the project's alpha-phase ground rules.
+title: About Verse Companion
+excerpt: What Verse Companion is, what the API is for, and the project's alpha-phase ground rules.
 ---
 
-**SC Companion** is a free, non-commercial, fan-made companion app for
+**Verse Companion** is a free, non-commercial, fan-made companion app for
 *Star Citizen*. It aggregates the Verse News (Comm-Link, Spectrum, RSI status,
 patch notes, YouTube), tracks patch versions across LIVE / PTU / EPTU, renders a
 browsable Codex of ships and components datamined from the live build, gives you
 a personal Hangar, and hosts companion tools like the Starscape App.
 
-- **Web app:** <https://sc-companion.vercel.app>
+- **Web app:** <https://versecompanion-alpha.vercel.app>
 - **Source:** [StarOrga/Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web)
 - **Stack:** Angular 22 PWA · Supabase (Auth, Postgres, Storage, Edge Functions) · Vercel
 - **Licence:** MIT
@@ -23,16 +23,16 @@ there is no private fork.
 
 ## What the API is for
 
-The Public API exposes the *aggregated, already-public* data SC Companion
+The Public API exposes the *aggregated, already-public* data Verse Companion
 collects, so you can build on top of it — dashboards, Discord bots, org tools,
 overlays — without re-scraping RSI yourself.
 
 It is deliberately **read-only**. There are no write endpoints, and there will
-not be any: SC Companion is a reader of Verse data, not a system of record.
+not be any: Verse Companion is a reader of Verse data, not a system of record.
 
 ## Alpha-phase ground rules
 
-SC Companion is in **alpha**. Concretely, that means:
+Verse Companion is in **alpha**. Concretely, that means:
 
 - **Envelopes are stable, datasets are not.** `data` / `meta` and the error
   shape are settled and safe to integrate against. Which endpoints have real
@@ -50,7 +50,7 @@ SC Companion is in **alpha**. Concretely, that means:
 
 ## Legal
 
-SC Companion is an unofficial, fan-made project. It is **not affiliated with,
+Verse Companion is an unofficial, fan-made project. It is **not affiliated with,
 endorsed by, or sponsored by Cloud Imperium Games Corporation or Roberts Space
 Industries Corp.** All Star Citizen content, artwork, and trademarks remain the
 property of their respective owners. The project never asks for your RSI account
@@ -61,6 +61,6 @@ does not rehost RSI media. The same applies to [Starscape](doc:starscape),
 which hotlinks the RSI CDN rather than storing imagery.
 
 Full texts live in the app:
-[privacy policy](https://sc-companion.vercel.app/legal/privacy) ·
-[imprint](https://sc-companion.vercel.app/legal/imprint) ·
-[about](https://sc-companion.vercel.app/about)
+[privacy policy](https://versecompanion-alpha.vercel.app/legal/privacy) ·
+[imprint](https://versecompanion-alpha.vercel.app/legal/imprint) ·
+[about](https://versecompanion-alpha.vercel.app/about)

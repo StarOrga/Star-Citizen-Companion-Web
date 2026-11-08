@@ -1,9 +1,9 @@
 ---
 name: concept
-description: Project-specific overrides for /concept in SC Companion.
+description: Project-specific overrides for /concept in Verse Companion.
 ---
 
-# /concept — SC Companion overrides
+# /concept — Verse Companion overrides
 
 This file extends the plugin skill at
 `~/.claude/plugins/cache/dotclaude/devops/<v>/skills/concept/`.

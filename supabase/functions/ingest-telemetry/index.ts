@@ -4,7 +4,7 @@
 // (StarOrga/Star-Citizen-Companion-App#21). Wire contract v1.
 //
 // PRODUCTS — one endpoint, one table, one signature scheme for all of them:
-//   scc-app       — the main Star Citizen Companion desktop app
+//   scc-app       — the main Verse Companion desktop app
 //   data-uploader — the P4K extraction & upload tool (Electron)
 //   starscape     — the native Windows wallpaper/screensaver tray app (Rust)
 // `product` on the wire is what separates them in the admin dashboard.

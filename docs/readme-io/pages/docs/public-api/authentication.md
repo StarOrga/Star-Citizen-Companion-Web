@@ -1,9 +1,9 @@
 ---
 title: Authentication
-excerpt: Bearer tokens, scopes, and the token lifecycle — how SC Companion authorises API calls.
+excerpt: Bearer tokens, scopes, and the token lifecycle — how Verse Companion authorises API calls.
 ---
 
-The SC Companion Public API uses **bearer tokens**. There is no OAuth flow and
+The Verse Companion Public API uses **bearer tokens**. There is no OAuth flow and
 no API-key query parameter — a token always travels in the `Authorization`
 header.
 
@@ -21,7 +21,7 @@ Authorization: Bearer scc_live_<32 chars>
 | Visibility | shown **once**, at creation |
 | Owner | the admin user who created it |
 
-Because only the hash is stored, SC Companion physically cannot show you a
+Because only the hash is stored, Verse Companion physically cannot show you a
 token again. Treat the value like a password: keep it server-side, never commit
 it, never ship it in a browser bundle.
 
@@ -30,11 +30,11 @@ apart without ever revealing the secret.
 
 ## Creating a token
 
-1. Sign in to [SC Companion](https://sc-companion.vercel.app) with an account
+1. Sign in to [Verse Companion](https://versecompanion-alpha.vercel.app) with an account
    that has the `admin` role.
 2. Open the profile (avatar) menu in the top right and pick **Integrations** —
    or go straight to
-   [`/admin/api-tokens`](https://sc-companion.vercel.app/admin/api-tokens).
+   [`/admin/api-tokens`](https://versecompanion-alpha.vercel.app/admin/api-tokens).
 3. Give the token a descriptive name (`fleetview-bot`, `grafana-scrape`, …) and
    pick its scopes.
 4. Copy the plaintext immediately — it disappears on reload.

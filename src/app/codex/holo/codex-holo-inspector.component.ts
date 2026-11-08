@@ -12,6 +12,7 @@ import { ICON_PATHS } from '../codex-category-icon.component';
 import type { ShipModuleSection } from '../ship-module-sections';
 import type { PlacementRow } from '../asset-package/asset-package-viewer.component';
 import { resolveIcons } from '../search/search-cta';
+import type { SearchRowIcons } from '../search/search-result-model';
 import type { PolyHitKind } from '../codex-poly-search';
 import { ItemPathComponent } from '../../shared/item-path/item-path.component';
 import { isPlainLeftClick } from '../../core/modified-click.util';
@@ -515,10 +516,10 @@ export class CodexHoloInspectorComponent {
 
   /** What an icon said last ("Auf der Wunschliste"); an icon press is not silent. */
 
-  iconsOf(part: PartFocus): { wishlist: boolean; lager: boolean; nachschub: boolean } | null {
+  iconsOf(part: PartFocus): SearchRowIcons | null {
     if (!part.className || !part.kind) return null;
     const ic = resolveIcons({ type: 'hit', kind: part.kind as PolyHitKind });
-    return ic.wishlist || ic.lager || ic.nachschub ? ic : null;
+    return ic.wishlist || ic.lager ? ic : null;
   }
 
   itemName(name: string): string {

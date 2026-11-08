@@ -38,6 +38,17 @@ describe('merkliste model', () => {
     expect(wishRowOfType({ kind: 'weapon', className: 'w', name: null, manufacturer: null }, null)?.type).toBe('weapon');
   });
 
+  it('draws a material wish: via its blueprint, else as a generic item found through the index', () => {
+    const m = { kind: 'material', className: 'Iron', name: 'Iron', manufacturer: null, qty: 4 };
+    const forBp = wishRowOfType({ ...m, forClassName: 'BP_X' }, null)!;
+    expect(forBp.type).toBe('blueprint');
+    expect(forBp.target?.link).toEqual(['/codex', 'blueprint', 'BP_X']);
+    const loose = wishRowOfType(m, null)!;
+    expect(loose.type).toBe('item');
+    expect(loose.target?.link).toEqual(['/codex', 'index']);
+    expect(wishRowOfType(m, 'weapon')).toBeNull();
+  });
+
   it('titles a wished entry with its stored name, else the resolved catalog name, never the raw class name', () => {
     const w = { kind: 'item', className: 'MISL_S01_IR_VNCL_Arrow', name: null, manufacturer: null };
     expect(wishRowOfType({ ...w, name: 'Arrow-I-Rakete' }, null, () => 'Other')!.title).toBe('Arrow-I-Rakete');

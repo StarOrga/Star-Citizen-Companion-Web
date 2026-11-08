@@ -268,7 +268,7 @@ export function buildSummarySvg(items: SummaryItem[], opts: SummarySvgOptions): 
   // 4e. Footer wordmark
   const footerY = 0.85 * h;
   const footerFontSize = 0.008 * h;
-  const footer = `<text x="${contentX}" y="${footerY}" font-family="Rajdhani" font-weight="500" font-size="${footerFontSize}" fill="${TEXT_MUTED}" letter-spacing="2">sc-companion.vercel.app · STARSCAPE</text>`;
+  const footer = `<text x="${contentX}" y="${footerY}" font-family="Rajdhani" font-weight="500" font-size="${footerFontSize}" fill="${TEXT_MUTED}" letter-spacing="2">versecompanion-alpha.vercel.app · STARSCAPE</text>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">

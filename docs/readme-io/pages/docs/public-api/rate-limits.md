@@ -44,7 +44,7 @@ earlier just burns budget.
 - **Back off exponentially** on `429`, seeded from `Retry-After`.
 - **Cache aggressively.** `/v1/patch` changes a handful of times per patch
   cycle; polling it every second is pure waste. Once a minute is plenty.
-- **Watch `X-Cache`.** A `HIT` means SC Companion served you cached data — a
+- **Watch `X-Cache`.** A `HIT` means Verse Companion served you cached data — a
   strong hint that polling faster will not surface anything new.
 - **Use one token per workload.** Separate tokens get separate budgets, and a
   runaway job then cannot starve your dashboard.

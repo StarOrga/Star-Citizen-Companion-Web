@@ -11,9 +11,11 @@ import {
   viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { ScPopoverDismissDirective } from '../../shared/popover/sc-popover-dismiss.directive';
 import { ScStepComponent } from '../../shared/step/sc-step.component';
 import { type Einsatz, type EinsatzStep, HqEinsatzService } from '../data/hq-einsatz.service';
 import { hqPage } from '../hq-routes';
@@ -48,8 +50,10 @@ const UPCOMING = 4;
   selector: 'sc-hq-now',
   standalone: true,
   imports: [
+    ScPopoverDismissDirective,
     TranslatePipe,
     DatePipe,
+    ScDatePipe,
     RouterLink,
     ScActionDirective,
     ScStepComponent,
@@ -70,8 +74,9 @@ const UPCOMING = 4;
           @if (activeEinsatz(); as e) {
             <span class="run-e">E{{ activeIndex() + 1 }} · {{ e.title }} · {{ 'hq.run.stepOf' | translate: { n: shownStep(), total: total() } }}</span>
           }
-          @if (switchable().length > 1) {
-            <span class="sw">
+          @if (archivedFocus()) { <span class="run-a" role="note">{{ 'hq.run.archived' | translate }}</span> }
+          @if (switchable().length > (archivedFocus() ? 0 : 1)) {
+            <span class="sw" [scPopoverDismiss]="menuOpen()" (dismissed)="menuOpen.set(false)">
               <button type="button" scAction tier="secondary" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">{{ 'hq.run.switch' | translate }}</button>
               @if (menuOpen()) {
                 <ul class="menu" role="menu" (keydown.escape)="menuOpen.set(false)">
@@ -117,8 +122,13 @@ const UPCOMING = 4;
                                [openLabel]="'hq.route.open' | translate" [shared]="sharedStops()" (sharedPick)="choose($event.nachschubId)" />
         } @else {
           <div class="empty">
-            <p class="e-title">{{ 'hq.run.emptyTitle' | translate }}</p>
-            <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
+            @if (nachschub(); as n) {
+              <p class="e-title">{{ 'hq.einsatz.noneYet.title' | translate: { name: n.name } }}</p>
+              <p class="muted">{{ 'hq.einsatz.noneYet.hint' | translate }}</p>
+            } @else {
+              <p class="e-title">{{ 'hq.run.emptyTitle' | translate }}</p>
+              <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
+            }
             <a scAction tier="secondary" [routerLink]="planen.commands" [fragment]="planen.fragment">{{ 'hq.run.toPlanen' | translate }}</a>
           </div>
         }
@@ -150,7 +160,7 @@ const UPCOMING = 4;
           <h3 class="now-h">{{ 'hq.run.allDone' | translate }}</h3>
           <p class="muted">{{ 'hq.run.allDoneHint' | translate }}</p>
           <a scAction tier="secondary" [routerLink]="planen.commands" [fragment]="planen.fragment">{{ 'hq.run.toPlanen' | translate }}</a>
-        } @else {
+        } @else if (!nachschub()) {
           <p class="muted">{{ 'hq.now.path.empty' | translate }}</p>
         }
 
@@ -207,7 +217,7 @@ const UPCOMING = 4;
               </p>
             }
             @if (lastSignal(); as at) {
-              <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | date: 'short') } }}</p>
+              <p class="fresh">{{ (gameLive() ? 'hq.now.fresh.updated' : 'hq.now.fresh.ended') | translate: { at: (at | scDate: 'datetime') } }}</p>
             }
           </section>
         }
@@ -271,6 +281,7 @@ const UPCOMING = 4;
       .run-t small { color: var(--sc-fg-2); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
       .run-t b { font: 700 0.95rem var(--sc-font-display, inherit); overflow-wrap: anywhere; }
       .run-e { color: var(--sc-fg-1); font-size: 0.82rem; }
+      .run-a { color: var(--sc-fg-2); font-size: 0.8rem; max-width: 44ch; }
       .sw { position: relative; }
       .menu { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; min-width: 240px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--sc-border); border-radius: 10px; background: var(--sc-bg-1); box-shadow: 0 12px 32px rgb(0 0 0 / 0.5); }
       .menu li { display: block; padding: 0; border: 0; }
@@ -354,7 +365,9 @@ export class HqNowComponent {
   private readonly pickedEinsatz = signal<string | null>(null);
 
   /** The Nachschub Jetzt serves (the one in focus in Planen). */
-  readonly nachschub = computed(() => this.focus.selected());
+  readonly nachschub = computed(() => this.focus.current());
+  /** The focused Nachschub finished and sits in the archive: Jetzt keeps its route and says so (it does not jump to another one). */
+  readonly archivedFocus = computed(() => this.nachschub()?.status === 'archived');
   /** Its Einsatz bundle; without a Nachschub bundle the current loose Einsatz (planned the older way) still runs here. */
   readonly bundle = computed<Einsatz[]>(() => {
     const n = this.nachschub();

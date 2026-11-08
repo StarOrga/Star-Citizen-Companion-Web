@@ -105,7 +105,7 @@ function groupAllowed(id: SearchGroupId, chips: readonly SearchChip[]): boolean 
 
 const FAST_EXACT = 3;
 
-const NO_ICONS = { wishlist: false, lager: false, nachschub: false } as const;
+const NO_ICONS = { wishlist: false, lager: false } as const;
 
 export function composeSearchResult(input: ComposeInput): SearchResult {
   const { context: ctx, chips, term, signedIn } = input;
