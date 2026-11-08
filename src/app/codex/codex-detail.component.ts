@@ -155,6 +155,8 @@ import { EditionOption, resolveEditionGroup } from './codex-edition-group';
 import { SummaryOccupant } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
+import { CodexSavedLoadoutsComponent } from './saved-loadouts/codex-saved-loadouts.component';
+import { SavedLoadout } from './saved-loadouts/saved-loadouts.service';
 import {
   CapabilityPort,
   MissionId,
@@ -292,7 +294,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
+  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -491,6 +493,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         </header>
 
         @if (kind() === 'ship') {
+          <!-- The ownership card (C5) sits directly under the picture (#323:
+               it had no business in the headline's side column). It takes its
+               own height; the stretching stage above gives up the room. -->
+          <div class="hero-own"><ng-container [ngTemplateOutlet]="ownCard" /></div>
+
           <!-- ── The four frequent actions, directly under the picture ─────
                They sat on the art until feedback 140dfb7e asked for every
                clickable thing except the 2D/3D switch to leave the image.
@@ -543,9 +550,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         </div>
 
         @if (kind() === 'ship') {
-          <!-- The side column: the ownership card (C5) on top of the Einordnung. -->
+          <!-- The side column: the Einordnung (the ownership card moved under the picture, #323). -->
           <div class="m-side">
-          <ng-container [ngTemplateOutlet]="ownCard" />
           <sc-codex-rank-card
             [shipName]="displayName()"
             [sizeClass]="null"
@@ -586,6 +592,16 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               (save)="saveLoadoutDraft()"
               (discard)="discardLoadoutDraft()"
               (addAndSave)="addToHangar()" />
+            <!-- #322: named loadouts per ship (local) + the prepared cart action. -->
+            @if (detail(); as d) {
+              <sc-codex-saved-loadouts
+                class="saved-loadouts"
+                [shipClassName]="d.classNameSlug"
+                [buildId]="build()?.id ?? null"
+                [draft]="draft()"
+                [readOnly]="draftReadOnly()"
+                (recall)="recallSavedLoadout($event)" />
+            }
           </div>
         }
 
@@ -1340,6 +1356,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       gap: 12px; flex-wrap: wrap; }
     .mission-draft-bar sc-codex-mission-bar { flex: 1 1 auto; min-width: 0; }
     .draft-controls { flex: 0 0 auto; }
+    .saved-loadouts { flex: 0 1 auto; margin-left: auto; }
 
     /* The ship stage's own hero chip row (.hchip, career/role/crew/cargo/mass)
        moved to sc-codex-ship-stage (AUD-062) along with everything else the
@@ -1350,6 +1367,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        half, so the row sits directly under the stage rather than in the next
        grid track. */
     .hero-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .hero-stack > .hero-own { flex: 0 0 auto; display: flex; flex-direction: column; }
 
     /* ── BUEHNE (concept section 2) ── sc-codex-ship-stage (AUD-062) renders
        with display:contents inside this header, so its content becomes this
@@ -3390,6 +3408,11 @@ export class CodexDetailComponent implements OnInit {
 
   discardLoadoutDraft(): void {
     this.draftStore.discardLoadoutDraft();
+  }
+
+  /** #322: a named loadout from this browser goes back on the table as the draft. */
+  recallSavedLoadout(entry: SavedLoadout): void {
+    this.draftStore.applySavedDraft(entry.entries, entry.buildId);
   }
 
   // ── hardpoint positions on the hull (#137 part 3) ───────────────────────────

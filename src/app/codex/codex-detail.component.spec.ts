@@ -1423,7 +1423,7 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       return renderOnFakeClock();
     }
 
-    it('the ownership card sits on top of the Holotable panel and the classic side column, never in the head', fakeAsync(() => {
+    it('the ownership card sits on top of the Holotable panel and under the classic picture, never in the head', fakeAsync(() => {
       const fixture = ownFixture();
       const cmp = fixture.componentInstance;
       const el: HTMLElement = fixture.nativeElement;
@@ -1432,7 +1432,8 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-own-segment')).not.toBeNull();
       cmp.holoView.set(false);
       fixture.detectChanges();
-      expect(el.querySelector('.m-side sc-codex-own-card')).not.toBeNull();
+      expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card'), 'under the picture (#323)').not.toBeNull();
+      expect(el.querySelector('.m-side sc-codex-own-card'), 'not in the headline side column').toBeNull();
       expect(el.querySelector('sc-item-path[level]')?.closest('.crumb-aside'), 'no path panel in the head').toBeFalsy();
     }));
 

@@ -1,7 +1,125 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.238.6",
+  "current": "0.239.3",
   "releases": [
+    {
+      "version": "0.239.3",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse: the auroras over the background planet are always visible, drifting slowly between weaker and stronger phases with more frequent strong bursts (a faint still aurora under reduced motion)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.239.2",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Classic ship view: the \"Dein Exemplar\" / \"Haben?\" card sits directly under the ship picture instead of in the headline column."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.239.1",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing: the data sheet beside the hologram projector matches its top and bottom at every window size and after every item switch."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.239.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ: the App-Status chip bottom left on every HQ page, Start included, also before the desktop app was ever connected. Four states with their own mark: App fehlt (dashed ring, \"App downloaden\"), App aus (grey ring, \"zuletzt vor …\", \"App starten\"), App bereit (green ring, \"wartet auf Star Citizen\"), Tracking (glowing dot, the last event that matters for the page)."
+            },
+            {
+              "title": "",
+              "text": "HQ: every page explains on the chip what the app does there (\"Aussicht\"); while the app is missing it opens once per page."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ: the chip sits right of the hand-off launcher instead of under it, above the footer on Statistik and above the page bar on tablets."
+            },
+            {
+              "title": "",
+              "text": "HQ: the Start \"Jetzt\" tile and the Jetzt connect block use the same state words and buttons as the chip."
+            },
+            {
+              "title": "",
+              "text": "The desktop app is called \"App\" in the UI (no more \"Companion-App\" / \"SCC-App\"); \"vor 1 Tag\" instead of \"vor 1 Tagen\"."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.238.8",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Feature branches no longer create Vercel deployments at all (git.deploymentEnabled): canceled previews counted toward the Hobby limit of 100 per day and blocked production deploys."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.238.7",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship detail (classic): save named loadouts per ship in this browser, recall or delete them from the Einsatz row; a disabled \"Komponenten in den Warenkorb\" button prepares the future cart."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.238.6",
       "date": "2026-11-08",

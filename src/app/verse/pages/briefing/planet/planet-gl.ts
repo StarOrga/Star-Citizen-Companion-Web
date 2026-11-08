@@ -5,7 +5,7 @@ import { ROLL, SUN, TILT } from './planet-world';
  * ray-cast per pixel (orthographic). Day side lit from the sun (fixed in view
  * space), night side carries the city lights, clouds drift slowly, the limb
  * scatters in the app's accent colour, and an aurora shimmers above the
- * northern horizon when `aurora` > 0.
+ * northern horizon — `aurora` never drops below its floor (AURORA_FLOOR).
  */
 
 const VS = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';

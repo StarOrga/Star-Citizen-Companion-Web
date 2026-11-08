@@ -2660,6 +2660,22 @@
         "jumpRange": "REICHWEITE",
         "spoolTime": "AUFLADEZEIT"
       }
+    },
+    "savedLoadouts": {
+      "group": "Gespeicherte Loadouts",
+      "save": "Loadout speichern",
+      "saveNothing": "Erst einen Slot ändern, dann speichern.",
+      "saveTitle": "Loadout speichern",
+      "saveMessage": "Gespeichert wird in diesem Browser, für dieses Schiff. Gleicher Name überschreibt.",
+      "nameLabel": "Name",
+      "saveConfirm": "Speichern",
+      "pick": "Gespeichertes Loadout laden",
+      "remove": "„{{name}}“ löschen",
+      "removeTitle": "Loadout löschen?",
+      "removeMessage": "„{{name}}“ wird aus diesem Browser entfernt.",
+      "removeConfirm": "Löschen",
+      "cart": "Komponenten in den Warenkorb",
+      "cartSoon": "Bald verfügbar: legt die Komponenten dieses Loadouts in den Warenkorb."
     }
   },
   "blueprint": {
@@ -2812,7 +2828,7 @@
       "services": "Services",
       "noComponents": "Keine Service-Details verfügbar.",
       "appDownload": {
-        "label": "Companion-App herunterladen",
+        "label": "App downloaden",
         "hint": "Windows-Installer · immer die neueste Version"
       },
       "checkExternal": "RSI Status-Seite ↗"
@@ -4535,7 +4551,7 @@
     },
     "product": {
       "label": "Produkt",
-      "scc-app": "Companion-App",
+      "scc-app": "Verse Companion App",
       "data-uploader": "Data Uploader",
       "all": "Alle",
       "starscape": "Starscape"
@@ -5626,7 +5642,7 @@
         "matOwned": "{{name}}: {{need}} gebraucht, {{have}} im Bestand",
         "matMissing": "{{name}}: {{need}} gebraucht, {{have}} im Bestand, {{missing}} werden besorgt",
         "noRecipe": "Für das Rezept ist noch kein Material bekannt.",
-        "source": "Blaupausen und Material meldet die Companion-App von selbst in Sammlung und Inventar; bis dahin zählt, was dort steht.",
+        "source": "Blaupausen und Material meldet die App von selbst in Sammlung und Inventar; bis dahin zählt, was dort steht.",
         "loading": "Rezept wird geladen …"
       }
     },
@@ -5661,14 +5677,12 @@
       "archived": "Abgeschlossen: Dieser Nachschub liegt im Archiv, seine Einsätze laufen hier weiter. Unter Planen › Archiv kannst du ihn wieder aktivieren."
     },
     "ticker": {
-      "app": "Companion-App",
-      "on": "verbunden",
-      "off": "aus",
       "none": "noch kein Ereignis",
       "ago": {
         "now": "gerade eben",
         "minutes": "vor {{n}} Min.",
         "hours": "vor {{n}} Std.",
+        "day": "vor 1 Tag",
         "days": "vor {{n}} Tagen"
       }
     },
@@ -5705,7 +5719,7 @@
       "blueprint": "Blaupause",
       "ruf": "Ruf",
       "rufEmptyTitle": "Noch keine Datenquelle",
-      "rufEmptyText": "Erscheint, sobald die Companion-App deinen Ruf meldet oder du ihn von Hand einträgst.",
+      "rufEmptyText": "Erscheint, sobald die App deinen Ruf meldet oder du ihn von Hand einträgst.",
       "pager": "Seiten",
       "range": "{{from}}–{{to}} von {{total}}",
       "prev": "Vorherige Seite",
@@ -5904,9 +5918,7 @@
       },
       "now": {
         "live": "Live",
-        "none": "Spiel nicht erkannt",
         "noneHint": "Live-Stand aus dem Spiel.",
-        "off": "Kein Live-Signal",
         "last": "Zuletzt: {{place}}, {{ago}}.",
         "lastTime": "Zuletzt: {{ago}}.",
         "nextTip": "Nächster Schritt deines ersten geplanten Einsatzes.",
@@ -5989,17 +6001,11 @@
       "loading": "Lade den Spielstand …",
       "retry": "Erneut versuchen",
       "connect": {
-        "title": "Spiel nicht erkannt — Companion-App starten",
-        "hint": "Die Companion-App meldet deinen Standort und deine Aktionen live hierher.",
-        "syncOffTitle": "Companion-App verbunden — noch keine Live-Daten",
-        "syncOffHint": "Schalte in der Companion-App unter Einstellungen → Overlay → Verse Companion Web HQ den Live-Sync ein und starte das Spiel.",
-        "explain": {
-          "aria": "Was Jetzt zeigt",
-          "what": "Jetzt ist dein Live-Stand aus dem Spiel: wo du gerade bist, was als Nächstes auf deiner Route liegt und was zuletzt passiert ist.",
-          "e1": "Dein Standort und dein Schiff, z. B. „Stanton › New Babbage“.",
-          "e2": "Dein nächster Schritt aus einem geplanten Einsatz, z. B. ein Kauf oder eine Fahrt.",
-          "e3": "Die letzten Ereignisse, z. B. „Mission abgeschlossen“ oder „Quantum-Sprung beendet“."
-        }
+        "hint": "Die App meldet deinen Standort und deine Aktionen live hierher.",
+        "syncOffTitle": "App bereit, aber noch keine Live-Daten",
+        "syncOffHint": "Schalte in der App unter Einstellungen → Overlay → Verse Companion Web HQ den Live-Sync ein und starte das Spiel.",
+        "titleMissing": "App fehlt: Spiel nicht erkannt",
+        "titleOff": "App aus: Spiel nicht erkannt"
       },
       "fresh": {
         "updated": "Live · Stand: {{at}}",
@@ -6164,8 +6170,8 @@
       "preview": {
         "stamp": "Vorschau",
         "title": "Hier wächst deine Statistik",
-        "text": "So sieht es aus, sobald die Companion-App beim Spielen mitliest: aUEC, Missionen, Abschlussquote, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
-        "textLinked": "Die Companion-App ist verbunden. Sobald du spielst, füllen sich aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
+        "text": "So sieht es aus, sobald die App beim Spielen mitliest: aUEC, Missionen, Abschlussquote, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
+        "textLinked": "Die App ist verbunden. Sobald du spielst, füllen sich aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
       },
       "events": {
         "title": "Erledigte Events",
@@ -6279,7 +6285,7 @@
       },
       "lager": {
         "empty": "Noch nichts im Inventar erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
-        "emptyHow": "So kommt etwas rein: Die Companion-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
+        "emptyHow": "So kommt etwas rein: Die App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
         "storage": "Schiffe im Hangar-Terminal"
       },
       "find": {
@@ -6294,7 +6300,7 @@
         "yours": "Dein Inventar",
         "here": "Du bist in {{place}}",
         "whereAmI": "Wo bist du gerade?",
-        "unknownHere": "Ohne deinen Standort sortieren wir nach Menge. Starte die Companion-App oder wähle einen Ort.",
+        "unknownHere": "Ohne deinen Standort sortieren wir nach Menge. Starte die App oder wähle einen Ort.",
         "prompt": "Gib ein, was du suchst. Darunter siehst du, wo es liegt.",
         "noHit": "Nichts davon im Inventar. Vielleicht in der anderen Einheit?",
         "take": "{{n}} holen",
@@ -6335,16 +6341,16 @@
     },
     "app": {
       "launch": "App starten",
-      "starting": "Companion-App wird gestartet …",
-      "started": "Companion-App startet. Melde dich dort an, dann kommen deine Daten hierher.",
-      "downloading": "Companion-App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
-      "noResponse": "Die Companion-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
+      "starting": "App wird gestartet …",
+      "started": "App startet. Melde dich dort an, dann kommen deine Daten hierher.",
+      "downloading": "App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
+      "noResponse": "Die App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
       "retry": "Schon installiert? Erneut starten",
-      "download": "Companion-App herunterladen",
+      "download": "App downloaden",
       "downloadCta": "App downloaden",
       "downloadStarted": "Der Download läuft (rund 500 MB). Führe danach das Setup aus.",
       "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
-      "tipLaunch": "Öffnet die Companion-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
+      "tipLaunch": "Öffnet die App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "close": "Schließen"
     },
     "friends": {
@@ -6438,7 +6444,7 @@
         "none": "Dieses Event hat keinen Fortschritt.",
         "live": "live",
         "tiers": "Stufen",
-        "appHint": "Die SCC-App ist verbunden und aktualisiert den Fortschritt, sobald sie ihn im Spiel erkennt."
+        "appHint": "Die App ist verbunden und aktualisiert den Fortschritt, sobald sie ihn im Spiel erkennt."
       },
       "rewards": {
         "title": "Belohnungen",
@@ -6459,7 +6465,7 @@
       "claim": {
         "title": "{{name}} abholen",
         "channel": "Wie hast du es bekommen?",
-        "byApp": "Die SCC-App hat den Weg erkannt; du kannst ihn ändern.",
+        "byApp": "Die App hat den Weg erkannt; du kannst ihn ändern.",
         "store": "In den Bestand legen",
         "isShip": "Ist ein Schiff",
         "toHangar": "Kommt in den Hangar.",
@@ -6476,6 +6482,32 @@
       "abortDialog": {
         "title": "{{name}} abbrechen?",
         "message": "Der Fortschritt bleibt gespeichert, nichts geht zurück auf die Wunschliste. Du kannst das Event jederzeit aus dem Archiv fortsetzen."
+      }
+    },
+    "appStatus": {
+      "state": {
+        "missing": "App fehlt",
+        "off": "App aus",
+        "ready": "App bereit",
+        "tracking": "Tracking"
+      },
+      "waiting": "wartet auf Star Citizen",
+      "last": "zuletzt",
+      "close": "Schließen",
+      "aussicht": {
+        "aria": "Was die App auf dieser Seite tut",
+        "title": "Mit der App",
+        "toggle": "Was die App auf dieser Seite tut",
+        "start": "Mit der App siehst du hier live, wo du bist, was du fliegst und was als Nächstes kommt.",
+        "inventar": "Die App liest dein Inventar und deine Schiffe aus dem Spiel. Du tippst nichts ab.",
+        "jetzt": "Die App meldet, wo du gerade bist, und hakt Schritte von selbst ab:",
+        "planen": "Die App erkennt, wann ein Nachschub-Posten ankommt, und schließt ihn.",
+        "statistik": "Die App zählt beim Spielen mit: Spielzeit, Sessions, Missionen und Verluste. Ohne sie bleibt diese Seite leer.",
+        "jetztList": {
+          "e1": "Dein Standort und dein Schiff, z. B. „Stanton › New Babbage“.",
+          "e2": "Dein nächster Schritt aus einem geplanten Einsatz, z. B. ein Kauf oder eine Fahrt.",
+          "e3": "Die letzten Ereignisse, z. B. „Mission abgeschlossen“ oder „Quantum-Sprung beendet“."
+        }
       }
     }
   },
@@ -7178,7 +7210,7 @@
     "trigger": "Apps",
     "aria": "Apps herunterladen",
     "scc": {
-      "name": "Companion-App",
+      "name": "Verse Companion App",
       "desc": "Dein Begleiter neben dem Spiel: Live-Infos, Overlays und Tastenbelegung, ohne Alt-Tab."
     },
     "starscape": {
@@ -7197,8 +7229,8 @@
     "close": "Schließen",
     "download": "Herunterladen",
     "scc": {
-      "line": "Companion-App für deinen Desktop",
-      "desc": "Die Companion-App für deinen Desktop."
+      "line": "Verse Companion App für deinen Desktop",
+      "desc": "Die Verse Companion App für deinen Desktop."
     },
     "starscape": {
       "line": "Starscape als Wallpaper-App",

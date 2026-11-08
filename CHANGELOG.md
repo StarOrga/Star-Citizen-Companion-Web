@@ -4,6 +4,42 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.239.3] - 2026-11-08
+
+### Changed
+- Verse: the auroras over the background planet are always visible, drifting slowly between weaker and stronger phases with more frequent strong bursts (a faint still aurora under reduced motion).
+
+## [0.239.2] - 2026-11-08
+
+### Changed
+- Classic ship view: the "Dein Exemplar" / "Haben?" card sits directly under the ship picture instead of in the headline column.
+
+## [0.239.1] - 2026-11-08
+
+### Fixed
+- Codex landing: the data sheet beside the hologram projector matches its top and bottom at every window size and after every item switch.
+
+## [0.239.0] - 2026-11-08
+
+### Added
+- HQ: the App-Status chip bottom left on every HQ page, Start included, also before the desktop app was ever connected. Four states with their own mark: App fehlt (dashed ring, "App downloaden"), App aus (grey ring, "zuletzt vor …", "App starten"), App bereit (green ring, "wartet auf Star Citizen"), Tracking (glowing dot, the last event that matters for the page).
+- HQ: every page explains on the chip what the app does there ("Aussicht"); while the app is missing it opens once per page.
+
+### Changed
+- HQ: the chip sits right of the hand-off launcher instead of under it, above the footer on Statistik and above the page bar on tablets.
+- HQ: the Start "Jetzt" tile and the Jetzt connect block use the same state words and buttons as the chip.
+- The desktop app is called "App" in the UI (no more "Companion-App" / "SCC-App"); "vor 1 Tag" instead of "vor 1 Tagen".
+
+## [0.238.8] - 2026-11-08
+
+### Fixed
+- Feature branches no longer create Vercel deployments at all (`git.deploymentEnabled`): canceled previews counted toward the Hobby limit of 100 per day and blocked production deploys.
+
+## [0.238.7] - 2026-11-08
+
+### Added
+- Ship detail (classic): save named loadouts per ship in this browser, recall or delete them from the Einsatz row; a disabled "Komponenten in den Warenkorb" button prepares the future cart.
+
 ## [0.238.6] - 2026-11-08
 
 ### Fixed

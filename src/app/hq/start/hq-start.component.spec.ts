@@ -222,21 +222,29 @@ describe('HqStartTilesComponent', () => {
   describe('Jetzt', () => {
     const appAnchor = (tile: HTMLElement) => tile.querySelector('sc-hq-app-launch a.go') as HTMLAnchorElement | null;
 
-    it('no signal and no memory: SCC-App downloaden', async () => {
+    it('no signal and no memory: App fehlt, App downloaden', async () => {
       const { tile } = await mount();
-      expect(tile('jetzt').textContent).toContain('hq.start.now.none');
+      expect(tile('jetzt').textContent).toContain('hq.appStatus.state.missing');
       expect(appAnchor(tile('jetzt'))?.textContent).toContain('hq.app.downloadCta');
     });
 
-    it('local memory alone: SCC-App starten', async () => {
+    it('local memory alone: App aus, App starten', async () => {
       const { tile } = await mount({ remembered: true });
+      expect(tile('jetzt').textContent).toContain('hq.appStatus.state.off');
       expect(appAnchor(tile('jetzt'))?.textContent).toContain('hq.app.launch');
     });
 
-    it('an account signal in a new browser: SCC-App starten, Kein Live-Signal, last place', async () => {
+    it('an account signal in a new browser: App aus, App starten', async () => {
       const { tile } = await mount({ state: { location: { name: 'Stanton4_NewBabbage', system: 'Stanton' } } });
-      expect(tile('jetzt').textContent).toContain('hq.start.now.off');
+      expect(tile('jetzt').textContent).toContain('hq.appStatus.state.off');
       expect(appAnchor(tile('jetzt'))?.textContent).toContain('hq.app.launch');
+    });
+
+    it('a fresh life sign without the game: App bereit, waiting, no button', async () => {
+      const { tile } = await mount({ state: { presence: { at: new Date().toISOString(), gameRunning: false } } });
+      expect(tile('jetzt').textContent).toContain('hq.appStatus.state.ready');
+      expect(tile('jetzt').textContent).toContain('hq.appStatus.waiting');
+      expect(tile('jetzt').querySelector('sc-hq-app-launch')).toBeNull();
     });
 
     it('live with a planned Einsatz: green state, place, ship, and a button with its next step', async () => {
@@ -282,7 +290,7 @@ describe('HqStartTilesComponent', () => {
 
     it('a signed-out reader sees the offline state, never an endless loading line', async () => {
       const { tile } = await mount({ user: false, liveLoaded: false });
-      expect(tile('jetzt').textContent).toContain('hq.start.now.none');
+      expect(tile('jetzt').textContent).toContain('hq.appStatus.state.missing');
       expect(tile('bestand').textContent).toContain('hq.start.bestand.empty');
     });
   });

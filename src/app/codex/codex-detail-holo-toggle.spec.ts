@@ -246,7 +246,9 @@ describe('CodexDetailComponent — Holotable / classic view toggle', () => {
     expect(el.querySelector('sc-codex-holo-stage')).toBeFalsy();
     expect(el.querySelector('.holo-toggle'), 'no Klassisch | Holotisch segment in the head').toBeNull();
     expect(el.querySelector('.c-head .sc-head-strip sc-codex-own-segment'), 'strip on the classic title row (F1)').toBeTruthy();
-    expect(el.querySelector('.m-side sc-codex-own-card'), 'ownership card on top of the side column').toBeTruthy();
+    expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card'), 'ownership card directly under the picture (#323)').toBeTruthy();
+    expect(el.querySelector('.hero-stack > .hero.stage + .hero-own'), 'right below the stage').toBeTruthy();
+    expect(el.querySelector('.m-side sc-codex-own-card'), 'no longer in the side column').toBeNull();
     const corner = TestBed.inject(PageCornerService);
     expect(corner.view()?.holo()).toBe(false);
     corner.view()!.toggle();

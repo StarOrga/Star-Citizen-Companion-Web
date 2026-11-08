@@ -13,6 +13,14 @@
 # each agent worktree branch, left a full preview deployment behind, and the
 # Hobby team hit 100% of its 10 GB Deployment Storage. Only main builds, plus
 # branches named preview/* (2026-11-05), which ask for a preview on purpose.
+#
+# This script is only the second guard (2026-11-08). A skipped build still
+# creates a CANCELED deployment, and those count toward the Hobby limit of 100
+# deployments per day: on 2026-11-08, 68 of 79 deployments in 24 h were
+# canceled feature-branch previews, and production stopped going live
+# ("Deployment rate limited"). `git.deploymentEnabled` in vercel.json now keeps
+# Vercel from creating a deployment for any branch except main and preview/**.
+# Keep both lists in sync.
 ref="${VERCEL_GIT_COMMIT_REF:-}"
 
 case "$ref" in
