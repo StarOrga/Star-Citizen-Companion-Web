@@ -1,0 +1,96 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "submission_id": "sub-mw8clok6-nzg6bgb5",
+    "decisions": [
+      {
+        "id": "d-cut",
+        "label": "Zuschnitt der übrigen Specs",
+        "mode": "single",
+        "value": "allin",
+        "rec": "bulk",
+        "deviates": true,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-fakeasync",
+        "label": "Zone-fakeAsync oder vi-Timer",
+        "mode": "single",
+        "value": "zone",
+        "rec": "zone",
+        "deviates": false,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-matchers",
+        "label": "Nacharbeiten im Treiber",
+        "mode": "multi",
+        "value": [
+          "contain",
+          "lastcall",
+          "resolved",
+          "stub"
+        ],
+        "rec": "contain lastcall resolved stub",
+        "deviates": false,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-guards",
+        "label": "Leitplanken unter Vitest",
+        "mode": "multi",
+        "value": [
+          "newtab",
+          "frames",
+          "shuffle"
+        ],
+        "rec": "newtab frames shuffle",
+        "deviates": false,
+        "untouched": true,
+        "note": ""
+      },
+      {
+        "id": "d-viewport",
+        "label": "Viewport der Specs",
+        "mode": "single",
+        "value": "desktop",
+        "rec": "parity",
+        "deviates": true,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-unhandled",
+        "label": "Unbehandelte Fehler",
+        "mode": "single",
+        "value": "fix",
+        "rec": "fix",
+        "deviates": false,
+        "untouched": false,
+        "note": ""
+      },
+      {
+        "id": "d-ci",
+        "label": "Browser in CI",
+        "mode": "single",
+        "value": "system",
+        "rec": "system",
+        "deviates": false,
+        "untouched": false,
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": []
+    },
+    "userPins": []
+  }
+]

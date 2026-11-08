@@ -69,6 +69,8 @@ const CALL = [
   misc.transformTimerMocks,
   misc.transformUnsupportedGlobalFunctions,
   misc.transformUnsupportedJasmineCalls,
+  // Ours, after the schematic's (concept 20261108-2224-vitest-migration, d-matchers).
+  containEqual,
 ];
 const FAKE_ASYNC = new Set([
   fakeAsyncTest.transformFakeAsyncTest,
@@ -83,6 +85,54 @@ const STATEMENT = [
   matcher.transformExpectNothing,
   misc.transformJasmineMembers,
 ];
+
+/**
+ * Jasmine's `toContain` compares by deep equality, Vitest's by reference: an
+ * object or array literal (or an asymmetric matcher) that Jasmine found in an
+ * array is never `toContain`ed under Vitest. `toContainEqual` is Jasmine's
+ * meaning. An identifier argument is left alone — it may well be the same
+ * reference, and only the types could tell.
+ */
+function containEqual(node) {
+  if (!ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== 'toContain') return node;
+  if (node.arguments.length !== 1 || !isValueShaped(node.arguments[0])) return node;
+  if (!isExpectChain(node.expression.expression)) return node;
+  return ts.factory.updateCallExpression(
+    node,
+    ts.factory.updatePropertyAccessExpression(node.expression, node.expression.expression, ts.factory.createIdentifier('toContainEqual')),
+    node.typeArguments,
+    node.arguments,
+  );
+}
+
+function isValueShaped(arg) {
+  if (ts.isObjectLiteralExpression(arg) || ts.isArrayLiteralExpression(arg)) return true;
+  // jasmine.objectContaining(…) / expect.objectContaining(…) and friends
+  return ts.isCallExpression(arg) && ts.isPropertyAccessExpression(arg.expression) && ts.isIdentifier(arg.expression.expression) && ['jasmine', 'expect'].includes(arg.expression.expression.text);
+}
+
+/** `expect(x)` or `expect(x).not` */
+function isExpectChain(e) {
+  if (ts.isPropertyAccessExpression(e) && e.name.text === 'not') e = e.expression;
+  return ts.isCallExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'expect';
+}
+
+/**
+ * Text-level follow-ups on what the schematic prints (d-matchers):
+ * - `mock.lastCall` is `T | undefined` in Vitest's types, where Jasmine's
+ *   `calls.mostRecent()` was not: assert it.
+ * - Jasmine's `and.resolveTo()` without a value becomes `mockResolvedValue()`,
+ *   which Vitest's types refuse: pass `undefined`.
+ * - A bare Jasmine `spyOn` returns `undefined`; the schematic writes
+ *   `mockReturnValue(undefined)`, which does not compile where the method
+ *   returns something else (a Promise, a Window): `undefined as never`.
+ */
+function followUps(text) {
+  return text
+    .replace(/\.mock\.lastCall(?![!?\w])/g, '.mock.lastCall!')
+    .replace(/\.mockResolvedValue\(\)/g, '.mockResolvedValue(undefined)')
+    .replace(/\.mockReturnValue\(undefined\)/g, '.mockReturnValue(undefined as never)');
+}
 
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
@@ -236,7 +286,7 @@ function print(final, node, { sourceFile, content, original, noted }) {
     ts.forEachChild(n, openBlocks);
   };
   nodes.forEach(openBlocks);
-  return nodes.map((n) => reindent(printer2.printNode(ts.EmitHint.Unspecified, n, sourceFile), indent)).join(`\n${indent}`);
+  return nodes.map((n) => followUps(reindent(printer2.printNode(ts.EmitHint.Unspecified, n, sourceFile), indent))).join(`\n${indent}`);
 }
 
 /** Re-indent the printer's lines (4-space steps from column 0); keep copied lines; drop the brackets. */

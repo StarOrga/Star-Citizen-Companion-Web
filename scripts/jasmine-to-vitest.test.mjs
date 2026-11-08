@@ -67,6 +67,40 @@ test('zone fakeAsync stays unless --fake-async is asked for', () => {
   assert.doesNotMatch(timers, /@angular\/core\/testing/);
 });
 
+test('toContain with an object, array or matcher becomes toContainEqual; an identifier stays', () => {
+  const src = [
+    "it('c', () => {",
+    "  expect(rows).toContain({ id: 'a' });",
+    "  expect(rows).not.toContain(['eq', 'id']);",
+    "  expect(rows).toContain(jasmine.objectContaining({ id: 'b' }));",
+    '  expect(rows).toContain(row);',
+    "  expect(name).toContain('x');",
+    '});',
+    '',
+  ].join('\n');
+  const out = run(src);
+  assert.match(out, /expect\(rows\)\.toContainEqual\(\{ id: 'a' \}\);/);
+  assert.match(out, /expect\(rows\)\.not\.toContainEqual\(\['eq', 'id'\]\);/);
+  assert.match(out, /expect\(rows\)\.toContainEqual\(expect\.objectContaining\(\{ id: 'b' \}\)\);/);
+  assert.match(out, /expect\(rows\)\.toContain\(row\);/);
+  assert.match(out, /expect\(name\)\.toContain\('x'\);/);
+});
+
+test('spy follow-ups: lastCall asserted, empty resolveTo and bare spies typed', () => {
+  const src = [
+    "it('s', () => {",
+    "  const fetch = spyOn(window, 'fetch');",
+    "  const load = jasmine.createSpy('load').and.resolveTo();",
+    '  const args = fetch.calls.mostRecent().args;',
+    '});',
+    '',
+  ].join('\n');
+  const out = run(src);
+  assert.match(out, /vi\.spyOn\(window, 'fetch'\)\.mockReturnValue\(undefined as never\)/);
+  assert.match(out, /\.mockResolvedValue\(undefined\)/);
+  assert.match(out, /\.mock\.lastCall!;/);
+});
+
 test('a multi-line template literal inside a replacement is not re-indented', () => {
   const src = ["it('t', () => {", '  expect(f(`a', '      b`)).toBeTrue();', '});', ''].join('\n');
   const out = run(src);
