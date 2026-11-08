@@ -421,7 +421,8 @@ describe('BlueprintDetailComponent — Material ×N', () => {
     const fixture = await setup(blueprint([{ ...ingredient(0, 'Agricium', 0.36), nameLocalized: 'Agricium' }]));
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('.wish-mat .sc-action') as HTMLButtonElement).click();
-    await settle(fixture);
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
     expect(TestBed.inject(UndoToastService).current()?.messageKey).toBe('blueprintWish.done');
     expect(el.querySelector('.wish-err')).toBeNull();
   });
@@ -431,7 +432,8 @@ describe('BlueprintDetailComponent — Material ×N', () => {
     const fixture = await setup(blueprint([{ ...ingredient(0, 'Agricium', 0.36), nameLocalized: 'Agricium' }]));
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('.wish-mat .sc-action') as HTMLButtonElement).click();
-    await settle(fixture);
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
     expect(TestBed.inject(UndoToastService).current()).toBeNull();
     expect(el.querySelector('.wish-err')?.textContent).toContain('errors.generic');
     // The blueprint itself landed and went back to its former quantity.

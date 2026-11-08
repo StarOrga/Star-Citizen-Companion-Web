@@ -16,6 +16,7 @@ import { HqLiveService } from '../now/hq-live.service';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 
 describe('HqStockPopupComponent: capture and links', () => {
+  afterEach(() => TestBed.inject(UndoToastService).flush());
   interface Hit { kind: string; classNameSlug: string; nameLocalized: string }
   interface Row { location: string; name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu' }
 
@@ -139,13 +140,13 @@ describe('HqStockPopupComponent: capture and links', () => {
       { mode: 'browse' },
       { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'item:Medpen_01', qty: 4, unit: 'pcs' }] },
     );
-    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 0));
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const btn = el.querySelector('li.row button.again') as HTMLButtonElement;
     expect(btn.textContent).toContain('hq.stock.popup.onWishlist');
     btn.click();
-    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 0));
     fixture.detectChanges();
     expect(wish.setQty).toHaveBeenCalledOnceWith({ kind: 'item', className: 'Medpen_01', name: 'Medpen' }, 1);
     expect(path.nachholen).not.toHaveBeenCalled();

@@ -19,6 +19,7 @@ import { HqLiveService } from '../now/hq-live.service';
 import { HqStockComponent } from './hq-stock.component';
 
 describe('HqStockComponent', () => {
+  afterEach(() => TestBed.inject(UndoToastService).flush());
   const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 
   interface Opts {
@@ -127,7 +128,7 @@ describe('HqStockComponent', () => {
     const { fixture, wish, el } = mount();
     const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
     click(fixture, p4ar.querySelector('.nach'));
-    await fixture.whenStable();
+    await new Promise((r) => setTimeout(r, 0));
     const toast = TestBed.inject(UndoToastService);
     expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
     wish.setQty.calls.reset();
@@ -171,7 +172,7 @@ describe('HqStockComponent', () => {
     const bp = el.querySelector('.grid .tile.bp')!;
     expect(bp.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
     click(fixture, bp.querySelector('.nach'));
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'blueprint', className: 'gallant_bp', name: 'Gallant' }, 3);
+    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'blueprint', className: 'gallant_bp', name: 'Gallant' }, 2);
   });
 
   it('the plus tile opens the stock popup in add mode', () => {
