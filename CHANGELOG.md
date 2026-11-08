@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Development: the unit tests run on Vitest in a real Chromium browser instead of Karma and Jasmine; the whole suite takes about 45 s instead of 80 s.
 
+## [0.239.7] - 2026-11-09
+
+### Changed
+- Feedback chat: "＋ Neues Thema" puts the cursor straight into the input, and Ctrl/Alt hide the launcher and panel only while the pointer is outside the panel.
+
 ## [0.239.6] - 2026-11-09
 
 ### Changed

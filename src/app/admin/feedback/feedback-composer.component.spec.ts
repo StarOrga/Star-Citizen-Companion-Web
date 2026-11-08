@@ -1344,3 +1344,42 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
     expect(seeds.pendingScopes().has('admin:new')).toBe(true);
   });
 });
+
+describe('FeedbackComposerComponent - focus on open (admin feedback #327)', () => {
+  let fixture: ComponentFixture<FeedbackComposerComponent>;
+
+  async function mount(focusOnOpen: boolean): Promise<HTMLTextAreaElement> {
+    drafts = new FakeDraftStore();
+    await TestBed.configureTestingModule({
+      imports: [FeedbackComposerComponent],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        provideFakeAttachmentSigner(),
+        { provide: FeedbackDraftService, useValue: drafts },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(FeedbackComposerComponent);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.componentRef.setInput('placeholder', 'adminFeedback.compose.placeholder');
+    fixture.componentRef.setInput('sendLabel', 'adminFeedback.compose.send');
+    if (focusOnOpen) fixture.componentRef.setInput('focusOnOpen', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    return fixture.nativeElement.querySelector('textarea');
+  }
+
+  afterEach(() => {
+    fixture?.nativeElement.remove();
+    TestBed.resetTestingModule();
+  });
+
+  it('puts the caret in the textarea as soon as the new-topic box is on screen', async () => {
+    const ta = await mount(true);
+    expect(document.activeElement).toBe(ta);
+  });
+
+  it('leaves focus alone by default (a reply box must not steal it)', async () => {
+    const ta = await mount(false);
+    expect(document.activeElement).not.toBe(ta);
+  });
+});

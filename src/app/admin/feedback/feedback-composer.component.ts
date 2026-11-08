@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   OnDestroy,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -663,6 +664,13 @@ export class FeedbackComposerComponent implements OnDestroy, FeedbackLineTarget 
    */
   readonly iconSend = input(false);
   /**
+   * Put the caret in the textarea as soon as the box is on screen (admin
+   * feedback #327): the docked panel's "＋ Neues Thema" bar unfolds this box on
+   * purpose, so the next keystroke belongs in it. Off by default — a reply box
+   * that mounts with its topic must not steal focus from the stream.
+   */
+  readonly focusOnOpen = input(false);
+  /**
    * Identity of this composer in the account-bound draft store (see
    * `draftScopes`). Null turns persistence off entirely — every composer in the
    * feedback surface sets one; the input stays nullable so an embedding outside
@@ -778,6 +786,9 @@ export class FeedbackComposerComponent implements OnDestroy, FeedbackLineTarget 
   );
 
   constructor() {
+    afterNextRender(() => {
+      if (this.focusOnOpen()) this.ta()?.nativeElement.focus({ preventScroll: true });
+    });
     // The workflow view keeps ONE composer mounted and moves it from topic to
     // topic, so the scope is not a constant. Every change has to hand the old
     // draft back to the store and pull the new one in — otherwise a half-typed
