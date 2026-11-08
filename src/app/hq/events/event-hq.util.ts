@@ -89,11 +89,11 @@ export interface EventDraft {
   readonly label: string;
   /** {kind, systems, places, venues} stored on the step instead of a fixed place. */
   readonly area: Record<string, unknown> | null;
-  readonly goods: readonly { name: string; qty: number }[];
+  readonly goods: readonly { name: string; qty: number; className?: string | null }[];
 }
 
 /** One Einsatz per chosen event: a single event step (its area instead of a place) and the rewards it brings. */
-export function eventDrafts(chosen: readonly { event: OpenEvent; rewards: readonly { name: string; qty: number }[] }[]): EventDraft[] {
+export function eventDrafts(chosen: readonly { event: OpenEvent; rewards: readonly { name: string; qty: number; className?: string | null }[] }[]): EventDraft[] {
   return chosen.map(({ event, rewards }) => {
     const f = event.event.sheet?.fields;
     const area = f?.area.value ?? null;
@@ -106,6 +106,53 @@ export function eventDrafts(chosen: readonly { event: OpenEvent; rewards: readon
       goods: rewards,
     };
   });
+}
+
+export interface BoundReward {
+  readonly eventId: string;
+  readonly name: string;
+  readonly className: string;
+  readonly ship: boolean;
+}
+export interface EventBindingPlan {
+  /** The primary event: stored as Nachschub.eventId. */
+  readonly eventId: string;
+  readonly name: string;
+  readonly type: 'event' | 'sightseeing';
+  /** Reward lines of EVERY chosen event, each tied to its own event. */
+  readonly rewards: readonly BoundReward[];
+}
+
+/** Binding of a new Nachschub to its chosen events: first = primary, every event's picked rewards become lines. */
+export function eventBinding(chosen: readonly { event: OpenEvent; rewards: readonly EventReward[] }[]): EventBindingPlan | null {
+  if (!chosen.length) return null;
+  const seen = new Set<string>();
+  const rewards: BoundReward[] = [];
+  for (const c of chosen) {
+    for (const r of c.rewards) {
+      const cls = (r.className ?? '').trim();
+      if (!cls || seen.has(cls.toLowerCase())) continue;
+      seen.add(cls.toLowerCase());
+      rewards.push({ eventId: c.event.event.id, name: r.name, className: cls, ship: looksLikeShip(cls) });
+    }
+  }
+  const anyReward = chosen.some((c) => rewardsOf(c.event).length > 0);
+  return { eventId: chosen[0].event.event.id, name: chosen[0].event.event.name, type: anyReward ? 'event' : 'sightseeing', rewards };
+}
+
+export interface EventStepPlan {
+  readonly eventId: string;
+  readonly label: string;
+  readonly className: string | null;
+  readonly supplyId: string | null;
+  readonly area: Record<string, unknown> | null;
+}
+
+/** The event steps of one event Einsatz: one per reward line (tied to its supply line), or a single step for a sightseeing event. */
+export function eventSteps(draft: EventDraft, lineIdOf: (className: string) => string | null): EventStepPlan[] {
+  const withClass = draft.goods.filter((g) => !!g.className);
+  if (!withClass.length) return [{ eventId: draft.eventId, label: draft.label, className: null, supplyId: null, area: draft.area }];
+  return withClass.map((g) => ({ eventId: draft.eventId, label: g.name, className: g.className!, supplyId: lineIdOf(g.className!), area: draft.area }));
 }
 
 // ------------------------------------------------------------------------------------------------ Jetzt offer (F9)

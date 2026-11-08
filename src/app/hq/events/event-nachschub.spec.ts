@@ -62,6 +62,18 @@ describe('event Nachschub rules', () => {
     expect(out.map((n) => n.status)).toEqual(['archived', 'active', 'active']);
   });
 
+  it('archives a Nachschub with two events only after BOTH officially ended', () => {
+    const now = Date.parse('2026-11-20T00:00:00Z');
+    const ends = new Map([
+      ['a', { at: '2026-11-19', basis: 'official' as const }],
+      ['b', { at: '2026-11-25', basis: 'official' as const }],
+    ]);
+    const n = nach({ eventId: 'a' });
+    expect(archiveAtEventEnd([n], ends, now, 'at', () => ['a', 'b'])[0].status).toBe('active');
+    const later = Date.parse('2026-11-26T00:00:00Z');
+    expect(archiveAtEventEnd([n], ends, later, 'at', () => ['a', 'b'])[0].status).toBe('archived');
+  });
+
   it('after-end rewards wait for distribution until ticked (C12)', () => {
     const r = reward({ timing: { kind: 'after-end', date: null } });
     expect(rewardLineState(r, {})).toBe('waiting');

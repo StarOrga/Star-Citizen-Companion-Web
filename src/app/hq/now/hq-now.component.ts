@@ -462,7 +462,7 @@ export class HqNowComponent {
   private readonly eventHq = inject(EventHqService);
   /** The place the reader waved off with "Nicht jetzt"; the offer stays away until the position changes. */
   private readonly waved = signal<string | null>(null);
-  readonly offer = computed(() => this.eventHq.offer(this.waved(), this.focus.selected()?.id ?? null));
+  readonly offer = computed(() => this.eventHq.offer(this.waved(), this.focus.selected()?.id ?? null, this.clock()));
   readonly offerName = computed(() => this.location() ? formatLocationName(this.location()!.name) : '');
   readonly offerEventName = computed(() => this.eventHq.eventById(this.offer()?.eventId)?.name ?? '');
 

@@ -31,7 +31,8 @@ import {
   takeFromWishlist,
   type NachschubType,
 } from './nachschub.model';
-import { archiveAtEventEnd, isEventNachschub } from '../events/event-nachschub';
+import { archiveAtEventEnd, clearEventNachschub, isEventNachschub, rewardWishes, wishlistAfterClaim } from '../events/event-nachschub';
+import type { EventReward } from '../events/event-sheet';
 import type { ResolvedEnd } from '../events/event-logic';
 
 /** Outcome of a Nachschub write. `key` is an i18n key (`hq.nachschub.done.*` on success, `errors.*` / `hq.nachschub.*` on failure). */
@@ -279,11 +280,8 @@ export class NachschubService {
     const owner = this.packages().find((p) => p.id === l.packageId);
     if (owner && isEventNachschub(owner)) backToWishlist = false;
     const before = this.wishPositions();
-    const out = clearNachschub(
-      l.className ? [{ id: l.id, kind: l.entityKind ?? 'item', className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName, closed: l.done }] : [],
-      before,
-      backToWishlist,
-    );
+    const one: OpenLine[] = l.className ? [{ id: l.id, kind: l.entityKind ?? 'item', className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName, closed: l.done }] : [];
+    const out = owner && isEventNachschub(owner) ? clearEventNachschub(one, before) : clearNachschub(one, before, backToWishlist);
     this.supplies.removeMany([l.id]);
     if (backToWishlist) await this.restoreWishlist(out.wishlist);
     return {
@@ -332,7 +330,8 @@ export class NachschubService {
       closed: l.done || (ev?.statuses.get(l.id)?.closed ?? false),
     }));
     const before = this.wishPositions();
-    const out = clearNachschub(open.filter((l) => l.className), before, backToWishlist);
+    const named = open.filter((l) => l.className);
+    const out = isEventNachschub(n) ? clearEventNachschub(named, before) : clearNachschub(named, before, backToWishlist);
     this.supplies.removeMany(out.removeIds);
     if (backToWishlist) await this.restoreWishlist(out.wishlist);
     return {
@@ -378,9 +377,9 @@ export class NachschubService {
   }
 
   /** An event Nachschub archives itself at its OFFICIAL end (C12); an estimate never does. */
-  async applyEventEnds(ends: ReadonlyMap<string, ResolvedEnd>, nowMs: number): Promise<void> {
+  async applyEventEnds(ends: ReadonlyMap<string, ResolvedEnd>, nowMs: number, idsOf?: (n: Nachschub) => readonly string[]): Promise<void> {
     const at = new Date(nowMs).toISOString();
-    const next = archiveAtEventEnd(this.packages(), ends, nowMs, at);
+    const next = archiveAtEventEnd(this.packages(), ends, nowMs, at, idsOf);
     for (const n of next) {
       const before = this.packages().find((p) => p.id === n.id);
       if (before && before !== n) await this.update(n);
@@ -421,6 +420,17 @@ export class NachschubService {
         return { ok: true, key: 'hq.nachschub.done.undone' };
       },
     };
+  }
+
+  /**
+   * An event reward landed: only a wish that IS this reward (exact class) shrinks, never the base item (C11).
+   * Returns 1 when a wish was touched, 0 when nothing was wished.
+   */
+  async fulfilEventReward(reward: Pick<EventReward, 'className'>, gained: number): Promise<number> {
+    const before = this.wishPositions();
+    if (!rewardWishes(before, reward).length) return 0;
+    await this.restoreWishlist(wishlistAfterClaim(before, reward, gained));
+    return 1;
   }
 
   // ------------------------------------------------------------------------------------------------ internals

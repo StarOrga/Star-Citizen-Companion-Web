@@ -13,8 +13,7 @@ import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { EventHqService } from '../events/event-hq.service';
 import { HqEventEndComponent } from '../events/hq-event-end.component';
-import { eventDrafts, eventsRewarding, looksLikeShip, rewardsOf } from '../events/event-hq.util';
-import { nachschubTypeFor } from '../events/event-nachschub';
+import { eventBinding, eventDrafts, eventSteps, eventsRewarding, rewardsOf } from '../events/event-hq.util';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { NachschubNamingService } from '../nachschub/nachschub-naming';
 import {
@@ -826,7 +825,7 @@ export class HqNachschubFlowComponent {
       this.events
         .open()
         .filter((o) => this.eventsInUse().has(o.event.id))
-        .map((o) => ({ event: o, rewards: this.eventsInUse().get(o.event.id)!.map((g) => ({ name: g.name, qty: g.qty })) })),
+        .map((o) => ({ event: o, rewards: this.eventsInUse().get(o.event.id)! })),
     ),
   );
 
@@ -855,10 +854,13 @@ export class HqNachschubFlowComponent {
       let result: NachschubResult;
       let id: string | undefined;
       if (this.mode() === 'new') {
-        const first = this.eventDraftList()[0];
-        const rewards = first ? (this.eventsInUse().get(first.eventId) ?? []).filter((g): g is { name: string; qty: number; className: string } => !!g.className).map((g) => ({ name: g.name, className: g.className, ship: looksLikeShip(g.className) })) : [];
-        const binding = first ? { type: nachschubTypeFor(this.rewardListOf(first.eventId)) === 'sightseeing' ? ('sightseeing' as const) : ('event' as const), eventId: first.eventId, name: first.label, rewards } : undefined;
-        result = await this.svc.createFromWishlist({ picks, name, event: binding });
+        const binding = eventBinding(
+          this.events
+            .open()
+            .filter((o) => this.eventPicks().has(o.event.id))
+            .map((o) => ({ event: o, rewards: rewardsOf(o).filter((r) => this.eventPicks().get(o.event.id)?.has(r.id)) })),
+        );
+        result = await this.svc.createFromWishlist({ picks, name, event: binding ?? undefined });
         id = result.id;
       } else {
         id = this.nachschubId() ?? undefined;
@@ -879,19 +881,17 @@ export class HqNachschubFlowComponent {
     }
   }
 
-  private rewardListOf(eventId: string) {
-    const o = this.events.open().find((x) => x.event.id === eventId);
-    return o ? rewardsOf(o) : null;
-  }
-
   /** One Einsatz per chosen event: a single event step carrying the area instead of a place. */
   private writeEventEinsaetze(id: string): void {
+    const lines = this.svc.linesOf(id);
     for (const d of this.eventDraftList()) {
       this.einsatz.create({
         title: clampName(d.label, EINSATZ_NAME_MAX),
         packageId: id,
         startLocation: null,
-        steps: [{ kind: 'event', label: d.label, location: null, system: null, className: null, qty: null, supplyId: null, missionRef: null, eventId: d.eventId, area: d.area }],
+        steps: eventSteps(d, (cls) => lines.find((l) => (l.className ?? '').toLowerCase() === cls.toLowerCase())?.id ?? null).map((s) => ({
+          kind: 'event' as const, label: s.label, location: null, system: null, className: s.className, qty: null, supplyId: s.supplyId, missionRef: null, eventId: s.eventId, area: s.area,
+        })),
       });
     }
   }

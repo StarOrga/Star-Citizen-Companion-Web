@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { NewsService } from '../../news/news.service';
@@ -39,7 +39,18 @@ export class EventHqService {
 
   private readonly now = signal(Date.now());
   private ensured: string | null = null;
+  private readonly endsReady = signal(false);
+  private endsApplied = false;
   private pollTimer: ReturnType<typeof setInterval> | undefined;
+
+  constructor() {
+    // Archive at the end of every bound event - only once the Einsaetze are loaded, so the event steps are known.
+    effect(() => {
+      if (!this.endsReady() || !this.einsatz.ready() || this.endsApplied) return;
+      this.endsApplied = true;
+      untracked(() => void this.ns.applyEventEnds(this.ends(), Date.now(), (n) => this.eventIdsOf(n)));
+    });
+  }
 
   /** i18n key of the last failed load, else null. */
   readonly error = computed(() => this.sheets.error() ?? this.states.error());
@@ -67,7 +78,7 @@ export class EventHqService {
     if (!uid || this.ensured === uid) return;
     this.ensured = uid;
     this.now.set(Date.now());
-    void Promise.all([this.sheets.load(), this.states.load(), this.ns.ensureLoaded()]).then(() => this.ns.applyEventEnds(this.ends(), Date.now()));
+    void Promise.all([this.sheets.load(), this.states.load(), this.ns.ensureLoaded()]).then(() => this.endsReady.set(true));
   }
 
   eventById(id: string | null | undefined): EventRow | null {
@@ -133,7 +144,7 @@ export class EventHqService {
     if (!ok) return false;
     const at = new Date().toISOString();
     for (const n of this.ns.active()) {
-      if (isEventNachschub(n) && n.eventId === eventId) await this.ns.update({ ...n, status: 'archived', slot: null, archivedAt: at });
+      if (isEventNachschub(n) && this.eventIdsOf(n).includes(eventId) && this.eventIdsOf(n).every((id) => this.states.stateOf(id).status === 'done')) await this.ns.update({ ...n, status: 'archived', slot: null, archivedAt: at });
     }
     return true;
   }
@@ -153,7 +164,7 @@ export class EventHqService {
       if (g.destination === 'hangar') await this.grantShip(reward.className, g.origin);
       else await this.inventory.addStock(EVENT_REWARD_LOCATION, reward.name, 1, 'pcs', reward.className, g.origin);
     }
-    await this.ns.fulfilWish(ship ? 'ship' : 'item', reward.className, plan.grants.length);
+    await this.ns.fulfilEventReward(reward, plan.grants.length);
     return true;
   }
 
@@ -171,9 +182,9 @@ export class EventHqService {
   // ------------------------------------------------------------------------------------------------ Jetzt offer (F9)
 
   /** The live offer for the focused Nachschub (see {@link eventOffer}); `dismissedKey` is the place the reader waved off. */
-  offer(dismissedKey: string | null, focusedId: string | null): EventOffer | null {
+  offer(dismissedKey: string | null, focusedId: string | null, nowMs: number = Date.now()): EventOffer | null {
     const state = this.live.state();
-    return eventOffer(this.ns.active(), this.open(), readPlaceReport(state), this.gameLive(), dismissedKey, focusedId);
+    return eventOffer(this.ns.active(), this.open(), readPlaceReport(state), isGameLive(state, this.live.events(), nowMs), dismissedKey, focusedId);
   }
   placeKey(): string {
     return readPlaceReport(this.live.state()).key;

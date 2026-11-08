@@ -1,6 +1,6 @@
 import type { Nachschub } from '../nachschub/nachschub.model';
 import type { EventRow, OpenEvent } from './event-logic';
-import { boardTiles, endView, eventDrafts, eventOffer, eventsRewarding, looksLikeShip, nearestEndOf, prereqView, readPlaceReport } from './event-hq.util';
+import { eventBinding, eventSteps, boardTiles, endView, eventDrafts, eventOffer, eventsRewarding, looksLikeShip, nearestEndOf, prereqView, readPlaceReport } from './event-hq.util';
 import { normalizeSheet } from './event-sheet';
 
 const field = (value: unknown) => ({ value, confidence: 1, source: 'admin', review: 'approved' });
@@ -59,6 +59,23 @@ describe('event-hq.util', () => {
     const [d] = eventDrafts([{ event: e, rewards: [{ name: 'Keelback', qty: 1 }] }]);
     expect(d.area).toEqual({ kind: 'system', systems: ['stanton'], places: [], venues: ['verse', 'arena-commander'] });
     expect(d.goods.length).toBe(1);
+  });
+
+  it('F6: two events in one Nachschub - every event gets its reward lines and its own steps', () => {
+    const r = (id: string, cls: string) => ({ id, name: id, className: cls, channel: 'pledge' });
+    const a = open('a', { rewards: [r('r1', 'ARGO_KEELBACK')], area: { kind: 'system', systems: ['stanton'], places: [] } });
+    const b = open('b', { rewards: [r('r2', 'behr_rifle_01')], area: { kind: 'system', systems: ['pyro'], places: [] } });
+    const ra = a.event.sheet!.fields.rewards.value!;
+    const rb = b.event.sheet!.fields.rewards.value!;
+    const plan = eventBinding([{ event: a, rewards: ra }, { event: b, rewards: rb }])!;
+    expect(plan.eventId).toBe('a');
+    expect(plan.type).toBe('event');
+    expect(plan.rewards.map((x) => [x.eventId, x.className, x.ship])).toEqual([['a', 'ARGO_KEELBACK', true], ['b', 'behr_rifle_01', false]]);
+    const drafts = eventDrafts([{ event: a, rewards: [{ name: 'Keelback', qty: 1, className: 'ARGO_KEELBACK' }] }, { event: b, rewards: [{ name: 'Rifle', qty: 1, className: 'behr_rifle_01' }] }]);
+    const steps = drafts.flatMap((d) => eventSteps(d, (c) => 'line-' + c));
+    expect(steps.map((s) => [s.eventId, s.supplyId])).toEqual([['a', 'line-ARGO_KEELBACK'], ['b', 'line-behr_rifle_01']]);
+    expect(steps[1].area).toEqual(jasmine.objectContaining({ systems: ['pyro'] }));
+    expect(eventBinding([])).toBeNull();
   });
 
   it('F9: offer inside the area, none without signal, dismissed until the place changes, AC by venue', () => {

@@ -57,12 +57,23 @@ export function resumeEventNachschub(all: readonly Nachschub[], id: string): { n
 // ------------------------------------------------------------------------------------------------ archive at end (C12)
 
 /** An event Nachschub archives itself once the OFFICIAL end has passed. Estimates never archive. */
-export function archiveAtEventEnd(all: readonly Nachschub[], ends: ReadonlyMap<string, ResolvedEnd>, nowMs: number, at: string): readonly Nachschub[] {
+export function archiveAtEventEnd(
+  all: readonly Nachschub[],
+  ends: ReadonlyMap<string, ResolvedEnd>,
+  nowMs: number,
+  at: string,
+  idsOf?: (n: Nachschub) => readonly string[],
+): readonly Nachschub[] {
+  const over = (id: string): boolean => {
+    const end = ends.get(id);
+    const t = end ? endMs(end) : null;
+    return !!end && end.basis === 'official' && t !== null && t < nowMs;
+  };
   return all.map((n) => {
     if (n.status !== 'active' || !isEventNachschub(n) || !n.eventId) return n;
-    const end = ends.get(n.eventId);
-    const t = end ? endMs(end) : null;
-    return end && end.basis === 'official' && t !== null && t < nowMs ? archive(n, at) : n;
+    // Several events in one Nachschub: it archives once EVERY bound event has officially ended.
+    const ids = idsOf ? [...new Set([n.eventId, ...idsOf(n)])] : [n.eventId];
+    return ids.every(over) ? archive(n, at) : n;
   });
 }
 
