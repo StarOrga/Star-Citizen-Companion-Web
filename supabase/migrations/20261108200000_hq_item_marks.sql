@@ -47,3 +47,6 @@ create policy hq_item_marks_update_own on public.hq_item_marks for update to aut
 drop policy if exists hq_item_marks_delete_own on public.hq_item_marks;
 create policy hq_item_marks_delete_own on public.hq_item_marks for delete to authenticated
   using ((select auth.uid()) = user_id);
+
+-- New table for the web client: reload PostgREST's schema cache right away (PGRST205 otherwise).
+notify pgrst, 'reload schema';
