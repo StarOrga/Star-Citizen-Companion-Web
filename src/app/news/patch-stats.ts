@@ -632,3 +632,30 @@ export function computeTestBuildRelease(
   const anchor = firstTest.get(buildKey(open.version)) ?? open.at;
   return { version: open.version, firstTestAt: anchor, at: anchor + m * DAY_MS, medianDays: m, samples: leads.length };
 }
+
+/** Where the build in testing lives on the board: its main line and its newest note. */
+export interface TestBuildNote {
+  /** Main line the build belongs to (`4.10` for `4.10.3`). */
+  line: string;
+  /** Id of the newest note of that version — the dossier's `?note=`. */
+  noteId: string;
+}
+
+/**
+ * The newest note of `version` (feedback #317, round 2: "wenn ich auf Patch
+ * 4.10.3 klicke, will ich auch zu den Änderungen zu 4.10.3 kommen … so, dass
+ * man richtig den Zusammenhang zu 4.10 als Hauptpatch auch hat"). Null when no
+ * note carries that version.
+ */
+export function testBuildNote(groups: readonly PatchLineGroup[], version: string): TestBuildNote | null {
+  const key = buildKey(version);
+  let best: { line: string; entry: PatchNoteEntry } | null = null;
+  for (const group of groups) {
+    if (!group.line) continue;
+    for (const entry of group.entries) {
+      if (!entry.version || buildKey(entry.version) !== key) continue;
+      if (!best || parsedTime(entry) > parsedTime(best.entry)) best = { line: group.line, entry };
+    }
+  }
+  return best ? { line: best.line, noteId: String(best.entry.item.id) } : null;
+}

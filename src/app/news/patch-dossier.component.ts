@@ -141,6 +141,15 @@ function scrollBehavior(): ScrollBehavior {
                 <span class="stab"><sc-stability-chip [data]="ch" size="lg" [live]="c.status === 'live'" /></span>
               }
             </div>
+            @if (selectedEntry(); as sel) {
+              <!-- The picked point release, framed by its main line (feedback #317). -->
+              <p class="sel">
+                <span class="sel-v">{{ selectedVersion() ? ('news.patch.dossier.noteOf' | translate:{ version: selectedVersion(), line: line() }) : sel.item.title }}</span>
+                @if (sel.stage) { <span class="tag" [attr.data-stage]="sel.facet">{{ ('news.patch.facet.' + sel.facet) | translate }}</span> }
+                <time>{{ relTime(sel.item.publishedAt) }}</time>
+                <a class="src" [routerLink]="['/verse/patches', line()]" [queryParams]="closeParams()">{{ 'news.patch.dossier.wholeLine' | translate:{ line: line() } }}</a>
+              </p>
+            }
             <p class="state">{{ stateLine() }}
               @if (sourceUrl(); as url) {
                 <a class="src" [href]="url" target="_blank" rel="noopener noreferrer">{{ 'news.patch.detail.openOnRsi' | translate }}</a>
@@ -237,7 +246,7 @@ function scrollBehavior(): ScrollBehavior {
               @if (hasContents()) {
                 <section id="pd-contents" class="sec" [class.flash]="flash() === 'contents'">
                   <h3>{{ sectionKey('contents') | translate }}
-                    @if (c.release; as r) {
+                    @if (shownRelease(); as r) {
                       <span class="ct">{{ r.cards.length }}</span>
                       <button type="button" class="pill-btn" [class.active]="allLong()" [attr.aria-pressed]="allLong()" (click)="toggleAllLong()">
                         {{ (allLong() ? 'news.patch.roadmap.collapseAll' : 'news.patch.roadmap.expandAll') | translate }}
@@ -247,7 +256,7 @@ function scrollBehavior(): ScrollBehavior {
                       }
                     }
                   </h3>
-                  @if (c.release; as r) {
+                  @if (shownRelease(); as r) {
                     @for (group of categories(); track group.category) {
                       <h4>{{ group.category || ('news.patch.roadmap.uncategorized' | translate) }} <span class="ct">{{ group.cards.length }}</span></h4>
                       <ul class="cards">
@@ -308,8 +317,8 @@ function scrollBehavior(): ScrollBehavior {
                       </details>
                     }
                   } @else if (currentEntry(); as entry) {
-                    <!-- No roadmap for this line: the note itself is what it holds. -->
-                    <p class="muted">{{ 'news.patch.contents.noRoadmap' | translate:{ title: entry.item.title } }}</p>
+                    <!-- A picked note (feedback #317), or no roadmap for this line: the note itself is what it holds. -->
+                    <p class="muted">{{ (selectedEntry() ? 'news.patch.contents.ofNote' : 'news.patch.contents.noRoadmap') | translate:{ title: entry.item.title } }}</p>
                     <sc-patch-note-detail [slug]="slugOf(entry)" [url]="entry.item.url" [tokens]="tokens()" />
                   }
                 </section>
@@ -458,6 +467,10 @@ function scrollBehavior(): ScrollBehavior {
     .status[data-status='next'], .status[data-status='ptu'] { color: var(--sc-accent); border: 1.5px solid var(--sc-accent); }
     .status[data-status='evocati'] { color: var(--sc-fg-1); border: 1.5px solid color-mix(in srgb, var(--sc-fg-1) 50%, transparent); }
     .status[data-status='superseded'], .status[data-status='other'] { color: var(--sc-fg-2); border: 1.5px solid color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
+    .sel { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 8px 0 0; font-size: max(0.84rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
+    .sel-v { font-family: var(--sc-font-display); font-size: 1.05rem; font-weight: 600; color: var(--sc-fg-0); overflow-wrap: anywhere; }
+    .sel time { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    .sel .src { margin-left: 0; }
     .state { margin: 8px 0 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-1); line-height: 1.5; }
     .src { color: var(--sc-accent); text-decoration: none; font-size: max(0.72rem, var(--sc-fs-floor)); margin-left: 8px; white-space: nowrap; }
     .src:hover { text-decoration: underline; }
@@ -645,6 +658,16 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
    * list of a dozen cards.
    */
   readonly focus = input<string>('');
+  /**
+   * One note of the line, from a version row on the board (`?note=<id>`).
+   *
+   * "wenn ich auf Patch 4.10.3 klicke, will ich auch zu den Änderungen zu
+   * 4.10.3 kommen" (feedback #317): the dossier then reads THAT note — its
+   * contents lead the page, the source link goes to it — and the hero keeps the
+   * main line as the frame it belongs to, with a way back to the whole patch.
+   * An id that names no note of this line is ignored.
+   */
+  readonly note = input<string>('');
 
   readonly query = signal('');
   readonly tokens = computed(() => tokenizeQuery(this.query()));
@@ -703,8 +726,24 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     return c && !c.line ? this.t.instant('news.patch.otherLine') : this.t.instant('news.patch.line', { version: this.line() });
   });
 
-  /** The note that describes the patch right now: the earliest Live note, else the newest test wave. */
+  /** The note picked on the board (`?note=`), when it belongs to this line. */
+  readonly selectedEntry = computed<PatchNoteEntry | null>(() => {
+    const id = (this.note() ?? '').trim();
+    if (!id) return null;
+    return this.card()?.group?.entries.find((e) => String(e.item.id) === id) ?? null;
+  });
+  /** The picked note's own version (4.10.3) — only when it is a point release, not the line itself. */
+  readonly selectedVersion = computed<string | null>(() => {
+    const e = this.selectedEntry();
+    return e?.version && e.version.replace(/(\.0)+$/, '') !== this.line() ? e.version : null;
+  });
+  /** The roadmap release is the MAIN line's content — a picked point release shows its own note instead. */
+  readonly shownRelease = computed(() => (this.selectedEntry() ? null : this.card()?.release ?? null));
+
+  /** The note that describes the patch right now: the picked one, else the earliest Live note, else the newest test wave. */
   readonly currentEntry = computed<PatchNoteEntry | null>(() => {
+    const picked = this.selectedEntry();
+    if (picked) return picked;
     const g = this.card()?.group;
     if (!g) return null;
     const live = g.entries.filter((e) => e.facet === 'live');
@@ -734,7 +773,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     return c && c.line && c.liveAt !== null ? this.stability.verdictFor(c.line) : null;
   });
   readonly categories = computed(() => groupCardsByCategory(this.card()?.release?.cards ?? []));
-  readonly matches = computed(() => matchNotesToCards(this.card()?.release?.cards ?? [], this.currentOutline()));
+  readonly matches = computed(() => matchNotesToCards(this.shownRelease()?.cards ?? [], this.currentOutline()));
   readonly leftover = computed(() => this.matches().leftover);
   readonly hasContents = computed(() => !!this.card()?.release || this.currentEntry() !== null);
   readonly hasCycle = computed(() => {
@@ -768,8 +807,10 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
       next: this.hasCycle(),
     };
     const out = (['stabilitaet', 'builds', ...sectionOrder(c?.status ?? 'other')] as SectionId[]).filter((id) => has[id]);
-    if (!this.openedWithQuery() || !out.includes('fixed')) return out;
-    return ['fixed', ...out.filter((id) => id !== 'fixed')];
+    if (this.openedWithQuery() && out.includes('fixed')) return ['fixed', ...out.filter((id) => id !== 'fixed')];
+    // A picked note (4.10.3 from the board) came for its changes: they lead.
+    if (this.selectedEntry() && out.includes('contents')) return ['contents', ...out.filter((id) => id !== 'contents')];
+    return out;
   });
 
   readonly waves = computed<PatchWaveGroup[]>(() => groupWaves(this.card()?.group?.entries ?? []));

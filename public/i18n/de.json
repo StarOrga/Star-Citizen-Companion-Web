@@ -2903,7 +2903,9 @@
         "official": "Offiziell (RSI)",
         "source": "Quelle: RSI-Status, {{title}}",
         "noOfficial": "Noch kein offizielles Datum",
-        "statusLink": "RSI-Status-Seite prüfen"
+        "statusLink": "RSI-Status-Seite prüfen",
+        "openNotes": "Änderungen in {{version}} ansehen",
+        "partOf": "Teil von Alpha {{line}}"
       },
       "forecast": {
         "title": "Voraussichtliche Termine",
@@ -3027,7 +3029,9 @@
           "next": "Wann kommt der nächste?",
           "nextThis": "Wann kommt dieser Patch?",
           "nextPast": "Was kam danach?"
-        }
+        },
+        "noteOf": "Änderungen in {{version}} · Teil von Alpha {{line}}",
+        "wholeLine": "Ganzen Patch {{line}} ansehen"
       },
       "prep": {
         "source": "laut Spectrum-Post („Important Build Info“)",
@@ -3049,7 +3053,8 @@
         "more": "Langtext",
         "less": "Einklappen",
         "leftover": "Weitere Stichpunkte der Note ohne Roadmap-Karte ({{n}})",
-        "noRoadmap": "Keine Roadmap-Daten zu diesem Patch – hier die Note „{{title}}“:"
+        "noRoadmap": "Keine Roadmap-Daten zu diesem Patch – hier die Note „{{title}}“:",
+        "ofNote": "Die Änderungen aus „{{title}}“:"
       },
       "fixed": {
         "placeholder": "In diesem Patch suchen … z. B. Quantum Drive",
