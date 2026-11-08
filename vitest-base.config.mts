@@ -1,5 +1,4 @@
-// Runner config for `npm run test:vitest` (angular.json → test-vitest →
-// runnerConfig). The Angular unit-test builder owns discovery, the build,
+// Runner config for `npm test` (angular.json → test → runnerConfig). The Angular unit-test builder owns discovery, the build,
 // the browser provider and the TestBed setup; this file only adds what the
 // Jasmine suite took for granted.
 import { defineConfig } from 'vitest/config';
