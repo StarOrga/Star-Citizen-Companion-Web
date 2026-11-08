@@ -104,7 +104,8 @@ export type ItemStageView = 'silhouette' | '3d';
       .tt.off { opacity: 0.4; cursor: not-allowed; }
       .tt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .surface { position: relative; z-index: 1; flex: 1 1 auto; min-height: 0; display: grid; place-items: center; padding: 8px 12px; }
-      .sil { width: 100%; height: 100%; max-height: 100%; overflow: visible; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
+      /* Pinned to the surface: a square viewBox (a missile) would otherwise size itself by its width and run out of the stage. */
+      .sil { position: absolute; left: 12px; top: 8px; width: calc(100% - 24px); height: calc(100% - 16px); overflow: visible; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
       .sil path { stroke: var(--sc-accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
       .pkg { display: block; width: 100%; height: 100%; min-height: 240px; }
       /* The preview image stands in for a missing silhouette: let it fill the stage up to 224 px (sizing travels as custom properties, see FallbackImageComponent). */

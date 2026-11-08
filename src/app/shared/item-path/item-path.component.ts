@@ -284,6 +284,8 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
     .stop-h { display: inline-flex; align-items: center; gap: 8px; color: var(--sc-fg-1); }
     .stop.on .stop-h { color: var(--sc-accent); }
     .stop-h b { font: 500 0.8125rem/1.2 var(--sc-font-display); letter-spacing: 0.05em; }
+    /* The main action of a stop wraps inside the stop instead of running over its neighbour. */
+    .stop > .sc-action { max-width: 100%; white-space: normal; text-align: left; }
     .stop p { margin: 0; color: var(--sc-fg-1); font-size: 0.8125rem; }
     svg.sc-action-icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     svg.sc-action-icon.is-filled { fill: color-mix(in srgb, currentColor 28%, transparent); }
