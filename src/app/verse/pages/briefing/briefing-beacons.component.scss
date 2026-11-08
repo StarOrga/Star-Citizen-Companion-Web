@@ -1,19 +1,23 @@
-// Sun + constellation (concept "Funkfeuer 2", d1 arrangement): the sun top
-// right (5.2 cqw, right 6.5, top 5 of 56.25), the constellation left below it
-// (8 × 5.6 cqw, right 12.5, top 11.5). cqw = the stage width; tops are
-// fractions of the stage height. No orbit ring, no orbit arc.
+// Sun, constellation and HQ station (concept 2026-11-08 batch-feedback-15,
+// rounds 2 + 3): the sun +45 % (7.6 cqw), alone top right and lowered to 14 %
+// of the stage height so neither its glow nor its streamers touch the header,
+// the title or the Galerie; the constellation at 65 % (5.2 cqw) on half
+// height between the search and the Galerie planet; the HQ station (5 cqw)
+// in the left sky. cqw = the stage width; tops are fractions of the stage
+// height. No orbit ring, no orbit arc.
 :host { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
 
-.sun-l, .const-l {
+.sun-l, .const-l, .hq-l {
   position: absolute;
   pointer-events: auto;
   color: inherit;
   text-decoration: none;
   border-radius: 50%;
 }
-.sun-l { right: 6.5cqw; top: 8.9%; width: max(5.2cqw, 52px); aspect-ratio: 1; }
-.const-l { right: 12.5cqw; top: 20.4%; width: max(8cqw, 84px); aspect-ratio: 8 / 5.6; border-radius: 12px; }
-.sun-l:focus-visible, .const-l:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
+.sun-l { right: 5cqw; top: 14%; width: max(7.6cqw, 72px); aspect-ratio: 1; }
+.const-l { right: 25cqw; top: 43%; width: max(5.2cqw, 56px); aspect-ratio: 8 / 5.6; border-radius: 12px; }
+.hq-l { left: 25cqw; top: 38%; width: max(5cqw, 54px); aspect-ratio: 5 / 3; border-radius: 8px; }
+:is(.sun-l, .const-l, .hq-l):focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 
 // ── Sun: warm, the one warm tone on the stage ───────────────────────────
 // Concept "Sonne & Planeten" (2026-10-31): a living star instead of a glow
@@ -183,6 +187,20 @@
 .fig > * { width: 100%; height: 100%; }
 .const-l:hover .fig, .const-l:focus-visible .fig { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
 
+// ── HQ station: slow drift (14 s), 1.1× on hover like the sun ─────────────
+// The drawing and its position lights: briefing-station.component.
+.obj {
+  position: absolute;
+  inset: 0;
+  display: block;
+  rotate: -8deg;
+  transition: filter 0.3s, scale 0.35s ease;
+  animation: hq-drift 14s ease-in-out infinite;
+  animation-play-state: var(--sc-brief-play, running);
+}
+.hq-l:is(:hover, :focus-visible) .obj { scale: 1.1; filter: brightness(1.15) drop-shadow(0 0 0.45cqw rgba(140, 220, 250, 0.5)); }
+@keyframes hq-drift { 0%, 100% { translate: 0 0; } 50% { translate: 0 -0.3cqw; } }
+
 // ── Labels: rise letter by letter under the beacon ──────────────────────
 .lab {
   position: absolute;
@@ -212,9 +230,9 @@
 .lab-n i { display: inline-block; font-style: normal; white-space: pre; }
 .lab-v { font-size: max(11px, 0.56cqw); letter-spacing: 0.04em; color: var(--sc-fg-0); opacity: 0.85; }
 
-:is(.sun-l, .const-l):is(:hover, :focus-visible, .idle) .lab { opacity: 1; }
-:is(.sun-l, .const-l):is(:hover, :focus-visible) .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.1s + var(--n, 0) * 0.035s); }
-:is(.sun-l, .const-l):is(:hover, :focus-visible) .lab-v { animation: rise 0.5s ease-out 0.5s both; }
+:is(.sun-l, .const-l, .hq-l):is(:hover, :focus-visible, .idle) .lab { opacity: 1; }
+:is(.sun-l, .const-l, .hq-l):is(:hover, :focus-visible) .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.1s + var(--n, 0) * 0.035s); }
+:is(.sun-l, .const-l, .hq-l):is(:hover, :focus-visible) .lab-v { animation: rise 0.5s ease-out 0.5s both; }
 // The hint shows the names only and calms down after ~5 s (the class goes).
 .idle .lab-v { display: none; }
 .sw { font-weight: 700; color: var(--sc-success); }
@@ -222,11 +240,15 @@
 .idle .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.7s + var(--n, 0) * 0.04s); }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-// Phones: the constellation sits beside the sun, clear of the hero.
+// Phones: the constellation sits beside the sun, the station mirrors them in
+// the top-left corner — all three clear of the hero and the search; the
+// feedback launcher (bottom right) is far below.
 @media (max-width: 720px) {
-  .sun-l { right: 4%; top: 3%; }
-  .const-l { right: calc(4% + 64px); top: 4%; }
+  .sun-l { right: 4%; top: 3%; width: 64px; }
+  .const-l { right: calc(4% + 72px); top: 4%; }
+  .hq-l { left: 4%; top: 4%; }
   .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
+  .hq-l .lab { left: 0; right: auto; align-items: flex-start; }
 }
 
 // Entrance (the stage carries .intro only while the sequence plays and never
@@ -238,6 +260,8 @@
 // builds up. Until then its own animation and the sky's stars and lines (which follow
 // --sc-brief-play) stand at their hidden first frame.
 :host-context(.bstage.intro) .sun-l { animation: bk-in 0.6s ease-out 2.6s both; }
+// The station drifts in with the details, a beat after the sun.
+:host-context(.bstage.intro) .hq-l { animation: bk-in 0.6s ease-out 2.75s both; }
 :host-context(.bstage.intro) .const-l {
   --intro-d: 0.45s;
   animation: bk-ignite 0.9s ease-out 0.45s both;
@@ -247,7 +271,8 @@
 @keyframes bk-ignite { 0% { opacity: 0; filter: brightness(2.4) blur(4px); } 35% { opacity: 1; filter: brightness(2) drop-shadow(0 0 14px rgba(150, 225, 255, 0.8)); } 100% { opacity: 1; filter: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .sun, .flare, .lab { transition: none; }
+  .sun, .flare, .lab, .obj { transition: none; }
+  .obj { animation: none; }
   .glow, .corona, .streamers, .disc::before, .disc::after, .flash { animation: none; }
   // Standing storms: the loops stay visible, mid-rise.
   .prom > i { animation: none; opacity: 0.8; }

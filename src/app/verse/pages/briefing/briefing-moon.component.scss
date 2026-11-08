@@ -6,7 +6,8 @@
 :host {
   display: block;
   min-width: 0;
-  --moon: 140px;
+  // −12 % (concept 2026-11-08 batch-feedback-15): 160 → 140 → 123 px.
+  --moon: 123px;
   // The relay loop; the stage overrides it per moon from moonSchedule().
   --cycle: 41.25s;
 }
@@ -284,13 +285,13 @@
 
 // Tablet: smaller spheres.
 @media (max-width: 1024px) {
-  :host { --moon: 112px; }
+  :host { --moon: 99px; }
 }
 
 // Phones: a row per moon — sphere left, caption right. The whole row is the
 // finger target.
 @media (max-width: 640px) {
-  :host { --moon: 64px; }
+  :host { --moon: 56px; }
   .moon {
     grid-template-columns: var(--moon) minmax(0, 1fr);
     justify-items: start;
