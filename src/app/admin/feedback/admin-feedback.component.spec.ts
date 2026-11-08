@@ -1342,3 +1342,22 @@ describe('AdminFeedbackComponent — the Codex view travels with a topic (admin 
     );
   });
 });
+
+describe('AdminFeedbackComponent — new topic focuses the field (admin feedback #327)', () => {
+  it('puts the caret in the new-topic textarea when the docked bar unfolds', async () => {
+    const { el, fixture } = await mount(fixtureTables());
+    document.body.appendChild(el);
+    try {
+      el.querySelector<HTMLButtonElement>('.new-topic-bar')!.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const ta = el.querySelector<HTMLTextAreaElement>('.compose-sheet textarea');
+      expect(ta).not.toBeNull();
+      expect(document.activeElement).toBe(ta);
+    } finally {
+      el.remove();
+    }
+  });
+});
