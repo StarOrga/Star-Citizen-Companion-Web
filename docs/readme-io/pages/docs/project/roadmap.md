@@ -3,7 +3,7 @@ title: Roadmap
 excerpt: Where the project is today and what the phases after alpha look like.
 ---
 
-SC Companion ships continuously — this is the direction, not a schedule. Dates
+Verse Companion ships continuously — this is the direction, not a schedule. Dates
 are deliberately absent; a fan project moves at the speed of the people
 building it.
 
@@ -44,7 +44,7 @@ can be reset.
 ## Following along
 
 - **Release notes** are rendered in the app at
-  [`/release-notes`](https://sc-companion.vercel.app/release-notes).
+  [`/release-notes`](https://versecompanion-alpha.vercel.app/release-notes).
 - **Every change** is public on
   [GitHub](https://github.com/StarOrga/Star-Citizen-Companion-Web).
 - **Requests** are welcome — see [Support & feedback](doc:support).

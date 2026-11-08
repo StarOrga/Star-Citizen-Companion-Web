@@ -13,7 +13,7 @@ const HTML = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SC Companion API — Reference</title>
+  <title>Verse Companion API — Reference</title>
   <link rel="icon" href="/favicon.ico" />
   <style>
     body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #050810; color: #e8eef9; }
@@ -96,7 +96,7 @@ const HTML = `<!DOCTYPE html>
   <script
     id="api-reference"
     data-url="./openapi.json"
-    data-configuration='{"theme":"deepSpace","darkMode":true,"hideClientButton":false,"layout":"modern","metaData":{"title":"SC Companion API","description":"Star Citizen Verse data — patches, news, ships, components"}}'>
+    data-configuration='{"theme":"deepSpace","darkMode":true,"hideClientButton":false,"layout":"modern","metaData":{"title":"Verse Companion API","description":"Star Citizen Verse data — patches, news, ships, components"}}'>
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
 

@@ -1,7 +1,7 @@
 /**
  * System tray — live pipeline progress + window/quit control.
  *
- * Modelled on the Star Citizen Companion app's tray: the menu itself shows how
+ * Modelled on the Verse Companion app's tray: the menu itself shows how
  * far the extraction and upload have got, so the operator sees the state of a
  * multi-hour run in one click without restoring the window.
  *

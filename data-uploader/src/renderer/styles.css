@@ -1,4 +1,4 @@
-/* Star Citizen Companion - Data Uploader renderer.
+/* Verse Companion - Data Uploader renderer.
    Tokens come from the StarOrga shared design system (@starorga/star-ui,
    `lib/design-tokens.css`, imported from main.ts so the build can strip its
    remote Google-Fonts @import — the CSP blocks that fetch anyway, so the

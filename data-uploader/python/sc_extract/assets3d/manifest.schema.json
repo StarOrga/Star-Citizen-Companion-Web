@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://sc-companion.vercel.app/schemas/asset-package-manifest-v1.json",
-  "title": "SC Companion 3D asset package manifest",
+  "title": "Verse Companion 3D asset package manifest",
   "description": "Places shared part GLBs on a root GLB (ship hull or FPS weapon body). All transforms are glTF space (Y-up, metres), relative to the root GLB's origin; a viewer applies them verbatim. See data-uploader/docs/asset-package.md.",
   "type": "object",
   "required": ["schemaVersion", "kind", "coordinateSystem", "entity", "root", "interior", "parts", "placements", "generator"],

@@ -37,7 +37,10 @@ additional_redirect_urls = [
   "https://sc-companion.vercel.app/uploader/auth?**",
   "https://star-citizen-companion-website.vercel.app/news",
   "https://star-citizen-companion-website.vercel.app/uploader/auth",
-  "https://star-citizen-companion-website.vercel.app/uploader/auth?**"
+  "https://star-citizen-companion-website.vercel.app/uploader/auth?**",
+  "https://versecompanion-alpha.vercel.app/news",
+  "https://versecompanion-alpha.vercel.app/uploader/auth",
+  "https://versecompanion-alpha.vercel.app/uploader/auth?**"
 ]
 jwt_expiry = 3600
 enable_signup = true

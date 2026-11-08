@@ -120,7 +120,7 @@
       "checking": "Checking your access …"
     },
     "landing": {
-      "appName": "Star Citizen Companion",
+      "appName": "Verse Companion",
       "join": "Join the Club.",
       "pitch": "The Companion is a private circle — access is invite-only. Already flying in the verse and want in? Apply and an admin will take a look.",
       "perks": {
@@ -166,7 +166,7 @@
     "signOut": "Sign out",
     "backToHome": "Back to home",
     "skipToContent": "Skip to content",
-    "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
+    "brandAria": "Verse Companion — go to the home page (Verse News)",
     "phaseBadge": "Alpha",
     "badge": "Cartographer badge",
     "accountMenu": "Account menu",
@@ -1008,9 +1008,20 @@
         "cohortRole": "{{n}} × {{role}}",
         "dockAria": "Energy and perspectives"
       },
-      "below": {"parts": "Components in detail", "partsCount": "{{n}} fitted", "areaEmpty": "No components in this area."},
-      "persp": {"lead": "Rated as {{mission}}, compared with {{n}} ships.", "leadNoCohort": "Rated as {{mission}}.", "allShow": "All values of all four ▾", "allHide": "Collapse all values ▴"},
-      "side": {"variants": "Variants & compare"},
+      "below": {
+        "parts": "Components in detail",
+        "partsCount": "{{n}} fitted",
+        "areaEmpty": "No components in this area."
+      },
+      "persp": {
+        "lead": "Rated as {{mission}}, compared with {{n}} ships.",
+        "leadNoCohort": "Rated as {{mission}}.",
+        "allShow": "All values of all four ▾",
+        "allHide": "Collapse all values ▴"
+      },
+      "side": {
+        "variants": "Variants & compare"
+      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -3513,7 +3524,7 @@
         "comingSoon": "Coming soon",
         "mockNote": "Preview: linking with the SC app is not implemented yet. The status above is a placeholder, not an existing connection.",
         "scApp": {
-          "name": "Star Citizen Companion App",
+          "name": "Verse Companion App",
           "desc": "Link the desktop app straight to your account so uploads and data are attributed automatically."
         }
       },
@@ -3982,7 +3993,7 @@
     "close": "Close",
     "access": {
       "fullPage": "Full Data Upload page",
-      "note": "Windows only · signs in with your SCC account · uploads data, never code."
+      "note": "Windows only · signs in with your Verse Companion account · uploads data, never code."
     }
   },
   "download": {
@@ -3995,7 +4006,7 @@
     "subtitle": "Get the Data Uploader for your local Star Citizen install."
   },
   "desktopConnect": {
-    "title": "Connect Star Citizen Companion",
+    "title": "Connect Verse Companion",
     "authorizing": "Checking your session…",
     "loginRequired": "Sign in first — we'll bounce you back here automatically.",
     "redirecting": "Authorized. Sending token to the app…",
@@ -4023,9 +4034,9 @@
   },
   "footer": {
     "madeByCommunity": "Made by the Community",
-    "badgeAlt": "Star Citizen — Made by the Community fan site badge",
-    "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content not authored by this site's host or its users is the property of its respective owner.",
-    "trademarks": "Cloud Imperium®, Roberts Space Industries®, RSI®, Star Citizen®, Squadron 42® and SQ42™ are trademarks of Cloud Imperium Rights LLC.",
+    "badgeAlt": "Star Citizen — Made By The Community",
+    "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
+    "trademarks": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC",
     "disclaimerExpand": "Show full disclaimer",
     "disclaimerCollapse": "Collapse disclaimer",
     "legalNav": "Legal and project information",
@@ -4037,15 +4048,19 @@
       "aboutNew": "new",
       "news": "What's new"
     },
-    "disclaimerTitle": "Fan-site notice"
+    "disclaimerTitle": "Fan-site notice",
+    "rsiLink": "Official Star Citizen site: robertsspaceindustries.com",
+    "noticeOriginal": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
+    "noticeOriginalLabel": "Original wording",
+    "trademarksOriginal": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC"
   },
   "legal": {
     "about": {
-      "title": "About SC Companion",
+      "title": "About Verse Companion",
       "subtitle": "Who runs this site, what it does, and where the code lives.",
       "what": {
         "title": "What is this?",
-        "p1": "Star Citizen Companion (SCC) is a free, non-commercial companion app for the space sim Star Citizen: Verse news, a ship and equipment codex, and personal hangar and loadout tools.",
+        "p1": "Verse Companion is a free, non-commercial companion app for the space sim Star Citizen: Verse news, a ship and equipment codex, and personal hangar and loadout tools.",
         "p2": "News, codex and release notes are browsable without an account. An account is only needed for personal features such as your hangar, and registration is currently invite-only."
       },
       "openSource": {
@@ -4055,12 +4070,12 @@
       },
       "data": {
         "title": "Your data",
-        "p1": "SCC shows no ads and stores only what the features need. Product analytics run through PostHog on EU servers. Details are in the privacy policy:",
+        "p1": "Verse Companion shows no ads and stores only what the features need. Product analytics run through PostHog on EU servers. Details are in the privacy policy:",
         "privacyLink": "Privacy policy"
       },
       "affiliation": {
         "title": "Fan project — not affiliated",
-        "p1": "SCC is an unofficial fan project made by the community. It is not affiliated with, endorsed by, or sponsored by Cloud Imperium Games or Roberts Space Industries, and it never asks for your RSI account credentials."
+        "p1": "Verse Companion – unofficial fan tool for Star Citizen. It is made by the community and is not affiliated with, endorsed by, or sponsored by the Cloud Imperium group of companies or Roberts Space Industries, and it never asks for your RSI account credentials."
       },
       "contact": {
         "title": "Contact",
@@ -4100,7 +4115,7 @@
       },
       "google": {
         "title": "Signing in with Google",
-        "p1": "The Google route is optional — e-mail and password get you in without Google. When you tap \"Continue with Google\", the app sends you to Google's sign-in page (accounts.google.com). Google thereby learns that you are signing in to SC Companion, along with the technical data every page visit carries (IP address, browser, time). The provider is Google Ireland Limited (Ireland) or Google LLC (USA).",
+        "p1": "The Google route is optional — e-mail and password get you in without Google. When you tap \"Continue with Google\", the app sends you to Google's sign-in page (accounts.google.com). Google thereby learns that you are signing in to Verse Companion, along with the technical data every page visit carries (IP address, browser, time). The provider is Google Ireland Limited (Ireland) or Google LLC (USA).",
         "p2": "After a successful sign-in, Google returns data to us that Supabase stores in your account's auth record: your Google account id, your e-mail address, the name you have on file with Google, and the URL of your Google profile picture. Almost none of it is displayed — your name appears in the account menu, and only for as long as you have not set your own username; the app never loads your profile picture, it only shows the first letter as an initial.",
         "p3": "Nothing flows back to Google beyond the sign-in itself — no hangar, codex or usage data. What Google does with the sign-in data on its side is governed by Google's own privacy policy:",
         "policyLink": "Google's privacy policy (policies.google.com/privacy)",
@@ -4108,7 +4123,7 @@
       },
       "local": {
         "title": "Cookies, local storage and your session",
-        "p1": "SCC sets no cookies — neither its own nor any from ad networks. Instead the app uses your browser's local storage, for these entries:",
+        "p1": "Verse Companion sets no cookies — neither its own nor any from ad networks. Instead the app uses your browser's local storage, for these entries:",
         "keys": {
           "session": "sc.auth — your sign-in session: a short-lived access token and a refresh token from Supabase. While you stay signed in, the app renews the access token automatically in the background; signing out deletes the entry. Clearing your browser's site data signs you out as well.",
           "lang": "sc.lang — your language choice.",
@@ -4141,7 +4156,7 @@
       },
       "social": {
         "title": "Friends and visibility",
-        "p1": "Friends are accounts you connected with through a request or a personal invite link; an invite link expires and you can revoke it. While you are friends, they see your hangar, your flagship, whether you are online and the comparison numbers on the Social page (for example how often you use SCC) by default. You can switch each of these off in the visibility popup on the Social page, in general or for a single friend.",
+        "p1": "Friends are accounts you connected with through a request or a personal invite link; an invite link expires and you can revoke it. While you are friends, they see your hangar, your flagship, whether you are online and the comparison numbers on the Social page (for example how often you use Verse Companion) by default. You can switch each of these off in the visibility popup on the Social page, in general or for a single friend.",
         "p2": "For this the user_presence table stores, per account, the time of your last visit and an activity mask for the last 30 days (active or not per day) — no browsing history. \"Online\" means seen within the last few minutes.",
         "p3": "Groups (for example orgs or squads) are a private list of yours: the members see neither the group nor its name. Einsätze, loadouts and ship variants are only visible to whom you explicitly share them with. Ending a friendship ends all visibility at once."
       }
@@ -4150,7 +4165,7 @@
       "title": "Site Notice",
       "operator": {
         "title": "Operator",
-        "p1": "Star Citizen Companion (sc-companion.vercel.app) is a non-commercial, open-source community project. It is maintained by the StarOrga organization and its contributors on GitHub.",
+        "p1": "Verse Companion (versecompanion-alpha.vercel.app) is a non-commercial, open-source community project. It is maintained by the StarOrga organization and its contributors on GitHub.",
         "p2": "The project earns no revenue: no ads, no paid features, no sponsoring."
       },
       "contact": {
@@ -4183,7 +4198,13 @@
       "badge": "Your flagship",
       "mark": "Flagship"
     },
-    "manage": { "toggle": "Manage", "variants": "Variants", "noVariants": "No variant yet. Create one on the ship's Codex page.", "active": "Active", "openVariant": "View variant" },
+    "manage": {
+      "toggle": "Manage",
+      "variants": "Variants",
+      "noVariants": "No variant yet. Create one on the ship's Codex page.",
+      "active": "Active",
+      "openVariant": "View variant"
+    },
     "status": {
       "owned": "Owned",
       "wishlist": "Wishlist"
@@ -4358,7 +4379,7 @@
       "adoptHint": "Add to your own hangar",
       "adoptError": "That didn't work. Please try again.",
       "loginToAdopt": "Sign in to create a copy",
-      "aboutCta": "What is SC Companion?",
+      "aboutCta": "What is Verse Companion?",
       "unavailable": {
         "title": "This loadout is not available",
         "body": "The link is invalid, expired, or was revoked."
@@ -4420,7 +4441,7 @@
     },
     "product": {
       "label": "Product",
-      "scc-app": "SCC App",
+      "scc-app": "Companion App",
       "data-uploader": "Data Uploader",
       "all": "All",
       "starscape": "Starscape"
@@ -4875,12 +4896,12 @@
       "noCredentials": "No credentials, cookies or session tokens are read.",
       "noPersonalData": "No account name, e-mail address, pledge value or order data is read.",
       "noUpload": "Nothing is sent to any server. The ship list is handed to this app inside your browser and only reaches your account after you confirm it.",
-      "scopeLimited": "The extension is active on your own RSI hangar page and on Star Citizen Companion — nowhere else.",
+      "scopeLimited": "The extension is active on your own RSI hangar page and on Verse Companion — nowhere else.",
       "localOnly": "Only a checksum of your fleet and the time of the last import are stored, locally in your browser."
     },
     "install": {
       "title": "Hangar import — browser extension",
-      "subtitle": "Star Citizen Companion cannot read robertsspaceindustries.com by itself: browsers forbid one site from reading another. A small browser extension can read the hangar page you are already looking at — and hand the ship list to your hangar here.",
+      "subtitle": "Verse Companion cannot read robertsspaceindustries.com by itself: browsers forbid one site from reading another. A small browser extension can read the hangar page you are already looking at — and hand the ship list to your hangar here.",
       "detected": {
         "title": "Extension detected",
         "text": "The extension is installed on this browser. Open your hangar at RSI while signed in and it will offer the import when your fleet is new or has changed.",
@@ -4899,7 +4920,7 @@
         },
         "confirm": {
           "title": "You confirm here",
-          "text": "The ship list opens in Star Citizen Companion with every entry visible. Only the rows you tick are written to your hangar."
+          "text": "The ship list opens in Verse Companion with every entry visible. Only the rows you tick are written to your hangar."
         }
       },
       "privacy": {
@@ -4937,7 +4958,7 @@
         "text": "Your hangar page also accepts a JSON export in the Hangar Transfer Format, which you produce yourself. Same review screen, same rules.",
         "cta": "To my hangar"
       },
-      "disclaimer": "Star Citizen Companion is an unofficial fan project and is not affiliated with the Cloud Imperium group of companies. The extension is not endorsed by RSI."
+      "disclaimer": "Verse Companion is an unofficial fan project and is not affiliated with the Cloud Imperium group of companies. The extension is not endorsed by RSI."
     },
     "importPage": {
       "title": "Import ships from your RSI hangar",
@@ -5156,7 +5177,7 @@
       "today": "· last seen today"
     },
     "fallback": "Download (latest)",
-    "prerelease": "This is always the stable release. Beta and alpha are picked inside the app once you sign in with your SC Companion account — which rings you get depends on your role."
+    "prerelease": "This is always the stable release. Beta and alpha are picked inside the app once you sign in with your Verse Companion account — which rings you get depends on your role."
   },
   "appPanel": {
     "version": "Currently published version",
@@ -5318,7 +5339,7 @@
       "updated": "last changed {{date}}",
       "emptyLoadout": "Nothing has been added to this set yet.",
       "footnote": "Read-only. Only the owner can change it.",
-      "aboutCta": "What is SC Companion?",
+      "aboutCta": "What is Verse Companion?",
       "unavailable": {
         "title": "This set is not available",
         "body": "The link is invalid or has been disabled."
@@ -5528,7 +5549,7 @@
       "einsaetze": "Einsätze of this Nachschub"
     },
     "ticker": {
-      "app": "SCC App",
+      "app": "Companion App",
       "on": "connected",
       "off": "off",
       "none": "no event yet",
@@ -5573,7 +5594,7 @@
       "blueprint": "Blueprint",
       "ruf": "Reputation",
       "rufEmptyTitle": "No data source yet",
-      "rufEmptyText": "Appears as soon as the SCC App reports your reputation or you enter it by hand.",
+      "rufEmptyText": "Appears as soon as the Companion App reports your reputation or you enter it by hand.",
       "pager": "Pages",
       "range": "{{from}}–{{to}} of {{total}}",
       "prev": "Previous page",
@@ -5663,10 +5684,25 @@
       "empty": "Nothing on the supplies list yet.",
       "emptyHint": "Search for an item and add it to Supplies: Plan then shows where to get it and how to get there.",
       "tabsAria": "Lists",
-      "tabs": { "wish": "Wishlist", "nachschub": "Supplies" },
-      "wish": { "empty": "Nothing on the wishlist yet.", "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.", "toNachschub": "To Supplies", "remove": "Take {{name}} off the wishlist", "notYet": "not in the game yet" },
+      "tabs": {
+        "wish": "Wishlist",
+        "nachschub": "Supplies"
+      },
+      "wish": {
+        "empty": "Nothing on the wishlist yet.",
+        "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.",
+        "toNachschub": "To Supplies",
+        "remove": "Take {{name}} off the wishlist",
+        "notYet": "not in the game yet"
+      },
       "got": "Got it",
-      "place": { "title": "Where is it now?", "other": "Other place …", "otherPlaceholder": "Enter a place", "store": "Put down", "tickOnly": "Just tick off" }
+      "place": {
+        "title": "Where is it now?",
+        "other": "Other place …",
+        "otherPlaceholder": "Enter a place",
+        "store": "Put down",
+        "tickOnly": "Just tick off"
+      }
     },
     "ops": {
       "title": "Ops",
@@ -5815,10 +5851,10 @@
       "loading": "Loading your game state …",
       "retry": "Try again",
       "connect": {
-        "title": "Game not detected — start the SCC app",
-        "hint": "The SCC app reports your location and actions here, live.",
-        "syncOffTitle": "SCC app connected — no live data yet",
-        "syncOffHint": "In the SCC app, turn on live sync under Settings → Overlay → SCC Web HQ, then start the game.",
+        "title": "Game not detected — start the Companion app",
+        "hint": "The Companion app reports your location and actions here, live.",
+        "syncOffTitle": "Companion app connected — no live data yet",
+        "syncOffHint": "In the Companion app, turn on live sync under Settings → Overlay → Verse Companion Web HQ, then start the game.",
         "explain": {
           "aria": "What Now shows",
           "what": "Now is your live state from the game: where you are, what comes next on your route, and what happened last.",
@@ -5962,24 +5998,48 @@
       "preview": {
         "stamp": "Preview",
         "title": "Your stats grow here",
-        "text": "This is what it looks like once the SCC app reads along while you play: aUEC, missions, completion rate, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
-        "textLinked": "The SCC app is connected. Once you play, aUEC, missions, deaths, crimestat, refinery and blueprints fill up. The tiles behind it are sample data."
+        "text": "This is what it looks like once the Companion app reads along while you play: aUEC, missions, completion rate, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
+        "textLinked": "The Companion app is connected. Once you play, aUEC, missions, deaths, crimestat, refinery and blueprints fill up. The tiles behind it are sample data."
       }
     },
     "stock": {
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to your inventory.",
-      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
-      "totals": { "title": "Total", "items": "items", "places": "places" },
-      "places": { "title": "Largest places" },
-      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
-      "cats": { "title": "Categories" },
-      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
+      "actions": {
+        "browse": "Browse",
+        "find": "Where is …?",
+        "add": "Add"
+      },
+      "totals": {
+        "title": "Total",
+        "items": "items",
+        "places": "places"
+      },
+      "places": {
+        "title": "Largest places"
+      },
+      "stale": {
+        "title": "Stand older than 7 days",
+        "none": "All places are up to date."
+      },
+      "cats": {
+        "title": "Categories"
+      },
+      "cat": {
+        "materials": "Raw materials",
+        "weapons": "Weapons",
+        "armor": "Armor",
+        "other": "Other"
+      },
       "popup": {
         "title": "Inventory",
         "modes": "What to do",
-        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+        "mode": {
+          "browse": "Browse",
+          "find": "Where is …?",
+          "add": "Add"
+        },
         "search": "Search inventory",
         "searchHint": "Item or place",
         "filters": "Filters",
@@ -6049,7 +6109,7 @@
       },
       "lager": {
         "empty": "Nothing in your inventory yet. Once there is, you can search here for where it lies.",
-        "emptyHow": "How it gets here: the SCC app reads your inventory when you open it in game. Or add it by hand with “Add”.",
+        "emptyHow": "How it gets here: the Companion app reads your inventory when you open it in game. Or add it by hand with “Add”.",
         "storage": "Ships at the hangar terminal"
       },
       "find": {
@@ -6064,7 +6124,7 @@
         "yours": "Your inventory",
         "here": "You are in {{place}}",
         "whereAmI": "Where are you right now?",
-        "unknownHere": "Without your location we sort by amount. Start the SCC app or pick a place.",
+        "unknownHere": "Without your location we sort by amount. Start the Companion app or pick a place.",
         "prompt": "Enter what you are looking for. Below you see where it lies.",
         "noHit": "None of that in your inventory. Maybe in the other unit?",
         "take": "take {{n}}",
@@ -6104,17 +6164,17 @@
       }
     },
     "app": {
-      "launch": "Start SCC app",
-      "starting": "Starting the SCC app …",
-      "started": "The SCC app is starting. Sign in there and your data will come through here.",
-      "downloading": "SCC app not found: the download is running now (about 500 MB). Run the setup afterwards.",
-      "noResponse": "The SCC app didn't respond. Start it by hand or download it again.",
+      "launch": "Start Companion app",
+      "starting": "Starting the Companion app …",
+      "started": "The Companion app is starting. Sign in there and your data will come through here.",
+      "downloading": "Companion app not found: the download is running now (about 500 MB). Run the setup afterwards.",
+      "noResponse": "The Companion app didn't respond. Start it by hand or download it again.",
       "retry": "Already installed? Start again",
-      "download": "Download SCC app",
-      "downloadCta": "Download SCC App",
+      "download": "Download Companion app",
+      "downloadCta": "Download Companion App",
       "downloadStarted": "The download is running (about 500 MB). Run the setup afterwards.",
-      "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start SCC App”. You can always find it again under Apps at the top right.",
-      "tipLaunch": "Opens the SCC App on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
+      "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start Companion App”. You can always find it again under Apps at the top right.",
+      "tipLaunch": "Opens the Companion App on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
       "close": "Close"
     },
     "friends": {
@@ -6340,7 +6400,7 @@
       "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the star maps you earned."
     },
     "hub": {
-      "brand": "Star Citizen Companion",
+      "brand": "Verse Companion",
       "search": "Search …",
       "searchKey": "Ctrl K",
       "more": "More in the Verse",
@@ -6525,9 +6585,9 @@
     "badge": {
       "share": "Share badge",
       "caption": "Cartographer · Rank {{rank}}",
-      "captionSub": "Patch {{patch}} · {{stars}} of {{total}} stars · SC Companion",
+      "captionSub": "Patch {{patch}} · {{stars}} of {{total}} stars · Verse Companion",
       "aria": "Cartographer badge rank {{rank}} with the star map of patch {{patch}}",
-      "explain": "A cartographer completed whole star maps in SC Companion: every task of a patch is a star.",
+      "explain": "A cartographer completed whole star maps in Verse Companion: every task of a patch is a star.",
       "cta": "Start your own star map",
       "invalid": "This badge link is incomplete.",
       "toVerse": "Go to the Verse"
@@ -6844,7 +6904,7 @@
     "aria": "Download apps",
     "platform": "Windows · always the latest version",
     "scc": {
-      "name": "SCC App",
+      "name": "Companion App",
       "desc": "The Companion app for your desktop."
     },
     "starscape": {
@@ -6863,7 +6923,7 @@
     "close": "Close",
     "download": "Download",
     "scc": {
-      "line": "SCC App for your desktop",
+      "line": "Companion App for your desktop",
       "desc": "The Companion app for your desktop."
     },
     "starscape": {
@@ -7473,7 +7533,7 @@
     },
     "comparePanel": {
       "title": "Comparison",
-      "hint": "How you use SCC and what you each do, compared with you. Only what the friend shows you appears.",
+      "hint": "How you use Verse Companion and what you each do, compared with you. Only what the friend shows you appears.",
       "loading": "Loading …",
       "noFriends": "Once you have friends you can compare yourself with them here.",
       "with": "Compare with",

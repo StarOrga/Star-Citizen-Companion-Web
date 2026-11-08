@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { Release, ReleaseNotesService } from '../release-notes/release-notes.service';
 import { ReleaseSeenService } from '../release-notes/release-seen.service';
@@ -84,6 +84,11 @@ const HIGHLIGHTS = 4;
       <div class="sc-card wide affiliation">
         <h2>{{ 'legal.about.affiliation.title' | translate }}</h2>
         <p>{{ 'legal.about.affiliation.p1' | translate }}</p>
+        <p>{{ 'footer.disclaimer' | translate }}</p>
+        @if (lang() !== 'en') {
+          <p lang="en"><span class="sc-sr-only">{{ 'footer.noticeOriginalLabel' | translate }}: </span>{{ 'footer.noticeOriginal' | translate }}</p>
+        }
+        <p><a class="rsi-link" href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a></p>
         <p class="disclaimer">{{ 'footer.trademarks' | translate }}</p>
       </div>
 
@@ -196,9 +201,11 @@ const HIGHLIGHTS = 4;
     .state .skel-short { width: min(70%, 360px); }
     .state-text { color: var(--sc-fg-1); margin: 0; }
     .affiliation { border-color: var(--sc-accent); }
+    /* The RSI link stands alone in its paragraph, so it is a tap target of its own (48px, the mobile-gate baseline). */
+    .affiliation .rsi-link { display: inline-flex; align-items: center; min-height: 48px; }
     .affiliation .disclaimer {
       color: var(--sc-fg-2);
-      font-size: max(0.78rem, var(--sc-fs-floor));
+      font-size: max(0.85rem, 13.5px);
       border-top: 1px solid var(--sc-border);
       padding-top: 10px;
       margin-top: 12px;
@@ -220,6 +227,8 @@ const HIGHLIGHTS = 4;
   `],
 })
 export class AboutComponent {
+  /** Current UI language; a non-English view also shows CIG's original English notice. */
+  protected readonly lang = inject(TranslateService).currentLang;
   private readonly notes = inject(ReleaseNotesService);
   private readonly seen = inject(ReleaseSeenService);
   private readonly feature = viewChild<ElementRef<HTMLElement>>('feature');

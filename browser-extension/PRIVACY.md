@@ -1,4 +1,4 @@
-# Privacy notice — SC Companion Hangar Import
+# Privacy notice — Verse Companion Hangar Import
 
 Short version: the extension reads **personalised game content only** — the
 ship names shown on your own RSI hangar page — and nothing ever leaves your
@@ -14,7 +14,7 @@ browser without you clicking confirm.
 - Credentials, passwords, cookies, session tokens, 2FA data.
 - Your account name, handle, e-mail address, address, payment data.
 - Pledge values, order numbers, purchase dates, store credit.
-- Any page other than your RSI hangar page and Star Citizen Companion.
+- Any page other than your RSI hangar page and Verse Companion.
 
 ## Where the data goes
 
@@ -23,7 +23,7 @@ no request to any host except robertsspaceindustries.com — and only for the
 further pages of your own hangar list, exactly like clicking "next page".
 
 When you click *Import*, the ship list is written to the browser's local
-extension storage and a Star Citizen Companion tab is opened. That tab reads
+extension storage and a Verse Companion tab is opened. That tab reads
 the list from the extension, shows you every entry, and only writes the ships
 you confirmed — using the Supabase session you are already signed in with. The
 extension itself never authenticates anywhere and holds no token.
@@ -49,5 +49,5 @@ in the extension popup deletes all of it.
 
 No `tabs`, no `scripting`, no `<all_urls>`, no analytics, no remote code.
 
-Star Citizen Companion is an unofficial fan project and is not affiliated with
+Verse Companion is an unofficial fan project and is not affiliated with
 the Cloud Imperium group of companies.

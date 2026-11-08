@@ -47,7 +47,7 @@ Videos sit in the stream with everything else rather than in a separate rail —
 badged, but not fenced off.
 
 Videos are kept for **31 days** — today, this week and this month. Older clips
-leave the feed and their cached thumbnails are deleted, because SC Companion
+leave the feed and their cached thumbnails are deleted, because Verse Companion
 only has so much online storage and a video that old is no longer news. The
 articles themselves are unaffected: only videos age out, and every video is
 still one click away on YouTube.
@@ -127,7 +127,7 @@ where there is no room for it.
   toggle. It is per-account and syncs across devices.
 - **Teilen** shares a direct link to the post, or copies it where the browser
   has no share sheet.
-- Every item links to the original on RSI — SC Companion aggregates and links,
+- Every item links to the original on RSI — Verse Companion aggregates and links,
   it does not rehost articles.
 
 ## Upcoming ships notice

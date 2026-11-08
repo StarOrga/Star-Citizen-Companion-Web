@@ -6,7 +6,7 @@ excerpt: Where to report a bug, what to include, and how to reach the maintainer
 ## In-app feedback
 
 The fastest route for anything about the app itself is the **feedback button**
-inside SC Companion. It lands directly in the maintainers' triage queue, and it
+inside Verse Companion. It lands directly in the maintainers' triage queue, and it
 carries the context (route, version) automatically.
 
 One message holds up to **2,000 characters** — the field counts down in its
@@ -33,7 +33,7 @@ Useful details to include:
 ## Security
 
 Please do **not** open a public issue for a security problem. The project
-publishes an [RFC 9116 `security.txt`](https://sc-companion.vercel.app/.well-known/security.txt)
+publishes an [RFC 9116 `security.txt`](https://versecompanion-alpha.vercel.app/.well-known/security.txt)
 with the correct contact.
 
 ## Documentation drift

@@ -483,7 +483,7 @@ def run(root_pid: int, cores: int) -> int:  # pragma: no cover - Windows only
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    ap = argparse.ArgumentParser(description="SC Companion resource governor")
+    ap = argparse.ArgumentParser(description="Verse Companion resource governor")
     ap.add_argument("--pid", type=int, required=True)
     ap.add_argument("--cores", type=int, default=os.cpu_count() or 1)
     args = ap.parse_args(argv)

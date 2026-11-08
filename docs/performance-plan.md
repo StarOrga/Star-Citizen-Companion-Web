@@ -242,13 +242,13 @@ Aufbau.
 innerhalb der Sitzung = alles sofort da):
 
 1. Zuerst **nur der Sternenhimmel**.
-2. In der Mitte, wo sonst der erste Titel steht: **„Star Citizen Companion“**.
+2. In der Mitte, wo sonst der erste Titel steht: **„Verse Companion“**.
 3. Danach baut sich alles **nacheinander und weich** auf: Kopfzeile, Suche,
    Beacons/Monde. Kein Element erscheint, verschwindet und kommt wieder.
 4. Der große Planet **schiebt sich von unten herein**, sobald er geladen ist —
    kein Blinken.
 5. Die **Sternschnuppe** erst ganz am Schluss („alles fertig“).
-6. Dann springt der Titel auf die erste Meldung; „Star Citizen Companion“
+6. Dann springt der Titel auf die erste Meldung; „Verse Companion“
    kommt in der Rotation **nicht** mehr vor.
 7. Admin-Elemente (Admin-Konsole unten rechts, Admin-Links) stehen ohne
    Animation da.
@@ -262,7 +262,7 @@ Ansehen: Bildfolge über CDP `Page.captureScreenshot` (Playwrights
 | Punkt | Umsetzung |
 |---|---|
 | Sterne zuerst | Boot-Himmel in `src/styles.scss`: bis die erste Seite steht, ist der Seitenhintergrund der Szenen-Himmel (gleiche Felder/Seeds wie `shell-scene`); Splash-Ring erst nach 1,2 s |
-| Name in der Mitte | `brand()` in `verse-briefing.component.ts`: „Star Citizen Companion“ (`verse.hub.brand`) statt der ersten Story, ohne Rubrik und Pfeile; auch während die Übersicht lädt (kein Platzhalter-Balken) |
+| Name in der Mitte | `brand()` in `verse-briefing.component.ts`: „Verse Companion“ (`verse.hub.brand`) statt der ersten Story, ohne Rubrik und Pfeile; auch während die Übersicht lädt (kein Platzhalter-Balken) |
 | Aufbau nacheinander | Zeitplan ab Intro-Start: Balken 0,15 s, Name 0,35 s + 45 ms/Buchstabe, Kopfzeile 1,9 s, Suche 2,3 s, Sonne 2,6 s, Planeten schweben 2,9 s ein, „Mehr im Verse“ 3,05 s |
 | Kein Auftauchen-Verschwinden | Shell kündigt das Intro beim Start an (`holdHeroIntro`): Kopfzeile/Suche stehen ab dem ersten Frame auf ihrem verborgenen Startbild; die Suche bleibt unsichtbar, bis sie auf der Bühne steht |
 | Planet von unten | `sc-briefing-planet`: gleitet beim Bereitwerden herein (1,5 s), das Intro wartet nicht mehr auf ihn |

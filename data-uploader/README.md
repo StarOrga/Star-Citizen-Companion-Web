@@ -1,8 +1,8 @@
-# Star Citizen Companion - Data Uploader
+# Verse Companion - Data Uploader
 
 Lokaler P4K-Scanner mit Live-Progress, Quality-Score und gegenseitig-verifiziertem
 Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App
-(„SC Companion").
+(„Verse Companion").
 
 ## Status
 

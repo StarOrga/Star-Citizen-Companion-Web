@@ -1,4 +1,4 @@
-# /ship — SC Companion delivery reference
+# /ship — Verse Companion delivery reference
 
 Declarative config read by the devops ship pipeline (plugin `skills/ship/SKILL.md`
 Step 0 → captured, Step 4b → headless post-merge watcher, Step 4c → live browser

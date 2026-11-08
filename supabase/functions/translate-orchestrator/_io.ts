@@ -205,7 +205,7 @@ export function buildOverlayMeta(
     sources.push({
       id: AI_SOURCE_ID,
       name: 'SC Companion KI',
-      url: 'https://sc-companion.vercel.app',
+      url: 'https://versecompanion-alpha.vercel.app',
       license: nc ? NC_SA : 'SC Companion',
       attribution: 'SC Companion',
     });

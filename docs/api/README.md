@@ -1,6 +1,6 @@
 # Public API — OpenAPI spec
 
-`openapi.json` in this directory is a standalone export of the SC Companion
+`openapi.json` in this directory is a standalone export of the Verse Companion
 public API spec, intended for upload to [readme.io](https://readme.io) (or
 any other OpenAPI-driven docs tool).
 

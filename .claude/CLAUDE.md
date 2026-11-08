@@ -1,4 +1,4 @@
-# SC Companion — Claude Context
+# Verse Companion — Claude Context
 
 See root [CLAUDE.md](../CLAUDE.md) for project conventions. This file is the index for repo-scoped Claude Code resources.
 

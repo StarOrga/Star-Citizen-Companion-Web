@@ -1,23 +1,23 @@
 ---
-title: What is SC Companion?
+title: What is Verse Companion?
 excerpt: A fan-made companion for Star Citizen — Verse News, a datamined Codex, your Hangar, and a read-only Public API.
 metadata:
-  title: SC Companion — Star Citizen companion app
-  description: SC Companion aggregates Verse News, a datamined ship and component Codex, a personal Hangar, the Starscape gallery, and a read-only Public API.
+  title: Verse Companion — Star Citizen companion app
+  description: Verse Companion aggregates Verse News, a datamined ship and component Codex, a personal Hangar, the Starscape gallery, and a read-only Public API.
 ---
 
-**SC Companion** is a fan-made companion app for *Star Citizen*. It pulls the
+**Verse Companion** is a fan-made companion app for *Star Citizen*. It pulls the
 public Verse together in one place — news, patch versions, ships, components —
 and adds the tools that sit around them.
 
-- **Web app:** <https://sc-companion.vercel.app>
+- **Web app:** <https://versecompanion-alpha.vercel.app>
 - **Source:** [StarOrga/Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web)
 - **Licence:** MIT
 - **Phase:** alpha
 
 > 🚧 **Alpha.** Features and data schemas still move. What is documented here is
 > what is live today; see [Roadmap](doc:roadmap) for what is coming and
-> [About SC Companion](doc:about-sc-companion) for the alpha ground rules.
+> [About Verse Companion](doc:about-sc-companion) for the alpha ground rules.
 
 ## What it does
 
@@ -32,7 +32,7 @@ and adds the tools that sit around them.
 
 ## How the data gets there
 
-Nothing in SC Companion is typed in by hand:
+Nothing in Verse Companion is typed in by hand:
 
 1. A **news crawl** polls RSI's public channels (Comm-Link, Spectrum, the RSI
    status page, YouTube) and normalises everything into one feed. Artwork found
@@ -55,6 +55,6 @@ as the most recent uploaded bundle.
 
 ---
 
-*SC Companion is an unofficial fan project and is **not affiliated with,
+*Verse Companion is an unofficial fan project and is **not affiliated with,
 endorsed by, or sponsored by Cloud Imperium Games or Roberts Space
 Industries**.*

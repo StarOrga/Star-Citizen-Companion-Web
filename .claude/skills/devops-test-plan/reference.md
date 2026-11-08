@@ -1,4 +1,4 @@
-# devops-test-plan — SC Companion reference
+# devops-test-plan — Verse Companion reference
 
 Verbose snippets referenced from `SKILL.md`. Keep here so the SKILL.md itself
 stays at 1–3 lines per rule.
