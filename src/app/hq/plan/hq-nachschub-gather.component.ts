@@ -5,6 +5,7 @@ import { toErrorKey } from '../../core/describe-error';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component';
+import type { HqGatherStop } from '../data/hq-db.types';
 import { gatherProgress, moveStop } from '../data/hq-gather';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { type Nachschub, parseSellGoal, sellProgress } from '../nachschub/nachschub.model';
@@ -119,7 +120,7 @@ export class HqNachschubGatherComponent {
     this.supplies.tickGatherStop(id, index, done);
   }
 
-  protected move(id: string, stops: Parameters<typeof moveStop>[0], from: number, to: number): void {
+  protected move(id: string, stops: readonly HqGatherStop[], from: number, to: number): void {
     this.supplies.setGather(id, moveStop(stops, from, to));
   }
 

@@ -5762,7 +5762,7 @@
         "sellName": "Make money",
         "scu": "SCU",
         "pcs": "pcs",
-        "route": "Route over {{n}} places, most first",
+        "route": "{{n}} places, most first",
         "up": "Move {{place}} up",
         "down": "Move {{place}} down",
         "einsatzOne": "Pick up {{name}}",
@@ -5787,7 +5787,7 @@
         "lines": "To sell"
       },
       "gather": {
-        "title": "Pick-up routes",
+        "title": "Pick-up",
         "route": "{{done}} of {{n}} stops",
         "tick": "{{place}} picked up"
       },

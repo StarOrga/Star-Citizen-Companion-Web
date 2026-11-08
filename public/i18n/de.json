@@ -5762,7 +5762,7 @@
         "sellName": "Geld verdienen",
         "scu": "SCU",
         "pcs": "Stk.",
-        "route": "Route über {{n}} Orte, die meisten zuerst",
+        "route": "{{n}} Orte, die meisten zuerst",
         "up": "{{place}} nach oben",
         "down": "{{place}} nach unten",
         "einsatzOne": "{{name}} abholen",
@@ -5787,7 +5787,7 @@
         "lines": "Zu verkaufen"
       },
       "gather": {
-        "title": "Abholrouten",
+        "title": "Abholen",
         "route": "{{done}} von {{n}} Halten",
         "tick": "{{place}} abgeholt"
       },
