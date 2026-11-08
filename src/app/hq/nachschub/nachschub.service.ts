@@ -202,12 +202,7 @@ export class NachschubService {
       snapshot[added.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
     }
     // Rewards of the chosen event are lines of their own (they close when the claimed reward lands in Bestand).
-    for (const r of opts.event?.rewards ?? []) {
-      const added = this.supplies.addLine(r.name, 1, { entityKind: r.ship ? 'ship' : 'item', className: r.className, packageId: id, source: 'search' });
-      if (!added) continue;
-      lineIds.push(added.id);
-      snapshot[added.id] = this.ownedOf({ ship: r.ship, className: r.className });
-    }
+    this.addRewardLines(opts.event?.rewards ?? [], id, snapshot, lineIds);
     const now = new Date().toISOString();
     const pkg: Nachschub = { id, name, status: 'active', slot, snapshot, createdAt: now, archivedAt: null, ...(opts.event ? { type: opts.event.type, eventId: opts.event.eventId } : {}) };
     if (!(await this.save(pkg, uid))) {
@@ -234,13 +229,13 @@ export class NachschubService {
    * "Bearbeiten" > add: take more wishlist positions into an existing active Nachschub (same rules as
    * {@link createFromWishlist}). Undo takes them out again and restores the wishlist.
    */
-  async addFromWishlist(id: string, picks: readonly WishPick[]): Promise<NachschubResult> {
+  async addFromWishlist(id: string, picks: readonly WishPick[], eventRewards: EventBinding['rewards'] = []): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
     const n = this.packages().find((p) => p.id === id && p.status === 'active');
     if (!uid || !n) return fail('errors.generic');
     const before = this.wishPositions();
     const { taken, remaining } = takeFromWishlist(before, picks);
-    if (!taken.length) return fail('hq.nachschub.nothingPicked');
+    if (!taken.length && !eventRewards.length) return fail('hq.nachschub.nothingPicked');
     const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
     const lineIds: string[] = [];
     const snapshot: Record<string, number> = { ...n.snapshot };
@@ -256,6 +251,8 @@ export class NachschubService {
       lineIds.push(added.id);
       snapshot[added.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
     }
+    // Rewards of an event added while editing become reward lines too, exactly like on creation.
+    this.addRewardLines(eventRewards, id, snapshot, lineIds);
     if (!(await this.replace({ ...n, snapshot }, uid))) {
       this.supplies.removeMany(lineIds);
       return fail(this.error() ?? 'errors.generic');
@@ -271,6 +268,16 @@ export class NachschubService {
         return { ok: true, key: 'hq.nachschub.done.undone' };
       },
     };
+  }
+
+  /** Reward lines of chosen events: one line per reward; they close when the claimed reward lands in Bestand. */
+  private addRewardLines(rewards: EventBinding['rewards'], packageId: string, snapshot: Record<string, number>, lineIds: string[]): void {
+    for (const r of rewards) {
+      const added = this.supplies.addLine(r.name, 1, { entityKind: r.ship ? 'ship' : 'item', className: r.className, packageId, source: 'search' });
+      if (!added) continue;
+      lineIds.push(added.id);
+      snapshot[added.id] = this.ownedOf({ ship: r.ship, className: r.className });
+    }
   }
 
   /** "Bearbeiten" > remove one line: it goes back to the wishlist (counted up there) or is dropped. */

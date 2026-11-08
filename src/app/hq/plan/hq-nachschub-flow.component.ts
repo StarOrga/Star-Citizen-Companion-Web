@@ -820,6 +820,16 @@ export class HqNachschubFlowComponent {
     return out;
   });
 
+  /** Binding of the picked events (creation and edit use the same plan). */
+  private pickedEventBinding() {
+    return eventBinding(
+      this.events
+        .open()
+        .filter((o) => this.eventPicks().has(o.event.id))
+        .map((o) => ({ event: o, rewards: rewardsOf(o).filter((r) => this.eventPicks().get(o.event.id)?.has(r.id)) })),
+    );
+  }
+
   protected readonly eventDraftList = computed(() =>
     eventDrafts(
       this.events
@@ -854,12 +864,7 @@ export class HqNachschubFlowComponent {
       let result: NachschubResult;
       let id: string | undefined;
       if (this.mode() === 'new') {
-        const binding = eventBinding(
-          this.events
-            .open()
-            .filter((o) => this.eventPicks().has(o.event.id))
-            .map((o) => ({ event: o, rewards: rewardsOf(o).filter((r) => this.eventPicks().get(o.event.id)?.has(r.id)) })),
-        );
+        const binding = this.pickedEventBinding();
         result = await this.svc.createFromWishlist({ picks, name, event: binding ?? undefined });
         id = result.id;
       } else {
@@ -867,7 +872,8 @@ export class HqNachschubFlowComponent {
         if (!id) return;
         const current = this.svc.packages().find((p) => p.id === id);
         if (current && current.name !== name) await this.svc.rename(id, name);
-        result = picks.length ? await this.svc.addFromWishlist(id, picks) : { ok: true, key: 'hq.nachschub.done.edited', id };
+        const binding = this.pickedEventBinding();
+        result = picks.length || binding?.rewards.length ? await this.svc.addFromWishlist(id, picks, binding?.rewards) : { ok: true, key: 'hq.nachschub.done.edited', id };
       }
       if (!result.ok || !id) {
         this.error.set(result.key);

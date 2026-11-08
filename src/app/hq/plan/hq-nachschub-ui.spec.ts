@@ -6,6 +6,8 @@ import { AuthService } from '../../auth/auth.service';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { fakeSupabase } from '../../testing/fake-supabase';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { EventHqService } from '../events/event-hq.service';
+import { normalizeSheet } from '../events/event-sheet';
 import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
 import { NachschubNamingService } from '../nachschub/nachschub-naming';
 import type { Nachschub, WishPosition } from '../nachschub/nachschub.model';
@@ -269,10 +271,60 @@ describe('HqNachschubFlowComponent', () => {
     return { f, el: f.nativeElement as HTMLElement, created, startSearch };
   }
 
+  function setupEdit() {
+    TestBed.resetTestingModule();
+    const fake = {
+      wishPositions: () => [] as WishPosition[],
+      packages: signal<Nachschub[]>([{ ...nach('n1', 'Bestehend', 1), type: 'event', eventId: 'ev0' }]),
+      linesOf: () => [{ id: 'line1', className: 'ARGO_KEELBACK' }],
+      createFromWishlist: jasmine.createSpy('createFromWishlist'),
+      rename: jasmine.createSpy('rename').and.resolveTo(true),
+      addFromWishlist: jasmine.createSpy('addFromWishlist').and.resolveTo({ ok: true, key: 'hq.nachschub.done.added', id: 'n1' }),
+      removeLine: jasmine.createSpy('removeLine'),
+    };
+    const reward = { id: 'r1', name: 'Keelback', className: 'ARGO_KEELBACK', variant: null, channel: 'pledge', timing: { kind: 'immediate', date: null }, trackId: null, tier: null };
+    const sheet = normalizeSheet({ schema: 1, fields: { rewards: { value: [reward], confidence: 1, source: 'admin', review: 'approved' } } });
+    const row = { id: 'ev', name: 'Ev', startDate: '2000-01-01', endDate: '2999-12-31', dateStatus: 'confirmed', status: 'scheduled', hidden: false, freeFly: false, sheet };
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideTranslateService(),
+        fakeSupabase().provider,
+        { provide: AuthService, useValue: { user: signal(null) } },
+        { provide: NachschubService, useValue: fake },
+        { provide: EventHqService, useValue: { open: signal([{ event: row, end: { at: '2999-12-31', basis: 'official' }, state: 'open' }]), ensure: () => undefined } },
+        { provide: NachschubNamingService, useValue: { nachschubName: () => Promise.resolve('x'), einsatzName: () => Promise.resolve('Ein Einsatz') } },
+        { provide: HqNeedSourcesService, useValue: { ensure: () => undefined, sources: signal(new Map()) } },
+        { provide: ShellChromeService, useValue: { startSupplySearch: () => undefined } },
+      ],
+    });
+    const f = TestBed.createComponent(HqNachschubFlowComponent);
+    f.componentRef.setInput('mode', 'edit');
+    f.componentRef.setInput('nachschubId', 'n1');
+    f.detectChanges();
+    return { f, fake };
+  }
+
   const whenIdle = async (f: { detectChanges(): void; whenStable(): Promise<unknown> }) => {
     await f.whenStable();
     f.detectChanges();
   };
+
+  it('edit: adding an event binds its rewards as lines with their own event step', async () => {
+    const { f, fake } = setupEdit();
+    const einsatz = TestBed.inject(HqEinsatzService);
+    const create = spyOn(einsatz, 'create').and.returnValue(null);
+    const cmp = f.componentInstance as unknown as { eventPicks: { set(v: unknown): void }; name: { set(v: string): void }; save(): Promise<void> };
+    cmp.eventPicks.set(new Map([['ev', new Set(['r1'])]]));
+    cmp.name.set('Bestehend');
+    await cmp.save();
+    const args = fake.addFromWishlist.calls.mostRecent().args as [string, unknown[], { eventId: string; className: string }[]];
+    expect(args[0]).toBe('n1');
+    expect(args[1]).toEqual([]);
+    expect(args[2].map((r) => [r.eventId, r.className])).toEqual([['ev', 'ARGO_KEELBACK']]);
+    const steps = create.calls.mostRecent().args[0].steps;
+    expect(steps.map((s) => [s.kind, s.eventId, s.className])).toEqual([['event', 'ev', 'ARGO_KEELBACK']]);
+  });
 
   it('step 1 on an empty wishlist explains and leads to filling it', () => {
     const { f, el, startSearch } = setup([]);
