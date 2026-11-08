@@ -2,6 +2,13 @@
   "framework": null,
   "buildCommand": "bash scripts/vercel-build.sh",
   "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true,
+      "preview/**": true
+    }
+  },
   "outputDirectory": "dist/verse-companion/browser",
   "rewrites": [
     { "source": "/ingest/static/(.*)", "destination": "https://eu-assets.i.posthog.com/static/$1" },
