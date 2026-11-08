@@ -10,7 +10,8 @@
   --cx-pb: max(var(--sc-space-2), calc(var(--sc-footer-h) - var(--sc-space-6) + var(--sc-space-1)));
   // Holotable height (its --tw * 0.23) and the hologram box (its --ht/--hh, % of the air above it):
   // the side panes take exactly the box's height.
-  --cx-table-h: calc(min(620px, 94vw) * 0.23);
+  // 94cqw like the holotable's own --tw: both resolve against the landing (its container).
+  --cx-table-h: calc(min(620px, 94cqw) * 0.23);
   --cx-holo-t: 0.14;
   --cx-holo-b: 0.14;
   // From a pane's outer edge to the screen edge: one gutter plus whatever the
@@ -113,7 +114,7 @@
   top: auto;
   --cx-codex-h: 400px;
   --cx-box-top: calc((100% - var(--cx-table-h)) * var(--cx-holo-t));
-  // One geometry for both side panes (#8): the data sheet is exactly as tall as the Codex column.
+  // The Codex column's geometry (#8); the data sheet overrides it with the hologram box (#320).
   height: var(--cx-codex-h);
   bottom: max(var(--sc-space-2), min(calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b)), calc(100% - var(--cx-box-top) - var(--cx-codex-h))));
   width: var(--cx-pane);
@@ -131,7 +132,17 @@
   bottom: auto;
   top: calc(100% - var(--cx-codex-h) - max(var(--sc-space-2), min(calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b)), calc(100% - var(--cx-box-top) - var(--cx-codex-h)))));
 }
-.values { right: var(--cx-gut); }
+// The data sheet spans the hologram box (#320): its top and bottom are the box's
+// (--ht/--hh of the holotable's air), at every window height, so it never stands
+// taller or shorter than the projection beside it. Rows that do not fit are cut
+// (fitRows), the page button always stays.
+.values {
+  right: var(--cx-gut);
+  top: var(--cx-box-top);
+  bottom: calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b));
+  height: auto;
+  min-height: 120px;
+}
 // The list needs its full height for title, tabs, wheel and foot: on a short
 // window it reaches below the hologram box, down to just above the stage footer.
 @media (pointer: coarse) { .values, .codex { --cx-codex-h: 500px; } }
@@ -194,7 +205,7 @@
   :host(:not(.shell)) .landing { height: auto; }
   .hero { order: 0; padding-inline: 0; }
   .title { font-size: 24px; }
-  .codex, .values { height: auto; }
+  .codex, .values { height: auto; min-height: 0; }
   .codex { max-height: none; }
   .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   // Phone order (d-landing table-first): title, holotable, list, values, news mark.

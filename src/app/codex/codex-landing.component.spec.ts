@@ -409,4 +409,27 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelectorAll('.pop li').length).toBe(2);
     flush();
   }));
+
+  it('#320: the data sheet spans the hologram box at every stage height and for every shown item', fakeAsync(() => {
+    setup(three());
+    fixture.componentInstance.still.set(true);
+    settle();
+    const landing = el.querySelector<HTMLElement>('.landing')!;
+    const sheet = el.querySelector<HTMLElement>('sc-codex-landing-values-pane')!;
+    const check = (ctx: string): void => {
+      const box = piece().querySelector<HTMLElement>('.holo')!.getBoundingClientRect();
+      const r = sheet.getBoundingClientRect();
+      expect(Math.abs(r.top - box.top)).withContext(`${ctx}: top ${r.top} vs box ${box.top}`).toBeLessThanOrEqual(2);
+      expect(Math.abs(r.bottom - box.bottom)).withContext(`${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeLessThanOrEqual(2);
+    };
+    for (const h of [560, 720, 940]) {
+      landing.style.height = `${h}px`;
+      check(`${h}px`);
+    }
+    fixture.componentInstance.pick(2);
+    settle();
+    check('after a switch');
+    flush();
+    discardPeriodicTasks();
+  }));
 });
