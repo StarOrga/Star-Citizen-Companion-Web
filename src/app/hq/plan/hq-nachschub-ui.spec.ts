@@ -235,7 +235,7 @@ describe('HqNachschubFlowComponent', () => {
   });
   const WISH = [w('item', 'medpen', 12, null, 'Medpen'), w('blueprint', 'gallant', 2, null, 'Gallant'), w('material', 'aluminium', 16, 'gallant', 'Aluminium')];
 
-  function setup(wish: WishPosition[] = WISH, sources: Map<string, unknown> = new Map()) {
+  function setup(wish: WishPosition[] = WISH, sources = new Map<string, unknown>()) {
     TestBed.resetTestingModule();
     const created = jasmine.createSpy('createFromWishlist').and.callFake(async () => ({ ok: true, key: 'hq.nachschub.done.created', id: 'new' }));
     const fake = {
