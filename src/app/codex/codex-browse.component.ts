@@ -7,6 +7,9 @@ import {
   Component,
   OnInit,
   DestroyRef,
+  ElementRef,
+  afterNextRender,
+  viewChild,
   computed,
   effect,
   Injector,
@@ -191,7 +194,7 @@ export function blueprintCategoriesForGroup(
             [title]="areaLabelKey() | translate"
             [level]="headingLevel()"
             [subtitle]="subtitle()" />
-          <aside class="side" [attr.aria-label]="'codex.browse.areaLabel' | translate">
+          <aside #side class="side" [attr.aria-label]="'codex.browse.areaLabel' | translate">
             <ng-container [ngTemplateOutlet]="treeTpl" />
           </aside>
         </div>
@@ -584,7 +587,11 @@ export function blueprintCategoriesForGroup(
     .head { min-width: 0; }
     /* #315: the tree parks below the pinned header (the beta's corner row + docked
        subheader, or the classic sticky topbar) and ends above the bottom launcher
-       lane / footer row, so its last entry is reachable inside its own scroll. */
+       lane / footer row, so its last entry is reachable inside its own scroll.
+       Until it sticks (under the title, or lower down the embedded /codex part)
+       it starts further down than --_side-top: the component publishes where it
+       really starts as --_side-vis-top, so it always ends inside the screen. The
+       scroll chains to the page at its ends (no overscroll containment). */
     .side {
       --_side-top: max(
         calc(var(--sc-chrome-top, 24px) + var(--sc-sub-h, 60px) + var(--sc-space-3, 12px)),
@@ -592,9 +599,9 @@ export function blueprintCategoriesForGroup(
       --_side-bottom: calc(max(var(--sc-footer-h, 80px), var(--sc-fab-lane, 80px)) + var(--sc-space-3, 12px));
       position: sticky; top: var(--_side-top);
       display: flex; flex-direction: column; gap: var(--sc-space-3, 12px);
-      max-height: calc(100vh - var(--_side-top) - var(--_side-bottom));
-      max-height: calc(100dvh - var(--_side-top) - var(--_side-bottom));
-      overflow-y: auto; overscroll-behavior: contain;
+      max-height: max(160px, calc(100vh - var(--_side-vis-top, var(--_side-top)) - var(--_side-bottom)));
+      max-height: max(160px, calc(100dvh - var(--_side-vis-top, var(--_side-top)) - var(--_side-bottom)));
+      overflow-y: auto;
     }
     .side-h { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--sc-fg-2); }
     .nodes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -1189,6 +1196,44 @@ export class CodexBrowseComponent implements OnInit {
    */
   private readonly treeToggles = signal<{ area: string; open: ReadonlyMap<string, boolean> }>({ area: '', open: new Map() });
 
+  private readonly sideEl = viewChild<ElementRef<HTMLElement>>('side');
+  private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * #315: the area tree's height follows where it really starts on screen. Its
+   * CSS height assumes the stuck position below the header; while it still sits
+   * under the title (or lower down the embedded /codex part) that would push its
+   * end below the screen edge. Publishes the visible top as `--_side-vis-top`.
+   */
+  private fitAreaPanel(): void {
+    if (typeof window === 'undefined') return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const el = this.sideEl()?.nativeElement;
+      if (!el || el.offsetParent === null) return;
+      const stuck = parseFloat(getComputedStyle(el).top) || 0;
+      const top = Math.max(stuck, Math.round(el.getBoundingClientRect().top));
+      const next = top + 'px';
+      if (el.style.getPropertyValue('--_side-vis-top') !== next) el.style.setProperty('--_side-vis-top', next);
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
+    afterNextRender(() => {
+      measure();
+      window.addEventListener('scroll', schedule, { passive: true });
+      window.addEventListener('resize', schedule, { passive: true });
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
+      const el = this.sideEl()?.nativeElement;
+      if (ro && el?.parentElement) ro.observe(el.parentElement);
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener('scroll', schedule);
+        window.removeEventListener('resize', schedule);
+        ro?.disconnect();
+        if (frame) cancelAnimationFrame(frame);
+      });
+    }, { injector: this.injector });
+  }
+
   /** Fold a tree group in or out, in place: the list keeps its area. */
   toggleNode(n: AreaNode): void {
     const area = this.areaKey();
@@ -1342,8 +1387,10 @@ export class CodexBrowseComponent implements OnInit {
   onAreaClick(ev: MouseEvent, n: AreaNode): void {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();
-    // The current group's own link has nowhere to go: a click folds it (#315).
-    if (n.current && n.children.length > 0) {
+    // #315: a click on an open group folds it in place — the current group, the
+    // group the current area sits in, or one opened by hand — and the list keeps
+    // its area. A closed current group opens again; a closed other group switches.
+    if (n.children.length > 0 && (n.open || n.current)) {
       this.toggleNode(n);
       return;
     }
@@ -1862,6 +1909,7 @@ export class CodexBrowseComponent implements OnInit {
     inject(DestroyRef).onDestroy(() => {
       if (this.searchTimer) clearTimeout(this.searchTimer);
     });
+    this.fitAreaPanel();
     // Beta shell: kind switch, filter tokens, hit count and the panel footer live in the bar.
     inject(DestroyRef).onDestroy(
       inject(ShellChromeService).registerFilters(this, () => ({
