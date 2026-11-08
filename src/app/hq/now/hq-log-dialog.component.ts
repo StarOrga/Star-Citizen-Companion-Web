@@ -12,7 +12,7 @@ import { dayKey, eventLabel } from './hq-live.util';
   imports: [TranslatePipe, DatePipe, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="backdrop" (click)="closed.emit()"></div>
+    <div class="backdrop"></div>
     <section
       class="dialog"
       role="dialog"

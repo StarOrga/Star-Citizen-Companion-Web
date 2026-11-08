@@ -26,7 +26,7 @@ import {
   imports: [TranslatePipe, ScDialogDirective, ScSelectComponent, ScSegmentedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="backdrop" (click)="closed.emit()"></div>
+    <div class="backdrop"></div>
     <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="social-vis-title"
              scDialog (scDialogEscape)="closed.emit()">
       <header>

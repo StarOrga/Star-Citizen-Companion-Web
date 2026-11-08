@@ -165,13 +165,14 @@ describe('CodexSwapPickerComponent', () => {
     expect(el.querySelector('.pick-win')?.getAttribute('aria-modal')).toBe('true');
   });
 
-  it('closes when the veil (not the window) is clicked', async () => {
+  it('closes on its X, never on a click on the veil or the window', async () => {
     const el = await open();
     const spy = jasmine.createSpy();
     fixture.componentInstance.closed.subscribe(spy);
     (el.querySelector('.pick-win') as HTMLElement).click();
-    expect(spy).not.toHaveBeenCalled();
     (el.querySelector('.pick-veil') as HTMLElement).click();
+    expect(spy).not.toHaveBeenCalled();
+    (el.querySelector('.pick-close') as HTMLElement).click();
     expect(spy).toHaveBeenCalled();
   });
 

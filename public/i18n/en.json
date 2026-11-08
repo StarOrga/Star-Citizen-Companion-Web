@@ -5549,12 +5549,9 @@
       "stepsAria": "Steps",
       "step": {
         "1": "Select",
-        "2": "Summary",
-        "3": "Einsätze"
+        "2": "Einsätze"
       },
       "emptyWish": "Your wishlist is empty.",
-      "emptyHint": "Put things on the wishlist first, then you can take them into a Nachschub here.",
-      "fillWish": "Fill the wishlist",
       "all": "Take everything",
       "none": "Take nothing",
       "picked": "{{n}} positions · {{p}} pieces",
@@ -5568,13 +5565,9 @@
       "less": "Take fewer",
       "more": "Take more",
       "nameLabel": "Name of the Nachschub",
-      "sumTitle": "In this Nachschub",
       "alreadyIn": "Already in the Nachschub",
       "forBp": "for {{name}}",
       "removeLine": "Take \"{{name}}\" out of the Nachschub",
-      "sumEmpty": "Nothing selected yet.",
-      "stays": "Stays on the wishlist",
-      "staysNothing": "Nothing, everything moves into the Nachschub.",
       "einsaetze": "Einsätze",
       "einsatzCount": "{{n}} Einsätze · {{s}} steps",
       "noNewLines": "No new positions, so no new Einsätze.",
@@ -5604,15 +5597,39 @@
       "back": "Back",
       "next": "Next",
       "create": "Create Nachschub",
-      "saveEdit": "Save"
+      "saveEdit": "Save",
+      "close": "Close",
+      "namePlaceholder": "Leave empty to get a suggestion",
+      "wishTitle": "Wishlist",
+      "emptyHintSearch": "Search above for what you need and put it on the wishlist.",
+      "search": {
+        "label": "More for the wishlist",
+        "placeholder": "Search an item, ship or material",
+        "searching": "Searching …",
+        "none": "Nothing found.",
+        "results": "Search results",
+        "onList": "on the wishlist",
+        "add": "To the wishlist",
+        "addAria": "Put “{{name}}” on the wishlist",
+        "addFailed": "That could not be put on the wishlist. Try again."
+      },
+      "craft": {
+        "aria": "What crafting {{name}} takes",
+        "forItem": "for {{name}}",
+        "bpOwned": "Blueprint {{name}}: in your collection",
+        "bpMissing": "Blueprint {{name}}: missing, a mission is planned",
+        "matOwned": "{{name}}: {{need}} needed, {{have}} in stock",
+        "matMissing": "{{name}}: {{need}} needed, {{have}} in stock, {{missing}} to get",
+        "noRecipe": "No material is known for the recipe yet.",
+        "source": "The companion app reports blueprints and material into your collection and inventory by itself; until then, what is listed there counts.",
+        "loading": "Loading the recipe …"
+      }
     },
     "panel": {
       "renameAria": "New name of the Nachschub",
       "rename": "Change name",
       "positions": "positions",
       "edit": "Edit",
-      "run": "Run in Jetzt",
-      "empty": "Empty",
       "noEinsaetze": "This Nachschub has no Einsätze yet.",
       "noEinsaetzeHint": "The positions turn into Einsätze: buy, mine, missions, crafting last.",
       "proposeEinsaetze": "Propose Einsätze",
@@ -5957,7 +5974,10 @@
         "inventory": {
           "opened": "Inventory opened ({{location}})"
         },
-        "other": "Event: {{type}}"
+        "other": "Event: {{type}}",
+        "blueprint": {
+          "received": "Blueprint received: {{name}}"
+        }
       }
     },
     "now": {
@@ -6033,8 +6053,24 @@
       "add": {
         "action": "Add Einsatz",
         "title": "New Einsatz",
-        "label": "Name of the Einsatz (up to 40 characters)",
-        "confirm": "Add"
+        "confirm": "Add",
+        "kindAria": "What you do",
+        "what": {
+          "buy": "What do you buy?",
+          "mission": "What do you want to earn?",
+          "mine": "What do you mine?",
+          "pickup": "What do you pick up?"
+        },
+        "whatPh": {
+          "buy": "e.g. Medpen",
+          "mission": "e.g. P4-AR blueprint",
+          "mine": "e.g. Quantanium",
+          "pickup": "e.g. cargo from the hangar"
+        },
+        "where": "Where?",
+        "whereOptional": "Where? (optional)",
+        "wherePh": "Choose a place",
+        "qty": "Quantity"
       },
       "rename": {
         "action": "Rename Einsatz \"{{name}}\"",
@@ -7923,7 +7959,8 @@
       "dismiss": "Do not suggest {{name}}"
     },
     "slotsFullHint": "All 7 Nachschub slots are in use. The selection goes into an existing Nachschub.",
-    "toExisting": "Into an existing Nachschub"
+    "toExisting": "Into an existing Nachschub",
+    "open": "Open “{{name}}” in the Codex"
   },
   "pathCtl": {
     "node": {

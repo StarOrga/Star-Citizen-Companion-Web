@@ -24,8 +24,8 @@ export interface PickedBlueprint {
   imports: [TranslatePipe, ScActionDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="scrim" (click)="closed.emit()">
-      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="bp-pick-title" (click)="$event.stopPropagation()">
+    <div class="scrim">
+      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="bp-pick-title">
         <header class="dlg-head">
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z" /><path d="M4 9h16M9 4v16" /></svg></span>
           <h2 id="bp-pick-title" class="dlg-title">{{ 'hq.bestand.addBlueprint' | translate }}<small>{{ 'hq.bestand.bpPick.hint' | translate }}</small></h2>

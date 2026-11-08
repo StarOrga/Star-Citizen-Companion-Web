@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.237.1] - 2026-11-08
+
+### Changed
+- Dependencies: Angular build/CLI/CDK/Material 22.2.6, supabase-js 2.119.0, Supabase CLI 3.0.0, uploader vitest 5.1.0.
+- `npm run db:push` passes `--remote --yes` (Supabase CLI 3 targets the local stack otherwise) and `npm run functions:deploy` passes `--yes`.
+- jasmine-core and @types/jasmine stay on 6.x: jasmine 7 breaks zone.js testing, Dependabot skips their majors for now.
+
+## [0.237.0] - 2026-11-08
+
+### Added
+- New Nachschub: the Wunschliste has its own search inside the flow; hits go onto the wishlist and are ticked at once.
+- Crafting checks the blueprint (Sammlung) and the ingredients (Inventar) and plans a mission for a missing blueprint and the missing material.
+- `blueprint.received` from the companion app puts the blueprint into the Sammlung and closes its mission step (undoable).
+- Planen: "Einsatz hinzufügen" inline under the Einsätze, guided by what you do, to what, where and how many.
+
+### Changed
+- Cart: a click on a position's picture or name ticks it; the Codex page is its own arrow. "In einen Nachschub" opens the flow on its Einsätze.
+- New Nachschub has two steps (Auswählen, Einsätze); the name sits on top, the summary step is gone.
+- Planen always shows all seven slots, then the Archiv; "In Jetzt ausführen" and "Leeren" are gone from the panel.
+- Modal dialogs close only through their X, Abbrechen or Escape, never on a click beside them.
+
 ## [0.236.0] - 2026-11-08
 
 ### Added

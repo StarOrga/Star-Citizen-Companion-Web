@@ -22,8 +22,8 @@ export const CLAIM_CHANNELS: readonly ClaimChannel[] = ['pledge', 'ingame', 'bot
   imports: [TranslatePipe, ScActionDirective, ScDialogDirective, ScTristateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="scrim" (click)="closed.emit()">
-      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="claim-title" (click)="$event.stopPropagation()">
+    <div class="scrim">
+      <div class="sheet" role="dialog" aria-modal="true" scDialog (scDialogEscape)="closed.emit()" aria-labelledby="claim-title">
         <header class="dlg-head">
           <span class="dlg-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6.2 6.2 2.8-6.2 2.8L12 21l-2-6.2L3.8 12 10 9.2z" /></svg></span>
           <h2 id="claim-title" class="dlg-title">{{ 'hq.events.claim.title' | translate: { name: reward().name } }}</h2>

@@ -453,7 +453,7 @@ export function blueprintCategoriesForGroup(
           {{ 'codex.browse.filterButton' | translate: { count: activeFilterCount() } }}
         </button>
         @if (filtersOpen()) {
-          <div class="sheet-backdrop" aria-hidden="true" (click)="filtersOpen.set(false)"></div>
+          <div class="sheet-backdrop" aria-hidden="true"></div>
           <div class="sheet" scDialog role="dialog" aria-modal="true"
                [attr.aria-label]="'codex.browse.filtersAria' | translate"
                (scDialogEscape)="filtersOpen.set(false)">

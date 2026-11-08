@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { toErrorKey } from '../../core/describe-error';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { type Einsatz, HqEinsatzService } from '../data/hq-einsatz.service';
-import { hqPage } from '../hq-routes';
+import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.component';
+import { NachschubNamingService } from '../nachschub/nachschub-naming';
+import { pickablePlaces } from './map/hq-places';
 import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
 import { EINSATZ_NAME_MAX, NACHSCHUB_NAME_MAX, type Nachschub, clampName } from '../nachschub/nachschub.model';
 import { NachschubService } from '../nachschub/nachschub.service';
@@ -19,6 +21,9 @@ import { HqRouteGraphicComponent, type RouteSharedStop } from './route/route-gra
 import { routeFilterKey } from './route/route-filter.store';
 import type { RouteGraphStep } from './route/route-layout';
 import type { StepKind } from '../../shared/step/sc-step.component';
+
+/** The kinds a manual Einsatz can be (one step each). */
+type AddKind = Extract<StepKind, 'buy' | 'mission' | 'mine' | 'pickup'>;
 
 /** What a card says about its goods: the steps that bring something in, summed per label. */
 export interface EinsatzGood {
@@ -53,14 +58,16 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
 }
 
 /**
- * The selected Nachschub in full (round 4, s3): header with in-place rename and the actions (Bearbeiten, Jetzt, Leeren,
- * Löschen), the Einsätze first as cards with what they bring as chips behind them, and the route of the chosen Einsatz
- * as a zoomable graphic with its hidden legend (the filter is remembered per Nachschub and Einsatz).
+ * The selected Nachschub in full (round 4, s3): header with in-place rename and the actions (Bearbeiten, Löschen - no
+ * "Leeren": an emptied Nachschub is a deleted one; no "In Jetzt ausführen": Jetzt runs the Nachschub picked here on its
+ * own), the Einsätze first as cards with what they bring as chips behind them and a guided "Einsatz hinzufügen" inline
+ * at their end, and the route of the chosen Einsatz as a zoomable graphic with its hidden legend (the filter is
+ * remembered per Nachschub and Einsatz).
  */
 @Component({
   selector: 'sc-hq-nachschub-panel',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqRouteGraphicComponent, HqEventSectionComponent],
+  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, ScActionDirective, ScSelectComponent, ScTooltipDirective, HqRouteGraphicComponent, HqEventSectionComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel" [attr.aria-label]="nachschub().name">
@@ -84,11 +91,6 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
           <button type="button" scAction tier="secondary" (click)="edit.emit(1)">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg><span>{{ 'hq.panel.edit' | translate }}</span>
           </button>
-          <button type="button" scAction tier="secondary" [busy]="adding()" (click)="addEinsatz()">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg><span>{{ 'hq.einsatz.add.action' | translate }}</span>
-          </button>
-          <a scAction tier="primary" [routerLink]="jetzt.commands" [fragment]="jetzt.fragment" (click)="focus.select(nachschub().id)">{{ 'hq.panel.run' | translate }}</a>
-          <button type="button" scAction tier="secondary" (click)="emptyIt.emit()">{{ 'hq.panel.empty' | translate }}</button>
           <button type="button" scAction tier="tertiary" tone="danger" [attr.aria-label]="'hq.slots.delete' | translate: { name: nachschub().name }"
                   [scTooltip]="'hq.slots.delete' | translate: { name: nachschub().name }" scTooltipTier="label" (click)="remove.emit()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" /></svg>
@@ -102,7 +104,8 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
         <div class="none">
           <p class="n-title">{{ 'hq.panel.noEinsaetze' | translate }}</p>
           <p class="n-hint">{{ 'hq.panel.noEinsaetzeHint' | translate }}</p>
-          <button type="button" scAction tier="secondary" (click)="edit.emit(3)">{{ 'hq.panel.proposeEinsaetze' | translate }}</button>
+          <button type="button" scAction tier="secondary" (click)="edit.emit(2)">{{ 'hq.panel.proposeEinsaetze' | translate }}</button>
+          <div class="add-wrap"><ng-container *ngTemplateOutlet="addTpl" /></div>
         </div>
       } @else {
         <div class="body">
@@ -145,6 +148,7 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
                   </p>
                 </article>
               }
+              <ng-container *ngTemplateOutlet="addTpl" />
             </div>
           </div>
           <div class="mapcol">
@@ -155,6 +159,49 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
         </div>
       }
     </section>
+
+    <!-- A manual Einsatz is a fixed thing to do somewhere: what (kind + thing), where, how many - never a bare name. -->
+    <ng-template #addTpl>
+      @if (addOpen()) {
+        <form class="ecard addform" ngNoForm (submit)="$event.preventDefault(); saveAdd()" [attr.aria-label]="'hq.einsatz.add.title' | translate">
+          <h5 class="af-title">{{ 'hq.einsatz.add.title' | translate }}</h5>
+          <span class="seg" role="group" [attr.aria-label]="'hq.einsatz.add.kindAria' | translate">
+            @for (k of addKinds; track k) {
+              <button type="button" [attr.aria-pressed]="addKind() === k" (click)="addKind.set(k)">{{ 'hq.step.kind.' + k | translate }}</button>
+            }
+          </span>
+          <label class="af-field">
+            <span>{{ ('hq.einsatz.add.what.' + addKind()) | translate }}</span>
+            <input #addWhatInput type="text" class="af-input" [maxlength]="einsatzMax" [ngModel]="addWhat()" (ngModelChange)="addWhat.set($event)" name="what"
+                   [placeholder]="('hq.einsatz.add.whatPh.' + addKind()) | translate" />
+          </label>
+          <div class="af-row">
+            <span class="af-field af-where">
+              <span>{{ (needsPlace() ? 'hq.einsatz.add.where' : 'hq.einsatz.add.whereOptional') | translate }}</span>
+              <sc-select [options]="placeOptions" [value]="addPlace()" placeholderKey="hq.einsatz.add.wherePh"
+                         [ariaLabel]="'hq.einsatz.add.where' | translate" (valueChange)="addPlace.set($event)" />
+            </span>
+            <span class="af-field af-qty">
+              <span>{{ 'hq.einsatz.add.qty' | translate }}</span>
+              <span class="stepper" role="group" [attr.aria-label]="'hq.einsatz.add.qty' | translate">
+                <button type="button" class="step" [disabled]="addQty() <= 1" [attr.aria-label]="'hq.flow.less' | translate" [scTooltip]="'hq.flow.less' | translate" scTooltipTier="label" (click)="addQty.set(addQty() - 1)">−</button>
+                <b class="mono">{{ addQty() }}</b>
+                <button type="button" class="step" [disabled]="addQty() >= 999" [attr.aria-label]="'hq.flow.more' | translate" [scTooltip]="'hq.flow.more' | translate" scTooltipTier="label" (click)="addQty.set(addQty() + 1)">+</button>
+              </span>
+            </span>
+          </div>
+          @if (addError(); as k) { <p class="eerr" role="alert">{{ k | translate }}</p> }
+          <div class="af-acts">
+            <button type="button" scAction tier="secondary" (click)="closeAdd()">{{ 'common.dialog.cancel' | translate }}</button>
+            <button type="submit" scAction tier="secondary" [busy]="adding()" [disabled]="adding() || !canAdd()">{{ 'hq.einsatz.add.confirm' | translate }}</button>
+          </div>
+        </form>
+      } @else {
+        <button #addBtn type="button" class="add-e" (click)="openAdd()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg><span>{{ 'hq.einsatz.add.action' | translate }}</span>
+        </button>
+      }
+    </ng-template>
   `,
   styles: [
     `
@@ -202,6 +249,31 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
       .good.done { border-color: color-mix(in srgb, var(--sc-success) 55%, var(--sc-border)); color: var(--sc-success); }
       .map { flex: 1; min-height: 0; }
       .none { flex: 1; display: grid; align-content: center; justify-items: center; gap: var(--sc-space-2, 8px); text-align: center; }
+      .add-wrap { width: min(100%, 420px); text-align: start; }
+      .add-e { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 1px dashed color-mix(in srgb, var(--sc-accent) 40%, var(--sc-border)); border-radius: 10px; background: transparent; color: var(--sc-fg-1); font: inherit; font-size: 0.85rem; cursor: pointer; width: 100%; }
+      .add-e:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 6%, transparent); }
+      .add-e:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .add-e svg { width: 16px; height: 16px; fill: none; stroke: var(--sc-accent); stroke-width: 2; stroke-linecap: round; }
+      .addform { display: flex; flex-direction: column; gap: var(--sc-space-2, 8px); border-style: dashed; }
+      .af-title { margin: 0; font-size: 0.85rem; font-weight: 600; }
+      .af-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+      .af-field > span:first-child { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor, 0.75rem)); }
+      .af-input { min-height: 36px; padding: 0 10px; border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-0); color: var(--sc-fg); font: inherit; }
+      .af-input:hover { border-color: var(--sc-accent); }
+      .af-input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+      .af-row { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); align-items: flex-end; }
+      .af-where { flex: 1 1 12rem; }
+      .af-acts { display: flex; justify-content: flex-end; gap: var(--sc-space-2, 8px); flex-wrap: wrap; }
+      .seg { display: inline-flex; flex-wrap: wrap; align-self: flex-start; padding: 2px; border: 1px solid var(--sc-border); border-radius: 999px; }
+      .seg button { min-height: 28px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: var(--sc-fg-2); font: inherit; font-size: 0.78rem; cursor: pointer; }
+      .seg button[aria-pressed='true'] { color: var(--sc-fg); background: color-mix(in srgb, var(--sc-accent) 22%, transparent); box-shadow: 0 0 0 1px var(--sc-accent); }
+      .seg button:focus-visible, .step:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .stepper { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; }
+      .step { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1); color: var(--sc-fg); font: inherit; cursor: pointer; }
+      .step:hover:not(:disabled) { border-color: var(--sc-accent); }
+      .step:disabled { opacity: 0.4; cursor: default; }
+      .stepper b { min-width: 3ch; text-align: center; }
+      @media (pointer: coarse) { .step { width: 44px; height: 44px; } .seg button { min-height: 44px; } .add-e { min-height: 48px; } }
       .n-title { margin: 0; font-weight: 600; }
       .n-hint { margin: 0; color: var(--sc-fg-2); max-width: 52ch; }
       @media (max-width: 1023px) { .body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(220px, 1fr); } }
@@ -211,9 +283,8 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
 })
 export class HqNachschubPanelComponent {
   readonly nachschub = input.required<Nachschub>();
-  /** Open the flow (step 1 = edit the content, 3 = propose Einsätze). */
-  readonly edit = output<1 | 3>();
-  readonly emptyIt = output<void>();
+  /** Open the flow (step 1 = edit the content, 2 = propose Einsätze). */
+  readonly edit = output<1 | 2>();
   private readonly eventsSvc = inject(EventHqService);
   private readonly confirmSvc = inject(ScConfirmService);
   protected readonly isEvent = computed(() => isEventNachschub(this.nachschub()));
@@ -234,7 +305,6 @@ export class HqNachschubPanelComponent {
   protected readonly icons = STEP_ICON_PATHS;
   protected readonly wheels = TRANSPORT_WHEELS;
   protected readonly nameMax = NACHSCHUB_NAME_MAX;
-  protected readonly jetzt = hqPage('jetzt');
 
   protected readonly renaming = signal(false);
   protected readonly draft = signal('');
@@ -299,7 +369,6 @@ export class HqNachschubPanelComponent {
 
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly confirm = inject(ScConfirmService);
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
   private readonly penBtn = viewChild<ElementRef<HTMLElement>>('penBtn');
   private readonly eInput = viewChild<ElementRef<HTMLInputElement>>('eInput');
@@ -382,25 +451,60 @@ export class HqNachschubPanelComponent {
     this.afterRender(() => this.host.nativeElement.querySelector<HTMLElement>(`[data-epen="${CSS.escape(id)}"]`)?.focus());
   }
 
-  /** One manual Einsatz for this Nachschub: asks for the title, then adds it with a single generic step of the same name. */
-  protected async addEinsatz(): Promise<void> {
-    if (this.adding()) return;
+  // ------------------------------------------------------------------------------------------- guided "Einsatz hinzufügen"
+
+  private readonly naming = inject(NachschubNamingService);
+  protected readonly addKinds: readonly AddKind[] = ['buy', 'mission', 'mine', 'pickup'];
+  protected readonly placeOptions: readonly ScSelectOption[] = pickablePlaces().map((p) => ({ value: p.id, labelKey: '', label: [p.location, p.system].join(' · ') }));
+  private readonly places = new Map(pickablePlaces().map((p) => [p.id, p] as const));
+  protected readonly addOpen = signal(false);
+  protected readonly addKind = signal<AddKind>('buy');
+  protected readonly addWhat = signal('');
+  protected readonly addPlace = signal<string | null>(null);
+  protected readonly addQty = signal(1);
+  protected readonly addError = signal<string | null>(null);
+  private readonly addWhatInput = viewChild<ElementRef<HTMLInputElement>>('addWhatInput');
+  private readonly addBtn = viewChild<ElementRef<HTMLButtonElement>>('addBtn');
+  /** Buying and picking up happen at a place; a mission or a mining run may leave it open. */
+  protected readonly needsPlace = computed(() => this.addKind() === 'buy' || this.addKind() === 'pickup');
+  protected readonly canAdd = computed(() => this.addWhat().trim().length > 0 && (!this.needsPlace() || this.addPlace() !== null));
+
+  protected openAdd(): void {
+    this.addKind.set('buy');
+    this.addWhat.set('');
+    this.addPlace.set(null);
+    this.addQty.set(1);
+    this.addError.set(null);
+    this.addOpen.set(true);
+    this.afterRender(() => this.addWhatInput()?.nativeElement.focus());
+  }
+
+  protected closeAdd(): void {
+    this.addOpen.set(false);
+    this.afterRender(() => this.addBtn()?.nativeElement.focus());
+  }
+
+  /** One Einsatz with one step: what is done (kind), to what, where and how often; its name is proposed from that. */
+  protected async saveAdd(): Promise<void> {
+    if (this.adding() || !this.canAdd()) return;
     this.adding.set(true);
+    this.addError.set(null);
     try {
-      const raw = await this.confirm.prompt({
-        titleKey: 'hq.einsatz.add.title',
-        inputLabelKey: 'hq.einsatz.add.label',
-        inputMaxLength: EINSATZ_NAME_MAX,
-        confirmKey: 'hq.einsatz.add.confirm',
-      });
-      const title = clampName(raw ?? '', EINSATZ_NAME_MAX);
-      if (!title) return;
+      const kind = this.addKind();
+      const label = clampName(this.addWhat(), EINSATZ_NAME_MAX);
+      const place = this.addPlace() ? (this.places.get(this.addPlace() as string) ?? null) : null;
+      const title = clampName(await this.naming.einsatzName([{ kind, label }]), EINSATZ_NAME_MAX) || label;
       const made = this.einsatzSvc.create({
         title,
         packageId: this.nachschub().id,
-        steps: [{ kind: 'pickup', label: title, location: null, system: null, className: null, qty: null, supplyId: null, missionRef: null }],
+        startLocation: place?.location ?? null,
+        steps: [{ kind, label, location: place?.location ?? null, system: place?.system ?? null, className: null, qty: this.addQty(), supplyId: null, missionRef: null }],
       });
-      if (made) this.selectedId.set(made.id);
+      if (!made) throw new Error('einsatz not created');
+      this.selectedId.set(made.id);
+      this.closeAdd();
+    } catch (err) {
+      this.addError.set(toErrorKey('hq', 'addEinsatz', err));
     } finally {
       this.adding.set(false);
     }

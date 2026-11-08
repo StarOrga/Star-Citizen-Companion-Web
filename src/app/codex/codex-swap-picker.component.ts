@@ -180,7 +180,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
-      <div class="pick-veil" (click)="closed.emit()">
+      <div class="pick-veil">
         <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
         <!-- [scDialog]: focus in, Tab trap, Escape, focus back to the opener
              (audit S15). An open sc-select consumes its own Escape first. -->
