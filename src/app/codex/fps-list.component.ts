@@ -170,7 +170,7 @@ interface FacetOption {
         <div class="sc-card equip-missing" role="status">
           <p>{{ 'fps.equip.setUnavailable' | translate }}</p>
           <p class="equip-next">
-            <a routerLink="/hq/hangar">{{ 'fps.equip.mySets' | translate }}</a>
+            <a routerLink="/hq/locker">{{ 'fps.equip.mySets' | translate }}</a>
             <a routerLink="/codex/index" [queryParams]="browseParams()">{{ 'fps.equip.browseWithout' | translate }}</a>
           </p>
         </div>
