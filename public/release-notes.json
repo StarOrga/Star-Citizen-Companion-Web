@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.237.0",
+  "current": "0.237.1",
   "releases": [
+    {
+      "version": "0.237.1",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Dependencies: Angular build/CLI/CDK/Material 22.2.6, supabase-js 2.119.0, Supabase CLI 3.0.0, uploader vitest 5.1.0."
+            },
+            {
+              "title": "",
+              "text": "npm run db:push passes --remote --yes (Supabase CLI 3 targets the local stack otherwise) and npm run functions:deploy passes --yes."
+            },
+            {
+              "title": "",
+              "text": "jasmine-core and @types/jasmine stay on 6.x: jasmine 7 breaks zone.js testing, Dependabot skips their majors for now."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.237.0",
       "date": "2026-11-08",
