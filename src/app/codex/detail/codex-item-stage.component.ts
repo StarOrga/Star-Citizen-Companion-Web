@@ -107,8 +107,8 @@ export type ItemStageView = 'silhouette' | '3d';
       .sil { width: 100%; height: 100%; max-height: 100%; overflow: visible; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
       .sil path { stroke: var(--sc-accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
       .pkg { display: block; width: 100%; height: 100%; min-height: 240px; }
-      .art { width: 100%; height: 100%; display: grid; place-items: center; }
-      .art :where(img) { max-width: 100%; max-height: 100%; object-fit: contain; }
+      /* The preview image stands in for a missing silhouette: let it fill the stage up to 224 px (sizing travels as custom properties, see FallbackImageComponent). */
+      .art { width: 100%; height: 100%; display: grid; place-items: center; --sc-img-w: min(100%, 224px); --sc-img-h: auto; }
       .art-fallback { display: grid; place-items: center; width: 40%; max-width: 160px; color: var(--sc-fg-2); }
       .foot { position: relative; z-index: 2; flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 0; padding: 0 4px; }
       .foot:empty { display: none; }

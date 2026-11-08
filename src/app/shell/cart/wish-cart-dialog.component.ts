@@ -106,34 +106,35 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
               }
             </div>
 
-            @if (cart.suggestions().length) {
-              <section class="sugs ce" style="--ce: 5" [attr.aria-label]="'cart.suggest.title' | translate">
-                <h3 class="s-head">{{ 'cart.suggest.title' | translate }} <small>{{ 'cart.suggest.count' | translate: { n: cart.suggestions().length } }}</small></h3>
-                <div class="s-row">
-                  @for (s of cart.suggestions(); track s.className) {
-                    <div class="sug">
-                      <span class="sug-img"><sc-sil-thumb [kind]="sugKind(s)" [className]="s.className" /></span>
-                      <span class="sug-t">
-                        <b>{{ s.name }}</b>
-                        <span class="reason">{{ ('hq.nachschub.rec.reason.' + s.reason) | translate: s.params }}</span>
-                        <span class="sug-act">
-                          <button type="button" scAction tier="secondary" (click)="addSug(s)">
-                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="plus[0]" /></svg>
-                            <span>{{ 'cart.suggest.add' | translate }}</span>
-                          </button>
-                          <button type="button" scAction tier="tertiary" [attr.aria-label]="'cart.suggest.dismiss' | translate: { name: s.name }"
-                                  [scTooltip]="'cart.suggest.dismiss' | translate: { name: s.name }" scTooltipTier="label" (click)="cart.dismiss(s.className)">
-                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="close[0]" /></svg>
-                          </button>
-                        </span>
-                      </span>
-                    </div>
-                  }
-                </div>
-              </section>
-            }
           }
         </div>
+
+      @if (cart.suggestions().length) {
+        <section class="sugs ce" style="--ce: 5" [attr.aria-label]="'cart.suggest.title' | translate">
+          <h3 class="s-head">{{ 'cart.suggest.title' | translate }} <small>{{ 'cart.suggest.count' | translate: { n: cart.suggestions().length } }}</small></h3>
+          <div class="s-row">
+            @for (s of cart.suggestions(); track s.className) {
+              <div class="sug">
+                <span class="sug-img"><sc-sil-thumb [kind]="sugKind(s)" [className]="s.className" /></span>
+                <span class="sug-t">
+                  <b>{{ s.name }}</b>
+                  <span class="reason">{{ ('hq.nachschub.rec.reason.' + s.reason) | translate: s.params }}</span>
+                  <span class="sug-act">
+                    <button type="button" scAction tier="secondary" (click)="addSug(s)">
+                      <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="plus[0]" /></svg>
+                      <span>{{ 'cart.suggest.add' | translate }}</span>
+                    </button>
+                    <button type="button" scAction tier="tertiary" [attr.aria-label]="'cart.suggest.dismiss' | translate: { name: s.name }"
+                            [scTooltip]="'cart.suggest.dismiss' | translate: { name: s.name }" scTooltipTier="label" (click)="cart.dismiss(s.className)">
+                      <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="close[0]" /></svg>
+                    </button>
+                  </span>
+                </span>
+              </div>
+            }
+          </div>
+        </section>
+      }
 
         <footer class="dlg-foot ce" style="--ce: 6">
           <span class="sel-count" role="status"><b>{{ selectedCount() }}</b> {{ 'cart.selected' | translate }}</span>
@@ -154,14 +155,17 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
       :host { display: contents; }
       .cart { --dlg-w: min(1180px, 100%); --dlg-h: min(860px, 100%); }
       .cart-body { gap: 14px; }
+      .groups { flex: none; }
+      /* Passt dazu sits outside the scrolling groups: a long wishlist never pushes it below the fold. */
+      .sugs { flex: none; margin: 0 var(--sc-space-4, 16px) 12px; }
       .groups { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
       .group {
         --n: 1; flex: var(--n) 1 calc(var(--n) * 168px); min-width: min(100%, 168px); display: flex; flex-direction: column;
         padding: 4px 8px 8px; border: 1px solid var(--sc-border); border-radius: 12px; background: color-mix(in srgb, var(--sc-bg-0) 40%, transparent);
       }
-      .g-head { display: flex; align-items: center; gap: 8px; margin: 0; min-height: 40px; font: 600 0.78rem/1.2 var(--sc-font-display, inherit); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-accent); }
+      .g-head { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin: 0; min-height: 40px; font: 600 0.78rem/1.2 var(--sc-font-display, inherit); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-accent); }
       .g-head small { font: 500 0.78rem var(--sc-font-body, inherit); letter-spacing: 0; text-transform: none; color: var(--sc-fg-2); }
-      .g-name { overflow-wrap: anywhere; }
+      .g-name { min-width: 0; overflow-wrap: break-word; }
       .g-trash { margin-left: auto; }
       .bp-node { width: 9px; height: 9px; flex: none; border-radius: 2px; transform: rotate(45deg); border: 1.5px solid var(--sc-accent); }
       .tiles { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 8px; }

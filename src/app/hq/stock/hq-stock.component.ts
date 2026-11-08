@@ -194,7 +194,7 @@ type Cell =
         <span class="ticker-room" aria-hidden="true"></span>
         <sc-hq-stock-shared class="shared-slot" />
         <span class="pager" role="group" [attr.aria-label]="'hq.bestand.pager' | translate">
-          <span class="pg" role="status">{{ 'hq.bestand.range' | translate: { from: view().from, to: view().to, total: total() } }}</span>
+          <span class="pg" role="status">{{ 'hq.bestand.range' | translate: { from: shown().from, to: shown().to, total: total() } }}</span>
           <button type="button" scAction tier="tertiary" [disabled]="view().page <= 0" [attr.aria-label]="'hq.bestand.prev' | translate" [scTooltip]="'hq.bestand.prev' | translate" scTooltipTier="label" (click)="page.set(view().page - 1)">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6" /></svg>
           </button>
@@ -344,6 +344,14 @@ export class HqStockComponent implements OnInit {
   protected readonly view = computed(() => pageOf(this.cells(), this.page(), this.capacity()));
   protected readonly pageCells = computed(() => this.view().items);
   protected readonly total = computed(() => this.cells().length - 1);
+  /** "from-to of total" counts the items only: the "+" tile is the first cell of page one and no item. */
+  protected readonly shown = computed(() => {
+    const v = this.view();
+    const n = v.items.filter((c) => c.kind !== 'add').length;
+    if (!n) return { from: 0, to: 0 };
+    const first = v.page === 0 ? 1 : v.page * this.capacity();
+    return { from: first, to: first + n - 1 };
+  });
 
   protected readonly used = computed<UsedUp[]>(() => usedUpRecently(this.live.events(), this.inv.items(), this.clock()));
   protected readonly usedSummary = computed(() => {

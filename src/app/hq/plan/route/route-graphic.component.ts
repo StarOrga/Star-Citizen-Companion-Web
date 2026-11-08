@@ -52,7 +52,7 @@ const ZOOM_STEP = 1.25;
           @for (s of layout().systems; track s.name; let i = $index) {
             <ellipse class="sys" [class.alt]="i % 2 === 1" [attr.cx]="s.cx" [attr.cy]="s.cy" [attr.rx]="s.rx" [attr.ry]="s.ry" />
             <circle class="star" [attr.cx]="s.cx" [attr.cy]="s.cy" r="6" />
-            <text class="sysname" [attr.x]="s.cx - s.rx + 18" y="34">{{ s.name }}</text>
+            <text class="sysname" [attr.x]="s.cx" [attr.y]="s.cy + 30" text-anchor="middle">{{ s.name }}</text>
           }
           @for (l of layout().legs; track $index) {
             <path class="leg" [class.jump]="l.jump" [class.done]="l.done" [attr.d]="l.d" />

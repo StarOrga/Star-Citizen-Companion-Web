@@ -260,6 +260,7 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
     .go.sc-action.sc-action--secondary {
       min-height: max(34px, var(--sc-tap-min, 0px)); padding: 4px 14px; border: 0; box-shadow: none;
       background: var(--sc-accent); color: var(--sc-bg-0); font-weight: 600; font-size: 0.8125rem;
+      max-width: 100%; white-space: normal; text-align: left;
     }
     .rdy {
       flex: none; padding: 1px 8px; border: 1px solid var(--sc-accent); border-radius: 999px;

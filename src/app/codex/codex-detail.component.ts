@@ -299,7 +299,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         @if (!holoStageOn()) {
           <div phAside class="crumb-aside">
             <ng-container [ngTemplateOutlet]="shipAsideData" />
-            <ng-container [ngTemplateOutlet]="shipAsideSwitch" />
+            <!-- The item page carries the path control in its own panel; a second copy up here doubled it (and pushed the page down). -->
+            @if (!itemStage()) { <ng-container [ngTemplateOutlet]="shipAsideSwitch" /> }
           </div>
         }
       </sc-page-header>
