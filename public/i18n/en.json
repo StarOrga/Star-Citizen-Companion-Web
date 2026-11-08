@@ -228,6 +228,7 @@
     "landing": {
       "hero": {
         "eyebrow": "{{category}} · new in {{patch}}",
+        "eyebrowPatch": "{{category}} · {{patch}}",
         "title": "Everything about every ship.",
         "eyebrowIdle": "Codex"
       },

@@ -192,7 +192,7 @@ export function parseHoloSilhouette(row: Record<string, unknown> | null | undefi
     source: parseSource(meta),
     viewBox,
     path,
-    edges: parseEdges(row['edges'] ?? meta['edges']),
+    edges: parseEdges(row['edges']),
     bbox,
     scaleMPerUnit: isFiniteNumber(meta['scaleMPerUnit']) ? (meta['scaleMPerUnit'] as number) : null,
     anchors,
