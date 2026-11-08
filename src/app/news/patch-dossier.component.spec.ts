@@ -127,7 +127,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
 
   // `q` defaults to undefined on purpose: that is what the router binds for a
   // missing query param, and it overrides the input's own default of ''.
-  async function render(line: string, q: string | undefined = undefined, roadmap: RoadmapPayload | null = ROADMAP, focus: string | undefined = undefined): Promise<void> {
+  async function render(line: string, q: string | undefined = undefined, roadmap: RoadmapPayload | null = ROADMAP, focus: string | undefined = undefined, noteId: string | undefined = undefined): Promise<void> {
     localStorage.clear();
     TestBed.resetTestingModule();
     stub = roadmapStub(roadmap);
@@ -151,6 +151,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     fixture.componentRef.setInput('line', line);
     fixture.componentRef.setInput('q', q);
     fixture.componentRef.setInput('focus', focus);
+    fixture.componentRef.setInput('note', noteId);
     fixture.detectChanges();
     for (let i = 0; i < 4; i++) await Promise.resolve();
     fixture.detectChanges();
@@ -366,5 +367,25 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     await render('3.0');
     expect(text('.hero .state')).toContain('keine Patch-Daten');
     expect(root().querySelector('a.close')).not.toBeNull();
+  });
+
+  it('a version row picked on the board opens THAT note, framed by its main line (feedback #317)', async () => {
+    await render('4.10', undefined, ROADMAP, undefined, 'p410c');
+    // Its changes lead; the main line's roadmap cards step aside for the note itself.
+    expect(root().querySelector('.col > section')?.id).toBe('pd-contents');
+    expect(root().querySelectorAll('#pd-contents .fc').length).toBe(0);
+    expect(text('#pd-contents .muted')).toContain('12504217');
+    expect(stub.requested.flat()).toContain('p410c');
+    // The hero keeps Alpha 4.10 as the frame, names the note and leads back to the whole patch.
+    expect(text('.hero h2')).toBe('Alpha 4.10');
+    expect(text('.hero .sel')).toContain('12504217');
+    expect(text('.hero .sel a.src')).toBe('Ganzen Patch 4.10 ansehen');
+    expect((root().querySelector('.hero .state a.src') as HTMLAnchorElement).href).toContain('/thread/p410c');
+  });
+
+  it('ignores a note id that belongs to no note of this line', async () => {
+    await render('4.10', undefined, ROADMAP, undefined, 'l49');
+    expect(root().querySelector('.hero .sel')).toBeNull();
+    expect(root().querySelectorAll('#pd-contents .fc').length).toBe(2);
   });
 });

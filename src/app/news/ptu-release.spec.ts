@@ -1,6 +1,6 @@
 import { VerseNewsItem } from './news.service';
 import { groupPatchNotes } from './patch-notes';
-import { computeNextPatch, computeTestBuildRelease } from './patch-stats';
+import { computeNextPatch, computeTestBuildRelease, testBuildNote } from './patch-stats';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -72,5 +72,21 @@ describe('computeTestBuildRelease — a main line in testing', () => {
     const next = computeNextPatch(groups)!;
     expect(r.version).toBe('4.10');
     expect(r.at).toBe(next.at);
+  });
+});
+
+describe('testBuildNote — the way into the changes of the PTU build (feedback #317, round 2)', () => {
+  it('names the main line and the newest note of the version', () => {
+    const groups = groupPatchNotes([
+      patch('a', 'Star Citizen Alpha 4.10.2 LIVE Release Notes', '2026-10-15T00:00:00.000Z'),
+      patch('e', '[Wave 1] Star Citizen Alpha 4.10.3 PTU Patch Notes 13132001', '2026-11-01T00:00:00.000Z'),
+      patch('f', '[All Waves] Star Citizen Alpha 4.10.3 PTU Patch Notes 13132002', '2026-11-04T00:00:00.000Z'),
+    ]);
+    expect(testBuildNote(groups, '4.10.3')).toEqual({ line: '4.10', noteId: 'f' });
+  });
+
+  it('is null when no note carries the version', () => {
+    const groups = groupPatchNotes([patch('a', 'Star Citizen Alpha 4.10.2 LIVE Release Notes', '2026-10-15T00:00:00.000Z')]);
+    expect(testBuildNote(groups, '4.10.3')).toBeNull();
   });
 });
