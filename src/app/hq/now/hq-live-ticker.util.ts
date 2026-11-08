@@ -19,21 +19,18 @@ export function lastRelevantEvent<E extends Pick<HqLiveEventRow, 'type'>>(events
 }
 
 export interface TickerAge {
-  readonly unit: 'now' | 'minutes' | 'hours' | 'days';
+  readonly unit: 'now' | 'minutes' | 'hours' | 'day' | 'days';
   readonly n: number;
 }
 
-/** Coarse age of an ISO timestamp; a future or invalid one reads as "just now". */
+/** Coarse age of an ISO timestamp; a future or invalid one reads as "just now". One day has its own unit ("vor 1 Tag"). */
 export function tickerAge(iso: string, now: number): TickerAge {
   const t = Date.parse(iso);
   const ms = Number.isFinite(t) ? Math.max(0, now - t) : 0;
   if (ms < 60_000) return { unit: 'now', n: 0 };
   if (ms < 3_600_000) return { unit: 'minutes', n: Math.floor(ms / 60_000) };
   if (ms < 86_400_000) return { unit: 'hours', n: Math.floor(ms / 3_600_000) };
-  return { unit: 'days', n: Math.floor(ms / 86_400_000) };
+  const days = Math.floor(ms / 86_400_000);
+  return { unit: days === 1 ? 'day' : 'days', n: days };
 }
 
-/** Show the ticker only on HQ pages other than Start, and only once the app was ever connected. */
-export function tickerVisible(page: HqPageId | null, everConnected: boolean): boolean {
-  return everConnected && page !== null && page !== 'start';
-}

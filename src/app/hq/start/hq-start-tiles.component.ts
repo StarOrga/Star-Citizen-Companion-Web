@@ -17,6 +17,7 @@ import { EventHqService } from '../events/event-hq.service';
 import { HqEventNamesComponent } from './hq-event-names.component';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { HqAppConnectionService } from '../now/hq-app-connection.service';
+import { hqAppAction } from '../now/hq-app-status.util';
 import { HqLiveService } from '../now/hq-live.service';
 import { formatLocationName, isGameLive, presenceAt, readLocation, readShip } from '../now/hq-live.util';
 import { currentEinsatz } from '../now/hq-now-path';
@@ -112,8 +113,11 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
           <small class="err" role="alert">{{ live.error()! | translate }}</small>
           <button type="button" class="own retry" (click)="live.refresh()">{{ 'hq.start.retry' | translate }}</button>
         } @else {
-          @if (hasSignal()) {
-            <b>{{ 'hq.start.now.off' | translate }}</b>
+          <!-- The same state words and action as the status chip (sc-hq-live-ticker), so both never disagree. -->
+          <b class="app-state">{{ 'hq.appStatus.state.' + appStatus() | translate }}</b>
+          @if (appStatus() === 'ready') {
+            <small>{{ 'hq.appStatus.waiting' | translate }}</small>
+          } @else if (appStatus() === 'off') {
             @if (ago(); as when) {
               <small>
                 @if (place(); as where) {
@@ -124,10 +128,11 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
               </small>
             }
           } @else {
-            <b>{{ 'hq.start.now.none' | translate }}</b>
             <small>{{ 'hq.start.now.noneHint' | translate }}</small>
           }
-          <sc-hq-app-launch class="own launch" look="pill" [tipped]="true" [mode]="appMode()" />
+          @if (appAction(); as a) {
+            <sc-hq-app-launch class="own launch" look="pill" [tipped]="true" [mode]="a" />
+          }
         }
       </div>
 
@@ -358,9 +363,9 @@ export class HqStartTilesComponent {
     const at = presenceAt(this.live.state()) ?? this.live.stateUpdatedAt() ?? this.live.events()[0]?.at ?? null;
     return at ? agoText(at, this.i18n.getCurrentLang() || undefined, this.clock()) : null;
   });
-  protected readonly appMode = computed<'launch' | 'download'>(() =>
-    this.hasSignal() || this.launcher.remembered() ? 'launch' : 'download',
-  );
+  /** The desktop app's state and action, shared with the status chip. */
+  protected readonly appStatus = this.appConn.status;
+  protected readonly appAction = computed(() => hqAppAction(this.appStatus()));
 
   // Planen
   protected readonly current = computed(() => currentEinsatz(this.einsatz.upcoming()));
