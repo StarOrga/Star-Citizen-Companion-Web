@@ -21,7 +21,7 @@ import {
   EXTRACTOR_VERSION, MAX_LLM_CALLS_PER_RUN, SHEET_TOOL_NAME, SHEET_TOOL_SCHEMA,
   bundleSources, buildPrompt, extractMeta, hashText, mergeSheets, nameStem, parseModelAnswer, parseWikiExtract,
   pickEvents, selectSources, sheetFromModel,
-  type EventInfo, type LinkInfo, type RunState, type SourceItem,
+  type EventInfo, type LinkInfo, type RunState, type SourceItem, CORS, preflight,
 } from './_extract.ts';
 
 const MODEL = Deno.env.get('SC_EVENT_SHEET_MODEL') ?? 'claude-sonnet-5-5';
@@ -31,7 +31,7 @@ const USER_AGENT = 'SC-Companion/1.0 (+sc-event-sheet)';
 const GLOBAL_THROTTLE_MS = 10 * 60_000;
 
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
 
 async function getJson(url: string, timeoutMs = 15_000): Promise<unknown> {
   const res = await fetch(url, { headers: { accept: 'application/json', 'user-agent': USER_AGENT }, signal: AbortSignal.timeout(timeoutMs) });
@@ -103,6 +103,8 @@ async function askModel(prompt: string, key: string): Promise<unknown> {
 }
 
 Deno.serve(async (req) => {
+  const pre = preflight(req.method);
+  if (pre) return pre;
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   const url = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
