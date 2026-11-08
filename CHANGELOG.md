@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.239.0] - 2026-11-08
+
+### Added
+- HQ: the App-Status chip bottom left on every HQ page, Start included, also before the desktop app was ever connected. Four states with their own mark: App fehlt (dashed ring, "App downloaden"), App aus (grey ring, "zuletzt vor …", "App starten"), App bereit (green ring, "wartet auf Star Citizen"), Tracking (glowing dot, the last event that matters for the page).
+- HQ: every page explains on the chip what the app does there ("Aussicht"); while the app is missing it opens once per page.
+
+### Changed
+- HQ: the chip sits right of the hand-off launcher instead of under it, above the footer on Statistik and above the page bar on tablets.
+- HQ: the Start "Jetzt" tile and the Jetzt connect block use the same state words and buttons as the chip.
+- The desktop app is called "App" in the UI (no more "Companion-App" / "SCC-App"); "vor 1 Tag" instead of "vor 1 Tagen".
+
 ## [0.238.8] - 2026-11-08
 
 ### Fixed

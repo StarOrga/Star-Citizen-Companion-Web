@@ -2828,7 +2828,7 @@
       "services": "Services",
       "noComponents": "No service details available.",
       "appDownload": {
-        "label": "Download the Companion app",
+        "label": "Download app",
         "hint": "Windows installer · always the newest build"
       },
       "checkExternal": "RSI status page ↗"
@@ -4551,7 +4551,7 @@
     },
     "product": {
       "label": "Product",
-      "scc-app": "Companion App",
+      "scc-app": "Verse Companion App",
       "data-uploader": "Data Uploader",
       "all": "All",
       "starscape": "Starscape"
@@ -5642,7 +5642,7 @@
         "matOwned": "{{name}}: {{need}} needed, {{have}} in stock",
         "matMissing": "{{name}}: {{need}} needed, {{have}} in stock, {{missing}} to get",
         "noRecipe": "No material is known for the recipe yet.",
-        "source": "The companion app reports blueprints and material into your collection and inventory by itself; until then, what is listed there counts.",
+        "source": "The app reports blueprints and material into your collection and inventory by itself; until then, what is listed there counts.",
         "loading": "Loading the recipe …"
       }
     },
@@ -5677,14 +5677,12 @@
       "archived": "Finished: this Nachschub sits in the archive, its Einsätze keep running here. Reactivate it under Planen › Archive."
     },
     "ticker": {
-      "app": "Companion App",
-      "on": "connected",
-      "off": "off",
       "none": "no event yet",
       "ago": {
         "now": "just now",
         "minutes": "{{n}} min ago",
         "hours": "{{n}} h ago",
+        "day": "1 day ago",
         "days": "{{n}} days ago"
       }
     },
@@ -5721,7 +5719,7 @@
       "blueprint": "Blueprint",
       "ruf": "Reputation",
       "rufEmptyTitle": "No data source yet",
-      "rufEmptyText": "Appears as soon as the Companion App reports your reputation or you enter it by hand.",
+      "rufEmptyText": "Appears as soon as the app reports your reputation or you enter it by hand.",
       "pager": "Pages",
       "range": "{{from}}–{{to}} of {{total}}",
       "prev": "Previous page",
@@ -5920,9 +5918,7 @@
       },
       "now": {
         "live": "Live",
-        "none": "Game not detected",
         "noneHint": "Live status from the game.",
-        "off": "No live signal",
         "last": "Last seen: {{place}}, {{ago}}.",
         "lastTime": "Last seen: {{ago}}.",
         "nextTip": "Next step of your first planned deployment.",
@@ -6005,17 +6001,11 @@
       "loading": "Loading your game state …",
       "retry": "Try again",
       "connect": {
-        "title": "Game not detected — start the Companion app",
-        "hint": "The Companion app reports your location and actions here, live.",
-        "syncOffTitle": "Companion app connected — no live data yet",
-        "syncOffHint": "In the Companion app, turn on live sync under Settings → Overlay → Verse Companion Web HQ, then start the game.",
-        "explain": {
-          "aria": "What Now shows",
-          "what": "Now is your live state from the game: where you are, what comes next on your route, and what happened last.",
-          "e1": "Your location and ship, e.g. \"Stanton › New Babbage\".",
-          "e2": "Your next step from a planned run, e.g. a purchase or a trip.",
-          "e3": "The latest events, e.g. \"Mission completed\" or \"Quantum jump finished\"."
-        }
+        "hint": "The app reports your location and actions here, live.",
+        "syncOffTitle": "App ready, but no live data yet",
+        "syncOffHint": "In the app, turn on live sync under Settings → Overlay → Verse Companion Web HQ, then start the game.",
+        "titleMissing": "App missing: game not detected",
+        "titleOff": "App off: game not detected"
       },
       "fresh": {
         "updated": "Live · as of {{at}}",
@@ -6180,8 +6170,8 @@
       "preview": {
         "stamp": "Preview",
         "title": "Your stats grow here",
-        "text": "This is what it looks like once the Companion app reads along while you play: aUEC, missions, completion rate, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
-        "textLinked": "The Companion app is connected. Once you play, aUEC, missions, deaths, crimestat, refinery and blueprints fill up. The tiles behind it are sample data."
+        "text": "This is what it looks like once the app reads along while you play: aUEC, missions, completion rate, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
+        "textLinked": "The app is connected. Once you play, aUEC, missions, deaths, crimestat, refinery and blueprints fill up. The tiles behind it are sample data."
       },
       "events": {
         "title": "Completed events",
@@ -6295,7 +6285,7 @@
       },
       "lager": {
         "empty": "Nothing in your inventory yet. Once there is, you can search here for where it lies.",
-        "emptyHow": "How it gets here: the Companion app reads your inventory when you open it in game. Or add it by hand with “Add”.",
+        "emptyHow": "How it gets here: the app reads your inventory when you open it in game. Or add it by hand with “Add”.",
         "storage": "Ships at the hangar terminal"
       },
       "find": {
@@ -6310,7 +6300,7 @@
         "yours": "Your inventory",
         "here": "You are in {{place}}",
         "whereAmI": "Where are you right now?",
-        "unknownHere": "Without your location we sort by amount. Start the Companion app or pick a place.",
+        "unknownHere": "Without your location we sort by amount. Start the app or pick a place.",
         "prompt": "Enter what you are looking for. Below you see where it lies.",
         "noHit": "None of that in your inventory. Maybe in the other unit?",
         "take": "take {{n}}",
@@ -6351,16 +6341,16 @@
     },
     "app": {
       "launch": "Start app",
-      "starting": "Starting the Companion app …",
-      "started": "The Companion app is starting. Sign in there and your data will come through here.",
-      "downloading": "Companion app not found: the download is running now (about 500 MB). Run the setup afterwards.",
-      "noResponse": "The Companion app didn't respond. Start it by hand or download it again.",
+      "starting": "Starting the app …",
+      "started": "The app is starting. Sign in there and your data will come through here.",
+      "downloading": "App not found: the download is running now (about 500 MB). Run the setup afterwards.",
+      "noResponse": "The app didn't respond. Start it by hand or download it again.",
       "retry": "Already installed? Start again",
-      "download": "Download Companion app",
+      "download": "Download app",
       "downloadCta": "Download app",
       "downloadStarted": "The download is running (about 500 MB). Run the setup afterwards.",
       "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start app”. You can always find it again under Apps at the top right.",
-      "tipLaunch": "Opens the Companion App on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
+      "tipLaunch": "Opens the app on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
       "close": "Close"
     },
     "friends": {
@@ -6454,7 +6444,7 @@
         "none": "This event has no progress.",
         "live": "live",
         "tiers": "Tiers",
-        "appHint": "The SCC app is connected and updates progress as soon as it sees it in the game."
+        "appHint": "The app is connected and updates progress as soon as it sees it in the game."
       },
       "rewards": {
         "title": "Rewards",
@@ -6475,7 +6465,7 @@
       "claim": {
         "title": "Claim {{name}}",
         "channel": "How did you get it?",
-        "byApp": "The SCC app detected the channel; you can change it.",
+        "byApp": "The app detected the channel; you can change it.",
         "store": "Put into stock",
         "isShip": "Is a ship",
         "toHangar": "Goes to the Hangar.",
@@ -6492,6 +6482,32 @@
       "abortDialog": {
         "title": "Abort {{name}}?",
         "message": "Progress stays saved and nothing goes back to the wishlist. You can resume the event from the archive any time."
+      }
+    },
+    "appStatus": {
+      "state": {
+        "missing": "App missing",
+        "off": "App off",
+        "ready": "App ready",
+        "tracking": "Tracking"
+      },
+      "waiting": "waiting for Star Citizen",
+      "last": "last seen",
+      "close": "Close",
+      "aussicht": {
+        "aria": "What the app does on this page",
+        "title": "With the app",
+        "toggle": "What the app does on this page",
+        "start": "With the app you see here, live, where you are, what you fly and what comes next.",
+        "inventar": "The app reads your inventory and your ships from the game. You type nothing in.",
+        "jetzt": "The app reports where you are right now and ticks off steps by itself:",
+        "planen": "The app notices when a Nachschub line arrives and closes it.",
+        "statistik": "The app counts along while you play: playtime, sessions, missions and losses. Without it this page stays empty.",
+        "jetztList": {
+          "e1": "Your location and ship, e.g. \"Stanton › New Babbage\".",
+          "e2": "Your next step from a planned run, e.g. a purchase or a trip.",
+          "e3": "The latest events, e.g. \"Mission completed\" or \"Quantum jump finished\"."
+        }
       }
     }
   },
@@ -7194,8 +7210,8 @@
     "trigger": "Apps",
     "aria": "Download apps",
     "scc": {
-      "name": "Companion App",
-      "desc": "Your companion next to the game: live info, overlays and keybindings, no alt-tabbing."
+      "name": "Verse Companion App",
+      "desc": "Right next to the game: live info, overlays and keybindings, no alt-tabbing."
     },
     "starscape": {
       "name": "Starscape",
@@ -7213,8 +7229,8 @@
     "close": "Close",
     "download": "Download",
     "scc": {
-      "line": "Companion App for your desktop",
-      "desc": "The Companion app for your desktop."
+      "line": "Verse Companion App for your desktop",
+      "desc": "The Verse Companion App for your desktop."
     },
     "starscape": {
       "line": "Starscape as a wallpaper app",
