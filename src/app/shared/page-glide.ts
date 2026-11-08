@@ -147,3 +147,52 @@ export function wirePageGlide(lower: () => HTMLElement | null, zone: NgZone, onS
     },
   };
 }
+
+/** Longest a deep link to the lower part keeps re-landing on it while the page grows. */
+export const LOWER_HOLD_MS = 10_000;
+
+/**
+ * A deep link to the lower part (`/codex#more`) lands on it although the page is still
+ * growing (data, the stage load after the first render): re-land on every layout growth
+ * until the reader takes over. The reader takes over with ANY own move — wheel, touch,
+ * key, pointer, or a scroll that is not the hold's own (scrollbar, find in page) — and
+ * from then on the hold never touches the scroll again (admin feedback #319: scrolling
+ * up from the lower part must not be pulled back down). Returns the stop function.
+ */
+export function holdOnLower(
+  g: Pick<PageGlide, 'jumpToLower'>,
+  start: () => number,
+  onStop: () => void,
+  ms = LOWER_HOLD_MS,
+): () => void {
+  let on = true;
+  let placed = -1;
+  const land = (): void => {
+    if (!on) return;
+    g.jumpToLower();
+    placed = window.scrollY;
+  };
+  const onScroll = (): void => {
+    // A scroll away from where the hold put the page is the reader's (the router's own
+    // anchor scroll lands on the lower part too, that one is not).
+    const y = window.scrollY;
+    if (placed >= 0 && Math.abs(y - placed) > 2 && Math.abs(y - start()) > 2) stop();
+  };
+  const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => land());
+  const userEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
+  const stop = (): void => {
+    if (!on) return;
+    on = false;
+    ro?.disconnect();
+    clearTimeout(timer);
+    for (const t of userEvents) window.removeEventListener(t, stop, true);
+    window.removeEventListener('scroll', onScroll);
+    onStop();
+  };
+  const timer = setTimeout(stop, ms);
+  for (const t of userEvents) window.addEventListener(t, stop, { capture: true, passive: true });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  ro?.observe(document.body);
+  land();
+  return stop;
+}
