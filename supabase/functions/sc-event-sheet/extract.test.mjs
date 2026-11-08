@@ -289,6 +289,7 @@ test('index.ts imports the shared sheet module and holds no key or write path ot
   const src = readFileSync(join(here, 'index.ts'), 'utf8');
   assert.match(src, /from '\.\.\/_shared\/event-sheet\.ts'/);
   assert.match(src, /sc_event_sheet_apply/);
+  assert.doesNotMatch(src, /tool_choice:\s*\{\s*type:\s*'(tool|any)'/, 'forced tool_choice is a 400 on the current models');
   assert.doesNotMatch(src, /\.from\('sc_events'\)\s*\.(update|insert|upsert)/);
   assert.doesNotMatch(src, /sk-ant-/);
 });

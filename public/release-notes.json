@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.232.0",
+  "current": "0.232.1",
   "releases": [
+    {
+      "version": "0.232.1",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Browser extension 0.1.3, Starscape and the Data Uploader point to https://versecompanion-alpha.vercel.app after the old addresses were removed."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.232.0",
       "date": "2026-11-08",
