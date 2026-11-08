@@ -1,6 +1,8 @@
 import { routes } from '../app.routes';
-import { CODEX_MORE_URL, CODEX_TOP_URL, codexPartUrl } from './codex-page.component';
-import { lowerStart, partState, partTarget } from '../shared/page-glide';
+import { Router, UrlTree } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
+import { CODEX_MORE_ANCHOR, CODEX_TOP_URL, codexPartUrl } from './codex-page.component';
+import { holdOnLower, lowerStart, partState, partTarget } from '../shared/page-glide';
 
 describe('Codex page: "Mehr in Codex" (scroll handoff like "Mehr im Verse")', () => {
   it('partState: top at the stage, docked from the lower part on, fly in between', () => {
@@ -34,29 +36,91 @@ describe('Codex page: "Mehr in Codex" (scroll handoff like "Mehr im Verse")', ()
     el.remove();
   });
 
-  it('the address bar names the part, filters ride along', () => {
-    expect(codexPartUrl('more', '?kind=ship&mfr=AEGS')).toBe(`${CODEX_MORE_URL}?kind=ship&mfr=AEGS`);
+  it('the address bar stays on /codex: the lower part is the anchor #more, filters ride along (#319)', () => {
+    expect(codexPartUrl('more', '?kind=ship&mfr=AEGS')).toBe('/codex?kind=ship&mfr=AEGS#more');
+    expect(codexPartUrl('more', '')).toBe('/codex#more');
     expect(codexPartUrl('top', '?kind=ship')).toBe(`${CODEX_TOP_URL}?kind=ship`);
     expect(codexPartUrl('top', '')).toBe('/codex');
+    expect(codexPartUrl('more', '?kind=ship')).not.toContain('/codex/index');
   });
 
-  it('/codex and /codex/index (the old overview URL) are one page: the old links land on the lower part', () => {
-    const find = (path: string): { data?: Record<string, unknown> } | undefined => {
-      const walk = (rs: readonly { path?: string; data?: Record<string, unknown>; children?: unknown[] }[]): typeof rs[number] | undefined => {
-        for (const r of rs) {
-          if (r.path === path) return r;
-          const hit = r.children ? walk(r.children as typeof rs) : undefined;
-          if (hit) return hit;
-        }
-        return undefined;
-      };
-      return walk(routes as never);
+  it('the old /codex/index links redirect to /codex#more and keep their filters', () => {
+    interface R { path?: string; data?: Record<string, unknown>; children?: unknown[]; redirectTo?: unknown }
+    const walk = (rs: readonly R[], path: string): R | undefined => {
+      for (const r of rs) {
+        if (r.path === path) return r;
+        const hit = r.children ? walk(r.children as R[], path) : undefined;
+        if (hit) return hit;
+      }
+      return undefined;
     };
-    const top = find('codex');
-    const more = find('codex/index');
-    expect(top?.data?.['codexPart']).toBe('top');
-    expect(more?.data?.['codexPart']).toBe('more');
+    const top = walk(routes as never, 'codex');
+    const more = walk(routes as never, 'codex/index');
     expect(top?.data?.['layout']).toBe('cinematic');
-    expect(more?.data?.['layout']).toBe('cinematic');
+    expect(typeof more?.redirectTo).toBe('function');
+    const tree = TestBed.runInInjectionContext(() =>
+      (more!.redirectTo as (d: { queryParams: Record<string, string> }) => UrlTree)({ queryParams: { kind: 'weapon', q: 'p4' } }),
+    );
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex?kind=weapon&q=p4#' + CODEX_MORE_ANCHOR);
+  });
+
+  describe('a deep link to the lower part (holdOnLower)', () => {
+    let page: HTMLElement;
+    let lower: HTMLElement;
+    beforeEach(() => {
+      page = document.createElement('div');
+      page.style.cssText = 'position:relative;overflow-anchor:none;';
+      page.innerHTML = '<div style="height:1200px"></div><section style="height:3000px"></section>';
+      document.body.appendChild(page);
+      lower = page.querySelector('section')!;
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+    afterEach(() => {
+      page.remove();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+    const frames = (n = 3): Promise<void> =>
+      new Promise((r) => {
+        const step = (): void => (n-- <= 0 ? r() : void requestAnimationFrame(step));
+        step();
+      });
+    const jumper = { jumpToLower: () => window.scrollTo({ top: lowerStart(lower), behavior: 'instant' }) };
+
+    it('lands on the lower part, and a scroll up after it is not pulled back down', async () => {
+      const done = jasmine.createSpy('done');
+      const stop = holdOnLower(jumper, () => lowerStart(lower), done);
+      expect(Math.abs(window.scrollY - lowerStart(lower))).toBeLessThanOrEqual(2);
+      // The reader scrolls up (scrollbar: no wheel or key event).
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      await frames();
+      expect(done).toHaveBeenCalledTimes(1);
+      // The page grows on afterwards (late data): the hold is over, nothing re-lands.
+      page.insertAdjacentHTML('beforeend', '<div style="height:800px"></div>');
+      (page.firstElementChild as HTMLElement).style.height = '1400px';
+      await frames(4);
+      expect(window.scrollY).toBe(0);
+      stop();
+      expect(done).toHaveBeenCalledTimes(1);
+    });
+
+    it('a wheel turn ends the hold before it can re-land', async () => {
+      const done = jasmine.createSpy('done');
+      const stop = holdOnLower(jumper, () => lowerStart(lower), done);
+      window.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 }));
+      expect(done).toHaveBeenCalledTimes(1);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      (page.firstElementChild as HTMLElement).style.height = '1500px';
+      await frames(4);
+      expect(window.scrollY).toBe(0);
+      stop();
+    });
+
+    it('re-lands while the page still grows and the reader has not moved', async () => {
+      const stop = holdOnLower(jumper, () => lowerStart(lower), () => undefined);
+      (page.firstElementChild as HTMLElement).style.height = '1600px';
+      await frames(4);
+      expect(Math.abs(window.scrollY - lowerStart(lower))).toBeLessThanOrEqual(2);
+      stop();
+    });
   });
 });
