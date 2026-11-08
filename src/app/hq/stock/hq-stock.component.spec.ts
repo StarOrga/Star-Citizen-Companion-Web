@@ -65,7 +65,7 @@ describe('HqStockComponent · Frachtdeck', () => {
         { provide: ActivatedRoute, useValue: { queryParamMap: qp, snapshot: {} } },
         { provide: SupabaseClientProvider, useValue: { client: {} } },
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
-        { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([{ id: 'set1', name: 'Bergbau', role: 'mining', items: [] }]), isFlagship: () => false, error: signal(null) } },
+        { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal(opts.empty ? [] : [{ id: 'set1', name: 'Bergbau', role: 'mining', items: [] }]), isFlagship: () => false, error: signal(null) } },
         { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve(), configsForShip: (id: string) => (id === 'sh1' ? [{ id: 'c1' }, { id: 'c2' }] : []) } },
         { provide: HqInventoryService, useValue: inv },
         { provide: WishlistStore, useValue: { totalQty: () => 0, qtyOf: () => 0, ensureLoaded: () => Promise.resolve(), error: signal(null) } },
@@ -115,10 +115,10 @@ describe('HqStockComponent · Frachtdeck', () => {
     const { el } = mount();
     const all = el.querySelector('.bar .chip')!;
     expect(all.querySelector('b')).toBeNull();
-    const other = chip(el, 'kind.other')!;
-    expect(other.classList).toContain('zero');
-    expect(other.querySelector('b')?.textContent).toBe('1');
-    expect(chip(el, 'kind.weapons')!.querySelector('b')?.textContent).toBe('0');
+    const weapons = chip(el, 'kind.weapons')!;
+    expect(weapons.classList).toContain('zero');
+    expect(weapons.querySelector('b')?.textContent).toBe('0');
+    expect(chip(el, 'kind.other')!.querySelector('b')?.textContent).toBe('1');
     expect(chip(el, 'kind.sets')!.querySelector('b')?.textContent).toBe('1');
   });
 
