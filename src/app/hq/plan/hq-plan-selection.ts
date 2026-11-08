@@ -8,6 +8,7 @@ import {
   MoodSide,
   MoodState,
   estimateMinutes,
+  MOODS_AVAILABLE,
   matchesMoods,
   moodsActive,
   parseMoods,
@@ -280,15 +281,17 @@ export function selectedFraction(sel: PlanSelection, setKey: string, needs: read
 // ---- what is shown --------------------------------------------------------------------------
 
 /** Inside the step / place / mood filters (D27), selected or not. */
-export function passesFilters(sel: PlanSelection, n: PlanNeed): boolean {
+export function passesFilters(sel: PlanSelection, n: PlanNeed, moodsOn: boolean = MOODS_AVAILABLE): boolean {
   if (sel.steps.size > 0 && !sel.steps.has(n.kind)) return false;
   if (sel.places.size > 0 && !(n.place && sel.places.has(n.place.id))) return false;
+  // Moods need codex data (mission activity, crew size) that PlanNeed does not carry yet: until then they filter nothing.
+  if (!moodsOn) return true;
   return matchesMoods({ kind: n.kind, activity: n.activity, minutes: estimateMinutes(n.kind), crew: n.crew }, sel.moods);
 }
 
 /** The needs the selection lets through: selected AND inside the filters. Drives list and map. */
-export function visibleNeeds(sel: PlanSelection, needs: readonly PlanNeed[]): PlanNeed[] {
-  return needs.filter((n) => sel.supplyIds.has(n.id) && passesFilters(sel, n));
+export function visibleNeeds(sel: PlanSelection, needs: readonly PlanNeed[], moodsOn: boolean = MOODS_AVAILABLE): PlanNeed[] {
+  return needs.filter((n) => sel.supplyIds.has(n.id) && passesFilters(sel, n, moodsOn));
 }
 
 export function toMapNeed(n: PlanNeed): MapNeed {

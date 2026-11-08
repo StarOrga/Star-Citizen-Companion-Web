@@ -1,6 +1,9 @@
 import type { MapPlace } from './map/hq-map.types';
 import {
   ProposalLine,
+  availableModes,
+  modeOf,
+  unplacedLines,
   defaultSplit,
   normalizeSplit,
   proposalCounts,
@@ -50,14 +53,48 @@ describe('proposeEinsaetze', () => {
     expect(mine.steps.map((s) => `${s.kind}:${s.label}`)).toEqual(['mine:Kupfer', 'refine:Kupfer']);
   });
 
-  it('orders purchases along the route and keeps lines without a shop at the end with an open place', () => {
-    const d = proposeEinsaetze([MEDPEN, RATTLER, ALU], {
+  it('orders purchases along the route; a bought line without a place makes no step (W5.4/W5.5)', () => {
+    const ctx = {
       placeOf: shops({ medpen: LORVILLE, rattler: AREA18 }),
       split: new Map([['aluminium', { buy: 16, mine: 0 }]]),
-    });
+    };
+    const d = proposeEinsaetze([MEDPEN, RATTLER, ALU], ctx);
     const buy = d.find((x) => x.role === 'buy')!;
-    expect(buy.steps.map((s) => s.location)).toEqual(['Lorville', 'Area18', null]);
-    expect(buy.steps[2].label).toBe('Aluminium');
+    expect(buy.steps.map((s) => s.location)).toEqual(['Lorville', 'Area18']);
+    expect(buy.steps.every((s) => !!s.location && !!s.system)).toBeTrue();
+    expect(buy.steps.map((s) => s.label)).not.toContain('Aluminium');
+    expect(unplacedLines([MEDPEN, RATTLER, ALU], ctx).map((l) => l.key)).toEqual(['aluminium']);
+  });
+
+  it('a non-material line without a merchant and without a blueprint becomes no step at all and waits unplaced', () => {
+    const ctx = { placeOf: () => null };
+    expect(proposeEinsaetze([RATTLER], ctx)).toEqual([]);
+    expect(unplacedLines([RATTLER], ctx).map((l) => l.key)).toEqual(['rattler']);
+  });
+
+  it('W5.4: crafting is offered only for a known blueprint, buying only with a merchant, and the reader may change it', () => {
+    const craftable: ProposalLine = { ...MEDPEN, craftable: true };
+    expect(availableModes(craftable, true)).toEqual(['buy', 'craft']);
+    expect(availableModes(craftable, false)).toEqual(['craft']);
+    expect(availableModes(MEDPEN, true)).toEqual(['buy']);
+    expect(availableModes(MEDPEN, false)).toEqual([]);
+    expect(availableModes(ALU, true)).toEqual([]);
+    const placeOf = shops({ medpen: AREA18 });
+    expect(modeOf(craftable, { placeOf })).toBe('buy');
+    const crafted = proposeEinsaetze([craftable], { placeOf, mode: new Map([['medpen', 'craft']]) });
+    expect(crafted.map((x) => x.role)).toEqual(['craft']);
+    expect(crafted[0].steps[0]).toEqual(jasmine.objectContaining({ kind: 'craft', label: 'Medpen', qty: 12, lineKey: 'medpen' }));
+    // A craft choice that is not available (no blueprint) falls back to buying.
+    expect(modeOf(MEDPEN, { placeOf, mode: new Map([['medpen', 'craft']]) })).toBe('buy');
+    // A craftable line without a merchant is crafted by default and not unplaced.
+    expect(modeOf(craftable, { placeOf: () => null })).toBe('craft');
+    expect(unplacedLines([craftable], { placeOf: () => null })).toEqual([]);
+  });
+
+  it('W5.5: an excluded line is taken out of every Einsatz', () => {
+    const d = proposeEinsaetze([MEDPEN, RATTLER], { placeOf: shops({ medpen: AREA18, rattler: AREA18 }), excluded: new Set(['rattler']) });
+    expect(d.find((x) => x.role === 'buy')!.steps.map((s) => s.label)).toEqual(['Medpen']);
+    expect(unplacedLines([RATTLER], { placeOf: () => null, excluded: new Set(['rattler']) })).toEqual([]);
   });
 
   it('mentions the blueprint purpose of material but never groups by it', () => {

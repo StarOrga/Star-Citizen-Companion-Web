@@ -12,7 +12,9 @@ import { buildRoute } from './map/hq-route';
  *   craft    ALWAYS last: crafting the blueprint's item is itself an Einsatz
  *
  * Material is NOT grouped by blueprint here (you need Aluminium from one place); the blueprint is only mentioned
- * in `purpose`. The reader can switch a material line between buy and mine, or split it (5 buy, 3 mine).
+ * in `purpose`. The reader can switch a material line between buy and mine, or split it (5 buy, 3 mine); any other
+ * line is bought (a merchant is known) or crafted (a blueprint is known), changeable per line (W5.4). A line to buy
+ * without a known place makes no step (W5.5, `unplacedLines`).
  */
 
 export type EinsatzRole = 'mission' | 'buy' | 'mine' | 'craft';
@@ -30,7 +32,12 @@ export interface ProposalLine {
   /** Blueprint (or crafted item) a material is for; '' / null = on its own. */
   readonly forClassName: string | null;
   readonly forName: string | null;
+  /** A blueprint that makes this item is known (Codex recipe lookup); only then can the line be crafted. */
+  readonly craftable?: boolean;
 }
+
+/** How a line is met: bought at a merchant, crafted from its blueprint, or gathered (mined) as material. */
+export type LineMode = 'buy' | 'craft' | 'mine';
 
 /** How a material line is met: `buy` + `mine` = its quantity. */
 export interface LineSplit {
@@ -101,18 +108,61 @@ export function setBuyPart(l: ProposalLine, buy: number): LineSplit {
 }
 
 export interface ProposalCtx {
-  /** Where a line can be bought (nearest/cheapest shop), null = no shop known. */
+  /** Where a line can be bought (nearest/cheapest shop, or the place the reader set), null = no place known. */
   placeOf(l: ProposalLine): MapPlace | null;
-  /** The reader's split choice per line key; absent = the default. */
+  /** The reader's split choice per material line key; absent = the default. */
   split?: ReadonlyMap<string, LineSplit>;
+  /** The reader's choice per non-material line key (buy / craft); absent or not available = the default. */
+  mode?: ReadonlyMap<string, LineMode>;
+  /** Lines the reader took out of the Einsatz: no step is made for them. */
+  excluded?: ReadonlySet<string>;
 }
 
 const sum = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0);
 
+/**
+ * The ways a non-material, non-blueprint line can be met, given what is known: buy only with a place (a merchant),
+ * craft only with a known blueprint. Materials are not here: they switch/split between buy and mine.
+ */
+export function availableModes(l: ProposalLine, hasPlace: boolean): LineMode[] {
+  if (isBlueprintLine(l) || isMaterialLine(l)) return [];
+  const out: LineMode[] = [];
+  if (hasPlace) out.push('buy');
+  if (l.craftable) out.push('craft');
+  return out;
+}
+
+/** The mode a non-material line stands on: the reader's choice if still available, else buy, else craft, else none. */
+export function modeOf(l: ProposalLine, ctx: ProposalCtx): LineMode | null {
+  const avail = availableModes(l, ctx.placeOf(l) !== null);
+  const chosen = ctx.mode?.get(l.key);
+  if (chosen && avail.includes(chosen)) return chosen;
+  return avail[0] ?? null;
+}
+
+/** How many pieces of a line are bought / mined. Blueprints are neither (missions), a placeless line buys nothing. */
+function partsOf(l: ProposalLine, ctx: ProposalCtx): LineSplit {
+  if (isBlueprintLine(l)) return { buy: 0, mine: 0 };
+  if (isMaterialLine(l)) return normalizeSplit(l, ctx.split?.get(l.key) ?? defaultSplit(l, ctx.placeOf(l) !== null));
+  return { buy: modeOf(l, ctx) === 'buy' ? l.qty : 0, mine: 0 };
+}
+
+/**
+ * Lines that would be bought but have no place: they get no step (a placeless buy step is a step nobody can do) and
+ * wait for the reader to open the Codex, set a place, or take the line out. Blueprints and crafted lines never wait.
+ */
+export function unplacedLines(lines: readonly ProposalLine[], ctx: ProposalCtx): ProposalLine[] {
+  return lines.filter((l) => {
+    if (ctx.excluded?.has(l.key) || isBlueprintLine(l) || ctx.placeOf(l) !== null) return false;
+    if (isMaterialLine(l)) return partsOf(l, ctx).buy > 0;
+    return modeOf(l, ctx) === null;
+  });
+}
+
 /** The proposed Einsaetze, in the order they are done; empty roles are left out. */
-export function proposeEinsaetze(lines: readonly ProposalLine[], ctx: ProposalCtx): DraftEinsatz[] {
+export function proposeEinsaetze(all: readonly ProposalLine[], ctx: ProposalCtx): DraftEinsatz[] {
   const out: DraftEinsatz[] = [];
-  const splitOf = (l: ProposalLine): LineSplit => normalizeSplit(l, ctx.split?.get(l.key) ?? defaultSplit(l, ctx.placeOf(l) !== null));
+  const lines = all.filter((l) => !ctx.excluded?.has(l.key));
 
   // Missions: one per blueprint line.
   const bps = lines.filter(isBlueprintLine);
@@ -133,14 +183,11 @@ export function proposeEinsaetze(lines: readonly ProposalLine[], ctx: ProposalCt
     });
   }
 
-  // Buying: ordered along the route.
-  const buys = lines.filter((l) => !isBlueprintLine(l) && splitOf(l).buy > 0);
+  // Buying: only what has a place, ordered along the route.
+  const buys = lines.filter((l) => partsOf(l, ctx).buy > 0 && ctx.placeOf(l) !== null);
   if (buys.length) {
     const byKey = new Map(buys.map((l) => [l.key, l] as const));
-    const needs: MapNeed[] = buys.flatMap((l) => {
-      const place = ctx.placeOf(l);
-      return place ? [{ id: l.key, label: l.name, kind: 'buy' as const, qty: splitOf(l).buy, status: 'open' as const, colorKey: 'n', place }] : [];
-    });
+    const needs: MapNeed[] = buys.map((l) => ({ id: l.key, label: l.name, kind: 'buy' as const, qty: partsOf(l, ctx).buy, status: 'open' as const, colorKey: 'n', place: ctx.placeOf(l)! }));
     const ordered: ProposalLine[] = [];
     const placeByKey = new Map<string, MapPlace>();
     for (const stop of buildRoute(needs, null)) {
@@ -152,37 +199,36 @@ export function proposeEinsaetze(lines: readonly ProposalLine[], ctx: ProposalCt
         }
       }
     }
-    for (const l of buys) if (!placeByKey.has(l.key)) ordered.push(l);
     out.push({
       role: 'buy',
       steps: ordered.map((l) => {
-        const place = placeByKey.get(l.key) ?? null;
+        const place = placeByKey.get(l.key)!;
         return {
           kind: 'buy' as const,
           label: l.name,
-          location: place?.location ?? null,
-          system: place?.system ?? null,
+          location: place.location,
+          system: place.system,
           className: l.className,
-          qty: splitOf(l).buy,
+          qty: partsOf(l, ctx).buy,
           lineKey: l.key,
           missionRef: null,
         };
       }),
-      goods: ordered.map((l) => ({ name: l.name, qty: splitOf(l).buy, purpose: purposeOf(l) })),
+      goods: ordered.map((l) => ({ name: l.name, qty: partsOf(l, ctx).buy, purpose: purposeOf(l) })),
     });
   }
 
-  // Mining, each followed by refining it.
-  const mines = lines.filter((l) => !isBlueprintLine(l) && splitOf(l).mine > 0);
+  // Mining (gathering), each followed by refining it.
+  const mines = lines.filter((l) => partsOf(l, ctx).mine > 0);
   if (mines.length) {
     const steps: DraftStep[] = [];
     for (const l of mines) {
-      steps.push({ kind: 'mine', label: l.name, location: null, system: null, className: l.className, qty: splitOf(l).mine, lineKey: l.key, missionRef: null });
+      steps.push({ kind: 'mine', label: l.name, location: null, system: null, className: l.className, qty: partsOf(l, ctx).mine, lineKey: l.key, missionRef: null });
     }
     for (const l of mines) {
-      steps.push({ kind: 'refine', label: l.name, location: null, system: null, className: l.className, qty: splitOf(l).mine, lineKey: l.key, missionRef: null });
+      steps.push({ kind: 'refine', label: l.name, location: null, system: null, className: l.className, qty: partsOf(l, ctx).mine, lineKey: l.key, missionRef: null });
     }
-    out.push({ role: 'mine', steps, goods: mines.map((l) => ({ name: l.name, qty: splitOf(l).mine, purpose: purposeOf(l) })) });
+    out.push({ role: 'mine', steps, goods: mines.map((l) => ({ name: l.name, qty: partsOf(l, ctx).mine, purpose: purposeOf(l) })) });
   }
 
   // Crafting is the last Einsatz: one step per blueprint / crafted item the materials are for.
@@ -199,7 +245,9 @@ export function proposeEinsaetze(lines: readonly ProposalLine[], ctx: ProposalCt
     const c = (b.className ?? '').toLowerCase();
     if (c && !crafted.has(c)) crafted.set(c, { name: b.name, className: b.className ?? '', qty: b.qty });
   }
-  if (crafted.size) {
+  // A line the reader chose to craft (its blueprint is known) is itself a craft step, tied to that line.
+  const craftLines = lines.filter((l) => modeOf(l, ctx) === 'craft' && !crafted.has((l.className ?? '').toLowerCase()));
+  if (crafted.size || craftLines.length) {
     const steps: DraftStep[] = [...crafted.values()].map((c) => ({
       kind: 'craft' as const,
       label: c.name,
@@ -210,6 +258,9 @@ export function proposeEinsaetze(lines: readonly ProposalLine[], ctx: ProposalCt
       lineKey: null,
       missionRef: null,
     }));
+    for (const l of craftLines) {
+      steps.push({ kind: 'craft', label: l.name, location: null, system: null, className: l.className, qty: l.qty, lineKey: l.key, missionRef: null });
+    }
     out.push({ role: 'craft', steps, goods: steps.map((s) => ({ name: s.label, qty: s.qty ?? 1, purpose: null })) });
   }
   return out;
