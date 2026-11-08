@@ -10,7 +10,7 @@ Components: Angular, Supabase
 Hosting: Vercel
 
 /* NOTE */
-Star Citizen Companion is an unofficial fan project.
+Verse Companion is an unofficial fan project.
 It is not affiliated with the Cloud Imperium group of companies.
 Star Citizen, Roberts Space Industries and Cloud Imperium are
 trademarks of Cloud Imperium Rights LLC.

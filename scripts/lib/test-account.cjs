@@ -1,5 +1,5 @@
 /**
- * The SC Companion test account — where its credentials live, how a session is
+ * The Verse Companion test account — where its credentials live, how a session is
  * obtained for it, and which origins may receive one.
  *
  * Shared by the Playwright-MCP init page (`scripts/playwright/test-session.cjs`,
@@ -66,7 +66,7 @@ function isAppOrigin(url, rules = APP_ORIGIN_RULES) {
 
 /**
  * Supabase URL + publishable key, read from `src/environments/environment.ts` so
- * the scripts can never drift from the app. Null outside an SC Companion checkout.
+ * the scripts can never drift from the app. Null outside an Verse Companion checkout.
  */
 function readSupabaseConfig(repoRoot) {
   const file = join(repoRoot, 'src', 'environments', 'environment.ts');

@@ -1,9 +1,9 @@
 ---
 name: devops-test-plan
-description: Test-plan extension for SC Companion — profile override + live-probe rules (stable consumer-contract path).
+description: Test-plan extension for Verse Companion — profile override + live-probe rules (stable consumer-contract path).
 ---
 
-# Test-plan extension — SC Companion
+# Test-plan extension — Verse Companion
 
 There is no `/devops-test-plan` skill anymore — test guidance lives in the
 plugin's `deep-knowledge/test-plan.md`, and THIS directory

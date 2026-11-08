@@ -119,7 +119,7 @@
       "checking": "Dein Zugang wird geprüft …"
     },
     "landing": {
-      "appName": "Star Citizen Companion",
+      "appName": "Verse Companion",
       "join": "Join the Club.",
       "pitch": "Der Companion ist ein privater Zirkel — Zugang gibt es nur auf Einladung. Du fliegst schon im Verse und willst dabei sein? Dann bewirb dich, ein Admin schaut sich das an.",
       "perks": {
@@ -165,7 +165,7 @@
     "signOut": "Abmelden",
     "backToHome": "Zur Startseite",
     "skipToContent": "Zum Inhalt springen",
-    "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
+    "brandAria": "Verse Companion — zur Startseite (Verse News)",
     "phaseBadge": "Alpha",
     "badge": "Kartograph-Abzeichen",
     "accountMenu": "Konto-Menü",
@@ -3512,7 +3512,7 @@
         "comingSoon": "Demnächst",
         "mockNote": "Vorschau: Die Kopplung mit der SC-App ist noch nicht implementiert. Der Status oben ist eine Platzhalter-Darstellung, keine bestehende Verbindung.",
         "scApp": {
-          "name": "Star Citizen Companion App",
+          "name": "Verse Companion App",
           "desc": "Die Desktop-App direkt mit deinem Account verbinden, damit Uploads und Daten automatisch zugeordnet werden."
         }
       },
@@ -3825,7 +3825,7 @@
     "close": "Schließen",
     "access": {
       "fullPage": "Volle Data-Upload-Seite",
-      "note": "Nur Windows · Anmeldung mit deinem SCC-Konto · lädt Daten hoch, keinen Code."
+      "note": "Nur Windows · Anmeldung mit deinem Verse-Companion-Konto · lädt Daten hoch, keinen Code."
     }
   },
   "download": {
@@ -3838,7 +3838,7 @@
     "subtitle": "Hol dir den Data Uploader für deinen lokalen Star-Citizen-Install."
   },
   "desktopConnect": {
-    "title": "Star Citizen Companion verbinden",
+    "title": "Verse Companion verbinden",
     "authorizing": "Prüfe deine Session…",
     "loginRequired": "Bitte erst einloggen, dann gehts automatisch zurück zur App.",
     "redirecting": "Autorisiert. Schicke Token zur App…",
@@ -3884,11 +3884,11 @@
   },
   "legal": {
     "about": {
-      "title": "Über SC Companion",
+      "title": "Über Verse Companion",
       "subtitle": "Wer diese Seite betreibt, was sie tut und wo der Code liegt.",
       "what": {
         "title": "Was ist das hier?",
-        "p1": "Star Citizen Companion (SCC) ist eine kostenlose, nicht-kommerzielle Companion-App für die Weltraumsimulation Star Citizen: Verse-News, ein Schiffs- und Ausrüstungs-Codex sowie persönliche Hangar- und Loadout-Werkzeuge.",
+        "p1": "Verse Companion ist eine kostenlose, nicht-kommerzielle Companion-App für die Weltraumsimulation Star Citizen: Verse-News, ein Schiffs- und Ausrüstungs-Codex sowie persönliche Hangar- und Loadout-Werkzeuge.",
         "p2": "News, Codex und Release Notes sind ohne Konto nutzbar. Ein Konto braucht es nur für persönliche Funktionen wie den Hangar — die Registrierung ist derzeit nur auf Einladung möglich."
       },
       "openSource": {
@@ -3898,12 +3898,12 @@
       },
       "data": {
         "title": "Deine Daten",
-        "p1": "SCC zeigt keine Werbung und speichert nur, was die Funktionen brauchen. Produkt-Analytik läuft über PostHog auf EU-Servern. Details stehen in der Datenschutzerklärung:",
+        "p1": "Verse Companion zeigt keine Werbung und speichert nur, was die Funktionen brauchen. Produkt-Analytik läuft über PostHog auf EU-Servern. Details stehen in der Datenschutzerklärung:",
         "privacyLink": "Datenschutzerklärung"
       },
       "affiliation": {
         "title": "Fan-Projekt — nicht affiliiert",
-        "p1": "SCC ist ein inoffizielles Fan-Projekt aus der Community. Es ist nicht mit Cloud Imperium Games oder Roberts Space Industries verbunden, wird von ihnen weder unterstützt noch gesponsert — und fragt niemals nach deinen RSI-Zugangsdaten."
+        "p1": "Verse Companion ist ein inoffizielles Fan-Projekt aus der Community. Es ist nicht mit Cloud Imperium Games oder Roberts Space Industries verbunden, wird von ihnen weder unterstützt noch gesponsert — und fragt niemals nach deinen RSI-Zugangsdaten."
       },
       "contact": {
         "title": "Kontakt",
@@ -3943,7 +3943,7 @@
       },
       "google": {
         "title": "Anmeldung mit Google",
-        "p1": "Der Google-Weg ist freiwillig — mit E-Mail und Passwort kommst du ohne Google ins Konto. Tippst du auf „Mit Google fortfahren\", leitet dich die App zur Anmeldeseite von Google (accounts.google.com) weiter. Google erfährt dabei, dass du dich bei SC Companion anmeldest, samt der technischen Daten, die jeder Seitenaufruf mitbringt (IP-Adresse, Browser, Zeitpunkt). Anbieter ist Google Ireland Limited (Irland) bzw. Google LLC (USA).",
+        "p1": "Der Google-Weg ist freiwillig — mit E-Mail und Passwort kommst du ohne Google ins Konto. Tippst du auf „Mit Google fortfahren\", leitet dich die App zur Anmeldeseite von Google (accounts.google.com) weiter. Google erfährt dabei, dass du dich bei Verse Companion anmeldest, samt der technischen Daten, die jeder Seitenaufruf mitbringt (IP-Adresse, Browser, Zeitpunkt). Anbieter ist Google Ireland Limited (Irland) bzw. Google LLC (USA).",
         "p2": "Nach erfolgreicher Anmeldung gibt Google Daten an uns zurück, die Supabase im Auth-Eintrag deines Kontos speichert: deine Google-Konto-Kennung, deine E-Mail-Adresse, deinen bei Google hinterlegten Namen und die Adresse deines Google-Profilbilds. Angezeigt wird davon fast nichts — im Kontomenü steht dein Name, und auch der nur, solange du keinen eigenen Nutzernamen gesetzt hast; dein Profilbild lädt die App gar nicht erst, sie zeigt nur den ersten Buchstaben als Initiale.",
         "p3": "Umgekehrt fließt nichts zu Google zurück, was über den Anmeldevorgang hinausgeht — keine Hangar-, Codex- oder Nutzungsdaten. Was Google selbst mit den Anmeldedaten macht, richtet sich nach Googles eigener Datenschutzerklärung:",
         "policyLink": "Datenschutzerklärung von Google (policies.google.com/privacy)",
@@ -3951,7 +3951,7 @@
       },
       "local": {
         "title": "Cookies, lokaler Speicher und Sitzung",
-        "p1": "SCC setzt keine Cookies — weder eigene noch von Werbenetzwerken. Stattdessen nutzt die App den lokalen Speicher deines Browsers, und zwar für diese Einträge:",
+        "p1": "Verse Companion setzt keine Cookies — weder eigene noch von Werbenetzwerken. Stattdessen nutzt die App den lokalen Speicher deines Browsers, und zwar für diese Einträge:",
         "keys": {
           "session": "sc.auth — deine Anmelde-Sitzung: ein kurzlebiges Zugriffs-Token und ein Erneuerungs-Token von Supabase. Solange du angemeldet bleibst, erneuert die App das Zugriffs-Token automatisch im Hintergrund; beim Abmelden wird der Eintrag gelöscht. Löschst du die Website-Daten deines Browsers, bist du ebenfalls abgemeldet.",
           "lang": "sc.lang — deine Sprachwahl.",
@@ -3984,7 +3984,7 @@
       },
       "social": {
         "title": "Freunde und Sichtbarkeit",
-        "p1": "Freunde sind Konten, mit denen du dich über eine Anfrage oder einen persönlichen Einladungslink verbunden hast; ein Einladungslink läuft ab und kann von dir widerrufen werden. Solange ihr befreundet seid, sehen deine Freunde standardmäßig deinen Hangar, dein Flaggschiff, ob du online bist und die Vergleichszahlen auf der Social-Seite (zum Beispiel wie oft du SCC nutzt). Jeden dieser Punkte kannst du auf der Social-Seite im Sichtbarkeits-Popup allgemein oder für einen einzelnen Freund ausschalten.",
+        "p1": "Freunde sind Konten, mit denen du dich über eine Anfrage oder einen persönlichen Einladungslink verbunden hast; ein Einladungslink läuft ab und kann von dir widerrufen werden. Solange ihr befreundet seid, sehen deine Freunde standardmäßig deinen Hangar, dein Flaggschiff, ob du online bist und die Vergleichszahlen auf der Social-Seite (zum Beispiel wie oft du Verse Companion nutzt). Jeden dieser Punkte kannst du auf der Social-Seite im Sichtbarkeits-Popup allgemein oder für einen einzelnen Freund ausschalten.",
         "p2": "Dafür speichert die Tabelle user_presence pro Konto den Zeitpunkt deines letzten Besuchs und eine Aktivitätsmaske der letzten 30 Tage (je Tag aktiv oder nicht) — keine Seitenverläufe. „Online“ heißt: in den letzten Minuten gesehen.",
         "p3": "Gruppen (zum Beispiel Orgs oder Einsatzgruppen) sind eine private Liste von dir: Die Mitglieder sehen weder die Gruppe noch ihren Namen. Einsätze, Loadouts und Schiffsvarianten sieht nur, mit wem du sie ausdrücklich teilst. Beendest du eine Freundschaft, endet jede Sichtbarkeit sofort."
       }
@@ -3993,7 +3993,7 @@
       "title": "Impressum",
       "operator": {
         "title": "Betreiber",
-        "p1": "Star Citizen Companion (sc-companion.vercel.app) ist ein nicht-kommerzielles Open-Source-Community-Projekt. Es wird von der StarOrga-Organisation und ihren Mitwirkenden auf GitHub betreut.",
+        "p1": "Verse Companion (sc-companion.vercel.app) ist ein nicht-kommerzielles Open-Source-Community-Projekt. Es wird von der StarOrga-Organisation und ihren Mitwirkenden auf GitHub betreut.",
         "p2": "Das Projekt erzielt keine Einnahmen: keine Werbung, keine Bezahlfunktionen, kein Sponsoring."
       },
       "contact": {
@@ -4201,7 +4201,7 @@
       "adoptHint": "Als Kopie in den eigenen Hangar legen",
       "adoptError": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
       "loginToAdopt": "Anmelden, um eine Kopie anzulegen",
-      "aboutCta": "Was ist SC Companion?",
+      "aboutCta": "Was ist Verse Companion?",
       "unavailable": {
         "title": "Dieses Loadout ist nicht verfügbar",
         "body": "Der Link ist ungültig, abgelaufen oder wurde deaktiviert."
@@ -4263,7 +4263,7 @@
     },
     "product": {
       "label": "Produkt",
-      "scc-app": "SCC-App",
+      "scc-app": "Companion-App",
       "data-uploader": "Data Uploader",
       "all": "Alle",
       "starscape": "Starscape"
@@ -4718,12 +4718,12 @@
       "noCredentials": "Keine Zugangsdaten, Cookies oder Session-Tokens werden gelesen.",
       "noPersonalData": "Kein Accountname, keine E-Mail-Adresse, kein Pledge-Wert, keine Bestelldaten.",
       "noUpload": "Es wird nichts an einen Server gesendet. Die Schiffsliste wird innerhalb deines Browsers an diese App übergeben und landet erst in deinem Account, wenn du sie bestätigst.",
-      "scopeLimited": "Die Erweiterung ist nur auf deiner eigenen RSI-Hangarseite und auf Star Citizen Companion aktiv — sonst nirgends.",
+      "scopeLimited": "Die Erweiterung ist nur auf deiner eigenen RSI-Hangarseite und auf Verse Companion aktiv — sonst nirgends.",
       "localOnly": "Gespeichert werden nur eine Prüfsumme deiner Flotte und der Zeitpunkt des letzten Imports, lokal in deinem Browser."
     },
     "install": {
       "title": "Hangar-Import — Browser-Erweiterung",
-      "subtitle": "Star Citizen Companion kann robertsspaceindustries.com nicht selbst auslesen: Browser verbieten es einer Seite, eine andere zu lesen. Eine kleine Browser-Erweiterung darf die Hangarseite lesen, die du ohnehin gerade offen hast — und die Schiffsliste hierher übergeben.",
+      "subtitle": "Verse Companion kann robertsspaceindustries.com nicht selbst auslesen: Browser verbieten es einer Seite, eine andere zu lesen. Eine kleine Browser-Erweiterung darf die Hangarseite lesen, die du ohnehin gerade offen hast — und die Schiffsliste hierher übergeben.",
       "detected": {
         "title": "Erweiterung erkannt",
         "text": "Die Erweiterung ist in diesem Browser installiert. Öffne deinen Hangar bei RSI, während du eingeloggt bist — sie bietet den Import an, sobald deine Flotte neu ist oder sich geändert hat.",
@@ -4742,7 +4742,7 @@
         },
         "confirm": {
           "title": "Du bestätigst hier",
-          "text": "Die Schiffsliste öffnet sich in Star Citizen Companion, jeder Eintrag sichtbar. Nur die von dir angehakten Zeilen landen in deinem Hangar."
+          "text": "Die Schiffsliste öffnet sich in Verse Companion, jeder Eintrag sichtbar. Nur die von dir angehakten Zeilen landen in deinem Hangar."
         }
       },
       "privacy": {
@@ -4780,7 +4780,7 @@
         "text": "Deine Hangarseite nimmt auch einen JSON-Export im Hangar-Transfer-Format an, den du selbst erzeugst. Gleiche Prüfansicht, gleiche Regeln.",
         "cta": "Zu meinem Hangar"
       },
-      "disclaimer": "Star Citizen Companion ist ein inoffizielles Fanprojekt und steht in keiner Verbindung zur Cloud-Imperium-Unternehmensgruppe. Die Erweiterung ist nicht von RSI unterstützt."
+      "disclaimer": "Verse Companion ist ein inoffizielles Fanprojekt und steht in keiner Verbindung zur Cloud-Imperium-Unternehmensgruppe. Die Erweiterung ist nicht von RSI unterstützt."
     },
     "importPage": {
       "title": "Schiffe aus deinem RSI-Hangar importieren",
@@ -4999,7 +4999,7 @@
       "today": "· zuletzt heute"
     },
     "fallback": "Herunterladen (aktuell)",
-    "prerelease": "Hier gibt es immer die stabile Version. Beta und Alpha wählst du in der App, sobald du dich mit deinem SC-Companion-Konto angemeldet hast — welche Kanäle du bekommst, hängt von deiner Rolle ab."
+    "prerelease": "Hier gibt es immer die stabile Version. Beta und Alpha wählst du in der App, sobald du dich mit deinem Verse-Companion-Konto angemeldet hast — welche Kanäle du bekommst, hängt von deiner Rolle ab."
   },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
@@ -5161,7 +5161,7 @@
       "updated": "zuletzt geändert {{date}}",
       "emptyLoadout": "In diesem Set ist noch nichts eingetragen.",
       "footnote": "Nur zum Ansehen. Änderungen kann ausschließlich der Besitzer vornehmen.",
-      "aboutCta": "Was ist SC Companion?",
+      "aboutCta": "Was ist Verse Companion?",
       "unavailable": {
         "title": "Dieses Set ist nicht verfügbar",
         "body": "Der Link ist ungültig oder wurde deaktiviert."
@@ -5370,7 +5370,7 @@
       "einsaetze": "Einsätze dieses Nachschubs"
     },
     "ticker": {
-      "app": "SCC-App",
+      "app": "Companion-App",
       "on": "verbunden",
       "off": "aus",
       "none": "noch kein Ereignis",
@@ -5415,7 +5415,7 @@
       "blueprint": "Blaupause",
       "ruf": "Ruf",
       "rufEmptyTitle": "Noch keine Datenquelle",
-      "rufEmptyText": "Erscheint, sobald die SCC-App deinen Ruf meldet oder du ihn von Hand einträgst.",
+      "rufEmptyText": "Erscheint, sobald die Companion-App deinen Ruf meldet oder du ihn von Hand einträgst.",
       "pager": "Seiten",
       "range": "{{from}}–{{to}} von {{total}}",
       "prev": "Vorherige Seite",
@@ -5653,10 +5653,10 @@
       "loading": "Lade den Spielstand …",
       "retry": "Erneut versuchen",
       "connect": {
-        "title": "Spiel nicht erkannt — SCC-App starten",
-        "hint": "Die SCC-App meldet deinen Standort und deine Aktionen live hierher.",
-        "syncOffTitle": "SCC-App verbunden — noch keine Live-Daten",
-        "syncOffHint": "Schalte in der SCC-App unter Einstellungen → Overlay → SCC Web HQ den Live-Sync ein und starte das Spiel.",
+        "title": "Spiel nicht erkannt — Companion-App starten",
+        "hint": "Die Companion-App meldet deinen Standort und deine Aktionen live hierher.",
+        "syncOffTitle": "Companion-App verbunden — noch keine Live-Daten",
+        "syncOffHint": "Schalte in der Companion-App unter Einstellungen → Overlay → Web HQ den Live-Sync ein und starte das Spiel.",
         "explain": {
           "aria": "Was Jetzt zeigt",
           "what": "Jetzt ist dein Live-Stand aus dem Spiel: wo du gerade bist, was als Nächstes auf deiner Route liegt und was zuletzt passiert ist.",
@@ -5797,8 +5797,8 @@
       "preview": {
         "stamp": "Vorschau",
         "title": "Hier wächst deine Statistik",
-        "text": "So sieht es aus, sobald die SCC-App beim Spielen mitliest: aUEC, Missionen, Abschlussquote, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
-        "textLinked": "Die SCC-App ist verbunden. Sobald du spielst, füllen sich aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
+        "text": "So sieht es aus, sobald die Companion-App beim Spielen mitliest: aUEC, Missionen, Abschlussquote, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
+        "textLinked": "Die Companion-App ist verbunden. Sobald du spielst, füllen sich aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
       }
     },
     "stock": {
@@ -5885,7 +5885,7 @@
       },
       "lager": {
         "empty": "Noch nichts im Inventar erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
-        "emptyHow": "So kommt etwas rein: Die SCC-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
+        "emptyHow": "So kommt etwas rein: Die Companion-App liest dein Inventar, wenn du es im Spiel öffnest. Oder trag es über „Hinzufügen“ von Hand ein.",
         "storage": "Schiffe im Hangar-Terminal"
       },
       "find": {
@@ -5900,7 +5900,7 @@
         "yours": "Dein Inventar",
         "here": "Du bist in {{place}}",
         "whereAmI": "Wo bist du gerade?",
-        "unknownHere": "Ohne deinen Standort sortieren wir nach Menge. Starte die SCC-App oder wähle einen Ort.",
+        "unknownHere": "Ohne deinen Standort sortieren wir nach Menge. Starte die Companion-App oder wähle einen Ort.",
         "prompt": "Gib ein, was du suchst. Darunter siehst du, wo es liegt.",
         "noHit": "Nichts davon im Inventar. Vielleicht in der anderen Einheit?",
         "take": "{{n}} holen",
@@ -5940,17 +5940,17 @@
       }
     },
     "app": {
-      "launch": "SCC-App starten",
-      "starting": "SCC-App wird gestartet …",
-      "started": "SCC-App startet. Melde dich dort an, dann kommen deine Daten hierher.",
-      "downloading": "SCC-App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
-      "noResponse": "Die SCC-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
+      "launch": "Companion-App starten",
+      "starting": "Companion-App wird gestartet …",
+      "started": "Companion-App startet. Melde dich dort an, dann kommen deine Daten hierher.",
+      "downloading": "Companion-App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
+      "noResponse": "Die Companion-App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
       "retry": "Schon installiert? Erneut starten",
-      "download": "SCC-App herunterladen",
-      "downloadCta": "SCC-App downloaden",
+      "download": "Companion-App herunterladen",
+      "downloadCta": "Companion-App downloaden",
       "downloadStarted": "Der Download läuft (rund 500 MB). Führe danach das Setup aus.",
-      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „SCC-App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
-      "tipLaunch": "Öffnet die SCC-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
+      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „Companion-App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
+      "tipLaunch": "Öffnet die Companion-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "close": "Schließen"
     },
     "friends": {
@@ -6176,7 +6176,7 @@
       "heroBody": "Die Desktop-App wechselt deine Wallpaper automatisch durch die Galerie und zeigt deine verdienten Sternkarten."
     },
     "hub": {
-      "brand": "Star Citizen Companion",
+      "brand": "Verse Companion",
       "search": "Suchen …",
       "searchKey": "Strg K",
       "more": "Mehr im Verse",
@@ -6361,9 +6361,9 @@
     "badge": {
       "share": "Abzeichen teilen",
       "caption": "Kartograph · Rang {{rank}}",
-      "captionSub": "Patch {{patch}} · {{stars}} von {{total}} Sternen · SC Companion",
+      "captionSub": "Patch {{patch}} · {{stars}} von {{total}} Sternen · Verse Companion",
       "aria": "Kartograph-Abzeichen Rang {{rank}} mit der Sternkarte von Patch {{patch}}",
-      "explain": "Ein Kartograph hat in SC Companion ganze Sternkarten vollendet: jede Aufgabe eines Patches ein Stern.",
+      "explain": "Ein Kartograph hat in Verse Companion ganze Sternkarten vollendet: jede Aufgabe eines Patches ein Stern.",
       "cta": "Eigene Sternkarte starten",
       "invalid": "Dieser Abzeichen-Link ist unvollständig.",
       "toVerse": "Zum Verse"
@@ -6680,7 +6680,7 @@
     "aria": "Apps herunterladen",
     "platform": "Windows · immer die neueste Version",
     "scc": {
-      "name": "SCC App",
+      "name": "Companion-App",
       "desc": "Die Companion-App für deinen Desktop."
     },
     "starscape": {
@@ -6699,7 +6699,7 @@
     "close": "Schließen",
     "download": "Herunterladen",
     "scc": {
-      "line": "SCC App für deinen Desktop",
+      "line": "Companion-App für deinen Desktop",
       "desc": "Die Companion-App für deinen Desktop."
     },
     "starscape": {
@@ -7310,7 +7310,7 @@
     },
     "comparePanel": {
       "title": "Vergleich",
-      "hint": "Wie ihr SCC nutzt und was ihr so macht, verglichen mit dir. Es erscheint nur, was der Freund dir zeigt.",
+      "hint": "Wie ihr Verse Companion nutzt und was ihr so macht, verglichen mit dir. Es erscheint nur, was der Freund dir zeigt.",
       "loading": "Wird geladen …",
       "noFriends": "Sobald du Freunde hast, kannst du dich hier mit ihnen vergleichen.",
       "with": "Vergleich mit",

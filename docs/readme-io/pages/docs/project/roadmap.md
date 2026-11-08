@@ -3,7 +3,7 @@ title: Roadmap
 excerpt: Where the project is today and what the phases after alpha look like.
 ---
 
-SC Companion ships continuously — this is the direction, not a schedule. Dates
+Verse Companion ships continuously — this is the direction, not a schedule. Dates
 are deliberately absent; a fan project moves at the speed of the people
 building it.
 

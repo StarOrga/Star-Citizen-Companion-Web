@@ -78,7 +78,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </div>
 
         <div class="meta">
-          <p class="brand">Star Citizen Companion</p>
+          <p class="brand">Verse Companion</p>
           @if (expanded()) {
             <p class="disclaimer">{{ 'footer.disclaimer' | translate }}</p>
             <p class="copyright">

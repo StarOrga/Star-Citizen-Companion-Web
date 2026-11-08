@@ -1,4 +1,4 @@
-# SC Companion — https://sc-companion.vercel.app
+# Verse Companion — https://sc-companion.vercel.app
 # Community fan project for Star Citizen. Not affiliated with Cloud Imperium Games.
 User-agent: *
 Allow: /

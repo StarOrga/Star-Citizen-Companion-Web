@@ -1,4 +1,4 @@
-"""SC Companion P4K extractor — Python sidecar package.
+"""Verse Companion P4K extractor — Python sidecar package.
 
 Public API:
     from sc_extract.extract import run_extract, ExtractConfig

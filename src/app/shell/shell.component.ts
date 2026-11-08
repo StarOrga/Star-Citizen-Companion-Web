@@ -114,7 +114,7 @@ import { avatarUrlOf } from './avatar-url';
         (click)="onNavActivate($event, '/verse')">
         <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="36" height="36" />
         <span class="wordmark">
-          <span class="title">Star Citizen Companion</span>
+          <span class="title">Verse Companion</span>
           <span class="alpha-badge">{{ 'nav.phaseBadge' | translate }}</span>
         </span>
       </a>

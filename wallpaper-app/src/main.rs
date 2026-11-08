@@ -1,5 +1,5 @@
 //! Starscape Wallpaper — a tiny native Windows tray app that rotates the desktop
-//! background through the Star Citizen Companion "Starscape" gallery (original-
+//! background through the Verse Companion "Starscape" gallery (original-
 //! resolution RSI news art), with an optional crossfade and one-click autostart.
 //!
 //! Design goals: no window, tiny RAM (native, no runtime), no settings required.

@@ -1,6 +1,6 @@
 /**
  * Playwright-MCP init page: every browser Claude opens through the Playwright MCP
- * comes up signed in as the SC Companion test account — locally and live.
+ * comes up signed in as the Verse Companion test account — locally and live.
  *
  * Wiring: `.claude/settings.json` sets PLAYWRIGHT_MCP_INIT_PAGE to this file
  * (Playwright resolves it against the session's cwd) and PLAYWRIGHT_MCP_ISOLATED
@@ -94,7 +94,7 @@ function createTestSession({
   async function prepare(context) {
     const config = readConfig(cwd);
     if (!config) {
-      logLine(`skip: ${cwd} is not an SC Companion checkout`);
+      logLine(`skip: ${cwd} is not an Verse Companion checkout`);
       return;
     }
     const account = readAccount();

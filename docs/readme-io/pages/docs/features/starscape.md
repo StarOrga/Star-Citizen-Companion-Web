@@ -6,7 +6,7 @@ excerpt: A gallery of original-resolution RSI artwork harvested from the news cr
 **Starscape** is the artwork side of the news crawl: high-resolution imagery
 from RSI Comm-Links, collected as the feed is indexed. The gallery is public.
 
-Every tile links straight to the original on the **RSI CDN** — SC Companion
+Every tile links straight to the original on the **RSI CDN** — Verse Companion
 stores the metadata and the link, never the bytes. Click a tile for full
 resolution, the download link, and the source Comm-Link.
 

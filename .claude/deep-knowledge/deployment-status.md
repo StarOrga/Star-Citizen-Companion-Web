@@ -1,6 +1,6 @@
 # Deployment Status
 
-Current live-deploy state of SC Companion surfaces. Update this file when a
+Current live-deploy state of Verse Companion surfaces. Update this file when a
 surface flips between deployed / pending / broken.
 
 ## Vercel (web app)

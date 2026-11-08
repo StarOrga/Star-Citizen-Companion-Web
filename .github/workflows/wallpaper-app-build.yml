@@ -146,7 +146,7 @@ jobs:
           fail_on_unmatched_files: false
           body: |
             **Starscape Wallpaper** — tiny native Windows tray app that rotates your
-            desktop background through the Star Citizen Companion "Starscape" gallery
+            desktop background through the Verse Companion "Starscape" gallery
             (original-resolution RSI news art), with an optional crossfade and
             one-click autostart. No installer, ~0.3 MB, runs from the tray.
 

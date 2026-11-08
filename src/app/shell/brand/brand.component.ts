@@ -46,7 +46,7 @@ export class BrandLogoComponent {}
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[attr.data-channel]': 'channel()' },
-  template: `<span class="title">Star Citizen Companion</span><span class="channel">{{ 'nav.phaseBadge' | translate }}</span>`,
+  template: `<span class="title">Verse Companion</span><span class="channel">{{ 'nav.phaseBadge' | translate }}</span>`,
   styles: [
     `
       :host {

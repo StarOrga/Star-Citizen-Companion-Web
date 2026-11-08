@@ -286,7 +286,7 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 // everything builds up one after the other, smoothly; the planet slides in from below
 // when it is ready; the comet comes last. Seconds after the entrance starts:
 //   0.15–1.35 letterbox opens
-//   0.35 +45 ms/letter  "Star Citizen Companion" sharpens out of blur (~1.7 s)
+//   0.35 +45 ms/letter  "Verse Companion" sharpens out of blur (~1.7 s)
 //   1.9      main header (shell)      2.3–3.05 search ignites, 2.8–3.3 sheen (shell)
 //   2.6      sun                      2.9 doors + news float in, 3.05 "Mehr im Verse"
 //   planet   slides in from below whenever it stands (sc-briefing-planet), never held for

@@ -1,9 +1,9 @@
 ---
 name: ship
-description: Project-specific overrides for /ship in SC Companion.
+description: Project-specific overrides for /ship in Verse Companion.
 ---
 
-# /ship — SC Companion overrides
+# /ship — Verse Companion overrides
 
 This file extends the plugin skill at
 `~/.claude/plugins/cache/dotclaude/devops/<v>/skills/ship/`.

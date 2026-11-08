@@ -1,9 +1,9 @@
 ---
 name: claude-learn
-description: Project-specific overrides for /claude-learn in SC Companion.
+description: Project-specific overrides for /claude-learn in Verse Companion.
 ---
 
-# /claude-learn — SC Companion overrides
+# /claude-learn — Verse Companion overrides
 
 This file extends the plugin skill at
 `~/.claude/plugins/cache/dotclaude/devops/<v>/skills/claude-learn/`.

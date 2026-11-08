@@ -1,4 +1,4 @@
-# SC Companion
+# Verse Companion
 
 **Version: 0.226.1**
 

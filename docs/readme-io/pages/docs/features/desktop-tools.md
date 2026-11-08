@@ -3,7 +3,7 @@ title: Desktop tools
 excerpt: The Data Uploader that keeps the Codex current, and the Starscape App that rotates your wallpaper.
 ---
 
-Two of SC Companion's pieces run on your own machine, because they need access
+Two of Verse Companion's pieces run on your own machine, because they need access
 to things a browser cannot reach: your local Star Citizen installation, and
 your desktop wallpaper.
 

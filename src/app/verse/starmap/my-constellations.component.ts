@@ -176,7 +176,7 @@ export class MyConstellationsComponent implements AfterViewInit {
       const channel = await shareImage(
         await this.png(p),
         `sc-constellation-${p.patchLine}.png`,
-        `SC Companion · ${p.patchLine}`,
+        `Verse Companion · ${p.patchLine}`,
         `${location.origin}/verse/explorer`,
       );
       if (channel) this.analytics.captureVerse('starscape_share', { image_id: `constellation-${p.patchLine}`, channel });

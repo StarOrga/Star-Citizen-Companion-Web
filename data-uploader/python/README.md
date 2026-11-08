@@ -1,4 +1,4 @@
-# Star Citizen Companion - Data Uploader · Python Sidecar
+# Verse Companion - Data Uploader · Python Sidecar
 
 This is the Python-side extractor for the Data Uploader. The Electron main
 process spawns this as a subprocess and reads its stdout (JSON-lines) for

@@ -5,7 +5,7 @@
  * What it does: reads the ship names already rendered in the page the user is
  * looking at, decides — using the fingerprint rule in hangar-core.js — whether
  * that fleet is new information, and if so offers a one-click handover to
- * Star Citizen Companion.
+ * Verse Companion.
  *
  * What it never does: read, store or transmit credentials, cookies, session
  * tokens, the account handle, e-mail, pledge value or order data. It opens no

@@ -1,10 +1,10 @@
 {
-  "name": "SC Companion",
-  "short_name": "SC Companion",
+  "name": "Verse Companion",
+  "short_name": "Companion",
   "id": "/",
   "lang": "en",
   "dir": "ltr",
-  "description": "Star Citizen Companion (SCC) \u2014 unofficial community companion app for Star Citizen: Verse news, codex, hangar and loadout tools. Not affiliated with Cloud Imperium Games.",
+  "description": "Verse Companion – unofficial fan tool for Star Citizen: Verse news, codex, hangar and loadout tools. Not affiliated with the Cloud Imperium group of companies.",
   "categories": [
     "utilities",
     "games",

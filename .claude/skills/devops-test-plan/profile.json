@@ -1,6 +1,6 @@
 {
   "profile": "web-angular",
-  "description": "SC Companion — Angular 21 PWA on 127.0.0.1:4200. Responsive verification is delegated to the machine-checkable mobile gate (scripts/mobile-gate.mjs) instead of eyeballing screenshots.",
+  "description": "Verse Companion — Angular 21 PWA on 127.0.0.1:4200. Responsive verification is delegated to the machine-checkable mobile gate (scripts/mobile-gate.mjs) instead of eyeballing screenshots.",
   "tool_chain": [
     {
       "step": 1,
