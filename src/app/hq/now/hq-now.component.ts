@@ -14,6 +14,7 @@ import { DatePipe } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { ScPopoverDismissDirective } from '../../shared/popover/sc-popover-dismiss.directive';
 import { ScStepComponent } from '../../shared/step/sc-step.component';
 import { type Einsatz, type EinsatzStep, HqEinsatzService } from '../data/hq-einsatz.service';
 import { hqPage } from '../hq-routes';
@@ -47,6 +48,7 @@ const UPCOMING = 4;
   selector: 'sc-hq-now',
   standalone: true,
   imports: [
+    ScPopoverDismissDirective,
     TranslatePipe,
     DatePipe,
     RouterLink,
@@ -70,7 +72,7 @@ const UPCOMING = 4;
             <span class="run-e">E{{ activeIndex() + 1 }} · {{ e.title }} · {{ 'hq.run.stepOf' | translate: { n: shownStep(), total: total() } }}</span>
           }
           @if (switchable().length > 1) {
-            <span class="sw">
+            <span class="sw" [scPopoverDismiss]="menuOpen()" (dismissed)="menuOpen.set(false)">
               <button type="button" scAction tier="secondary" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">{{ 'hq.run.switch' | translate }}</button>
               @if (menuOpen()) {
                 <ul class="menu" role="menu" (keydown.escape)="menuOpen.set(false)">

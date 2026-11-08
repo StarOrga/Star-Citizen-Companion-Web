@@ -133,6 +133,24 @@ describe('ScDialogDirective', () => {
     expect(host.escapes).toBe(0);
   });
 
+  it('still handles Escape once the focused control inside was removed (focus on body)', async () => {
+    await openFrom();
+    const first = el<HTMLButtonElement>('.first');
+    first.focus();
+    first.remove();
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(host.escapes).toBe(1);
+  });
+
+  it('does not take a document Escape while focus sits on another page control', async () => {
+    await openFrom();
+    el<HTMLButtonElement>('.other').focus();
+    el('.other').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(host.escapes).toBe(0);
+  });
+
   it('returns focus to the opener on close', async () => {
     await openFrom();
     // Focus vanishes with the dialog: blur to body like a removed element does.
