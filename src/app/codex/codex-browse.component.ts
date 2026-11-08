@@ -327,15 +327,11 @@ export function blueprintCategoriesForGroup(
                         <span class="main">
                           <span class="name">{{ cardName(r) }}</span>
                           @if (kind() === 'ship') {
-                            <!-- Fixed columns: maker, price, place stay put whatever the maker's name length (#314). -->
+                            <!-- Fixed columns: maker, then the price right next to it, whatever the maker's name length (#314). -->
                             <span class="meta ship-cols">
                               <span class="c-mfr">{{ rowMeta(r) }}</span>
                               @if (shipOffers().get(r.classNameSlug); as offers) {
                                 <span class="price c-price">{{ priceLabel(offers) | translate: { price: auec(offers[0].price) } }}</span>
-                                <span class="c-where" [scTooltip]="offers.length > 1 ? offersTooltip(offers) : null">
-                                  <span class="where-name">{{ offerWhere(offers[0]) }}</span>
-                                  @if (offers.length > 1) { <span class="where-more">{{ 'codex.buy.more' | translate: { count: offers.length - 1 } }}</span> }
-                                </span>
                               }
                             </span>
                           } @else {
@@ -345,6 +341,17 @@ export function blueprintCategoriesForGroup(
                             </span>
                           }
                         </span>
+                        @if (kind() === 'ship') {
+                          <!-- The place's own end area: a fixed width, at most two lines, every shop in the tooltip (#314). -->
+                          <span class="c-where">
+                            @if (shipOffers().get(r.classNameSlug); as offers) {
+                              <span class="where-clamp" [scTooltip]="offersTooltip(offers)">
+                                <span class="where-name">{{ offerWhere(offers[0]) }}</span>
+                                @if (offers.length > 1) { <span class="where-more">{{ 'codex.buy.more' | translate: { count: offers.length - 1 } }}</span> }
+                              </span>
+                            }
+                          </span>
+                        }
                         <span class="spec">
                           @if (r.size !== null && r.size !== undefined) { <span class="size">S{{ r.size }}</span> }
                           @if (r.grade) { <span class="grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
@@ -680,11 +687,14 @@ export function blueprintCategoriesForGroup(
     .rows { list-style: none; margin: 0; padding: 0; }
     .row { position: relative; display: flex; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--sc-border); }
     .row:last-child { border-bottom: 0; }
-    .row.skel { height: 56px; }
+    .row.skel { height: 64px; }
+    /* One bar per row, all the same height (#314): the link starts from a zero basis so the HQ icons
+       always share its line (only the buy panel wraps below), and two-line names fit inside it. */
     .row-link {
-      flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto;
-      align-items: center; gap: 14px; min-height: 56px; padding: 6px 14px; color: inherit; text-decoration: none;
+      flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto;
+      align-items: center; gap: 14px; height: 64px; padding: 6px 14px; color: inherit; text-decoration: none;
     }
+    .row-link:has(.c-where) { grid-template-columns: 56px minmax(0, 1fr) min(15rem, 30%) auto; }
     .row:hover, .row:focus-within { background: color-mix(in srgb, var(--sc-accent) 6%, transparent); }
     .row-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .sil { width: 56px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: var(--sc-accent); }
@@ -697,8 +707,13 @@ export function blueprintCategoriesForGroup(
     .sil.icon { color: var(--sc-fg-2); }
     .sil.icon sc-codex-icon { width: 22px; height: 22px; }
     .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .name { font-size: 14px; color: var(--sc-fg-0); overflow-wrap: anywhere; }
-    .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; color: var(--sc-fg-2); min-width: 0; }
+    .name {
+      font-size: 14px; line-height: 18px; color: var(--sc-fg-0); overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+    }
+    .meta { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px 8px; font-size: 12px; line-height: 16px; color: var(--sc-fg-2); min-width: 0; overflow: hidden; }
+    .meta > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta > .wc { flex: none; }
     .wc { flex: none; padding: 0 6px; border: 1px solid var(--sc-border); border-radius: 4px; font-size: 11px; color: var(--sc-fg-1); }
     .spec { display: flex; align-items: baseline; gap: 12px; font-size: 12px; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .size { color: var(--sc-fg-0); font-weight: 600; }
@@ -719,17 +734,32 @@ export function blueprintCategoriesForGroup(
     .act .ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .act.shop.pinned { background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-1)); }
     .price { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
-    /* Ship rows: maker | price | place in fixed columns, so a long maker name never pushes the rest (#314). */
-    .ship-cols { display: grid; grid-template-columns: minmax(0, 13rem) 12rem minmax(0, 1fr); gap: 4px 16px; }
-    .ship-cols > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .c-price { text-align: right; }
-    .c-where { display: flex; align-items: baseline; gap: 6px; }
-    .where-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--sc-fg-1); }
-    .where-more { flex: none; color: var(--sc-fg-2); }
+    /* Ship rows: maker | price in fixed columns under the name, the price close to the maker (#314). */
+    .ship-cols { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 9.5rem); gap: 0 12px; }
+    .c-price { text-align: left; }
+    /* The place's end area: fixed width, at most two lines, the full list of shops in the tooltip (#314). */
+    .c-where { min-width: 0; font-size: 12px; line-height: 16px; }
+    .where-clamp {
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+      overflow: hidden; overflow-wrap: anywhere;
+    }
+    .where-name { color: var(--sc-fg-1); }
+    .where-more { margin-left: 6px; color: var(--sc-fg-2); white-space: nowrap; }
     @media (max-width: 640px) {
+      /* Phones: the HQ icons no longer fit beside the name, so every row puts them on a second line the
+         same way; the place moves under maker and price, one line, and the bar keeps one fixed height. */
+      .rows .row-link { flex-basis: 100%; }
+      .rows .acts { margin-left: auto; padding-bottom: 6px; }
+      .rows .row-link:has(.c-where) {
+        grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: 'sil main spec' 'sil where where';
+        row-gap: 0; height: 72px;
+      }
+      .row-link:has(.c-where) > .sil { grid-area: sil; }
+      .row-link:has(.c-where) > .main { grid-area: main; align-self: end; }
+      .row-link:has(.c-where) > .spec { grid-area: spec; }
+      .row-link:has(.c-where) > .c-where { grid-area: where; align-self: start; }
+      .row-link:has(.c-where) .name, .where-clamp { -webkit-line-clamp: 1; line-clamp: 1; }
       .ship-cols { grid-template-columns: minmax(0, 1fr) auto; }
-      .ship-cols .c-mfr { grid-column: 1 / -1; }
-      .c-price { text-align: left; }
     }
     /* Package D: where to buy, inline under the row (never a floating layer over the list). */
     .buy {
@@ -785,6 +815,7 @@ export function blueprintCategoriesForGroup(
       .acts .act { opacity: 1; }
       .sil { width: 44px; }
       .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }
+      .row-link:has(.c-where) { grid-template-columns: 44px minmax(0, 1fr) min(12rem, 32%) auto; }
       .buy { padding-left: 14px; }
       .filter-fab {
         display: inline-flex; align-items: center; justify-content: center;
