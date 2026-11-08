@@ -9,6 +9,7 @@ export function pathState(kind: string, over: Partial<ItemPathState> = {}): Item
     kind,
     className: 'cls',
     wished: false,
+    wishQty: 0,
     nachschubQty: 0,
     nachschubUnit: null,
     inventarQty: 0,
@@ -32,6 +33,7 @@ export function fakeItemPath(start?: Partial<ItemPathState>) {
     currentPlaceDefault: () => 'Bei mir',
     knownPlaces: () => ['Area 18'],
     addWish: jasmine.createSpy('addWish').and.resolveTo(ok('itemPath.done.wishOn')),
+    setWishQty: jasmine.createSpy('setWishQty').and.resolveTo({ ok: true, key: 'itemPath.done.wishQty' }),
     removeWish: jasmine.createSpy('removeWish').and.resolveTo(ok('itemPath.done.wishOff')),
     addToNachschub: jasmine.createSpy('addToNachschub').and.resolveTo(ok('itemPath.done.nachschub')),
     changeNachschubQty: jasmine.createSpy('changeNachschubQty').and.returnValue(ok('itemPath.done.qty')),
@@ -47,8 +49,3 @@ export function fakeItemPath(start?: Partial<ItemPathState>) {
   };
 }
 export type FakeItemPath = ReturnType<typeof fakeItemPath>;
-
-/** Sign-in is answered by the spec: signed in unless it says otherwise. */
-export function fakeSignIn(answer = true) {
-  return { ensure: jasmine.createSpy('ensure').and.resolveTo(answer) };
-}

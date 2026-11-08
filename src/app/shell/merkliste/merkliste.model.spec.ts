@@ -7,8 +7,10 @@ describe('merkliste model', () => {
     expect(merkTypeOf('/codex/ship/drak_cutter')).toBe('ship');
     expect(merkTypeOf('/codex/upcoming')).toBe('ship');
     expect(merkTypeOf('/codex/blueprint/x#a')).toBe('blueprint');
-    expect(merkTypeOf('/hq/hangar')).toBe('ship');
-    expect(merkTypeOf('/verse')).toBe('news');
+    expect(merkTypeOf('/hq/hangar/abc')).toBe('ship');
+    expect(merkTypeOf('/hq')).toBeNull();
+    expect(merkTypeOf('/hq#planen')).toBeNull();
+    expect(merkTypeOf('/verse')).toBeNull();
     expect(merkTypeOf('/verse/news/abc')).toBe('news');
     expect(merkTypeOf('/verse/gallery')).toBeNull();
     expect(merkTypeOf('/admin')).toBeNull();

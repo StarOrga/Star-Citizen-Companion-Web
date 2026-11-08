@@ -2681,7 +2681,6 @@
     "addToSet": {
       "trigger": "Add to set",
       "dialogAria": "Add {{item}} to a set",
-      "signedOut": "Sign in and create a set to collect gear.",
       "createSet": "Create a set",
       "loading": "Loading sets …",
       "noSet": "You have no set yet.",
@@ -2697,7 +2696,7 @@
   "news": {
     "loading": "Loading…",
     "empty": "No news yet.",
-    "emptyFavorites": "No bookmarks yet — use the bookmark icon on any post to collect it here.",
+    "emptyFavorites": "Nothing collected yet – collect a post with the collect icon and it shows up here.",
     "errorTitle": "Could not load news",
     "lastUpdated": "Updated {{rel}}",
     "refreshing": "Refreshing…",
@@ -2725,8 +2724,8 @@
       "patch": "Patch notes"
     },
     "favorite": {
-      "save": "Add bookmark",
-      "saved": "Bookmarked"
+      "save": "Collect",
+      "saved": "Collected"
     },
     "share": {
       "label": "Share",
@@ -4849,6 +4848,7 @@
       "newest": "Newest",
       "top": "Community top",
       "mine": "My votes",
+      "mineCount": "My votes · {{n}}",
       "mineSignedOut": "Sign in to see the wallpapers you voted for",
       "emptyMine": "You have not voted for a wallpaper yet. Tap the thumbs-up on an image to collect it here."
     },
@@ -5233,6 +5233,246 @@
     "copyAria": "Copy class name {{name}}"
   },
   "hq": {
+    "route": {
+      "aria": "Map with {{n}} steps",
+      "zoomGroup": "Map zoom",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "fit": "Fit map",
+      "legend": "Legend",
+      "legendAria": "Show and hide actions",
+      "shared": "{{place}} also serves the Nachschub \"{{name}}\"",
+      "open": "Place open"
+    },
+    "slots": {
+      "aria": "Nachschub slots",
+      "finished": "done",
+      "einsaetze": "{{n}} Einsätze",
+      "einsatzOne": "1 Einsatz",
+      "delete": "Delete \"{{name}}\"",
+      "newAria": "New Nachschub in slot {{n}}",
+      "free": "Slot {{n}}",
+      "archive": "Archive",
+      "archiveAria": "Archive, {{n}} Nachschübe",
+      "introTitle": "No Nachschub yet",
+      "introText": "Tap a plus and take things from your wishlist with you. They become a Nachschub with Einsätze that you work through step by step in Jetzt."
+    },
+    "remove": {
+      "titleRemove": "Delete \"{{name}}\"?",
+      "titleEmpty": "Empty \"{{name}}\"?",
+      "msgRemove": "The Nachschub goes away. Open positions: {{n}}.",
+      "msgEmpty": "The Nachschub stays, its open positions leave it. Open positions: {{n}}.",
+      "back": "Open positions back onto the wishlist",
+      "backOn": "They are counted up on the wishlist.",
+      "backOff": "They are dropped for good.",
+      "confirmRemove": "Delete",
+      "confirmEmpty": "Empty"
+    },
+    "archive": {
+      "slotFree": "A slot is free, you can bring a Nachschub back.",
+      "empty": "Nothing in the archive yet. A finished Nachschub moves here by itself and frees its slot.",
+      "reactivate": "Reactivate",
+      "close": "Close"
+    },
+    "flow": {
+      "titleNew": "New Nachschub",
+      "titleEdit": "Edit Nachschub",
+      "slotOf": "Slot {{n}} of {{max}}",
+      "stepsAria": "Steps",
+      "step": {
+        "1": "Select",
+        "2": "Summary",
+        "3": "Einsätze"
+      },
+      "emptyWish": "Your wishlist is empty.",
+      "emptyHint": "Put things on the wishlist first, then you can take them into a Nachschub here.",
+      "fillWish": "Fill the wishlist",
+      "all": "Take everything",
+      "none": "Take nothing",
+      "picked": "{{n}} positions · {{p}} pieces",
+      "group": {
+        "ships": "Ships and vehicles",
+        "items": "Items",
+        "materials": "Material",
+        "blueprint": "Blueprint"
+      },
+      "qtyOf": "Quantity of {{name}}",
+      "less": "Take fewer",
+      "more": "Take more",
+      "nameLabel": "Name of the Nachschub",
+      "sumTitle": "In this Nachschub",
+      "alreadyIn": "Already in the Nachschub",
+      "forBp": "for {{name}}",
+      "removeLine": "Take \"{{name}}\" out of the Nachschub",
+      "sumEmpty": "Nothing selected yet.",
+      "stays": "Stays on the wishlist",
+      "staysNothing": "Nothing, everything moves into the Nachschub.",
+      "einsaetze": "Einsätze",
+      "einsatzCount": "{{n}} Einsätze · {{s}} steps",
+      "noNewLines": "No new positions, so no new Einsätze.",
+      "noLines": "Nothing selected.",
+      "matsTitle": "How do you get the material?",
+      "methodOf": "How to get {{name}}",
+      "splitOf": "Split of {{name}}",
+      "lessBuy": "Buy less, mine more",
+      "moreBuy": "Buy more, mine less",
+      "splitHint": "Buying and mining can be split: bought amount on the left, mined amount on the right.",
+      "itemsTitle": "How do you get the items?",
+      "modeOf": "How to get {{name}}",
+      "modeHint": "Buy where a merchant is known, craft where a blueprint is known. Change it per line.",
+      "leaveOut": "Take {{name}} out of the Einsatz",
+      "leftOut": "Left out of the Einsatz",
+      "putBack": "Put back",
+      "placeIs": "Place: {{place}}",
+      "noMerchant": "No merchant known, so no buy step yet.",
+      "openCodex": "Open in Codex",
+      "setPlace": "Set place",
+      "setPlaceOf": "Place for {{name}}",
+      "stepsCount": "{{n}} steps",
+      "craftLast": "comes last, builds on the others",
+      "gets": "you get",
+      "purpose": "Material for {{names}}",
+      "haveEinsaetze": "Already planned",
+      "back": "Back",
+      "next": "Next",
+      "create": "Create Nachschub",
+      "saveEdit": "Save"
+    },
+    "panel": {
+      "renameAria": "New name of the Nachschub",
+      "rename": "Change name",
+      "positions": "positions",
+      "edit": "Edit",
+      "run": "Run in Jetzt",
+      "empty": "Empty",
+      "noEinsaetze": "This Nachschub has no Einsätze yet.",
+      "noEinsaetzeHint": "The positions turn into Einsätze: buy, mine, missions, crafting last.",
+      "proposeEinsaetze": "Propose Einsätze",
+      "einsaetze": "Einsätze",
+      "stepsTotal": "{{n}} steps",
+      "steps": "{{done}}/{{n}} steps",
+      "gets": "you get",
+      "route": "Map",
+      "places": "{{n}} places"
+    },
+    "run": {
+      "aria": "Nachschub that Jetzt runs",
+      "for": "for",
+      "stepOf": "Step {{n}} of {{total}}",
+      "switch": "Switch Nachschub",
+      "emptyTitle": "No Nachschub in progress",
+      "toPlanen": "Go to Planen",
+      "finish": "Step done",
+      "sharedStop": "This place also serves \"{{name}}\".",
+      "doneKicker": "All ticked off",
+      "allDone": "All steps of this Einsatz are done.",
+      "allDoneHint": "Pick another Einsatz of the Nachschub or switch the Nachschub.",
+      "einsaetze": "Einsätze of this Nachschub"
+    },
+    "ticker": {
+      "app": "SCC App",
+      "on": "connected",
+      "off": "off",
+      "none": "no event yet",
+      "ago": {
+        "now": "just now",
+        "minutes": "{{n}} min ago",
+        "hours": "{{n}} h ago",
+        "days": "{{n}} days ago"
+      }
+    },
+    "bestand": {
+      "title": "Bestand",
+      "tabsAria": "Areas of the Bestand",
+      "tab": {
+        "inventar": "Inventar",
+        "hangar": "Hangar",
+        "sammlung": "Sammlung"
+      },
+      "search": "Search the Inventar",
+      "menu": "Page menu",
+      "reset": "Reset in-game stock",
+      "resetTitle": "Reset in-game stock?",
+      "resetMessage": "Every place that the game or the search wrote is removed. Entries you made by hand stay. This cannot be undone.",
+      "resetConfirm": "Reset",
+      "filter": "Filter the Inventar",
+      "all": "All",
+      "used": "Recently used up",
+      "used48": "last 48 h",
+      "catchUp": "Catch up",
+      "catchUpAll": "Catch up on all",
+      "catchUpOne": "\"{{name}}\" to the wishlist",
+      "addItem": "Add an entry by hand",
+      "addShip": "Add a ship",
+      "addShipLabel": "Name of the ship",
+      "addBlueprint": "Add a blueprint",
+      "addBlueprintLabel": "Name of the blueprint",
+      "origin": {
+        "pledge": "Pledge",
+        "ingame": "In-game",
+        "loan": "Loaner"
+      },
+      "blueprint": "Blueprint",
+      "ruf": "Reputation",
+      "rufEmptyTitle": "No data source yet",
+      "rufEmptyText": "Appears as soon as the SCC App reports your reputation or you enter it by hand.",
+      "pager": "Pages",
+      "range": "{{from}}–{{to}} of {{total}}",
+      "prev": "Previous page",
+      "next": "Next page",
+      "hintWish": "on the wishlist: {{n}}",
+      "hintNachschub": "in the Nachschub \"{{name}}\""
+    },
+    "nachschub": {
+      "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
+      "nothingPicked": "Pick at least one item from the wishlist.",
+      "newName": "New Nachschub",
+      "newEinsatz": "New Einsatz",
+      "verb": {
+        "buy": "Buy:",
+        "mission": "Mission:",
+        "mine": "Mine:",
+        "refine": "Refine:",
+        "craft": "Craft:",
+        "transport": "Haul:",
+        "pickup": "Pick up:"
+      },
+      "done": {
+        "created": "\"{{name}}\" is created.",
+        "undone": "Undone.",
+        "reactivated": "Nachschub is active again.",
+        "emptied": "Nachschub emptied.",
+        "removed": "Nachschub deleted.",
+        "nothingWished": "Nothing on the wishlist.",
+        "fulfilled": "Ticked off the wishlist.",
+        "added": "Added to the Nachschub.",
+        "lineRemoved": "Position removed.",
+        "edited": "Nachschub saved."
+      },
+      "rec": {
+        "reason": {
+          "sameSet": "same set as {{item}}",
+          "magazineFor": "magazine for {{item}}",
+          "weaponFor": "weapon for {{item}}",
+          "fitsPort": "fits S{{size}} of {{item}}",
+          "ingredientFor": "ingredient for {{item}}",
+          "usedIn": "needed for {{item}}",
+          "sameMaker": "same maker: {{maker}}",
+          "sameSizeClass": "S{{size}} to go with {{item}}",
+          "otherSignal": "{{signal}} counterpart to {{item}} (S{{size}})",
+          "pairsWith": "rounds out {{item}}",
+          "paintFor": "paint for {{item}}",
+          "sameMaterial": "same material as {{item}}",
+          "sameShop": "same shop: {{place}}",
+          "samePlace": "same place: {{place}}",
+          "sameActivity": "same activity: {{activity}}"
+        },
+        "via": {
+          "craft": "Craft",
+          "buy": "Buy"
+        }
+      }
+    },
     "title": "HQ",
     "eyebrow": "Personal area",
     "subtitle": "Your ships, sets and ops in one place.",
@@ -5458,60 +5698,7 @@
       }
     },
     "plan": {
-      "switch": {
-        "label": "View",
-        "what": "What I need",
-        "how": "How to get there"
-      },
-      "progress": {
-        "title": "Blueprint progress",
-        "loading": "Loading your supplies...",
-        "empty": "No blueprint has material in Nachschub yet. Add a blueprint from its Codex page to track it here.",
-        "count": "{{have}} of {{total}} materials"
-      },
-      "prices": {
-        "title": "Commodity prices",
-        "source": "Community source: UEX Corp. Reported by players, not confirmed by CIG.",
-        "pick": "Pick a commodity",
-        "pickAria": "Commodity for the price list",
-        "loading": "Loading prices ...",
-        "idle": "Pick a commodity to see its prices per terminal.",
-        "empty": "UEX reports no prices for this commodity.",
-        "terminal": "Terminal",
-        "buy": "Buy (aUEC/SCU)",
-        "sell": "Sell (aUEC/SCU)",
-        "age": "As of",
-        "unknownAge": "unknown",
-        "ageMinutes": "{{n}} min ago",
-        "ageHours": "{{n}} h ago",
-        "ageDays": "{{n}} days ago"
-      },
-      "selection": "Selection",
-      "stepsAria": "Step kinds",
-      "state": {
-        "top3": "Top 3",
-        "mood": "By mood: {{moods}}",
-        "custom": "Custom selection"
-      },
-      "empty": "Nothing to pick yet. Mark in Supplies what you want to get.",
-      "route": "Your route",
-      "routeEmpty": "No route yet. Pick under \"What I need\" what you want to get.",
-      "saveEinsatz": "Save as op",
-      "retry": "Try again",
-      "fresh": {
-        "title": "Nothing to plan yet",
-        "text": "Plan turns your supplies into a route: what you still need, where to get it and in which order.",
-        "step1": "Search for what you are missing and add it to Supplies.",
-        "step2": "Pick here what comes next.",
-        "step3": "Under “How do I get there” the route appears – save it as an op.",
-        "addSupply": "Search for an item"
-      },
-      "source": {
-        "loading": "Looking for shops …",
-        "none": "No shop known: it may only come from missions or crafting.",
-        "freeText": "Free-text entry without a source. Search for the item to see where to get it.",
-        "more": "+{{n}} more places"
-      }
+      "retry": "Try again"
     },
     "mood": {
       "peaceful": "Peaceful",
@@ -5522,41 +5709,10 @@
       "group": "Group",
       "pairAria": "{{left}} or {{right}}"
     },
-    "place": {
-      "search": "Search places",
-      "any": "All places",
-      "count": "{{n}} places",
-      "empty": "No place found.",
-      "label": "System, planet, place"
-    },
-    "set": {
-      "none": "No set with supplies yet.",
-      "reach": {
-        "full": "fully reachable",
-        "partial": "partly"
-      }
-    },
-    "supply": {
-      "ready": "ready",
-      "forSet": "for set {{name}}",
-      "forBlueprint": "for blueprint {{name}}",
-      "wanted": "Want to get",
-      "wantedAria": "Mark {{name}} as wanted",
-      "importTitle": "Add the list from this browser?",
-      "importMessage": "This browser holds a supplies list from before you signed in ({{count}} lines). Add it to your account? On a shared browser it may belong to someone else.",
-      "importConfirm": "Add to my account",
-      "importCancel": "Not now"
-    },
     "einsatz": {
       "single": "Op",
       "multi": "Op ×{{n}}",
       "stepsTooltip": "{{n}} steps",
-      "title": "Your ops",
-      "empty": "No op saved yet.",
-      "nameLabel": "Name of the op",
-      "remove": "Remove {{name}}",
-      "removeTitle": "Remove op?",
-      "removeMessage": "\"{{name}}\" and its steps will be deleted.",
       "pick": {
         "title": "Which op?",
         "message": "\"{{name}}\" joins as a mission step.",
@@ -5575,50 +5731,8 @@
       "erkunden": "Exploring",
       "piraterie": "Piracy"
     },
-    "map": {
-      "title": "Map",
-      "routeTitle": "Route",
-      "empty": "Nothing selected. Pick needs above and they show up here.",
-      "startHere": "You start here",
-      "stepsOne": "1 step",
-      "steps": "{{n}} steps",
-      "unplaced": "{{n}} without a place, list only",
-      "node": {
-        "needs": "{{place}} ({{path}}): {{needs}}",
-        "step": "Step {{ords}}: {{place}} ({{path}}): {{needs}}",
-        "start": "{{place}} ({{path}}): you start here"
-      },
-      "status": {
-        "open": "open",
-        "partial": "partly",
-        "done": "done"
-      },
-      "legend": {
-        "title": "Legend",
-        "shape": "Shape = activity",
-        "size": "Size = amount",
-        "size_s": "up to 5",
-        "size_m": "up to 25",
-        "size_l": "more",
-        "fill": "Fill = status",
-        "line": "Line",
-        "travel": "Flight",
-        "transport": "Transport",
-        "colour": "Colour = need"
-      }
-    },
     "community": {
-      "share": "Share community data",
-      "shareOn": "Your purchases (price, amount, shop) feed the community median anonymously.",
-      "shareOff": "Off: nothing is shared. You still see the community median.",
-      "median": "Community median",
-      "reports": "{{n}} reports",
-      "source": {
-        "log": "From your log",
-        "search": "From the Codex search",
-        "community": "Community",
-        "ocr": "From a screenshot"
-      }
+      "share": "Share community data"
     },
     "stats": {
       "range": {
@@ -5628,7 +5742,6 @@
         "90d": "90 days"
       },
       "retry": "Try again",
-      "signedOut": "Sign in to see your statistics.",
       "loading": "Loading statistics …",
       "zero": "Nothing recorded in this range.",
       "details": "Details",
@@ -5689,7 +5802,6 @@
       }
     },
     "stock": {
-      "signedOut": "Sign in to see your inventory.",
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to your inventory.",
@@ -6563,31 +6675,6 @@
       }
     }
   },
-  "merkliste": {
-    "title": "Bookmarks",
-    "aria": "Bookmarks, {{count}} in all: {{wishes}} on the wishlist, {{supply}} open in Supplies, {{posts}} saved posts",
-    "nachschub": "Supplies",
-    "openNachschub": "Open supplies",
-    "recent": "Recently opened",
-    "wished": "On the wishlist",
-    "allWishes": "Whole wishlist",
-    "newsRead": "Recently read",
-    "newsSaved": "Bookmarked posts",
-    "emptyRecent": "Nothing opened yet.",
-    "emptyWished": "Nothing on the wishlist yet.",
-    "emptyRead": "Nothing read yet.",
-    "emptySaved": "No bookmarks yet.",
-    "emptyNachschub": "Everything fetched, nothing open.",
-    "type": {
-      "all": "All",
-      "ship": "Ships",
-      "weapon": "Weapons",
-      "component": "Components",
-      "item": "Items",
-      "blueprint": "Blueprints",
-      "news": "News"
-    }
-  },
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Download apps",
@@ -7280,7 +7367,6 @@
     }
   },
   "itemPath": {
-    "needSignIn": "Sign in to save this.",
     "done": {
       "wishOn": "\"{{name}}\" is on your wishlist",
       "wishOff": "\"{{name}}\" is off your wishlist",
@@ -7370,5 +7456,166 @@
       "removeHangarTitle": "Remove from hangar?",
       "removeHangarMessage": "“{{name}}” is deleted along with its variants, their shares with friends and its notes. This cannot be undone."
     }
+  },
+  "quick": {
+    "title": "Quick access",
+    "recent": "Recently opened",
+    "more": "Show more",
+    "less": "Show less",
+    "emptyRecent": "Nothing opened yet.",
+    "wish": "Wishlist",
+    "lastAdded": "last added",
+    "emptyWish": "Nothing on the wishlist yet.",
+    "allWish": "Whole wishlist · {{n}} items",
+    "emptyContext": "Nothing here yet.",
+    "section": {
+      "inventar": "Inventory",
+      "hangar": "Hangar",
+      "sammlung": "Collection"
+    },
+    "all": {
+      "inventar": "Whole inventory",
+      "hangar": "Whole hangar",
+      "sammlung": "Whole collection"
+    },
+    "type": {
+      "ship": "Ships",
+      "weapon": "Weapons",
+      "component": "Components",
+      "item": "Items",
+      "blueprint": "Blueprints",
+      "news": "News"
+    }
+  },
+  "cart": {
+    "title": "Wishlist",
+    "summary": "{{n}} items · {{g}} groups",
+    "close": "Close",
+    "empty": "The wishlist is empty.",
+    "emptyHint": "Put items from the Codex or the search here.",
+    "group": {
+      "weapons": "Weapons",
+      "armor": "Armor",
+      "components": "Components",
+      "ships": "Ships and vehicles",
+      "items": "Items",
+      "materials": "Raw materials"
+    },
+    "forBlueprint": "to craft {{name}}",
+    "blueprintQty": "{{n}}× {{name}}",
+    "selectGroup": "Select the whole group {{name}}",
+    "select": "Select {{name}}",
+    "qtyOf": "Quantity of {{name}}",
+    "less": "Less",
+    "more": "More",
+    "remove": "Remove {{name}}",
+    "removeGroup": "Remove group {{name}}",
+    "removed": "{{name}} removed from the wishlist",
+    "removedGroup": "{{name}} removed ({{n}} items)",
+    "selected": "selected",
+    "clear": "Deselect all",
+    "toNachschub": "Into a Nachschub",
+    "kind": {
+      "ship": "Ship",
+      "vehicle": "Vehicle",
+      "upcoming": "Announced ship",
+      "weapon": "Weapon",
+      "component": "Component",
+      "item": "Item",
+      "blueprint": "Blueprint",
+      "material": "Raw material",
+      "ammunition": "Ammunition"
+    },
+    "suggest": {
+      "title": "Goes with it",
+      "count": "{{n}} suggestions",
+      "add": "to the wishlist",
+      "dismiss": "Do not suggest {{name}}"
+    }
+  },
+  "pathCtl": {
+    "node": {
+      "wish": "Wishlist",
+      "inventar": "Inventory",
+      "hangar": "Hangar",
+      "sammlung": "Collection"
+    },
+    "tip": {
+      "wishOff": "Put on the wishlist",
+      "wishOn": "{{qty}}× on the wishlist · open the wishlist",
+      "inventarOff": "Put into the inventory",
+      "inventarOn": "{{qty}}× in the inventory · show in HQ",
+      "hangarOff": "Put into the hangar",
+      "hangarOn": "In the hangar · show in HQ",
+      "sammlungOff": "Add to the collection",
+      "sammlungOn": "In the collection · show in HQ"
+    },
+    "go": {
+      "wish": "To the wishlist",
+      "inventar": "Into the inventory",
+      "hangar": "Into the hangar",
+      "sammlung": "To the collection"
+    },
+    "wishQty": "Wished quantity",
+    "ownQty": {
+      "inventar": "Quantity in the inventory",
+      "hangar": "Quantity in the hangar",
+      "sammlung": "Quantity in the collection"
+    },
+    "less": "Less",
+    "more": "More",
+    "openCart": "Open the wishlist",
+    "wishOff": "Not on the wishlist yet.",
+    "ownOn": {
+      "inventar": "{{n}}× in the inventory",
+      "hangar": "In the hangar",
+      "sammlung": "In the collection"
+    },
+    "ownOff": {
+      "inventar": "Not in the inventory.",
+      "hangar": "Not in the hangar.",
+      "sammlung": "Not in the collection."
+    },
+    "view": {
+      "inventar": "View in the inventory",
+      "hangar": "View in the hangar",
+      "sammlung": "View in the collection"
+    },
+    "whereTitle": "Where is it?",
+    "otherPlace": "Other place …",
+    "otherPlaceholder": "Enter a place",
+    "store": "Put down"
+  },
+  "itemStage": {
+    "aria": "Stage: {{name}}",
+    "eyebrowSil": "Silhouette",
+    "eyebrow3d": "3D model",
+    "viewAria": "View",
+    "viewSilhouette": "Silhouette",
+    "view3d": "3D model",
+    "noSilhouette": "no silhouette",
+    "noSilhouetteReason": "This build has no silhouette for this item; the preview image stands in.",
+    "no3dReason": "This build has no 3D model of this item.",
+    "inNachschub": "Part of the Nachschub “{{name}}”",
+    "panelAria": "Values and information",
+    "tabsAria": "Sections",
+    "tab": {
+      "werte": "Values",
+      "herstellung": "Crafting",
+      "info": "Buy & info"
+    }
+  },
+  "sammlungStrip": {
+    "title": "Collected",
+    "all": "Whole collection",
+    "more": "{{n}} more in the collection",
+    "newsAria": "Collected news",
+    "galleryAria": "Collected wallpapers",
+    "votedHint": "Up-voted wallpapers count as collected."
+  },
+  "blueprintWish": {
+    "craftTimes": "How many times to craft",
+    "button": "Material ×{{n}} to the wishlist",
+    "done": "{{n}}× {{name}}: material put on the wishlist"
   }
 }

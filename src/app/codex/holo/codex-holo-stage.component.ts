@@ -750,6 +750,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .statics div { display: grid; gap: 1px; min-width: 0; }
   .statics .k { font-family: inherit; text-transform: none; font-size: max(9.5px, var(--f)); color: var(--sc-fg-2); white-space: nowrap; }
   .statics .v { font-family: var(--m); font-size: 12.5px; color: var(--sc-fg-0); white-space: nowrap; }
+  /* Touch: the focusable chips carry the tooltip, so they are tap targets. */
+  @media (pointer: coarse) { .statics div { min-width: var(--sc-tap-min); min-height: var(--sc-tap-min); align-content: center; } }
   .sub { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); display: flex; align-items: center; gap: 8px; }
   .sub i { flex: 1; height: 1px; background: var(--hair); }
   .top3 { margin: 0; padding: 0 0 0 18px; font-size: max(12px, var(--f)); color: var(--sc-fg-1); display: grid; gap: 3px; }

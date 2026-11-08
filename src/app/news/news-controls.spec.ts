@@ -7,6 +7,9 @@ import { NewsListComponent } from './news-list.component';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
 import { ConsentService } from '../core/consent.service';
 import { UpcomingShipsService } from '../codex/upcoming-ships.service';
+import { AuthService } from '../auth/auth.service';
+import { SammlungService } from '../hq/nachschub/sammlung.service';
+import { signal } from '@angular/core';
 
 /**
  * The controls of the Verse News entry, after the 2026-08-23 polish pass:
@@ -52,6 +55,17 @@ function feed(): VerseFeed {
   } as VerseFeed;
 }
 
+/** The account's Sammlung, in memory: collecting updates the set at once, like the real one. */
+function fakeSammlung() {
+  const news = signal<ReadonlySet<string>>(new Set());
+  return {
+    news,
+    load: async () => undefined,
+    collectNews: async (id: string) => { news.update((s) => new Set([...s, id])); return true; },
+    uncollectNews: async (id: string) => { news.update((s) => new Set([...s].filter((x) => x !== id))); return true; },
+  };
+}
+
 describe('Verse News — harmonised controls', () => {
   let fixture: ComponentFixture<NewsListComponent>;
   let svc: NewsService;
@@ -66,6 +80,8 @@ describe('Verse News — harmonised controls', () => {
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed()) } },
         { provide: ConsentService, useValue: { preferencesAllowed: () => false, statisticsAllowed: () => false } },
+        { provide: AuthService, useValue: { user: signal(null) } },
+        { provide: SammlungService, useValue: fakeSammlung() },
         {
           provide: UpcomingShipsService,
           useValue: {

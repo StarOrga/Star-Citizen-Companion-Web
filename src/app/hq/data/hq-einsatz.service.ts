@@ -42,6 +42,8 @@ export interface Einsatz {
   readonly status: EinsatzStatus;
   readonly plannedAt: string | null;
   readonly startLocation: string | null;
+  /** Nachschub (`hq_supply_packages.id`) this Einsatz serves; null/absent = a loose Einsatz. */
+  readonly packageId?: string | null;
   readonly steps: readonly EinsatzStep[];
   readonly updatedAt: string;
   readonly deletedAt: string | null;
@@ -49,7 +51,7 @@ export interface Einsatz {
 }
 
 export type NewEinsatz = Pick<Einsatz, 'title'> &
-  Partial<Pick<Einsatz, 'activity' | 'plannedAt' | 'startLocation'>> & {
+  Partial<Pick<Einsatz, 'activity' | 'plannedAt' | 'startLocation' | 'packageId'>> & {
     steps: readonly Omit<EinsatzStep, 'ord' | 'state' | 'doneAt' | 'doneBy'>[];
   };
 
@@ -168,6 +170,7 @@ export class HqEinsatzService {
       status: 'planned',
       plannedAt: input.plannedAt ?? null,
       startLocation: input.startLocation ?? null,
+      packageId: input.packageId ?? null,
       steps: steps.map((s, ord) => ({ ...s, label: s.label.slice(0, 160), ord, state: 'todo', doneAt: null, doneBy: null })),
       updatedAt: nowIso(),
       deletedAt: null,
@@ -189,6 +192,11 @@ export class HqEinsatzService {
     const added: EinsatzStep = { ...step, label: step.label.slice(0, 160), ord, state: 'todo', doneAt: null, doneBy: null };
     this.patch(id, { steps: [...e.steps, added], status: e.status === 'done' ? 'active' : e.status });
     return true;
+  }
+
+  /** Einsaetze of one Nachschub, in creation order. */
+  ofPackage(packageId: string): Einsatz[] {
+    return this.items().filter((e) => e.packageId === packageId);
   }
 
   rename(id: string, title: string): void {
@@ -449,6 +457,8 @@ function toRow(e: Einsatz, uid: string): Partial<HqEinsatzRow> {
     status: e.status,
     planned_at: e.plannedAt,
     start_location: e.startLocation,
+    // Only sent when set: an account without the column (migration not applied yet) keeps syncing loose Einsaetze.
+    ...(e.packageId ? { package_id: e.packageId } : {}),
     deleted_at: e.deletedAt,
     updated_at: e.updatedAt,
   };
@@ -480,6 +490,7 @@ function fromRow(r: HqEinsatzRow, steps: readonly HqEinsatzStepRow[]): Einsatz {
     status: r.status,
     plannedAt: r.planned_at,
     startLocation: r.start_location,
+    packageId: r.package_id ?? null,
     steps: [...steps].sort((a, b) => a.ord - b.ord).map(stepFromRow),
     updatedAt: r.updated_at,
     deletedAt: r.deleted_at,

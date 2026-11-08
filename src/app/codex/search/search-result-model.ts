@@ -115,8 +115,6 @@ export interface SearchCta {
   labelKey: string;
   type: 'link' | 'action';
   target: SearchTarget | null;
-  /** The action asks for sign-in first (ScConfirmService), e.g. "Hinzufügen" when signed out. */
-  needsSignIn: boolean;
 }
 
 interface RowBase {

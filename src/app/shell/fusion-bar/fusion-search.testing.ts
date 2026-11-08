@@ -21,8 +21,7 @@ import { HqOwnershipService } from '../../hq/hq-ownership.service';
 import { FusionSearchComponent } from './fusion-search.component';
 import { SearchContext, neutralContext } from './search-context';
 import { ItemPathService } from '../../hq/data/item-path.service';
-import { fakeItemPath, fakeSignIn } from '../../shared/item-path/item-path.testing';
-import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { SearchRowActionsService } from './search-row-actions.service';
 
 export function fxHit(kind: PolyHitKind, slug: string, name: string, extra: Partial<PolySearchHit> = {}): PolySearchHit {
@@ -102,7 +101,6 @@ export type FakeEngine = ReturnType<typeof fakeEngine>;
 export function fakeActions() {
   return {
     cta: jasmine.createSpy('cta').and.resolveTo(null),
-    ensureSignedIn: jasmine.createSpy('ensureSignedIn').and.resolveTo(false),
   };
 }
 
@@ -118,10 +116,9 @@ export function setupFusionSearch(engine: FakeEngine, actions = fakeActions(), p
       { provide: CodexBuildDiffService, useValue: { addedClassNamesMemo: async () => [] } },
       { provide: HangarService, useValue: { ships: signal([]), flagshipClassName: () => null } },
       { provide: HqOwnershipService, useValue: { ensureLoaded: async () => undefined, ownsShip: () => false } },
-      { provide: SearchWishlistService, useValue: { ensureLoaded: () => undefined, has: () => false } },
+      { provide: SearchWishlistService, useValue: { ensureLoaded: () => undefined, has: () => false, qtyOf: () => 0, setQty: async () => true } },
       { provide: SearchRowActionsService, useValue: actions },
       { provide: ItemPathService, useValue: path },
-      { provide: SignInAskService, useValue: fakeSignIn() },
       { provide: CodexSearchHub, useValue: { register: () => () => undefined, hasBar: () => false, activate: () => false } },
     ],
   });

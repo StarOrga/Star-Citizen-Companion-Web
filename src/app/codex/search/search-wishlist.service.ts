@@ -35,6 +35,25 @@ export class SearchWishlistService {
     return this.keys().has(wishKey(kind, className, name));
   }
 
+  /** Wished quantity of an entry (the cart counter); 0 when it is not on the list. A wished ship counts its copies. */
+  qtyOf(kind: string, className: string, name?: string | null): number {
+    if (kind === 'ship') {
+      const s = this.hangar.shipByClassName(className);
+      return s?.status === 'wishlist' ? (s.qty ?? 1) : 0;
+    }
+    return this.store.qtyOf(kind, className, name);
+  }
+
+  /** Set the wished quantity (>= 1) of an entry that is on the list. True when the list shows it afterwards. */
+  async setQty(kind: string, className: string, name: string | null | undefined, qty: number): Promise<boolean> {
+    if (!this.auth.user()) return false;
+    if (kind === 'ship') {
+      const s = this.hangar.shipByClassName(className);
+      return s?.status === 'wishlist' ? this.hangar.updateShip(s.id, { qty }) : false;
+    }
+    return this.store.setQty({ kind, className, name: name ?? null }, qty);
+  }
+
   /** Load the non-ship rows once per signed-in user. */
   ensureLoaded(): void {
     void this.store.ensureLoaded();

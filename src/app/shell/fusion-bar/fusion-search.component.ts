@@ -366,7 +366,7 @@ const FITTED_SHOWN = 2;
                               @if (r.cta) { <span class="sep" aria-hidden="true"></span> }
                               <sc-item-path [kind]="r.hit.kind" [className]="r.hit.classNameSlug" [name]="nm.title"
                                             [level]="chrome.supplySearch() ? 'secondary' : 'tertiary'"
-                                            [nextStep]="chrome.supplySearch() ? 'nachschub' : null"
+                                            [nextStep]="chrome.supplySearch() ? 'wish' : null"
                                             (leave)="close()" />
                             }
                           </span>
@@ -1011,10 +1011,9 @@ export class FusionSearchComponent {
     const opened = this.recentRows().slice(0, RECENT_ROWS_SHOWN);
     if (opened.length) {
       const ctx = this.context();
-      const signedIn = !!this.auth.user();
       out.push({
         id: 'opened', labelKey: 'search.group.opened', labelParams: null, count: null, reason: null, own: false, outside: false,
-        options: opened.map((s) => ({ type: 'row' as const, id: `opened-${s.id}`, group: 'opened', row: this.revive(s, ctx, signedIn) })),
+        options: opened.map((s) => ({ type: 'row' as const, id: `opened-${s.id}`, group: 'opened', row: this.revive(s, ctx) })),
         expandable: 0, expanded: false, more: null,
       });
     }
@@ -1022,13 +1021,13 @@ export class FusionSearchComponent {
   }
 
   /** A stored row with the CTA and icons of the page the reader stands on now. */
-  private revive(s: StoredRow, ctx: SearchContext, signedIn: boolean): SearchResultRow {
+  private revive(s: StoredRow, ctx: SearchContext): SearchResultRow {
     if (s.type === 'hit') {
-      const cta = resolveCta(ctx, { type: 'hit', kind: s.hit.kind, classNameSlug: s.hit.classNameSlug, manufacturerCode: s.hit.manufacturerCode, ownership: null, target: s.target }, signedIn);
+      const cta = resolveCta(ctx, { type: 'hit', kind: s.hit.kind, classNameSlug: s.hit.classNameSlug, manufacturerCode: s.hit.manufacturerCode, ownership: null, target: s.target });
       return { ...s, cta, icons: resolveIcons({ type: 'hit', kind: s.hit.kind }) };
     }
     const ref = s.ownKind === 'item' ? null : (s.target.link[s.target.link.length - 1] ?? null);
-    return { ...s, cta: resolveCta(ctx, { type: 'own', ownKind: s.ownKind, ownRefId: ref, kind: null }, signedIn), icons: NO_ICONS };
+    return { ...s, cta: resolveCta(ctx, { type: 'own', ownKind: s.ownKind, ownRefId: ref, kind: null }), icons: NO_ICONS };
   }
 
   // ---- rows ----

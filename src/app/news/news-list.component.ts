@@ -1,3 +1,4 @@
+import { SammlungStripComponent, SammlungStripItem } from '../shared/sammlung-strip/sammlung-strip.component';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -91,6 +92,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     UpcomingShipsNoticeComponent,
     ScTooltipDirective,
     ScDialogDirective,
+    SammlungStripComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -203,6 +205,9 @@ const SAFE_SVG = new Map<string, SafeHtml>();
            bands: those are what bound the hero to a bucket that is empty on
            most days, and a relative timestamp on the tile carries the same
            information without a section that can render empty. -->
+      <!-- The Sammlung pattern (concept nachschub-hq r4-d1-s7n): the posts the reader collected, as one strip above the stream. -->
+      <sc-sammlung-strip class="sc-enter" style="--sc-enter-i: 2" [items]="collectedItems()" [wide]="true" [ariaLabel]="'sammlungStrip.newsAria' | translate" />
+
       <section class="stream sc-enter" style="--sc-enter-i: 2" [attr.aria-label]="'news.stream.title' | translate">
         <header class="stream-head">
           <!-- Source filter chips (toggle buttons). They and the search apply
@@ -1233,6 +1238,21 @@ export class NewsListComponent implements OnInit, OnDestroy {
   isVideo(item: VerseNewsItem): boolean {
     return item.channel === 'youtube';
   }
+
+  /** The collected posts for the strip: newest first, thumbnail left, the channel and the age under the clamped title. */
+  readonly collectedItems = computed<readonly SammlungStripItem[]>(() => {
+    const ids = this.svc.favoriteIds();
+    return (this.svc.feed()?.news ?? [])
+      .filter((n) => ids.has(n.id))
+      .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))
+      .map((n) => ({
+        id: n.id,
+        title: n.title,
+        sub: `${this.t.instant('news.channels.' + n.channel)} · ${this.relTime(n.publishedAt)}`,
+        thumb: this.imagesOf(n)[0] ?? null,
+        link: ['/verse/news', n.id],
+      }));
+  });
 
   imagesOf(item: VerseNewsItem): string[] {
     if (item.images?.length) return item.images;

@@ -52,7 +52,7 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(row.querySelectorAll('.cta').length).toBe(1);
     expect(row.querySelector('.sep')).not.toBeNull();
     const path = row.querySelector('sc-item-path')!;
-    expect([...path.querySelectorAll<HTMLElement>('.node')].map((n) => n.dataset['step'])).toEqual(['wish', 'nachschub', 'hangar']);
+    expect([...path.querySelectorAll<HTMLElement>('.node')].map((n) => n.dataset['step'])).toEqual(['wish', 'hangar']);
     expect(path.querySelector('.pill')).withContext('a plain search row is the tertiary level').toBeNull();
     expect(el.querySelector('.qi')).withContext('the old quick icons (pin star, new tab, copy) are gone').toBeNull();
   });
@@ -70,14 +70,14 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(cmp.open()).toBe(before);
   });
 
-  it('search opened from "Gegenstand suchen": the rows offer Nachschub as the pill', () => {
+  it('search opened from "Gegenstand suchen": the rows offer the wishlist as the pill (Nachschub is built from it in the HQ)', () => {
     const engine = fakeEngine({ groups: [ships] });
     const { el, type, fixture } = setupFusionSearch(engine);
     TestBed.inject(ShellChromeService).startSupplySearch();
     fixture.detectChanges();
     type('aegis re');
     const go = el.querySelector('.row sc-item-path .go')!;
-    expect(go.textContent).toContain('itemPath.go.nachschub');
+    expect(go.textContent).toContain('pathCtl.go.wish');
   });
 
   it('patch rows and app pages carry no CTA and no icons (B10)', () => {

@@ -24,24 +24,13 @@ describe('HqShellComponent', () => {
     expect(HQ_TABS.length).toBe(4);
   });
 
-  it('shows the supplies button with a zero counter and opens/closes the popup on the Nachschub tab', () => {
+  it('shows the Nachschub link to Planen with the number of active slots (zero without any)', () => {
     const fixture = setup();
     const el: HTMLElement = fixture.nativeElement;
-    const btn = el.querySelector<HTMLButtonElement>('button.supplies-btn')!;
-    expect(btn.querySelector('.supplies-count')?.textContent?.trim()).toBe('0');
-    expect(btn.getAttribute('aria-expanded')).toBe('false');
-    expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
-
-    btn.click();
-    fixture.detectChanges();
-    expect(btn.getAttribute('aria-expanded')).toBe('true');
-    const panel = el.querySelector('sc-hq-supplies-popup [role="dialog"]');
-    expect(panel).not.toBeNull();
-    expect(panel?.textContent).toContain('hq.supplies.empty');
-    expect(el.querySelectorAll('sc-hq-supplies-popup [role="tab"]').length).toBe(2);
-
-    el.querySelector<HTMLButtonElement>('sc-hq-supplies-popup button.x')!.click();
-    fixture.detectChanges();
+    const link = el.querySelector<HTMLAnchorElement>('a.supplies-btn')!;
+    expect(link.querySelector('.supplies-count')?.textContent?.trim()).toBe('0');
+    expect(link.getAttribute('href')).toBe('/hq#planen');
+    // The old popup is retired here: Nachschub is the slots of Planen.
     expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
   });
 });

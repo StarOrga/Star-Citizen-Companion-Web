@@ -21,6 +21,8 @@ export interface NeedSources {
   kind: string | null;
   /** Cheapest first, one per place. */
   options: readonly NeedSource[];
+  /** A blueprint that makes the item exists (Codex recipe), so the line can be crafted instead of bought. */
+  craftable?: boolean;
 }
 
 export function buyPlace(o: BuyOption): MapPlace | null {
@@ -103,10 +105,21 @@ export class HqNeedSourcesService {
           const name = (e.name ? pickLocalized(e.name, 'en') : '') || e.nameLocalized || c;
           options = e.kind === 'ship' ? await this.uex.whereToBuyShip({ name }, Infinity) : await this.uex.whereToBuyEntity(e.kind, name);
         }
-        this.set(c, { state: 'ready', kind: e?.kind ?? null, options: toNeedSources(options) });
+        const craftable = e && e.kind !== 'ship' && e.kind !== 'blueprint' ? await this.hasRecipe(c) : false;
+        this.set(c, { state: 'ready', kind: e?.kind ?? null, options: toNeedSources(options), craftable });
       }
     };
     await Promise.all(Array.from({ length: IN_FLIGHT }, worker));
+  }
+
+  /** Does a blueprint produce this class? A failed lookup reads as "no". */
+  private async hasRecipe(className: string): Promise<boolean> {
+    try {
+      return (await this.codex.getCraftingRecipe(className)) !== null;
+    } catch (err) {
+      logWarn('hq', 'need sources: recipe lookup failed', err);
+      return false;
+    }
   }
 
   private set(className: string, value: NeedSources): void {

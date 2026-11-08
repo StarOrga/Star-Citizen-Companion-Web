@@ -3,8 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import type { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
 import { ItemPathService } from '../../hq/data/item-path.service';
-import { fakeItemPath, fakeSignIn } from '../../shared/item-path/item-path.testing';
-import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
+import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { CodexService } from '../codex.service';
 import { CodexHoloInspectorComponent, partFocusOf } from './codex-holo-inspector.component';
 import type { PinGroup, StagePin } from './codex-holo-model';
@@ -78,7 +77,6 @@ describe('CodexHoloInspectorComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: ItemPathService, useValue: fakeItemPath() },
-        { provide: SignInAskService, useValue: fakeSignIn() },
       ],
     });
     const fixture = TestBed.createComponent(CodexHoloInspectorComponent);
@@ -183,10 +181,10 @@ describe('CodexHoloInspectorComponent', () => {
       expect(paths).toEqual([['a.b']]);
     });
 
-    it('carries the path control with its stops, and writes through it', async () => {
+    it('carries the path control with its two stops, and writes through it', async () => {
       const f = setup({ target: target() });
       const nodes = Array.from(root(f).querySelectorAll<HTMLButtonElement>('.act sc-item-path .node'));
-      expect(nodes.map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'nachschub', 'inventar']);
+      expect(nodes.map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'inventar']);
       nodes[0].click();
       await new Promise((r) => setTimeout(r));
       expect(TestBed.inject(ItemPathService).addWish).toHaveBeenCalledTimes(1);

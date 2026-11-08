@@ -1,0 +1,904 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "submitted": true,
+    "general": "Btw, wunschlisten sollten auch zähler háben können (weil man sich ja 20 rattler wünschen kann als raketen).\nDamit läuft sozusagen alles durch, außer Wunschliste => Nachschub => Inventar/Hanger/Sammlung\n\nManchmal mit abkürzungen und manchmal geht wie bei news direkt njur in sammlungen!",
+    "decisions": [
+      {
+        "id": "d-model",
+        "value": "ok",
+        "deviates": false,
+        "none": false,
+        "note": "Ich finde die idee gut, alles geht auf eine wunschliste, dann kann ich im hq hingehen unter planen und wunschlsiten themen in den nachschub reinbringen. Ein Nachschub kann dann geplant werden in 1-x Einsätzen (teils missionen oder bergbau oder usw.) um den gesamten nachschub am ende zum bestand zu überführen (Inventar/Hangar). Dabei kann man nicht teilweise den nachschub planen - denn das würde man dann eher so machen, dass man halt nciht alles von der wunschliste in den nachschub überführt.\n\nAußerdem bzgl. Lesezeichen, ne, lass uns das doch auch ala Gesammelt machen, man kann sozusagen auch news, galiere bilder (geht ja schon heute) sammeln! Das heißt am ende ist sammeln gleich gestellt mit inventar / hangar / blaupauseun+ruf gesammlet."
+      },
+      {
+        "id": "d-fulfil",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-ship",
+        "value": "close",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-raw",
+        "value": {
+          "answer": "no",
+          "alt": ""
+        },
+        "deviates": true,
+        "none": false
+      },
+      {
+        "id": "d-done",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "Nur wenn automatisch erkannt wurde, dass man es im inventar jetzt neu hat ggü. zustand vorher oder wenn es manuell abgehakt wurde! Weil manchmal spielt man ja auch länger nicht. Es sollte aber immer wieder die mgölichkeit kgeben den nachschub zu leeren, => wird wieder in wunschliste überführt bzw. dort hochgezählt"
+      },
+      {
+        "id": "d-guest",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "Alles nur mit anmeldung! und gäste können doch gar nix die sehen nur einen anmelde screen? Du meinst viewer, angemeldete, die dürfen alles machen!\nNimm das konzept der gäste komplett heraus, unangemeldete user seehen nur die startseite mit login! einmal angemeldet und vom admin angenommen / eingeeladen, darf der user dann alles machen was nicht collaboratuer oder admin erfordert."
+      },
+      {
+        "id": "d-edge",
+        "value": [
+          "keep",
+          "upcoming",
+          "pledge",
+          "manual",
+          "zero",
+          "origin",
+          "second",
+          "wipe"
+        ],
+        "deviates": true,
+        "none": false
+      },
+      {
+        "id": "d-hqhome",
+        "value": "plan",
+        "deviates": false,
+        "none": false,
+        "note": "Aber dabei eher wunschliste zu nachschub übernehmen!  Daneben natürlich immer angezeigt in jetzt wofür man alle einsätze und co. macht nämlcih für den nachschub zu besorgen.\nMan soll aber auch mehrere nachschübe vorplanen können (bis zu 7), die jewiels 1-x Einsätze enthalten. Und in jetzt macht man nur ein Einsatzkonglomerat für 1 Nachschub. Den Nachschub auch gern dynamsisch benennen lassen mit der ki und den einsatz dazu uach, nachschub anhand dessen, was man bekommmt zusammengefasst in kurz (zeichenlimits respekteiren) und einsätze anhand was man m achen muss!"
+      },
+      {
+        "id": "d-codex",
+        "value": "hq",
+        "deviates": true,
+        "none": false,
+        "note": "aber blaupasen materialien kann man ja nachdem eine blaupause zur wunschliste hinzufügen kann (die man ja z. B. durhc missiionen bkeommt), dann auch auch von der blaupause aus klicken x mal in die wunschliste das material überführen um dann die mateirailien zus sammeln (gern dann gruppiert, das man weiß, dass sie für diese blaupause craften sind bzw. gegenstand craften )"
+      },
+      {
+        "id": "d-hqpopup",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "Naja, wesentlich präsenter und ncih thinter popup versteckt, man soll den aktuelle Einsatzplanung sehen und dort Nachschub ergänzen um Dinge der WUnschliste und man sieht direkt dann die Einsätze...\n\nNachholen heißt auf die wunschliste packen! Danach kann man hingehen und das zum nachschub hinzufügen für eine konkrete einsatzplanung unter planen im hq!"
+      },
+      {
+        "id": "d-stock",
+        "value": "",
+        "deviates": true,
+        "none": true
+      },
+      {
+        "id": "d-wishhome",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "wunschliste ist wie eine shopping cart sozusagen ein popup oder so"
+      },
+      {
+        "id": "d-loose",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-term",
+        "value": "Bestand",
+        "deviates": false,
+        "none": false,
+        "note": "Stimmt, es sollte inventar / Hangar / Sammlung heißen, aber Bestand darf der oberbegriff selten genutzt sein!"
+      },
+      {
+        "id": "d-panel",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "deviates": false,
+        "none": false,
+        "note": "Kontextabhängig eher Zuletzt geöffnet + Wunschliste +Hangar/Inventar/Sammlung  (letzteres kontextabhängig)"
+      },
+      {
+        "id": "d-ptype",
+        "value": "filter",
+        "deviates": true,
+        "none": false,
+        "note": "sonst wird es zu viel!"
+      },
+      {
+        "id": "d-pcount",
+        "value": "wish",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-pnach",
+        "value": "out",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "d-pname",
+        "value": "Schnellzugriff",
+        "deviates": false,
+        "none": false,
+        "note": "Aber bitte drein als icon, nur aufgeklappt sieht man das wording!"
+      },
+      {
+        "id": "d-picon",
+        "value": "",
+        "deviates": true,
+        "none": true,
+        "note": "gefällt mir alles noch nicht, eher einen verschnitt aus lesezeichen, warenkorb, zuletzt geöfnnet, geschenk, will ich icons brauch ich! gern nochmal kreativ werden und mir visuelel vorschläge machen!"
+      },
+      {
+        "id": "d-news",
+        "value": "panel",
+        "deviates": true,
+        "none": false
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "action": "implement",
+    "submitted": true,
+    "general": "als nächstes dann gern ein devops cocnetp mit design pure!",
+    "decisions": [
+      {
+        "id": "r2-d2-flow",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-split",
+        "value": "split",
+        "deviates": false,
+        "none": false,
+        "note": "ja, auch wenn default immer volles übernehmen ist"
+      },
+      {
+        "id": "r2-d2-detect",
+        "value": "snapshot",
+        "deviates": false,
+        "none": false,
+        "note": "Genau, egal ob manuell oder mit live signal aus scc app erhöht"
+      },
+      {
+        "id": "r2-d2-limit",
+        "value": "block",
+        "deviates": false,
+        "none": false,
+        "note": "bzw. lieber \"Slots\" aktive (max. 7) und sonst archivierte"
+      },
+      {
+        "id": "r2-d2-names",
+        "value": "ai",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-sammlung",
+        "value": [
+          "blueprint",
+          "rep",
+          "news",
+          "vote"
+        ],
+        "deviates": true,
+        "none": false,
+        "note": "Hmmm, also\n\nfür mich ist galerie bilder sammeln wie blueprints samlen / verdienen! Wir wollen nix visuell an galerie verändern, ich würde einfach sagen hochgevotete galeriebilder oder gemerkte news sind einfach auch gesammelt ;) \n \nErledigte missionen gern in statsitik aufnehmen!"
+      },
+      {
+        "id": "r2-d2-stock",
+        "value": "hint",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-codex",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-plan",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-now",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-stock-page",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-cart",
+        "value": "ok",
+        "deviates": false,
+        "none": false,
+        "note": "gern in bestand auch andersartig, kürzlich aufgebruachtes anzeigen, weil man das ja ggf. nachholen will, aber nicht alles sondern nur was in den letzten 48h augebraucht wurde"
+      },
+      {
+        "id": "r2-d2-panel",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-cleanup",
+        "value": "ok",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-migrate",
+        "value": "one",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-newsmove",
+        "value": "copy",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-wishqty",
+        "value": "detail",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-shipqty",
+        "value": "same",
+        "deviates": false,
+        "none": false
+      },
+      {
+        "id": "r2-d2-panel-ctx",
+        "value": "none",
+        "deviates": false,
+        "none": false
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "favorite": "holotafel",
+    "general": "stresstest nochmal, das keine der seiten scrollable sein muss! Weil ich will nicht das man sie scrollen muss.\nAußerdem zeige es mir mit dem echten subeheader, der echten sieeten breite usw....",
+    "annotations": [
+      {
+        "id": "r3-d2-s1-a1",
+        "screen": "d2-s1",
+        "design": "holotafel",
+        "question": "Oben rechts nur Symbol und Zahl, kein Wort. Die Zahl zählt Positionen auf der Wunschliste (11), nicht Stück. Ist das ohne Wort eindeutig genug?",
+        "answer": "zahl benötigen wir nicht, der nutzer hat ja selbst interagiert, der weiß das dort was drin ist!"
+      },
+      {
+        "id": "r3-d2-s1-a2",
+        "screen": "d2-s1",
+        "design": "holotafel",
+        "question": "Zuletzt geöffnet als drei Bild-Kacheln, Wünsche als Zeilen mit Mengen-Chip, Inventar als Chips. Alles auf Waffen gefiltert. Sind Bilder hier hilfreich oder zu viel?",
+        "answer": "bilder sind schon gut,kl ist super!"
+      },
+      {
+        "id": "r3-d2-s1-a3",
+        "screen": "d2-s1",
+        "design": "holotafel",
+        "question": "„Ganze Wunschliste“ ist ein echter Link mit eigener URL und öffnet den Warenkorb. Passt die Stelle am Ende des Wunsch-Abschnitts?",
+        "answer": "ja passt"
+      },
+      {
+        "id": "r3-d2-s2-a1",
+        "screen": "d2-s2",
+        "design": "holotafel",
+        "question": "Jede Position hat eine Menge (Stepper − / +, Standard 1), auch Schiffe: 2× Cutlass Black. Fehlt dir in der Zeile etwas?",
+        "answer": "Macht alles Sinn, aber gern gruppiert! Außerdem die silhouetten sollten mehr von den hintergurjnd der kachel einnehmen, weil sie sonst nicht rein passen / gestrechted sind... Außerdem statt x button ein rote mülltonjne. Der rest ist super!"
+      },
+      {
+        "id": "r3-d2-s2-a2",
+        "screen": "d2-s2",
+        "design": "holotafel",
+        "question": "Material hängt gruppiert unter seiner Blaupause („für P4-AR craften“). Soll die ganze Gruppe mit einem Klick auswählbar sein?",
+        "answer": "Ja auch als ganz egruppe anklickbar sein!"
+      },
+      {
+        "id": "r3-d2-s2-a3",
+        "screen": "d2-s2",
+        "design": "holotafel",
+        "question": "Eine Hauptaktion: „In einen Nachschub“ nimmt die Auswahl mit nach Planen. Entfernen geht sofort, Rückgängig steht im Hinweis unten. Okay so?",
+        "answer": "passt"
+      },
+      {
+        "id": "r3-d2-s3-a1",
+        "screen": "d2-s3",
+        "design": "holotafel",
+        "question": "Pakete als 7 Slots auf einer Leiste, jeder mit Fortschrittsring; freie Slots als leere Ringe, Archiv (4) am Ende. Liest du den Ring schneller als „4/9“?",
+        "answer": "Ja das finde ich gut! bei hover over mit löschen button Und dann rückfrage ob default elemente wieder 9in die wunschliste (abklickbar!)"
+      },
+      {
+        "id": "r3-d2-s3-a2",
+        "screen": "d2-s3",
+        "design": "holotafel",
+        "question": "Eine Zeile schließt nur, wenn der Bestand gegenüber dem Stand bei der Planung gestiegen ist (SCC-App oder von Hand) oder per Haken, nie nach Zeit. Ist der Stand pro Zeile gut lesbar?",
+        "answer": "sehr gut"
+      },
+      {
+        "id": "r3-d2-s3-a3",
+        "screen": "d2-s3",
+        "design": "holotafel",
+        "question": "„Nachschub leeren“ legt alle offenen Zeilen zurück auf die Wunschliste (Mengen werden dort addiert), mit Rückgängig. Passt der Ort ganz unten im Paket?",
+        "answer": "ja oder man will auch den nachschub leeren und das ganze einfach löschen ohne auf dide wunschliste!?"
+      },
+      {
+        "id": "r3-d2-s4-a1",
+        "screen": "d2-s4",
+        "design": "holotafel",
+        "question": "Der Name kommt als KI-Vorschlag (was du bekommst, höchstens 28 Zeichen), jederzeit änderbar; ohne KI greift eine Regel. Soll der Vorschlag sichtbar als KI markiert sein?",
+        "answer": "Ne, ki weglassen als info"
+      },
+      {
+        "id": "r3-d2-s4-a2",
+        "screen": "d2-s4",
+        "design": "holotafel",
+        "question": "Standard: die volle Menge wandert ins Paket. Teilen geht (5 von 20), der Rest bleibt auf der Wunschliste. Ist das Teilen so auffindbar?",
+        "answer": "ok!"
+      },
+      {
+        "id": "r3-d2-s4-a3",
+        "screen": "d2-s4",
+        "design": "holotafel",
+        "question": "Einsätze bekommen eigene KI-Namen (was du tust, höchstens 40 Zeichen) und gehören zum Paket, geplant wird das Paket als Ganzes. Fehlt hier eine Angabe?",
+        "answer": "So erstmal nicht, am ende steht auch noch ein einsatz sozusagen , das craften selber! Das muss ehr mit rafinesse se9in hier"
+      },
+      {
+        "id": "r3-d2-s5-a1",
+        "screen": "d2-s5",
+        "design": "holotafel",
+        "question": "Paket-Leiste mit Ring 4/9 über der Karte: Jetzt bedient genau dieses Paket. Soll die Route auf der Karte auch die anderen Pakete blass zeigen?",
+        "answer": "Ne, aber gern kann auf der route ein kleinster dezenter hinweis sein, dass man xyz auch für einen anderen nachschub benötigt, vllt. ein icon was man dann anklicken kann"
+      },
+      {
+        "id": "r3-d2-s5-a2",
+        "screen": "d2-s5",
+        "design": "holotafel",
+        "question": "Ein Hauptknopf: der nächste Schritt. Zeilen schließen weiter nur über Bestand oder Haken. Soll der Knopf den Haken der Zeile gleich mit setzen?",
+        "answer": "genau oder halt synchronisiert, deshlab gern wie  links auch unten links in dem kasten sccc appp live infos bzw. zuletzt inf+"
+      },
+      {
+        "id": "r3-d2-s5-a3",
+        "screen": "d2-s5",
+        "design": "holotafel",
+        "question": "„Paket wechseln“ tauscht das ganze Einsatz-Bündel; der Stand des anderen Pakets bleibt erhalten. Reicht ein Knopf oder willst du die Pakete hier als Liste?",
+        "answer": "Das reicht aber Paket ist ein neuer begriff, eben hatten wir noch Nachschub Pakete oder wie nochmal?"
+      },
+      {
+        "id": "r3-d2-s6-a3",
+        "screen": "d2-s6",
+        "design": "holotafel",
+        "question": "„Ingame-Bestand zurücksetzen“ (für Wipes) liegt im Seitenmenü, als Gefahr markiert und nur mit Bestätigung. Ist das versteckt genug, aber findbar?",
+        "answer": "Ok!"
+      },
+      {
+        "id": "r3-d2-s7-a1",
+        "screen": "d2-s7",
+        "design": "holotafel",
+        "question": "Ruf hat noch keine Datenquelle: leerer Zustand statt erfundener Zahlen. Woher der Ruf kommt (von Hand oder SCC-App) ist noch offen. Reicht dieser Hinweis?",
+        "answer": "Ok ja, ggf. chefdck ohb die scc app es liefern kann und ship dort die änderung"
+      },
+      {
+        "id": "r3-d2-s7-a2",
+        "screen": "d2-s7",
+        "design": "holotafel",
+        "question": "Hochgevotete Wallpaper zählen als gesammelt, in der Galerie selbst ändert sich nichts. Sollen hier alle oder nur die letzten 4 stehen?",
+        "answer": "perfekt"
+      },
+      {
+        "id": "r3-d2-s7-a3",
+        "screen": "d2-s7",
+        "design": "holotafel",
+        "question": "News heißen hier „gesammelt“, das Wort „Lesezeichen“ ist weg; alte Lesezeichen wandern beim nächsten Besuch ins Konto. Passt die Reihenfolge der vier Abschnitte?",
+        "answer": "perfekt"
+      },
+      {
+        "id": "r3-d2-s8-a1",
+        "screen": "d2-s8",
+        "design": "holotafel",
+        "question": "Zwei Knoten mit Linie dazwischen (Wunschliste → Besitz) als Weg-Anzeige; nur die Zahl, kein Stepper. Liest sich die Linie als Weg oder als Deko?",
+        "answer": "das macht sinn"
+      },
+      {
+        "id": "r3-d2-s8-a2",
+        "screen": "d2-s8",
+        "design": "holotafel",
+        "question": "Rattler II steckt in einem Paket, die Zeile zeigt dafür nichts extra; Nachschub lebt im HQ. Vermisst du hier einen Hinweis?",
+        "answer": "gut"
+      },
+      {
+        "id": "r3-d2-s8-a3",
+        "screen": "d2-s8",
+        "design": "holotafel",
+        "question": "Offen: Soll ein Klick auf den leeren Wunsch-Knoten direkt 1 Stück auf die Wunschliste legen, oder erst die Detailseite öffnen?",
+        "answer": "Ja genau!"
+      },
+      {
+        "id": "r3-d2-s9-a1",
+        "screen": "d2-s9",
+        "design": "holotafel",
+        "question": "Auf der Detailseite sitzt der Stepper direkt am Wunsch-Knoten, Standard 1. Gehört die Zahl in den Knoten oder daneben?",
+        "answer": "ja sehr gut, direkt drn"
+      },
+      {
+        "id": "r3-d2-s9-a2",
+        "screen": "d2-s9",
+        "design": "holotafel",
+        "question": "Besitz zeigt Menge 0 als „nicht im Inventar“, 0 heißt überall „nicht da“. Eigener Bestand von Hand zählt genauso. Klar so?",
+        "answer": "genau, aber man sollte es hier auch hinzufgügen können durch einen klick uzjnd dd anach den stepper uach"
+      },
+      {
+        "id": "r3-d2-s9-a3",
+        "screen": "d2-s9",
+        "design": "holotafel",
+        "question": "Keine Nachschub-Pille auf Codex-Seiten: ob die Gallant schon in einem Paket steckt, zeigt nur das HQ. Fehlt dir das hier?",
+        "answer": "nein, das ist ok so!"
+      },
+      {
+        "id": "r3-d2-s10-a3",
+        "screen": "d2-s10",
+        "design": "holotafel",
+        "question": "Landet als Gruppe „für Gallant craften“, getrennt von „für P4-AR craften“, auch wenn beide Aluminium brauchen. Passt diese Trennung?",
+        "answer": "ja das ist ok, im nachschub auch, aber in der einsatzplanung dort spielt das dann keine rolle, weil ich ja alumnium von einem ort brauche, dort gern mentioned wofür, aber nicht danach soritert bzw. gruppiert"
+      }
+    ],
+    "screens": {
+      "d2-s9": "sehr gut, gern die detailssiete dafür umgestalten (von codex, abver auch mit variante hq), aber unbedingt alle infos,k die es jetzt dort gibt behalten und umschaltbar zwischen silhouette und 3d modekll,k eigentlich wie im holotisch für schiffe subseite. \nBitte schiffs subseiten außer holotoiscih nicht anfassen"
+    },
+    "userPins": [
+      {
+        "screen": "d2-s1",
+        "target": "b \"Gallant\"",
+        "text": "hier gern die zuletzt 3 hinzugefügten auf der wunschliste, ggf. filtered bei dem typ wo man gerade ist, sonst einfach generell wenn es keine gibt. Natürlich falls verfügbar"
+      },
+      {
+        "screen": "d2-s1",
+        "target": "span.d2-chip.d2-chip-own \"S-38 Pistole · 2\"",
+        "text": "das müsste auch strengtens gefiltert sein auf den gleichen typ, aber gern hier uach hangar schreiben wenn es schiffe sind, oder sammlung wenn blaupausen etc. Dabei gern hier die letzten drei zum inventar hinzugefügtren des typss, wenn nciht generell die letzten drei hinzugeffügten... \nSchreibe sie aber exakt genauso auf visuelle wie die wunschliste, auch mit der INfo Gesamtes Inventar mit deeplink zum hq => bestand => inventar"
+      },
+      {
+        "screen": "d2-s3",
+        "target": "a.mk-on \"Planen\"",
+        "text": "die nvaigation soll bleiben wie sie isrt"
+      },
+      {
+        "screen": "d2-s3",
+        "target": "span.d2-slot-hole",
+        "text": "Da die freien nur neuer nachschub sein können, würde ich hier einfach ein plus rein setzen ;)"
+      },
+      {
+        "screen": "d2-s3",
+        "target": "div.d2-board \"4/9Rattler-Vorrat für Vanguard2 Einsätze\"",
+        "text": "Die Darstellung gefällt mir gut, besonders auch das arhciv, aber es sieht aus als wären sie zusammenhängend, exploreire nochmal das sie nicht so aussehen, weil sind sise ja nicht und auch, dass sie mehr als der nachschub in einer box / gift aussehen"
+      },
+      {
+        "screen": "d2-s4",
+        "target": "h3.d2-h3 \"Einsätze\"",
+        "text": "hier vllt. noch die anzahl als info"
+      },
+      {
+        "screen": "d2-s4",
+        "target": "div.d2-dlg-head \"Neuer Nachschub Slot 4 von 7\"",
+        "text": "Muss hier nicht noch ein scritt vorher kommen, wo ich die wunshcliste sehe und anklicke was ich übernehme in den nachschub, respektive ggf. alles. und dann hier gern erstmal alles zum nachschub einfach aufgelistet zusammengefasst insgesamt und dann die EInsätze und was daraus wird (wunschliste)"
+      },
+      {
+        "screen": "d2-s4",
+        "target": "small \"Medpen, Gallant\"",
+        "text": "Ggf. das auch togglebar oder splitbar, wenn man gallant doch abbauen will etc. Hier muss noch mehr rafinesse rein"
+      },
+      {
+        "screen": "d2-s5",
+        "target": "svg.d2-route \"Seraphim-Station E1 · Einkauf Area18 E2 \"",
+        "text": "ist der bereich hier auch für 15 schrittige einsätze + weitere routen ausgelegt!?="
+      },
+      {
+        "screen": "d2-s5",
+        "target": "div.d2-live \"SCC-App: Inventar +2 Rattler II-Rakete ·\"",
+        "text": "Das sollte im kasten imme r links unten sein!"
+      },
+      {
+        "screen": "d2-s5",
+        "target": "svg.d2-route \"Seraphim-Station E1 · Einkauf Area18 E2 \"",
+        "text": "gern die routengrafik immer so, dass sie mittig rein passt, zoombar und icons die klar darstellen was man wo macht! Travel ist klar die routen, aber was mancht man an den orten!"
+      },
+      {
+        "screen": "d2-s3",
+        "target": "div.d2-pkg-head \"Rattler-Vorrat für Vanguard 4/9\"",
+        "text": "sehr schön und dezent das namens ändern!"
+      },
+      {
+        "screen": "d2-s3",
+        "target": "section.d2-panel.d2-pkg \"Rattler-Vorrat für Vanguard 4/9 Ladung R\"",
+        "text": "wiue bearbeite ich von hier nochmal den nachschub oder mach ich das oben? !"
+      },
+      {
+        "screen": "d2-s3",
+        "target": "small \"E1 · Einkauf Area18 · +2 seit Planung\"",
+        "text": "Hier sollten doch die Einsätze im vordergrund stehen und nicht was man dort bekommt, also dreh das uM!"
+      },
+      {
+        "screen": "d2-s3",
+        "target": "svg.d2-route \"Seraphim-Station E1 · Einkauf Area18 E2 \"",
+        "text": "ist die grafik flexibel auch sternensystme übergreifend zu agieren und so, mach mal komplexere einsätze, wesentlich komplexer aber sinnhaft. Legende gern versteckt aber gern mit 7 icons einsatz für bestimmte aktionen an den orten und man kann ggf. welche ein / ausblenden!"
+      },
+      {
+        "screen": "d2-s6",
+        "target": "button \"Eintrag von Hand anlegen\"",
+        "text": "Eintrag von han dmuss leichter zugägnlich sein, gern einfach als + kachel vorne weg"
+      },
+      {
+        "screen": "d2-s6",
+        "target": "main.mk-main.d2-page \"BestandStartPlanenJetztBestandStatistik \"",
+        "text": "Gern wieder links unten scc app live ticker was als letztes hierzu wann aufgenommen wurde! Das könnten wir überall im hq als pattern etablieren, außer auf der startseite. Natürlich nur wenn diese auch verbunden wurde, egal ob sie gerade an (grün) oder aus ist (grau) immer das letzte relevante"
+      },
+      {
+        "screen": "d2-s6",
+        "target": "span.d2-used \"3× P4-AR-Magazinvor 31 h\"",
+        "text": "auch sehr raffiniert ggf. sowas auch zusammenzufgassen"
+      },
+      {
+        "screen": "d2-s7",
+        "target": "div.d2-colgrid.mk-cols \"Blaupausen 3 GallantP4-ARPembroke-Helm R\"",
+        "text": "finde ich super aber lass uns news und gallerie hier4 weg lassen, aber das prinzipielle visuelle pattern in galerie selber subseite bzw. in newss selber subseite drin haben!"
+      },
+      {
+        "screen": "d2-s8",
+        "target": "span \"Besitz\"",
+        "text": "besitz ruachen wir dafür nicht, inventar passt immer wenn es nicht hangar (für schiffe und fahrzeuge ist). Außer für news und co. heißt es ja eher gesammelt/Sammlung"
+      },
+      {
+        "screen": "d2-s4",
+        "target": "h2.d2-glow \"Neuer Nachschub Slot 4 von 7\"",
+        "text": "Das icon fand ich auch gar nciht schlecht für nachschub hier im hq ztu verwenden."
+      },
+      {
+        "screen": "d2-s8",
+        "target": "span \"Inventar\"",
+        "text": "wenn man auf inventar klickt, kommt man direkt zu dem ins inventar"
+      },
+      {
+        "screen": "d2-s2",
+        "target": "div.d2-cgrid \"GallantEnergiegewehr2 P4-AR-MagazinMunit\"",
+        "text": "Gern auch noich eine vorhsclagszeiele hier was man noch kaufen könnte oder craften könnte mit 3 top vorschlägen. Z. B. wenn jemand eine pembroke helm gerade hinzugefügt hat als letztes, dann bieetet sich eine pembrook armor an. Oder wenn jemand eine waffe crafted, mag dazu ein magazin crafted werden oder gekauft werden, je nachdem was besser passt von rohstoiffen oder zwischenhalten. Da also eine sehr intelligente multidiemensionale empefhlungsmatrix machen, fast wie amazon, gern online studien und mechanismen dazu einbez8iehen. Aber vor allem asuch auf Gegenstand komplementär > Materialien gleiche > Ort > Handlung bezogen empefehlen!\nDabei nur die drei danach bewertentejn trop effmpefhlungen anzeigen. Alles determinisitisch bestimmen, fügt man ein schiff hinzu, sind schiffswaffeninteressant usw."
+      }
+    ],
+    "decisions": [
+      {
+        "id": "r3-icon-pick",
+        "value": "crate",
+        "note": "finde es aber irgendwie leicht zu granular für da oben, das sieht man kaum in der grö0ße !"
+      }
+    ]
+  },
+  {
+    "iteration": 4,
+    "action": "implement",
+    "annotations": [
+      {
+        "id": "r4-d1-s1-a2",
+        "screen": "r4-d1-s1",
+        "design": "holotafel",
+        "question": "Gibt es zum Seitentyp keine Wünsche, stehen hier die letzten 3 insgesamt. Soll dann ein kleiner Hinweis „aus allen Typen“ dazu?",
+        "improved": "die 3 zuletzt hinzugefügten",
+        "answer": "nope, das ist dann implizit"
+      },
+      {
+        "id": "r4-d1-s1-a3",
+        "screen": "r4-d1-s1",
+        "design": "holotafel",
+        "question": "„Gesamtes Inventar“ springt zu HQ › Bestand › Inventar. Soll der Waffen-Filter dorthin mitkommen oder startet das Inventar ungefiltert?",
+        "improved": "Zeilen wie die Wunschliste",
+        "answer": "mitkommen natürlich!"
+      },
+      {
+        "id": "r4-d1-s2-a1",
+        "screen": "r4-d1-s2",
+        "design": "holotafel",
+        "question": "Gruppiert nach Art und nach Blaupause, ein Haken wählt die ganze Gruppe. Passt die Reihenfolge der Gruppen (Waffen zuerst, Blaupausen am Ende)?",
+        "improved": "ganze Gruppe mit einem Klick",
+        "answer": "super!"
+      },
+      {
+        "id": "r4-d1-s2-a2",
+        "screen": "r4-d1-s2",
+        "design": "holotafel",
+        "question": "Entfernen geht sofort, Rückgängig kommt als Hinweis unten. Soll beim Entfernen einer ganzen Gruppe vorher nachgefragt werden?",
+        "improved": "rotes Löschen statt ×",
+        "answer": "nein, genauso"
+      },
+      {
+        "id": "r4-d1-s2-a3",
+        "screen": "r4-d1-s2",
+        "design": "holotafel",
+        "question": "Genau 3 Vorschläge: Ergänzung vor gleichem Material vor gleichem Ort oder Shop vor gleicher Aktion. Soll ein weggeklickter Vorschlag für immer verschwinden oder nur bis zum nächsten Hinzufügen?",
+        "improved": "neu: Passt dazu",
+        "answer": "nur bis zum nächsten hinzufügen und für einn gexxten vorschlag soll ein neuer kommen :) halte mindestens immer 7 vor falls dem nutzer die 3 nicht gefallen !"
+      },
+      {
+        "id": "r4-d1-s3-a1",
+        "screen": "r4-d1-s3",
+        "design": "holotafel",
+        "question": "Alle 7 Slots belegt, „Neuer Nachschub“ ist gesperrt und sagt warum. Soll ein fertiger Nachschub (Titan-Erz, 5/5) von selbst ins Archiv rutschen und den Slot freimachen?",
+        "improved": "einzelne Kisten statt Leiste",
+        "answer": "ja von selbst!"
+      },
+      {
+        "id": "r4-d1-s3-a2",
+        "screen": "r4-d1-s3",
+        "design": "holotafel",
+        "question": "„Bearbeiten“ öffnet die drei Schritte von „Neuer Nachschub“ mit diesem Inhalt. Darunter stehen jetzt die Einsätze vorn, die Ware als Chips dahinter. Liest sich das so richtig?",
+        "improved": "Bearbeiten direkt am Nachschub",
+        "answer": "sehr gut"
+      },
+      {
+        "id": "r4-d1-s3-a3",
+        "screen": "r4-d1-s3",
+        "design": "holotafel",
+        "question": "Die Legende ist sonst zu, hier offen: jede der 7 Aktionen lässt sich aus- und einblenden (Raffinieren ist aus). Soll die Auswahl pro Route gelten oder überall?",
+        "improved": "Route eingepasst, 7 Aktionen",
+        "answer": "pro route bzw. nachschub einsatz!"
+      },
+      {
+        "id": "r4-d1-s4a-a2",
+        "screen": "r4-d1-s4a",
+        "design": "holotafel",
+        "question": "Teilen per Stepper: 2 von 4 Hydrierungspacks, der Balken zeigt den Anteil, der Rest bleibt auf der Wunschliste. Ist das so klar?",
+        "answer": "ja ist klar!"
+      },
+      {
+        "id": "r4-d1-s4a-a3",
+        "screen": "r4-d1-s4a",
+        "design": "holotafel",
+        "question": "Nimmst du aus einer Blaupausen-Gruppe nur einen Teil, passt sich dann die Stückzahl („2× Gallant“) an oder bleibt sie stehen?",
+        "improved": "Blaupause als ganze Gruppe",
+        "answer": "passt sich auch an"
+      },
+      {
+        "id": "r4-d1-s8-a1",
+        "screen": "r4-d1-s8",
+        "design": "holotafel",
+        "question": "",
+        "improved": "Knoten heißen Inventar, Hangar, Sammlung",
+        "answer": "Sehr gut !"
+      },
+      {
+        "id": "r4-d1-s8-a3",
+        "screen": "r4-d1-s8",
+        "design": "holotafel",
+        "question": "Ein Klick legt 1 auf die Wunschliste, danach zeigt der Knoten „1“. Soll jeder weitere Klick +1 zählen oder dann die Detailseite mit Stepper öffnen?",
+        "improved": "Klick legt 1 auf die Wunschliste",
+        "answer": "ne, der wetiere soll die wunschliste dann aufmachen"
+      },
+      {
+        "id": "r4-d1-s9-a1",
+        "screen": "r4-d1-s9",
+        "design": "holotafel",
+        "question": "Gibt es im Codex kein 3D-Modell, bleibt nur die Silhouette, der Schalter ist dann gesperrt und sagt warum. Okay so?",
+        "improved": "Silhouette ↔ 3D-Modell wie am Holotisch",
+        "answer": "ja"
+      },
+      {
+        "id": "r4-d1-s9-a2",
+        "screen": "r4-d1-s9",
+        "design": "holotafel",
+        "question": "Alle Blöcke von heute sind da: Werte (Fakten, Einschlagsschaden, Waffenparameter), Aufsätze an der Silhouette, Herstellung (Rezept, verwendet in Blaupausen), Kaufen & Info (Wo zu kaufen, Beschreibung, Datenblatt), dazu Lackierung, Vergleichen, Teilen, Codex/Persönlich und Build. Vermisst du einen?",
+        "improved": "alles ohne Scrollen, in Reitern",
+        "answer": "das sieht schon richtig gut aus! Wobei sihlozhutette und 3d modell genausoi wie in holotisch beta in dem bild stehen sollte ! und vergleichen eher hier hier nicht, sondern nur wenn man in der übersicht ist der suche fullsite, also nicht schnellsuche"
+      },
+      {
+        "id": "r4-d1-s9h-a1",
+        "screen": "r4-d1-s9h",
+        "design": "holotafel",
+        "question": "",
+        "improved": "Krümel führen zurück ins HQ",
+        "answer": "sehr gu t"
+      },
+      {
+        "id": "r4-d1-s9h-a2",
+        "screen": "r4-d1-s9h",
+        "design": "holotafel",
+        "question": "Aus dem HQ geöffnet zeigt die Seite leise, in welchem Nachschub der Gegenstand steckt; im Codex bleibt das weg. Passt diese Trennung?",
+        "answer": "ja"
+      },
+      {
+        "id": "r4-d1-s9h-a3",
+        "screen": "r4-d1-s9h",
+        "design": "holotafel",
+        "question": "",
+        "improved": "Inventar per Klick, danach Stepper",
+        "answer": "sehr gut!"
+      }
+    ],
+    "comments": [
+      {
+        "id": "anno-r4-d1-s1-a2",
+        "text": "nope, das ist dann implizit",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s1-a3",
+        "text": "mitkommen natürlich!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s2-a1",
+        "text": "super!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s2-a2",
+        "text": "nein, genauso",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s2-a3",
+        "text": "nur bis zum nächsten hinzufügen und für einn gexxten vorschlag soll ein neuer kommen :) halte mindestens immer 7 vor falls dem nutzer die 3 nicht gefallen !",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s3-a1",
+        "text": "ja von selbst!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s3-a2",
+        "text": "sehr gut",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s3-a3",
+        "text": "pro route bzw. nachschub einsatz!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s4a-a2",
+        "text": "ja ist klar!",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s4a-a3",
+        "text": "passt sich auch an",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s8-a1",
+        "text": "Sehr gut !",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s8-a3",
+        "text": "ne, der wetiere soll die wunschliste dann aufmachen",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9-a1",
+        "text": "ja",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9-a2",
+        "text": "das sieht schon richtig gut aus! Wobei sihlozhutette und 3d modell genausoi wie in holotisch beta in dem bild stehen sollte ! und vergleichen eher hier hier nicht, sondern nur wenn man in der übersicht ist der suche fullsite, also nicht schnellsuche",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9h-a1",
+        "text": "sehr gu t",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9h-a2",
+        "text": "ja",
+        "attachments": []
+      },
+      {
+        "id": "anno-r4-d1-s9h-a3",
+        "text": "sehr gut!",
+        "attachments": []
+      },
+      {
+        "id": "r4-slot-pick-note",
+        "text": "ja serhr gut, aber bitte polishen!",
+        "attachments": []
+      },
+      {
+        "id": "r4-d1-s9h",
+        "text": "bitte auch diese wie auch die anderen seiten cinematisch sehr gut animieren inkl. was ist sinnvollzuerst den fokus zu haben, was kommt später eingeblendet! Gern beim ersten aufmachen cinematisc h, danach auch animiert, aber innnerhalb schnellerer zeit",
+        "attachments": []
+      }
+    ],
+    "userPins": [
+      {
+        "screen": "r4-d1-s3",
+        "target": "span \"Neuer Nachschub\"",
+        "text": "denb button bruachen wir nicht, das soll dann einfach ein slot nachschub sein, fall nicht belegt !"
+      },
+      {
+        "screen": "r4-d1-s7",
+        "target": "svg.mk-sil.mk-sil-bp",
+        "text": "Hier auch ein plus füür per hand anlegen !"
+      },
+      {
+        "screen": "r4-d1-s7g",
+        "target": "span.mk-thumb.mk-t2",
+        "text": "sehr gut"
+      },
+      {
+        "screen": "r4-d1-s7g",
+        "target": "button \"Community-Top\"",
+        "text": "gern dieses dropdown auhc nochmal attraktiver machen, ist alles noch sehr bodl und in alten style gestyleed mit festtten brlauen käsatne"
+      },
+      {
+        "screen": "r4-d1-s7n",
+        "target": "b.mk-clamp \"Pyro-Update: Ruin Station bekommt Raffin\"",
+        "text": "sehr gut, wenn mehr, dann bitte mit umgehen!"
+      },
+      {
+        "screen": "r4-d1-s8",
+        "target": "path",
+        "text": "nicht vergessen, in der schnellsuche korrekt mit den verschiednen gruppeirungen usw., aber in der full site suche aulso der auflistung befindet sich hier links noch ein inhaltsverzeichnis. Bitte bei beiden keine funktioniaätliten weg rationalisieren die nicht direkt mit wunschliste / inventar etc. zu tun haben - also das was wir hierändern"
+      },
+      {
+        "screen": "r4-d1-s9h",
+        "target": "span.mk-sharedock",
+        "text": "sehr gut auch den teilen buttoin hier zu haben"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "r4-icon-pick",
+        "value": "frame",
+        "note": ""
+      },
+      {
+        "id": "r4-slot-pick",
+        "value": "crate",
+        "note": "ja serhr gut, aber bitte polishen!"
+      }
+    ]
+  }
+]

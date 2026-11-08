@@ -1,4 +1,4 @@
-import { MOODS_OFF, MoodSubject, estimateMinutes, matchesMoods, toggleMood } from './hq-moods';
+import { MOODS_AVAILABLE, MOODS_OFF, MoodSubject, estimateMinutes, matchesMoods, toggleMood } from './hq-moods';
 import {
   PLAN_SELECTION_KEY,
   PlanContext,
@@ -159,9 +159,20 @@ describe('selection transitions (D23)', () => {
   it('a mood click is "Nach Lust": the whole pool, filtered by the mood; all off returns to Top 3', () => {
     const sel = applyMood(top3Selection(ctx), 'danger', 'right', ctx);
     expect(sel.origin).toBe('mood');
-    expect(visibleNeeds(sel, needs).map((n) => n.id)).toEqual(['2']);
+    expect(visibleNeeds(sel, needs, true).map((n) => n.id)).toEqual(['2']);
     const back = applyMood(sel, 'danger', 'right', ctx);
     expect(back.origin).toBe('top3');
+  });
+
+  it('W5.3: while the codex data is missing (MOODS_AVAILABLE off) no mood hides a line', () => {
+    expect(MOODS_AVAILABLE).toBeFalse();
+    const group = { danger: null, time: null, crew: 'right' as const };
+    const peaceful = { danger: 'left' as const, time: null, crew: null };
+    for (const moods of [group, peaceful]) {
+      const sel = { ...top3Selection(ctx), moods, supplyIds: new Set(needs.map((n) => n.id)) };
+      expect(visibleNeeds(sel, needs).map((n) => n.id)).toEqual(['1', '2', '3']);
+      expect(needs.every((n) => passesFilters(sel, n))).toBeTrue();
+    }
   });
 
   it('every manual change is "Gezielt"', () => {

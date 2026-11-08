@@ -36,7 +36,8 @@ import { KartographCrestComponent } from '../verse/starmap/kartograph-crest.comp
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { AppsMenuComponent } from './apps-menu.component';
 import { MerklisteComponent } from './merkliste/merkliste.component';
-import { HqSuppliesPopupComponent } from '../hq/hq-supplies-popup.component';
+import { WishCartDialogComponent } from './cart/wish-cart-dialog.component';
+import { WishCartService } from './cart/wish-cart.service';
 import { RoleService } from '../auth/role.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
@@ -69,7 +70,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, HqSuppliesPopupComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, WishCartDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -256,9 +257,9 @@ import { avatarUrlOf } from './avatar-url';
       <sc-fusion-bar [class.under-cine]="cineHeader()">
         <div barAccount class="bar-account"><ng-container [ngTemplateOutlet]="accountMenu" /></div>
       </sc-fusion-bar>
-      @if (chrome.suppliesPopup()) {
-        <!-- Opened from the header bookmark panel; the HQ pages keep their own openers. -->
-        <sc-hq-supplies-popup [startTab]="chrome.suppliesPopup()?.tab === 'wishlist' ? 'wish' : 'nachschub'" (closed)="chrome.closeSupplies()" />
+      @if (cart.isOpen()) {
+        <!-- The Warenkorb: any page plus ?cart=1 (own URL), opened from the Schnellzugriff or a link. -->
+        <sc-wish-cart />
       }
     }
 
@@ -1092,6 +1093,7 @@ export class ShellComponent implements AfterViewInit {
   readonly adminRoute = signal(isAdminNavRoute(this.router.url));
   private readonly beta = inject(BetaService);
   protected readonly chrome = inject(ShellChromeService);
+  protected readonly cart = inject(WishCartService);
   protected readonly layout = inject(LayoutService);
   /** Beta "shell": the layout contract drives the frame (width tracks, gaps) instead of URL checks. */
   readonly shellOn = this.beta.isEnabled('shell');

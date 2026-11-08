@@ -4,7 +4,6 @@ import { formatQuantity } from '../codex/codex-format';
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import type { StepKind } from '../shared/step/sc-step.component';
 import type { HqSetKind, HqSupplyRow } from './data/hq-db.types';
 import {
@@ -49,6 +48,8 @@ export interface SupplyItem {
   readonly unit: SupplyUnit | null;
   /** Class name of the blueprint this material line was added for (removed together with it), else null. */
   readonly forClassName: string | null;
+  /** Nachschub (`hq_supply_packages.id`) this line belongs to, else null = a loose line. */
+  readonly packageId: string | null;
   /** Client edit time (ISO) - the LWW key. */
   readonly updatedAt: string;
   /** Tombstone (ISO) while a deletion is on its way to the server; never listed in `items`. */
@@ -70,6 +71,7 @@ export interface SupplyMeta {
   amount?: number | null;
   unit?: SupplyUnit | null;
   forClassName?: string | null;
+  packageId?: string | null;
 }
 
 /** What {@link HqSuppliesService.addLine} changed: the line and its quantities before (0 / null = new). */
@@ -95,7 +97,7 @@ export function roundAmount(n: number): number {
 }
 
 
-/** Legacy local list (before the server table). Read once after sign-in, then removed. */
+/** Key of the long-dead signed-out list. Nothing reads or writes it any more (no guests); it is only cleared. */
 export const SUPPLIES_STORAGE_KEY = 'sc.hq.supplies';
 /** Per-user offline cache `{ uid, wm, rows }` lives under `<SUPPLIES_CACHE_KEY>.<uid>` (a shared browser must not mix accounts). */
 export const SUPPLIES_CACHE_KEY = 'sc.hq.supplies.sync';
@@ -121,22 +123,20 @@ interface CacheShape {
  * The "Nachschub" list (shell beta): what your ships, sets and ops still need, as a task list
  * that behaves like a shopping cart. Lives on the server (`hq_supplies`, owner-only RLS) and in
  * a per-user offline cache; edits are pushed when online and merged last-write-wins on
- * `updated_at` (the server trigger skips stale writes). Signed out, the list falls back to the
- * old local key; after sign-in that list is imported once and the key removed.
+ * `updated_at` (the server trigger skips stale writes). Signed out the list is empty: there are no
+ * guests (the login wall gates every route).
  */
 @Injectable({ providedIn: 'root' })
 export class HqSuppliesService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly confirmDialog = inject(ScConfirmService);
-  private readonly legacyAsked = new Set<string>();
 
   /** True once the signed-in account's first pull finished (live auto-apply waits for it). */
   readonly ready = signal(false);
 
   /** Every row incl. tombstones (the sync state). */
-  private readonly rows = signal<readonly SupplyItem[]>(readLegacy());
+  private readonly rows = signal<readonly SupplyItem[]>([]);
   private uid: string | null = null;
   private watermark: string | null = null;
   private inFlight: Promise<void> | null = null;
@@ -198,6 +198,7 @@ export class HqSuppliesService {
     const setId = meta.setId ?? null;
     const amount = validAmount(meta.amount, meta.unit);
     const forClassName = meta.forClassName?.trim() || null;
+    const packageId = meta.packageId ?? null;
     // Same name (case-insensitive), same set, same origin (a blueprint's own material or a line of its
     // own), same kind of quantity and still open: raise its quantity like a cart does.
     const same = this.items().find(
@@ -206,6 +207,7 @@ export class HqSuppliesService {
         i.setId === setId &&
         i.name.toLowerCase() === clean.toLowerCase() &&
         (i.forClassName ?? '').toLowerCase() === (forClassName ?? '').toLowerCase() &&
+        i.packageId === packageId &&
         (i.amount !== null) === (amount !== null),
     );
     if (same) {
@@ -232,6 +234,7 @@ export class HqSuppliesService {
         amount,
         unit: amount !== null ? 'scu' : null,
         forClassName,
+        packageId,
         updatedAt: nowIso(),
         deletedAt: null,
         dirty: true,
@@ -281,6 +284,25 @@ export class HqSuppliesService {
   restore(id: string): void {
     const i = this.rows().find((x) => x.id === id);
     if (i?.deletedAt) this.patch(id, { deletedAt: null });
+  }
+
+  /** Lines of one Nachschub (open and closed). */
+  linesOfPackage(packageId: string): SupplyItem[] {
+    return this.items().filter((i) => i.packageId === packageId);
+  }
+
+  /** Move lines into a Nachschub (or out of it with null). */
+  assignPackage(ids: readonly string[], packageId: string | null): void {
+    const set = new Set(ids);
+    const now = nowIso();
+    this.commit(this.rows().map((i) => (set.has(i.id) ? { ...i, packageId, updatedAt: now, dirty: true } : i)));
+  }
+
+  /** Tombstone several lines at once (clearing a Nachschub); undo each with {@link restore}. */
+  removeMany(ids: readonly string[]): void {
+    const set = new Set(ids);
+    const now = nowIso();
+    this.commit(this.rows().map((i) => (set.has(i.id) && !i.deletedAt ? { ...i, deletedAt: now, updatedAt: now, dirty: true } : i)));
   }
 
   /** Open lines a blueprint brought along (its material), see `forClassName`. */
@@ -372,14 +394,14 @@ export class HqSuppliesService {
     this.timer = null;
     if (prev) void this.finalPush(prev, prevRows);
     if (!id) {
-      this.rows.set(readLegacy());
+      this.rows.set([]);
       return;
     }
     const cache = readCache(id);
     this.watermark = cache?.wm ?? null;
     this.rows.set(cache?.rows ?? []);
     this.persist();
-    void this.offerLegacyImport(id);
+    dropGuestList();
     void this.sync();
   }
 
@@ -406,36 +428,11 @@ export class HqSuppliesService {
     }
   }
 
-  /** The signed-out list is only taken into an account after the user says so (shared browsers). */
-  private async offerLegacyImport(uid: string): Promise<void> {
-    const legacy = readLegacy();
-    if (!legacy.length || this.legacyAsked.has(uid)) return;
-    this.legacyAsked.add(uid);
-    const ok = await this.confirmDialog.confirm({
-      titleKey: 'hq.supply.importTitle',
-      messageKey: 'hq.supply.importMessage',
-      params: { count: legacy.length },
-      confirmKey: 'hq.supply.importConfirm',
-      cancelKey: 'hq.supply.importCancel',
-    });
-    if (!ok || this.uid !== uid) return;
-    const known = new Set(this.rows().map((r) => r.id));
-    const now = nowIso();
-    this.commit([...this.rows(), ...legacy.filter((l) => !known.has(l.id)).map((l) => ({ ...l, updatedAt: now, dirty: true }))]);
-    try {
-      localStorage.removeItem(SUPPLIES_STORAGE_KEY);
-    } catch (err) {
-      logWarn('hq', 'supplies legacy key removal failed', err);
-    }
-  }
-
   private persist(): void {
     try {
       if (this.uid) {
         const cache: CacheShape = { uid: this.uid, wm: this.watermark, rows: [...this.rows()] };
         localStorage.setItem(suppliesCacheKey(this.uid), JSON.stringify(cache));
-      } else {
-        localStorage.setItem(SUPPLIES_STORAGE_KEY, JSON.stringify(this.rows().filter((i) => !i.deletedAt)));
       }
     } catch (err) {
       logWarn('hq', 'supplies storage write failed', err);
@@ -553,6 +550,7 @@ function toRow(i: SupplyItem, uid: string): Partial<HqSupplyRow> {
     // The new columns only travel when set: a line without them writes exactly what it always did.
     ...(i.amount !== null && i.unit ? { amount: i.amount, unit: i.unit } : {}),
     ...(i.forClassName ? { for_class_name: i.forClassName } : {}),
+    ...(i.packageId ? { package_id: i.packageId } : {}),
     deleted_at: i.deletedAt,
     updated_at: i.updatedAt,
   };
@@ -573,6 +571,7 @@ function fromRow(r: HqSupplyRow): SupplyItem {
     source: r.source,
     ...fromAmount(r.amount, r.unit),
     forClassName: r.for_class_name?.trim() || null,
+    packageId: r.package_id ?? null,
     updatedAt: r.updated_at,
     deletedAt: r.deleted_at,
     dirty: false,
@@ -602,22 +601,16 @@ function readCache(uid: string): CacheShape | null {
   }
 }
 
-function readLegacy(): readonly SupplyItem[] {
+/** Housekeeping: the old signed-out list is not imported any more (the login wall means it cannot be in use). */
+function dropGuestList(): void {
   try {
-    const raw = localStorage.getItem(SUPPLIES_STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : null;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .slice(0, SUPPLIES_MAX_ITEMS)
-      .map((r) => sanitize(r, false))
-      .filter((r): r is SupplyItem => r !== null);
-  } catch (err) {
-    logWarn('hq', 'supplies storage read failed', err);
-    return [];
+    localStorage.removeItem(SUPPLIES_STORAGE_KEY);
+  } catch {
+    /* storage unavailable: nothing to clear */
   }
 }
 
-/** Defensive parse of a stored line (legacy lines only have id, name, qty, done). */
+/** Defensive parse of a cached line. */
 function sanitize(r: unknown, keepSync: boolean): SupplyItem | null {
   if (!r || typeof r !== 'object') return null;
   const o = r as Record<string, unknown>;
@@ -641,6 +634,7 @@ function sanitize(r: unknown, keepSync: boolean): SupplyItem | null {
     source,
     ...fromAmount(o['amount'], o['unit']),
     forClassName: str('forClassName'),
+    packageId: str('packageId'),
     updatedAt: str('updatedAt') ?? nowIso(),
     deletedAt: keepSync ? str('deletedAt') : null,
     dirty: keepSync ? o['dirty'] === true : false,

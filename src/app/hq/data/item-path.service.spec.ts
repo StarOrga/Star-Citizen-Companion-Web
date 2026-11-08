@@ -25,6 +25,8 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; re
   const wk = (k: string, c: string) => `${k}:${c.toLowerCase()}`;
   const wishlist = {
     has: (k: string, c: string) => wished.has(wk(k, c)),
+    qtyOf: (k: string, c: string) => (wished.has(wk(k, c)) ? 1 : 0),
+    setQty: async () => true,
     add: async (k: string, c: string) => (wished.add(wk(k, c)), true),
     remove: async (k: string, c: string) => (wished.delete(wk(k, c)), true),
   };
@@ -107,9 +109,9 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; re
 
 describe('ItemPathService', () => {
   it('lists the stops per kind; an announced ship only has the wish', () => {
-    expect(stepsOf('item')).toEqual(['wish', 'nachschub', 'inventar']);
-    expect(stepsOf('blueprint')).toEqual(['wish', 'nachschub', 'inventar']);
-    expect(stepsOf('ship')).toEqual(['wish', 'nachschub', 'hangar']);
+    expect(stepsOf('item')).toEqual(['wish', 'inventar']);
+    expect(stepsOf('blueprint')).toEqual(['wish', 'inventar']);
+    expect(stepsOf('ship')).toEqual(['wish', 'hangar']);
     expect(stepsOf('upcoming')).toEqual(['wish']);
     expect(setup().svc.read('upcoming', 'idris', 'Idris').hint).toBe('notYetInGame');
   });
@@ -234,7 +236,7 @@ describe('ItemPathService', () => {
 
   it('#303: signed out the blueprint mark is not written', async () => {
     const { svc, stock } = setup({ user: false });
-    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).key).toBe('itemPath.needSignIn');
+    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).key).toBe('itemPath.err.failed');
     expect(stock().length).toBe(0);
   });
 
@@ -251,7 +253,7 @@ describe('ItemPathService', () => {
 
   it('signed out nothing is written', async () => {
     const { svc, wished, lines } = setup({ user: false });
-    expect((await svc.addWish('item', 'a', 'A')).key).toBe('itemPath.needSignIn');
+    expect((await svc.addWish('item', 'a', 'A')).key).toBe('itemPath.err.failed');
     expect((await svc.addToNachschub('item', 'a', 'A')).ok).toBeFalse();
     expect(wished.size + lines.length).toBe(0);
   });

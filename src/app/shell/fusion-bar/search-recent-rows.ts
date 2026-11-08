@@ -7,8 +7,8 @@
 import type { SearchResultRow } from '../../codex/search/search-result-model';
 
 export const RECENT_ROWS_KEY = 'sc.search.recentRows';
-/** Rows kept; the empty field shows three. */
-export const RECENT_ROWS_MAX = 6;
+/** Rows kept (the empty search field shows three; the Schnellzugriff cuts them by page type and shows up to seven). */
+export const RECENT_ROWS_MAX = 12;
 export const RECENT_ROWS_SHOWN = 3;
 
 /** A stored row: hit or own data, without the context-dependent CTA and icons. */

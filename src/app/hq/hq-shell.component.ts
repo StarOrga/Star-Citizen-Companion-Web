@@ -1,12 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
-import { HqSuppliesPopupComponent } from './hq-supplies-popup.component';
-import { HqSuppliesService } from './hq-supplies.service';
-import { HQ_ROOT, hqHangar, hqLocker, hqOps } from './hq-routes';
+import { NachschubService } from './nachschub/nachschub.service';
+import { HQ_ROOT, hqHangar, hqLocker, hqOps, hqPage } from './hq-routes';
 
 /** One category tab of the HQ frame. */
 export interface HqTab {
@@ -33,7 +32,7 @@ export const HQ_TABS: readonly HqTab[] = [
   // No track class: the frame places it by layout — the cinematic overview spans the
   // full track (its first view A, the rest B), the sub pages sit in B.
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, ScActionDirective, HqSuppliesPopupComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, ScActionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Beta "shell": the tabs live in the Fusion bar (header and subheader are one capsule). -->
@@ -52,26 +51,20 @@ export const HQ_TABS: readonly HqTab[] = [
           }
         </nav>
       }
-      <button
-        type="button"
+      <!-- Nachschub lives in Planen now (the slots): this is the way there, with the number of active slots. -->
+      <a
         scAction
         tier="secondary"
         class="supplies-btn"
-        aria-haspopup="dialog"
-        [attr.aria-expanded]="suppliesOpen()"
-        [attr.aria-label]="'hq.supplies.buttonAria' | translate: { count: suppliesCount() }"
-        (click)="suppliesOpen.set(!suppliesOpen())">
+        [routerLink]="planen.commands"
+        [fragment]="planen.fragment"
+        [attr.aria-label]="'hq.supplies.buttonAria' | translate: { count: suppliesCount() }">
         <span>{{ 'hq.supplies.button' | translate }}</span>
         <b class="supplies-count mono">{{ suppliesCount() }}</b>
-      </button>
+      </a>
     </div>
 
     <router-outlet />
-
-    <!-- Beta off or on, the one popup (tabs Wunschliste / Nachschub); the old non-beta panel is gone. -->
-    @if (suppliesOpen() && !onPages()) {
-      <sc-hq-supplies-popup (closed)="suppliesOpen.set(false)" />
-    }
   `,
   styles: [
     `
@@ -123,15 +116,15 @@ export const HQ_TABS: readonly HqTab[] = [
 })
 export class HqShellComponent {
   readonly tabs = HQ_TABS;
-  readonly suppliesOpen = signal(false);
+  readonly planen = hqPage('planen');
   readonly shell = inject(BetaService).isEnabled('shell');
-  private readonly supplies = inject(HqSuppliesService);
+  private readonly nachschub = inject(NachschubService);
   private readonly chrome = inject(ShellChromeService);
   /**
    * The five-page landing is on screen (beta shell): it is the whole page — the bar with the
    * Nachschub button leaves, supplies move into Planen (web-supply / web-ops packages).
    */
   readonly onPages = computed(() => this.chrome.hqPage() !== null);
-  /** The open lines of the Nachschub list (the one popup serves beta on and off). */
-  readonly suppliesCount = computed(() => this.supplies.open().length);
+  /** Active Nachschub slots (of 7). */
+  readonly suppliesCount = computed(() => this.nachschub.active().length);
 }

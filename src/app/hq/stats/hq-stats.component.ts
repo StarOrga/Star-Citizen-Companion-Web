@@ -52,8 +52,6 @@ export interface HqTile {
         <p>{{ svc.error()! | translate }}</p>
         <button type="button" class="sc-btn" (click)="svc.load()">{{ 'hq.stats.retry' | translate }}</button>
       </div>
-    } @else if (!auth.user()) {
-      <p class="state muted" role="status">{{ 'hq.stats.signedOut' | translate }}</p>
     } @else if (!svc.stats()) {
       <p class="state muted" role="status" aria-busy="true">{{ 'hq.stats.loading' | translate }}</p>
     } @else {

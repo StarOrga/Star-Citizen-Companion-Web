@@ -11,6 +11,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
   OnInit,
   computed,
   effect,
@@ -61,6 +62,10 @@ import { CodexOwnShipActionsComponent } from './holo/codex-own-ship-actions.comp
 import { HangarPickerComponent, HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import { ShareButtonComponent } from '../shared/share-button/share-button.component';
+import { ScEntryDirective } from '../shared/entry-motion/entry-motion';
+import { NachschubService } from '../hq/nachschub/nachschub.service';
+import { NACHSCHUB_ICON_PATHS } from '../hq/nachschub/step-icons';
+import { CodexItemStageComponent } from './detail/codex-item-stage.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
 import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
 import { CodexVariantPickerComponent } from './detail/codex-variant-picker.component';
@@ -284,7 +289,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexOwnShipActionsComponent, ShareButtonComponent, HeightVarDirective],
+  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexOwnShipActionsComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -294,7 +299,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         @if (!holoStageOn()) {
           <div phAside class="crumb-aside">
             <ng-container [ngTemplateOutlet]="shipAsideData" />
-            <ng-container [ngTemplateOutlet]="shipAsideSwitch" />
+            <!-- The item page carries the path control in its own panel; a second copy up here doubled it (and pushed the page down). -->
+            @if (!itemStage()) { <ng-container [ngTemplateOutlet]="shipAsideSwitch" /> }
           </div>
         }
       </sc-page-header>
@@ -332,6 +338,87 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              sub-component in detail/ or a shared ng-template at the end of
              this template, rendered in both branches (D17). -->
         @if (!(kind() === 'ship' && holoView())) {
+        @if (itemStage()) {
+        <!-- ── Item page (weapon, component, FPS gear): the stage and the info panel, built like the ship Holotable
+             (concept nachschub-hq r4-d1-s9 / s9h). Focus order of the entry (--ce): the stage and the name first, then the
+             path control, the tabs, the values. Every block of the classic page is still here, behind three tabs. ── -->
+        <div class="item-page" [scEntry]="'codex-detail'" [class.hq]="fromHq()" [scFeedbackSpot]="'feedbackSpot.headline'">
+          <header class="it-title ce" style="--ce: 0">
+            <div class="it-name">
+              <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
+              <h1>{{ displayName() }}</h1>
+              @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
+              <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
+              @if (missileKeywords().length > 0) {
+                <ul class="mchips" [attr.aria-label]="'codex.missile.keywordsLabel' | translate">
+                  @for (k of missileKeywords(); track k.id) {
+                    <li class="mchip" tabindex="0" [scTooltip]="k.tipKey | translate">{{ k.labelKey | translate }}</li>
+                  }
+                </ul>
+              }
+            </div>
+            @if (fromHq() && holdingNachschub(); as h) {
+              <p class="hq-note ce" style="--ce: 1" role="status">
+                <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of nachschubIcon; track $index) { <path [attr.d]="d" /> }</svg>
+                {{ 'itemStage.inNachschub' | translate: { name: h.name } }}
+              </p>
+            }
+          </header>
+          <div class="it-grid">
+            <sc-codex-item-stage class="it-stage ce" style="--ce: 0"
+              [kind]="detail()!.kind" [className]="detail()!.classNameSlug" [displayName]="displayName()"
+              [heroArt]="heroArt()" [heroSub]="heroSub()" [heroAttachType]="heroAttachType()" [package]="itemPackage()"
+              [still]="prefersReducedMotion()">
+              @if (!shareFab()) {
+                <button stageTools type="button" class="tt-share" (click)="copyShareLink()">
+                  ↗ {{ 'codex.detail.actionCopyLink' | translate }}
+                  @if (linkCopied()) { <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span> }
+                </button>
+              }
+              <div stageFoot class="it-foot">
+                @if (skinOptions().length > 1) {
+                  <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                    [options]="skinPickerOptions()" [current]="currentLivery()" />
+                }
+                @if (editionOptions().length > 1) {
+                  <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                    [options]="editionPickerOptions()" [current]="currentEdition()" />
+                }
+                @if (fpsSetPiece(); as piece) {
+                  <sc-add-to-set [className]="piece.className" [kind]="piece.kind" [subType]="piece.subType"
+                                 [attachType]="piece.attachType" [itemName]="displayName()" />
+                }
+              </div>
+            </sc-codex-item-stage>
+            <aside class="it-panel ce" style="--ce: 1" [attr.aria-label]="'itemStage.panelAria' | translate">
+              <div class="it-path ce" style="--ce: 1">
+                <sc-item-path [kind]="detail()!.kind" [className]="detail()!.classNameSlug" [name]="displayName()" level="primary" />
+              </div>
+              <div class="it-tabs ce" style="--ce: 2" role="tablist" [attr.aria-label]="'itemStage.tabsAria' | translate">
+                @for (t of itemTabs(); track t.id) {
+                  <button type="button" role="tab" class="it-tab" [class.on]="itemTab() === t.id" [attr.aria-selected]="itemTab() === t.id"
+                          [attr.tabindex]="itemTab() === t.id ? 0 : -1" (click)="itemTab.set(t.id)">
+                    {{ ('itemStage.tab.' + t.id) | translate }}@if (t.count) { <small>{{ t.count }}</small> }
+                  </button>
+                }
+              </div>
+              <div class="it-pane ce" style="--ce: 3" role="tabpanel">
+                @if (itemTab() === 'werte' && facts().length > 0) {
+                  <ul class="facts it-facts">
+                    @for (f of facts(); track f.label) {
+                      <li class="fact" [class.accent]="f.accent">
+                        <span class="f-label">{{ f.label }}</span>
+                        <span class="f-value">{{ f.value }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+                <ng-container [ngTemplateOutlet]="infoBlocks" />
+              </div>
+            </aside>
+          </div>
+        </div>
+        } @else {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
         <div class="m-top" [class.ship-mode]="kind() === 'ship'" [class.missile-mode]="isMissile()" [scFeedbackSpot]="'feedbackSpot.headline'">
         <div class="hero-stack">
@@ -443,9 +530,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             }
 
             <div class="hero-actions">
-              <button type="button" class="pin" [class.pinned]="isPinned()" (click)="togglePin()">
-                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
-              </button>
+              <!-- "Vergleichen" is not on the detail page any more: it lives in the full-site search overview. -->
               @if (!shareFab()) {
                 <button type="button" class="pin" (click)="copyShareLink()">
                   {{ 'codex.detail.actionCopyLink' | translate }}
@@ -712,147 +797,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         }
         <ng-container [ngTemplateOutlet]="tailLoadout" />
 
-        <!-- ── Description ───────────────────────────────────────── -->
-        <ng-container [ngTemplateOutlet]="descriptionCard" />
-
-        <!-- ── Where to buy (#254/#255): UEX Corp purchase locations for FPS
-             armor pieces and personal weapons. Best-effort — the section only
-             appears for the relevant kinds and quietly shows "no data" rather
-             than an error state for anything unmatched. ───────────────── -->
-        @if (!isMissile() && itemPackage(); as pkg) {
-          <section class="sc-card block pkg-block">
-            <h2>{{ 'codex.assetPackage.title' | translate }}</h2>
-            @defer (on viewport) {
-              <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" [still]="prefersReducedMotion()" />
-            } @placeholder {
-              <div class="pkg-viewer" aria-hidden="true"></div>
-            }
-          </section>
+        <ng-container [ngTemplateOutlet]="infoBlocks" />
         }
-
-        <ng-container [ngTemplateOutlet]="whereToBuy" />
-
-        <!-- ── Ammunition: damage + ballistics ───────────────────── -->
-        @if (damage().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.damage' | translate }}</h2>
-            <div class="dmg-list">
-              @for (row of damage(); track row.channel) {
-                <div class="dmg" [attr.data-ch]="row.channel">
-                  <span class="dmg-label">{{ ('codex.damage.' + row.channel) | translate }}</span>
-                  <span class="dmg-bar"><span class="dmg-fill" [style.width.%]="damagePct(row)"></span></span>
-                  <span class="dmg-val">{{ fmt(row.value) }}</span>
-                </div>
-              }
-            </div>
-          </section>
-        }
-
-        <!-- ── Component key stats, grouped by purpose ───────────── -->
-        @if (componentStatGroups().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.keyStats' | translate }}</h2>
-            @for (g of componentStatGroups(); track g.purpose) {
-              @if (showStatGroupHeaders(componentStatGroups())) {
-                <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
-              }
-              <div class="stat-grid">
-                @for (s of g.rows; track s.key) {
-                  <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
-                }
-              </div>
-            }
-          </section>
-        }
-
-        <!-- ── Weapon parameters, grouped by purpose ─────────────── -->
-        @if (weaponParamGroups().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.weaponParams' | translate }}</h2>
-            @for (g of weaponParamGroups(); track g.purpose) {
-              @if (showStatGroupHeaders(weaponParamGroups())) {
-                <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
-              }
-              <div class="stat-grid">
-                @for (s of g.rows; track s.key) {
-                  <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
-                }
-              </div>
-            }
-          </section>
-        }
-
-        <!-- ── Armor / undersuit stats, grouped by purpose ───────── -->
-        @if (armorStatGroups().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.armorStats' | translate }}</h2>
-            @for (g of armorStatGroups(); track g.purpose) {
-              @if (showStatGroupHeaders(armorStatGroups())) {
-                <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
-              }
-              <div class="stat-grid">
-                @for (s of g.rows; track s.key) {
-                  <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
-                }
-              </div>
-            }
-          </section>
-        }
-
-        <!-- ── Hardpoints, grouped by category ───────────────────── -->
-        @if (hardpointGroups().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.hardpoints' | translate }} <span class="ct">{{ detail()!.ports.length }}</span></h2>
-            <p class="hint">{{ 'codex.detail.hardpointsHint' | translate }}</p>
-            <sc-codex-port-list
-              [groups]="hardpointGroups()"
-              [frame]="hardpointFrame()"
-              [showMap]="!hasLoadoutSection()"
-              [markers]="hardpointMarkers()"
-              [activePorts]="activePorts()"
-              [locatablePorts]="locatablePorts()"
-              [expandedPort]="expandedPort()"
-              [compat]="compatByPort()"
-              (portToggle)="togglePort($event)"
-              (hovered)="setActivePorts($event)" />
-          </section>
-        }
-
-        <!-- ── Crafting recipe: what this item costs to make (#187) ─ -->
-        @if (recipeView(); as rv) {
-          <sc-codex-recipe-card [recipe]="rv" />
-        }
-
-        <!-- ── Used in crafting blueprints (reverse ingredient lookup) ─ -->
-        @if (usedInBlueprints().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.usedInBlueprints' | translate }} <span class="ct">{{ usedInBlueprints().length }}</span></h2>
-            <p class="hint">{{ 'codex.detail.usedInBlueprintsHint' | translate }}</p>
-            <ul class="compat-list">
-              @for (b of usedInBlueprints(); track b.classNameSlug) {
-                <li>
-                  <a class="compat-link" [routerLink]="['/codex', 'blueprint', b.classNameSlug]">
-                    {{ b.nameLocalized || humanizeName(b.classNameSlug) }}
-                  </a>
-                  <span class="compat-meta">
-                    @if (b.tier != null) { <span class="chip">T{{ b.tier }}</span> }
-                    @if (b.craftTimeSec != null) { <span class="chip">{{ fmtCraft(b.craftTimeSec) }}</span> }
-                  </span>
-                </li>
-              }
-            </ul>
-          </section>
-        }
-
-        <!-- ── Full spec sheet (Manifest, collapsed) + raw payload ── -->
-        <sc-codex-spec-sheet
-          [sections]="specSections()"
-          [showSpec]="showSpec()"
-          [showRaw]="showRaw()"
-          [rawJson]="rawJson()"
-          [provenance]="provenance()"
-          (toggleSpec)="toggleSpec()"
-          (toggleRaw)="toggleRaw()" />
         } @else {
           <sc-codex-holo-stage animate.enter="view-in"
             [detail]="detail()!"
@@ -1053,6 +999,183 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" [shipSignature]="shipSignature()" (closed)="closeWeaponDetail()" />
+
+      <ng-template #infoBlocks>
+    <!-- ── Description ───────────────────────────────────────── -->
+    @if (showTab('info')) { <ng-container [ngTemplateOutlet]="descriptionCard" /> }
+
+    <!-- ── Where to buy (#254/#255): UEX Corp purchase locations for FPS
+         armor pieces and personal weapons. Best-effort — the section only
+         appears for the relevant kinds and quietly shows "no data" rather
+         than an error state for anything unmatched. ───────────────── -->
+    @if (!itemStage() && !isMissile() && itemPackage(); as pkg) {
+      <section class="sc-card block pkg-block">
+        <h2>{{ 'codex.assetPackage.title' | translate }}</h2>
+        @defer (on viewport) {
+          <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" [still]="prefersReducedMotion()" />
+        } @placeholder {
+          <div class="pkg-viewer" aria-hidden="true"></div>
+        }
+      </section>
+    }
+
+    @if (showTab('info')) { <ng-container [ngTemplateOutlet]="whereToBuy" /> }
+
+    <!-- ── Missile: its own stat groups, then where it ranks among all missiles (item stage only; the classic page renders both above) ── -->
+    @if (itemStage() && isMissile() && showTab('werte')) {
+      @if (missileStats().length > 0) {
+        <section class="sc-card block" [scFeedbackSpot]="'codex.missile.data.title'">
+          <h2>{{ 'codex.missile.data.title' | translate }}</h2>
+          @for (g of missileStats(); track g.id) {
+            <h3 class="sg-head">{{ ('codex.missile.group.' + g.id) | translate }}</h3>
+            <div class="stat-grid">
+              @for (s of g.rows; track s.key) {
+                <div class="stat"><span class="s-label">{{ s.labelKey | translate }}</span><span class="s-value">@if (s.valueKey) { {{ s.valueKey | translate }} } @else { {{ fmt(s.value!) }} }@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+              }
+            </div>
+          }
+          @if (missileCombatMissing()) {
+            <p class="hint">{{ 'codex.missile.data.combatMissing' | translate }}</p>
+          }
+        </section>
+      }
+      <sc-codex-rank-card
+        [shipName]="displayName()"
+        [sizeClass]="missileRecord()?.size ?? null"
+        [result]="missileRank()"
+        [loading]="missileCohortLoading()"
+        [profiles]="[]"
+        [scopes]="missileRankScopes"
+        [copy]="missileRankCopy"
+        [gapKey]="missileRankGapKey()"
+        [scope]="missileRankScope()"
+        (scopeChange)="missileScopeChoice.set($event)" />
+    }
+
+    <!-- ── Ammunition: damage + ballistics ───────────────────── -->
+    @if (showTab('werte') && damage().length > 0) {
+      <section class="sc-card block">
+        <h2>{{ 'codex.detail.damage' | translate }}</h2>
+        <div class="dmg-list">
+          @for (row of damage(); track row.channel) {
+            <div class="dmg" [attr.data-ch]="row.channel">
+              <span class="dmg-label">{{ ('codex.damage.' + row.channel) | translate }}</span>
+              <span class="dmg-bar"><span class="dmg-fill" [style.width.%]="damagePct(row)"></span></span>
+              <span class="dmg-val">{{ fmt(row.value) }}</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ── Component key stats, grouped by purpose ───────────── -->
+    @if (showTab('werte') && componentStatGroups().length > 0) {
+      <section class="sc-card block">
+        <h2>{{ 'codex.detail.keyStats' | translate }}</h2>
+        @for (g of componentStatGroups(); track g.purpose) {
+          @if (showStatGroupHeaders(componentStatGroups())) {
+            <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
+          }
+          <div class="stat-grid">
+            @for (s of g.rows; track s.key) {
+              <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ── Weapon parameters, grouped by purpose ─────────────── -->
+    @if (showTab('werte') && weaponParamGroups().length > 0) {
+      <section class="sc-card block">
+        <h2>{{ 'codex.detail.weaponParams' | translate }}</h2>
+        @for (g of weaponParamGroups(); track g.purpose) {
+          @if (showStatGroupHeaders(weaponParamGroups())) {
+            <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
+          }
+          <div class="stat-grid">
+            @for (s of g.rows; track s.key) {
+              <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ── Armor / undersuit stats, grouped by purpose ───────── -->
+    @if (showTab('werte') && armorStatGroups().length > 0) {
+      <section class="sc-card block">
+        <h2>{{ 'codex.detail.armorStats' | translate }}</h2>
+        @for (g of armorStatGroups(); track g.purpose) {
+          @if (showStatGroupHeaders(armorStatGroups())) {
+            <h3 class="sg-head" [attr.data-purpose]="g.purpose">{{ ('codex.statGroup.' + g.purpose) | translate }}</h3>
+          }
+          <div class="stat-grid">
+            @for (s of g.rows; track s.key) {
+              <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- ── Hardpoints, grouped by category ───────────────────── -->
+    @if (showTab('werte') && hardpointGroups().length > 0) {
+      <section class="sc-card block">
+        <h2>{{ 'codex.detail.hardpoints' | translate }} <span class="ct">{{ detail()!.ports.length }}</span></h2>
+        <p class="hint">{{ 'codex.detail.hardpointsHint' | translate }}</p>
+        <sc-codex-port-list
+          [groups]="hardpointGroups()"
+          [frame]="hardpointFrame()"
+          [showMap]="!hasLoadoutSection()"
+          [markers]="hardpointMarkers()"
+          [activePorts]="activePorts()"
+          [locatablePorts]="locatablePorts()"
+          [expandedPort]="expandedPort()"
+          [compat]="compatByPort()"
+          (portToggle)="togglePort($event)"
+          (hovered)="setActivePorts($event)" />
+      </section>
+    }
+
+    <!-- ── Crafting recipe: what this item costs to make (#187) ─ -->
+    @if (showTab('herstellung') && recipeView(); as rv) {
+      <sc-codex-recipe-card [recipe]="rv" />
+    }
+
+    <!-- ── Used in crafting blueprints (reverse ingredient lookup) ─ -->
+    @if (showTab('herstellung') && usedInBlueprints().length > 0) {
+      <section class="sc-card block">
+        <h2>{{ 'codex.detail.usedInBlueprints' | translate }} <span class="ct">{{ usedInBlueprints().length }}</span></h2>
+        <p class="hint">{{ 'codex.detail.usedInBlueprintsHint' | translate }}</p>
+        <ul class="compat-list">
+          @for (b of usedInBlueprints(); track b.classNameSlug) {
+            <li>
+              <a class="compat-link" [routerLink]="['/codex', 'blueprint', b.classNameSlug]">
+                {{ b.nameLocalized || humanizeName(b.classNameSlug) }}
+              </a>
+              <span class="compat-meta">
+                @if (b.tier != null) { <span class="chip">T{{ b.tier }}</span> }
+                @if (b.craftTimeSec != null) { <span class="chip">{{ fmtCraft(b.craftTimeSec) }}</span> }
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <!-- ── Full spec sheet (Manifest, collapsed) + raw payload ── -->
+    @if (showTab('info')) {
+      <sc-codex-spec-sheet
+      [sections]="specSections()"
+      [showSpec]="showSpec()"
+      [showRaw]="showRaw()"
+      [rawJson]="rawJson()"
+      [provenance]="provenance()"
+      (toggleSpec)="toggleSpec()"
+      (toggleRaw)="toggleRaw()" />
+    }
+      </ng-template>
 
       <ng-template #shipAsideData>
         @if (showModeSwitch()) {
@@ -1631,6 +1754,37 @@ export class CodexDetailComponent implements OnInit {
   /** Beta shell: the retired hangar button row above the classic hero is gone (concept r1-classic). */
   protected readonly shellBeta = this.shareFab;
   protected readonly pathLevel = computed(() => (this.detail() ? pathLevelFor(this.navOrigin) : 'secondary'));
+
+  // ── Item page (weapon, component, FPS gear): stage + panel with tabs, Codex and HQ variant ──
+  /** Resolved only when the page was opened from the HQ: a Codex page does not build the Nachschub stores. */
+  private readonly lazyInjector = inject(Injector);
+  private nachschubSvc: NachschubService | null = null;
+  private get nachschub(): NachschubService {
+    return (this.nachschubSvc ??= this.lazyInjector.get(NachschubService));
+  }
+  protected readonly nachschubIcon = NACHSCHUB_ICON_PATHS;
+  /** Every kind but ships (which keep their own stage) gets the stage layout; a missile too, with its own values and rank. */
+  protected readonly itemStage = computed(() => !!this.detail() && this.kind() !== 'ship');
+  protected readonly itemTab = signal<'werte' | 'herstellung' | 'info'>('werte');
+  /** Opened from the HQ (the crumb leads back there): the page quietly says which Nachschub holds the item. */
+  protected readonly fromHq = computed(() => (this.navOrigin.previous()?.path ?? '').startsWith('/hq'));
+  protected readonly holdingNachschub = computed(() => {
+    const cls = this.detail()?.classNameSlug.toLowerCase();
+    if (!cls || !this.fromHq()) return null;
+    return this.nachschub.active().find((n) => this.nachschub.linesOf(n.id).some((l) => (l.className ?? '').toLowerCase() === cls)) ?? null;
+  });
+  protected readonly itemTabs = computed(() => {
+    const made = (this.recipeView() ? 1 : 0) + this.usedInBlueprints().length;
+    const tabs: { id: 'werte' | 'herstellung' | 'info'; count: number }[] = [{ id: 'werte', count: 0 }];
+    if (made > 0) tabs.push({ id: 'herstellung', count: made });
+    tabs.push({ id: 'info', count: 0 });
+    return tabs;
+  });
+
+  /** The info blocks are one flow on a ship page; on the item page each sits behind its tab. */
+  protected showTab(t: 'werte' | 'herstellung' | 'info'): boolean {
+    return !this.itemStage() || this.itemTab() === t;
+  }
   /** Everything the reader has of this entity (HQ ownership index), or null. */
   readonly myOwnership = computed(() => this.ownershipSvc.lookup(this.detail()?.classNameSlug));
   /** Ship pages only: whether this ship is already in the user's hangar. */
@@ -2329,6 +2483,13 @@ export class CodexDetailComponent implements OnInit {
   private readonly lang = signal<Lang>(toLang(this.t.getCurrentLang() || this.t.getFallbackLang()));
 
   constructor() {
+    // The item page starts on its first tab for every item; the Nachschub lookup is only needed when opened from the HQ.
+    effect(() => {
+      if (this.detail()) untracked(() => this.itemTab.set('werte'));
+    });
+    effect(() => {
+      if (this.fromHq()) void this.nachschub.ensureLoaded();
+    });
     // Classic ship view: the search bar stays put on scroll so the sticky KPI
     // strip can hang under it (instead of the bar sliding away, the strip
     // jumping to the very top).

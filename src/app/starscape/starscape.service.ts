@@ -304,6 +304,27 @@ export class StarscapeService {
   }
 
   /**
+   * Several wallpapers by image id - the collected strip (up-voted wallpapers). Newest first, capped; a failed read
+   * answers an empty list (the strip simply stays away), never an error state.
+   */
+  async loadMany(imageIds: readonly string[], limit = 60): Promise<Wallpaper[]> {
+    const ids = imageIds.slice(0, 200);
+    if (!ids.length) return [];
+    try {
+      const { data, error } = await this.sb.client
+        .from('verse_wallpapers')
+        .select('image_id, source_url, preview_url, title, series, article_url, published_at')
+        .in('image_id', ids)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(limit);
+      if (error || !data) return [];
+      return (data as Record<string, unknown>[]).map(mapWallpaperRow);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * A single wallpaper by image id — what a shared `?image=<id>` link resolves.
    * Fetched directly instead of paging the grid until it appears: the target is
    * usually hundreds of rows deep.

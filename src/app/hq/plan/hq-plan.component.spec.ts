@@ -11,14 +11,10 @@ import { EINSATZ_CACHE_KEY, HqEinsatzService as EinsatzServiceToken } from '../d
 import { HqOwnershipService } from '../hq-ownership.service';
 import { SUPPLIES_CACHE_KEY, SUPPLIES_STORAGE_KEY, HqSuppliesService } from '../hq-supplies.service';
 import { HqPageNavService } from '../hq-page-nav.service';
-import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
-import { HqNeedSourcesService } from './hq-need-sources.service';
 import { HqPlanComponent } from './hq-plan.component';
-import { PLAN_SELECTION_KEY } from './hq-plan-selection';
 
 describe('HqPlanComponent', () => {
   const clean = () => {
-    sessionStorage.removeItem(PLAN_SELECTION_KEY);
     for (const k of [SUPPLIES_STORAGE_KEY, SUPPLIES_CACHE_KEY, EINSATZ_CACHE_KEY]) localStorage.removeItem(k);
   };
   beforeEach(clean);
@@ -47,121 +43,44 @@ describe('HqPlanComponent', () => {
     return { f, el: f.nativeElement as HTMLElement };
   }
 
-  const text = (el: HTMLElement, sel: string) => el.querySelector(sel)?.textContent?.trim();
   const click = (f: { detectChanges(): void }, el: Element | null) => {
     (el as HTMLElement).click();
     f.detectChanges();
   };
 
-  it('a fresh account (both lists in, nothing in them) gets the explaining empty state instead of empty filters', () => {
+  it('opens on the seven Nachschub slots: free slots are a plus that starts the flow, no separate button', () => {
     const { f, el } = make(false);
-    // Before the first pull nothing is decided: no empty state flashes up.
-    expect(el.querySelector('.fresh')).toBeNull();
-    TestBed.inject(HqSuppliesService).ready.set(true);
-    TestBed.inject(EinsatzServiceToken).ready.set(true);
-    f.detectChanges();
-    expect(el.querySelector('.fresh')).not.toBeNull();
-    expect(el.querySelector('.select')).toBeNull();
-    expect(el.querySelector('sc-hq-plan-map')).toBeNull();
+    expect(el.querySelector('sc-hq-nachschub-board')).not.toBeNull();
+    expect(el.querySelectorAll('.board .slot').length).toBe(7);
+    expect(el.querySelectorAll('.board .slot.free').length).toBe(7);
+    expect(el.querySelector('.intro')).not.toBeNull();
+    expect(el.querySelector('.classic')).toBeNull();
+    click(f, el.querySelector('.board .slot.free .hit'));
+    expect(el.querySelector('sc-hq-nachschub-flow')).not.toBeNull();
+  });
+
+  it('the archive opens from the end of the board', () => {
+    const { f, el } = make(false);
+    click(f, el.querySelector('.board .archive'));
+    expect(el.querySelector('sc-hq-nachschub-archive-dialog')).not.toBeNull();
+  });
+
+  it('W5.2: the classic Auswahl / Route face, the opt-in, Blueprint progress, commodity prices and shared Einsaetze are gone from Planen', () => {
+    const { el } = make();
+    expect(el.querySelector('.classic')).toBeNull();
     expect(el.querySelector('.switch')).toBeNull();
-    // A need has to be a real item: the way in is the search, not a free-text form.
-    const chrome = TestBed.inject(ShellChromeService);
-    click(f, el.querySelector('.fresh-actions button'));
-    expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
-    expect(chrome.supplySearch()).toBeTrue();
-    expect(chrome.supplySearchRequest()).toBe(1);
+    for (const tag of ['sc-hq-community-optin', 'sc-hq-blueprint-progress', 'sc-hq-commodity-prices', 'sc-hq-shared-einsaetze', 'sc-hq-plan-map', 'sc-hq-mood-toggles']) {
+      expect(el.querySelector(tag)).withContext(tag).toBeNull();
+    }
   });
 
-  it('D4: a need line with a class name and a known kind carries the tertiary path, outside the Codex anchor; a free-text line has none', () => {
-    TestBed.resetTestingModule();
-    TestBed.configureTestingModule({
-      providers: [
-        { provide: ItemPathService, useValue: fakeItemPath() },
-        provideRouter([]),
-        provideTranslateService(),
-        fakeSupabase().provider,
-        { provide: AuthService, useValue: { user: signal(null) } },
-        { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
-        { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve() } },
-        { provide: HqNeedSourcesService, useValue: { ensure: () => undefined, sources: signal(new Map([['Medpen_01', { state: 'ready', kind: 'item', options: [] }]])) } },
-      ],
-    });
-    const supplies = TestBed.inject(HqSuppliesService);
-    supplies.add('Medpen', 2, { className: 'Medpen_01', entityKind: 'item' });
-    supplies.add('Freitext', 1);
-    const f = TestBed.createComponent(HqPlanComponent);
+  it('an Einsatz that belongs to a Nachschub selects that Nachschub when it is opened from elsewhere', () => {
+    const { f } = make();
+    const row = { id: 'e1', title: 'Bounty v3', status: 'planned', steps: [], deletedAt: null, packageId: 'pkg-1' };
+    (TestBed.inject(EinsatzServiceToken) as unknown as { rows: { set(v: unknown[]): void } }).rows.set([row]);
+    const select = spyOn(f.componentInstance['focus'], 'select');
+    TestBed.inject(HqPageNavService).routeFocus.set({ id: row.id });
     f.detectChanges();
-    const needs = [...(f.nativeElement as HTMLElement).querySelectorAll('li.need')];
-    const medpen = needs.find((n) => n.textContent?.includes('Medpen'))!;
-    const free = needs.find((n) => n.textContent?.includes('Freitext'))!;
-    expect(medpen.querySelector('.need-path sc-item-path')).not.toBeNull();
-    expect(medpen.querySelector('a sc-item-path')).toBeNull();
-    expect(free.querySelector('sc-item-path')).toBeNull();
-  });
-
-  it('marks a free-text line as having no source', () => {
-    const { el } = make();
-    expect(text(el, '.need .n-where')).toBe('hq.plan.source.freeText');
-  });
-
-  it('keeps the section heading and shows Was with the Auswahl; Top 3 is the default (no mode toggle)', () => {
-    const { el } = make();
-    expect(el.querySelector('h2#hq-plan-title')).not.toBeNull();
-    expect(text(el, '#hq-plan-sel')).toBe('hq.plan.selection');
-    expect(text(el, '.state')).toBe('hq.plan.state.top3');
-    // The switch is Was / Wie only - nothing offers Top 3 / Nach Lust / Gezielt as a control.
-    expect(el.querySelectorAll('.switch .seg').length).toBe(2);
-    expect(el.querySelectorAll('sc-hq-mood-toggles .pair').length).toBe(3);
-    expect(el.querySelectorAll('.kinds .kind').length).toBe(7);
-  });
-
-  it('a mood click is Nach Lust, a step chip Eigene Auswahl, and it survives a new component in the same tab', () => {
-    const { f, el } = make();
-    click(f, el.querySelector('sc-hq-mood-toggles .pair .side.right'));
-    expect(text(el, '.state')).toBe('hq.plan.state.mood');
-    click(f, el.querySelectorAll('.kinds .kind')[0]);
-    expect(text(el, '.state')).toBe('hq.plan.state.custom');
-    expect(sessionStorage.getItem(PLAN_SELECTION_KEY)).toContain('"changed":true');
-
-    const fresh = TestBed.createComponent(HqPlanComponent);
-    fresh.detectChanges();
-    expect(text(fresh.nativeElement, '.state')).toBe('hq.plan.state.custom');
-
-    sessionStorage.removeItem(PLAN_SELECTION_KEY);
-    const reloaded = TestBed.createComponent(HqPlanComponent);
-    reloaded.detectChanges();
-    expect(text(reloaded.nativeElement, '.state')).toBe('hq.plan.state.top3');
-  });
-
-  it('Wie shows the route without any filters, and an empty route cannot be saved as an Einsatz', () => {
-    const { f, el } = make();
-    click(f, el.querySelectorAll('.switch .seg')[1]);
-    expect(el.querySelector('.select')).toBeNull();
-    expect(el.querySelector('.kinds')).toBeNull();
-    expect(el.querySelector('sc-hq-place-tree')).toBeNull();
-    expect(text(el, '.route .save')).toBe('hq.plan.saveEinsatz');
-    expect(el.querySelector<HTMLButtonElement>('.route .save')!.disabled).toBeTrue();
-    expect(el.querySelector('sc-hq-plan-map')).not.toBeNull();
-  });
-
-  it('lists the Nachschub lines as needs and opens the supplies popup from here', () => {
-    const { f, el } = make();
-    expect(el.querySelectorAll('.needs .need').length).toBe(2);
-    click(f, el.querySelector('.nach'));
-    expect(el.querySelector('sc-hq-supplies-popup')).not.toBeNull();
-  });
-
-  it('"Route öffnen" opens Wie on exactly this saved route', () => {
-    const { f, el } = make();
-    const row = (id: string, title: string) => ({ id, title, status: 'planned', steps: [], deletedAt: null });
-    const a = row('e1', 'Bounty v3');
-    const b = row('e2', 'Second');
-    (TestBed.inject(EinsatzServiceToken) as unknown as { rows: { set(v: unknown[]): void } }).rows.set([a, b]);
-    f.detectChanges();
-    expect(el.querySelector('.ein')).toBeNull();
-    TestBed.inject(HqPageNavService).routeFocus.set({ id: b.id });
-    f.detectChanges();
-    expect(el.querySelector(`[data-einsatz="${b.id}"]`)?.classList).toContain('focus');
-    expect(el.querySelector(`[data-einsatz="${a.id}"]`)?.classList).not.toContain('focus');
+    expect(select).toHaveBeenCalledWith('pkg-1');
   });
 });
