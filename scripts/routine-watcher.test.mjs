@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import {
-  BACKOFF_MIN, HARD_CAP_MIN, IDLE_KILL_MIN, MAX_ATTEMPTS, applyRun, ciVerdict, classifyBranch, classifyExit, emptyState, itemKey,
-  mergedSinceClaim, parkMessage, planQueue, shortIdOfBranch, shouldNotify, watchdogStep,
+  BACKOFF_MIN, GATE_FETCH_TIMEOUT_MS, HARD_CAP_MIN, IDLE_KILL_MIN, MAX_ATTEMPTS, applyRun, ciVerdict, classifyBranch, classifyExit,
+  describeSpawnFailure, emptyState, isHang, itemKey, mayRemoveRunFile, mergedSinceClaim, needsDeployCheck, parkMessage, planQueue,
+  productionLive, runClaimVerdict, shortIdOfBranch, shouldNotify, watchdogStep,
 } from './lib/routine-watcher-core.mjs';
 
 const MIN = 60_000;
@@ -157,4 +162,67 @@ test('shouldNotify: one toast per kind inside the window', () => {
   assert.equal(shouldNotify({ notified: {} }, 'auth', 1000), true);
   assert.equal(shouldNotify({ notified: { auth: 1000 } }, 'auth', 2000), false);
   assert.equal(shouldNotify({ notified: { auth: 1000 } }, 'gate', 2000), true);
+});
+
+// ---- 2026-11-08 batch: W1 gate error cause, W2 double start, W3 merged vs online
+test('W1: a gate child killed by the timeout is "timeout after Ns", not "exit null" (the real spawnSync shape)', () => {
+  const r = spawnSync(process.execPath, ['-e', 'setTimeout(()=>{}, 10000)'], { encoding: 'utf8', timeout: 300 });
+  assert.equal(r.status, null);
+  assert.equal(r.stderr, ''); // nothing printed: exactly the old `exit null` log line
+  assert.equal(isHang(r), true);
+  assert.match(describeSpawnFailure(r, 120_000), /^timeout after 120s — stderr empty$/);
+});
+test('W1: a signal, a spawn error, a plain exit and a stderr tail are told apart', () => {
+  assert.match(describeSpawnFailure({ status: null, signal: 'SIGTERM', stderr: '' }, 1000), /^killed by SIGTERM/);
+  assert.match(describeSpawnFailure({ status: null, error: { code: 'ENOENT' }, stderr: '' }, 1000), /^spawn ENOENT/);
+  assert.match(describeSpawnFailure({ status: 2, stderr: 'a\nb\n[routine-gate] ERROR boom\n' }, 1000), /^exit 2 — stderr: a \| b \| \[routine-gate\] ERROR boom$/);
+  assert.equal(isHang({ status: 2 }), false);
+});
+test('W1: the gate caps its SQL fetch below the watcher kill, so a dead socket ends as a readable error', () => {
+  const src = readFileSync(new URL('./routine-gate.mjs', import.meta.url), 'utf8');
+  assert.match(src, /AbortSignal\.timeout\(30_000\)/);
+  assert.ok(GATE_FETCH_TIMEOUT_MS < 120_000);
+});
+test('W2: the run file is claimed exclusively; an existing file counts as a run', () => {
+  assert.equal(runClaimVerdict(false), 'free');
+  assert.equal(runClaimVerdict(true), 'taken');
+});
+test('W2: the loser of a double start removes only its own run file', () => {
+  assert.equal(mayRemoveRunFile('a7aba95d', '767727d9'), false);
+  assert.equal(mayRemoveRunFile('767727d9', '767727d9'), true);
+  assert.equal(mayRemoveRunFile(undefined, '767727d9'), true);
+});
+test('W2: two exclusive creates cannot both win (the tick-lock / run-file primitive)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'claim-'));
+  const f = join(dir, 'run.json');
+  let wins = 0;
+  for (let i = 0; i < 2; i++) { try { writeFileSync(f, '{}', { flag: 'wx' }); wins++; } catch (e) { assert.equal(e.code, 'EEXIST'); } }
+  assert.equal(wins, 1);
+  rmSync(dir, { recursive: true, force: true });
+});
+test('W2: the watcher claims the run file before it spawns, and the tick lock is an exclusive create', () => {
+  const src = readFileSync(new URL('./routine-watcher.mjs', import.meta.url), 'utf8');
+  const claim = src.indexOf("writeFileSync(RUN_FILE, JSON.stringify(run, null, 2), { flag: 'wx' })");
+  assert.ok(claim > 0);
+  assert.ok(claim < src.indexOf("spawn(process.execPath, [fileURLToPath(import.meta.url), 'supervise'"));
+  assert.match(src, /writeFileSync\(TICK_LOCK, .*\{ flag: 'wx' \}\)/);
+});
+test('W3: merged is not live until production carries the merge or a later commit', () => {
+  const ancestor = (a, b) => a === 'merge' && b === 'later';
+  assert.deepEqual(productionLive('merge', [{ sha: 'older' }], ancestor), { live: false, via: null }); // 2026-11-08: production stayed on ed5a51a7
+  assert.deepEqual(productionLive('merge', [{ sha: 'merge' }], ancestor), { live: true, via: 'merge' });
+  assert.deepEqual(productionLive('merge', [{ sha: 'later' }, { sha: 'older' }], ancestor), { live: true, via: 'later' }); // a skipped build, superseded by a descendant
+  assert.deepEqual(productionLive('merge', [], ancestor), { live: false, via: null });
+  assert.deepEqual(productionLive(null, [{ sha: 'later' }], ancestor), { live: false, via: null });
+});
+test('W3: only a PR ship_ref waits for a deploy', () => {
+  assert.equal(needsDeployCheck('https://github.com/StarOrga/Verse-Companion-Web/pull/1027'), true);
+  assert.equal(needsDeployCheck('https://github.com/StarOrga/Verse-Companion-Web/issues/12'), false);
+  assert.equal(needsDeployCheck(null), false);
+});
+test('W3: the migration keeps the author view honest and carries live_at to the board', () => {
+  const sql = readFileSync(new URL('../supabase/migrations/20261108221000_admin_feedback_live_at.sql', import.meta.url), 'utf8');
+  assert.match(sql, /when f\.status = 'shipped' and f\.live_at is not null then 'done'/);
+  assert.match(sql, /'live_at', f\.live_at/);
+  assert.match(sql, /new\.live_at := null/);
 });
