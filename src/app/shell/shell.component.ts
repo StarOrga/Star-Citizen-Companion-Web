@@ -1051,6 +1051,7 @@ import { avatarUrlOf } from './avatar-url';
 })
 export class ShellComponent implements AfterViewInit {
   readonly skipToMain = skipToMain;
+  protected readonly brandName = BRAND_NAME;
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);

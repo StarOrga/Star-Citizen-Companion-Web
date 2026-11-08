@@ -5,11 +5,13 @@ surface flips between deployed / pending / broken.
 
 ## Vercel (web app)
 
-- **Vercel project:** `star-citizen-companion-website` (NOT `-web` — renaming the
-  GitHub repo did not rename the Vercel project, and `star-citizen-companion-web.vercel.app`
-  never existed; it 404s with `DEPLOYMENT_NOT_FOUND`)
-- **Canonical URL:** `https://sc-companion.vercel.app` (short alias, primary)
-- **Auto-assigned URL:** `https://star-citizen-companion-website.vercel.app` (307s to the canonical URL)
+- **Vercel project:** `versecompanion-alpha` (renamed from `star-citizen-companion-website` on
+  2026-11-08 for the Verse Companion rename; id `prj_eAm2zUm7oz0fTpCE6RNY10sx3bDv`). Previews are
+  `versecompanion-alpha-git-….vercel.app`.
+- **Canonical URL:** `https://versecompanion-alpha.vercel.app` (`src/brand.json` `host`)
+- **Legacy hosts (still serving):** `https://sc-companion.vercel.app`;
+  `https://star-citizen-companion-website.vercel.app` 307s to it until the owner removes it
+  in the dashboard (CIG domain rule).
 - **Status:** ✅ LIVE — auto-deployed from `main` via GitHub integration.
 - **Implication for tasks:** every push to `main` triggers a Vercel
   build. `curl -sI https://sc-companion.vercel.app` (200 OK expected) proves the

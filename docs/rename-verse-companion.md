@@ -1,86 +1,90 @@
-# Rename away from "Star Citizen Companion"
+# Rename: Star Citizen Companion → Verse Companion
 
 Why: "Star Citizen" is a registered trademark of Cloud Imperium Rights LLC
 (EU, UK, US, CA, AU, WIPO; classes 9/41). CIG's Fankit and Fandom FAQ allow
 fan sites, but not the mark in a product name or a site URL.
 
-**The final name is not decided yet.** "Verse Companion" (the placeholder in
-`src/brand.json`) collides with an existing German Star Citizen tool at
-`verse-companion.vercel.app` and a Bible app at `versecompanion.app`. Do not
-ship the placeholder. Whatever name is chosen: never file a trademark for it;
-it is a working name for a non-commercial fan tool.
+"Verse Companion" is a working name for a non-commercial fan tool — never
+file a trademark for it (third parties hold "VERSE" marks in software
+classes). Known namesakes: a private, login-gated German Star Citizen tool at
+`verse-companion.vercel.app` and a Bible app at `versecompanion.app`.
 
-Subtitle everywhere: EN "<Name> – unofficial fan tool for Star Citizen",
-DE "<Name> – inoffizielles Fan-Tool für Star Citizen". Title format: the
-name as two words, followed by the alpha badge.
+Subtitle everywhere: EN "Verse Companion – unofficial fan tool for Star
+Citizen", DE "Verse Companion – inoffizielles Fan-Tool für Star Citizen".
+Title format: the name as two words, followed by the alpha badge.
 
-## Changing the name
+## Single sources
+
+`src/brand.json` holds the name (`name`), the public host (`host`) and the
+hosts that keep serving (`legacyHosts`). Components read `BRAND_NAME`,
+`BRAND_INITIALS` and `BRAND_HOST` from `src/app/core/brand.ts`.
 
 ```bash
-node scripts/apply-brand.mjs "New Name"
+node scripts/apply-brand.mjs "New Name"          # rename every literal copy
+node scripts/apply-brand.mjs --host new.host     # move canonical links/docs
+node scripts/apply-brand.mjs --check             # runs in prebuild
 ```
 
-`src/brand.json` is the single source. Components read it through
-`src/app/core/brand.ts` (`BRAND_NAME`, `BRAND_INITIALS`); the script rewrites
-every literal copy (i18n, `src/index.html`, manifest, browser extension,
-README, readme.io pages, OpenAPI) and skips history (CHANGELOG, release notes,
-concept mockups, migrations). `prebuild` runs `apply-brand.mjs --check`.
-Afterwards run `npm run gen:readme-content` and the usual gates.
+History (CHANGELOG, release notes, concept mockups, migrations) is never
+rewritten. Origin allowlists list the host AND every legacy host and are
+edited by hand: `supabase/functions/api/_cors.ts`,
+`supabase/functions/concept-page/index.ts`, `supabase/config.toml`,
+`browser-extension/manifest.json`, `scripts/lib/test-account.cjs`.
+After a change run `npm run gen:readme-content` and the usual gates.
 
-## Stage 1 — user-visible (this repo)
+## Done (2026-11-08)
 
-Name-independent and done: fan-site notice visible in the shell footer, the
-login card (the public entry page) and About, each with a link to
-robertsspaceindustries.com and the trademark line; About also shows CIG's
-original English wording in non-English views. Extension store text is honest
-(`browser-extension/STORE-LISTING.md`), README/LICENSE/humans.txt carry the
-notice. The desktop app is called "Companion App" on the web. No donation,
-ad or Patreon links exist.
+- Name, titles, meta/OG/JSON-LD, manifest, boot splash, readme.io pages,
+  OpenAPI title; desktop app called "Companion App" on the web.
+- Fan-site notice (CIG wording + DE translation), link to
+  robertsspaceindustries.com and the Fan Kit trademark notice, visible at
+  ≥ 10 pt in the shell footer, the login card (the public entry page) and
+  About. The official Fan Kit "Made By The Community" logo (white, only
+  downscaled, no effects) replaces the old badge file.
+- Public host `versecompanion-alpha.vercel.app` (free subdomain, no purchase):
+  added to the Vercel project, project renamed to `versecompanion-alpha`,
+  canonical/sitemap/robots/security.txt/docs point there.
+  `sc-companion.vercel.app` keeps serving and stays in every allowlist.
+- Supabase Auth: Site URL `https://versecompanion-alpha.vercel.app`, host
+  added to the redirect allow list (Management API).
+- Extension: honest store text (`browser-extension/STORE-LISTING.md`),
+  version 0.1.2, new host in host permissions.
 
-## Steps that need the owner's accounts (once the name is final)
+## Still needs the owner (dashboards)
 
-1. **Vercel project** `star-citizen-companion-website` → Settings → General →
-   rename to `<name-slug>` (no domain purchase for now: the free
-   `<name-slug>.vercel.app` becomes the primary URL — check first that it is
-   not taken). Settings → Domains: **remove**
-   `star-citizen-companion-website.vercel.app` (CIG domain rule); keep
-   `sc-companion.vercel.app` as a redirect. The Vercel MCP has no delete for
-   project domains and the CLI is not logged in, so this is a dashboard step.
-2. **Allowlists** (code, then deploy): add the new origin to
-   `supabase/functions/api/_cors.ts`, `supabase/functions/concept-page/index.ts`,
-   `supabase/config.toml`, the extension's `host_permissions` and
-   `scripts/lib/test-account.cjs` `deployHosts`.
-3. **Supabase Auth** (project `hcnqhvzlavdycidqyaai`) → URL configuration:
-   Site URL and redirect URLs for the new origin; edge-function secret
-   `PUBLIC_SITE_URL`.
-4. **Google OAuth** client: new authorized JavaScript origin, consent-screen
-   app name. **Discord** developer portal: app name (the id stays).
-5. **readme.io**: project name; subdomain `star-citizen-companion` → new slug
-   (then update `docs/readme-io/*`, `.github/workflows/readme-docs-sync.yml`).
-6. **Chrome Web Store**: paste `browser-extension/STORE-LISTING.md`. A new
-   host permission makes Chrome disable the update until the user accepts —
-   ship that as its own extension version.
-7. **GitHub repos** (`gh repo rename`; GitHub keeps redirects): web, app,
-   binaries. Binaries only after the desktop app ships an updater that follows
-   redirects (app repo, `docs/architecture/rename-verse-companion-stage2.md`).
-8. **Fan Kit** (downloaded by the owner): with the Fan Kit Agreement accepted,
-   the "Made by the Community" badge may be used — the web footer already
-   shows `public/icons/made-by-community.png`; swap in the Fan Kit's official
-   file once its folder path is known.
+1. **Vercel → Domains**: remove `star-citizen-companion-website.vercel.app`
+   (CIG domain rule; the Vercel MCP has no delete for project domains). Once
+   the new host has run a while, set `sc-companion.vercel.app` to redirect
+   (308) to `versecompanion-alpha.vercel.app`.
+2. **Supabase Auth allow list** contains `https://*.vercel.app/**` — any
+   vercel.app site is an allowed redirect target. Replace it with the project's
+   own preview pattern (`https://versecompanion-alpha-*.vercel.app/**`).
+3. **Google OAuth consent screen / Discord app**: display name "Verse
+   Companion".
+4. **readme.io**: project name and subdomain `star-citizen-companion`.
+5. **Chrome Web Store**: paste `browser-extension/STORE-LISTING.md`, upload
+   0.1.2 (adds a host permission — Chrome asks users to re-approve).
+6. **GitHub repos** (`gh repo rename`, GitHub keeps redirects): web, app,
+   binaries — binaries only after the desktop updater follows redirects.
+7. Edge-function secret `PUBLIC_SITE_URL`, if set, → new host.
 
 ## Stage 2 — technical identifiers (later, with migration)
 
-Keep for now: localStorage keys `sc-companion.*`, extension bridge id
+Kept for now: localStorage keys `sc-companion.*`, extension bridge id
 `sc-companion-extension`, User-Agent `SC-Companion/x`, package name
 `sc-companion`, dist path `dist/sc-companion`, Supabase/R2 ids. Each needs a
-read-both/write-new migration release before the old id can go.
+read-both/write-new release before the old id can go.
 
-## Compliance findings for the owner to decide
+## Compliance findings for the owner to decide (nothing deleted)
 
-See the session notes (news audit, 3D audit). In short: news cards are within
-the FAQ (title, date, ≤280-char excerpt, link); the patch-note outline mirrors
-Spectrum patch notes almost line by line; RSI news images are re-hosted on R2
-instead of hot-linked; the Starscape lightbox offers RSI wallpapers for
-download and the Starscape desktop app saves them to disk; extracted hull
-geometry, catalog tables and keybinds are publicly fetchable. Nothing was
-deleted (owner decision).
+- News cards: title, date, ≤ 280-char excerpt of the original text, link —
+  close to the FAQ, but the excerpt is CIG's words, not an own summary.
+- Patch-note outline (`rsi-roadmap`) mirrors Spectrum patch notes almost line
+  by line.
+- RSI news images are downloaded, re-encoded and served from R2 instead of
+  hot-linked.
+- Starscape: the lightbox offers RSI wallpapers for download; the Starscape
+  desktop app saves original-resolution RSI art to disk.
+- Extracted hull geometry (textures stripped), catalog tables and keybinds are
+  publicly fetchable (assets worker without auth, anon SELECT); keybinds have
+  a JSON download button.

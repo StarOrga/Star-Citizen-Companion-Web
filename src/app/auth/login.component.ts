@@ -239,6 +239,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
             <!-- CIG Fankit and Fandom FAQ: the fan-site notice is open and obvious on
                  the public entry page, not only behind a link. -->
             <p class="fan-notice">
+              <img class="fan-badge" src="icons/made-by-community.png" [alt]="'footer.badgeAlt' | translate" width="44" height="44" />
               {{ 'footer.disclaimer' | translate }}
               <a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a>
               <br />{{ 'footer.trademarks' | translate }}
@@ -429,6 +430,9 @@ type Panel = 'signIn' | 'apply' | 'reset';
       color: var(--sc-fg-2);
       text-align: center;
     }
+    /* Fan Kit "Made By The Community" logo: unaltered, no effects (Fan Kit guidelines p.9). */
+    .fan-notice .fan-badge { float: left; margin: 2px 10px 4px 0; }
+    .fan-notice { text-align: start; }
     .fan-notice a { color: var(--sc-fg-1); text-decoration: underline; text-underline-offset: 2px; }
     .fan-notice a:hover { color: var(--sc-accent); }
     label {
