@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map, startWith } from 'rxjs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
@@ -36,7 +38,7 @@ export const HQ_TABS: readonly HqTab[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Beta "shell": the tabs live in the Fusion bar (header and subheader are one capsule). -->
-    <div class="hq-bar" [class.fused]="shell()" [hidden]="onPages()">
+    <div class="hq-bar" [class.fused]="shell()" [hidden]="onPages() || (shell() && onShipPage())">
       @if (!shell()) {
         <nav class="hq-tabs" [attr.aria-label]="'hq.tabsAria' | translate">
           @for (t of tabs; track t.link) {
@@ -51,7 +53,10 @@ export const HQ_TABS: readonly HqTab[] = [
           }
         </nav>
       }
-      <!-- Nachschub lives in Planen now (the slots): this is the way there, with the number of active slots. -->
+      <!-- Nachschub lives in Planen now (the slots): this is the way there, with the number of active slots.
+           Not on a hangar ship page: its head is the ship's own (concept codex-kopf-besitz C6), a ship in a
+           Nachschub says so in its ownership card. -->
+      @if (!onShipPage()) {
       <a
         scAction
         tier="secondary"
@@ -62,6 +67,7 @@ export const HQ_TABS: readonly HqTab[] = [
         <span>{{ 'hq.supplies.button' | translate }}</span>
         <b class="supplies-count mono">{{ suppliesCount() }}</b>
       </a>
+      }
     </div>
 
     <router-outlet />
@@ -125,6 +131,17 @@ export class HqShellComponent {
    * Nachschub button leaves, supplies move into Planen (web-supply / web-ops packages).
    */
   readonly onPages = computed(() => this.chrome.hqPage() !== null);
+  private readonly router = inject(Router);
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+      startWith(this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+  /** HQ > Hangar > one ship (`/hq/hangar/:id`): the page renders the ship's Codex head. */
+  readonly onShipPage = computed(() => /^\/hq\/hangar\/(?!import(?:[/?#]|$))[^/?#]+/.test(this.url() ?? ''));
   /** Active Nachschub slots (of 7). */
   readonly suppliesCount = computed(() => this.nachschub.active().length);
 }

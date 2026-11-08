@@ -502,7 +502,9 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   --sc-fab-lane: calc(var(--sc-fab-inset) + var(--sc-fab-size));
   /* Breathing room between the launcher and whatever sits beside it. */
   --sc-fab-gutter: 12px;
-  /* The β FAB (shell/corners/beta-fab) stands one lane above the launcher; toasts clear it. */
+  /* The β FAB (shell/corners/beta-fab) stands one lane above the launcher; toasts clear it.
+     On a ship page the view toggle FAB (shell/corners/view-toggle-fab) takes that lane and
+     publishes --sc-view-fab-lane on <html>: β and the toasts move up by one lane. */
   --sc-beta-fab-lane: calc(max(44px, var(--sc-tap-min, 44px)) + var(--sc-space-2));
   /* The docked feedback window's width. The board inside it caps its search
      field at this size wherever it has more room (the /admin/feedback page,
@@ -547,7 +549,7 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
   /* Where a bottom-right toast sits (star / undo toast). The same as
      --sc-fab-clear-block, plus the β FAB's lane, and on a phone with the shell bar at the bottom
      it sits above the share button's lane too. */
-  --sc-toast-bottom: calc(var(--sc-fab-clear-block) + var(--sc-beta-fab-lane));
+  --sc-toast-bottom: calc(var(--sc-fab-clear-block) + var(--sc-beta-fab-lane) + var(--sc-view-fab-lane, 0px));
 }
 @media (max-width: 720px) {
   :root {
@@ -562,9 +564,37 @@ html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
       calc(var(--sc-bar-stack-h, -999px) + var(--sc-float-bottom) + var(--sc-space-3) + max(var(--sc-tap-min, 0px), 44px) + var(--sc-space-2))
     );
     /* The β FAB stacks above the share button's lane; toasts ride above the β FAB. */
-    --sc-toast-bottom: calc(var(--sc-beta-fab-bottom) + var(--sc-beta-fab-lane));
+    --sc-toast-bottom: calc(var(--sc-beta-fab-bottom) + var(--sc-beta-fab-lane) + var(--sc-view-fab-lane, 0px));
   }
 }
+
+/* ---- HEAD STRIP ----
+   The ship / item page head (concept codex-kopf-besitz, d1 "Kennleiste"): ONE grouped strip on
+   the title's line - [Patch 4.10.2-LIVE ▾ | Besitz]. Segments are the strip's children, divided
+   by a hairline; the strip itself never clips (the variant menu and the patch chooser open
+   out of it). Holotisch (codex-holo-stage), Klassisch and the item page draw the same strip. */
+.sc-head-strip {
+  display: inline-flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  max-width: 100%;
+  min-height: max(34px, var(--sc-tap-min, 0px));
+  border: 1px solid var(--sc-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--sc-bg-1) 65%, transparent);
+}
+.sc-head-strip > * + * { border-inline-start: 1px solid var(--sc-border); }
+.sc-head-strip > * { display: inline-flex; align-items: stretch; }
+.sc-head-strip__seg {
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  white-space: nowrap;
+  color: var(--sc-fg-1);
+  font-size: max(0.78rem, var(--sc-fs-floor));
+}
+.sc-head-strip__seg.mono { font-family: var(--font-monospace, 'Share Tech Mono', monospace); }
+.sc-head-strip__seg em { font-style: normal; color: var(--sc-fg-2); font-family: var(--sc-font-body, inherit); }
 
 /* ---- A bar docked to the bottom on a phone ----
    `.sc-dock-phone` pins a page's own bottom bar (a composer, a confirmation)

@@ -61,7 +61,6 @@ import {
   HoloPatchKpiGhosts,
   PortPinBadge,
 } from './codex-holo-patch.component';
-import { CodexHoloShareComponent } from './codex-holo-share.component';
 import { CodexHoloSharedBannerComponent, HoloSharedBanner } from './codex-holo-shared-banner.component';
 import { CodexHoloRankStateComponent } from './codex-holo-rank-state.component';
 export type { HoloSharedBanner } from './codex-holo-shared-banner.component';
@@ -78,7 +77,6 @@ import { CodexLoadoutSaveBarComponent } from '../codex-loadout-save-bar.componen
 import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker, spreadStackedPins } from './codex-holo-model';
 import type { CodexKind } from '../codex.service';
 import { anchorKey } from './codex-holo-leader';
-import { HangarShipConfig } from '../../hangar/hangar.types';
 import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
 import type { SummaryOccupant } from '../ship-summary-panels';
@@ -211,7 +209,6 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
     CodexHoloStripComponent,
     HangarPickerComponent,
     CodexHoloPatchComponent,
-    CodexHoloShareComponent,
     CodexHoloSharedBannerComponent,
     CodexHoloRankStateComponent,
     CodexHoloTableComponent,
@@ -235,26 +232,27 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             @if (kicker(); as k) { <span class="ht-kicker">{{ k }}</span> }
           </div>
         }
+        <!-- The head strip (concept codex-kopf-besitz, d1 "Kennleiste"): [Patch ▾ | Besitz] on the title's
+             line, the same strip the classic view draws. The page projects the ownership segment. -->
         <div class="ht-right">
-          <ng-content select="[htData]" />
-          <!-- slot: patch-delta trigger; the comparison itself opens in the panel's Änderungen tab. -->
-          @if (buildRef(); as ab) {
-            <sc-codex-holo-patch
-              [hotkey]="hkLabel.patch"
-              [dockDelta]="true"
-              [className]="detail().classNameSlug"
-              [channel]="channel()"
-              [activeBuild]="ab"
-              [activeKpiSheet]="activeKpiSheet()"
-              [activeOccupants]="activeOccupants()"
-              [resolveComparisonSide]="resolveComparisonSide()"
-              (kpiGhosts)="patchGhosts.set($event)"
-              (portPins)="patchPortPins.set($event)"
-              (comparisonBuild)="onPatchCompared($event)" />
-          }
-          <!-- Own ship (concept r1-hangar-panel): rename, note, pin, remove - projected by the page only for the reader's own ship. -->
-          <ng-content select="[htOwn]" />
-          <ng-content select="[htSwitch]" />
+          <div class="sc-head-strip" role="group" [attr.aria-label]="'codex.head.stripAria' | translate">
+            <!-- slot: patch-delta trigger; the comparison itself opens in the panel's Änderungen tab. -->
+            @if (buildRef(); as ab) {
+              <sc-codex-holo-patch
+                [hotkey]="hkLabel.patch"
+                [dockDelta]="true"
+                [className]="detail().classNameSlug"
+                [channel]="channel()"
+                [activeBuild]="ab"
+                [activeKpiSheet]="activeKpiSheet()"
+                [activeOccupants]="activeOccupants()"
+                [resolveComparisonSide]="resolveComparisonSide()"
+                (kpiGhosts)="patchGhosts.set($event)"
+                (portPins)="patchPortPins.set($event)"
+                (comparisonBuild)="onPatchCompared($event)" />
+            }
+            <ng-content select="[htOwn]" />
+          </div>
         </div>
       </div>
 
@@ -295,38 +293,12 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
                 <span class="no-geometry-badge" tabindex="0" [scTooltip]="'codex.holo.stage.noGeometryReason' | translate" scTooltipTier="label">· {{ 'codex.holo.noGeometry' | translate }}</span>
               }
             </p>
-            <div class="tools5" [class.open]="sharePopoverOpen()">
+            <div class="tools5">
               @if (has3d()) {
                 <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" [attr.aria-keyshortcuts]="hkLabel.view" (click)="pickSurface('3d')">{{ 'codex.holo.stage.view3d' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
               }
               <button type="button" class="tt" [class.on]="viewMode() !== '3d'" [attr.aria-pressed]="viewMode() !== '3d'" [attr.aria-keyshortcuts]="hkLabel.view"
                       (click)="pickSurface(lastSchemaSurface())">{{ 'codex.holo.stage.viewSchema' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
-              <span class="share-wrap" (keydown.escape)="closeShare($event)">
-                <button type="button" class="tt" [class.on]="sharePopoverOpen()" [attr.aria-expanded]="sharePopoverOpen()" [attr.aria-keyshortcuts]="hkLabel.share" (click)="toggleShare()">↗ {{ 'codex.holo.stage.viewShare' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.share }}</kbd></button>
-                @if (sharePopoverOpen()) {
-                  <!-- slot: share -->
-                  <sc-codex-holo-share
-                    class="share-popover"
-                    animate.enter="pop-enter"
-                    animate.leave="pop-leave"
-                    [config]="myConfig()"
-                    [shipClassName]="detail().classNameSlug"
-                    [channel]="channel()"
-                    [patchVersion]="patchVersion()"
-                    [linkCopied]="linkCopied()"
-                    [signedIn]="!!userId()"
-                    [inHangar]="inHangar()"
-                    [unsavedChanges]="draftChangedCount()"
-                    [readOnly]="readOnly()"
-                    [saveDraft]="saveDraftForShare()"
-                    [copyHotkey]="hkLabel.copyLink"
-                    (copyCurrentLink)="copyShareLink.emit()"
-                    (addToHangar)="addToHangar.emit()"
-                    [addBusy]="addBusy()"
-                    [addFailed]="addFailed()"
-                    (configRefreshed)="configRefreshed.emit($event)" />
-                }
-              </span>
             </div>
           </div>
 
@@ -393,6 +365,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
 
         <!-- ── One sheet of glass: Bauteile | Einordnung | Änderungen ── -->
         <aside class="holo-panel mobile-data" [scFeedbackSpot]="'codex.holo.stage.inspector'">
+          <!-- The ownership card (concept codex-kopf-besitz C5): Haben? / Dein Exemplar, above the tabs. -->
+          <ng-content select="[htCard]" />
           <div class="ptabs" role="tablist" [attr.aria-label]="'codex.holo.stage.inspector' | translate" [style.--i]="panelTabIndex()" (keydown)="onTabKey($event)">
             <span class="pill" aria-hidden="true"></span>
             @for (t of panelTabs; track t.id) {
@@ -782,9 +756,6 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   letter-spacing: 0; color: var(--sc-fg-2); opacity: 0.55; transition: opacity 160ms ease; }
   .tt:hover .hk, .tt:focus-visible .hk, .tt.on .hk { opacity: 1; }
   @media (hover: none), (pointer: coarse) { .hk { display: none; } }
-  .share-wrap { position: relative; display: inline-flex; }
-  /* The popover surface (frame, notch, enter/leave) lives in the share
-     component's own :host styles. */
   /* On a desktop the panel's part list replaces the dense key under the table: one list, not two. */
   @media (min-width: 1001px) { .holo-stage ::ng-deep .pin-key { display: none; } }
 
@@ -918,7 +889,6 @@ export class CodexHoloStageComponent {
     copyLink: holoHotkeyLabel('copyLink'),
     patch: holoHotkeyLabel('patch'),
     view: holoHotkeyLabel('view'),
-    share: holoHotkeyLabel('share'),
   };
 
   // ── Identity / chrome ────────────────────────────────────────────
@@ -977,9 +947,6 @@ export class CodexHoloStageComponent {
   readonly saving = input(false);
   readonly saveError = input<string | null>(null);
   readonly inHangar = input(false);
-  /** Add-to-hangar state of the host, passed on to the share popover. */
-  readonly addBusy = input(false);
-  readonly addFailed = input(false);
 
   // ── Rank / radar / top-3 (user decision 1) ─────────────────────────
   readonly rankResult = input<RankResult | null>(null);
@@ -1020,7 +987,6 @@ export class CodexHoloStageComponent {
 
   // ── Patch chooser / Δ (slot: patch-delta) ──────────────────────────
   readonly channel = input('LIVE');
-  readonly patchVersion = input('');
   readonly buildRef = input<BuildRef | null>(null);
   readonly activeKpiSheet = input<KpiSheet>({} as KpiSheet);
   readonly activeOccupants = input<PortOccupantMap>({});
@@ -1029,12 +995,6 @@ export class CodexHoloStageComponent {
       kpiSheet: {} as KpiSheet,
       occupants: {},
     }));
-
-  // ── Share popover (slot: share) ─────────────────────────────────────
-  readonly myConfig = input<HangarShipConfig | null>(null);
-  /** "Save & share" (#645): the host saves the draft and resolves the config
-   * the link is minted for (null = save failed / fork declined). */
-  readonly saveDraftForShare = input<(() => Promise<HangarShipConfig | null>) | null>(null);
 
   // ── Shared link on the table (#646) ─────────────────────────────────
   /** A shared link's loadout is the draft: no swap, revert or save. */
@@ -1060,9 +1020,6 @@ export class CodexHoloStageComponent {
   // ── Arrival / motion ─────────────────────────────────────────────
   readonly reducedMotion = input(false);
   readonly seenThisSession = input(false);
-  /** Host's `copyShareLink()` flashed its toast — mirrored into the share
-   * popover so the holo view gives the same "Kopiert" feedback (wave 5 A1.1). */
-  readonly linkCopied = input(false);
 
   // ── Outputs — the parent still owns every one of these ───────────
   readonly hovered = output<string[] | null>();
@@ -1072,11 +1029,8 @@ export class CodexHoloStageComponent {
   readonly missionChange = output<MissionId>();
   readonly rankProfileChange = output<RankProfileId>();
   readonly rankScopeChange = output<RankScope>();
-  readonly copyShareLink = output<void>();
-  readonly addToHangar = output<void>();
   readonly saveDraft = output<void>();
   readonly discardDraft = output<void>();
-  readonly configRefreshed = output<HangarShipConfig>();
   readonly sheetChange = output<PowerSheet>();
   /** HangarPicker outputs (slot: hangar-tab, N4) — the parent owns the
    * subject switch (navigate + `markShipPicked`) and the hangar-open route. */
@@ -1225,7 +1179,6 @@ export class CodexHoloStageComponent {
   readonly panelTabIndex = computed(() => PANEL_TABS.findIndex((t) => t.id === this.panelTab()));
   /** The package's rows, for the panel under "Alle Teile". */
   readonly packageRows = computed<readonly PlacementRow[]>(() => this.assetViewer()?.rows() ?? []);
-  readonly sharePopoverOpen = signal(false);
   readonly arrived = signal(false);
   /** Where the arrival stands — `wait` until the first run decides (so no
    * canvas is created with the wrong timing), see {@link HoloPhase}. */
@@ -1385,7 +1338,6 @@ export class CodexHoloStageComponent {
         this.panelTab.set('rank');
         this.deckView.set(null);
         this.hotspotScope.set('swappable');
-        this.sharePopoverOpen.set(false);
         const pref = CodexHoloStageComponent.readSurfacePref();
         this.chosenSurface.set(pref);
         if (pref && pref !== '3d') this.lastSchemaSurface.set(pref);
@@ -1463,23 +1415,6 @@ export class CodexHoloStageComponent {
         void this.blueprints.drawing(ship, 'full').then((bp) => {
           if (ship === this.shipClassName()) this.frontAvailable.set(!!bp && !!blueprintView(bp, 'front'));
         });
-      });
-    });
-
-    // Share popover: click anywhere outside closes it (Esc is handled on the
-    // wrapper). Registered only while open, so an idle page listens to nothing.
-    effect((onCleanup) => {
-      if (!this.sharePopoverOpen()) return;
-      const onPointerDown = (ev: PointerEvent) => {
-        const wrap = this.host.nativeElement.querySelector('.share-wrap');
-        if (wrap && ev.target instanceof Node && wrap.contains(ev.target)) return;
-        this.sharePopoverOpen.set(false);
-      };
-      // Deferred one tick so the opening click itself never counts as outside.
-      const arm = setTimeout(() => document.addEventListener('pointerdown', onPointerDown, true), 0);
-      onCleanup(() => {
-        clearTimeout(arm);
-        document.removeEventListener('pointerdown', onPointerDown, true);
       });
     });
 
@@ -1623,8 +1558,7 @@ export class CodexHoloStageComponent {
     this.sheetChange.emit(sheet);
   }
 
-  /** Digit hotkeys select pins ("tippe 1 bis N"), Esc closes the share
-   * popover, then the inspector. Inert while any dialog (swap picker, weapon
+  /** Digit hotkeys select pins ("tippe 1 bis N"), Esc closes the inspector. Inert while any dialog (swap picker, weapon
    * detail, …) is open — those own the keyboard (wave 5 B2.4). */
   @HostListener('document:keydown', ['$event'])
   onKeydown(ev: KeyboardEvent): void {
@@ -1633,10 +1567,6 @@ export class CodexHoloStageComponent {
     if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
     if (document.querySelector('[role="dialog"], dialog[open]')) return;
     if (ev.key === 'Escape') {
-      if (this.sharePopoverOpen()) {
-        this.sharePopoverOpen.set(false);
-        return;
-      }
       if (this.inspectedPort()) this.closeInspector();
       return;
     }
@@ -1650,8 +1580,8 @@ export class CodexHoloStageComponent {
 
   /**
    * The holodeck's letter hotkeys (#644): L copies the page link (toast),
-   * P opens / closes the patch chooser, V cycles holo → 3D → schema, S opens /
-   * closes the share popover. Ignored while a text field has focus, with a
+   * P opens / closes the patch chooser, V cycles holo → 3D → schema (sharing is the
+   * corner's share FAB, concept codex-kopf-besitz C9). Ignored while a text field has focus, with a
    * chord, or while a dialog that is not the stage's own popover is open.
    */
   onHotkey(ev: KeyboardEvent): void {
@@ -1672,9 +1602,6 @@ export class CodexHoloStageComponent {
           side: this.drawingAvailable(),
           front: this.frontAvailable(),
         }));
-        break;
-      case 'share':
-        this.toggleShare();
         break;
     }
   }
@@ -1700,16 +1627,6 @@ export class CodexHoloStageComponent {
 
   /** How many pins the digit hotkeys can reach — what the empty inspector may promise. */
   readonly hotkeyPinCount = computed(() => Math.min(this.pins().length, HOTKEY_PIN_MAX));
-
-  toggleShare(): void {
-    this.sharePopoverOpen.set(!this.sharePopoverOpen());
-  }
-
-  closeShare(ev?: Event): void {
-    if (!this.sharePopoverOpen()) return;
-    ev?.stopPropagation();
-    this.sharePopoverOpen.set(false);
-  }
 
   readonly eyebrowTitle = computed(() => {
     const career = this.heroChips().find((c) => c.key === 'career')?.text?.trim();

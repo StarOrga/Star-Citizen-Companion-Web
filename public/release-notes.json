@@ -1,7 +1,135 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.233.0",
+  "current": "0.235.0",
   "releases": [
+    {
+      "version": "0.235.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse landing: an HQ station in the sky shows one line about the HQ (running event, open Nachschub, or an all-clear) and links to the HQ."
+            },
+            {
+              "title": "",
+              "text": "Gallery: upvote in the single view and in fullscreen."
+            },
+            {
+              "title": "",
+              "text": "Apps menu: the SCC App shows its version and download size, read through the new scc-release-meta edge function."
+            },
+            {
+              "title": "",
+              "text": "Data Uploader: the time estimate covers the whole run and learns from your earlier runs."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Patch renames are handled everywhere: 4.11 now appears as 5.0 in the comet tip, star map and patch news."
+            },
+            {
+              "title": "",
+              "text": "A comet tip whose date has passed shows \"missed\"."
+            },
+            {
+              "title": "",
+              "text": "Verse landing: larger sun placed lower, smaller star map and planets."
+            },
+            {
+              "title": "",
+              "text": "Holotable: the Top-3 block is gone; perspectives and the Einsatz bar form one box."
+            },
+            {
+              "title": "",
+              "text": "Apps menu: two-line descriptions, real tray icons, no collaborator badge."
+            },
+            {
+              "title": "",
+              "text": "Data Uploader: dock shows the mode without the word \"Performance\"; times read as hours and minutes."
+            },
+            {
+              "title": "",
+              "text": "Starscape: tray menu styled like the Data Uploader's."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader shows available updates at start and after a manual refresh."
+            },
+            {
+              "title": "",
+              "text": "3D packages no longer fail on duplicate placement ids; converter failures retry cleanly."
+            },
+            {
+              "title": "",
+              "text": "Uploads no longer fail on a transient storage signing error."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.234.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ship and item pages open with one head strip: patch, whether it is in your Hangar or Inventar, and your variant. The build number is gone from the head."
+            },
+            {
+              "title": "",
+              "text": "Ownership card on top of the panel (\"Haben?\" / \"Dein Exemplar\" / \"Dein Bestand\") with wishlist, hangar, rename, note, pin and remove; inventory items can now carry a note and a pin."
+            },
+            {
+              "title": "",
+              "text": "Klassisch / Holotisch is a toggle button in the bottom-right corner, above the feedback button."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "One share button per page, on the feedback button's line; on ship pages it opens the share menu incl. \"save & share as hangar link\"."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The share button no longer floats on its own above the Holotisch bar."
+            },
+            {
+              "title": "",
+              "text": "Opening a hangar ship no longer flashes the Codex address first."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.233.0",
       "date": "2026-11-08",

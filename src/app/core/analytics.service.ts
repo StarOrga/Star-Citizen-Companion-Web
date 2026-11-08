@@ -49,6 +49,9 @@ export type VerseEvent = keyof VerseEventProps;
  *    identify a user, so events stay anonymous.
  *  - EU ingest host (admin decision: EU/Germany).
  */
+/** How long a pending flags answer is awaited before the defaults apply. */
+export const FLAGS_TIMEOUT_MS = 2500;
+
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
   private readonly consent = inject(ConsentService);
@@ -60,6 +63,16 @@ export class AnalyticsService {
   private readonly flagValues = signal<Readonly<Record<string, boolean | string>>>({});
   /** Flags, but only while statistics consent holds — never read before it. */
   readonly flags = computed(() => (this.consent.statisticsAllowed() ? this.flagValues() : {}));
+  /** True once PostHog reported flags (or its load failed) - until then `flags` is only "not yet", not "off". */
+  private readonly flagsSettled = signal(false);
+  /**
+   * Flags are still on their way: statistics consent holds and a key is configured, but PostHog has not
+   * answered yet. A flag-driven decision (the `beta-*` areas) taken now would read the default, not the flag.
+   */
+  readonly flagsPending = computed(
+    () => this.configured && this.consent.statisticsAllowed() && !this.flagsSettled(),
+  );
+  private flagsTimer: ReturnType<typeof setTimeout> | null = null;
   /** Guards against a second concurrent lazy-load while the first is in flight. */
   private loading = false;
   private routerBound = false;
@@ -164,7 +177,23 @@ export class AnalyticsService {
     }
   }
 
+  /**
+   * Upper bound for a flags answer that never comes (an ad blocker that only blocks the flags endpoint):
+   * after it the defaults apply, as if PostHog were absent. A fallback for a missing answer only.
+   */
+  private armFlagsTimeout(): void {
+    if (this.flagsSettled() || this.flagsTimer !== null) return;
+    this.flagsTimer = setTimeout(() => this.settleFlags(), FLAGS_TIMEOUT_MS);
+  }
+
+  private settleFlags(): void {
+    if (this.flagsTimer !== null) clearTimeout(this.flagsTimer);
+    this.flagsTimer = null;
+    this.flagsSettled.set(true);
+  }
+
   private async enable(): Promise<void> {
+    this.armFlagsTimeout();
     if (this.client) {
       this.client.opt_in_capturing();
       this.applyPendingLandingUtm();
@@ -190,7 +219,10 @@ export class AnalyticsService {
         person_profiles: 'never',
       });
       this.client = posthog;
-      posthog.onFeatureFlags((_flags, variants) => this.flagValues.set({ ...variants }));
+      posthog.onFeatureFlags((_flags, variants) => {
+        this.flagValues.set({ ...variants });
+        this.settleFlags();
+      });
       this.bindRouter();
       this.applyPendingLandingUtm();
     } catch (error) {
@@ -198,6 +230,7 @@ export class AnalyticsService {
       // strictly optional — never let it break the app.
       logWarn('analytics', 'posthog load failed', error);
       this.client = null;
+      this.settleFlags();
     } finally {
       this.loading = false;
     }
@@ -205,6 +238,9 @@ export class AnalyticsService {
 
   private disable(): void {
     this.flagValues.set({});
+    if (this.flagsTimer !== null) clearTimeout(this.flagsTimer);
+    this.flagsTimer = null;
+    this.flagsSettled.set(false);
     if (!this.client) return;
     this.client.opt_out_capturing();
     this.client.reset();

@@ -1,7 +1,7 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { environment } from '../../environments/environment';
-import { AnalyticsService, pageviewUrl } from './analytics.service';
+import { AnalyticsService, FLAGS_TIMEOUT_MS, pageviewUrl } from './analytics.service';
 import { ConsentService } from './consent.service';
 
 /**
@@ -54,6 +54,22 @@ describe('AnalyticsService', () => {
     TestBed.flushEffects();
     // Consent is off, so the effect never opens the library — nothing loaded.
     expect(Object.keys(localStorage).some((k) => k.startsWith('ph_'))).toBe(false);
+  });
+
+  it('flagsPending settles after the upper bound when PostHog never answers', fakeAsync(() => {
+    consent.acceptAll();
+    expect(svc.flagsPending()).toBe(true);
+    // What enable() does first; the library itself is not loaded here.
+    (svc as unknown as { armFlagsTimeout(): void }).armFlagsTimeout();
+    tick(FLAGS_TIMEOUT_MS - 1);
+    expect(svc.flagsPending()).toBe(true);
+    tick(1);
+    expect(svc.flagsPending()).toBe(false);
+  }));
+
+  it('flagsPending is false without statistics consent', () => {
+    consent.essentialOnly();
+    expect(svc.flagsPending()).toBe(false);
   });
 
   it('is a no-op when no key is configured, even with consent granted', () => {

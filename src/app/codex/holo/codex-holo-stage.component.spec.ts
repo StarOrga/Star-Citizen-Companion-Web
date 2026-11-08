@@ -316,17 +316,14 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     expect(Array.from(el.querySelectorAll('.tools5 .tt')).some((b) => b.textContent!.includes('view3d'))).toBe(true);
   });
 
-  it('the share popover closes on Escape and does not steal Escape from the inspector', async () => {
+  it('the toolbar has no Teilen any more and Escape closes the inspector (C9)', async () => {
     const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
     const c = fixture.componentInstance;
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.share-wrap')).toBeNull();
+    expect(el.querySelector('sc-codex-holo-share')).toBeNull();
+    expect(el.querySelector('.holo-topbar .sc-head-strip')).withContext('the head strip on the title row').toBeTruthy();
     c.inspectedPort.set('hardpoint_gun_left');
-    c.toggleShare();
-    fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-holo-share')).toBeTruthy();
-    c.onKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
-    fixture.detectChanges();
-    expect(c.sharePopoverOpen()).toBe(false);
-    expect(c.inspectedPort()).toBe('hardpoint_gun_left');
     c.onKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(c.inspectedPort()).toBeNull();
   });
@@ -420,17 +417,15 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     });
   });
 
-  it('switching to another hull resets inspector, share popover and view mode', async () => {
+  it('switching to another hull resets inspector and view mode', async () => {
     const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
     const c = fixture.componentInstance;
     c.inspectPin('hardpoint_gun_left');
-    c.toggleShare();
     c.chosenSurface.set('simple');
     fixture.detectChanges();
     fixture.componentRef.setInput('detail', { ...detailWithPorts(['hardpoint_gun_left']), classNameSlug: 'aegs_gladius' });
     fixture.detectChanges();
     expect(c.inspectedPort()).toBeNull();
-    expect(c.sharePopoverOpen()).toBe(false);
     expect(c.viewMode()).toBe('holo');
   });
 
