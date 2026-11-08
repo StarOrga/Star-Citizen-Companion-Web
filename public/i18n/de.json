@@ -6293,7 +6293,7 @@
       }
     },
     "app": {
-      "launch": "Companion-App starten",
+      "launch": "App starten",
       "starting": "Companion-App wird gestartet …",
       "started": "Companion-App startet. Melde dich dort an, dann kommen deine Daten hierher.",
       "downloading": "Companion-App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
@@ -6302,7 +6302,7 @@
       "download": "Companion-App herunterladen",
       "downloadCta": "App downloaden",
       "downloadStarted": "Der Download läuft (rund 500 MB). Führe danach das Setup aus.",
-      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „Companion-App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
+      "tipDownload": "Lädt den Installer direkt herunter. Ist die App schon installiert, starte sie einmal: Sobald sie sich verbindet, steht hier „App starten“. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "tipLaunch": "Öffnet die Companion-App auf deinem PC. Falls sie nicht antwortet, startet der Download. Unter Apps oben rechts findest du sie jederzeit wieder.",
       "close": "Schließen"
     },

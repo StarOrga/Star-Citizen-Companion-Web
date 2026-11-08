@@ -6293,7 +6293,7 @@
       }
     },
     "app": {
-      "launch": "Start Companion app",
+      "launch": "Start app",
       "starting": "Starting the Companion app …",
       "started": "The Companion app is starting. Sign in there and your data will come through here.",
       "downloading": "Companion app not found: the download is running now (about 500 MB). Run the setup afterwards.",
@@ -6302,7 +6302,7 @@
       "download": "Download Companion app",
       "downloadCta": "Download app",
       "downloadStarted": "The download is running (about 500 MB). Run the setup afterwards.",
-      "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start Companion App”. You can always find it again under Apps at the top right.",
+      "tipDownload": "Downloads the installer right away. If the app is already installed, start it once: as soon as it connects, this says “Start app”. You can always find it again under Apps at the top right.",
       "tipLaunch": "Opens the Companion App on your PC. If it does not answer, the download starts. You can always find it again under Apps at the top right.",
       "close": "Close"
     },

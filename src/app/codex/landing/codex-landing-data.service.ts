@@ -123,7 +123,7 @@ const SHIP_VALUES: readonly { path: string; unit: LandingValue['unit'] }[] = [
 ];
 
 /** Keys of physics plumbing values: shown only after every headline value. */
-const PHYSICS_PLUMBING = /mass|damping|spawn|zero.?g|scale/i;
+const PHYSICS_PLUMBING = /mass|damping|spawn|zero.?g|scale|collision/i;
 
 function readPath(obj: unknown, path: string): unknown {
   let cur: unknown = obj;
@@ -164,10 +164,9 @@ export function topValuesFor(category: LandingCategory, payload: unknown): Landi
       if (isNum(v) && v !== 0) out.push({ key: `stats.${group}.${k}`, value: v, unit: null });
     }
   }
-  // Physics plumbing (mass, damping, spawn box) is real data but no headline: it goes last, so a
-  // short sheet that cuts from the end keeps the values a reader compares (stable sort keeps the rest's order).
-  const plumbing = (key: string): number => (PHYSICS_PLUMBING.test(key) ? 1 : 0);
-  return out.sort((x, y) => plumbing(x.key) - plumbing(y.key)).slice(0, MAX_TOP_VALUES);
+  // Physics plumbing (mass, damping, spawn box, collision log size) is real data but nothing a reader
+  // compares, so the sheet never shows it — fewer rows beat a sheet of engine internals.
+  return out.filter((v) => !PHYSICS_PLUMBING.test(v.key)).slice(0, MAX_TOP_VALUES);
 }
 
 /** Ship values where more is better; every other ship value (crew, mass) is neutral. */

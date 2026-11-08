@@ -25,13 +25,15 @@ export class HqEventNamesComponent {
   private ready = false;
 
   constructor() {
+    // Resolved here: afterNextRender runs outside the injection context (NG0203).
+    const destroy = inject(DestroyRef);
     afterNextRender(() => {
       this.ready = true;
       this.fit();
       if (typeof ResizeObserver === 'undefined') return;
       const ro = new ResizeObserver(() => this.fit());
       ro.observe(this.el);
-      inject(DestroyRef).onDestroy(() => ro.disconnect());
+      destroy.onDestroy(() => ro.disconnect());
     });
     effect(() => {
       this.names();
