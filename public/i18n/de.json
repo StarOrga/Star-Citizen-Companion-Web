@@ -469,6 +469,7 @@
         "label": "Codex: neu in diesem Patch",
         "title": "Codex · neu in {{patch}}",
         "titleNoPatch": "Codex · neu",
+        "titleDiscover": "Codex · {{patch}}",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
         "categories": "Kategorien",
@@ -476,7 +477,8 @@
         "more": "+ {{count}} weitere",
         "all": "Alle {{category}}",
         "held": "gehalten",
-        "updated": "aktualisiert"
+        "updated": "aktualisiert",
+        "new": "neu"
       }
     },
     "index": {
@@ -2577,8 +2579,10 @@
       "patch": "Patch",
       "variant": "Variante",
       "variantAria": "Variante wählen, gerade: {{name}}",
+      "shown": "Gezeigt:",
       "own": {
         "hangar": "Im Hangar",
+        "hangarN": "{{n}}× im Hangar",
         "inventar": "Im Inventar · {{n}}×",
         "sammlung": "In der Sammlung"
       },
