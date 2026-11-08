@@ -7045,20 +7045,19 @@
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Download apps",
-    "platform": "Windows · always the latest version",
     "scc": {
       "name": "Companion App",
-      "desc": "Your companion next to the game: live info, overlays and keybindings, no alt-tabbing."
+      "desc": "Live info, overlays and keybindings right next to the game, no alt-tabbing."
     },
     "starscape": {
       "name": "Starscape",
-      "desc": "Your desktop becomes a window into the Verse — a new picture from the gallery every day."
+      "desc": "Your desktop as a window into the Verse, with a new gallery picture every day."
     },
     "uploader": {
       "name": "Data Uploader",
-      "desc": "Reads your Star Citizen install and fills the Codex with ships, stats and 3D models."
+      "desc": "Reads your game and fills the Codex with ships, stats and 3D models."
     },
-    "footer": "This is the stable version. Pick Beta and Alpha in the app after logging in — which channels you see depends on your role."
+    "footer": "This is the stable version. Pick Beta or Alpha in the app after logging in, depending on your role."
   },
   "appNotice": {
     "aria": "App notice",

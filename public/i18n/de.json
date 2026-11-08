@@ -7045,20 +7045,19 @@
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Apps herunterladen",
-    "platform": "Windows · immer die neueste Version",
     "scc": {
       "name": "Companion-App",
-      "desc": "Dein Begleiter neben dem Spiel: Live-Infos, Overlays und Tastenbelegung, ohne Alt-Tab."
+      "desc": "Live-Infos, Overlays und Tastenbelegung direkt neben dem Spiel, ohne Alt-Tab."
     },
     "starscape": {
       "name": "Starscape",
-      "desc": "Dein Desktop wird zum Fenster ins Verse — jeden Tag ein neues Bild aus der Galerie."
+      "desc": "Dein Desktop als Fenster ins Verse, jeden Tag mit einem neuen Galeriebild."
     },
     "uploader": {
       "name": "Data Uploader",
-      "desc": "Liest dein Star Citizen aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen."
+      "desc": "Liest dein Spiel aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen."
     },
-    "footer": "Hier lädst du die stabile Version. Beta und Alpha wählst du nach dem Login in der App — welche Kanäle du siehst, hängt von deiner Rolle ab."
+    "footer": "Hier gibt es die stabile Version. Beta und Alpha wählst du nach dem Login in der App, je nach deiner Rolle."
   },
   "appNotice": {
     "aria": "App-Hinweis",

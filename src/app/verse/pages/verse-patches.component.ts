@@ -222,7 +222,6 @@ export class VersePatchesComponent {
 
   protected readonly steps = READINESS_STEPS;
 
-  /** The line the pre-flight is about: the one in a test ring, else the digest's. */
   /** The target line under its current name (CIG renames: 4.11 became 5.0) and the name it was announced under. */
   readonly lineName = computed(() => currentPatchName(this.targetLine() ?? ''));
   readonly formerName = computed(() => formerPatchName(this.targetLine() ?? ''));
@@ -231,6 +230,7 @@ export class VersePatchesComponent {
     return t !== null && samePatch(line, t);
   }
 
+  /** The line the pre-flight is about: the one in a test ring, else the digest's. */
   readonly targetLine = computed<string | null>(() => {
     const testing = nextLineInTesting(this.news.patchLines());
     if (testing?.line) return testing.line;

@@ -804,6 +804,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .holo-below .holo-details { grid-column: 2 / 6; grid-row: 3; min-width: 0; }
   /* At the page's end the perspectives sit right on the strip. */
   .below-persp { margin-top: 14px; margin-bottom: 0; }
+  /* The stage is a flex column with gap: 6px; the panel cancels it toward the strip so the two meet without a seam (feedback #4). */
+  @media (min-width: 901px) { .below-persp { margin-bottom: -6px; } }
   .holo-stage.first:is(.ph-wait, .ph-hero) .holo-below { opacity: 0; }
   .first.ph-reveal .holo-below { animation: rise 600ms var(--e-out) 440ms backwards; }
   .holo-below { transition: opacity var(--holo-t-fast) var(--e-io); }
