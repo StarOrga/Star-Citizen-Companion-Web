@@ -3,8 +3,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { HqLiveEventRow } from '../data/hq-db.types';
-import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
-import { ConnectionState } from '../../desktop/desktop-access';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqLiveService } from './hq-live.service';
 import { HqNowComponent } from './hq-now.component';
@@ -38,15 +36,15 @@ function fakeLive(state: Record<string, unknown> | null, events: HqLiveEventRow[
 }
 
 describe('HqNowComponent', () => {
-  function mount(live: ReturnType<typeof fakeLive>, conn: ConnectionState = 'never'): ComponentFixture<HqNowComponent> {
+  function mount(live: ReturnType<typeof fakeLive>, conn: 'never' | 'connected' = 'never'): ComponentFixture<HqNowComponent> {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         provideTranslateService(),
         { provide: HqLiveService, useValue: live },
-        { provide: DesktopConnectionService, useValue: { stateFor: () => conn, refresh: () => Promise.resolve() } },
       ],
     });
+    if (conn === 'connected') live.events.set([ev(1)]);
     const f = TestBed.createComponent(HqNowComponent);
     f.detectChanges();
     return f;
@@ -60,6 +58,7 @@ describe('HqNowComponent', () => {
   });
 
   it('tells a connected app without live data to enable the sync', () => {
+    // Only the SCC app counts (events from it, no live state yet).
     const f = mount(fakeLive(null), 'connected');
     const el = f.nativeElement as HTMLElement;
     expect(el.querySelector('.connect .connect-title')?.textContent).toContain('hq.now.connect.syncOffTitle');
@@ -67,7 +66,7 @@ describe('HqNowComponent', () => {
   });
 
   it('explains what Jetzt shows with three examples in both connect states', () => {
-    for (const conn of ['never', 'connected'] as ConnectionState[]) {
+    for (const conn of ['never', 'connected'] as ('never' | 'connected')[]) {
       TestBed.resetTestingModule();
       const el = mount(fakeLive(null), conn).nativeElement as HTMLElement;
       expect(el.querySelector('.connect .explain-what')?.textContent).toContain('hq.now.connect.explain.what');

@@ -14,8 +14,9 @@ import { HqOwnershipService } from '../hq-ownership.service';
 import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from '../hq-page-nav.service';
 import { HqPageId, hqEinsatzHref, hqHangar } from '../hq-routes';
 import { EventHqService } from '../events/event-hq.service';
-import { HqEventEndComponent } from '../events/hq-event-end.component';
+import { HqEventNamesComponent } from './hq-event-names.component';
 import { HqSuppliesService } from '../hq-supplies.service';
+import { HqAppConnectionService } from '../now/hq-app-connection.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { formatLocationName, isGameLive, presenceAt, readLocation, readShip } from '../now/hq-live.util';
 import { currentEinsatz } from '../now/hq-now-path';
@@ -54,7 +55,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
 @Component({
   selector: 'sc-hq-start-tiles',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, HqAppLaunchComponent, HqEventEndComponent],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, HqAppLaunchComponent, HqEventNamesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="row">
@@ -164,7 +165,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
         @if (events.nearest(); as ne) {
           <a class="own evmark" [href]="nav.href('planen')" (click)="nav.go($event, 'planen')" data-event-marker>
             <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6.2 6.2 2.8-6.2 2.8L12 21l-2-6.2L3.8 12 10 9.2z" /></svg>
-            <span><b>{{ 'hq.events.marker' | translate: { n: events.open().length } }}</b> · {{ ne.event.name }} · <sc-hq-event-end [end]="ne.end" /></span>
+            <span class="evtxt"><b>{{ (events.open().length === 1 ? 'hq.events.markerOne' : 'hq.events.marker') | translate: { n: events.open().length } }}</b><sc-hq-event-names [names]="eventNames()" /></span>
           </a>
         }
       </div>
@@ -220,6 +221,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       .side b { margin-top: 6px; font: 500 1.125rem / 1.25 var(--sc-font-display); color: var(--sc-fg-0); overflow-wrap: anywhere; }
       .evmark { display: flex; align-items: flex-start; gap: 6px; margin-top: 6px; padding: 6px 8px; border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); border-radius: 8px; background: color-mix(in srgb, var(--sc-accent) 9%, transparent); color: var(--sc-fg-1); font-size: 0.8rem; text-decoration: none; }
       .evmark .ico { flex: none; width: 16px; height: 16px; fill: none; stroke: var(--sc-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .evtxt { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
       .evmark b { color: var(--sc-accent); }
       .cta { margin-top: auto; padding-top: 8px; color: var(--sc-accent); }
       /* Light edge: no box, a lit top line fading downwards; the text leans to the centre. */
@@ -299,6 +301,7 @@ export class HqStartTilesComponent {
   protected readonly einsatz = inject(HqEinsatzService);
   protected readonly supplies = inject(HqSuppliesService);
   protected readonly live = inject(HqLiveService);
+  private readonly appConn = inject(HqAppConnectionService);
   protected readonly nav = inject(HqPageNavService);
   private readonly stats = inject(HqStatsService);
   private readonly ownership = inject(HqOwnershipService);
@@ -309,6 +312,7 @@ export class HqStartTilesComponent {
   protected readonly hangarLink = hqHangar;
   protected readonly badge = einsatzBadge;
   protected readonly events = inject(EventHqService);
+  protected readonly eventNames = computed(() => this.events.open().map((o) => o.event.name));
   protected readonly hotkey = (page: HqPageId): number | null => hqPageHotkey(page);
 
   /** Re-evaluates the life sign's and the stand's age while the page stays open. */
@@ -343,7 +347,7 @@ export class HqStartTilesComponent {
   // Jetzt
   protected readonly gameLive = computed(() => isGameLive(this.live.state(), this.live.events(), this.clock()));
   /** The account has a game signal: the SCC app has reported a state or an event. */
-  protected readonly hasSignal = computed(() => this.live.state() !== null || this.live.events().length > 0);
+  protected readonly hasSignal = this.appConn.everConnected;
   protected readonly location = computed(() => readLocation(this.live.state()));
   protected readonly place = computed(() => {
     const at = this.location();
