@@ -176,7 +176,7 @@ async function r2Gate(r2: R2): Promise<Response | null> {
   try {
     used = await bucketBytes(r2);
   } catch (e) {
-    return json({ error: 'sign_failed', message: (e as Error).message }, 500);
+    return r2SignFailed(e);
   }
   if (used >= r2.quotaBytes) {
     return json({ error: 'storage_quota_exceeded', message: `R2 holds ${used} of ${r2.quotaBytes} bytes` }, 507);
@@ -197,6 +197,18 @@ async function mapLimit<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): 
     }),
   );
   return out;
+}
+
+/**
+ * R2 refused/timed out while signing (list, quota read). The request itself is
+ * fine, so reply 503 + Retry-After (still code `sign_failed`, which the
+ * uploader already retries with backoff) instead of a bare 500.
+ */
+function r2SignFailed(e: unknown, path?: string): Response {
+  return new Response(
+    JSON.stringify({ error: 'sign_failed', transient: true, message: (e as Error).message, ...(path ? { path } : {}) }),
+    { status: 503, headers: { 'content-type': 'application/json', 'retry-after': '2', ...CORS } },
+  );
 }
 
 /** Stored size of one object below `ship-skins/`, or null when it is not there. */
@@ -279,7 +291,7 @@ async function handlePackage(
       });
       return json({ ok: true, uploads });
     } catch (e) {
-      return json({ error: 'sign_failed', message: (e as Error).message }, 500);
+      return r2SignFailed(e);
     }
   }
 
@@ -379,7 +391,7 @@ async function handleBlueprint(
       });
       return json({ ok: true, uploads });
     } catch (e) {
-      return json({ error: 'sign_failed', message: (e as Error).message }, 500);
+      return r2SignFailed(e);
     }
   }
 
@@ -569,7 +581,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           }
           uploads.push({ path, token: '', signedUrl: await presignPut(r2, SKINS_PREFIX + path) });
         } catch (e) {
-          return json({ error: 'sign_failed', message: (e as Error).message, path }, 500);
+          return r2SignFailed(e, path);
         }
         continue;
       }

@@ -102,6 +102,23 @@ function decodeXml(s: string): string {
     .replace(/&amp;/g, '&');
 }
 
+/** One list page; a network error, 429 or 5xx is tried once more before it counts as a failure. */
+async function listPage(cfg: R2Config, url: string, prefix: string): Promise<ReturnType<typeof parseListPage>> {
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await cfg.client.fetch(url, { signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS) });
+      if (res.ok) return parseListPage(await res.text());
+      lastErr = new Error(`R2 list ${prefix} failed: HTTP ${res.status}`);
+      if (res.status !== 429 && res.status < 500) throw lastErr;
+    } catch (e) {
+      lastErr = e as Error;
+      if (/HTTP 4(?!29)\d\d/.test(lastErr.message)) throw lastErr;
+    }
+  }
+  throw lastErr ?? new Error(`R2 list ${prefix} failed`);
+}
+
 /** Every object under `prefix`, following continuation tokens. */
 export async function listObjects(cfg: R2Config, prefix: string): Promise<R2Object[]> {
   const all: R2Object[] = [];
@@ -111,9 +128,7 @@ export async function listObjects(cfg: R2Config, prefix: string): Promise<R2Obje
     url.searchParams.set('list-type', '2');
     url.searchParams.set('prefix', prefix);
     if (token) url.searchParams.set('continuation-token', token);
-    const res = await cfg.client.fetch(url.toString(), { signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS) });
-    if (!res.ok) throw new Error(`R2 list ${prefix} failed: HTTP ${res.status}`);
-    const page = parseListPage(await res.text());
+    const page = await listPage(cfg, url.toString(), prefix);
     all.push(...page.objects);
     token = page.next;
   } while (token);
@@ -155,9 +170,22 @@ export async function deleteObject(cfg: R2Config, key: string): Promise<void> {
 }
 
 /** Total bytes stored in the whole bucket (every prefix counts against the free tier). */
-export async function bucketBytes(cfg: R2Config): Promise<number> {
+export async function bucketBytes(cfg: R2Config, now = Date.now()): Promise<number> {
+  // The quota gate runs on EVERY sign call; a full, sequential bucket listing
+  // each time made one flaky page fail a whole sign request. Per isolate, 60 s.
+  const hit = bucketBytesCache.get(cfg.accountId + '/' + cfg.bucket);
+  if (hit && now - hit.at < BUCKET_BYTES_TTL_MS) return hit.bytes;
   const objects = await listObjects(cfg, '');
-  return objects.reduce((sum, o) => sum + o.size, 0);
+  const bytes = objects.reduce((sum, o) => sum + o.size, 0);
+  bucketBytesCache.set(cfg.accountId + '/' + cfg.bucket, { at: now, bytes });
+  return bytes;
+}
+
+export const BUCKET_BYTES_TTL_MS = 60_000;
+const bucketBytesCache = new Map<string, { at: number; bytes: number }>();
+/** Test hook. */
+export function resetBucketBytesCache(): void {
+  bucketBytesCache.clear();
 }
 
 /**
