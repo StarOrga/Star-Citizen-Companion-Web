@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.239.1",
+  "current": "0.239.2",
   "releases": [
+    {
+      "version": "0.239.2",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Classic ship view: the \"Dein Exemplar\" / \"Haben?\" card sits directly under the ship picture instead of in the headline column."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.239.1",
       "date": "2026-11-08",
