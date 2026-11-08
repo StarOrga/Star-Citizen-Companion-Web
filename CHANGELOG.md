@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.239.7] - 2026-11-09
+
+### Changed
+- Feedback chat: "＋ Neues Thema" puts the cursor straight into the input, and Ctrl/Alt hide the launcher and panel only while the pointer is outside the panel.
+
 ## [0.239.6] - 2026-11-09
 
 ### Changed

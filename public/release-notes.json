@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.239.6",
+  "current": "0.239.7",
   "releases": [
+    {
+      "version": "0.239.7",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Feedback chat: \"＋ Neues Thema\" puts the cursor straight into the input, and Ctrl/Alt hide the launcher and panel only while the pointer is outside the panel."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.239.6",
       "date": "2026-11-09",
