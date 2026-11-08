@@ -171,7 +171,11 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 4: FPS weapons whose .cdf model is a mesh (none_*, P8-AR, Gallant and
     //    their variants) get packages. Cached parts are reused; only the 27
     //    missing bodies are built.
-    revision: 4,
+    // 5: the grin multitool body (material the converter cannot read) and
+    //    packages that failed on an empty/duplicate placement id (Meteor
+    //    Collector) now build. Cached parts are reused; only the missing
+    //    ones are built.
+    revision: 5,
     phases: [],
     sources: [
       'data-uploader/python/sc_extract/assets3d/',

@@ -134,8 +134,8 @@ def _resolve(parent: EntityDef, ports: List[PortDef], loadout: Sequence[LoadoutE
 
     seen = set()
     for entry in loadout:
-        key = entry.port_name.lower()
-        if key in seen:
+        key = (entry.port_name or "").lower()
+        if not key or key in seen:  # nameless entry -> empty id in the manifest
             continue
         seen.add(key)
         path = f"{parent_path}/{entry.port_name}" if parent_path else entry.port_name
@@ -148,7 +148,7 @@ def _resolve(parent: EntityDef, ports: List[PortDef], loadout: Sequence[LoadoutE
         if item is not None:
             _resolve(item, item.ports, entry.children, source, world, path, depth + 1, out)
     for p in ports:
-        if p.name.lower() in seen:
+        if not p.name or p.name.lower() in seen:
             continue
         seen.add(p.name.lower())
         path = f"{parent_path}/{p.name}" if parent_path else p.name
