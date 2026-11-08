@@ -103,6 +103,8 @@ describe('AppsMenuComponent', () => {
   it('SCC App meta reads "Windows · vX · MB" from the alias release; no collaborator badge', async () => {
     setup('collaborator');
     await openMenu();
+    await new Promise((r) => setTimeout(r, 20)); // Response.json() settles on a macrotask
+    fixture.detectChanges();
     const entries = Array.from(el().querySelectorAll<HTMLAnchorElement>('.pop a.entry'));
     expect(entries[0].querySelector('.meta')?.textContent).toContain('Windows · v0.100.0 · 100.0 MB');
     expect(el().querySelector('.pop em')).toBeNull();
