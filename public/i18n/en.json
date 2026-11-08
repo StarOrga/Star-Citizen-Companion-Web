@@ -5585,7 +5585,6 @@
       "addShip": "Add a ship",
       "addShipLabel": "Name of the ship",
       "addBlueprint": "Add a blueprint",
-      "addBlueprintLabel": "Name of the blueprint",
       "origin": {
         "pledge": "Pledge",
         "ingame": "In-game",
@@ -5600,7 +5599,18 @@
       "prev": "Previous page",
       "next": "Next page",
       "hintWish": "on the wishlist: {{n}}",
-      "hintNachschub": "in the Nachschub \"{{name}}\""
+      "hintNachschub": "in the Nachschub \"{{name}}\"",
+      "bpPick": {
+        "hint": "Pick from the Codex so materials and the Codex page match.",
+        "label": "Search blueprint",
+        "placeholder": "e.g. Arrowhead",
+        "searching": "Searching …",
+        "none": "No blueprint found.",
+        "results": "Blueprints found",
+        "owned": "already in the collection",
+        "add": "Add",
+        "addAria": "Add “{{name}}” to the collection"
+      }
     },
     "nachschub": {
       "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
@@ -5917,9 +5927,21 @@
         "none": "You have no planned or running op yet.",
         "new": "New op"
       },
-      "add": {"action":"Add Einsatz","title":"New Einsatz","label":"Name of the Einsatz (up to 40 characters)","confirm":"Add"},
-      "rename": {"action":"Rename Einsatz \"{{name}}\"","aria":"New name of the Einsatz","empty":"The name cannot be empty."},
-      "noneYet": {"title":"\"{{name}}\" has no Einsätze yet","hint":"In Planen, propose Einsätze from the positions or add one."}
+      "add": {
+        "action": "Add Einsatz",
+        "title": "New Einsatz",
+        "label": "Name of the Einsatz (up to 40 characters)",
+        "confirm": "Add"
+      },
+      "rename": {
+        "action": "Rename Einsatz \"{{name}}\"",
+        "aria": "New name of the Einsatz",
+        "empty": "The name cannot be empty."
+      },
+      "noneYet": {
+        "title": "\"{{name}}\" has no Einsätze yet",
+        "hint": "In Planen, propose Einsätze from the positions or add one."
+      }
     },
     "activity": {
       "kopfgeld": "Bounty",

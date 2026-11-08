@@ -5585,7 +5585,6 @@
       "addShip": "Schiff anlegen",
       "addShipLabel": "Name des Schiffs",
       "addBlueprint": "Blaupause anlegen",
-      "addBlueprintLabel": "Name der Blaupause",
       "origin": {
         "pledge": "Pledge",
         "ingame": "Ingame",
@@ -5600,7 +5599,18 @@
       "prev": "Vorherige Seite",
       "next": "Nächste Seite",
       "hintWish": "auf der Wunschliste: {{n}}",
-      "hintNachschub": "im Nachschub „{{name}}“"
+      "hintNachschub": "im Nachschub „{{name}}“",
+      "bpPick": {
+        "hint": "Aus dem Codex wählen, damit Material und Codex-Seite passen.",
+        "label": "Blaupause suchen",
+        "placeholder": "z. B. Arrowhead",
+        "searching": "Suche läuft …",
+        "none": "Keine Blaupause gefunden.",
+        "results": "Gefundene Blaupausen",
+        "owned": "schon in der Sammlung",
+        "add": "Hinzufügen",
+        "addAria": "„{{name}}“ zur Sammlung hinzufügen"
+      }
     },
     "nachschub": {
       "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
@@ -5917,9 +5927,21 @@
         "none": "Du hast noch keinen geplanten oder laufenden Einsatz.",
         "new": "Neuer Einsatz"
       },
-      "add": {"action":"Einsatz hinzufügen","title":"Neuer Einsatz","label":"Name des Einsatzes (höchstens 40 Zeichen)","confirm":"Hinzufügen"},
-      "rename": {"action":"Einsatz „{{name}}“ umbenennen","aria":"Neuer Name des Einsatzes","empty":"Der Name darf nicht leer sein."},
-      "noneYet": {"title":"„{{name}}“ hat noch keine Einsätze","hint":"Schlage in Planen Einsätze aus den Positionen vor oder füge einen hinzu."}
+      "add": {
+        "action": "Einsatz hinzufügen",
+        "title": "Neuer Einsatz",
+        "label": "Name des Einsatzes (höchstens 40 Zeichen)",
+        "confirm": "Hinzufügen"
+      },
+      "rename": {
+        "action": "Einsatz „{{name}}“ umbenennen",
+        "aria": "Neuer Name des Einsatzes",
+        "empty": "Der Name darf nicht leer sein."
+      },
+      "noneYet": {
+        "title": "„{{name}}“ hat noch keine Einsätze",
+        "hint": "Schlage in Planen Einsätze aus den Positionen vor oder füge einen hinzu."
+      }
     },
     "activity": {
       "kopfgeld": "Kopfgeld",
