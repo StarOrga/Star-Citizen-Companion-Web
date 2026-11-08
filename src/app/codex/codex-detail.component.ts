@@ -493,6 +493,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         </header>
 
         @if (kind() === 'ship') {
+          <!-- The ownership card (C5) sits directly under the picture (#323:
+               it had no business in the headline's side column). It takes its
+               own height; the stretching stage above gives up the room. -->
+          <div class="hero-own"><ng-container [ngTemplateOutlet]="ownCard" /></div>
+
           <!-- ── The four frequent actions, directly under the picture ─────
                They sat on the art until feedback 140dfb7e asked for every
                clickable thing except the 2D/3D switch to leave the image.
@@ -545,9 +550,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         </div>
 
         @if (kind() === 'ship') {
-          <!-- The side column: the ownership card (C5) on top of the Einordnung. -->
+          <!-- The side column: the Einordnung (the ownership card moved under the picture, #323). -->
           <div class="m-side">
-          <ng-container [ngTemplateOutlet]="ownCard" />
           <sc-codex-rank-card
             [shipName]="displayName()"
             [sizeClass]="null"
@@ -1363,6 +1367,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        half, so the row sits directly under the stage rather than in the next
        grid track. */
     .hero-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .hero-stack > .hero-own { flex: 0 0 auto; display: flex; flex-direction: column; }
 
     /* ── BUEHNE (concept section 2) ── sc-codex-ship-stage (AUD-062) renders
        with display:contents inside this header, so its content becomes this
