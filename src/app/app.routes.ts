@@ -176,20 +176,22 @@ export const routes: Routes = [
         // Codex front door = "the composed depth-field landing": Archive
         // Terminal poly-search + ICH/MEINE-FLOTTE hero panels + WELT lanes.
         path: 'codex',
-        data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true },
+        data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true, codexPart: 'top' },
         pathMatch: 'full',
         loadComponent: () =>
-          import('./codex/codex-landing.component').then((m) => m.CodexLandingComponent),
+          import('./codex/codex-page.component').then((m) => m.CodexPageComponent),
       },
       {
         // Index mode — the power-user escape hatch. The original filter-list
         // (kind tabs + all facets + result grid + load-more + compare tray),
         // reachable one click from the Bridge. Static segment placed BEFORE
         // codex/:kind/:className so it is never consumed by the :kind wildcard.
+        // "Mehr in Codex": the lower part of the Codex page (landing on top, this
+        // overview under it) — the same page, opened scrolled down. Filters in the query.
         path: 'codex/index',
-        data: { layout: 'tool' },
+        data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true, codexPart: 'more' },
         loadComponent: () =>
-          import('./codex/codex-browse.component').then((m) => m.CodexBrowseComponent),
+          import('./codex/codex-page.component').then((m) => m.CodexPageComponent),
       },
       {
         // Mission (contract) page — target of the global search's mission group.

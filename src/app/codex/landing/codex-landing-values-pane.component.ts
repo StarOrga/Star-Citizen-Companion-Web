@@ -219,8 +219,11 @@ export class CodexLandingValuesPaneComponent {
     if (!body) return;
     const rows = Array.from(body.querySelectorAll<HTMLElement>('.row'));
     for (const r of rows) r.classList.remove('cut');
+    const go = body.querySelector<HTMLElement>('.go');
+    // Not scrollHeight: the re-scan line (.sweep) travels below the body and would count as overflow.
+    const over = (): boolean => !!go && go.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(body).paddingBottom) || 0) > body.getBoundingClientRect().bottom + 1;
     const shown = rows.filter((r) => r.getClientRects().length > 0);
-    for (let i = shown.length - 1; i >= 0 && body.scrollHeight > body.clientHeight + 1; i--) shown[i].classList.add('cut');
+    for (let i = shown.length - 1; i >= 0 && over(); i--) shown[i].classList.add('cut');
     const legend = body.querySelector<HTMLElement>('.legend');
     if (legend) {
       const anyBar = shown.some((r) => !r.classList.contains('cut') && r.querySelector('.bar u'));
