@@ -26,7 +26,7 @@ npm run gate:mobile:quick       # 2 devices, public routes (fast inner loop)
 npm run gate:mobile:selftest    # prove the checks themselves still work
 
 # explicit target (preview deployment, prod, another port)
-node scripts/mobile-gate.mjs --base-url=https://sc-companion.vercel.app
+node scripts/mobile-gate.mjs --base-url=https://versecompanion-alpha.vercel.app
 
 # narrow it down while fixing something (public routes only)
 node scripts/mobile-gate.mjs --devices=iphone-14 --routes=/about,/login

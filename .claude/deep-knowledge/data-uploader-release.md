@@ -117,7 +117,7 @@ token gaps above all pass CI yet hide the version from users. So after any
 release, verify the actual user-facing surfaces live in Edge (Claude-in-Chrome)
 — not just that the merge/tag landed:
 
-- `sc-companion.vercel.app/desktop` shows the new version + correct hashes and
+- `versecompanion-alpha.vercel.app/desktop` shows the new version + correct hashes and
   download links (the page is auth-gated → admin/collaborator session in Edge)
 - GitHub `/releases/latest` on the binaries repo returns the new tag
 

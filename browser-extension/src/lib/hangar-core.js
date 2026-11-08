@@ -21,7 +21,7 @@
 // unclaimed *.vercel.app subdomain is registrable by anyone, so leaving a
 // non-existent origin in a hand-off allow-list is a standing hijack target.
 /** Origins the extension is allowed to hand a payload to. First = default. */
-export const COMPANION_ORIGINS = Object.freeze(['https://sc-companion.vercel.app']);
+export const COMPANION_ORIGINS = Object.freeze(['https://versecompanion-alpha.vercel.app']);
 
 /** Route on the companion app that renders the review/confirm screen. */
 export const COMPANION_IMPORT_PATH = '/hq/hangar/import';

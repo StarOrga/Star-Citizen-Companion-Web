@@ -33,7 +33,7 @@ use crate::util;
 const PORT_MIN: u16 = 46900;
 const PORT_MAX: u16 = 46949;
 
-const WEB_BASE: &str = "https://sc-companion.vercel.app";
+const WEB_BASE: &str = "https://versecompanion-alpha.vercel.app";
 /// Fixed path the website posts to (it discards any path from `cb` and rebuilds
 /// this one, so path-injection cannot redirect the token elsewhere).
 const CALLBACK_PATH: &str = "/scc/callback";
@@ -412,7 +412,7 @@ mod tests {
 
     #[test]
     fn origin_is_read_case_insensitively_and_never_from_the_request_line() {
-        let head = "POST /scc/callback HTTP/1.1\r\nHost: x\r\nOrigin: https://sc-companion.vercel.app\r\n\r\n";
+        let head = "POST /scc/callback HTTP/1.1\r\nHost: x\r\nOrigin: https://versecompanion-alpha.vercel.app\r\n\r\n";
         assert_eq!(header(head, "origin"), Some(WEB_BASE));
         assert_eq!(header(head, "referer"), None);
         // An empty value must not read as "present" — that would reject the POST.

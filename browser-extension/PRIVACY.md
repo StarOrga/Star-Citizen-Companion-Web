@@ -45,7 +45,7 @@ in the extension popup deletes all of it.
 | --- | --- |
 | `storage` | Remember the fleet checksum so the import is not offered when nothing changed |
 | `robertsspaceindustries.com/…/account/pledges*` | Read the ship list on your own hangar page |
-| `sc-companion.vercel.app` | Hand the list to the Companion tab |
+| `versecompanion-alpha.vercel.app` | Hand the list to the Companion tab |
 
 No `tabs`, no `scripting`, no `<all_urls>`, no analytics, no remote code.
 

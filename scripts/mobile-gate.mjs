@@ -9,7 +9,7 @@
  *
  * Usage:
  *   node scripts/mobile-gate.mjs                       # auto: running dev server, else dist/
- *   node scripts/mobile-gate.mjs --base-url=https://sc-companion.vercel.app
+ *   node scripts/mobile-gate.mjs --base-url=https://versecompanion-alpha.vercel.app
  *   node scripts/mobile-gate.mjs --quick               # 2 devices x the public routes
  *   node scripts/mobile-gate.mjs --routes=/about,/login --devices=iphone-14
  *   node scripts/mobile-gate.mjs --json=mobile-gate.json --screenshots=.mobile-gate

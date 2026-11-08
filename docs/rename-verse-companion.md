@@ -44,7 +44,7 @@ After a change run `npm run gen:readme-content` and the usual gates.
 - Public host `versecompanion-alpha.vercel.app` (free subdomain, no purchase):
   added to the Vercel project, project renamed to `versecompanion-alpha`,
   canonical/sitemap/robots/security.txt/docs point there.
-  `sc-companion.vercel.app` keeps serving and stays in every allowlist.
+  The old hosts `sc-companion.vercel.app` and `star-citizen-companion-website.vercel.app` were removed by the owner the same day (no redirects); every link, the extension, Starscape and the Data Uploader point to the new host.
 - Supabase Auth: Site URL `https://versecompanion-alpha.vercel.app`, host
   added to the redirect allow list (Management API).
 - Extension: honest store text (`browser-extension/STORE-LISTING.md`),
@@ -52,10 +52,7 @@ After a change run `npm run gen:readme-content` and the usual gates.
 
 ## Still needs the owner (dashboards)
 
-1. **Vercel → Domains**: remove `star-citizen-companion-website.vercel.app`
-   (CIG domain rule; the Vercel MCP has no delete for project domains). Once
-   the new host has run a while, set `sc-companion.vercel.app` to redirect
-   (308) to `versecompanion-alpha.vercel.app`.
+1. ~~Vercel → Domains~~: done 2026-11-08 (both old hosts removed).
 2. **Supabase Auth allow list** contains `https://*.vercel.app/**` — any
    vercel.app site is an allowed redirect target. Replace it with the project's
    own preview pattern (`https://versecompanion-alpha-*.vercel.app/**`).

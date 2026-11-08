@@ -247,9 +247,9 @@ describe('extension core — handover payload', () => {
   });
 
   it('never points the handover at a foreign origin', () => {
-    expect(companionImportUrl('https://evil.example')).toContain('sc-companion.vercel.app');
-    expect(companionImportUrl('https://sc-companion.vercel.app')).toBe(
-      'https://sc-companion.vercel.app/hq/hangar/import?src=extension',
+    expect(companionImportUrl('https://evil.example')).toContain('versecompanion-alpha.vercel.app');
+    expect(companionImportUrl('https://versecompanion-alpha.vercel.app')).toBe(
+      'https://versecompanion-alpha.vercel.app/hq/hangar/import?src=extension',
     );
   });
 });
