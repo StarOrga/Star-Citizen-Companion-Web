@@ -11,6 +11,7 @@ import {
   effect,
   Injector,
   inject,
+  input,
   signal,
   untracked,
 } from '@angular/core';
@@ -188,6 +189,7 @@ export function blueprintCategoriesForGroup(
             [crumbs]="crumbs()"
             [eyebrow]="'codex.browse.eyebrow' | translate"
             [title]="areaLabelKey() | translate"
+            [level]="headingLevel()"
             [subtitle]="subtitle()" />
           <aside class="side" [attr.aria-label]="'codex.browse.areaLabel' | translate">
             <ng-container [ngTemplateOutlet]="treeTpl" />
@@ -815,6 +817,8 @@ export function blueprintCategoriesForGroup(
 
 export class CodexBrowseComponent implements OnInit {
   /** Beta "shell": kinds + filters move into the Fusion bar. */
+  /** 2 when the overview is the lower half of /codex ("Mehr in Codex"): the landing above owns the <h1>. */
+  readonly headingLevel = input<1 | 2>(1);
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);

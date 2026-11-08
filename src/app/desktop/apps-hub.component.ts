@@ -7,7 +7,7 @@ import { PageHeaderComponent } from '../shared/page-header/page-header.component
 interface AppCard {
   id: 'uploader' | 'starscape' | 'extension';
   link: string;
-  /** Elevated access only (red group colour, see CLAUDE.md "Red means elevated access"). */
+  /** Collaborator + admin only (muted copper, see CLAUDE.md "Two colours mark elevated access"). */
   elevated: boolean;
 }
 
@@ -49,9 +49,9 @@ interface AppCard {
       min-height: 48px; padding: var(--sc-space-4); text-decoration: none; color: var(--sc-fg-1);
     }
     .card:hover, .card:focus-visible { outline: none; border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .card.elevated:hover, .card.elevated:focus-visible { border-color: var(--sc-accent-hot); }
+    .card.elevated:hover, .card.elevated:focus-visible { border-color: var(--sc-accent-collab); }
     .name { font-family: var(--sc-font-display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-accent); }
-    .card.elevated .name { color: var(--sc-accent-hot); }
+    .card.elevated .name { color: var(--sc-accent-collab); }
     .desc { flex: 1; }
     .open { color: var(--sc-fg-2); }
   `,

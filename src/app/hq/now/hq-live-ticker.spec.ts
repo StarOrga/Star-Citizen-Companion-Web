@@ -1,8 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
-import { DesktopConnectionService } from '../../desktop/desktop-connection.service';
-import type { ConnectionState } from '../../desktop/desktop-access';
 import type { HqLiveEventRow } from '../data/hq-db.types';
 import { HqLiveTickerComponent } from './hq-live-ticker.component';
 import { HqLiveService } from './hq-live.service';
@@ -47,12 +45,11 @@ describe('live ticker rules', () => {
 });
 
 describe('HqLiveTickerComponent', () => {
-  function mount(page: 'inventar' | 'start', opts: { conn: ConnectionState; events?: HqLiveEventRow[]; state?: Record<string, unknown> | null }) {
+  function mount(page: 'inventar' | 'start', opts: { conn?: 'connected' | 'expired' | 'never'; events?: HqLiveEventRow[]; state?: Record<string, unknown> | null }) {
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
-        { provide: HqLiveService, useValue: { state: signal(opts.state ?? null), events: signal(opts.events ?? []) } },
-        { provide: DesktopConnectionService, useValue: { stateFor: () => opts.conn, refresh: () => Promise.resolve() } },
+        { provide: HqLiveService, useValue: { state: signal(opts.state ?? (opts.conn === 'connected' ? { presence: { at: new Date().toISOString(), gameRunning: false } } : null)), events: signal(opts.events ?? []) } },
       ],
     });
     const f = TestBed.createComponent(HqLiveTickerComponent);
@@ -82,5 +79,6 @@ describe('HqLiveTickerComponent', () => {
     expect(mount('start', { conn: 'connected' }).querySelector('.ticker')).toBeNull();
     TestBed.resetTestingModule();
     expect(mount('inventar', { conn: 'never' }).querySelector('.ticker')).toBeNull();
+    // A Starscape-only account is not an SCC signal: no state, no events -> no ticker at all.
   });
 });

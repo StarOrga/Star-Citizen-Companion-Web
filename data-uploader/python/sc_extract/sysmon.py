@@ -47,7 +47,11 @@ reads the same counters. CPU is ``% Processor Time``: since Windows 11 24H2
 (KB5058411, May 2025) Task Manager computes CPU as busy time / (elapsed time x
 logical processors) on every page. ``% Processor Utility``, its old source,
 scales with the clock speed and reads about 10 % higher here (Ryzen 5 3600 at
-full load: 110.8 against 100.0). The run's share comes from Job Object CPU
+full load: 110.8 against 100.0). Even ``% Processor Time`` reads 95-100 on a
+box where Task Manager's header shows 81: the header is the sum of its process
+rows, so ``cpuPct`` is accompanied by ``cpuProcPct`` — ``\Process(_Total)`` minus
+``\Process(Idle)`` over the logical processors (:func:`process_cpu_pct`) — and the
+host prefers that one (``pickCpuTotal``). The run's share comes from Job Object CPU
 seconds (``governor.py``), so this also puts whole PC and run on one scale.
 """
 
@@ -69,6 +73,12 @@ COUNTERS: List[Tuple[str, Tuple[str, ...]]] = [
         r"\Processor Information(_Total)\% Processor Time",
         r"\Processor(_Total)\% Processor Time",
     )),
+    # Task Manager's header is the sum of its process rows: the process-attributed
+    # busy time (_Total minus the Idle process, summed over all logical processors).
+    # The wall-clock "% Processor Time" above also books kernel/hypervisor time no
+    # process owns and read 95-100 here while Task Manager showed 81.
+    ("procTotal", (r"\Process(_Total)\% Processor Time",)),
+    ("procIdle", (r"\Process(Idle)\% Processor Time",)),
     ("readBps", (r"\PhysicalDisk(_Total)\Disk Read Bytes/sec",)),
     ("writeBps", (r"\PhysicalDisk(_Total)\Disk Write Bytes/sec",)),
     ("iops", (r"\PhysicalDisk(_Total)\Disk Transfers/sec",)),
@@ -114,6 +124,19 @@ def clean(key: str, value: float) -> float:
     if key == "cpuPct":
         return round(min(100.0, value), 1)
     return float(round(value))
+
+
+def process_cpu_pct(total: Optional[float], idle: Optional[float], cpus: int) -> Optional[float]:
+    """Task Manager's whole-PC CPU: the busy share of all process rows.
+
+    ``total`` / ``idle`` are ``\\Process(_Total)`` and ``\\Process(Idle)``
+    ``% Processor Time``, each summed over every logical processor (0..100 x cpus).
+    Returns 0..100, or ``None`` when a value is missing or glitched.
+    """
+    t, i = _num(total), _num(idle)
+    if t is None or i is None or cpus < 1:
+        return None
+    return round(max(0.0, min(100.0, (t - min(i, t)) / cpus)), 1)
 
 
 def instance_letters(instance: str) -> List[str]:
@@ -412,7 +435,10 @@ class Pdh:  # pragma: no cover - Windows only
             if self.pdh.PdhGetFormattedCounterValue(
                 h, PDH_FMT_DOUBLE | PDH_FMT_NOCAP100, None, self.ctypes.byref(v)
             ) == 0:
-                out[key] = clean(key, v.doubleValue)
+                out[key] = v.doubleValue if key in ("procTotal", "procIdle") else clean(key, v.doubleValue)
+        proc = process_cpu_pct(out.pop("procTotal", None), out.pop("procIdle", None), os.cpu_count() or 1)
+        if proc is not None:
+            out["cpuProcPct"] = proc
         if self.drive_counters:
             try:
                 out["drives"] = build_drives({key: self._array(h) for key, h in self.drive_counters.items()})

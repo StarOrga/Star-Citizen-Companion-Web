@@ -156,7 +156,7 @@ describe('CodexHoloPatchComponent', () => {
 
     // admin row appears for a collaborator once a build is picked
     expect(fixture.nativeElement.querySelector('.admin-schema-row')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.admin-flag')?.textContent).toContain('codex.holo.patch.adminOnly');
+    expect(fixture.nativeElement.querySelector('.admin-schema-row .sc-sr-only')?.textContent).toContain('codex.holo.patch.adminOnly');
   });
 
   it('tells a failed build list apart from "no other patches" and retries it (AUD-056)', async () => {
