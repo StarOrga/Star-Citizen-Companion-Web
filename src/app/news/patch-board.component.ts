@@ -207,7 +207,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                       }
                       @if (subsOpen(card)) {
                         @for (row of shownSubs(card); track row.id) {
-                          <a class="sv" [routerLink]="['/verse/patches', card.line]" [queryParams]="query() ? { q: query() } : null"
+                          <a class="sv" [routerLink]="['/verse/patches', card.line]" [queryParams]="rowParams(row)"
                              [attr.aria-label]="row.title">
                             <span class="sl">{{ row.version }}</span>
                             <span class="svt">{{ row.title }}</span>
@@ -830,6 +830,16 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
     const pool = this.teaserPool(card);
     return pool[this.fit(card).visible] ?? pool[pool.length - 1] ?? null;
   }
+  /**
+   * A version row opens the dossier on THAT note (`?note=<id>`, feedback #317:
+   * "wenn ich auf Patch 4.10.3 klicke, will ich auch zu den Änderungen zu
+   * 4.10.3 kommen") — not on the line's main release notes.
+   */
+  rowParams(row: SubVersionRow): Record<string, string> {
+    const q = this.query();
+    return q ? { note: row.id, q } : { note: row.id };
+  }
+
   /** A link into ONE roadmap entry of the dossier, carrying the board's query along. */
   itemParams(item: RoadmapCard | null): Record<string, string> {
     const params: Record<string, string> = item ? { focus: item.id } : {};

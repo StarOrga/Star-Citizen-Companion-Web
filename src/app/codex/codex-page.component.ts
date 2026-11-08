@@ -4,27 +4,32 @@ import { Location } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { CodexLandingComponent } from './codex-landing.component';
 import { CodexBrowseComponent } from './codex-browse.component';
-import { PageGlide, wirePageGlide, lowerStart } from '../shared/page-glide';
+import { PageGlide, holdOnLower, lowerStart, wirePageGlide } from '../shared/page-glide';
+import { CODEX_MORE_ANCHOR } from './codex-more-anchor';
 
-/** The two URLs of the Codex page: `/codex` (the landing on top) and `/codex/index` (the overview, "Mehr in Codex"). */
+/** The two parts of the Codex page: the landing on top and the overview under it ("Mehr in Codex"). */
 export type CodexPart = 'top' | 'more';
 
 export const CODEX_TOP_URL = '/codex';
-export const CODEX_MORE_URL = '/codex/index';
+export { CODEX_MORE_ANCHOR };
 
-/** The URL a part keeps in the address bar; the filters ride along unchanged. */
+/**
+ * The URL a part keeps in the address bar — always /codex, the lower part as the anchor
+ * #more (admin feedback #319: never /codex/index while scrolling); the filters ride along.
+ */
 export function codexPartUrl(part: CodexPart, search: string): string {
-  return (part === 'more' ? CODEX_MORE_URL : CODEX_TOP_URL) + search;
+  return CODEX_TOP_URL + search + (part === 'more' ? '#' + CODEX_MORE_ANCHOR : '');
 }
 
 /**
  * The Codex page: the landing (stage) on top and the overview with all
  * entities — filter and area tree on the left — as the lower part under it.
  * The way between them is the "Mehr im Verse" mechanism (shared/page-glide.ts):
- * scrolling on from the stage glides into the overview and the shell docks its
- * subheader there exactly as it does under the Verse hub. The lower part has
- * its own URL (`/codex/index`, filters in the query): opening it lands there,
- * and the address bar follows the scroll between the two parts.
+ * scrolling on from the stage glides into the overview, scrolling up from its
+ * top glides back, and the shell docks its subheader there exactly as it does
+ * under the Verse hub. One page, one URL: the lower part is the anchor
+ * `/codex#more` (the old `/codex/index` links redirect there); opening it lands
+ * there, and the anchor follows the scroll without a navigation.
  */
 @Component({
   selector: 'sc-codex-page',
@@ -39,13 +44,15 @@ export function codexPartUrl(part: CodexPart, search: string): string {
         {{ 'codex.page.more' | translate }}<span class="chev" aria-hidden="true"></span>
       </button>
     </div>
-    <section #more id="codex-more" class="more sc-below-stage" [attr.aria-label]="'codex.page.moreAria' | translate">
+    <section #more [id]="anchor" class="more sc-below-stage" [attr.aria-label]="'codex.page.moreAria' | translate">
       <sc-codex-browse [headingLevel]="2" />
     </section>
   `,
   styles: [
     `
-      :host { display: block; }
+      /* The page places its scroll itself (glide, deep-link landing): the browser's scroll
+         anchoring must not add its own corrections when the stage above re-measures. */
+      :host { display: block; overflow-anchor: none; }
       .stage { position: relative; min-height: 100dvh; }
       .more { scroll-margin-top: calc(var(--sc-bar-h, 56px) + 16px); min-height: calc(100dvh - var(--sc-bar-h, 56px) - 16px); }
       /* "Mehr in Codex": the way down to the overview — the Verse cue (verse-briefing-planet.scss). */
@@ -71,54 +78,40 @@ export class CodexPageComponent {
   private readonly zone = inject(NgZone);
   private readonly lower = viewChild.required<ElementRef<HTMLElement>>('more');
   private glide: PageGlide | null = null;
+  readonly anchor = CODEX_MORE_ANCHOR;
 
   /** Where the scroll stands: `top` (landing), `fly` (between), `docked` (overview). */
   readonly part = signal<'top' | 'fly' | 'docked'>('top');
-  /** The part the route opened with — a deep link to the overview starts down there. */
-  private readonly opened: CodexPart = this.route.snapshot.data['codexPart'] === 'more' ? 'more' : 'top';
+  /** The part the page opened with — `/codex#more` (or an old `/codex/index` link) starts down there. */
+  private readonly opened: CodexPart = this.route.snapshot.fragment === CODEX_MORE_ANCHOR ? 'more' : 'top';
+  /** True while a deep link to the overview waits for the page to grow tall enough to land on it. */
+  private settling = false;
 
   constructor() {
     const destroy = inject(DestroyRef);
     afterNextRender(() => {
       const g = wirePageGlide(() => this.lower().nativeElement, this.zone, (st) => {
         this.part.set(st);
-        // While a deep link is still settling, the landing's state must not rewrite /codex/index to /codex.
+        // While a deep link is still settling, the landing's state must not drop the #more anchor.
         if (this.settling && st !== 'docked') return;
         this.syncUrl(st);
       });
       this.glide = g;
       destroy.onDestroy(() => g.destroy());
-      if (this.opened === 'more') this.settleOnLower(g, destroy);
+      if (this.opened === 'more') {
+        this.settling = true;
+        let gone = false;
+        const stop = holdOnLower(g, () => lowerStart(this.lower().nativeElement), () => {
+          this.settling = false;
+          // Leaving the page ends the hold too: then the address bar already belongs to the next page.
+          if (!gone) this.syncUrl(this.part() === 'fly' ? 'top' : this.part());
+        });
+        destroy.onDestroy(() => {
+          gone = true;
+          stop();
+        });
+      }
     });
-  }
-
-  /** True while a deep link to the overview waits for the page to grow tall enough to land on it. */
-  private settling = false;
-
-  /**
-   * A deep link (/codex/index) lands on the overview. The lower part has no height on the first
-   * render (data and the landing stage load after it), so one jump lands short: re-jump on every
-   * layout growth until the scroll really stands on the overview, and stop for good as soon as the
-   * reader scrolls, presses a key or 10 s pass.
-   */
-  private settleOnLower(g: PageGlide, destroy: DestroyRef): void {
-    this.settling = true;
-    const el = this.lower().nativeElement;
-    const landed = (): boolean => Math.abs(window.scrollY - lowerStart(el)) <= 2;
-    const stop = (): void => {
-      if (!this.settling) return;
-      this.settling = false;
-      ro.disconnect();
-      clearTimeout(timer);
-      for (const t of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) window.removeEventListener(t, stop, true);
-      this.syncUrl(landed() ? 'docked' : this.part() === 'fly' ? 'top' : this.part());
-    };
-    const ro = new ResizeObserver(() => { if (this.settling) g.jumpToLower(); });
-    ro.observe(document.body);
-    const timer = setTimeout(stop, 10_000);
-    for (const t of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) window.addEventListener(t, stop, { capture: true, passive: true });
-    destroy.onDestroy(stop);
-    g.jumpToLower();
   }
 
   /** "Mehr in Codex": all the way down to the overview. */
@@ -128,15 +121,14 @@ export class CodexPageComponent {
     this.lower().nativeElement.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   }
 
-  /** Called by the glide's state: the address bar names the part the reader is in (no new history entry). */
+  /**
+   * Called by the glide's state: the anchor names the part the reader is in — a
+   * replaceState, no router navigation and no new history entry, so nothing re-anchors
+   * the scroll (admin feedback #319).
+   */
   syncUrl(state: 'top' | 'fly' | 'docked'): void {
     if (state === 'fly') return;
     const want = codexPartUrl(state === 'docked' ? 'more' : 'top', window.location.search);
-    if (this.location.path() !== want) this.location.replaceState(...splitUrl(want));
+    if (this.location.path(true) !== want) this.location.replaceState(want, '', this.location.getState());
   }
-}
-
-function splitUrl(url: string): [string, string] {
-  const i = url.indexOf('?');
-  return i < 0 ? [url, ''] : [url.slice(0, i), url.slice(i + 1)];
 }

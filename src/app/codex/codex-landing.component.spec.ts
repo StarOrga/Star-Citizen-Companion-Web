@@ -175,11 +175,12 @@ describe('CodexLandingComponent', () => {
     expect(pane.querySelectorAll('.tabs .tab').length).toBe(4);
     const open = pane.querySelector<HTMLElement>('.open')!;
     const entries = Array.from(open.querySelectorAll<HTMLAnchorElement>('.new a.ent'));
-    expect(entries.length).toBe(2);
-    expect(entries[0].closest('li')!.classList).toContain('table');
-    expect(entries[0].querySelector('.here')).not.toBeNull();
-    expect(entries[1].querySelector('.here')).toBeNull();
-    expect(pane.querySelector('a.more'), 'two entries fit the wheel').toBeNull();
+    // Every category's new items in one list (#318): the announced ship, then the two FPS weapons.
+    expect(entries.map((a) => a.getAttribute('href'))).toEqual(['/codex/upcoming/polaris', '/codex/weapon/BEHR_Rifle', '/codex/weapon/KSAR_Smg']);
+    expect(entries[1].closest('li')!.classList).toContain('table');
+    expect(entries[1].querySelector('.here')).not.toBeNull();
+    expect(entries[2].querySelector('.here')).toBeNull();
+    expect(pane.querySelector('a.more'), 'three entries fit the wheel').toBeNull();
     expect(pane.querySelector<HTMLAnchorElement>('a.all')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS');
     flush();
   }));
@@ -203,7 +204,7 @@ describe('CodexLandingComponent', () => {
     setup(three());
     settle();
     const cmp = fixture.componentInstance;
-    const second = entries()[1];
+    const second = entries()[2];
     const arrow = second.parentElement!.querySelector<HTMLAnchorElement>('a.go')!;
     expect(second.getAttribute('href')).toBe('/codex/weapon/KSAR_Smg');
     expect(arrow.getAttribute('href')).toBe('/codex/weapon/KSAR_Smg');

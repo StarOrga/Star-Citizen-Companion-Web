@@ -123,6 +123,14 @@
 // The Codex list stands left (the index it leads to keeps its area tree on the
 // left too), the values right.
 .codex { left: var(--cx-gut); }
+// The Codex list is as tall as its content (#318): it starts where the shared
+// geometry starts and stops under its foot, at most the shared height.
+.codex {
+  height: auto;
+  max-height: var(--cx-codex-h);
+  bottom: auto;
+  top: calc(100% - var(--cx-codex-h) - max(var(--sc-space-2), min(calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b)), calc(100% - var(--cx-box-top) - var(--cx-codex-h)))));
+}
 .values { right: var(--cx-gut); }
 // The list needs its full height for title, tabs, wheel and foot: on a short
 // window it reaches below the hologram box, down to just above the stage footer.
@@ -187,6 +195,7 @@
   .hero { order: 0; padding-inline: 0; }
   .title { font-size: 24px; }
   .codex, .values { height: auto; }
+  .codex { max-height: none; }
   .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   // Phone order (d-landing table-first): title, holotable, list, values, news mark.
   .news { order: 3; align-self: flex-end; }
