@@ -901,7 +901,6 @@
         "surfaceSide": "Side view",
         "surfaceFront": "Front view",
         "surfaceFrontPending": "The front view arrives with this ship's next data upload.",
-        "viewShare": "Share",
         "silhouetteAria": "Silhouette of {{name}}",
         "noGeometryReason": "No silhouette has been generated for this ship yet.",
         "inspector": "Inspector",
@@ -1065,34 +1064,7 @@
         "current": "active"
       },
       "share": {
-        "copyLink": "Copy link",
-        "followedBy": "managed by {{owner}}",
-        "followedSince": "as of {{date}}",
-        "refresh": "Refresh",
-        "refreshing": "Refreshing …",
-        "copy": "Copy",
-        "copied": "Copied",
-        "revoke": "Stop sharing",
-        "revokeNote": "Recipients who already follow this link stay connected until the config is deleted.",
-        "errorGeneric": "That didn't work. Please try again.",
-        "copyLinkHint": "Copies the address of this view — including the Holotable and any unsaved hardpoint changes.",
-        "unsavedHint": "{{n}} unsaved change(s) live only in the copied link, not in the hangar link.",
-        "signInHint": "Sign in to share a hangar configuration as a link of its own.",
-        "notInHangarHint": "This ship is not in your hangar yet. Add it first, then you can share a configuration.",
-        "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first.",
-        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand.",
-        "saveAndShare": "Save & share",
-        "shareLink": "Share link",
-        "sharing": "Sharing …",
-        "followedShareHint": "Sharing makes this configuration your own — it stops following its owner.",
-        "linksLoading": "Loading your links …",
-        "linksError": "Your links could not be loaded.",
-        "activeLinks": "Active links ({{n}})",
-        "readOnlyHint": "This is a shared loadout. Create a copy to share a link of your own.",
-        "revokeConfirm": {
-          "title": "Stop sharing this link?",
-          "body": "Nobody can create a copy of the loadout through this link any more. Recipients who already follow it stay connected."
-        }
+        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand."
       },
       "components": {
         "unknownPosition": "Position in model unknown"
@@ -1486,8 +1458,6 @@
       "stageTractorBeam": "Tractor beam",
       "stageTractorBeams": "Tractor beams",
       "linkCopied": "Link copied",
-      "dataPill": "DATA {{build}} · schema {{n}}",
-      "dataPillPending": "Re-extract pending",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analysis",
       "columnFixed": "Airframe & Fixed Systems",
@@ -2571,6 +2541,51 @@
         "longRange": "In the longest-ranged quarter of its kind.",
         "quickLock": "In the quickest-locking quarter of its kind."
       }
+    },
+    "head": {
+      "stripAria": "Patch and ownership",
+      "patch": "Patch",
+      "variant": "Variant",
+      "variantAria": "Choose a variant, now: {{name}}",
+      "own": {
+        "hangar": "In hangar",
+        "inventar": "In inventory · {{n}}×",
+        "sammlung": "In collection"
+      },
+      "notOwn": {
+        "hangar": "Not in hangar",
+        "inventar": "Not in inventory",
+        "sammlung": "Not in collection"
+      }
+    },
+    "ownCard": {
+      "haveTitle": "Got it?",
+      "mineShip": "Your copy",
+      "mineItem": "Your stock",
+      "noneShip": "Not in your hangar, not on your wishlist.",
+      "noneItem": "Not in your inventory, not on your wishlist.",
+      "noneSammlung": "Not in your collection, not on your wishlist.",
+      "wished": "{{n}}× on your wishlist.",
+      "signedOut": "Sign in to wish for it or mark it as yours.",
+      "signIn": "Sign in",
+      "toWishlist": "Wishlist",
+      "toHangar": "Hangar",
+      "toInventar": "Inventory",
+      "toSammlung": "Collection",
+      "openWishlist": "Open wishlist",
+      "wishQtyAria": "Quantity on the wishlist: {{name}}",
+      "qtyAria": "Quantity in the inventory: {{name}}",
+      "less": "One less",
+      "more": "One more",
+      "inInventar": "in inventory",
+      "inSammlung": "in collection",
+      "removeItem": "Remove from inventory",
+      "removeTitle": "Remove from inventory?",
+      "removeBody": "{{n}}× {{name}} leaves every place in your inventory.",
+      "removeConfirm": "Remove",
+      "inNachschub": "In supply “{{name}}”",
+      "showInHq": "Show in HQ",
+      "wishAgain": "Wish for another"
     }
   },
   "blueprint": {
@@ -7959,5 +7974,11 @@
     },
     "pick": "Pick an event on the left.",
     "badJson": "The value is not valid JSON."
+  },
+  "corner": {
+    "view": {
+      "toHolo": "Switch to the Holotable",
+      "toClassic": "Switch to the classic view"
+    }
   }
 }

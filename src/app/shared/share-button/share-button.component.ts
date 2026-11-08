@@ -2,6 +2,7 @@ import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../../core/beta.service';
+import { PageCornerService } from '../../shell/corners/page-corner.service';
 import { ScTooltipDirective } from '../tooltip/sc-tooltip.directive';
 
 /** The reading line: headings above it count as "the section the reader is in". */
@@ -28,7 +29,8 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
 
 /**
  * Sticky share button for long pages (shell beta): shares URL + the current
- * section anchor with no dialog - the Web Share API where it exists, else the
+ * section anchor - or, where the page registered one (`PageCornerService.setShare`, the ship
+ * page's whole Holotisch state), the page's own URL - with no dialog - the Web Share API where it exists, else the
  * link goes to the clipboard and a small status toast says so.
  * Sits bottom-right beside the feedback launcher (`--sc-fab-clear-inline`), so it
  * never overlaps it nor the bottom-left hand-off button; on phones it rides above
@@ -60,12 +62,13 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
     :host { display: contents; }
     /* Bottom-right is the share button's corner, bottom-left the hand-off's: one
        owner per corner. Beside the feedback launcher (in its lane), on a phone
-       above the bottom bar where the launcher's disc sits in the bar row. A page's own sticky
-       bottom strip (the ship's Holotisch) publishes --sc-share-lift, the FAB rides above it. */
+       above the bottom bar where the launcher's disc sits in the bar row. The corner moves as
+       one unit or not at all: a page's own sticky bottom strip (the ship's Holotisch) ends
+       before the share lane instead of lifting the share alone (concept codex-kopf-besitz C8). */
     .dock {
       position: fixed; z-index: 140; inset-inline-end: var(--sc-fab-clear-inline, 88px);
       /* Centred on the launcher's centre line, like the footer row. */
-      bottom: calc(var(--sc-float-bottom, 16px) + (var(--sc-fab-size, 56px) - max(44px, var(--sc-tap-min, 44px))) / 2 + var(--sc-share-lift, 0px));
+      bottom: calc(var(--sc-float-bottom, 16px) + (var(--sc-fab-size, 56px) - max(44px, var(--sc-tap-min, 44px))) / 2);
       display: flex; align-items: center; gap: 10px;
     }
     @media (max-width: 720px) {
@@ -90,6 +93,7 @@ export class ShareButtonComponent {
   private readonly doc = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   readonly enabled = inject(BetaService).isEnabled('shell');
+  private readonly corner = inject(PageCornerService);
 
   /** Title handed to the native share sheet. */
   readonly shareTitle = input<string>('');
@@ -103,7 +107,8 @@ export class ShareButtonComponent {
   }
 
   async share(): Promise<void> {
-    const url = shareUrl(this.doc.location, currentAnchor(this.doc));
+    const page = this.corner.share();
+    const url = page ? page.url() : shareUrl(this.doc.location, currentAnchor(this.doc));
     const nav = this.doc.defaultView?.navigator;
     if (nav?.share) {
       try {

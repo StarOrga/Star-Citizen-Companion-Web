@@ -901,7 +901,6 @@
         "surfaceSide": "Seitensicht",
         "surfaceFront": "Frontsicht",
         "surfaceFrontPending": "Die Frontsicht kommt mit dem nächsten Daten-Upload dieses Schiffs.",
-        "viewShare": "Teilen",
         "silhouetteAria": "Silhouette von {{name}}",
         "noGeometryReason": "Für dieses Schiff liegt noch keine Silhouette vor.",
         "inspector": "Inspektor",
@@ -1065,34 +1064,7 @@
         "current": "aktiv"
       },
       "share": {
-        "copyLink": "Link kopieren",
-        "followedBy": "verwaltet von {{owner}}",
-        "followedSince": "Stand {{date}}",
-        "refresh": "Aktualisieren",
-        "refreshing": "Wird aktualisiert …",
-        "copy": "Kopieren",
-        "copied": "Kopiert",
-        "revoke": "Teilen beenden",
-        "revokeNote": "Bereits folgende Empfänger:innen bleiben verbunden, bis die Konfiguration gelöscht wird.",
-        "errorGeneric": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
-        "copyLinkHint": "Kopiert die Adresse dieser Ansicht — inklusive Holotisch und ungespeicherter Änderungen an den Hardpoints.",
-        "unsavedHint": "{{n}} ungespeicherte Änderung(en) stecken nur im kopierten Link, nicht im Hangar-Link.",
-        "signInHint": "Melde dich an, um eine Hangar-Konfiguration als eigenen Link freizugeben.",
-        "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
-        "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung.",
-        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren.",
-        "saveAndShare": "Speichern & teilen",
-        "shareLink": "Link teilen",
-        "sharing": "Wird geteilt …",
-        "followedShareHint": "Teilen macht diese Konfiguration zu deiner eigenen — sie folgt dann nicht mehr ihrem Besitzer.",
-        "linksLoading": "Deine Links werden geladen …",
-        "linksError": "Deine Links konnten nicht geladen werden.",
-        "activeLinks": "Aktive Links ({{n}})",
-        "readOnlyHint": "Das ist ein geteiltes Loadout. Übernimm es, um einen eigenen Link zu teilen.",
-        "revokeConfirm": {
-          "title": "Diesen Link nicht mehr teilen?",
-          "body": "Über diesen Link kann niemand mehr eine Kopie des Loadouts anlegen. Wer ihm schon folgt, bleibt verbunden."
-        }
+        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren."
       },
       "components": {
         "unknownPosition": "Position im Modell unbekannt"
@@ -1486,8 +1458,6 @@
       "stageTractorBeam": "Traktorstrahl",
       "stageTractorBeams": "Traktorstrahlen",
       "linkCopied": "Link kopiert",
-      "dataPill": "DATEN {{build}} · schema {{n}}",
-      "dataPillPending": "Re-Extract ausstehend",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analyse",
       "columnFixed": "Zelle & feste Systeme",
@@ -2571,6 +2541,51 @@
         "longRange": "Im reichweitenstärksten Viertel ihrer Art.",
         "quickLock": "Im schnellsten Viertel ihrer Art beim Aufschalten."
       }
+    },
+    "head": {
+      "stripAria": "Patch und Besitz",
+      "patch": "Patch",
+      "variant": "Variante",
+      "variantAria": "Variante wählen, gerade: {{name}}",
+      "own": {
+        "hangar": "Im Hangar",
+        "inventar": "Im Inventar · {{n}}×",
+        "sammlung": "In der Sammlung"
+      },
+      "notOwn": {
+        "hangar": "Nicht im Hangar",
+        "inventar": "Nicht im Inventar",
+        "sammlung": "Nicht in der Sammlung"
+      }
+    },
+    "ownCard": {
+      "haveTitle": "Haben?",
+      "mineShip": "Dein Exemplar",
+      "mineItem": "Dein Bestand",
+      "noneShip": "Nicht in deinem Hangar, nicht auf der Wunschliste.",
+      "noneItem": "Nicht in deinem Inventar, nicht auf der Wunschliste.",
+      "noneSammlung": "Nicht in deiner Sammlung, nicht auf der Wunschliste.",
+      "wished": "{{n}}× auf deiner Wunschliste.",
+      "signedOut": "Melde dich an, um es dir zu wünschen oder als deins einzutragen.",
+      "signIn": "Anmelden",
+      "toWishlist": "Wunschliste",
+      "toHangar": "Hangar",
+      "toInventar": "Inventar",
+      "toSammlung": "Sammlung",
+      "openWishlist": "Wunschliste öffnen",
+      "wishQtyAria": "Menge auf der Wunschliste: {{name}}",
+      "qtyAria": "Menge im Inventar: {{name}}",
+      "less": "Eins weniger",
+      "more": "Eins mehr",
+      "inInventar": "im Inventar",
+      "inSammlung": "in der Sammlung",
+      "removeItem": "Aus dem Inventar entfernen",
+      "removeTitle": "Aus dem Inventar entfernen?",
+      "removeBody": "{{n}}× {{name}} verlässt jeden Ort in deinem Inventar.",
+      "removeConfirm": "Entfernen",
+      "inNachschub": "Im Nachschub „{{name}}“",
+      "showInHq": "Im HQ zeigen",
+      "wishAgain": "Noch eins wünschen"
     }
   },
   "blueprint": {
@@ -7959,5 +7974,11 @@
     },
     "pick": "Wähle links ein Event.",
     "badJson": "Der Wert ist kein gültiges JSON."
+  },
+  "corner": {
+    "view": {
+      "toHolo": "Zum Holotisch wechseln",
+      "toClassic": "Zur klassischen Ansicht wechseln"
+    }
   }
 }
