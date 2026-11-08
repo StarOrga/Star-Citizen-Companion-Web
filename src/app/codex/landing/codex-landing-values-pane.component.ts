@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LandingItem } from './codex-landing-data.types';
@@ -85,7 +85,7 @@ interface BarRow {
       }
       .body {
         position: relative; display: flex; flex-direction: column; align-items: flex-start; text-align: left;
-        min-height: 0; overflow-y: auto; scrollbar-width: thin;
+        min-height: 0; overflow: hidden;
         padding: 16px 18px 16px 0;
         background: repeating-linear-gradient(180deg, rgba(150, 230, 255, 0.035) 0 1px, transparent 1px 4px);
         clip-path: inset(0 0 100% 0);
@@ -114,6 +114,8 @@ interface BarRow {
       .bar u { position: absolute; top: -3px; bottom: -3px; width: 1.5px; margin-left: -0.75px; background: var(--sc-warning); box-shadow: 0 0 4px color-mix(in srgb, var(--sc-warning) 70%, transparent); }
       .bar i { left: 0; right: auto; transform-origin: 0 50%; }
       .row.callout { display: none; }
+      /* Past the sheet's height: only the button to the detail page carries the rest (fitRows). */
+      .row.cut { display: none !important; }
       .row.worse .bar i { background: linear-gradient(90deg, color-mix(in srgb, var(--sc-warning) 45%, transparent), var(--sc-warning)); box-shadow: none; }
       .legend { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; font-size: max(10px, 0.62rem); color: var(--sc-fg-2); }
       .legend u { display: inline-block; width: 1.5px; height: 10px; background: var(--sc-warning); }
@@ -193,6 +195,39 @@ export class CodexLandingValuesPaneComponent {
     });
     return [...rest.map((v) => toRow(v, false)), ...callouts.map((c) => toRow(c.value, true))];
   });
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  constructor() {
+    const destroy = inject(DestroyRef);
+    // The sheet is as tall as the Codex column and never scrolls: the rows that do not fit are cut, lowest priority first.
+    effect(() => {
+      this.rows();
+      this.canSwitch();
+      requestAnimationFrame(() => this.fitRows());
+    });
+    afterNextRender(() => {
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => this.fitRows());
+      ro?.observe(this.host.nativeElement);
+      void document.fonts?.ready.then(() => this.fitRows());
+      destroy.onDestroy(() => ro?.disconnect());
+    });
+  }
+
+  /** Shows as many rows (in priority order) as the sheet's height holds; the "to the page" button always stays. */
+  fitRows(): void {
+    const body = this.host.nativeElement.querySelector<HTMLElement>('.body');
+    if (!body) return;
+    const rows = Array.from(body.querySelectorAll<HTMLElement>('.row'));
+    for (const r of rows) r.classList.remove('cut');
+    const shown = rows.filter((r) => r.getClientRects().length > 0);
+    for (let i = shown.length - 1; i >= 0 && body.scrollHeight > body.clientHeight + 1; i--) shown[i].classList.add('cut');
+    const legend = body.querySelector<HTMLElement>('.legend');
+    if (legend) {
+      const anyBar = shown.some((r) => !r.classList.contains('cut') && r.querySelector('.bar u'));
+      legend.style.display = anyBar ? '' : 'none';
+    }
+  }
+
   readonly canSwitch = computed(() => hasLoadoutSet(this.item()));
   readonly hasBars = computed(() => this.rows().some((r) => !r.callout && r.bar?.avg !== null && !!r.bar));
 }
