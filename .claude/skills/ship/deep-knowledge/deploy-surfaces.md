@@ -6,10 +6,12 @@ After the merge, the ship itself brings every surface the diff touches live,
 in dependency order:
 - **Migrations** (`supabase/migrations/*.sql` in the diff): fast-forward the
   primary checkout to the merged `main`, then from there
-  `npx supabase db push --dry-run`, check that it lists exactly the new files,
-  then `npx supabase db push`. Run it from the primary checkout because
-  worktrees are not linked (see the migration-ledger memory). Confirm with
-  `list_migrations`.
+  `npx supabase db push --remote --dry-run`, check that it lists exactly the
+  new files, then `npm run db:push` (= `supabase db push --remote --yes`).
+  Supabase CLI v3 targets the LOCAL stack without `--remote` and refuses a
+  hosted change without `--yes` when no TTY is attached. Run it from the
+  primary checkout because worktrees are not linked (see the migration-ledger
+  memory). Confirm with `list_migrations`.
   **A migration that drops or renames something the live frontend still reads
   waits for production.** Before pushing it, read the merge commit's Vercel
   status (`gh api repos/<repo>/commits/<sha>/status`). "Deployment rate limited"
