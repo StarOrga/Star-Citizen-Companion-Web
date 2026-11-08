@@ -2570,6 +2570,10 @@
         "longRange": "In the longest-ranged quarter of its kind.",
         "quickLock": "In the quickest-locking quarter of its kind."
       }
+    },
+    "page": {
+      "more": "More in Codex",
+      "moreAria": "Overview of all entries"
     }
   },
   "blueprint": {

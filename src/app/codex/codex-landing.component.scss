@@ -110,8 +110,12 @@
 .values, .codex {
   position: absolute;
   z-index: 5;
-  top: calc((100% - var(--cx-table-h)) * var(--cx-holo-t));
-  bottom: calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b));
+  top: auto;
+  --cx-codex-h: 400px;
+  --cx-box-top: calc((100% - var(--cx-table-h)) * var(--cx-holo-t));
+  // One geometry for both side panes (#8): the data sheet is exactly as tall as the Codex column.
+  height: var(--cx-codex-h);
+  bottom: max(var(--sc-space-2), min(calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b)), calc(100% - var(--cx-box-top) - var(--cx-codex-h))));
   width: var(--cx-pane);
   display: flex;
   flex-direction: column;
@@ -122,14 +126,7 @@
 .values { right: var(--cx-gut); }
 // The list needs its full height for title, tabs, wheel and foot: on a short
 // window it reaches below the hologram box, down to just above the stage footer.
-.codex {
-  --cx-codex-h: 400px;
-  --cx-box-top: calc((100% - var(--cx-table-h)) * var(--cx-holo-t));
-  top: auto;
-  height: var(--cx-codex-h);
-  bottom: max(var(--sc-space-2), min(calc(var(--cx-table-h) + (100% - var(--cx-table-h)) * var(--cx-holo-b)), calc(100% - var(--cx-box-top) - var(--cx-codex-h))));
-}
-@media (pointer: coarse) { .codex { --cx-codex-h: 500px; } }
+@media (pointer: coarse) { .values, .codex { --cx-codex-h: 500px; } }
 .news {
   position: absolute;
   z-index: 8;
@@ -189,7 +186,7 @@
   :host(:not(.shell)) .landing { height: auto; }
   .hero { order: 0; padding-inline: 0; }
   .title { font-size: 24px; }
-  .codex { height: auto; }
+  .codex, .values { height: auto; }
   .news, .values, .codex { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; }
   // Phone order (d-landing table-first): title, holotable, list, values, news mark.
   .news { order: 3; align-self: flex-end; }

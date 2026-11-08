@@ -2570,6 +2570,10 @@
         "longRange": "Im reichweitenstärksten Viertel ihrer Art.",
         "quickLock": "Im schnellsten Viertel ihrer Art beim Aufschalten."
       }
+    },
+    "page": {
+      "more": "Mehr in Codex",
+      "moreAria": "Übersicht aller Einträge"
     }
   },
   "blueprint": {
