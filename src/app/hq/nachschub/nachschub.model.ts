@@ -8,6 +8,8 @@
  * table name `hq_supply_packages`; the exported type is `Nachschub`.
  */
 
+import type { HqGatherStop } from '../data/hq-db.types';
+
 /** Active slots per user; further Nachschuebe are archived. */
 export const NACHSCHUB_MAX_SLOTS = 7;
 /** Name limits: Nachschub = what you get, Einsatz = what you do. */
@@ -16,8 +18,11 @@ export const EINSATZ_NAME_MAX = 40;
 export const WISH_QTY_MAX = 999;
 
 export type NachschubStatus = 'active' | 'archived';
-/** normal = craft/buy/collect; event = rewards of an event; sightseeing = an event without reward (src/app/hq/events/event-nachschub.ts). */
-export type NachschubType = 'normal' | 'event' | 'sightseeing';
+/**
+ * normal = craft/buy/collect; event = rewards of an event; sightseeing = an event without reward (src/app/hq/events/event-nachschub.ts);
+ * verkauf = "Geld verdienen": an aUEC goal, lines come from the Bestand, progress from the sales the app reports.
+ */
+export type NachschubType = 'normal' | 'event' | 'sightseeing' | 'verkauf';
 
 /** A Nachschub as the client holds it (`hq_supply_packages`). */
 export interface Nachschub {
@@ -34,6 +39,40 @@ export interface Nachschub {
   readonly type?: NachschubType;
   /** sc_events.id for type event / sightseeing. */
   readonly eventId?: string | null;
+  /** Verkauf only: the aUEC goal. */
+  readonly goalAuec?: number | null;
+  /** Verkauf only: aUEC earned so far. */
+  readonly progressAuec?: number;
+}
+
+/** Largest aUEC goal (mirrors the DB check). */
+export const SELL_GOAL_MAX = 1_000_000_000_000;
+
+/** A usable aUEC goal (whole aUEC, 1..{@link SELL_GOAL_MAX}), else null. */
+export function parseSellGoal(raw: unknown): number | null {
+  const n = typeof raw === 'string' ? Number(raw.replace(/[\s.,']/g, '')) : raw;
+  return typeof n === 'number' && Number.isFinite(n) && n >= 1 && n <= SELL_GOAL_MAX ? Math.round(n) : null;
+}
+
+/** Progress of a Verkauf Nachschub: earned, goal, share 0..1 and whether the goal is reached. Null for any other type. */
+export function sellProgress(n: Pick<Nachschub, 'type' | 'goalAuec' | 'progressAuec'>): { earned: number; goal: number; share: number; reached: boolean } | null {
+  if (n.type !== 'verkauf' || !n.goalAuec || n.goalAuec <= 0) return null;
+  const earned = Math.max(0, n.progressAuec ?? 0);
+  return { earned, goal: n.goalAuec, share: Math.min(1, earned / n.goalAuec), reached: earned >= n.goalAuec };
+}
+
+/**
+ * A line the Bestand hands to a Nachschub ("Abholen planen" / "Verkaufen"): one item, the amount, and where it lies.
+ * With `stops` it becomes a gather line (several places, route ordered by amount); with one place a gather of one stop.
+ */
+export interface NachschubLineInput {
+  readonly name: string;
+  readonly className: string | null;
+  /** Amount in `unit`; pieces are whole numbers. */
+  readonly amount: number;
+  readonly unit: 'pcs' | 'scu';
+  /** Where it is picked up, in route order. Empty/absent = a plain line without a place. */
+  readonly stops?: readonly HqGatherStop[];
 }
 
 /** One wishlist position (any kind; `forClassName` groups material under its blueprint). */
