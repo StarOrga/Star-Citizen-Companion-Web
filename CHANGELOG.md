@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.227.0] - 2026-11-08
+
+### Added
+- Game translation: community packs (German, Italian, Brazilian Portuguese, Japanese, Russian) can be imported once as the starting point; CIG's own text always wins, the AI only fills gaps and new patch lines
+- Translation learning step: glossary, style and term corrections grow with every upload at low token cost, with a capped web research budget
+- Admin Karteikarten for translation calls the AI can't settle, with points, streak and leaderboard
+- Admin hint when CIG changes a line an admin had corrected, with the original diff
+- Maintainer outreach drafts per licence (drafts only, approval by protected admins, never sent automatically)
+
+### Changed
+- Translation spend from learning is booked separately in the ledger and counts toward the monthly cap
+
 ## [0.226.1] - 2026-11-08
 
 ### Fixed
