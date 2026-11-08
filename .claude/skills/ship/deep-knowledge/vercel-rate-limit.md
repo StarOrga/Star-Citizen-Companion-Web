@@ -48,8 +48,10 @@ auto-guide, in the user's Edge:
 
 1. Open `https://vercel.com/jeremytreder-6210s-projects/versecompanion-alpha`.
 2. Project menu (`…`, top right) → **Create Deployment**.
-3. Enter the merge SHA (or `main`) as the commit or branch reference and
-   create it. A ref on the production branch becomes a Production deployment.
+3. Enter the merge SHA as the commit reference and create it. A commit on
+   the production branch becomes a Production deployment. Not the branch
+   name `main`: if main has moved on, that deploys a different commit than
+   the one the card names.
 4. Done when that deployment shows **Ready** and `meta[name="app-version"]`
    on `https://versecompanion-alpha.vercel.app/?ngsw-bypass=true` shows the
    new version.
