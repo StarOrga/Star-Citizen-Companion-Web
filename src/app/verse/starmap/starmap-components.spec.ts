@@ -251,6 +251,33 @@ describe('star map components', () => {
     expect(track.querySelector('b')?.textContent).toContain('starmap.comet.head.missed');
   });
 
+  it('the screenshot case: the 4.11 tip of Sa 31 Okt 2026 reads missed once that day is past', () => {
+    jasmine.clock().install();
+    jasmine.clock().mockDate(new Date(2026, 10, 8, 17, 12));
+    try {
+      explorer.set({
+        ...STATE,
+        upcoming: { patchLine: '4.11', comet: { state: 'tipped', tippedDate: '2026-10-31', locked: false, lockedReason: null, announcedDate: null } },
+      });
+      const f = TestBed.createComponent(ExplorerPageComponent);
+      f.detectChanges();
+      const track = f.nativeElement.querySelector('sc-comet-track') as HTMLElement;
+      expect(track.querySelector('.state.missed')).not.toBeNull();
+      expect(track.querySelector('.state')?.textContent).not.toContain('tipped');
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('the header shows the real map in small, no globe: same 7 stars and 7 edges as the big map', () => {
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    const mini = f.nativeElement.querySelector('sc-verse-header sc-starmap-mini') as HTMLElement;
+    expect(mini).not.toBeNull();
+    expect(mini.querySelectorAll('.core').length).toBe(7);
+    expect(mini.querySelectorAll('.ln').length).toBe(7);
+  });
+
   it('the guess rail submits on click and hides when unavailable', async () => {
     const open = { state: 'open', guessedClass: null, answerClass: null, answerName: null } as const;
     explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: open }), ...STATE.patches.slice(1)] });

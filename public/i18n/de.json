@@ -6502,13 +6502,13 @@
         }
       },
       "comet": {
-        "title": "Kometen-Tipp: Wann geht {{line}} live?",
+        "title": "Patch-Tipp: Wann geht {{line}} live?",
         "hint": "Gib deinen Tipp ab — den Community-Median siehst du danach.",
         "label": "Dein Tipp für den LIVE-Tag",
         "submit": "Tipp abgeben",
         "yours": "Dein Tipp: {{date}}",
         "median": "Community-Median: {{date}} ({{n}} Tipps)",
-        "heading": "Kometen-Tipp",
+        "heading": "Patch-Tipp",
         "crowd": "So tippt die Community",
         "cta": "Tipp abgeben",
         "mine": "dein Tipp: {{date}}",
@@ -6582,15 +6582,15 @@
     "sun": {
       "faded": {
         "aria": "Sonne: verblasst",
-        "tip": "Die Sonne ist verblasst. Setz unten deinen Kometen auf den Tag, an dem {{patch}} LIVE geht – trifft er auf ±2 Tage, leuchtet die Sonne auf."
+        "tip": "Die Sonne ist verblasst. Setz unten deinen Patch-Tipp auf den Tag, an dem {{patch}} LIVE geht – trifft er auf ±2 Tage, leuchtet die Sonne auf."
       },
       "tipped": {
-        "aria": "Sonne: Komet gesetzt, wartet auf den LIVE-Tag",
-        "tip": "Dein Komet ist gesetzt: Die Sonne glimmt, bis {{patch}} LIVE geht. Trifft er auf ±2 Tage, leuchtet sie auf."
+        "aria": "Sonne: Patch-Tipp gesetzt, wartet auf den LIVE-Tag",
+        "tip": "Dein Patch-Tipp ist gesetzt: Die Sonne glimmt, bis {{patch}} LIVE geht. Trifft er auf ±2 Tage, leuchtet sie auf."
       },
       "hit": {
         "aria": "Sonne: leuchtet",
-        "tip": "Treffer: Dein Komet lag höchstens 2 Tage neben dem LIVE-Tag, die Sonne leuchtet."
+        "tip": "Treffer: Dein Patch-Tipp lag höchstens 2 Tage neben dem LIVE-Tag, die Sonne leuchtet."
       }
     },
     "export": {
@@ -6616,9 +6616,9 @@
         "link": "Zum Hangar"
       },
       "comet": {
-        "title": "Komet gesetzt",
+        "title": "Patch-Tipp gesetzt",
         "how": "Tippe in den Patch News, wann der Patch LIVE geht.",
-        "link": "Komet setzen"
+        "link": "Patch-Tipp setzen"
       },
       "cxNewship": {
         "title": "Neues Schiff angesehen",
@@ -6702,7 +6702,7 @@
     },
     "suns": {
       "title": "Sonnensammlung",
-      "none": "Noch keine Sonne. Setz deinen Kometen in den Patch News."
+      "none": "Noch keine Sonne. Setz deinen Patch-Tipp in den Patch News."
     },
     "glyph": {
       "aria": "Sternkarte: {{lit}} von {{total}} Sternen"
@@ -6765,7 +6765,7 @@
       "open": "So funktioniert die Sternkarte",
       "title": "Die Sternkarte und das Logbuch",
       "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten.",
-      "p2": "Am Rand liegen zwei Herausforderungen: der Kometentipp und das Erkennen der Sternkarte.",
+      "p2": "Am Rand liegen zwei Herausforderungen: der Patch-Tipp und das Erkennen der Sternkarte.",
       "p3": "Im Logbuch findest du den Community-Himmel, deinen Kartograph-Rang und die Serien-Belohnungen.",
       "start": "Zeig es mir",
       "close": "Schließen",
@@ -6784,7 +6784,7 @@
         },
         "tracks": {
           "title": "Die zwei Herausforderungen",
-          "text": "Tippe den Kometen für den nächsten LIVE-Tag und rate, welches Schiff die Sternkarte zeigt."
+          "text": "Gib deinen Patch-Tipp für den nächsten LIVE-Tag ab und rate, welches Schiff die Sternkarte zeigt."
         },
         "series": {
           "title": "Die Serie",
@@ -6811,7 +6811,7 @@
       "here": "Das machst du direkt hier unten auf der Sternkarte.",
       "empty": "Für diesen Stern gibt es in diesem Patch keine Aufgabe.",
       "emptyTitle": "Ruhender Stern",
-      "lockedComet": "Für diesen Patch kann kein Komet mehr gesetzt werden.",
+      "lockedComet": "Für diesen Patch kann kein Patch-Tipp mehr gesetzt werden.",
       "lockedGuess": "Dein Tipp für diese Sternkarte ist abgegeben."
     },
     "star": {
@@ -6820,9 +6820,9 @@
       "open": "Stern {{n}}: {{task}} · offen"
     },
     "comet": {
-      "kind": "Komet",
-      "ruleAria": "Regeln zum Kometen",
-      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Kometen, ein Tipp pro Patch. Trifft er auf ±2 Tage, leuchtet oben rechts am Himmel die Sonne auf. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
+      "kind": "Patch-Tipp",
+      "ruleAria": "Regeln zum Patch-Tipp",
+      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Patch-Tipp, ein Tipp pro Patch. Trifft er auf ±2 Tage, leuchtet oben rechts am Himmel die Sonne auf. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
       "state": {
         "none": "offen",
         "tipped": "gesetzt · wartet auf LIVE",
@@ -6835,15 +6835,15 @@
         "closed": "Tipps für {{patch}} sind geschlossen",
         "tipped": "Dein Tipp für {{patch}}: {{date}}",
         "hit": "Eingeschlagen am {{date}}",
-        "miss": "Dein Komet: {{date}}",
+        "miss": "Dein Patch-Tipp: {{date}}",
         "open": "Tipps für {{patch}} offen",
         "missed": "Dein Tipp für {{patch}} verpasst: {{date}}"
       },
       "formerly": "ehemals {{patch}}",
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
-      "dayAria": "Komet auf {{date}} setzen",
-      "undoToast": "Komet für {{patch}} gesetzt: {{date}}"
+      "dayAria": "Patch-Tipp auf {{date}} setzen",
+      "undoToast": "Patch-Tipp für {{patch}} gesetzt: {{date}}"
     },
     "guess": {
       "kind": "Erkennen",
