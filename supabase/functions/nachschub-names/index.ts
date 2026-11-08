@@ -13,8 +13,14 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { buildPrompt, limitOf, parseName, parseRequest } from './_names.ts';
 
 const MODEL = Deno.env.get('NACHSCHUB_NAMES_MODEL') ?? 'claude-sonnet-5-5';
+// The web app calls this from the browser (functions.invoke), so the CORS preflight must pass.
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
 
 async function askClaude(prompt: string, key: string): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -29,6 +35,7 @@ async function askClaude(prompt: string, key: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   // A real signed-in user, not just the anon/publishable key.
