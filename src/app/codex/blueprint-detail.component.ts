@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
   OnInit,
   computed,
   inject,
@@ -436,7 +437,11 @@ export class BlueprintDetailComponent implements OnInit {
   });
 
   // ── "Material ×N auf die Wunschliste" ──
-  private readonly wishStore = inject(WishlistStore);
+  /** Resolved on first use: drawing a blueprint page does not build the wishlist store (and its Supabase client). */
+  private readonly storeInjector = inject(Injector);
+  private get wishStore(): WishlistStore {
+    return this.storeInjector.get(WishlistStore);
+  }
   private readonly undoToast = inject(UndoToastService);
   protected readonly craftTimes = signal(1);
   protected readonly wishBusy = signal(false);

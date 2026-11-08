@@ -96,12 +96,12 @@ function quantities(fixture: ComponentFixture<BlueprintDetailComponent>, rowSele
 }
 
 describe('BlueprintDetailComponent — path (A9)', () => {
-  it('carries the path control with all three stops: wish, Nachschub, Inventar', async () => {
+  it('carries the path control with its two stops: wish, Inventar', async () => {
     const fixture = await setup(blueprint([ingredient(0, 'Agricium', 0.36)]));
     const el: HTMLElement = fixture.nativeElement;
     const paths = el.querySelectorAll('sc-item-path');
     expect(paths.length).toBe(1);
-    expect(Array.from(paths[0].querySelectorAll('.node')).map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'nachschub', 'inventar']);
+    expect(Array.from(paths[0].querySelectorAll('.node')).map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'inventar']);
     // Not from Planen or a set: the pill, with the next step as its button.
     expect(paths[0].querySelector('.pill .go')).not.toBeNull();
   });

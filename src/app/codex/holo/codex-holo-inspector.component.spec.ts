@@ -181,10 +181,10 @@ describe('CodexHoloInspectorComponent', () => {
       expect(paths).toEqual([['a.b']]);
     });
 
-    it('carries the path control with its stops, and writes through it', async () => {
+    it('carries the path control with its two stops, and writes through it', async () => {
       const f = setup({ target: target() });
       const nodes = Array.from(root(f).querySelectorAll<HTMLButtonElement>('.act sc-item-path .node'));
-      expect(nodes.map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'nachschub', 'inventar']);
+      expect(nodes.map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'inventar']);
       nodes[0].click();
       await new Promise((r) => setTimeout(r));
       expect(TestBed.inject(ItemPathService).addWish).toHaveBeenCalledTimes(1);

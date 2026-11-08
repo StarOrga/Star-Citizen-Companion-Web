@@ -153,6 +153,7 @@ const RENDER_CHUNK = 24;
       <div class="controls ce" style="--ce: 1">
         <sc-select
           class="source-filter"
+          [allowEmpty]="false"
           [options]="filterOptions()"
           [value]="svc.filter()"
           [ariaLabel]="'starscape.filter.label' | translate"

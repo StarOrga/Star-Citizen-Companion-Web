@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { SammlungService } from '../hq/nachschub/sammlung.service';
 import { ApplicationRef, signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -41,6 +42,7 @@ function serviceStub(wallpapers: Wallpaper[]) {
     load: jasmine.createSpy('load').and.resolveTo(undefined),
     setFilter: jasmine.createSpy('setFilter').and.resolveTo(undefined),
     loadOne: jasmine.createSpy('loadOne').and.resolveTo(null),
+    loadMany: jasmine.createSpy('loadMany').and.resolveTo([]),
   };
 }
 
@@ -81,6 +83,7 @@ describe('StarscapeComponent', () => {
         provideNoopAnimations(),
         { provide: StarscapeService, useValue: svc },
         { provide: StarscapeVotesService, useValue: votes },
+        { provide: SammlungService, useValue: { load: async () => undefined, gallery: signal(new Set<string>()) } },
         { provide: RoleService, useValue: { role: signal('viewer') } },
         { provide: AuthService, useValue: { isAuthenticated: signedIn, user: signal(null) } },
         {
@@ -426,26 +429,33 @@ describe('StarscapeComponent', () => {
     f.destroy();
   });
 
+  /** The source filter is an app-styled `<sc-select>`: open the list, then read or click its options. */
+  function optionsOf(host: HTMLElement, f: { detectChanges: () => void }): HTMLElement[] {
+    host.querySelector<HTMLButtonElement>('sc-select.source-filter .trigger')!.click();
+    f.detectChanges();
+    return Array.from(host.querySelectorAll<HTMLElement>('sc-select.source-filter .option'));
+  }
+
   it('offers exactly the four views, All selected, and no Top-N switch or series filter', () => {
     const f = setup();
     const host = f.nativeElement as HTMLElement;
-    const segments = Array.from(
-      host.querySelectorAll<HTMLElement>('sc-segmented [role="radiogroup"] .seg-btn'),
-    );
-    expect(segments.length).toBe(4);
-    expect(segments[0].getAttribute('aria-checked')).toBe('true');
-    expect(f.nativeElement.querySelector('.top-toggle')).toBeNull();
-    expect(f.nativeElement.querySelectorAll('sc-segmented').length).toBe(1);
+    const options = optionsOf(host, f);
+    expect(options.length).toBe(4);
+    expect(options[0].getAttribute('aria-selected')).toBe('true');
+    expect(host.querySelector('.top-toggle')).toBeNull();
+    expect(host.querySelectorAll('sc-select.source-filter').length).toBe(1);
+    expect(host.querySelectorAll('sc-segmented').length).toBe(0);
     f.destroy();
   });
 
   it('picks a view by its stable id', () => {
     const svc = serviceStub([first]);
     const f = setup(svc);
-    const segments = f.nativeElement.querySelectorAll('sc-segmented .seg-btn');
-    (segments[2] as HTMLButtonElement).click();
+    const host = f.nativeElement as HTMLElement;
+    optionsOf(host, f)[2].click();
+    f.detectChanges();
     expect(svc.setFilter).toHaveBeenCalledWith('top');
-    (segments[3] as HTMLButtonElement).click();
+    optionsOf(host, f)[3].click();
     expect(svc.setFilter).toHaveBeenCalledWith('mine');
     f.destroy();
   });
@@ -456,7 +466,7 @@ describe('StarscapeComponent', () => {
     signedIn.set(false);
     const f = TestBed.createComponent(StarscapeComponent);
     f.detectChanges();
-    const mine = f.nativeElement.querySelectorAll('sc-segmented .seg-btn')[3] as HTMLButtonElement;
+    const mine = optionsOf(f.nativeElement as HTMLElement, f)[3];
     expect(mine.getAttribute('aria-disabled')).toBe('true');
     mine.click();
     expect(svc.setFilter).not.toHaveBeenCalled();
