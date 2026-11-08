@@ -5935,17 +5935,17 @@
       "planen": {
         "empty": "Noch nichts geplant",
         "emptyHint": "Aus dem Nachschub wird ein Einsatz.",
-        "go": "Jetzt planen",
         "count": "{{n}} offen",
         "needs": "{{n}} im Nachschub",
-        "route": "Einsatz öffnen"
+        "open": "Planen öffnen"
       },
       "stats": {
         "missions": "{{n}} Missionen",
         "missionsOne": "1 Mission",
         "week": "in dieser Woche",
         "open": "Statistik"
-      }
+      },
+      "tip": "{{action}} · Hotkey: {{key}}"
     },
     "hotkey": "Hotkey: {{key}}",
     "step": {
@@ -7175,6 +7175,11 @@
     "eyebrow": "Admin",
     "title": "Kommandozentrale",
     "subtitle": "Alle Admin-Werkzeuge an einem Ort.",
+    "groups": {
+      "people": "Personen & Zugang",
+      "operations": "Betrieb",
+      "content": "Inhalte & Daten"
+    },
     "tiles": {
       "users": {
         "title": "Benutzer",
