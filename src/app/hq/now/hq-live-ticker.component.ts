@@ -50,7 +50,7 @@ const TICK_MS = 30_000;
           </div>
         }
         <div class="chip">
-          <button type="button" class="face" aria-controls="hq-app-aussicht" [attr.aria-expanded]="open()" [scTooltip]="'hq.appStatus.aussicht.toggle' | translate" (click)="toggle()">
+          <button type="button" class="face" [attr.aria-controls]="open() ? 'hq-app-aussicht' : null" [attr.aria-expanded]="open()" [scTooltip]="'hq.appStatus.aussicht.toggle' | translate" (click)="toggle()">
             <i class="mark" aria-hidden="true"></i>
             <b class="state">{{ 'hq.appStatus.state.' + st | translate }}</b>
             @switch (st) {
