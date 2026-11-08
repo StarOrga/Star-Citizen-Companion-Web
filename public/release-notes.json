@@ -1,7 +1,75 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.237.1",
+  "current": "0.238.0",
   "releases": [
+    {
+      "version": "0.238.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex: \"Mehr in Codex\" — the full index with filters is the lower part of /codex, reached by scrolling like \"Mehr im Verse\"; /codex/index links straight into it."
+            },
+            {
+              "title": "",
+              "text": "Codex: Klassisch / Holotisch for every non-ship item (corner toggle, Klassisch first, then remembered); Holotisch ranks weapons, shields, power plants, coolers and quantum drives against their peers."
+            },
+            {
+              "title": "",
+              "text": "Star map: the header shows your current star map in small; \"Komet\" is now \"Patch-Tipp\"."
+            },
+            {
+              "title": "",
+              "text": "A muted copper colour marks surfaces admins and collaborators see; red stays admin-only."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "No visible \"Nur Admin\" / \"Nur Admin & Collaborator\" hints anywhere — the colour carries it, screen readers and tooltips keep the words."
+            },
+            {
+              "title": "",
+              "text": "Codex landing data sheet is as tall as the column beside it and never scrolls; engine physics rows are gone."
+            },
+            {
+              "title": "",
+              "text": "HQ: \"App downloaden\" / \"App starten\"; the event marker reads \"N offene Events\" with the names on one line and \"+N\"."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader: the dock's CPU total matches Task Manager and never freezes at 100 % (uploader 0.75.3)."
+            },
+            {
+              "title": "",
+              "text": "HQ: \"Companion-App verbunden\" only when the SCC app is connected; start page and Jetzt agree."
+            },
+            {
+              "title": "",
+              "text": "Star map: a tip whose day has passed reads missed."
+            },
+            {
+              "title": "",
+              "text": "HQ start page error on load (event names), and two small-text spots on phones."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.237.1",
       "date": "2026-11-08",

@@ -252,3 +252,18 @@ below is canonical — external docs cite it.)
     only against mock data or not opened at all; follow-up "parity / fidelity /
     polish" commits (#634/#638, #834, #843, #848) kept repairing what a first
     visual acceptance would have caught (analysis 2026-11-01).
+
+12. **Vercel deploy limit reached ⇒ the card offers a web guide for the
+    manual production deploy.** Read the merge commit's Vercel status before
+    the card calls the web app live; "Deployment rate limited" means the merge
+    goes nowhere on its own. Try `create_deployment` on the Vercel MCP first.
+    If that fails (MCP not authorized, or still refused), the card stays
+    `ship-successful`, `tests` names the version production really serves,
+    and `open` gets one item with `guide: "web"` and
+    `service: "Vercel Dashboard"`, so the card shows "Web-Guide starten" for
+    the deploy from the dashboard. Never a click path as text. The manual
+    deploy counts against the same rolling limit, so the item says when the
+    next slot frees. Tells, the exact item, the guide's path and the slot
+    calculation: `deep-knowledge/vercel-rate-limit.md`.
+    *Why:* the limit was hit three times (2026-09-05, 2026-11-06 twice); each
+    card named the production lag but left the way out to the user as prose.

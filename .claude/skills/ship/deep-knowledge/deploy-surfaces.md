@@ -17,7 +17,8 @@ in dependency order:
   status (`gh api repos/<repo>/commits/<sha>/status`). "Deployment rate limited"
   means no production deploy comes on its own: bring the merge SHA live first
   (`create_deployment` with target production, the limit is a rolling 24 h
-  window, so a slot frees when the oldest deployment ages out), wait until the
+  window, so a slot frees when the oldest deployment ages out; without the
+  Vercel MCP, the web guide from rule 12 / `vercel-rate-limit.md`), wait until the
   Production deployment for that SHA reports success, then push. Additive
   migrations keep the order above, because the new frontend needs them.
   A diff with both kinds splits them into two PRs: additive with the code, the
