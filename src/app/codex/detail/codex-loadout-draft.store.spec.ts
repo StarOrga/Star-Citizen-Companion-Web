@@ -263,4 +263,20 @@ describe('CodexLoadoutDraftStore', () => {
     ensureEditable.and.resolveTo('own');
     expect((await store.saveLoadoutDraft())?.id).toBe('c1');
   });
+
+  it('applySavedDraft puts a saved loadout on the table as an unsaved, mirrored draft (#322)', () => {
+    const ok = store.applySavedDraft([[PORT, 'PICKED_GUN']], 'B1');
+    expect(ok).toBeTrue();
+    expect(store.draft().get(PORT)).toBe('PICKED_GUN');
+    // Same build: a class picked from the swap picker is trusted and hydrated, not flagged.
+    expect(store.unresolvableDraftPaths().size).toBe(0);
+    expect(svc.resolveEntities).toHaveBeenCalledWith(['PICKED_GUN']);
+    expect(store.savedPaths().size).toBe(0);
+    expect(localStorage.getItem(LOCAL_DRAFT_STORAGE_KEY)).toContain('PICKED_GUN');
+  });
+
+  it('applySavedDraft flags classes of another build that no longer resolve', () => {
+    store.applySavedDraft([[PORT, 'GONE_GUN']], 'B0');
+    expect(store.unresolvableDraftPaths().has(PORT)).toBeTrue();
+  });
 });

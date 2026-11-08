@@ -30,8 +30,11 @@ export function mirrorQueryParams(
   try {
     const current = router.parseUrl(location.path()).queryParams;
     const tree = router.createUrlTree([], { relativeTo: route, queryParams: { ...current, ...params } });
-    const url = router.serializeUrl(tree);
-    if (url === location.path()) return;
+    // The anchor stays: on /codex it names the part the reader is in (#more, admin feedback #319).
+    const full = location.path(true);
+    const hash = full.includes('#') ? full.slice(full.indexOf('#')) : '';
+    const url = router.serializeUrl(tree) + hash;
+    if (url === full) return;
     if (push) location.go(url, '', location.getState());
     else location.replaceState(url, '', location.getState());
   } catch {

@@ -23,7 +23,8 @@ export function searchQueryFor(category: LandingCategory): Params {
 
 /**
  * Rows of the entry wheel. Fixed and odd, so the entry on the table stands in
- * the middle: title, tabs, five rows and the foot fit the pane (400px, codex-landing.component.scss)
+ * the middle. The pane is as tall as its content (at most 400px,
+ * codex-landing.component.scss): title, tabs, five rows and the foot fit it
  * down to a 1280x720 window (codex-landing-codex-pane.component.spec).
  */
 export const WHEEL_ROWS = 5;
@@ -37,6 +38,18 @@ export function wheelWindow(count: number, centre: number, rows = WHEEL_ROWS): n
   return Array.from({ length: rows }, (_, i) => (((centre - half + i) % count) + count) % count);
 }
 
+/**
+ * Where the wheel stands before it is turned: the entry on the table, else the
+ * first entry of the active category or the next one in rotation order.
+ */
+export function wheelCentre(entries: readonly WheelEntry[], active: LandingCategory | null): number {
+  const table = entries.findIndex((e) => e.onTable);
+  if (table >= 0) return table;
+  const from = active ? LANDING_CATEGORIES.indexOf(active) : 0;
+  const next = entries.findIndex((e) => LANDING_CATEGORIES.indexOf(e.category) >= from);
+  return Math.max(0, next);
+}
+
 interface RowView {
   category: LandingCategory;
   count: number;
@@ -45,14 +58,21 @@ interface RowView {
   entries: (LandingCodexEntry & { onTable: boolean })[];
 }
 
+/** One row of the wheel: an entry of any category, tagged with it. */
+export type WheelEntry = LandingCodexEntry & { onTable: boolean; category: LandingCategory };
+
 /**
  * The Codex list (round 4, "Zugewandte Kante"): a light pane, its glowing
  * edge facing the hologram. A horizontal category bar on top (d-tabs `active`:
  * icons, the active one with its name, the others name in a tooltip); below it
- * the active category's new and updated items of the current patch stand in a
- * wheel of {@link WHEEL_ROWS} rows (the one on the table in the middle, announced
- * ships tagged); with nothing new the middle is simply gone. "+ N weitere" and
- * "Alle <Kategorie>" close the pane at the same spot on every tab. A tab click
+ * every new and updated item of the current patch — ships, FPS weapons, armour,
+ * components, tools, each row tagged with its category glyph — stands in one
+ * wheel of {@link WHEEL_ROWS} rows (the one on the table in the middle, else the
+ * active category's first; announced ships tagged). A category with nothing new
+ * of its own still shows the others' (admin feedback #318); only a patch with
+ * nothing new at all drops the middle. The pane is as tall as its content.
+ * "+ N weitere" counts the active category's entries off the wheel, "Alle
+ * <Kategorie>" closes the pane. A tab click
  * puts that category on the table and holds it; the held tab again resumes the
  * rotation. An entry click puts that entry on the table (held) — its small arrow
  * and a modified click open the subpage.
@@ -98,14 +118,16 @@ interface RowView {
         }
       </ul>
       @if (held()) { <p class="sc-sr-only">{{ 'codex.landing.codex.held' | translate }}</p> }
-      @if (activeRow(); as r) {
-        @if (wheel().length) {
+      @if (wheel().length) {
           <div class="open">
             <ul class="new" [class.spins]="spins()" (wheel)="onWheel($event)" (keydown)="onWheelKey($event)">
-              @for (e of wheel(); track e.id; let i = $index) {
-                <li [class.table]="e.onTable" [class.flash]="e.onTable && switchNo() > 0" [class.far]="spins() && (i === 0 || i === wheel().length - 1)">
+              @for (e of wheel(); track e.category + ':' + e.id; let i = $index) {
+                <li [class.table]="e.onTable" [class.own]="e.category === active()" [class.flash]="e.onTable && switchNo() > 0"
+                    [class.far]="spins() && (i === 0 || i === wheel().length - 1)">
                   <a class="ent" [href]="href(e.route)" [attr.aria-current]="e.onTable ? 'true' : null"
-                     [scTooltip]="e.name" scTooltipTier="label" (click)="onEntry($event, r.category, e)">
+                     [scTooltip]="e.name" scTooltipTier="label" (click)="onEntry($event, e)">
+                    <i class="cat" aria-hidden="true">{{ glyph(e.category) }}</i>
+                    <span class="sc-sr-only">{{ 'codex.landing.categories.' + e.category | translate }}:</span>
                     <span class="nm">{{ e.name }}</span>
                     @if (e.announced) { <em class="soon">{{ 'codex.landing.codex.announced' | translate }}</em> }
                     @if (e.updated) { <em class="upd">{{ 'codex.landing.codex.updated' | translate }}</em> }
@@ -120,7 +142,6 @@ interface RowView {
               }
             </ul>
           </div>
-        }
       }
       <div class="foot">
         @if (activeRow(); as r) {
@@ -183,8 +204,10 @@ export class CodexLandingCodexPaneComponent {
   });
 
   readonly activeRow = computed(() => this.rows().find((r) => r.category === this.active()) ?? null);
+  /** Every category's new and updated entries in one list, rotation order. */
+  readonly entries = computed<WheelEntry[]>(() => this.rows().flatMap((r) => r.entries.map((e) => ({ ...e, category: r.category }))));
   /** More entries than rows: the list is a wheel. */
-  readonly spins = computed(() => (this.activeRow()?.entries.length ?? 0) > WHEEL_ROWS);
+  readonly spins = computed(() => this.entries().length > WHEEL_ROWS);
   /** Rows the reader turned the wheel; a new entry on the table centres it again. */
   private readonly spin = linkedSignal({
     source: () => `${this.active()}:${this.current()?.className ?? ''}`,
@@ -192,12 +215,15 @@ export class CodexLandingCodexPaneComponent {
   });
   /** The rows on screen, the entry on the table in the middle until the wheel is turned. */
   readonly wheel = computed(() => {
-    const entries = this.activeRow()?.entries ?? [];
-    const table = Math.max(0, entries.findIndex((e) => e.onTable));
-    return wheelWindow(entries.length, table + this.spin()).map((i) => entries[i]);
+    const entries = this.entries();
+    return wheelWindow(entries.length, wheelCentre(entries, this.active()) + this.spin()).map((i) => entries[i]);
   });
-  /** Entries beyond the rows on screen. */
-  readonly more = computed(() => Math.max(0, (this.activeRow()?.entries.length ?? 0) - this.wheel().length));
+  /** Entries of the active category beyond the rows on screen ("+ N weitere" opens them in the index). */
+  readonly more = computed(() => {
+    const cat = this.active();
+    const shown = this.wheel().filter((e) => e.category === cat).length;
+    return Math.max(0, (this.activeRow()?.entries.length ?? 0) - shown);
+  });
 
   private wheelSum = 0;
 
@@ -235,9 +261,10 @@ export class CodexLandingCodexPaneComponent {
   }
 
   /** Plain left click: onto the table of this page; every other activation falls through to the anchor. */
-  onEntry(ev: MouseEvent, category: LandingCategory, entry: LandingCodexEntry): void {
+  onEntry(ev: MouseEvent, e: WheelEntry): void {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();
-    this.pickEntry.emit({ category, entry });
+    const entry: LandingCodexEntry = { id: e.id, name: e.name, route: e.route, announced: e.announced, ...(e.updated ? { updated: true } : {}) };
+    this.pickEntry.emit({ category: e.category, entry });
   }
 }

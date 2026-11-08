@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.238.7] - 2026-11-08
+
+### Added
+- Ship detail (classic): save named loadouts per ship in this browser, recall or delete them from the Einsatz row; a disabled "Komponenten in den Warenkorb" button prepares the future cart.
+
+## [0.238.6] - 2026-11-08
+
+### Fixed
+- Codex: after scrolling down into "Mehr in Codex" you can scroll back up; the address bar shows /codex or /codex#more instead of /codex/index, old /codex/index links still land below with their filters.
+
+## [0.238.5] - 2026-11-08
+
+### Fixed
+- Codex landing: the "new in this patch" list is only as tall as its content and lists the new items of every category, each with its category glyph.
+
 ## [0.238.4] - 2026-11-08
 
 ### Fixed

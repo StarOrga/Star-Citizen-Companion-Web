@@ -18,7 +18,8 @@
   content: ''; position: absolute; top: 42%; height: 16%; right: calc(100% + var(--cx-bleed, 40px) - 2px); width: 2px;
   background: rgba(220, 250, 255, 0.85); box-shadow: 0 0 12px 2px rgba(130, 220, 255, 0.7); border-radius: 1px;
 }
-// Title and tabs at the top, the foot at the bottom, only the middle gives: no scrollbar.
+// As tall as its content (the landing caps it): title and tabs at the top, the foot under
+// the list; on a capped pane only the middle gives, no scrollbar.
 .body {
   flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: 16px 0 14px 18px;
   background: repeating-linear-gradient(180deg, rgba(150, 230, 255, 0.035) 0 1px, transparent 1px 4px);
@@ -78,6 +79,9 @@
 .new a.go:hover, .new a.go:focus-visible { color: var(--sc-accent); }
 // One line per row: the wheel's height never depends on a name.
 .new a .nm { flex: 1 1 auto; }
+// Every row names its category with the tab's glyph; the active category's rows stand brighter.
+.new .cat { flex: 0 0 14px; font-style: normal; font-size: 12px; text-align: center; color: var(--holo, #8fe3ff); opacity: 0.45; }
+.new li.own .cat { opacity: 0.9; }
 .new a.ent:hover, .new a:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.08); }
 // Inside the row: the wheel's box clips what stands outside it.
 .new a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
@@ -92,7 +96,7 @@
 .upd {
   flex: 0 0 auto; font-style: normal; font-size: max(9.5px, 0.58rem); letter-spacing: 0.06em; color: var(--sc-fg-2); white-space: nowrap;
 }
-// Always at the pane's bottom, wherever the middle ends.
+// Under the list; on a capped pane at its bottom.
 .foot { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; margin-top: auto; }
 .more {
   display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 8px; text-decoration: none;

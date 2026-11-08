@@ -2660,6 +2660,22 @@
         "jumpRange": "REICHWEITE",
         "spoolTime": "AUFLADEZEIT"
       }
+    },
+    "savedLoadouts": {
+      "group": "Gespeicherte Loadouts",
+      "save": "Loadout speichern",
+      "saveNothing": "Erst einen Slot ändern, dann speichern.",
+      "saveTitle": "Loadout speichern",
+      "saveMessage": "Gespeichert wird in diesem Browser, für dieses Schiff. Gleicher Name überschreibt.",
+      "nameLabel": "Name",
+      "saveConfirm": "Speichern",
+      "pick": "Gespeichertes Loadout laden",
+      "remove": "„{{name}}“ löschen",
+      "removeTitle": "Loadout löschen?",
+      "removeMessage": "„{{name}}“ wird aus diesem Browser entfernt.",
+      "removeConfirm": "Löschen",
+      "cart": "Komponenten in den Warenkorb",
+      "cartSoon": "Bald verfügbar: legt die Komponenten dieses Loadouts in den Warenkorb."
     }
   },
   "blueprint": {

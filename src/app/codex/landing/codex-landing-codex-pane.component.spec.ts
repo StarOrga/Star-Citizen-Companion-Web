@@ -20,8 +20,8 @@ function item(category: LandingCategory, className: string): LandingItem {
   };
 }
 
-function entries(n: number): LandingCodexEntry[] {
-  return Array.from({ length: n }, (_, i) => ({ id: `E${i}`, name: `Entry ${i}`, route: ['/codex', 'weapon', `E${i}`], announced: false }));
+function entries(n: number, prefix = 'E', label = 'Entry'): LandingCodexEntry[] {
+  return Array.from({ length: n }, (_, i) => ({ id: `${prefix}${i}`, name: `${label} ${i}`, route: ['/codex', 'weapon', `${prefix}${i}`], announced: false }));
 }
 
 describe('wheelWindow', () => {
@@ -43,14 +43,15 @@ describe('Codex landing pane', () => {
   let host: HTMLElement;
 
   /** The real pane at 1280x720, the tightest window the landing is built for. */
-  function mount(news: { category: LandingCategory; entries: LandingCodexEntry[] }[], active: LandingCategory, current: LandingItem | null, height = 400): void {
+  function mount(news: { category: LandingCategory; entries: LandingCodexEntry[] }[], active: LandingCategory, current: LandingItem | null, height: number | 'auto' = 400): void {
     TestBed.configureTestingModule({ imports: [CodexLandingCodexPaneComponent], providers: [provideRouter([]), provideTranslateService()] });
     const tr = TestBed.inject(TranslateService);
     tr.setTranslation('de', de as never);
     tr.use('de');
     fixture = TestBed.createComponent(CodexLandingCodexPaneComponent);
     host = fixture.nativeElement as HTMLElement;
-    host.style.cssText = `display:flex;flex-direction:column;width:200px;height:${height}px;position:absolute;left:0;top:0;`;
+    const size = height === 'auto' ? 'height:auto;max-height:400px' : `height:${height}px`;
+    host.style.cssText = `display:flex;flex-direction:column;width:200px;${size};position:absolute;left:0;top:0;`;
     document.body.appendChild(host);
     fixture.componentRef.setInput('items', news.map((n) => item(n.category, `I_${n.category}`)));
     fixture.componentRef.setInput('codex', { patch: '4.10', categories: news.map((n) => ({ ...n, count: n.entries.length, announced: 0 })) });
@@ -109,19 +110,54 @@ describe('Codex landing pane', () => {
     expect(still.defaultPrevented).withContext('the page keeps the turn').toBeFalse();
   });
 
-  it('title, tabs and foot hold their place from an empty middle to a full wheel, and everything fits at 1280x720', () => {
-    const y = (sel: string) => Math.round(host.querySelector(sel)!.getBoundingClientRect().top);
-    mount([{ category: 'tool', entries: entries(20) }], 'tool', item('tool', 'E10'));
-    const full = { ph: y('.ph'), tabs: y('.tabs'), all: y('a.all'), keys: y('a.keys') };
-    const body = host.querySelector<HTMLElement>('.body')!;
-    expect(body.scrollHeight).withContext('no hidden overflow with a full wheel').toBeLessThanOrEqual(body.clientHeight);
-    expect(rowsShown().length).toBe(WHEEL_ROWS);
-    const lastRow = host.querySelectorAll('.new li')[WHEEL_ROWS - 1].getBoundingClientRect();
-    expect(lastRow.bottom).withContext('the last row stands above the foot').toBeLessThanOrEqual(host.querySelector('.foot')!.getBoundingClientRect().top + 1);
+  it('lists the new items of every category, not only the active one (#318)', () => {
+    mount(
+      [
+        { category: 'ship', entries: entries(2, 'S', 'Ship') },
+        { category: 'fpsWeapon', entries: entries(1, 'W', 'Gun') },
+        { category: 'armor', entries: [] },
+        { category: 'tool', entries: entries(1, 'T', 'Tool') },
+      ],
+      'armor',
+      item('armor', 'I_armor'),
+    );
+    expect(rowsShown()).toEqual(['Ship 0', 'Ship 1', 'Gun 0', 'Tool 0']);
+    const glyphs = Array.from(host.querySelectorAll('.new li .cat')).map((g) => g.textContent!.trim());
+    expect(new Set(glyphs).size).withContext('each row tagged with its category glyph').toBe(3);
+    expect(host.querySelector('a.more')).withContext('armour has nothing new of its own').toBeNull();
+  });
+
+  it('the wheel spans all categories and centres the active one; "+ N" counts only the active category', () => {
+    mount(
+      [
+        { category: 'ship', entries: entries(4, 'S', 'Ship') },
+        { category: 'component', entries: entries(6, 'C', 'Comp') },
+      ],
+      'component',
+      null,
+    );
+    expect(rowsShown()).toEqual(['Ship 2', 'Ship 3', 'Comp 0', 'Comp 1', 'Comp 2']);
+    expect(host.querySelector('a.more')!.textContent).toContain('3');
+    const click = new MouseEvent('click', { button: 0, bubbles: true, cancelable: true });
+    let picked: unknown = null;
+    fixture.componentInstance.pickEntry.subscribe((p) => (picked = p));
+    host.querySelectorAll<HTMLAnchorElement>('.new li a.ent')[0].dispatchEvent(click);
+    expect(picked).toEqual({ category: 'ship', entry: { id: 'S2', name: 'Ship 2', route: ['/codex', 'weapon', 'S2'], announced: false } });
+  });
+
+  it('is as tall as its content, and a full wheel still fits the 400px cap at 1280x720', () => {
+    mount([{ category: 'tool', entries: entries(2) }], 'tool', item('tool', 'E1'), 'auto');
+    expect(host.getBoundingClientRect().height).withContext('a short list keeps the pane short').toBeLessThan(330);
+    const foot = host.querySelector('.foot')!.getBoundingClientRect();
+    const lastRow = host.querySelectorAll('.new li')[1].getBoundingClientRect();
+    expect(foot.top - lastRow.bottom).withContext('the foot follows the list, no empty middle').toBeLessThan(20);
     host.remove();
     TestBed.resetTestingModule();
 
-    mount([{ category: 'tool', entries: [] }], 'tool', item('tool', 'E10'));
-    expect({ ph: y('.ph'), tabs: y('.tabs'), all: y('a.all'), keys: y('a.keys') }).toEqual(full);
+    mount([{ category: 'tool', entries: entries(20) }], 'tool', item('tool', 'E10'), 'auto');
+    const body = host.querySelector<HTMLElement>('.body')!;
+    expect(host.getBoundingClientRect().height).toBeLessThanOrEqual(400);
+    expect(body.scrollHeight).withContext('no hidden overflow with a full wheel').toBeLessThanOrEqual(body.clientHeight);
+    expect(rowsShown().length).toBe(WHEEL_ROWS);
   });
 });
