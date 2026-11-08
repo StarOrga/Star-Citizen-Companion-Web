@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.232.3] - 2026-11-08
 
+### Fixed
+- Admin event sheets: "Neu auswerten" reaches the extraction again (the browser preflight was refused).
+
+## [0.232.3] - 2026-11-08
+
 ### Changed
 - Footer: the always-visible fan-site notice line is gone; the disclaimer stays in the "Made by the Community" badge bubble and on About, Imprint and Login.
 
