@@ -58,10 +58,10 @@ const ROADMAP: RoadmapPayload = {
   updatedAt: '',
 };
 
-/** 4.11 exists on the roadmap only: announced for a quarter, no build posted. */
+/** 4.12 exists on the roadmap only: announced for a quarter, no build posted. */
 const ROADMAP_ANNOUNCED: RoadmapPayload = {
   ...ROADMAP,
-  next: { id: 'n', name: '4.11', quarter: 'Q3 2026', status: 'committed', patchLine: '4.11', cards: [] },
+  next: { id: 'n', name: '4.12', quarter: 'Q3 2026', status: 'committed', patchLine: '4.12', cards: [] },
 };
 
 const LIVE_OUTLINE: PatchOutline = {
@@ -335,12 +335,12 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
   });
 
   it('an announced line without a build leads with a section that answers in words, not with an axis', async () => {
-    await render('4.11', '', ROADMAP_ANNOUNCED);
+    await render('4.12', '', ROADMAP_ANNOUNCED);
     // "Wann kommt dieser Patch?" leads for a patch that is not out yet …
     expect((Array.from(root().querySelectorAll('.col > section')) as HTMLElement[])[0].id).toBe('pd-next');
     // … and it says something: the planned quarter, the projection, the caveat.
     const sentence = text('#pd-next .sentence');
-    expect(sentence).toContain('Alpha 4.11 ist für Q3 2026 geplant.');
+    expect(sentence).toContain('Alpha 4.12 ist für Q3 2026 geplant.');
     expect(sentence).toContain('Noch kein Testbuild');
     // The caveat is still said — one click away, under the (i) (feedback 01df732d).
     expect(text('#pd-next sc-info-note .pop')).toContain('Median-Schätzungen');

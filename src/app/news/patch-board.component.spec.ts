@@ -52,7 +52,7 @@ const ROADMAP: RoadmapPayload = {
     { id: '1543', slug: 'Siege-Of-Orison', name: 'Siege of Orison', description: 'V2', body: '', status: 'released', category: 'Gameplay', thumbnail: null },
     { id: '1551', slug: 'Super-Heavy-Combat-Armor', name: 'Super Heavy Combat Armor', description: '', body: '', status: 'released', category: 'Characters', thumbnail: null },
   ] },
-  next: { id: 'n', name: '4.11', quarter: 'Q3 2026', status: 'tentative', patchLine: '4.11', cards: [
+  next: { id: 'n', name: '4.12', quarter: 'Q3 2026', status: 'tentative', patchLine: '4.12', cards: [
     { id: '1589', slug: 'Nyx-I', name: 'Nyx I', description: '', body: '', status: 'tentative', category: 'Locations', thumbnail: null },
     { id: '1599', slug: 'Genesis-Starchitect', name: 'Genesis: Starchitect', description: '', body: '', status: 'tentative', category: 'Core Tech', thumbnail: null },
   ] },
@@ -71,7 +71,7 @@ const ROADMAP: RoadmapPayload = {
 const ROADMAP_MANY: RoadmapPayload = {
   ...ROADMAP,
   next: {
-    id: 'n', name: '4.11', quarter: 'Q3 2026', status: 'tentative', patchLine: '4.11',
+    id: 'n', name: '4.12', quarter: 'Q3 2026', status: 'tentative', patchLine: '4.12',
     cards: [
       { id: 'x1', slug: 'No-Art', name: 'Ohne Bild', description: '', body: '', status: 'tentative', category: 'Core Tech', thumbnail: null },
       ...['Nyx I', 'Genesis: Starchitect', 'Kastak Arms Verdict', 'Tiburon Offerings', 'Engineering', 'Base Building', 'Pyro Outposts', 'Volumetric Clouds', 'Item Recovery'].map((name, i) => ({
@@ -184,7 +184,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('opens with exactly three cards in time order — next, live, superseded — and folds the rest', async () => {
     await render(FEED, ROADMAP);
     expect(rows().map((r) => r.dataset['status'])).toEqual(['next', 'live', 'superseded']);
-    expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.11', 'Alpha 4.10', 'Alpha 4.9']);
+    expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.12', 'Alpha 4.10', 'Alpha 4.9']);
     const fold = (root().querySelector('.fold-btn') as HTMLButtonElement | null);
     expect(fold).withContext('older lines are folded, not listed').not.toBeNull();
     expect(fold!.textContent).toContain('4.8');
@@ -270,7 +270,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('fills the strip with as many icons as fit, then a "…" that links on', async () => {
     await render(FEED, ROADMAP_MANY);
     const board = fixture.componentInstance;
-    board.onTeaserBox('4.11', { width: 426, item: 96, gap: 6, rest: 40, rows: 2 });
+    board.onTeaserBox('4.12', { width: 426, item: 96, gap: 6, rest: 40, rows: 2 });
     fixture.detectChanges();
 
     const icons = () => Array.from(rows()[0].querySelectorAll('.teaser .tz:not(.rest)')) as HTMLAnchorElement[];
@@ -279,10 +279,10 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(rest).withContext('and says there is more').not.toBeNull();
     expect(rest.textContent?.trim()).toBe('…');
     expect(rest.getAttribute('aria-label')).toContain('3 weitere');
-    expect(rest.getAttribute('href')).withContext('the "…" leads to the first item it hid').toBe('/verse/patches/4.11?focus=r8');
+    expect(rest.getAttribute('href')).withContext('the "…" leads to the first item it hid').toBe('/verse/patches/4.12?focus=r8');
 
     // Narrower card, fewer icons — nothing hardcoded, nothing lost.
-    board.onTeaserBox('4.11', { width: 160, item: 84, gap: 6, rest: 34, rows: 2 });
+    board.onTeaserBox('4.12', { width: 160, item: 84, gap: 6, rest: 34, rows: 2 });
     fixture.detectChanges();
     expect(icons().length).toBe(2);
     expect(rows()[0].querySelector('.teaser .rest')?.getAttribute('aria-label')).toContain('8 weitere');
@@ -290,17 +290,17 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
 
   it('every icon is a real link into its OWN roadmap entry', async () => {
     await render(FEED, ROADMAP_MANY);
-    fixture.componentInstance.onTeaserBox('4.11', { width: 900, item: 96, gap: 6, rest: 40, rows: 2 });
+    fixture.componentInstance.onTeaserBox('4.12', { width: 900, item: 96, gap: 6, rest: 40, rows: 2 });
     fixture.detectChanges();
     const icons = Array.from(rows()[0].querySelectorAll('.teaser .tz:not(.rest)')) as HTMLAnchorElement[];
     expect(icons.length).toBeGreaterThan(3);
     // Pictures first — they are the interesting ones.
     expect(icons[0].querySelector('img')?.getAttribute('src')).toBe('https://cdn.example/r1.jpg');
     expect(icons.map((a) => a.getAttribute('href')).slice(0, 3))
-      .toEqual(['/verse/patches/4.11?focus=r1', '/verse/patches/4.11?focus=r2', '/verse/patches/4.11?focus=r3']);
+      .toEqual(['/verse/patches/4.12?focus=r1', '/verse/patches/4.12?focus=r2', '/verse/patches/4.12?focus=r3']);
     expect(icons[0].getAttribute('aria-label')).toContain('Nyx I');
     // The card itself still opens the dossier — the icons sit on top of it.
-    expect((rows()[0].querySelector('a.card-link') as HTMLAnchorElement).getAttribute('href')).toBe('/verse/patches/4.11');
+    expect((rows()[0].querySelector('a.card-link') as HTMLAnchorElement).getAttribute('href')).toBe('/verse/patches/4.12');
   });
 
   /**
@@ -362,7 +362,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     await render(FEED, ROADMAP);
     (root().querySelector('.fold-btn') as HTMLButtonElement | null)!.click();
     fixture.detectChanges();
-    expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.11', 'Alpha 4.10', 'Alpha 4.9', 'Alpha 4.8', 'Alpha 4.7']);
+    expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.12', 'Alpha 4.10', 'Alpha 4.9', 'Alpha 4.8', 'Alpha 4.7']);
   });
 
   /**
@@ -395,7 +395,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('a roadmap hit is a picture card linking to RSI\'s own entry for it', async () => {
     await render(FEED, ROADMAP);
     search('nyx');
-    expect(groups().map((g) => g.querySelector('.gver')?.textContent?.trim())).toEqual(['Alpha 4.11']);
+    expect(groups().map((g) => g.querySelector('.gver')?.textContent?.trim())).toEqual(['Alpha 4.12']);
     const hit = groups()[0].querySelector('.hit[data-kind="roadmap"] a.cell') as HTMLAnchorElement;
     expect(hit.getAttribute('href')).toBe('https://robertsspaceindustries.com/roadmap/release-view/1589-Nyx-I');
     expect(hit.getAttribute('target')).toBe('_blank');
@@ -443,7 +443,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     await render(FEED, ROADMAP);
     const [next, live, superseded] = rows();
     const chip = (r: HTMLElement) => r.querySelector('.ch .stb a.chip');
-    expect(chip(next)).withContext('4.11 has not shipped').toBeNull();
+    expect(chip(next)).withContext('4.12 has not shipped').toBeNull();
     expect(chip(live)?.getAttribute('data-word')).withContext('56 % is wackelig').toBe('wackelig');
     expect(chip(live)?.textContent?.replace(/\s/g, '')).toContain('56%');
     expect(chip(live)?.getAttribute('href')).toBe('/verse/patches/4.10#stabilitaet');
@@ -474,7 +474,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(tiles[0].textContent).toContain('Alpha 4.10');
     expect(tiles[0].querySelector('.side')?.textContent)
       .withContext('hotfixes ride along with the live patch, not a readout of their own').toContain('Hotfix');
-    expect(tiles[2].textContent).withContext('the cell at the rail\'s end names the next line').toContain('Alpha 4.11');
+    expect(tiles[2].textContent).withContext('the cell at the rail\'s end names the next line').toContain('Alpha 4.12');
     expect(panel!.querySelector('.answer b')?.textContent?.trim()).withContext('the estimated date').toBeTruthy();
 
     // The cell widths come from the rail — the legend sits under what it explains.
