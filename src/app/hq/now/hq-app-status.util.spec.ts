@@ -39,13 +39,13 @@ describe('hqAppAction', () => {
 
 describe('appStatusVisible', () => {
   it('shows on every HQ page including Start, also before the app was ever connected', () => {
-    for (const p of ['start', 'inventar', 'jetzt', 'planen', 'statistik'] as const) expect(appStatusVisible(p, true, true)).toBeTrue();
+    for (const p of ['start', 'inventar', 'jetzt', 'planen', 'statistik'] as const) expect(appStatusVisible(p, true, true)).toBe(true);
   });
 
   it('hides where nothing can be installed, outside the HQ pages and before the live data settled', () => {
-    expect(appStatusVisible('start', false, true)).toBeFalse();
-    expect(appStatusVisible(null, true, true)).toBeFalse();
-    expect(appStatusVisible('jetzt', true, false)).toBeFalse();
+    expect(appStatusVisible('start', false, true)).toBe(false);
+    expect(appStatusVisible(null, true, true)).toBe(false);
+    expect(appStatusVisible('jetzt', true, false)).toBe(false);
   });
 });
 
@@ -60,9 +60,9 @@ describe('Aussicht memory', () => {
 
   it('opens by itself only while the app is missing, once per page', () => {
     const seen = new Set(['start'] as const);
-    expect(aussichtAutoOpen('missing', 'jetzt', seen)).toBeTrue();
-    expect(aussichtAutoOpen('missing', 'start', seen)).toBeFalse();
-    expect(aussichtAutoOpen('off', 'jetzt', seen)).toBeFalse();
-    expect(aussichtAutoOpen('missing', null, seen)).toBeFalse();
+    expect(aussichtAutoOpen('missing', 'jetzt', seen)).toBe(true);
+    expect(aussichtAutoOpen('missing', 'start', seen)).toBe(false);
+    expect(aussichtAutoOpen('off', 'jetzt', seen)).toBe(false);
+    expect(aussichtAutoOpen('missing', null, seen)).toBe(false);
   });
 });

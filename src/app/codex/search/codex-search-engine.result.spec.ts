@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -20,28 +21,28 @@ function hit(kind: PolySearchHit['kind'], slug: string, over: Partial<PolySearch
 }
 
 describe('CodexSearchEngine result (concept 2026-11-02)', () => {
-  let searchAll: jasmine.Spy;
-  let rpc: jasmine.Spy;
-  let signals: { logMiss: jasmine.Spy; recordOpen: jasmine.Spy; cancelMiss: jasmine.Spy; ensurePopularity: jasmine.Spy; signals: jasmine.Spy };
+  let searchAll: Mock;
+  let rpc: Mock;
+  let signals: { logMiss: Mock; recordOpen: Mock; cancelMiss: Mock; ensurePopularity: Mock; signals: Mock };
   let engine: CodexSearchEngine;
 
   beforeEach(() => {
     localStorage.removeItem('sc.codex.recentSearches');
-    searchAll = jasmine.createSpy('searchAll').and.resolveTo({ hits: [], totals: {} } as PolySearchResult);
-    rpc = jasmine.createSpy('rpc').and.resolveTo({ data: [], error: null });
+    searchAll = vi.fn().mockName('searchAll').mockResolvedValue({ hits: [], totals: {} } as PolySearchResult);
+    rpc = vi.fn().mockName('rpc').mockResolvedValue({ data: [], error: null });
     signals = {
-      logMiss: jasmine.createSpy('logMiss'),
-      recordOpen: jasmine.createSpy('recordOpen'),
-      cancelMiss: jasmine.createSpy('cancelMiss'),
-      ensurePopularity: jasmine.createSpy('ensurePopularity'),
-      signals: jasmine.createSpy('signals').and.returnValue({ recentRank: () => -1, owns: () => false, popularity: () => 0 }),
+      logMiss: vi.fn().mockName('logMiss'),
+      recordOpen: vi.fn().mockName('recordOpen'),
+      cancelMiss: vi.fn().mockName('cancelMiss'),
+      ensurePopularity: vi.fn().mockName('ensurePopularity'),
+      signals: vi.fn().mockName('signals').mockReturnValue({ recentRank: () => -1, owns: () => false, popularity: () => 0 }),
     };
     TestBed.configureTestingModule({
       providers: [
         CodexSearchEngine,
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
-        { provide: CodexService, useValue: { searchAll, suggestNames: jasmine.createSpy().and.resolveTo([]) } },
+        { provide: CodexService, useValue: { searchAll, suggestNames: vi.fn().mockResolvedValue([]) } },
         { provide: CodexBuildDiffService, useValue: { addedShipsMemo: () => Promise.resolve([]) } },
         { provide: AuthService, useValue: { isAuthenticated: () => false } },
         { provide: NewsService, useValue: { patchLines: () => [], feed: () => null, loading: () => false, refresh: () => Promise.resolve() } },
@@ -58,17 +59,16 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
   });
 
   it('a size typed in the text becomes a chip, is searched server-side and the text loses the word (C8)', fakeAsync(() => {
-    searchAll.and.callFake((_t: string, _n: number, attrs?: { size?: number }) =>
+    searchAll.mockImplementation((_t: string, _n: number, attrs?: { size?: number }) =>
       Promise.resolve({
         hits: attrs?.size ? [hit('item', 'C3', { size: 3, nameLocalized: 'Cooler' })] : [hit('item', 'C3', { size: 3, nameLocalized: 'Cooler' }), hit('item', 'C1', { size: 1, nameLocalized: 'Cooler Mk1' })],
         totals: { item: 2 },
         facets: { size: { '1': 1, '3': 1 }, grade: {} },
-      } as PolySearchResult),
-    );
+      } as PolySearchResult));
     engine.searchFor('s3 cooler');
     tick();
-    expect(searchAll.calls.argsFor(0)).toEqual(['cooler', 5, { size: 3 }]);
-    expect(searchAll.calls.argsFor(1)).toEqual(['cooler', 5]); // unfiltered, for the outside group + counts
+    expect(vi.mocked(searchAll).mock.calls[0]).toEqual(['cooler', 5, { size: 3 }]);
+    expect(vi.mocked(searchAll).mock.calls[1]).toEqual(['cooler', 5]); // unfiltered, for the outside group + counts
     const r = engine.result();
     expect(r.term).toBe('cooler');
     expect(r.chips.map((c) => c.id)).toEqual(['parsed:size']);
@@ -78,7 +78,7 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
   }));
 
   it('exposes what it read: the alias that fired and the word that became a chip (C6)', fakeAsync(() => {
-    searchAll.and.callFake(() => Promise.resolve({ hits: [hit('weapon', 'R4', { size: 4, nameLocalized: 'Repeater' })], totals: { weapon: 1 } } as PolySearchResult));
+    searchAll.mockImplementation(() => Promise.resolve({ hits: [hit('weapon', 'R4', { size: 4, nameLocalized: 'Repeater' })], totals: { weapon: 1 } } as PolySearchResult));
     engine.searchFor('rep s4');
     tick();
     const rd = engine.readings();
@@ -93,10 +93,10 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
   it('switching the chip value re-searches with the new size (S3 to S5)', fakeAsync(() => {
     engine.searchFor('s3 cooler');
     tick();
-    searchAll.calls.reset();
+    searchAll.mockClear();
     engine.setChipValue('parsed:size', '5');
     tick();
-    expect(searchAll.calls.argsFor(0)).toEqual(['cooler', 5, { size: 5 }]);
+    expect(vi.mocked(searchAll).mock.calls[0]).toEqual(['cooler', 5, { size: 5 }]);
     expect(engine.activeChips()[0].filter.size).toBe(5);
     tick(2000);
   }));
@@ -104,11 +104,11 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
   it('removing a chip searches without that filter; Backspace removes the last chip (C5)', fakeAsync(() => {
     engine.searchFor('s3 cooler');
     tick();
-    searchAll.calls.reset();
+    searchAll.mockClear();
     expect(engine.removeLastChip()).toBe('parsed:size');
     tick();
     expect(engine.activeChips()).toEqual([]);
-    expect(searchAll.calls.argsFor(0)).toEqual(['cooler', 5]);
+    expect(vi.mocked(searchAll).mock.calls[0]).toEqual(['cooler', 5]);
     tick(2000);
   }));
 
@@ -132,12 +132,13 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
     engine.setInput('zzzz');
     tick(SEARCH_DEBOUNCE_MS);
     tick();
-    expect(signals.logMiss).toHaveBeenCalledOnceWith('zzzz');
+    expect(signals.logMiss).toHaveBeenCalledTimes(1);
+    expect(signals.logMiss).toHaveBeenCalledWith('zzzz');
     tick(2000);
   }));
 
   it('does not count a search that found something', fakeAsync(() => {
-    searchAll.and.resolveTo({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } } as PolySearchResult);
+    searchAll.mockResolvedValue({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } } as PolySearchResult);
     engine.searchFor('gladius');
     tick();
     expect(signals.logMiss).not.toHaveBeenCalled();
@@ -145,7 +146,7 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
   }));
 
   it('records an opened hit for the local and the server signal (C9)', fakeAsync(() => {
-    searchAll.and.resolveTo({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } } as PolySearchResult);
+    searchAll.mockResolvedValue({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } } as PolySearchResult);
     engine.searchFor('gladius');
     tick();
     const row = engine.result().groups[0].rows[0];
@@ -155,16 +156,16 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
   }));
 
   it('adds the gallery group from search_gallery and degrades silently on an error', fakeAsync(() => {
-    rpc.and.resolveTo({ data: [{ image_id: 'img1', title: 'Gladius dawn', series: null, published_at: null, preview_url: null }], error: null });
+    rpc.mockResolvedValue({ data: [{ image_id: 'img1', title: 'Gladius dawn', series: null, published_at: null, preview_url: null }], error: null });
     engine.searchFor('gladius');
     tick();
     expect(rpc).toHaveBeenCalledWith('search_gallery', { p_query: 'gladius', p_limit: 8 });
     expect(engine.result().groups.find((g) => g.id === 'gallery')?.rows[0].target.link).toEqual(['/verse', 'gallery', 'img1']);
 
-    rpc.and.resolveTo({ data: null, error: { code: 'PGRST202', message: 'missing' } });
+    rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'missing' } });
     engine.searchFor('gladius again');
     tick();
-    expect(engine.result().groups.some((g) => g.id === 'gallery')).toBeFalse();
+    expect(engine.result().groups.some((g) => g.id === 'gallery')).toBe(false);
     tick(2000);
   }));
 
@@ -173,7 +174,7 @@ describe('CodexSearchEngine result (concept 2026-11-02)', () => {
     engine.searchFor('gladuis');
     tick();
     expect(engine.result().didYouMean).toEqual([]);
-    expect(engine.result().empty).toBeTrue();
+    expect(engine.result().empty).toBe(true);
     tick(2000);
   }));
 });

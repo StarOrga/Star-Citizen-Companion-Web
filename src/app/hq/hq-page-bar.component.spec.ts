@@ -35,6 +35,6 @@ describe('HqPageBarComponent', () => {
   it('names every tab for assistive tech (icon-only on narrow legacy phones)', () => {
     const tabs = Array.from(setup(false).querySelectorAll('a.tab')) as HTMLAnchorElement[];
     expect(tabs.length).toBe(2);
-    expect(tabs.every((a) => !!a.getAttribute('aria-label'))).toBeTrue();
+    expect(tabs.every((a) => !!a.getAttribute('aria-label'))).toBe(true);
   });
 });

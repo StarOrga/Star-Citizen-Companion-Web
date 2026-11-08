@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { BLUEPRINT_DEV_BASE_KEY, ShipBlueprintService } from './ship-blueprint.service';
@@ -12,12 +13,12 @@ function supabaseStub(result: { data: unknown[] | null; error: unknown }) {
     select: (...a: unknown[]) => (calls.push(['select', ...a]), q),
     not: (...a: unknown[]) => (calls.push(['not', ...a]), Promise.resolve(result)),
   };
-  const from = jasmine.createSpy('from').and.returnValue(q);
+  const from = vi.fn().mockName('from').mockReturnValue(q);
   return { calls, from, provider: { client: { from } } };
 }
 
 describe('ShipBlueprintService', () => {
-  let fetchSpy: jasmine.Spy;
+  let fetchSpy: Mock;
 
   function setup(result: { data: unknown[] | null; error: unknown }) {
     localStorage.removeItem(BLUEPRINT_DEV_BASE_KEY);
@@ -27,7 +28,7 @@ describe('ShipBlueprintService', () => {
   }
 
   beforeEach(() => {
-    fetchSpy = spyOn(window, 'fetch');
+    fetchSpy = vi.spyOn(window, 'fetch').mockReturnValue(undefined as never);
   });
 
   afterEach(() => TestBed.resetTestingModule());
@@ -42,14 +43,15 @@ describe('ShipBlueprintService', () => {
     });
     expect(svc.urls('AEGS_Gladius')).toBeNull();
     await Promise.all([svc.load(), svc.load()]);
-    expect(sb.from).toHaveBeenCalledOnceWith('ship_skins_index');
-    expect(sb.calls).toContain(['not', 'blueprint_icon_path', 'is', null]);
+    expect(sb.from).toHaveBeenCalledTimes(1);
+    expect(sb.from).toHaveBeenCalledWith('ship_skins_index');
+    expect(sb.calls).toContainEqual(['not', 'blueprint_icon_path', 'is', null]);
     const urls = svc.urls('aegs_gladius')!;
     expect(urls.full).toMatch(new RegExp(`/ship-skins/_blueprints/${SHA_FULL}\\.svg$`));
     expect(urls.icon).toMatch(new RegExp(`/ship-skins/_blueprints/${SHA_ICON}\\.svg$`));
     // A row whose paths do not have the blueprint shape is no drawing at all.
     expect(svc.urls('BAD_Path')).toBeNull();
-    expect(svc.ready()).toBeTrue();
+    expect(svc.ready()).toBe(true);
   });
 
   it('treats a failed index read as "no drawings" for the session — no request per tile', async () => {
@@ -58,7 +60,7 @@ describe('ShipBlueprintService', () => {
     await svc.load();
     expect(sb.from).toHaveBeenCalledTimes(1);
     expect(svc.urls('AEGS_Gladius')).toBeNull();
-    expect(svc.ready()).toBeTrue();
+    expect(svc.ready()).toBe(true);
   });
 
   it('fetches and parses a drawing once per URL; a ship without one costs no request', async () => {
@@ -67,7 +69,7 @@ describe('ShipBlueprintService', () => {
       error: null,
     });
     await svc.load();
-    fetchSpy.and.callFake(() => Promise.resolve(new Response(blueprintSvg('icon'))));
+    fetchSpy.mockImplementation(() => Promise.resolve(new Response(blueprintSvg('icon'))));
     const [a, b] = await Promise.all([svc.drawing('AEGS_Gladius', 'icon'), svc.drawing('AEGS_Gladius', 'icon')]);
     expect(a?.lod).toBe('icon');
     expect(b).toBe(a);
@@ -82,9 +84,9 @@ describe('ShipBlueprintService', () => {
       error: null,
     });
     await svc.load();
-    fetchSpy.and.callFake(() => Promise.resolve(new Response(blueprintSvg('icon'))));
+    fetchSpy.mockImplementation(() => Promise.resolve(new Response(blueprintSvg('icon'))));
     expect(await svc.drawing('AEGS_Gladius', 'full')).toBeNull();
-    fetchSpy.and.callFake(() => Promise.resolve(new Response('<html>nope</html>')));
+    fetchSpy.mockImplementation(() => Promise.resolve(new Response('<html>nope</html>')));
     expect(await svc.drawing('AEGS_Gladius', 'icon')).toBeNull();
   });
 
@@ -94,10 +96,7 @@ describe('ShipBlueprintService', () => {
       error: null,
     });
     await svc.load();
-    fetchSpy.and.returnValues(
-      Promise.resolve(new Response('', { status: 503 })),
-      Promise.resolve(new Response(blueprintSvg('full'))),
-    );
+    fetchSpy.mockReturnValueOnce(Promise.resolve(new Response('', { status: 503 }))).mockReturnValueOnce(Promise.resolve(new Response(blueprintSvg('full'))));
     expect(await svc.drawing('AEGS_Gladius', 'full')).toBeNull();
     expect((await svc.drawing('AEGS_Gladius', 'full'))?.lod).toBe('full');
     expect(fetchSpy).toHaveBeenCalledTimes(2);

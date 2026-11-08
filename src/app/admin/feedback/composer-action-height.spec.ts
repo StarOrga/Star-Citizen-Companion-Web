@@ -62,7 +62,7 @@ describe('composer send-row height', () => {
     const root = fixture.nativeElement.querySelector(`#${variant}`) as HTMLElement;
     const h = (sel: string) => {
       const el = root.querySelector(sel) as HTMLElement | null;
-      expect(el).withContext(`${variant}: ${sel} must exist`).not.toBeNull();
+      expect(el, `${variant}: ${sel} must exist`).not.toBeNull();
       return Math.round(el!.getBoundingClientRect().height);
     };
     return { send: h('button.send'), add: h('.att-add'), capture: h('.att-capture') };
@@ -71,8 +71,8 @@ describe('composer send-row height', () => {
   for (const variant of ['default', 'compact', 'key']) {
     it(`gives the attach tiles the send button's height (${variant})`, () => {
       const { send, add, capture } = heights(variant);
-      expect(add).withContext(`${variant}: "+" tile vs send`).toBe(send);
-      expect(capture).withContext(`${variant}: capture tile vs send`).toBe(send);
+      expect(add, `${variant}: "+" tile vs send`).toBe(send);
+      expect(capture, `${variant}: capture tile vs send`).toBe(send);
     });
   }
 

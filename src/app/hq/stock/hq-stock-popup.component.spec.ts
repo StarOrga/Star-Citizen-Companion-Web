@@ -26,8 +26,8 @@ describe('HqStockPopupComponent: capture and links', () => {
     const wish = {
       totalQty: () => 0,
       qtyOf: () => 0,
-      setQty: jasmine.createSpy('setQty').and.resolveTo(true),
-      remove: jasmine.createSpy('remove').and.resolveTo(true),
+      setQty: vi.fn().mockName('setQty').mockResolvedValue(true),
+      remove: vi.fn().mockName('remove').mockResolvedValue(true),
     };
     const inv = {
       loaded: signal(true),
@@ -36,8 +36,8 @@ describe('HqStockPopupComponent: capture and links', () => {
       locations: signal([]),
       items: signal(items),
       shipStorage: signal([]),
-      load: jasmine.createSpy('load').and.resolveTo(),
-      addManual: jasmine.createSpy('addManual').and.resolveTo(true),
+      load: vi.fn().mockName('load').mockResolvedValue(undefined),
+      addManual: vi.fn().mockName('addManual').mockResolvedValue(true),
       lastKnownLocation: () => Promise.resolve(null),
     };
     TestBed.configureTestingModule({
@@ -82,7 +82,7 @@ describe('HqStockPopupComponent: capture and links', () => {
     await type(fixture, 'q34tqaergv');
     expect(el.querySelector('#hq-stock-item-msg')?.textContent).toContain('hq.stock.capture.unknown');
     expect(el.querySelector('sc-select[aria-label], sc-select')).not.toBeNull();
-    expect((el.querySelector('form.capture button[type=submit]') as HTMLButtonElement).disabled).toBeFalse();
+    expect((el.querySelector('form.capture button[type=submit]') as HTMLButtonElement).disabled).toBe(false);
     c.manualSub.set('armor.helmet');
     await c.add();
     expect(inv.addManual).toHaveBeenCalledWith('Area18', 'q34tqaergv', 1, 'pcs', 'manual:armor.helmet');
@@ -96,7 +96,7 @@ describe('HqStockPopupComponent: capture and links', () => {
     expect(((fixture.nativeElement as HTMLElement).querySelector('[role=option]') as HTMLElement).textContent).toContain('Idris-P');
     c.pick(c.suggestions()[0]);
     fixture.detectChanges();
-    expect(c.valid()).toBeTrue();
+    expect(c.valid()).toBe(true);
     await c.add();
     expect(inv.addManual).toHaveBeenCalledWith('Area18', 'Idris-P', 1, 'pcs', 'ship:AEGS_Idris_P');
   });
@@ -154,12 +154,12 @@ describe('HqStockPopupComponent: capture and links', () => {
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
     fixture.detectChanges();
-    expect(wish.setQty).toHaveBeenCalledOnceWith({ kind: 'item', className: 'Medpen_01', name: 'Medpen' }, 1);
+    expect(wish.setQty).toHaveBeenCalledExactlyOnceWith({ kind: 'item', className: 'Medpen_01', name: 'Medpen' }, 1);
     expect(path.nachholen).not.toHaveBeenCalled();
     expect(inv.addManual).not.toHaveBeenCalled();
     const toast = TestBed.inject(UndoToastService);
     expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
-    wish.setQty.calls.reset();
+    wish.setQty.mockClear();
     toast.undo();
     expect(wish.remove).toHaveBeenCalledWith('item', 'Medpen_01', 'Medpen');
   });
@@ -169,7 +169,7 @@ describe('HqStockPopupComponent: capture and links', () => {
       { mode: 'browse' },
       { items: [{ location: 'Lorville', name: 'Medpen', class_name: 'item:Medpen_01', qty: 1, unit: 'pcs' }] },
     );
-    wish.setQty.and.resolveTo(false);
+    wish.setQty.mockResolvedValue(false);
     await fixture.whenStable();
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;

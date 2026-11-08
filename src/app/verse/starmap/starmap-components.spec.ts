@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component, input, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -57,26 +58,26 @@ describe('star map components', () => {
   const explorer = signal<VerseExplorerState | null>(STATE);
   const explorerState = signal<VerseLoadState>('ready');
   const authed = signal(true);
-  let loadExplorer: jasmine.Spy;
-  let suggest: jasmine.Spy;
-  let suggestions: jasmine.Spy;
-  let submitPrediction: jasmine.Spy;
-  let submitGuess: jasmine.Spy;
+  let loadExplorer: Mock;
+  let suggest: Mock;
+  let suggestions: Mock;
+  let submitPrediction: Mock;
+  let submitGuess: Mock;
   const isAdmin = signal(false);
 
   beforeEach(() => {
     explorer.set(STATE);
     explorerState.set('ready');
     authed.set(true);
-    loadExplorer = jasmine.createSpy('loadExplorer').and.resolveTo();
+    loadExplorer = vi.fn().mockName('loadExplorer').mockResolvedValue(undefined);
     isAdmin.set(false);
-    submitPrediction = jasmine.createSpy('submitPrediction').and.resolveTo({ ok: true, data: undefined });
-    submitGuess = jasmine.createSpy('submitGuess').and.resolveTo({
+    submitPrediction = vi.fn().mockName('submitPrediction').mockResolvedValue({ ok: true, data: undefined });
+    submitGuess = vi.fn().mockName('submitGuess').mockResolvedValue({
       ok: true,
       data: { patchLine: '4.4', correct: false, answerClass: 'RSI_Zeus', answerName: 'RSI Zeus Mk II', starEarned: false },
     });
-    suggest = jasmine.createSpy('suggest').and.resolveTo({ ok: true, data: undefined });
-    suggestions = jasmine.createSpy('suggestions').and.resolveTo({
+    suggest = vi.fn().mockName('suggest').mockResolvedValue({ ok: true, data: undefined });
+    suggestions = vi.fn().mockName('suggestions').mockResolvedValue({
       ok: true,
       data: [{ id: 's1', itemUrl: '/verse/patches/4.4', note: 'read', status: 'open', createdAt: 'x' }],
     });
@@ -85,7 +86,7 @@ describe('star map components', () => {
         provideRouter([]),
         provideTranslateService({}),
         { provide: AuthService, useValue: { isAuthenticated: authed } },
-        { provide: AnalyticsService, useValue: { captureVerse: jasmine.createSpy('captureVerse'), flags: () => ({}) } },
+        { provide: AnalyticsService, useValue: { captureVerse: vi.fn().mockName('captureVerse'), flags: () => ({}) } },
         {
           provide: VerseApiService,
           useValue: {
@@ -97,7 +98,7 @@ describe('star map components', () => {
             suggestions,
             submitPrediction,
             submitGuess,
-            guessOptions: jasmine.createSpy('guessOptions').and.resolveTo({
+            guessOptions: vi.fn().mockName('guessOptions').mockResolvedValue({
               ok: true,
               data: {
                 patchLine: '4.4',
@@ -111,16 +112,14 @@ describe('star map components', () => {
                 ],
               },
             }),
-            communityStars: jasmine
-              .createSpy('communityStars')
-              .and.resolveTo({ ok: true, data: { patchLine: '4.4', explorers: 4, stars: { notes: 4, 'cx-keybinds': 1 } } }),
-            constellation: jasmine.createSpy('constellation').and.resolveTo({ ok: true, data: null }),
-            promoteSuggestion: jasmine.createSpy('promoteSuggestion').and.resolveTo({ ok: true, data: 'suggestion:s1' }),
-            dismissSuggestion: jasmine.createSpy('dismissSuggestion').and.resolveTo({ ok: true, data: undefined }),
+            communityStars: vi.fn().mockName('communityStars').mockResolvedValue({ ok: true, data: { patchLine: '4.4', explorers: 4, stars: { notes: 4, 'cx-keybinds': 1 } } }),
+            constellation: vi.fn().mockName('constellation').mockResolvedValue({ ok: true, data: null }),
+            promoteSuggestion: vi.fn().mockName('promoteSuggestion').mockResolvedValue({ ok: true, data: 'suggestion:s1' }),
+            dismissSuggestion: vi.fn().mockName('dismissSuggestion').mockResolvedValue({ ok: true, data: undefined }),
           },
         },
         { provide: RoleService, useValue: { isAdmin } },
-        { provide: ScConfirmService, useValue: { prompt: jasmine.createSpy('prompt').and.resolveTo('Pin it') } },
+        { provide: ScConfirmService, useValue: { prompt: vi.fn().mockName('prompt').mockResolvedValue('Pin it') } },
       ],
     });
     for (const cmp of [ExplorerPageComponent, MyConstellationsComponent]) {
@@ -199,7 +198,7 @@ describe('star map components', () => {
     const sky = f.nativeElement.querySelector('.sun-sky') as HTMLElement;
     expect(sky.classList).toContain('hit');
     expect(sky.querySelector('.comet')).not.toBeNull();
-    expect(sky.hasAttribute('title')).toBeFalse();
+    expect(sky.hasAttribute('title')).toBe(false);
   });
 
   it('the comet rail tips the upcoming patch with one click, sent once the undo window closes', async () => {
@@ -214,19 +213,22 @@ describe('star map components', () => {
     expect(TestBed.inject(UndoToastService).current()?.messageKey).toBe('starmap.comet.undoToast');
     TestBed.inject(UndoToastService).flush();
     await f.whenStable();
-    expect(submitPrediction).toHaveBeenCalledWith('4.5', jasmine.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+    expect(submitPrediction).toHaveBeenCalledWith('4.5', expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
   });
 
   it('a tipped comet is read-only and an error shows translated inline', async () => {
-    submitPrediction.and.resolveTo({ ok: false, errorKey: 'errors.cometLocked' });
+    submitPrediction.mockResolvedValue({ ok: false, errorKey: 'errors.cometLocked' });
     explorer.set({ ...STATE, upcoming: { patchLine: '4.5', comet: { ...STATE.patches[0].comet } } });
     const f = TestBed.createComponent(ExplorerPageComponent);
     f.detectChanges();
     (f.nativeElement.querySelector('sc-comet-track .tok:not(.nav):not(:disabled)') as HTMLButtonElement).click();
     TestBed.inject(UndoToastService).flush();
-    await f.whenStable();
-    f.detectChanges();
-    expect(f.nativeElement.querySelector('sc-comet-track [role=alert]')?.textContent).toContain('errors.cometLocked');
+    // Not whenStable(): under Vitest it never settles on this error path (the
+    // mocked promise comes from outside the zone); wait for the alert itself.
+    await vi.waitFor(() => {
+      f.detectChanges();
+      expect(f.nativeElement.querySelector('sc-comet-track [role=alert]')?.textContent).toContain('errors.cometLocked');
+    });
 
     explorer.set({
       ...STATE,
@@ -234,7 +236,7 @@ describe('star map components', () => {
     });
     f.detectChanges();
     const toks = [...f.nativeElement.querySelectorAll('sc-comet-track .tok')] as HTMLButtonElement[];
-    expect(toks.every((t) => t.disabled)).toBeTrue();
+    expect(toks.every((t) => t.disabled)).toBe(true);
     expect(f.nativeElement.querySelector('sc-comet-track .tok.on .comet.fall')).not.toBeNull();
   });
 
@@ -252,8 +254,8 @@ describe('star map components', () => {
   });
 
   it('the screenshot case: the 4.11 tip of Sa 31 Okt 2026 reads missed once that day is past', () => {
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date(2026, 10, 8, 17, 12));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 8, 17, 12));
     try {
       explorer.set({
         ...STATE,
@@ -265,7 +267,7 @@ describe('star map components', () => {
       expect(track.querySelector('.state.missed')).not.toBeNull();
       expect(track.querySelector('.state')?.textContent).not.toContain('tipped');
     } finally {
-      jasmine.clock().uninstall();
+      vi.useRealTimers();
     }
   });
 
@@ -307,19 +309,19 @@ describe('star map components', () => {
     const toks = () => [...f.nativeElement.querySelectorAll('sc-guess-track .tok.ship')] as HTMLButtonElement[];
     toks()[1].click();
     f.detectChanges();
-    expect(toks().every((t) => t.disabled)).toBeTrue();
+    expect(toks().every((t) => t.disabled)).toBe(true);
     expect(toks()[1].classList).toContain('mine');
     // A state refresh of the same patch keeps the pick locked (no second guess).
     explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: { ...open } }), ...STATE.patches.slice(1)] });
     f.detectChanges();
     await Promise.resolve();
     f.detectChanges();
-    expect(toks().every((t) => t.disabled)).toBeTrue();
+    expect(toks().every((t) => t.disabled)).toBe(true);
     const undo = TestBed.inject(UndoToastService);
     expect(undo.current()?.messageParams).toEqual({ name: 'Aegis Gladius' });
     undo.undo();
     f.detectChanges();
-    expect(toks().some((t) => t.disabled)).toBeFalse();
+    expect(toks().some((t) => t.disabled)).toBe(false);
     expect(toks()[1].classList).not.toContain('mine');
     TestBed.inject(UndoToastService).flush();
     await f.whenStable();
@@ -330,7 +332,8 @@ describe('star map components', () => {
     f.detectChanges();
     TestBed.inject(UndoToastService).flush();
     await f.whenStable();
-    expect(submitGuess).toHaveBeenCalledOnceWith('4.4', 'RSI_Zeus');
+    expect(submitGuess).toHaveBeenCalledTimes(1);
+    expect(submitGuess).toHaveBeenCalledWith('4.4', 'RSI_Zeus');
   });
 
   it('series strip: one line, unlocked vs locked from the server, next marked', () => {
@@ -390,11 +393,11 @@ describe('star map components', () => {
     expect(el.querySelector('.side .btn.ghost')).not.toBeNull();
     const input = el.querySelector('#sg-url') as HTMLInputElement;
     const submit = el.querySelector('.suggest button[type=submit]') as HTMLButtonElement;
-    expect(submit.disabled).toBeTrue();
+    expect(submit.disabled).toBe(true);
     input.value = '/verse/patches/4.4';
     input.dispatchEvent(new Event('input'));
     f.detectChanges();
-    expect(submit.disabled).toBeFalse();
+    expect(submit.disabled).toBe(false);
     submit.click();
     await f.whenStable();
     expect(suggest).toHaveBeenCalledWith('/verse/patches/4.4', null);
@@ -424,7 +427,7 @@ describe('star map components', () => {
 
   it('meteor shower shows only a hint off the LIVE day', () => {
     const f = more({ ...STATE, rewards: { ...STATE.rewards, live: true, meteor: true } });
-    expect(f.componentInstance.meteorToday()).toBeFalse();
+    expect(f.componentInstance.meteorToday()).toBe(false);
     expect(f.nativeElement.textContent).toContain('starmap.reward.meteor.notToday');
   });
 });
@@ -439,7 +442,7 @@ describe('Kartograph badge page', () => {
         { provide: ActivatedRoute, useValue: { queryParamMap: of(params), snapshot: { queryParamMap: params } } },
         {
           provide: VerseApiService,
-          useValue: { constellation: jasmine.createSpy('constellation').and.resolveTo({ ok: true, data: null }) },
+          useValue: { constellation: vi.fn().mockName('constellation').mockResolvedValue({ ok: true, data: null }) },
         },
       ],
     });

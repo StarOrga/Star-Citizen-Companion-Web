@@ -37,16 +37,16 @@ describe('FeedbackAttachmentSignerService', () => {
 
   beforeEach(() => {
     fake = new FakeStorage();
-    spyOn(console, 'warn');
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date(2026, 8, 28, 12, 0, 0));
+    vi.spyOn(console, 'warn').mockReturnValue(undefined);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 28, 12, 0, 0));
     TestBed.configureTestingModule({
       providers: [{ provide: SupabaseClientProvider, useValue: fake }],
     });
     svc = TestBed.inject(FeedbackAttachmentSignerService);
   });
 
-  afterEach(() => jasmine.clock().uninstall());
+  afterEach(() => vi.useRealTimers());
 
   it('batches every path asked for in one tick into one call', async () => {
     svc.request(['u1/a.jpg', 'u1/b.jpg']);
@@ -77,7 +77,7 @@ describe('FeedbackAttachmentSignerService', () => {
   it('re-signs shortly before the URL expires', async () => {
     svc.request(['u1/a.jpg']);
     await settle();
-    jasmine.clock().tick(56 * 60 * 1000);
+    vi.advanceTimersByTime(56 * 60 * 1000);
     expect(svc.urlFor(`${BASE}/u1/a.jpg`)).toBe('https://signed/u1/a.jpg?t=1');
     await settle();
     expect(fake.calls.length).toBe(2);
@@ -87,18 +87,18 @@ describe('FeedbackAttachmentSignerService', () => {
     fake.next.push({ data: null, error: { message: 'boom' } });
     svc.request(['u1/a.jpg']);
     await settle();
-    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBeTrue();
+    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBe(true);
     expect(svc.urlFor(`${BASE}/u1/a.jpg`)).toBeNull();
-    jasmine.clock().tick(59 * 1000);
+    vi.advanceTimersByTime(59 * 1000);
     svc.urlFor(`${BASE}/u1/a.jpg`);
     await settle();
     expect(fake.calls.length).toBe(1);
     expect(console.warn).toHaveBeenCalled();
-    jasmine.clock().tick(2 * 1000);
+    vi.advanceTimersByTime(2 * 1000);
     svc.urlFor(`${BASE}/u1/a.jpg`);
     await settle();
     expect(fake.calls.length).toBe(2);
-    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBeFalse();
+    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBe(false);
   });
 
   it('marks a single failed entry without failing the rest', async () => {
@@ -111,8 +111,8 @@ describe('FeedbackAttachmentSignerService', () => {
     });
     svc.request(['u1/a.jpg', 'u1/gone.jpg']);
     await settle();
-    expect(svc.failed(`${BASE}/u1/gone.jpg`)).toBeTrue();
-    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBeFalse();
+    expect(svc.failed(`${BASE}/u1/gone.jpg`)).toBe(true);
+    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBe(false);
     svc.urlFor(`${BASE}/u1/gone.jpg`);
     await settle();
     expect(fake.calls.length).toBe(1);
@@ -122,6 +122,6 @@ describe('FeedbackAttachmentSignerService', () => {
     fake.next.push(new TypeError('createSignedUrls is not a function'));
     svc.request(['u1/a.jpg']);
     await settle();
-    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBeTrue();
+    expect(svc.failed(`${BASE}/u1/a.jpg`)).toBe(true);
   });
 });

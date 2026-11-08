@@ -53,6 +53,6 @@ describe('ScPopoverDismissDirective', () => {
     fixture.detectChanges();
     const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     document.dispatchEvent(ev);
-    expect(ev.defaultPrevented).toBeFalse();
+    expect(ev.defaultPrevented).toBe(false);
   });
 });

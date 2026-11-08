@@ -41,20 +41,20 @@ describe('ScScrollHintDirective', () => {
 
   it('marks only the end while the strip sits at its start', () => {
     expect(strip.classList).toContain('sc-scroll-hint');
-    expect(strip.hasAttribute('data-more-end')).toBeTrue();
-    expect(strip.hasAttribute('data-more-start')).toBeFalse();
+    expect(strip.hasAttribute('data-more-end')).toBe(true);
+    expect(strip.hasAttribute('data-more-start')).toBe(false);
   });
 
   it('marks only the start once scrolled to the end', () => {
     scrollTo(300);
-    expect(strip.hasAttribute('data-more-start')).toBeTrue();
-    expect(strip.hasAttribute('data-more-end')).toBeFalse();
+    expect(strip.hasAttribute('data-more-start')).toBe(true);
+    expect(strip.hasAttribute('data-more-end')).toBe(false);
   });
 
   it('marks both edges in the middle of the range', () => {
     scrollTo(120);
-    expect(strip.hasAttribute('data-more-start')).toBeTrue();
-    expect(strip.hasAttribute('data-more-end')).toBeTrue();
+    expect(strip.hasAttribute('data-more-start')).toBe(true);
+    expect(strip.hasAttribute('data-more-end')).toBe(true);
   });
 
   it('watches the strip and its content for size changes', () => {
@@ -67,8 +67,8 @@ describe('ScScrollHintDirective', () => {
     fixture.detectChanges();
     resize.notify();
     fixture.detectChanges();
-    expect(strip.hasAttribute('data-more-start')).toBeFalse();
-    expect(strip.hasAttribute('data-more-end')).toBeFalse();
+    expect(strip.hasAttribute('data-more-start')).toBe(false);
+    expect(strip.hasAttribute('data-more-end')).toBe(false);
   });
 
   it('fades the overflowing edge through the global styles', () => {

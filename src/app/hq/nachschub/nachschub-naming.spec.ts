@@ -8,7 +8,7 @@ describe('nachschub-naming fallbacks', () => {
       [{ name: 'Rattler II', qty: 9 }, { name: 'Pembroke Helm', qty: 3 }, { name: 'Medpen', qty: 2 }, { name: 'Gallant', qty: 1 }],
       'x',
     );
-    expect(many.endsWith(' +2')).toBeTrue();
+    expect(many.endsWith(' +2')).toBe(true);
     expect(many.length).toBeLessThanOrEqual(28);
     expect(fallbackNachschubName([], 'Neuer Nachschub')).toBe('Neuer Nachschub');
   });

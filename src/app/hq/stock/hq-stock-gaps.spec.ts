@@ -17,9 +17,9 @@ describe('Bestand gaps', () => {
   it('I15: Ersatz needs the same swap archetype, not only the same Codex slot', () => {
     const cannon = mk('Laser Cannon S3', 'KLWE_LaserCannon_S3');
     const repeater = mk('Laser Repeater S3', 'KLWE_LaserRepeater_S3');
-    expect(sameSlot(cannon, mk('Other Laser Cannon', 'AMRS_LaserCannon_S3'))).toBeTrue();
-    expect(sameSlot(cannon, repeater)).toBeFalse();
-    expect(sameSlot(cannon, mk('Cannon in armor', 'x', { kind: 'armor', sub: 'helmet' }))).toBeFalse();
+    expect(sameSlot(cannon, mk('Other Laser Cannon', 'AMRS_LaserCannon_S3'))).toBe(true);
+    expect(sameSlot(cannon, repeater)).toBe(false);
+    expect(sameSlot(cannon, mk('Cannon in armor', 'x', { kind: 'armor', sub: 'helmet' }))).toBe(false);
   });
 
   it('I15: the minimum quality is a whole 1..1000 or nothing', () => {

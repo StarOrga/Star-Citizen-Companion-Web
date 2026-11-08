@@ -107,7 +107,7 @@ describe('RoadmapService.requestOutlines — transport errors (AUD-096)', () => 
   let http: HttpTestingController;
 
   beforeEach(() => {
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     svc = TestBed.inject(RoadmapService);
     http = TestBed.inject(HttpTestingController);
@@ -128,13 +128,13 @@ describe('RoadmapService.requestOutlines — transport errors (AUD-096)', () => 
   it('keeps a slug requestable after one transport error, files it as missing after the second', async () => {
     svc.requestOutlines(['a']);
     await failOnce();
-    expect(svc.isMissing('a')).toBeFalse();
-    expect(svc.pending().has('a')).toBeFalse();
+    expect(svc.isMissing('a')).toBe(false);
+    expect(svc.pending().has('a')).toBe(false);
 
     // An explicit ask ("load the rest", opening the row) tries again.
     svc.requestOutlines(['a']);
     await failOnce();
-    expect(svc.isMissing('a')).toBeTrue();
+    expect(svc.isMissing('a')).toBe(true);
 
     // Now it stays quiet — no third request.
     svc.requestOutlines(['a']);

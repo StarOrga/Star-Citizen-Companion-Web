@@ -76,9 +76,7 @@ describe('news thumb · measurements are variant-independent', () => {
       mount([BANNER]);
       thumb.onReady(BANNER, measured(w, h));
       fixture.detectChanges();
-      expect(thumb.mode())
-        .withContext(`decoded at ${w}×${h}`)
-        .toBe('carousel');
+      expect(thumb.mode(), `decoded at ${w}×${h}`).toBe('carousel');
     }
   });
 

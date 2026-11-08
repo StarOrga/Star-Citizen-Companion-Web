@@ -122,11 +122,11 @@ describe('spelling variants — "amis und briten schreiben unterschiedlich"', ()
 
   it('matchesFuzzy accepts either spelling, and still ANDs across tokens', () => {
     const text = 'Heavy Combat Armor with better maneuvering';
-    expect(matchesFuzzy(text, tokenizeQuery('armour'))).toBeTrue();
-    expect(matchesFuzzy(text, tokenizeQuery('armour combat'))).toBeTrue();
-    expect(matchesFuzzy(text, tokenizeQuery('armour orison'))).toBeFalse();
+    expect(matchesFuzzy(text, tokenizeQuery('armour'))).toBe(true);
+    expect(matchesFuzzy(text, tokenizeQuery('armour combat'))).toBe(true);
+    expect(matchesFuzzy(text, tokenizeQuery('armour orison'))).toBe(false);
     // The strict matcher is what fuzzy improves on — kept as the contrast.
-    expect(matchesTokens(text, tokenizeQuery('armour'))).toBeFalse();
+    expect(matchesTokens(text, tokenizeQuery('armour'))).toBe(false);
   });
 
   it('fuzzyTokens flattens and de-duplicates the spellings for the highlighter', () => {

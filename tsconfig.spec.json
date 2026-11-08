@@ -2,11 +2,15 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
-    "types": ["jasmine"]
+    "types": [
+      "vitest/globals",
+      "@vitest/browser/matchers"
+    ]
   },
   "include": [
     "src/**/*.spec.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "src/app/testing/vitest-setup.ts"
   ],
   "angularCompilerOptions": {
     "extendedDiagnostics": {

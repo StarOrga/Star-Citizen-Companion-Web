@@ -19,7 +19,7 @@ describe('CodexShipActionsComponent', () => {
     const store = {
       pledgeLink: signal<string | null>(opts.pledgeLink ?? null),
       myPledgeLink: signal<string | null>(opts.myPledgeLink ?? null),
-      toggle: jasmine.createSpy('toggle'),
+      toggle: vi.fn().mockName('toggle'),
     };
     await TestBed.configureTestingModule({
       imports: [CodexShipActionsComponent],

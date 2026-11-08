@@ -73,7 +73,7 @@ describe('Verse News — share without a share sheet', () => {
   });
 
   afterEach(() => {
-    jasmine.clock().uninstall();
+    vi.useRealTimers();
     fixture.componentInstance.closeDetail();
     fixture.destroy();
     if (!hadShare) delete (navigator as unknown as Record<string, unknown>)['share'];
@@ -95,10 +95,10 @@ describe('Verse News — share without a share sheet', () => {
   }
 
   it('says "copied" on the clicked button only, then goes back to "Share"', async () => {
-    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
-    jasmine.clock().install();
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    vi.useFakeTimers();
     const buttons = shareButtons();
-    expect(buttons.length).withContext('stage + tiles').toBeGreaterThan(2);
+    expect(buttons.length, 'stage + tiles').toBeGreaterThan(2);
     const target = buttons[buttons.length - 1];
 
     target.click();
@@ -108,18 +108,18 @@ describe('Verse News — share without a share sheet', () => {
     const after = shareButtons();
     expect(label(after[after.length - 1])).toBe('news.share.copied');
     for (const other of after.slice(0, -1)) {
-      expect(label(other)).withContext('other buttons keep their label').toBe('news.share.label');
+      expect(label(other), 'other buttons keep their label').toBe('news.share.label');
     }
     expect(liveRegion()).toBe('news.share.copied');
 
-    jasmine.clock().tick(2600);
+    vi.advanceTimersByTime(2600);
     fixture.detectChanges();
     expect(label(shareButtons()[shareButtons().length - 1])).toBe('news.share.label');
     expect(liveRegion()).toBe('');
   });
 
   it('says "failed" when the clipboard refuses', async () => {
-    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denied'));
     const buttons = shareButtons();
     const target = buttons[buttons.length - 1];
 

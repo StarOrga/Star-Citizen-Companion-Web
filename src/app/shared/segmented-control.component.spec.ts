@@ -82,7 +82,7 @@ describe('ScSegmentedComponent', () => {
     // ...and the segments must still all be there, reachable by scrolling the
     // pill, rather than squeezed into ellipses.
     expect(seg.scrollWidth).toBeGreaterThan(seg.offsetWidth);
-    expect(segments(f).every((b) => b.offsetWidth > 0)).toBeTrue();
+    expect(segments(f).every((b) => b.offsetWidth > 0)).toBe(true);
     f.destroy();
   });
 

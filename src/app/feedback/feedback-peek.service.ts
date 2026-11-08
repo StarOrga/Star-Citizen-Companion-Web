@@ -18,6 +18,11 @@ export const PEEK_DELAY_MS = 150;
  * stays dissolved while either one is held, whatever the press/release order.
  * The panel stays mounted (focus and draft are untouched); only
  * opacity and pointer-events change.
+ *
+ * Only from outside (admin feedback #327): with the pointer over the
+ * launcher, Ctrl/Alt do nothing — the admin is working in the panel, not
+ * looking past it. The last pointer position decides; before any pointer has
+ * moved (keyboard-only use) focus inside the launcher keeps it in place.
  */
 @Injectable({ providedIn: 'root' })
 export class FeedbackPeekService {
@@ -26,6 +31,8 @@ export class FeedbackPeekService {
   private timer: ReturnType<typeof setTimeout> | undefined;
   /** Set by a typing chord, AltGr or the pick click: a remaining held modifier must not re-dissolve. */
   private suppressed = false;
+  /** Last known pointer position (viewport px), or null before the first pointer event. */
+  private pointer: { x: number; y: number } | null = null;
 
   /** Only an open admin panel with a composer mounted has anything to dissolve for. */
   private readonly armed = computed(() => this.spots.owner() === 'admin' && this.spots.composerCount() > 0);
@@ -39,6 +46,9 @@ export class FeedbackPeekService {
     const down = (e: KeyboardEvent) => this.onKeyDown(e);
     const up = (e: KeyboardEvent) => this.onKeyUp(e);
     const pick = () => this.pick();
+    const move = (e: PointerEvent) => {
+      this.pointer = { x: e.clientX, y: e.clientY };
+    };
     const end = () => this.reset();
     const hidden = () => {
       if (document.visibilityState === 'hidden') this.reset();
@@ -48,16 +58,43 @@ export class FeedbackPeekService {
     // The click that picks the element ends the dissolve (the capture
     // handler runs on the same event).
     document.addEventListener('click', pick, true);
+    document.addEventListener('pointermove', move, { capture: true, passive: true });
+    document.addEventListener('pointerdown', move, { capture: true, passive: true });
     window.addEventListener('blur', end);
     document.addEventListener('visibilitychange', hidden);
     return () => {
       document.removeEventListener('keydown', down, true);
       document.removeEventListener('keyup', up, true);
       document.removeEventListener('click', pick, true);
+      document.removeEventListener('pointermove', move, true);
+      document.removeEventListener('pointerdown', move, true);
       window.removeEventListener('blur', end);
       document.removeEventListener('visibilitychange', hidden);
       this.reset();
+      this.pointer = null;
     };
+  }
+
+  /** Record a pointer position (the document listener's job; public for specs). */
+  notePointer(x: number, y: number): void {
+    this.pointer = { x, y };
+  }
+
+  /**
+   * The admin is working inside the launcher: the pointer is over it, or —
+   * with no pointer seen yet — keyboard focus is in it.
+   */
+  private insideLauncher(): boolean {
+    const roots = this.spots.occluders();
+    const at = this.pointer;
+    if (at) {
+      return roots.some((el) => {
+        const r = el.getBoundingClientRect();
+        return at.x >= r.left && at.x <= r.right && at.y >= r.top && at.y <= r.bottom;
+      });
+    }
+    const focused = typeof document === 'undefined' ? null : document.activeElement;
+    return !!focused && roots.some((el) => el.contains(focused));
   }
 
   onKeyDown(e: KeyboardEvent): void {
@@ -108,9 +145,10 @@ export class FeedbackPeekService {
 
   private arm(): void {
     if (!this.armed() || this._peeking() || this.timer !== undefined) return;
+    if (this.insideLauncher()) return;
     this.timer = setTimeout(() => {
       this.timer = undefined;
-      if (this.armed()) this._peeking.set(true);
+      if (this.armed() && !this.insideLauncher()) this._peeking.set(true);
     }, PEEK_DELAY_MS);
   }
 

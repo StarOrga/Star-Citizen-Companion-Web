@@ -67,13 +67,17 @@ describe('Codex page: "Mehr in Codex" (scroll handoff like "Mehr im Verse")', ()
   describe('a deep link to the lower part (holdOnLower)', () => {
     let page: HTMLElement;
     let lower: HTMLElement;
-    beforeEach(() => {
+    beforeEach(async () => {
       page = document.createElement('div');
       page.style.cssText = 'position:relative;overflow-anchor:none;';
       page.innerHTML = '<div style="height:1200px"></div><section style="height:3000px"></section>';
       document.body.appendChild(page);
       lower = page.querySelector('section')!;
       window.scrollTo({ top: 0, behavior: 'instant' });
+      // Start in a fresh task. Vitest runs the next test in a microtask, so after a test that
+      // ended on a frame the hold would start inside that frame's rendering update: its
+      // ResizeObserver re-lands before the scroll event of the reader's scroll-up is dispatched.
+      await new Promise((r) => setTimeout(r));
     });
     afterEach(() => {
       page.remove();
@@ -87,7 +91,7 @@ describe('Codex page: "Mehr in Codex" (scroll handoff like "Mehr im Verse")', ()
     const jumper = { jumpToLower: () => window.scrollTo({ top: lowerStart(lower), behavior: 'instant' }) };
 
     it('lands on the lower part, and a scroll up after it is not pulled back down', async () => {
-      const done = jasmine.createSpy('done');
+      const done = vi.fn().mockName('done');
       const stop = holdOnLower(jumper, () => lowerStart(lower), done);
       expect(Math.abs(window.scrollY - lowerStart(lower))).toBeLessThanOrEqual(2);
       // The reader scrolls up (scrollbar: no wheel or key event).
@@ -104,7 +108,7 @@ describe('Codex page: "Mehr in Codex" (scroll handoff like "Mehr im Verse")', ()
     });
 
     it('a wheel turn ends the hold before it can re-land', async () => {
-      const done = jasmine.createSpy('done');
+      const done = vi.fn().mockName('done');
       const stop = holdOnLower(jumper, () => lowerStart(lower), done);
       window.dispatchEvent(new WheelEvent('wheel', { deltaY: -100 }));
       expect(done).toHaveBeenCalledTimes(1);

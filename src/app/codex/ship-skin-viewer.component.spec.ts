@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
@@ -20,10 +21,10 @@ function skin(over: Partial<ShipSkin>): ShipSkin {
 }
 
 describe('ShipSkinViewerComponent', () => {
-  let listSkins: jasmine.Spy;
+  let listSkins: Mock;
 
   async function setup(skins: ShipSkin[], shipId = 'DRAK_Cutlass_Black') {
-    listSkins = jasmine.createSpy('listSkins').and.resolveTo({ skins, error: false });
+    listSkins = vi.fn().mockName('listSkins').mockResolvedValue({ skins, error: false });
     const svc: Partial<ShipSkinsService> = {
       listSkins,
       assetUrl: (p?: string | null) => (p ? `http://assets/${p}` : null),
@@ -51,11 +52,11 @@ describe('ShipSkinViewerComponent', () => {
   it('renders nothing when the ship has no skins', async () => {
     const fixture = await setup([]);
     expect(fixture.nativeElement.querySelector('.skins')).toBeNull();
-    expect(fixture.componentInstance.catalogError()).toBeFalse();
+    expect(fixture.componentInstance.catalogError()).toBe(false);
   });
 
   it('surfaces a retry affordance when the catalog query fails (not silent)', async () => {
-    listSkins = jasmine.createSpy('listSkins').and.resolveTo({ skins: [], error: true });
+    listSkins = vi.fn().mockName('listSkins').mockResolvedValue({ skins: [], error: true });
     await TestBed.configureTestingModule({
       imports: [ShipSkinViewerComponent],
       providers: [
@@ -68,7 +69,7 @@ describe('ShipSkinViewerComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(fixture.componentInstance.catalogError()).toBeTrue();
+    expect(fixture.componentInstance.catalogError()).toBe(true);
     expect(fixture.nativeElement.querySelector('.catalog-error')).not.toBeNull();
   });
 
@@ -82,7 +83,7 @@ describe('ShipSkinViewerComponent', () => {
     expect(listSkins).toHaveBeenCalledWith('DRAK_Cutlass_Black');
     expect(c.current()?.skinId).toBe('standard');
     expect(c.mode()).toBe('3d');
-    expect(c.modelLoading()).toBeTrue(); // glb is loading until <model-viewer> fires (load)
+    expect(c.modelLoading()).toBe(true); // glb is loading until <model-viewer> fires (load)
   });
 
   // AUD-188: the source tag is a translated word, never the raw enum.
@@ -128,7 +129,7 @@ describe('ShipSkinViewerComponent', () => {
     const fixture = await setup(skins);
     const c = fixture.componentInstance;
     const ev = new KeyboardEvent('keydown', { key: 'Enter' });
-    spyOn(ev, 'preventDefault');
+    vi.spyOn(ev, 'preventDefault').mockReturnValue(undefined as never);
     c.onKey(ev, skins[1]);
     expect(c.current()?.skinId).toBe('b');
     expect(ev.preventDefault).toHaveBeenCalled();
@@ -138,10 +139,10 @@ describe('ShipSkinViewerComponent', () => {
     const fixture = await setup([skin({ skinId: 'standard', modelPath: 'm.glb' })]);
     const c = fixture.componentInstance;
     c.onModelError();
-    expect(c.modelError()).toBeTrue();
+    expect(c.modelError()).toBe(true);
     c.onModelLoad();
-    expect(c.modelError()).toBeFalse();
-    expect(c.modelLoading()).toBeFalse();
+    expect(c.modelError()).toBe(false);
+    expect(c.modelLoading()).toBe(false);
   });
 
   it('reloads and replaces skins when the shipId input changes (race-safe)', async () => {
@@ -149,7 +150,7 @@ describe('ShipSkinViewerComponent', () => {
     const c = fixture.componentInstance;
     expect(c.current()?.skinId).toBe('cutlass_a');
 
-    listSkins.and.resolveTo({
+    listSkins.mockResolvedValue({
       skins: [skin({ shipId: 'AEGS_Gladius', skinId: 'gladius_a' })],
       error: false,
     });
@@ -164,35 +165,35 @@ describe('ShipSkinViewerComponent', () => {
 
   describe('glb head read', () => {
     interface Reader { readLocators(url: string | null): void }
-    let fetchSpy: jasmine.Spy;
+    let fetchSpy: Mock;
 
     beforeEach(() => {
       // Never answers — the read stays in flight until something aborts it.
-      fetchSpy = spyOn(window, 'fetch').and.callFake(() => new Promise<Response>(() => undefined));
+      fetchSpy = vi.spyOn(window, 'fetch').mockImplementation(() => new Promise<Response>(() => undefined));
     });
 
     function signalOf(call: number): AbortSignal {
-      return (fetchSpy.calls.argsFor(call)[1] as RequestInit).signal as AbortSignal;
+      return (vi.mocked(fetchSpy).mock.calls[call][1] as RequestInit).signal as AbortSignal;
     }
 
     it('aborts the running read when the model changes', async () => {
       const fixture = await setup([]);
       const reader = fixture.componentInstance as unknown as Reader;
-      fetchSpy.calls.reset();
+      fetchSpy.mockClear();
       reader.readLocators('http://assets/a.glb');
       reader.readLocators('http://assets/b.glb');
       expect(fetchSpy).toHaveBeenCalledTimes(2);
-      expect(signalOf(0).aborted).toBeTrue();
-      expect(signalOf(1).aborted).toBeFalse();
+      expect(signalOf(0).aborted).toBe(true);
+      expect(signalOf(1).aborted).toBe(false);
     });
 
     it('aborts the running read on destroy', async () => {
       const fixture = await setup([]);
       const reader = fixture.componentInstance as unknown as Reader;
-      fetchSpy.calls.reset();
+      fetchSpy.mockClear();
       reader.readLocators('http://assets/a.glb');
       fixture.destroy();
-      expect(signalOf(0).aborted).toBeTrue();
+      expect(signalOf(0).aborted).toBe(true);
     });
   });
 });

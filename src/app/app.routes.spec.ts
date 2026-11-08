@@ -1,6 +1,7 @@
 import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { Router, UrlTree, provideRouter } from '@angular/router';
+import { BetaService } from './core/beta.service';
 import { fpsEquipMode, routes } from './app.routes';
 
 const shellOf = () => routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'hq'));
@@ -34,9 +35,9 @@ describe('codex/fps equip flow (concept 2026-10-29, b3)', () => {
   it('matches the equip route only with equipInto in the url', () => {
     const router = TestBed.inject(Router);
     const nav = (url: string) => ({ extractedUrl: router.parseUrl(url) });
-    spyOn(router, 'currentNavigation').and.returnValues(nav('/codex/fps?equipInto=s1&equipSlot=primary') as never, nav('/codex/fps?cat=armor') as never);
-    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBeTrue();
-    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBeFalse();
+    vi.spyOn(router, 'currentNavigation').mockReturnValueOnce(nav('/codex/fps?equipInto=s1&equipSlot=primary') as never).mockReturnValueOnce(nav('/codex/fps?cat=armor') as never);
+    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBe(true);
+    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBe(false);
   });
 });
 
@@ -49,7 +50,7 @@ describe('retired route aliases', () => {
     'news', 'news/patches', 'news/patches/:line', 'hangar',
     'hangar/ship/:id', 'hangar/loadout/:id', 'codex/set/:id', 'codex/blueprint', 'p4k', 'desktop',
     'desktop/auth', 'admin/integrations', 'konzept/:id', 'companion', 'uploader', 'download',
-    'tools/extension',
+    'tools/extension', 'hangar/import', 'starscape', 'uploader/auth', 'desktop/connect',
   ];
   for (const path of retired) {
     it(`has no ${path} route`, () => {
@@ -57,17 +58,8 @@ describe('retired route aliases', () => {
     });
   }
 
-  it('keeps the bridges installed apps still open until their next release', () => {
-    const paths = allPaths();
-    expect(paths).toContain('hangar/import');
-    expect(paths).toContain('starscape');
-  });
-
-  it('keeps the concept route and the two live loopback entry points', () => {
-    const paths = allPaths();
-    expect(paths).toContain('concept/:id');
-    expect(paths).toContain('uploader/auth');
-    expect(paths).toContain('desktop/connect');
+  it('keeps the concept route', () => {
+    expect(allPaths()).toContain('concept/:id');
   });
 });
 
@@ -91,7 +83,7 @@ describe('apps hub routes (concept 2026-10-30)', () => {
     const friends = shellOf()?.children?.find((c) => c.path === 'friends');
     expect(friends?.redirectTo).toBe('social');
     expect(paths()).toContain('invite/:token');
-    expect(shellOf()?.children?.some((c) => c.path === 'invite/:token')).toBeFalse();
+    expect(shellOf()?.children?.some((c) => c.path === 'invite/:token')).toBe(false);
   });
 });
 
@@ -120,7 +112,7 @@ describe('string redirects keep the query (AUD-144)', () => {
   it('finds both redirect entries, each a relative string', () => {
     for (const r of [rootRedirect, wildcard]) {
       expect(r).toBeDefined();
-      expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBeTrue();
+      expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBe(true);
     }
   });
 
@@ -149,6 +141,20 @@ describe('HQ routes', () => {
     // ops: with the shell beta on its canMatch redirects to /hq#planen, else today's page
     // import before :id, so "import" is never read as a ship id
     expect(paths.indexOf('hangar/import')).toBeLessThan(paths.indexOf('hangar/:id'));
+  });
+
+  it('sends /hq/hangar to HQ Bestand > Hangar with the shell beta, keeps the page without it', () => {
+    const hangar = hq?.children?.find((c) => c.path === 'hangar');
+    const guard = hangar?.canMatch?.[0] as () => unknown;
+    for (const on of [true, false]) {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [provideRouter([]), { provide: BetaService, useValue: { isEnabled: () => () => on } }],
+      });
+      const out = TestBed.runInInjectionContext(() => guard());
+      if (on) expect(TestBed.inject(Router).serializeUrl(out as UrlTree)).toBe('/hq?bestand=hangar#inventar');
+      else expect(out).toBe(true);
+    }
   });
 
   it('hands the dashboard its section through route data', () => {

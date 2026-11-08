@@ -46,7 +46,7 @@ describe('HangarShipPageComponent (/hq/hangar/:id)', () => {
       remove: { imports: [CodexDetailComponent] },
       add: { imports: [StubCodexDetailComponent] },
     });
-    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const nav = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     const fixture = TestBed.createComponent(HangarShipPageComponent);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -85,7 +85,7 @@ describe('HangarShipPageComponent (/hq/hangar/:id)', () => {
       const { nav } = await run({
         id: 's1', ships: [gladius], configs: [{ id: 'c0', isActive: false }, { id: 'c1', isActive: true }], shell: true, query: { v: 'foreign' },
       });
-      expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { v: 'c1' }, replaceUrl: true }));
+      expect(nav).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: { v: 'c1' }, replaceUrl: true }));
     });
 
     it('does not bounce through /codex while the shell flag is still loading', async () => {

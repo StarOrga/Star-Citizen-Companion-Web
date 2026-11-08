@@ -112,7 +112,7 @@ describe('HqLiveTickerComponent (App-Status)', () => {
     expect(dock?.querySelector('sc-hq-app-launch a')?.textContent).toContain('hq.app.launch');
     expect(dock?.querySelector('.aussicht')).toBeNull();
     // A closed panel is not in the DOM, so the toggle must not point at it.
-    expect(dock?.querySelector('.face')?.hasAttribute('aria-controls')).toBeFalse();
+    expect(dock?.querySelector('.face')?.hasAttribute('aria-controls')).toBe(false);
     (dock!.querySelector('.face') as HTMLButtonElement).click();
     f.detectChanges();
     expect(dock?.querySelector('.aussicht .a-text')?.textContent).toBe('hq.appStatus.aussicht.inventar');

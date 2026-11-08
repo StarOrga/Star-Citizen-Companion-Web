@@ -40,10 +40,10 @@ describe('splitCallouts', () => {
 describe('compareValue / barOf', () => {
   it('signed delta vs the class mean; a worse value is flagged (warning token, never danger)', () => {
     expect(compareValue(v('hull.hp', 112, { classAvg: 100, classMax: 200, higherIsBetter: true }))).toEqual(
-      jasmine.objectContaining({ kind: 'delta', delta: '+12', worse: false }),
+      expect.objectContaining({ kind: 'delta', delta: '+12', worse: false }),
     );
     expect(compareValue(v('flight.maxSpeed', 96, { classAvg: 100, classMax: 200, higherIsBetter: true }))).toEqual(
-      jasmine.objectContaining({ kind: 'delta', delta: '−4', worse: true }),
+      expect.objectContaining({ kind: 'delta', delta: '−4', worse: true }),
     );
   });
 
@@ -77,9 +77,9 @@ describe('hero claims', () => {
     expect(lines.length).toBe(CLAIMS_PER_CATEGORY);
     expect(lines[0]).toContain('claims.ship.count');
     expect(lines[0]).toContain('"count":14');
-    expect(lines.some((l) => l.includes('Golem OX'))).toBeTrue();
-    expect(lines.some((l) => l.includes('Polaris'))).withContext('announced names are no "flight-ready" claim').toBeFalse();
-    expect(lines.some((l) => l.includes('claims.ship.announced'))).toBeTrue();
+    expect(lines.some((l) => l.includes('Golem OX'))).toBe(true);
+    expect(lines.some((l) => l.includes('Polaris')), 'announced names are no "flight-ready" claim').toBe(false);
+    expect(lines.some((l) => l.includes('claims.ship.announced'))).toBe(true);
     expect(lines).toContain('codex.landing.claims.ship.s1');
   });
 
@@ -92,7 +92,7 @@ describe('hero claims', () => {
   it('a category coming back continues with its next claim; step() advances inside one', () => {
     const c = new ClaimCursor();
     expect(c.enter('ship')).toBe(0);
-    expect(c.enter('ship')).withContext('same category stays').toBe(0);
+    expect(c.enter('ship'), 'same category stays').toBe(0);
     expect(c.enter('tool')).toBe(0);
     expect(c.enter('ship')).toBe(1);
     expect(c.step()).toBe(2);
@@ -130,7 +130,7 @@ describe('real hardpoint anchors (cx-anchors)', () => {
     ]);
     expect(out['cargoScu']).toEqual(['hardpoint_cargogrid_main']);
     expect(out['armorHp']).toEqual(['hardpoint_armor']);
-    expect(out['hull.hp']).withContext('the hull has no mount: zone fallback').toBeUndefined();
+    expect(out['hull.hp'], 'the hull has no mount: zone fallback').toBeUndefined();
   });
 
   it('codex positions convert from CryEngine space to the glb (x, z, -y); implausible ones drop', () => {

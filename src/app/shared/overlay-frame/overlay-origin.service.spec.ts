@@ -30,8 +30,8 @@ describe('OverlayOriginService.close', () => {
   it('goes history-back when the entry before the overlay is the list', async () => {
     origin.fromList();
     await router.navigateByUrl('/verse/gallery/a');
-    const back = spyOn(location, 'back');
-    const nav = spyOn(router, 'navigate').and.callThrough();
+    const back = vi.spyOn(location, 'back').mockReturnValue(undefined as never);
+    const nav = vi.spyOn(router, 'navigate');
     origin.close(['/verse/gallery']);
     expect(back).toHaveBeenCalledTimes(1);
     expect(nav).not.toHaveBeenCalled();
@@ -42,25 +42,25 @@ describe('OverlayOriginService.close', () => {
     await router.navigateByUrl('/verse/gallery/a');
     await router.navigate(['/verse/gallery', 'b'], { replaceUrl: true });
     await router.navigate(['/verse/gallery', 'c'], { replaceUrl: true });
-    const back = spyOn(location, 'back');
+    const back = vi.spyOn(location, 'back').mockReturnValue(undefined as never);
     origin.close(['/verse/gallery']);
     expect(back).toHaveBeenCalledTimes(1);
   });
 
   it('replaces the overlay with the list on a direct load instead of pushing', async () => {
     await router.navigateByUrl('/verse/gallery/a', { replaceUrl: true });
-    const back = spyOn(location, 'back');
-    const nav = spyOn(router, 'navigate').and.callThrough();
+    const back = vi.spyOn(location, 'back').mockReturnValue(undefined as never);
+    const nav = vi.spyOn(router, 'navigate');
     origin.close(['/verse/gallery']);
     expect(back).not.toHaveBeenCalled();
-    expect(nav).toHaveBeenCalledWith(['/verse/gallery'], jasmine.objectContaining({ replaceUrl: true }));
+    expect(nav).toHaveBeenCalledWith(['/verse/gallery'], expect.objectContaining({ replaceUrl: true }));
   });
 
   it('keeps the overlay flag across prev/next inside the list path', async () => {
     origin.fromList();
     await router.navigateByUrl('/verse/gallery/a');
-    expect(origin.overlaid()).toBeTrue();
+    expect(origin.overlaid()).toBe(true);
     await router.navigateByUrl('/verse/gallery/b');
-    expect(origin.overlaid()).toBeTrue();
+    expect(origin.overlaid()).toBe(true);
   });
 });

@@ -15,7 +15,7 @@ const edge = (kind: FriendEdgeRow['kind'], id: string): FriendEdgeRow => ({
 });
 
 async function mount(edges: FriendEdgeRow[], errors: Record<string, string> = {}) {
-  const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string) => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string) => {
     if (errors[fn]) return { data: null, error: { message: errors[fn] } };
     return { data: fn === 'list_my_friend_edges' ? edges : null, error: null };
   });
@@ -77,7 +77,7 @@ describe('FriendsComponent (smoke)', () => {
     buttonByKey(el, '.edge', 'friends.actions.accept').click();
     await settle(fixture);
     expect(rpc).toHaveBeenCalledWith('respond_friend_request', { request_id: 'req-b', accept: true });
-    expect(rpc.calls.mostRecent().args[0]).toBe('list_my_friend_edges');
+    expect(vi.mocked(rpc).mock.lastCall![0]).toBe('list_my_friend_edges');
     expect(el.querySelector('.flash.success')?.textContent).toContain('friends.flash.nowFriends');
   });
 

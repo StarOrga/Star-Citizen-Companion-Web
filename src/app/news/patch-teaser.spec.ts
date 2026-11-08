@@ -47,19 +47,17 @@ describe('Patch board — the roadmap teaser strip', () => {
   it('wraps onto a second row rather than showing half a strip', () => {
     const oneRow = teaserFit(10, at(ONE_ROW, 426));
     const twoRows = teaserFit(10, at(DESKTOP, 426));
-    expect(oneRow.visible).withContext('four fit per line, minus the "…"').toBe(3);
-    expect(twoRows.visible).withContext('the second line more than doubles that').toBe(7);
+    expect(oneRow.visible, 'four fit per line, minus the "…"').toBe(3);
+    expect(twoRows.visible, 'the second line more than doubles that').toBe(7);
     expect(twoRows.visible + twoRows.rest).toBe(10);
   });
 
   it('leaves room for the "…" on the LAST row whenever something is left over', () => {
     for (const box of [at(DESKTOP, 426), at(PHONE, 380), at(DESKTOP, 700)]) {
       const fit = teaserFit(30, box);
-      expect(fit.rest).withContext(`30 items do not fit into ${box.width}px`).toBeGreaterThan(0);
-      expect(fit.visible)
-        .withContext('never more rows than the strip can show').toBeLessThanOrEqual(perRow(box) * box.rows);
-      expect(lastRowWidth(box, fit))
-        .withContext(`items plus the "…" stay inside ${box.width}px`).toBeLessThanOrEqual(box.width);
+      expect(fit.rest, `30 items do not fit into ${box.width}px`).toBeGreaterThan(0);
+      expect(fit.visible, 'never more rows than the strip can show').toBeLessThanOrEqual(perRow(box) * box.rows);
+      expect(lastRowWidth(box, fit), `items plus the "…" stay inside ${box.width}px`).toBeLessThanOrEqual(box.width);
     }
   });
 
@@ -76,15 +74,15 @@ describe('Patch board — the roadmap teaser strip', () => {
     for (const box of [DESKTOP, PHONE]) {
       const narrow = teaserFit(20, at(box, 200)).visible;
       const wide = teaserFit(20, at(box, 700)).visible;
-      expect(wide).withContext(`item ${box.item}px`).toBeGreaterThan(narrow);
-      expect(narrow).withContext('a narrow strip still shows something').toBeGreaterThanOrEqual(1);
+      expect(wide, `item ${box.item}px`).toBeGreaterThan(narrow);
+      expect(narrow, 'a narrow strip still shows something').toBeGreaterThanOrEqual(1);
     }
   });
 
   it('never renders an empty strip, however narrow the card gets', () => {
     for (const box of [DESKTOP, PHONE]) {
       const fit = teaserFit(6, at(box, 20));
-      expect(fit.visible).withContext(`item ${box.item}px`).toBe(1);
+      expect(fit.visible, `item ${box.item}px`).toBe(1);
       expect(fit.rest).toBe(5);
     }
   });
@@ -104,8 +102,7 @@ describe('Patch board — the roadmap teaser strip', () => {
     for (const total of [1, 3, 7, 12, 25]) {
       for (const width of [0, 30, 120, 300, 900, 2400]) {
         const fit = teaserFit(total, at(PHONE, width));
-        expect(fit.visible + fit.rest)
-          .withContext(`${total} items in ${width}px`).toBe(total);
+        expect(fit.visible + fit.rest, `${total} items in ${width}px`).toBe(total);
         expect(fit.visible).toBeGreaterThanOrEqual(1);
       }
     }

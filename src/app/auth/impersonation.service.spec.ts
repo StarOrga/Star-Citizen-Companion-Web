@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { ImpersonationService, VIEW_AS_STORAGE_KEY } from './impersonation.service';
@@ -8,8 +9,8 @@ import { ImpersonationService, VIEW_AS_STORAGE_KEY } from './impersonation.servi
  * specs never actually reload the page. Casting to `any` to reach the
  * protected member is the intended test-only escape hatch.
  */
-function spyOnReload(svc: ImpersonationService): jasmine.Spy {
-  return spyOn(svc as unknown as { reload: () => void }, 'reload');
+function spyOnReload(svc: ImpersonationService): Mock {
+  return vi.spyOn(svc as unknown as { reload: () => void }, 'reload').mockReturnValue(undefined as never);
 }
 
 describe('ImpersonationService', () => {
@@ -71,7 +72,7 @@ describe('ImpersonationService', () => {
 
   it('enter() with a valid target writes storage and reloads, without mutating viewAs() first (F3)', () => {
     const svc = TestBed.inject(ImpersonationService);
-    const reload = spyOnReload(svc).and.callFake(() => {
+    const reload = spyOnReload(svc).mockImplementation(() => {
       // At the moment reload() fires, the exposed signal must NOT have been
       // flipped yet — mutating it before the (real) reload would fire every
       // effect keyed off `auth.user()`/`viewAs()` in a document that is
@@ -97,7 +98,7 @@ describe('ImpersonationService', () => {
     svc.setActualRole('admin', true);
     expect(svc.enterFailed()).toBe(false);
 
-    spyOn(sessionStorage, 'setItem').and.callFake(() => {
+    vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
       /* silently do nothing — simulates a quota'd/blocked write that does
          not throw (the throwing case is covered separately below) */
     });
@@ -116,9 +117,9 @@ describe('ImpersonationService', () => {
     const reload = spyOnReload(svc);
     svc.setActualRole('admin', true);
 
-    spyOn(sessionStorage, 'setItem').and.throwError(
-      new DOMException('quota exceeded', 'QuotaExceededError'),
-    );
+    vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
 
     svc.enter('viewer');
 
@@ -131,12 +132,14 @@ describe('ImpersonationService', () => {
     const reload = spyOnReload(svc);
     svc.setActualRole('admin', true);
 
-    spyOn(sessionStorage, 'setItem').and.throwError(new DOMException('nope'));
+    vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('nope');
+    });
     svc.enter('viewer');
     expect(svc.enterFailed()).toBe(true);
     expect(reload).not.toHaveBeenCalled();
 
-    (sessionStorage.setItem as jasmine.Spy).and.callThrough();
+    vi.mocked(sessionStorage.setItem).mockRestore();
     svc.enter('viewer');
 
     expect(svc.enterFailed()).toBe(false);
@@ -180,7 +183,7 @@ describe('ImpersonationService', () => {
     svc.setActualRole('admin', true);
     expect(svc.active()).toBe(true);
 
-    spyOn(sessionStorage, 'removeItem').and.callFake(() => {
+    vi.spyOn(sessionStorage, 'removeItem').mockImplementation(() => {
       /* silently do nothing — simulates a blocked/no-op clear */
     });
 
@@ -306,14 +309,11 @@ describe('ImpersonationService — pending window and anon self-heal', () => {
    * service to simulate the document a reload produces), so an instance spy
    * leaves a window where a real `location.reload()` would take Karma down.
    */
-  let reload: jasmine.Spy;
+  let reload: Mock;
 
   beforeEach(() => {
     sessionStorage.clear();
-    reload = spyOn(
-      ImpersonationService.prototype as unknown as { reload: () => void },
-      'reload',
-    );
+    reload = vi.spyOn(ImpersonationService.prototype as unknown as { reload: () => void }, 'reload').mockReturnValue(undefined as never);
     TestBed.configureTestingModule({ providers: [ImpersonationService] });
   });
 
@@ -434,7 +434,7 @@ describe('ImpersonationService — pending window and anon self-heal', () => {
     const svc = TestBed.inject(ImpersonationService);
     // A silently no-op'ing removeItem: the key survives, so a reload would
     // land on the same state and heal again, forever.
-    spyOn(Storage.prototype, 'removeItem').and.stub();
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => undefined);
 
     svc.setActualRole('admin', true);
     svc.setActualRole('viewer', true);

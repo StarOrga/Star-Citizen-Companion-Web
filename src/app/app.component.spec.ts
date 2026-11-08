@@ -98,8 +98,8 @@ describe('AppComponent — profile locale on account switch', () => {
 
   it('hydrates the profile per account and clears it on sign-out', async () => {
     const locale = TestBed.inject(LocaleService);
-    const hydrate = spyOn(locale, 'hydrateFromProfile');
-    const clear = spyOn(locale, 'clearProfile');
+    const hydrate = vi.spyOn(locale, 'hydrateFromProfile').mockReturnValue(undefined as never);
+    const clear = vi.spyOn(locale, 'clearProfile').mockReturnValue(undefined as never);
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -111,7 +111,7 @@ describe('AppComponent — profile locale on account switch', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(hydrate).toHaveBeenCalledTimes(1);
-    expect(hydrate.calls.mostRecent().args[0]).toBe('de');
+    expect(vi.mocked(hydrate).mock.lastCall![0]).toBe('de');
 
     user.set(null);
     fixture.detectChanges();
@@ -122,6 +122,6 @@ describe('AppComponent — profile locale on account switch', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(hydrate).toHaveBeenCalledTimes(2);
-    expect(hydrate.calls.mostRecent().args[0]).toBe('en');
+    expect(vi.mocked(hydrate).mock.lastCall![0]).toBe('en');
   });
 });

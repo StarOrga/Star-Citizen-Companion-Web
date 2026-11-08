@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { PageCornerService } from '../shell/corners/page-corner.service';
 import { HqItemMarksService } from '../hq/data/hq-item-marks.service';
 import { fakeItemMarks } from '../hq/data/hq-item-marks.testing';
@@ -355,7 +356,7 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(el.querySelector('.hero.stage sc-hangar-picker')).toBeNull();
     const top = el.querySelector('.hero-stack > .stage-top') as HTMLElement;
     expect(top).toBeTruthy();
-    expect(top.nextElementSibling?.matches('header.hero.stage')).toBeTrue();
+    expect(top.nextElementSibling?.matches('header.hero.stage')).toBe(true);
     // Same functions as before: the button is an anchor into the hangar.
     const btn = top.querySelector('sc-hangar-picker a.picker-btn') as HTMLAnchorElement;
     expect(btn?.getAttribute('href')).toContain('hangar');
@@ -610,7 +611,7 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
     const section = Array.from(el.querySelectorAll('section')).find((s) =>
       s.querySelector('h2')?.textContent?.includes('codex.detail.craftedFrom'),
     );
-    expect(section).withContext('recipe section').toBeTruthy();
+    expect(section, 'recipe section').toBeTruthy();
     const amounts = Array.from(section!.querySelectorAll('.compat-meta .chip:not(.subtle)')).map((c) =>
       c.textContent!.trim(),
     );
@@ -638,7 +639,7 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
     const section = Array.from(el.querySelectorAll('section')).find((s) =>
       s.querySelector('h2')?.textContent?.includes('codex.detail.craftedFrom'),
     );
-    expect(section).withContext('recipe section').toBeTruthy();
+    expect(section, 'recipe section').toBeTruthy();
     const chips = Array.from(section!.querySelectorAll('.compat-list li')).map((li) =>
       Array.from(li.querySelectorAll('.chip')).map((c) => c.textContent!.trim()),
     );
@@ -863,25 +864,25 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
 
   describe('invalid route', () => {
     it('names an unknown category on the error card and offers no retry', async () => {
-      const getDetail = jasmine.createSpy('getDetail');
+      const getDetail = vi.fn().mockName('getDetail');
       const fixture = await setupCharacterisation({
         params: { kind: 'foo', className: 'x' },
         svc: { getDetail },
       });
       const el: HTMLElement = fixture.nativeElement;
       const err = el.querySelector('.err');
-      expect(err).withContext('error card rendered').not.toBeNull();
+      expect(err, 'error card rendered').not.toBeNull();
       expect(err!.getAttribute('role')).toBe('alert');
       expect(err!.textContent).toContain('codex.detail.invalidRoute');
       expect(el.querySelector('.err .retry')).toBeNull();
       expect(getDetail).not.toHaveBeenCalled();
-      expect(fixture.componentInstance.canRetry()).toBeFalse();
+      expect(fixture.componentInstance.canRetry()).toBe(false);
     });
   });
 
   describe('hardpoint compatibility (port fold-out)', () => {
     it('loads the compatible items once on the first open and serves re-opens from the cache', async () => {
-      const getCompatibleItems = jasmine.createSpy('getCompatibleItems').and.resolveTo([
+      const getCompatibleItems = vi.fn().mockName('getCompatibleItems').mockResolvedValue([
         {
           kind: 'item',
           classNameSlug: 'mag_s1',
@@ -897,8 +898,8 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       });
       const el: HTMLElement = fixture.nativeElement;
       const head = el.querySelector('.hp-head') as HTMLButtonElement;
-      expect(head).withContext('expandable port rendered').not.toBeNull();
-      expect(head.disabled).toBeFalse();
+      expect(head, 'expandable port rendered').not.toBeNull();
+      expect(head.disabled).toBe(false);
       expect(el.querySelector('.compat')).toBeNull();
 
       head.click();
@@ -908,7 +909,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(getCompatibleItems).toHaveBeenCalledWith({ types: ['WeaponAttachment'], minSize: 1, maxSize: 2 });
       expect(el.querySelector('.hp')!.classList).toContain('open');
       const link = el.querySelector('.compat a.compat-link') as HTMLAnchorElement;
-      expect(link).withContext('compatible item is an anchor').not.toBeNull();
+      expect(link, 'compatible item is an anchor').not.toBeNull();
       expect(link.getAttribute('href')).toBe('/codex/item/mag_s1');
       expect(el.querySelector('.compat-head')?.textContent).toContain('codex.detail.compatCount');
 
@@ -925,7 +926,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
     });
 
     it('shows an error key inline when the compatible-items read fails', async () => {
-      const getCompatibleItems = jasmine.createSpy('getCompatibleItems').and.rejectWith(new Error('boom'));
+      const getCompatibleItems = vi.fn().mockName('getCompatibleItems').mockRejectedValue(new Error('boom'));
       const fixture = await setupCharacterisation({
         params: { kind: 'weapon', className: 'klwe_laserrepeater_s3' },
         svc: { getDetail: weaponDetailWithPort(), getCompatibleItems },
@@ -935,7 +936,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       await fixture.whenStable();
       fixture.detectChanges();
       const err = el.querySelector('.compat .err-inline');
-      expect(err).withContext('inline error rendered').not.toBeNull();
+      expect(err, 'inline error rendered').not.toBeNull();
       // A translated key, never the raw exception text (D05).
       expect(err!.textContent).toContain('errors.generic');
       expect(err!.textContent).not.toContain('boom');
@@ -957,22 +958,20 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
   describe('saving the loadout draft', () => {
     function hangarStubs(createResult: unknown) {
       return {
-        shipByClassName: jasmine.createSpy('shipByClassName').and.returnValue({ id: 's1' }),
-        addShip: jasmine.createSpy('addShip').and.resolveTo(null),
-        listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
-        createConfig: jasmine.createSpy('createConfig').and.resolveTo(createResult),
-        activateConfig: jasmine.createSpy('activateConfig').and.resolveTo(true),
-        updateConfig: jasmine
-          .createSpy('updateConfig')
-          .and.callFake(async (id: string, patch: { loadout: unknown }) => ({ id, loadout: patch.loadout })),
-        forkFollowedLoadout: jasmine.createSpy('forkFollowedLoadout').and.resolveTo(null),
+        shipByClassName: vi.fn().mockName('shipByClassName').mockReturnValue({ id: 's1' }),
+        addShip: vi.fn().mockName('addShip').mockResolvedValue(null),
+        listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue([]),
+        createConfig: vi.fn().mockName('createConfig').mockResolvedValue(createResult),
+        activateConfig: vi.fn().mockName('activateConfig').mockResolvedValue(true),
+        updateConfig: vi.fn().mockName('updateConfig').mockImplementation(async (id: string, patch: { loadout: unknown }) => ({ id, loadout: patch.loadout })),
+        forkFollowedLoadout: vi.fn().mockName('forkFollowedLoadout').mockResolvedValue(null),
       };
     }
 
     /** A ship page with a saveable gun port, on the fake clock — call inside `fakeAsync`. */
     function renderDraftPage(createResult: unknown) {
       const hangar = hangarStubs(createResult);
-      const ensureEditable = jasmine.createSpy('ensureEditable').and.resolveTo('own');
+      const ensureEditable = vi.fn().mockName('ensureEditable').mockResolvedValue('own');
       configureCharacterisation({
         params: { kind: 'ship', className: 'cnou_nomad' },
         svc: { getDetail: shipDetailWithGunPort() },
@@ -981,7 +980,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       });
       const fixture = renderOnFakeClock();
       // The draft mirrors itself into the URL; keep the Karma page where it is.
-      spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
       return { fixture, hangar, ensureEditable, cmp: fixture.componentInstance };
     }
 
@@ -990,7 +989,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       let settled = false;
       void cmp.saveLoadoutDraft().finally(() => (settled = true));
       flushMicrotasks();
-      expect(settled).withContext('save settled').toBeTrue();
+      expect(settled, 'save settled').toBe(true);
     }
 
     function pickNewGun(cmp: CodexDetailComponent): void {
@@ -1025,25 +1024,25 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       });
       pickNewGun(cmp);
       flushMicrotasks();
-      expect(cmp.saveableEntries().length).withContext('draft is saveable').toBe(1);
-      expect(cmp.personalMode()).withContext('no ?v= = codex mode').toBeFalse();
+      expect(cmp.saveableEntries().length, 'draft is saveable').toBe(1);
+      expect(cmp.personalMode(), 'no ?v= = codex mode').toBe(false);
 
       save(cmp);
-      expect(hangar.updateConfig).withContext('codex mode never writes').not.toHaveBeenCalled();
+      expect(hangar.updateConfig, 'codex mode never writes').not.toHaveBeenCalled();
 
       void cmp.addToHangar();
       flushMicrotasks();
       fixture.detectChanges();
 
       expect(hangar.createConfig).toHaveBeenCalledTimes(1);
-      const [shipId, , , loadout] = hangar.createConfig.calls.mostRecent().args as [string, string, string, unknown[]];
+      const [shipId, , , loadout] = vi.mocked(hangar.createConfig).mock.lastCall! as [string, string, string, unknown[]];
       expect(shipId).toBe('s1');
       expect(loadout).toEqual([
-        jasmine.objectContaining({ portName: 'hardpoint_weapon_top_left', className: 'BEHR_LaserCannon_S3' }),
+        expect.objectContaining({ portName: 'hardpoint_weapon_top_left', className: 'BEHR_LaserCannon_S3' }),
       ]);
       expect(hangar.updateConfig).not.toHaveBeenCalled();
-      const nav = TestBed.inject(Router).navigate as jasmine.Spy;
-      expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: jasmine.objectContaining({ v: 'c1' }) }));
+      const nav = TestBed.inject(Router).navigate as Mock;
+      expect(nav).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: expect.objectContaining({ v: 'c1' }) }));
       expect(cmp.saveError()).toBeNull();
     }));
 
@@ -1057,7 +1056,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       fixture.detectChanges();
 
       expect(hangar.createConfig).toHaveBeenCalledTimes(1);
-      expect(cmp.addFailed()).toBeTrue();
+      expect(cmp.addFailed()).toBe(true);
       expect(hangar.updateConfig).not.toHaveBeenCalled();
       // No translate loader in Karma: instant() hands back the key itself.
       expect(cmp.saveError()).toBe('codex.loadout.saveErrorHangar');
@@ -1078,7 +1077,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
 
   describe('livery picker', () => {
     it('lists the livery family as anchors to their own routes and marks the open one', async () => {
-      const listSkinSiblings = jasmine.createSpy('listSkinSiblings').and.resolveTo([
+      const listSkinSiblings = vi.fn().mockName('listSkinSiblings').mockResolvedValue([
         skinRow('klwe_laserrepeater_s3', 'CF-337 Panther Repeater'),
         skinRow('klwe_laserrepeater_s3_ice01', 'CF-337 "Ice" Panther Repeater'),
       ]);
@@ -1093,14 +1092,14 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(listSkinSiblings).toHaveBeenCalledWith('weapon', 'klwe_laserrepeater_s3');
       const opts = Array.from(el.querySelectorAll<HTMLElement>('.skin-picker .sp-opt'));
       expect(opts.length).toBe(2);
-      expect(opts.every((o) => o.tagName === 'A')).toBeTrue();
+      expect(opts.every((o) => o.tagName === 'A')).toBe(true);
       expect(opts.map((o) => o.getAttribute('href'))).toEqual([
         '/codex/weapon/klwe_laserrepeater_s3',
         '/codex/weapon/klwe_laserrepeater_s3_ice01',
       ]);
       expect(opts[0].getAttribute('aria-current')).toBe('true');
       expect(opts[0].classList).toContain('current');
-      expect(opts[1].hasAttribute('aria-current')).toBeFalse();
+      expect(opts[1].hasAttribute('aria-current')).toBe(false);
       expect(opts[0].textContent).toContain('codex.skinPicker.standard');
       expect(opts[1].textContent).toContain('Ice');
     });
@@ -1119,7 +1118,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
 
 function holoStage(fixture: ComponentFixture<CodexDetailComponent>): CodexHoloStageComponent {
   const de = fixture.debugElement.query(By.directive(CodexHoloStageComponent));
-  expect(de).withContext('Holotable rendered').not.toBeNull();
+  expect(de, 'Holotable rendered').not.toBeNull();
   return de.componentInstance as CodexHoloStageComponent;
 }
 
@@ -1132,7 +1131,7 @@ function arrive(fixture: ComponentFixture<CodexDetailComponent>): void {
 /** The side column below the first screen (description + RSI, where to buy, variants — concept holotisch-unten d2). */
 function openBlock(fixture: ComponentFixture<CodexDetailComponent>): HTMLElement {
   const open = (fixture.nativeElement as HTMLElement).querySelector('.holo-below .below-side') as HTMLElement;
-  expect(open).withContext('open block').not.toBeNull();
+  expect(open, 'open block').not.toBeNull();
   return open;
 }
 
@@ -1141,7 +1140,7 @@ function openDetails(fixture: ComponentFixture<CodexDetailComponent>): HTMLEleme
   (el.querySelector('.details-toggle') as HTMLButtonElement).click();
   fixture.detectChanges();
   const body = el.querySelector('.details-body') as HTMLElement;
-  expect(body).withContext('details drawer open').not.toBeNull();
+  expect(body, 'details drawer open').not.toBeNull();
   return body;
 }
 
@@ -1206,8 +1205,8 @@ describe('CodexDetailComponent — Holotable basics stand open (d-drawer)', () =
     arrive(fixture);
     const el: HTMLElement = fixture.nativeElement;
     const open = openBlock(fixture);
-    expect(open.querySelector('#bezugsquelle')).withContext('where to buy, open').not.toBeNull();
-    expect(el.querySelector('.details-body')).withContext('drawer still closed').toBeNull();
+    expect(open.querySelector('#bezugsquelle'), 'where to buy, open').not.toBeNull();
+    expect(el.querySelector('.details-body'), 'drawer still closed').toBeNull();
     const body = openDetails(fixture);
     expect(body.querySelector('#bezugsquelle')).toBeNull();
   }));
@@ -1257,12 +1256,12 @@ describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz
     const fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
     const tools = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).map((b) => b.textContent ?? '');
-    expect(tools.length).withContext('3D / Schema still there').toBeGreaterThan(0);
-    expect(tools.some((t) => t.includes('Teilen') || t.includes('↗'))).toBeFalse();
+    expect(tools.length, '3D / Schema still there').toBeGreaterThan(0);
+    expect(tools.some((t) => t.includes('Teilen') || t.includes('↗'))).toBe(false);
     expect(el.querySelector('sc-codex-holo-share')).toBeNull();
     expect(TestBed.inject(PageCornerService).share()?.url()).toBe(location.href);
     fixture.destroy();
-    expect(TestBed.inject(PageCornerService).share()).withContext('released with the page').toBeNull();
+    expect(TestBed.inject(PageCornerService).share(), 'released with the page').toBeNull();
     expect(TestBed.inject(PageCornerService).view()).toBeNull();
   }));
 
@@ -1276,14 +1275,14 @@ describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz
       fixture.detectChanges();
       tick();
       const pop = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.ship-share-pop');
-      expect(pop).withContext('popover rendered').not.toBeNull();
+      expect(pop, 'popover rendered').not.toBeNull();
       expect(pop!.getAttribute('role')).toBe('dialog');
-      expect(pop!.querySelector('.link-copy')).withContext('plain link of this view').not.toBeNull();
-      expect(corner.share()!.expanded!()).toBeTrue();
+      expect(pop!.querySelector('.link-copy'), 'plain link of this view').not.toBeNull();
+      expect(corner.share()!.expanded!()).toBe(true);
       pop!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       fixture.detectChanges();
       tick();
-      expect(fixture.componentInstance.sharePopoverOpen()).toBeFalse();
+      expect(fixture.componentInstance.sharePopoverOpen()).toBe(false);
     } finally {
       trigger.remove();
       fixture.destroy();
@@ -1296,7 +1295,7 @@ describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz
     expect(el.querySelector('sc-item-path.ip-primary')).toBeNull();
     fixture.componentInstance.holoView.set(false);
     fixture.detectChanges();
-    expect(el.querySelector('.c-head h1')).withContext('classic title in the head row (F1)').not.toBeNull();
+    expect(el.querySelector('.c-head h1'), 'classic title in the head row (F1)').not.toBeNull();
     expect(el.querySelector('.c-head .sc-head-strip')).not.toBeNull();
     expect(el.querySelectorAll('h1').length).toBe(1);
     fixture.destroy();
@@ -1309,7 +1308,7 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     const fixture = renderOnFakeClock();
     const body = openBlock(fixture);
     const labels = Array.from(body.querySelectorAll('button')).map((b) => b.textContent ?? '');
-    expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBeFalse();
+    expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBe(false);
     // The RSI link itself stays: a plain anchor into a new tab.
     const rsi = body.querySelector('a.rsi-link') as HTMLAnchorElement;
     expect(rsi).not.toBeNull();
@@ -1318,7 +1317,7 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
   }));
 
   it('opens the form for a signed-in reader and names a rejected URL', fakeAsync(() => {
-    const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo('invalidUrl');
+    const setMyLink = vi.fn().mockName('setMyLink').mockResolvedValue('invalidUrl');
     configureCharacterisation({
       params: { kind: 'ship', className: 'cnou_nomad' },
       user: { id: 'u1' },
@@ -1331,7 +1330,7 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     const add = Array.from(body.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
       (b.textContent ?? '').includes('codex.shipLink.add'),
     );
-    expect(add).withContext('"add link" button rendered').toBeDefined();
+    expect(add, '"add link" button rendered').toBeDefined();
     expect(el.querySelector('.ship-link-form')).toBeNull();
 
     add!.click();
@@ -1346,7 +1345,8 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     flushMicrotasks();
     fixture.detectChanges();
 
-    expect(setMyLink).toHaveBeenCalledOnceWith('cnou_nomad', 'not a url');
+    expect(setMyLink).toHaveBeenCalledTimes(1);
+    expect(setMyLink).toHaveBeenCalledWith('cnou_nomad', 'not a url');
     const err = el.querySelector('.sl-error');
     expect(err).not.toBeNull();
     expect(err!.getAttribute('role')).toBe('alert');
@@ -1356,7 +1356,7 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
   }));
 
   it('confirms a saved link', fakeAsync(() => {
-    const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo(null);
+    const setMyLink = vi.fn().mockName('setMyLink').mockResolvedValue(null);
     configureCharacterisation({
       params: { kind: 'ship', className: 'cnou_nomad' },
       user: { id: 'u1' },
@@ -1389,7 +1389,7 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
     fixture.componentRef.setInput('hostClassName', undefined);
     fixture.componentRef.setInput('hostShipId', undefined);
     fixture.detectChanges();
-    expect(fixture.componentInstance.hqHosted()).toBeFalse();
+    expect(fixture.componentInstance.hqHosted()).toBe(false);
     expect(fixture.componentInstance.hqShipId()).toBeNull();
   });
 
@@ -1419,7 +1419,7 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
         ship: { id: 'sh1', shipClassName: 'CNOU_Nomad', customName: null, status: 'owned', pinnedRank: null, selectedSkinId: null, notes: null, createdAt: '', updatedAt: '' },
         configs: [], equippedOn: [], inSets: [],
       };
-      spyOn(TestBed.inject(HqOwnershipService), 'lookup').and.returnValue(own as never);
+      vi.spyOn(TestBed.inject(HqOwnershipService), 'lookup').mockReturnValue(own as never);
       return renderOnFakeClock();
     }
 
@@ -1428,13 +1428,13 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       const cmp = fixture.componentInstance;
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('.holo-panel sc-codex-own-card')).not.toBeNull();
-      expect(el.querySelector('.holo-topbar sc-codex-own-ship-actions')).withContext('the icon row left the head').toBeNull();
+      expect(el.querySelector('.holo-topbar sc-codex-own-ship-actions'), 'the icon row left the head').toBeNull();
       expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-own-segment')).not.toBeNull();
       cmp.holoView.set(false);
       fixture.detectChanges();
-      expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card')).withContext('under the picture (#323)').not.toBeNull();
-      expect(el.querySelector('.m-side sc-codex-own-card')).withContext('not in the headline side column').toBeNull();
-      expect(el.querySelector('sc-item-path[level]')?.closest('.crumb-aside')).withContext('no path panel in the head').toBeFalsy();
+      expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card'), 'under the picture (#323)').not.toBeNull();
+      expect(el.querySelector('.m-side sc-codex-own-card'), 'not in the headline side column').toBeNull();
+      expect(el.querySelector('sc-item-path[level]')?.closest('.crumb-aside'), 'no path panel in the head').toBeFalsy();
     }));
 
     it('has no data pill in the head for anyone (C3)', fakeAsync(() => {
@@ -1458,7 +1458,7 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
     query?: Record<string, string>;
     host?: boolean;
     configs?: { id: string; name: string; active: boolean }[];
-  }): { fixture: ComponentFixture<CodexDetailComponent>; nav: jasmine.Spy } {
+  }): { fixture: ComponentFixture<CodexDetailComponent>; nav: Mock } {
     localStorage.setItem('sc.beta', JSON.stringify({ shell: opts.shell }));
     configureSetup('ship');
     const query = convertToParamMap(opts.query ?? {});
@@ -1471,15 +1471,15 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
     });
     const own = { ship: OWN_SHIP, configs: opts.configs ?? [], equippedOn: [], inSets: [] };
     const ownership = TestBed.inject(HqOwnershipService);
-    spyOn(ownership, 'lookup').and.returnValue(own as never);
-    spyOn(ownership, 'shipFor').and.returnValue(OWN_SHIP as never);
-    spyOn(ownership, 'ensureLoaded').and.resolveTo();
-    spyOn(ownership, 'configById').and.callFake(((id: string) =>
+    vi.spyOn(ownership, 'lookup').mockReturnValue(own as never);
+    vi.spyOn(ownership, 'shipFor').mockReturnValue(OWN_SHIP as never);
+    vi.spyOn(ownership, 'ensureLoaded').mockResolvedValue(undefined);
+    vi.spyOn(ownership, 'configById').mockImplementation(((id: string) =>
       opts.configs?.some((c) => c.id === id)
         ? { id, name: 'V', hangarShipId: 'sh1', isActive: true, loadout: [] }
         : null) as never);
     (TestBed.inject(HangarService).ships as unknown as ReturnType<typeof signal<unknown[]>>).set([OWN_SHIP]);
-    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const nav = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     void TestBed.compileComponents();
     const fixture = TestBed.createComponent(CodexDetailComponent);
     if (opts.host) {
@@ -1507,9 +1507,9 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
   it('Codex page: a variant that is not one of the reader own is dropped, with the note', fakeAsync(() => {
     const { fixture, nav } = prepare({ shell: true, query: { v: 'someone-elses' } });
     tick();
-    expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ replaceUrl: true, queryParams: jasmine.objectContaining({ v: null }) }));
-    expect(fixture.componentInstance.foreignVariant()).toBeTrue();
-    expect(fixture.componentInstance.personalMode()).toBeFalse();
+    expect(nav).toHaveBeenCalledWith([], expect.objectContaining({ replaceUrl: true, queryParams: expect.objectContaining({ v: null }) }));
+    expect(fixture.componentInstance.foreignVariant()).toBe(true);
+    expect(fixture.componentInstance.personalMode()).toBe(false);
   }));
 
   it('Codex page: no personal mode, switch or own-ship actions, even for an owned ship', fakeAsync(() => {
@@ -1518,14 +1518,14 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
     cmp.mineFlag.set(true);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    expect(cmp.showModeSwitch()).toBeFalse();
+    expect(cmp.showModeSwitch()).toBe(false);
     expect(el.querySelector('sc-codex-mode-switch')).toBeNull();
   }));
 
   it('without the shell beta the Codex keeps its personal ?v= mode', fakeAsync(() => {
     const { nav } = prepare({ shell: false, query: { v: 'c1' }, configs: [{ id: 'c1', name: 'V', active: true }] });
     tick();
-    expect(nav).not.toHaveBeenCalledWith(['/hq/hangar', 'sh1'], jasmine.anything());
+    expect(nav).not.toHaveBeenCalledWith(['/hq/hangar', 'sh1'], expect.anything());
   }));
 
   describe('hosted at /hq/hangar/:id', () => {
@@ -1535,12 +1535,12 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
       });
       const cmp = fixture.componentInstance;
       const el: HTMLElement = fixture.nativeElement;
-      expect(cmp.hqHosted()).toBeTrue();
+      expect(cmp.hqHosted()).toBe(true);
       expect(cmp.kind()).toBe('ship');
-      expect(cmp.personalMode()).withContext('?v= on the HQ URL opens the variant').toBeTrue();
-      expect(el.querySelector('sc-codex-own-card sc-codex-own-ship-actions')).withContext('rename / note / pin / remove in the card').not.toBeNull();
-      expect(el.querySelector('.sc-head-strip sc-codex-mode-switch')).withContext('variant select in the head strip').not.toBeNull();
-      expect(cmp.showModeSwitch()).toBeTrue();
+      expect(cmp.personalMode(), '?v= on the HQ URL opens the variant').toBe(true);
+      expect(el.querySelector('sc-codex-own-card sc-codex-own-ship-actions'), 'rename / note / pin / remove in the card').not.toBeNull();
+      expect(el.querySelector('.sc-head-strip sc-codex-mode-switch'), 'variant select in the head strip').not.toBeNull();
+      expect(cmp.showModeSwitch()).toBe(true);
       expect(cmp.crumbs().map((c) => c.link)).toEqual(['/hq', '/hq/hangar']);
     }));
   });
@@ -1569,7 +1569,7 @@ describe('CodexDetailComponent — non-ship Klassisch / Holotisch', () => {
     // The switch lives in the corner (view toggle FAB): the page registers it for non-ships too.
     const v = TestBed.inject(PageCornerService).view();
     expect(v).not.toBeNull();
-    expect(v!.holo()).toBeFalse();
+    expect(v!.holo()).toBe(false);
   });
 
   it('switches to Holotisch, remembers it, and the Holotisch panel does not scroll inside', async () => {

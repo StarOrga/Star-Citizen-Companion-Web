@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component, signal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -82,14 +83,14 @@ describe('Verse briefing — model', () => {
   it('skyFigure knows only lit and open: no next star, dashed edges wherever an end is open', () => {
     const f = skyFigure(null, 3);
     expect(f.stars.filter((s) => s.state === 'lit').length).toBe(3);
-    expect(f.stars.every((s) => s.state === 'lit' || s.state === 'off')).toBeTrue();
+    expect(f.stars.every((s) => s.state === 'lit' || s.state === 'off')).toBe(true);
     for (const l of f.lines) {
       const a = f.stars.find((s) => s.x === l.x1 && s.y === l.y1)!;
       const b = f.stars.find((s) => s.x === l.x2 && s.y === l.y2)!;
       expect(l.state).toBe(a.state === 'lit' && b.state === 'lit' ? 'lit' : 'open');
     }
-    expect(skyFigure(FALLBACK_POINTS, 7).lines.every((l) => l.state === 'lit')).toBeTrue();
-    expect(skyFigure(FALLBACK_POINTS, 0).lines.every((l) => l.state === 'open')).toBeTrue();
+    expect(skyFigure(FALLBACK_POINTS, 7).lines.every((l) => l.state === 'lit')).toBe(true);
+    expect(skyFigure(FALLBACK_POINTS, 0).lines.every((l) => l.state === 'open')).toBe(true);
     // An explicit placement wins over the count.
     const placed = skyFigure(FALLBACK_POINTS, 3, new Set([6]));
     expect(placed.stars.filter((s) => s.state === 'lit').map((s) => s.i)).toEqual([6]);
@@ -134,7 +135,7 @@ describe('Verse briefing — model (more)', () => {
     expect(f.stars.length).toBe(7);
     expect(f.stars.filter((s) => s.state === 'lit').length).toBe(3);
     expect(f.lines.length).toBe(7);
-    expect(skyFigure(FALLBACK_POINTS, 7).stars.every((s) => s.state === 'lit')).toBeTrue();
+    expect(skyFigure(FALLBACK_POINTS, 7).stars.every((s) => s.state === 'lit')).toBe(true);
   });
 
   it('claimIntro plays the full entrance once per local day and survives blocked storage', () => {
@@ -161,7 +162,7 @@ describe('Verse briefing — model (more)', () => {
     expect(out.length).toBe(14);
     expect(out.slice(0, 2).map((i) => i.key)).toEqual(['gallery:a', 'gallery:b']);
     expect(new Set(out.map((i) => i.key)).size).toBe(14);
-    expect(new Set(out.map((i) => i.image)).size).withContext('same picture never twice').toBe(14);
+    expect(new Set(out.map((i) => i.image)).size, 'same picture never twice').toBe(14);
     expect(fillGallery([], [], 14)).toEqual([]);
   });
 
@@ -179,11 +180,11 @@ class NewsListStub {}
 
 describe('Verse briefing — component', () => {
   const beta = signal<Record<string, boolean>>({ verse: true, codex: true });
-  const captureVerse = jasmine.createSpy('captureVerse');
-  const markSeen = jasmine.createSpy('markSeen').and.resolveTo({ ok: true, data: undefined });
-  const cancels: jasmine.Spy[] = [];
-  const trackShown = jasmine.createSpy('trackShown').and.callFake(() => {
-    const c = jasmine.createSpy('cancel');
+  const captureVerse = vi.fn().mockName('captureVerse');
+  const markSeen = vi.fn().mockName('markSeen').mockResolvedValue({ ok: true, data: undefined });
+  const cancels: Mock[] = [];
+  const trackShown = vi.fn().mockName('trackShown').mockImplementation(() => {
+    const c = vi.fn().mockName('cancel');
     cancels.push(c);
     return c;
   });
@@ -196,13 +197,13 @@ describe('Verse briefing — component', () => {
     generatedAt: '', items, suggested: 3, patch: { line: '4.10', liveAt: null, channels: {}, status: 'live' },
     counts: { news: { recent: 4, total: 40 }, patches: { recent: 2 }, gallery: { recent: 7, total: 900 } },
   };
-  const loadSeen = jasmine.createSpy('loadSeen');
+  const loadSeen = vi.fn().mockName('loadSeen');
 
   beforeEach(() => {
     localStorage.removeItem(INTRO_FLAG);
-    captureVerse.calls.reset();
-    trackShown.calls.reset();
-    loadSeen.calls.reset();
+    captureVerse.mockClear();
+    trackShown.mockClear();
+    loadSeen.mockClear();
     cancels.length = 0;
     TestBed.configureTestingModule({
       providers: [
@@ -220,15 +221,15 @@ describe('Verse briefing — component', () => {
           useValue: {
             digest: signal(digest), digestState: signal('ready'), digestError: signal(null),
             seen: signal(new Set<string>()), topItems: signal(items),
-            explorer: signal(null), explorerState: signal('idle'), loadExplorer: jasmine.createSpy(),
-            loadDigest: jasmine.createSpy(), loadSeen, markSeen, trackShown,
+            explorer: signal(null), explorerState: signal('idle'), loadExplorer: vi.fn(),
+            loadDigest: vi.fn(), loadSeen, markSeen, trackShown,
           },
         },
         {
           provide: NewsService,
           useValue: {
             feed: signal(null), loading: signal(true), stage: signal(null), error: signal(null), stream: signal([]), streamCount: signal(0),
-            patchLines: signal([]), refresh: jasmine.createSpy(),
+            patchLines: signal([]), refresh: vi.fn(),
           },
         },
       ],
@@ -256,7 +257,7 @@ describe('Verse briefing — component', () => {
     expect(el.querySelector('.kick')).toBeNull();
     const bars = Array.from(el.querySelectorAll<HTMLButtonElement>('.story button.sbar'));
     expect(bars.length).toBe(3);
-    expect(bars.every((b) => b.type === 'button' && !b.hasAttribute('href'))).toBeTrue();
+    expect(bars.every((b) => b.type === 'button' && !b.hasAttribute('href'))).toBe(true);
     expect(bars.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
     const moons = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.moons a.moon'));
     expect(moons.map((a) => a.getAttribute('href'))).toEqual(['/verse/news', '/verse/patches', '/verse/gallery']);
@@ -344,13 +345,13 @@ describe('Verse briefing — component', () => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    markSeen.calls.reset();
+    markSeen.mockClear();
     el.querySelectorAll<HTMLButtonElement>('.story button.sbar')[2].click();
     fixture.detectChanges();
     expect(fixture.componentInstance.current()?.item.key).toBe('c');
     expect(el.querySelector('a.cta')?.getAttribute('href')).toBe('https://example.com/c');
     expect(markSeen).not.toHaveBeenCalled();
-    expect(captureVerse).not.toHaveBeenCalledWith('verse_top_open', jasmine.anything());
+    expect(captureVerse).not.toHaveBeenCalledWith('verse_top_open', expect.anything());
     expect(el.querySelectorAll('.story button.sbar')[2].getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -408,12 +409,12 @@ describe('Verse briefing — component', () => {
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
       const css = getComputedStyle(title(fixture)!);
-      expect(css.overflow).withContext('the clamp that would clip a text-shadow').toBe('hidden');
+      expect(css.overflow, 'the clamp that would clip a text-shadow').toBe('hidden');
       expect(css.textShadow).toBe('none');
       expect(css.filter).toContain('drop-shadow');
       const blur = parseFloat(/rgba?\([^)]*\)\s+0px\s+0px\s+([\d.]+)px/.exec(css.filter)?.[1] ?? '999');
-      expect(blur).withContext('a faint blur, not a visible field').toBeLessThan(parseFloat(css.fontSize) * 0.15);
-      expect((css.filter.match(/drop-shadow/g) ?? []).length).withContext('not stacked').toBe(1);
+      expect(blur, 'a faint blur, not a visible field').toBeLessThan(parseFloat(css.fontSize) * 0.15);
+      expect((css.filter.match(/drop-shadow/g) ?? []).length, 'not stacked').toBe(1);
       expect(getComputedStyle(title(fixture)!, '::before').content).not.toContain('gradient');
       tick(10_000);
     }));
@@ -435,9 +436,9 @@ describe('Verse briefing — component', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift' }));
       tick(INTRO_SKIP_MS);
       fixture.detectChanges();
-      expect(stage(fixture)?.classList).withContext('a modifier alone is no input').toContain('intro');
+      expect(stage(fixture)?.classList, 'a modifier alone is no input').toContain('intro');
       window.dispatchEvent(new Event('pointerdown'));
-      expect(fixture.componentInstance.holoStands()).toBeTrue();
+      expect(fixture.componentInstance.holoStands()).toBe(true);
       tick(INTRO_SKIP_MS);
       fixture.detectChanges();
       expect(stage(fixture)?.classList).not.toContain('intro');
@@ -445,7 +446,7 @@ describe('Verse briefing — component', () => {
       expect(title(fixture)?.querySelector('.brand')).toBeNull();
       expect(chrome.heroIntro()).toBeNull();
       tick(10_000);
-      expect(stage(fixture)?.classList).withContext('no comet afterwards').not.toContain('finale');
+      expect(stage(fixture)?.classList, 'no comet afterwards').not.toContain('finale');
     }));
 
     it('sends nothing from the holo while the app name stands, then projects', fakeAsync(() => {
@@ -453,12 +454,12 @@ describe('Verse briefing — component', () => {
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
       const c = fixture.componentInstance;
-      expect(c.holoStands()).toBeFalse();
+      expect(c.holoStands()).toBe(false);
       const tx = (): HTMLElement => (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('sc-briefing-transmit')!;
-      expect(tx().dataset['phase']).withContext('nothing sent during the entrance').toBe('out');
+      expect(tx().dataset['phase'], 'nothing sent during the entrance').toBe('out');
       tick(10_000);
       fixture.detectChanges();
-      expect(c.brand()).toBeFalse();
+      expect(c.brand()).toBe(false);
       tick(30_000);
     }));
 
@@ -500,7 +501,7 @@ describe('Verse briefing — component', () => {
       const c = fixture.componentInstance;
       expect(c.intro).toBe('full');
       expect(stage(fixture)?.classList).toContain('intro');
-      expect(chrome.heroIntro()).withContext('the hub took the announced entrance over').toEqual({ k: 1, full: true });
+      expect(chrome.heroIntro(), 'the hub took the announced entrance over').toEqual({ k: 1, full: true });
       // The app's name in the hero: no story title, no eyebrow, no chevrons yet.
       expect(title(fixture)?.querySelector('.tl.brand')).not.toBeNull();
       expect(title(fixture)?.querySelectorAll('i.ltr').length).toBeGreaterThan(0);
@@ -518,10 +519,10 @@ describe('Verse briefing — component', () => {
         fixture.detectChanges();
       }
       expect(stage(fixture)?.classList).toContain('finale');
-      expect(waited).withContext('the finale never starts before the build-up stood').toBeGreaterThanOrEqual(INTRO_BUILD_MS);
+      expect(waited, 'the finale never starts before the build-up stood').toBeGreaterThanOrEqual(INTRO_BUILD_MS);
       tick(INTRO_SWITCH_MS);
       fixture.detectChanges();
-      expect(title(fixture)?.querySelector('.brand')).withContext('the name left the hero').toBeNull();
+      expect(title(fixture)?.querySelector('.brand'), 'the name left the hero').toBeNull();
       expect(fixture.nativeElement.querySelector('.hrow a.tl')?.textContent?.trim()).toBe(c.current()?.item.title);
       tick(INTRO_FINALE_MS);
       fixture.detectChanges();

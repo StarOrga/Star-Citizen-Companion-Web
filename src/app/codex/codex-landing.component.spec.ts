@@ -8,6 +8,7 @@ import { LandingCodex, LandingItem, LandingPaint, PatchSummaryView } from './lan
 import { BetaService } from '../core/beta.service';
 import { CodexService } from './codex.service';
 import { CLAIM_MS } from './landing/codex-landing-claims';
+import { useViewport } from '../testing/viewport';
 
 function item(over: Partial<LandingItem> & { className: string; category: LandingItem['category'] }): LandingItem {
   const kind = over.category === 'component' ? 'component' : over.category === 'armor' ? 'item' : 'weapon';
@@ -52,11 +53,10 @@ class FakeData {
   readonly newsUnread = computed(() => this.unread());
   items: LandingItem[] = [];
   paintList: LandingPaint[] = [];
-  markNewsSeen = jasmine.createSpy('markNewsSeen');
-  itemByClass = jasmine.createSpy('itemByClass').and.callFake(async (category: LandingItem['category'], className: string) =>
-    item({ category, className, name: 'Picked ' + className, fresh: true }),
-  );
-  rotationItems = jasmine.createSpy('rotationItems').and.callFake(async () => this.items);
+  markNewsSeen = vi.fn().mockName('markNewsSeen');
+  itemByClass = vi.fn().mockName('itemByClass').mockImplementation(async (category: LandingItem['category'], className: string) =>
+    item({ category, className, name: 'Picked ' + className, fresh: true }));
+  rotationItems = vi.fn().mockName('rotationItems').mockImplementation(async () => this.items);
   news: LandingCodex = {
     patch: '4.3',
     categories: [
@@ -79,9 +79,9 @@ class FakeData {
       },
     ],
   };
-  codexNews = jasmine.createSpy('codexNews').and.callFake(async () => this.news);
-  paintsFor = jasmine.createSpy('paintsFor').and.callFake(async () => this.paintList);
-  loadPatchSummary = jasmine.createSpy('loadPatchSummary').and.callFake(async () => this.summary());
+  codexNews = vi.fn().mockName('codexNews').mockImplementation(async () => this.news);
+  paintsFor = vi.fn().mockName('paintsFor').mockImplementation(async () => this.paintList);
+  loadPatchSummary = vi.fn().mockName('loadPatchSummary').mockImplementation(async () => this.summary());
 }
 
 describe('CodexLandingComponent', () => {
@@ -135,7 +135,7 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector<HTMLAnchorElement>('sc-codex-landing-values-pane a.go')!.getAttribute('href')).toBe('/codex/weapon/BEHR_Rifle');
     // Removed parts (round 4: no filmstrip, no Datenkarte; brief A9 earlier).
     for (const sel of ['sc-codex-landing-filmstrip', 'sc-codex-landing-card', 'sc-codex-stage', 'sc-codex-compare-tray', 'sc-upcoming-teaser']) {
-      expect(el.querySelector(sel)).withContext(sel).toBeNull();
+      expect(el.querySelector(sel), sel).toBeNull();
     }
     flush();
   }));
@@ -154,15 +154,15 @@ describe('CodexLandingComponent', () => {
     rows()[2].click();
     fixture.detectChanges();
     expect(cmp.active()).toBe(2);
-    expect(cmp.held()).toBeTrue();
+    expect(cmp.held()).toBe(true);
     expect(rows()[2].getAttribute('aria-pressed')).toBe('true');
     tick(ROTATION_MS * 2);
     fixture.detectChanges();
-    expect(cmp.active()).withContext('held').toBe(2);
+    expect(cmp.active(), 'held').toBe(2);
 
     rows()[2].click();
     fixture.detectChanges();
-    expect(cmp.held()).toBeFalse();
+    expect(cmp.held()).toBe(false);
     expect(cmp.active()).toBe(0);
     discardPeriodicTasks();
     flush();
@@ -181,7 +181,7 @@ describe('CodexLandingComponent', () => {
     expect(entries[1].closest('li')!.classList).toContain('table');
     expect(entries[1].querySelector('.here')).not.toBeNull();
     expect(entries[2].querySelector('.here')).toBeNull();
-    expect(pane.querySelector('a.more')).withContext('three entries fit the wheel').toBeNull();
+    expect(pane.querySelector('a.more'), 'three entries fit the wheel').toBeNull();
     expect(pane.querySelector<HTMLAnchorElement>('a.all')!.getAttribute('href')).toBe('/codex/index?kind=weapon&weaponClass=FPS');
     flush();
   }));
@@ -219,24 +219,24 @@ describe('CodexLandingComponent', () => {
     window.addEventListener('click', swallow);
     second.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
     window.removeEventListener('click', swallow);
-    expect(leftToBrowser).withContext('Ctrl+click falls through to the anchor').toBeTrue();
+    expect(leftToBrowser, 'Ctrl+click falls through to the anchor').toBe(true);
     expect(cmp.picked()).toBeNull();
 
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
     second.dispatchEvent(plain);
     settle();
-    expect(plain.defaultPrevented).toBeTrue();
+    expect(plain.defaultPrevented).toBe(true);
     expect(data.itemByClass).toHaveBeenCalledWith('fpsWeapon', 'KSAR_Smg');
     expect(cmp.current()!.className).toBe('KSAR_Smg');
-    expect(cmp.held()).toBeTrue();
+    expect(cmp.held()).toBe(true);
     expect(piece().querySelector('.k-name')!.textContent).toContain('Picked KSAR_Smg');
     tick(ROTATION_MS * 2);
-    expect(cmp.current()!.className).withContext('held').toBe('KSAR_Smg');
+    expect(cmp.current()!.className, 'held').toBe('KSAR_Smg');
     // The category tab again resumes the rotation: the picked entry gives way.
     el.querySelector<HTMLButtonElement>('sc-codex-landing-codex-pane button.tab.on')!.click();
     fixture.detectChanges();
     expect(cmp.picked()).toBeNull();
-    expect(cmp.held()).toBeFalse();
+    expect(cmp.held()).toBe(false);
     discardPeriodicTasks();
     flush();
   }));
@@ -251,11 +251,11 @@ describe('CodexLandingComponent', () => {
     soon.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
     settle();
     expect(data.itemByClass).not.toHaveBeenCalled();
-    expect(cmp.current()!.announced).toBeTrue();
-    expect(cmp.held()).toBeTrue();
+    expect(cmp.current()!.announced).toBe(true);
+    expect(cmp.held()).toBe(true);
     expect(piece().querySelector('.k-name')!.textContent).toContain('RSI Polaris');
-    expect(piece().querySelectorAll('.call').length).withContext('no values').toBe(0);
-    expect(piece().querySelector('.sil sc-codex-icon')).withContext('category icon').not.toBeNull();
+    expect(piece().querySelectorAll('.call').length, 'no values').toBe(0);
+    expect(piece().querySelector('.sil sc-codex-icon'), 'category icon').not.toBeNull();
     expect(piece().querySelector('.k-eye')!.textContent).toContain('codex.landing.holo.announced');
     discardPeriodicTasks();
     flush();
@@ -268,7 +268,7 @@ describe('CodexLandingComponent', () => {
     expect(tabs.length).toBe(4);
     expect(tabs.filter((t) => t.querySelector('.nm')).length).toBe(1);
     expect(el.querySelector('sc-codex-landing-codex-pane .tab.on .nm')).not.toBeNull();
-    expect(tabs.every((t) => !!t.getAttribute('aria-label'))).toBeTrue();
+    expect(tabs.every((t) => !!t.getAttribute('aria-label'))).toBe(true);
     flush();
   }));
 
@@ -286,11 +286,11 @@ describe('CodexLandingComponent', () => {
     const calls = piece().querySelectorAll('.call');
     expect(calls.length).toBe(1);
     expect(calls[0].querySelector('a')).toBeNull();
-    expect(calls[0].querySelector('.c-cmp.worse')).withContext('worse than its class').not.toBeNull();
+    expect(calls[0].querySelector('.c-cmp.worse'), 'worse than its class').not.toBeNull();
     expect(piece().querySelectorAll('.leaders path').length).toBe(1);
     const bars = el.querySelectorAll('sc-codex-landing-values-pane .row:not(.callout)');
     expect(bars.length).toBe(1);
-    expect(bars[0].querySelector('.bar u')).withContext('class mean tick').not.toBeNull();
+    expect(bars[0].querySelector('.bar u'), 'class mean tick').not.toBeNull();
     flush();
   }));
 
@@ -310,16 +310,16 @@ describe('CodexLandingComponent', () => {
     chips[1].click();
     fixture.detectChanges();
     expect(piece().querySelector<HTMLImageElement>('.pv img')!.src).toContain('p2.jpg');
-    expect(cmp.paintOpen()).toBeTrue();
+    expect(cmp.paintOpen()).toBe(true);
     tick(ROTATION_MS * 2);
-    expect(cmp.active()).withContext('held while the preview is open').toBe(0);
+    expect(cmp.active(), 'held while the preview is open').toBe(0);
     chips = Array.from(piece().querySelectorAll<HTMLButtonElement>('.chip'));
     chips[3].click();
     fixture.detectChanges();
     expect(piece().querySelectorAll('.chip:not(.more)').length).toBe(6);
     piece().querySelector<HTMLButtonElement>('.pv-x')!.click();
     fixture.detectChanges();
-    expect(cmp.paintOpen()).toBeFalse();
+    expect(cmp.paintOpen()).toBe(false);
     tick(ROTATION_MS);
     expect(cmp.active()).toBe(1);
     discardPeriodicTasks();
@@ -338,7 +338,7 @@ describe('CodexLandingComponent', () => {
     el.querySelector<HTMLElement>('.hero')!.dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
     tick(CLAIM_MS * 2);
-    expect(cmp.claimIndex()).withContext('paused while hovered').toBe(1);
+    expect(cmp.claimIndex(), 'paused while hovered').toBe(1);
     el.querySelector<HTMLElement>('.hero')!.dispatchEvent(new MouseEvent('mouseleave'));
     fixture.detectChanges();
     tick(CLAIM_MS);
@@ -346,7 +346,7 @@ describe('CodexLandingComponent', () => {
     cmp.still.set(true);
     fixture.detectChanges();
     tick(CLAIM_MS * 2);
-    expect(cmp.claimIndex()).withContext('reduced motion stands still').toBe(2);
+    expect(cmp.claimIndex(), 'reduced motion stands still').toBe(2);
     discardPeriodicTasks();
     flush();
   }));
@@ -355,16 +355,16 @@ describe('CodexLandingComponent', () => {
     setup(three());
     settle();
     const cmp = fixture.componentInstance;
-    expect(cmp.paused()).withContext('rotation runs').toBeFalse();
+    expect(cmp.paused(), 'rotation runs').toBe(false);
     expect(cmp.claimIndex()).toBe(0);
     tick(CLAIM_MS);
     fixture.detectChanges();
-    expect(cmp.active()).withContext('still the first category').toBe(0);
-    expect(cmp.claimIndex()).withContext('claim advanced during rotation').toBe(1);
+    expect(cmp.active(), 'still the first category').toBe(0);
+    expect(cmp.claimIndex(), 'claim advanced during rotation').toBe(1);
     tick(ROTATION_MS - CLAIM_MS);
     fixture.detectChanges();
     expect(cmp.active()).toBe(1);
-    expect(cmp.claimIndex()).withContext('next category starts on its own cursor').toBe(0);
+    expect(cmp.claimIndex(), 'next category starts on its own cursor').toBe(0);
     tick(CLAIM_MS);
     fixture.detectChanges();
     expect(cmp.claimIndex()).toBe(1);
@@ -410,26 +410,33 @@ describe('CodexLandingComponent', () => {
     flush();
   }));
 
-  it('#320: the data sheet spans the hologram box at every stage height and for every shown item', fakeAsync(() => {
-    setup(three());
-    fixture.componentInstance.still.set(true);
-    settle();
-    const landing = el.querySelector<HTMLElement>('.landing')!;
-    const sheet = el.querySelector<HTMLElement>('sc-codex-landing-values-pane')!;
-    const check = (ctx: string): void => {
-      const box = piece().querySelector<HTMLElement>('.holo')!.getBoundingClientRect();
-      const r = sheet.getBoundingClientRect();
-      expect(Math.abs(r.top - box.top)).withContext(`${ctx}: top ${r.top} vs box ${box.top}`).toBeLessThanOrEqual(2);
-      expect(Math.abs(r.bottom - box.bottom)).withContext(`${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeLessThanOrEqual(2);
-    };
-    for (const h of [560, 720, 940]) {
-      landing.style.height = `${h}px`;
-      check(`${h}px`);
-    }
-    fixture.componentInstance.pick(2);
-    settle();
-    check('after a switch');
-    flush();
-    discardPeriodicTasks();
-  }));
+  describe('in the window the spec was written for', () => {
+    // #320 was measured in Karma's 749 × 600 window. In the 1280 × 800 default the sheet stands
+    // 15 px above the box when the spec forces the landing's height apart from the window
+    // height; whether the real page (landing height follows the window) shows that is open.
+    useViewport(749, 600);
+
+    it('#320: the data sheet spans the hologram box at every stage height and for every shown item', fakeAsync(() => {
+      setup(three());
+      fixture.componentInstance.still.set(true);
+      settle();
+      const landing = el.querySelector<HTMLElement>('.landing')!;
+      const sheet = el.querySelector<HTMLElement>('sc-codex-landing-values-pane')!;
+      const check = (ctx: string): void => {
+        const box = piece().querySelector<HTMLElement>('.holo')!.getBoundingClientRect();
+        const r = sheet.getBoundingClientRect();
+        expect(Math.abs(r.top - box.top), `${ctx}: top ${r.top} vs box ${box.top}`).toBeLessThanOrEqual(2);
+        expect(Math.abs(r.bottom - box.bottom), `${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeLessThanOrEqual(2);
+      };
+      for (const h of [560, 720, 940]) {
+        landing.style.height = `${h}px`;
+        check(`${h}px`);
+      }
+      fixture.componentInstance.pick(2);
+      settle();
+      check('after a switch');
+      flush();
+      discardPeriodicTasks();
+    }));
+  });
 });

@@ -65,7 +65,7 @@ describe('areaForUrl', () => {
 
 describe('feedback area narrowing', () => {
   it('accepts exactly the published vocabulary', () => {
-    for (const area of FEEDBACK_AREAS) expect(isFeedbackArea(area)).toBeTrue();
+    for (const area of FEEDBACK_AREAS) expect(isFeedbackArea(area)).toBe(true);
   });
 
   it('rejects anything else, so an unknown column renders as nothing', () => {

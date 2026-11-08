@@ -40,7 +40,7 @@ describe('ExtensionBridgeService', () => {
     reply({ origin: window.location.origin, source: window });
     tick();
     expect(result).toEqual(PAYLOAD);
-    expect(svc.installed()).toBeTrue();
+    expect(svc.installed()).toBe(true);
   }));
 
   it('ignores a reply from a foreign origin', fakeAsync(() => {
@@ -49,7 +49,7 @@ describe('ExtensionBridgeService', () => {
     reply({ origin: 'https://evil.example.com', source: window });
     tick();
     expect(result).toBe('unset');
-    expect(svc.installed()).toBeFalse();
+    expect(svc.installed()).toBe(false);
     tick(2500);
     expect(result).toBeNull();
   }));
@@ -88,8 +88,8 @@ describe('ExtensionBridgeService', () => {
     let result: boolean | undefined;
     void svc.waitForExtension(800).then((v) => (result = v));
     tick(1000);
-    expect(result).toBeFalse();
-    expect(svc.installed()).toBeFalse();
+    expect(result).toBe(false);
+    expect(svc.installed()).toBe(false);
   }));
 
   it('waitForExtension is true once the attribute appears', fakeAsync(() => {
@@ -98,7 +98,7 @@ describe('ExtensionBridgeService', () => {
     tick(200);
     document.documentElement.setAttribute('data-sc-companion-extension', '1.2.3');
     tick(200);
-    expect(result).toBeTrue();
+    expect(result).toBe(true);
     expect(svc.version()).toBe('1.2.3');
   }));
 
@@ -148,7 +148,7 @@ describe('ExtensionBridgeService', () => {
     function sentSource(version: string | null): unknown {
       if (version) document.documentElement.setAttribute('data-sc-companion-extension', version);
       let source: unknown = null;
-      const spy = spyOn(window, 'postMessage').and.callFake(((msg: { source?: unknown }) => {
+      const spy = vi.spyOn(window, 'postMessage').mockImplementation(((msg: { source?: unknown }) => {
         source = msg.source;
       }) as never);
       svc.discard();

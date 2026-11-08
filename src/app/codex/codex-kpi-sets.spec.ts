@@ -62,7 +62,7 @@ function powerSheet(weaponsCut: boolean): PowerSheet {
 describe('kpiSetFor', () => {
   it('gives every lens exactly six cells', () => {
     for (const id of ['all', 'combat', 'transport', 'travel', 'stealth', 'mining', 'salvage']) {
-      expect(kpiSetFor(id).length).withContext(id).toBe(6);
+      expect(kpiSetFor(id).length, id).toBe(6);
     }
   });
 
@@ -80,11 +80,11 @@ describe('kpiSetFor', () => {
 
 describe('conventions', () => {
   it('names signatures, mass and spool as lower-is-better — nothing else', () => {
-    expect(kpiLowerIsBetter('ir')).toBeTrue();
-    expect(kpiLowerIsBetter('emLoad')).toBeTrue();
-    expect(kpiLowerIsBetter('crossSection')).toBeTrue();
-    expect(kpiLowerIsBetter('mass')).toBeTrue();
-    expect(kpiLowerIsBetter('shieldHp')).toBeFalse();
+    expect(kpiLowerIsBetter('ir')).toBe(true);
+    expect(kpiLowerIsBetter('emLoad')).toBe(true);
+    expect(kpiLowerIsBetter('crossSection')).toBe(true);
+    expect(kpiLowerIsBetter('mass')).toBe(true);
+    expect(kpiLowerIsBetter('shieldHp')).toBe(false);
   });
 
   it('tooltips only the two DPS cells', () => {
@@ -122,15 +122,15 @@ describe('buildKpiStrip', () => {
     const dps = cells.find((c) => c.key === 'sustainedDps')!;
     expect(dps.value).toBe(0);
     expect(dps.delta!.raw).toBe(-837);
-    expect(dps.delta!.good).toBeFalse();
-    expect(dps.fromPower).toBeTrue();
+    expect(dps.delta!.good).toBe(false);
+    expect(dps.fromPower).toBe(true);
     expect(cells.find((c) => c.key === 'alpha')!.delta).toBeNull();
   });
 
   it('carries lowerIsBetter and the tooltip key on every cell', () => {
     const cells = buildKpiStrip(missionById('stealth'), sheet(), sheet());
-    expect(cells.find((c) => c.key === 'ir')!.lowerIsBetter).toBeTrue();
+    expect(cells.find((c) => c.key === 'ir')!.lowerIsBetter).toBe(true);
     expect(cells.find((c) => c.key === 'sustainedDps')!.tooltipKey).toBe('codex.kpi.tooltipSustainedDps');
-    expect(cells.every((c) => !c.fromPower)).toBeTrue();
+    expect(cells.every((c) => !c.fromPower)).toBe(true);
   });
 });

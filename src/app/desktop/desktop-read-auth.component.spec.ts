@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -9,18 +10,18 @@ import { DesktopConnectionService } from './desktop-connection.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
 describe('DesktopReadAuthComponent', () => {
-  let submit: jasmine.Spy;
-  let touch: jasmine.Spy;
+  let submit: Mock;
+  let touch: Mock;
   let authed: boolean;
 
   function setup(params: Record<string, string>) {
-    submit = spyOn(HTMLFormElement.prototype, 'submit');
-    touch = jasmine.createSpy('touch').and.resolveTo(undefined);
-    const invoke = jasmine.createSpy('invoke').and.resolveTo({
+    submit = vi.spyOn(HTMLFormElement.prototype, 'submit').mockReturnValue(undefined as never);
+    touch = vi.fn().mockName('touch').mockResolvedValue(undefined);
+    const invoke = vi.fn().mockName('invoke').mockResolvedValue({
       data: { access_token: 'app-access', refresh_token: 'app-refresh', expires_at: 1234 },
       error: null,
     });
-    const getSession = jasmine.createSpy('getSession').and.resolveTo({
+    const getSession = vi.fn().mockName('getSession').mockResolvedValue({
       data: { session: { access_token: 'browser-access', refresh_token: 'browser-refresh', expires_at: 99 } },
       error: null,
     });
@@ -94,7 +95,7 @@ describe('DesktopReadAuthComponent', () => {
     const { cmp } = setup({ cb: 'http://127.0.0.1:5000/steal/elsewhere?x=1', state: 's' });
     await cmp.ngOnInit();
     expect(submit).toHaveBeenCalledTimes(1);
-    const form = submit.calls.mostRecent().object as HTMLFormElement;
+    const form = vi.mocked(submit).mock.contexts.at(-1) as HTMLFormElement;
     expect(form.action).toBe('http://127.0.0.1:5000/scc/callback');
   });
 
@@ -102,8 +103,9 @@ describe('DesktopReadAuthComponent', () => {
     const { cmp } = setup({ cb: 'http://127.0.0.1:5000/scc/callback', state: 'st' });
     await cmp.ngOnInit();
     expect(cmp.status()).toBe('redirecting');
-    expect(touch).toHaveBeenCalledOnceWith('starscape');
-    const form = submit.calls.mostRecent().object as HTMLFormElement;
+    expect(touch).toHaveBeenCalledTimes(1);
+    expect(touch).toHaveBeenCalledWith('starscape');
+    const form = vi.mocked(submit).mock.contexts.at(-1) as HTMLFormElement;
     expect(form.method.toLowerCase()).toBe('post');
     expect(form.action).not.toContain('?');
     expect(form.action).not.toContain('app-access');

@@ -48,7 +48,7 @@ describe('hq-reserve (D2 / I8)', () => {
     const second = crate({ key: 'k2', anyReservations: [], stacks: [{ quality: 900, qty: 1, reserved: 1, available: 0, reservations: [{ amount: 1, note: '', at: '3', friendId: 'f-1', quality: 900 }] }] });
     expect(reservationFriends([crate(), second])).toEqual([{ id: 'f-1', count: 2 }, { id: 'f-any', count: 1 }]);
     const f = { ...NO_DECK_FILTER, reserved: true, friend: 'f-any' };
-    expect(crateMatches(crate(), f, () => false)).toBeTrue();
-    expect(crateMatches(second, f, () => false)).toBeFalse();
+    expect(crateMatches(crate(), f, () => false)).toBe(true);
+    expect(crateMatches(second, f, () => false)).toBe(false);
   });
 });

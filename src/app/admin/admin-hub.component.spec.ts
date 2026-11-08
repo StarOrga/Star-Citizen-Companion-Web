@@ -4,7 +4,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AdminHubComponent } from './admin-hub.component';
 
 describe('AdminHubComponent', () => {
-  it('links every admin page as a real anchor, Benutzer and Telemetrie first', () => {
+  it('links every admin page as a real anchor, grouped: people, operations, content', () => {
     TestBed.configureTestingModule({
       imports: [AdminHubComponent],
       providers: [provideTranslateService(), provideRouter([])],
@@ -14,13 +14,18 @@ describe('AdminHubComponent', () => {
     const tiles = Array.from(fixture.nativeElement.querySelectorAll('a.tile')) as HTMLAnchorElement[];
     expect(tiles.map((a) => a.getAttribute('href'))).toEqual([
       '/admin',
-      '/admin/telemetry',
+      '/admin/api-tokens',
       '/admin/feedback',
+      '/admin/telemetry',
       '/admin/events',
       '/admin/translations',
-      '/admin/api-tokens',
       '/apps/uploader',
     ]);
+    const groups = Array.from(fixture.nativeElement.querySelectorAll('section.group')) as HTMLElement[];
+    expect(groups.map((g) => g.dataset['group'])).toEqual(['people', 'operations', 'content']);
+    for (const g of groups) {
+      expect(g.querySelector('h2'), `${g.dataset['group']} has an eyebrow heading`).not.toBeNull();
+    }
     expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
   });
 });
@@ -43,7 +48,7 @@ describe('AdminHubComponent stage slot (beta shell)', () => {
     const el = render(true);
     const h1 = el.querySelector('h1')!;
     const slot = el.querySelector('[data-stage-slot]')!;
-    expect(slot).withContext('slot rendered with the shell β on').not.toBeNull();
+    expect(slot, 'slot rendered with the shell β on').not.toBeNull();
     expect(h1.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

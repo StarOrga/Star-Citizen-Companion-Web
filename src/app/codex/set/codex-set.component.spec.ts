@@ -168,7 +168,7 @@ describe('CodexSetComponent', () => {
 
   it('switches sets through the stage picker', async () => {
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
-    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.componentInstance.onSetPick('set-b');
     expect(navigate).toHaveBeenCalledWith(['/hq/locker', 'set-b']);
   });
@@ -184,9 +184,10 @@ describe('CodexSetComponent', () => {
         pct: { protection: 72, mobility: 1, gForce: 0, heat: 89, cold: 91, radiation: 70, scrub: 16, carry: null },
       },
     ];
-    const armorRating = jasmine.createSpy('armorRating').and.resolveTo({ rows });
+    const armorRating = vi.fn().mockName('armorRating').mockResolvedValue({ rows });
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A], codex: { ...makeCodexServiceStub(), armorRating } });
-    expect(armorRating).toHaveBeenCalledWith(jasmine.arrayWithExactContents(['Test_Helmet', 'Test_Torso']));
+    expect(armorRating).toHaveBeenCalledTimes(1);
+    expect([...armorRating.mock.calls[0][0]].sort()).toEqual(['Test_Helmet', 'Test_Torso']);
     expect(fixture.componentInstance.ratingRows()).toBe(rows);
     expect(fixture.componentInstance.ratingLoading()).toBe(false);
     expect(fixture.componentInstance.ratingFailed()).toBe(false);
@@ -204,10 +205,8 @@ describe('CodexSetComponent', () => {
   });
 
   it('shows a failed rating read as failed, and the retry reads only the rating again', async () => {
-    const armorRating = jasmine
-      .createSpy('armorRating')
-      .and.returnValues(Promise.resolve({ failed: true, error: new Error('timeout') }), Promise.resolve({ rows: [] }));
-    const resolveEntities = jasmine.createSpy('resolveEntities').and.resolveTo(new Map());
+    const armorRating = vi.fn().mockName('armorRating').mockReturnValueOnce(Promise.resolve({ failed: true, error: new Error('timeout') })).mockReturnValueOnce(Promise.resolve({ rows: [] }));
+    const resolveEntities = vi.fn().mockName('resolveEntities').mockResolvedValue(new Map());
     const fixture = await setup({
       id: 'set-a',
       loadouts: [SET_A],
@@ -331,8 +330,7 @@ describe('CodexSetComponent', () => {
     expect(h1s.length).toBe(1);
     expect(h1s[0].classList).toContain('stage-title');
     expect(h1s[0].textContent).toContain('Medical Set');
-    expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-stage[title]'))
-      .withContext('stageTitle, never a native title tooltip').toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-stage[title]'), 'stageTitle, never a native title tooltip').toBeNull();
   });
 
   it('drops the "not found" note once the page navigates to a set that exists', async () => {
@@ -387,7 +385,7 @@ describe('CodexSetComponent', () => {
   it('sends the sign-in hint back to the URL the page shows now', async () => {
     const fixture = await setup({ id: null, signedIn: false, loadouts: [] });
     let url = '/hq/locker/a';
-    spyOnProperty(TestBed.inject(Router), 'url', 'get').and.callFake(() => url);
+    vi.spyOn(TestBed.inject(Router), 'url', 'get').mockImplementation(() => url);
     fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
     const link = () => (fixture.nativeElement as HTMLElement).querySelector('.hint a') as HTMLAnchorElement;
@@ -413,7 +411,7 @@ describe('CodexSetComponent', () => {
     expect(btn).not.toBeNull();
     expect(btn.injector.get(ScTooltipDirective, null)).not.toBeNull();
     expect(btn.queryAll(By.directive(ScTooltipDirective)).length).toBe(0);
-    expect((btn.nativeElement as HTMLElement).hasAttribute('title')).toBeFalse();
+    expect((btn.nativeElement as HTMLElement).hasAttribute('title')).toBe(false);
   });
 });
 
@@ -491,10 +489,9 @@ describe('CodexSetComponent — switching sets', () => {
       loadouts: [SET_A, SET_M],
       codex: { ...makeCodexServiceStub(), resolveEntities: async (classNames: string[]) => named(classNames) },
     });
-    expect(shown(fixture)).toEqual({
-      title: 'Tech Set',
-      slots: jasmine.arrayWithExactContents(['Resolved Test_Helmet', 'Resolved Test_Torso']),
-    });
+    const tech = shown(fixture);
+    expect(tech.title).toBe('Tech Set');
+    expect([...tech.slots].sort()).toEqual(['Resolved Test_Helmet', 'Resolved Test_Torso']);
 
     await moveTo(fixture, 'set-m');
 
@@ -565,10 +562,10 @@ describe('CodexSetComponent — flow hint and back link', () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/hq/hangar');
     await harness.navigateByUrl('/hq/locker/set-a');
-    expect(seen).toEqual(jasmine.objectContaining({ path: '/hq/locker', key: 'codex.set.backToHangar' }));
+    expect(seen).toEqual(expect.objectContaining({ path: '/hq/locker', key: 'codex.set.backToHangar' }));
 
     await harness.navigateByUrl('/codex');
     await harness.navigateByUrl('/hq/locker/set-a');
-    expect(seen).toEqual(jasmine.objectContaining({ path: '/codex', key: 'codex.set.back' }));
+    expect(seen).toEqual(expect.objectContaining({ path: '/codex', key: 'codex.set.back' }));
   });
 });

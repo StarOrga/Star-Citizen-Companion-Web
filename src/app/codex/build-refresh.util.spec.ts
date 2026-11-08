@@ -5,7 +5,7 @@ import { reloadOnBuildRefresh } from './build-refresh.util';
 describe('reloadOnBuildRefresh', () => {
   function arm(start = 0) {
     const buildRefresh = signal(start);
-    const reload = jasmine.createSpy('reload');
+    const reload = vi.fn().mockName('reload');
     runInInjectionContext(TestBed.inject(Injector), () => reloadOnBuildRefresh({ buildRefresh }, reload));
     return { buildRefresh, reload };
   }
@@ -29,7 +29,7 @@ describe('reloadOnBuildRefresh', () => {
   it('runs reload untracked, so a signal the reload reads does not re-trigger it', () => {
     const { buildRefresh, reload } = arm();
     const other = signal(0);
-    reload.and.callFake(() => other());
+    reload.mockImplementation(() => other());
     buildRefresh.set(1);
     TestBed.tick();
     other.set(1);

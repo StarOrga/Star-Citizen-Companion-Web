@@ -89,7 +89,7 @@ describe('rankSet — cig profile', () => {
     // rankSet rounds a percentile to one decimal, like the RPC does.
     expect(protection.percentile).toBeCloseTo((80 + 80 + 60) / 3, 1);
     expect(protection.value).toBe('40 %');
-    expect(protection.gap).toBeFalse();
+    expect(protection.gap).toBe(false);
   });
 
   it('reads the core weight class word for mobility', () => {
@@ -107,7 +107,7 @@ describe('rankSet — cig profile', () => {
     const r = result();
     for (const key of ['stealth', 'activeScan', 'eva']) {
       const axis = r.axes.find((a) => a.key === key)!;
-      expect(axis.gap).toBeTrue();
+      expect(axis.gap).toBe(true);
       expect(axis.gapReasonKey).toBe('codex.setRank.gap.noData');
       expect(axis.percentile).toBeNull();
     }
@@ -147,7 +147,7 @@ describe('rankSet — env profile weakest link', () => {
     const heat = result.axes.find((a) => a.key === 'heat')!;
     expect(heat.value).toBe('60 °C');
     expect(heat.percentile).toBe(20);
-    expect(heat.weak).toBeTrue();
+    expect(heat.weak).toBe(true);
     expect(heat.limitedBy).toBe('Armor_TCS_Undersuit');
     expect(result.noteKey).toBe('codex.setRank.note.limited');
     expect(result.noteParams['item']).toBe('Armor_TCS_Undersuit');
@@ -168,7 +168,7 @@ describe('rankSet — env profile weakest link', () => {
     });
     const result = rankSet([core, undersuit], 'env', 'de');
     const heat = result.axes.find((a) => a.key === 'heat')!;
-    expect(heat.weak).toBeFalse();
+    expect(heat.weak).toBe(false);
     expect(heat.limitedBy).toBeNull();
   });
 
@@ -213,7 +213,7 @@ describe('rankSet — env profile weakest link', () => {
     const helmet = row({ className: 'Armor_X_Helmet', slot: 'helmet' });
     const result = rankSet([helmet], 'env', 'de');
     const carry = result.axes.find((a) => a.key === 'carry')!;
-    expect(carry.gap).toBeTrue();
+    expect(carry.gap).toBe(true);
     expect(carry.value).toBeNull();
   });
 });
@@ -259,7 +259,7 @@ describe('SET_LENSES', () => {
     const disabled = SET_LENSES.filter((l) => l.disabled).map((l) => l.id);
     expect(disabled).toEqual(['stealth', 'eva', 'scan']);
     for (const lens of SET_LENSES) {
-      expect(lens.disabled ? lens.disabledReasonKey !== null : lens.disabledReasonKey === null).toBeTrue();
+      expect(lens.disabled ? lens.disabledReasonKey !== null : lens.disabledReasonKey === null).toBe(true);
     }
   });
 

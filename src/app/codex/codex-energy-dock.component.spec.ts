@@ -69,11 +69,11 @@ describe('CodexEnergyDockComponent', () => {
   beforeEach(() => localStorage.clear());
 
   it('emits the initial sheet on first render', async () => {
-    const spy = jasmine.createSpy('sheetChange');
+    const spy = vi.fn().mockName('sheetChange');
     await setup({ beforeDetect: (f) => f.componentInstance.sheetChange.subscribe(spy) });
     expect(spy).toHaveBeenCalled();
-    const sheet = spy.calls.mostRecent().args[0] as PowerSheet;
-    expect(sheet.available).toBeTrue();
+    const sheet = vi.mocked(spy).mock.lastCall![0] as PowerSheet;
+    expect(sheet.available).toBe(true);
     expect(sheet.budgetTotal).toBe(14);
   });
 
@@ -113,12 +113,12 @@ describe('CodexEnergyDockComponent', () => {
     fixture.detectChanges();
 
     expect(c['sheet']().budgetUsed).toBe(11);
-    expect(c['sheet']().weaponsCut).toBeTrue();
+    expect(c['sheet']().weaponsCut).toBe(true);
 
     weaponsBtn.click();
     fixture.detectChanges();
     expect(c['sheet']().budgetUsed).toBe(14);
-    expect(c['sheet']().weaponsCut).toBeFalse();
+    expect(c['sheet']().weaponsCut).toBe(false);
   });
 
   it('stealth preset drives every eligible group to its minimum', async () => {
@@ -248,13 +248,13 @@ describe('CodexEnergyDockComponent', () => {
     const pw = encodePowerParam({ ...DEFAULT_POWER_DRAFT, cutGroups: ['weapons'] })!;
     const fixture = await setup({ queryParam: pw });
     const c = fixture.componentInstance;
-    expect(c['sheet']().weaponsCut).toBeTrue();
+    expect(c['sheet']().weaponsCut).toBe(true);
   });
 
   it('reports a gap state when schemaVersion is below POWER_REQUIRED_SCHEMA', async () => {
     const fixture = await setup({ schemaVersion: 2 });
     const c = fixture.componentInstance;
-    expect(c['sheet']().available).toBeFalse();
+    expect(c['sheet']().available).toBe(false);
     expect(c['sheet']().gapKeys).toContain('codex.energy.gap.reExtractPending');
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.md-gap')).toBeTruthy();
@@ -287,7 +287,7 @@ describe('CodexEnergyDockComponent', () => {
     })) as unknown as typeof window.matchMedia;
     try {
       const fixture = await setup();
-      expect(fixture.componentInstance['minimised']()).toBeTrue();
+      expect(fixture.componentInstance['minimised']()).toBe(true);
     } finally {
       window.matchMedia = original;
     }
@@ -308,7 +308,7 @@ describe('CodexEnergyDockComponent', () => {
     })) as unknown as typeof window.matchMedia;
     try {
       const fixture = await setup();
-      expect(fixture.componentInstance['minimised']()).toBeFalse();
+      expect(fixture.componentInstance['minimised']()).toBe(false);
     } finally {
       window.matchMedia = original;
     }
@@ -355,7 +355,7 @@ describe('CodexEnergyDockComponent', () => {
     fixture.detectChanges();
     const c = fixture.componentInstance;
     expect(c['sheet']().budgetTotal).toBeNull();
-    expect(c['sheet']().available).toBeFalse();
+    expect(c['sheet']().available).toBe(false);
     expect(c['sheet']().gapKeys).toContain('codex.energy.gap.noReactorData');
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.md-gap-inline')).toBeTruthy();
@@ -400,7 +400,7 @@ describe('CodexEnergyDockComponent', () => {
     ]);
     // the Nomad has no tractor beam: the column stays, with a ghost pip and no control
     const tractor = root.querySelector<HTMLElement>('.md-col[data-group="tractor"]')!;
-    expect(tractor.classList.contains('absent')).toBeTrue();
+    expect(tractor.classList.contains('absent')).toBe(true);
     expect(tractor.querySelector('.pip.ghost')).toBeTruthy();
     expect(pipsOf(root, 'tractor').length).toBe(0);
     expect(tractor.querySelector('.grp-state')?.textContent?.trim()).toBe('codex.energy.state.absent');
@@ -432,7 +432,7 @@ describe('CodexEnergyDockComponent', () => {
     const stacks = Array.from(root.querySelectorAll<HTMLElement>('.md-col .stack'));
     expect(stacks.length).toBe(9);
     const heights = new Set(stacks.map((s) => Math.round(s.getBoundingClientRect().height)));
-    expect(heights.size).withContext([...heights].join(',')).toBe(1);
+    expect(heights.size, [...heights].join(',')).toBe(1);
     // the tallest stack (4 shield pips) sets the height, so it never clips
     const pipH = pipsOf(root, 'shields')[0].getBoundingClientRect().height;
     expect([...heights][0]).toBeGreaterThanOrEqual(Math.floor(4 * pipH));
@@ -452,19 +452,19 @@ describe('CodexEnergyDockComponent', () => {
     pipsOf(root, 'cooler1')[0].click(); // level 1 — below the unit's gold floor of 2
     fixture.detectChanges();
     expect(rowOf(c, 'cooler1').allocated).toBe(1);
-    expect(rowOf(c, 'cooler1').pinned).toBeTrue();
-    expect(rowOf(c, 'cooler1').belowMinimum).toBeTrue();
+    expect(rowOf(c, 'cooler1').pinned).toBe(true);
+    expect(rowOf(c, 'cooler1').belowMinimum).toBe(true);
     expect(root.querySelector('.md-col[data-key="cooler1"] .grp-state')?.classList).toContain('warn');
     expect(c['sheet']().budgetUsed).toBe(13);
     // the sibling cooler is its own column and did not move (F1d)
     expect(rowOf(c, 'cooler2').allocated).toBe(2);
-    expect(rowOf(c, 'cooler2').pinned).toBeFalse();
+    expect(rowOf(c, 'cooler2').pinned).toBe(false);
 
     pipsOf(root, 'cooler1')[2].click(); // level 3 — one more than the reactor has
     fixture.detectChanges();
     expect(rowOf(c, 'cooler1').allocated).toBe(3);
     expect(c['sheet']().budgetUsed).toBe(15);
-    expect(c['sheet']().overBudget).toBeTrue();
+    expect(c['sheet']().overBudget).toBe(true);
     expect(root.querySelector('.bud')?.classList).toContain('over');
     // the other groups kept what the auto deal gave them
     expect(rowOf(c, 'shields').allocated).toBe(4);
@@ -484,21 +484,21 @@ describe('CodexEnergyDockComponent', () => {
     fixture.detectChanges();
     expect(rowOf(c, 'weapons').state).toBe('off');
     expect(rowOf(c, 'weapons').allocated).toBe(0);
-    expect(c['sheet']().weaponsCut).toBeTrue();
+    expect(c['sheet']().weaponsCut).toBe(true);
     expect(c['sheet']().budgetUsed).toBe(11);
 
     pipsOf(root, 'weapons')[1].click();
     fixture.detectChanges();
     expect(rowOf(c, 'weapons').state).toBe('active');
     expect(rowOf(c, 'weapons').allocated).toBe(2);
-    expect(c['sheet']().weaponsCut).toBeFalse();
+    expect(c['sheet']().weaponsCut).toBe(false);
     expect(c['sheet']().budgetUsed).toBe(13);
 
     // at 2 of 3 the top pip is a raise, not a cut
     pipsOf(root, 'weapons')[2].click();
     fixture.detectChanges();
     expect(rowOf(c, 'weapons').allocated).toBe(3);
-    expect(c['sheet']().weaponsCut).toBeFalse();
+    expect(c['sheet']().weaponsCut).toBe(false);
   });
 
   it('pips are disabled where nothing can be set (no channel in this mode)', async () => {
@@ -509,10 +509,10 @@ describe('CodexEnergyDockComponent', () => {
     fixture.detectChanges();
     const shields = pipsOf(root, 'shields');
     expect(shields.length).toBeGreaterThan(0);
-    expect(shields.every((b) => b.disabled)).toBeTrue();
+    expect(shields.every((b) => b.disabled)).toBe(true);
     shields[0].click();
     fixture.detectChanges();
-    expect(rowOf(c, 'shields').pinned).toBeFalse();
+    expect(rowOf(c, 'shields').pinned).toBe(false);
   });
 
   it('arrow keys walk the stack upward and downward', async () => {
@@ -538,7 +538,7 @@ describe('CodexEnergyDockComponent', () => {
 
     c['setPreset']('stealth');
     fixture.detectChanges();
-    expect(rowOf(c, 'shields').pinned).toBeFalse();
+    expect(rowOf(c, 'shields').pinned).toBe(false);
     expect(rowOf(c, 'shields').allocated).toBe(2);
 
     const pw = encodePowerParam({ ...DEFAULT_POWER_DRAFT, levels: { cooler2: 3 } })!;
@@ -582,7 +582,7 @@ describe('CodexEnergyDockComponent', () => {
     expect(cols.length).toBe(8);
     const cooling = cols[7];
     expect(cooling.dataset['key']).toBe('coolers');
-    expect(cooling.classList.contains('absent')).toBeTrue();
+    expect(cooling.classList.contains('absent')).toBe(true);
     expect(cooling.querySelector('.pip.ghost')).toBeTruthy();
     expect(cooling.querySelector('.grp-state')?.textContent?.trim()).toBe('codex.energy.state.absent');
   });
@@ -592,7 +592,7 @@ describe('CodexEnergyDockComponent', () => {
     const pinned = await setup({ queryParam: encodePowerParam({ ...DEFAULT_POWER_DRAFT, levels: { coolers: 5 } })! });
     expect(rowOf(pinned.componentInstance, 'cooler1').allocated).toBe(3);
     expect(rowOf(pinned.componentInstance, 'cooler2').allocated).toBe(3);
-    expect(rowOf(pinned.componentInstance, 'cooler2').pinned).toBeTrue();
+    expect(rowOf(pinned.componentInstance, 'cooler2').pinned).toBe(true);
     expect(pinned.componentInstance['sheet']().budgetUsed).toBe(16);
 
     // a localStorage draft with the group cut: both units off, and a
@@ -681,8 +681,8 @@ describe('CodexEnergyDockComponent', () => {
       keys.add(key);
     }
     for (const key of keys) {
-      expect(lookup(en as Catalogue, key)).withContext(`en.${key}`).toBeDefined();
-      expect(lookup(de as Catalogue, key)).withContext(`de.${key}`).toBeDefined();
+      expect(lookup(en as Catalogue, key), `en.${key}`).toBeDefined();
+      expect(lookup(de as Catalogue, key), `de.${key}`).toBeDefined();
     }
     expect(keys.size).toBeGreaterThan(5);
   });

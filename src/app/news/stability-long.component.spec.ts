@@ -88,8 +88,8 @@ describe('StabilityLongComponent', () => {
     blind.set(true);
     const el = render({ verdict: VERDICT, live: true, previous: null });
     const calc = el.querySelector('.calc')!;
-    expect(calc.classList.contains('blind')).toBeTrue();
-    expect(calc.hasAttribute('inert')).toBeTrue();
+    expect(calc.classList.contains('blind')).toBe(true);
+    expect(calc.hasAttribute('inert')).toBe(true);
     expect(el.querySelectorAll('sc-community-verdict').length).toBe(1);
     expect(el.firstElementChild!.tagName.toLowerCase()).toBe('sc-community-verdict');
   });

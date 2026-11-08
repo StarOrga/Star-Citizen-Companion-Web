@@ -69,12 +69,12 @@ describe('HangarService flagship', () => {
 
     svc.setFlagship('AEGS_Gladius');
     expect(svc.flagshipClassName()).toBe('AEGS_Gladius');
-    expect(svc.isFlagship('AEGS_Gladius')).toBeTrue();
+    expect(svc.isFlagship('AEGS_Gladius')).toBe(true);
 
     // Pinning a new flagship un-pins the previous (single flagship).
     svc.setFlagship('ANVL_Arrow');
     expect(svc.flagshipClassName()).toBe('ANVL_Arrow');
-    expect(svc.isFlagship('AEGS_Gladius')).toBeFalse();
+    expect(svc.isFlagship('AEGS_Gladius')).toBe(false);
 
     svc.setFlagship(null);
     expect(svc.flagshipClassName()).toBeNull();
@@ -83,9 +83,9 @@ describe('HangarService flagship', () => {
   it('toggleFlagship pins when unset and clears when it already is the flagship', () => {
     const svc = makeService();
     svc.toggleFlagship('AEGS_Gladius');
-    expect(svc.isFlagship('AEGS_Gladius')).toBeTrue();
+    expect(svc.isFlagship('AEGS_Gladius')).toBe(true);
     svc.toggleFlagship('AEGS_Gladius');
-    expect(svc.isFlagship('AEGS_Gladius')).toBeFalse();
+    expect(svc.isFlagship('AEGS_Gladius')).toBe(false);
   });
 
   it('persists the flagship to per-user localStorage and rehydrates it', () => {
@@ -104,12 +104,10 @@ describe('HangarService flagship', () => {
     const svc = makeService(stub);
     svc.setFlagship('AEGS_Gladius');
     await Promise.resolve(); // let the fire-and-forget write settle
-    expect(stub.updates).toContain(
-      jasmine.objectContaining({
+    expect(stub.updates).toContainEqual(expect.objectContaining({
         table: 'profiles',
         values: { flagship_ship_class: 'AEGS_Gladius' },
-      }),
-    );
+      }));
   });
 
   it('loadAll adopts the remote flagship over a stale local cache (DB wins)', async () => {
@@ -127,12 +125,10 @@ describe('HangarService flagship', () => {
     const svc = makeService(stub);
     await svc.loadAll();
     expect(svc.flagshipClassName()).toBe('AEGS_Gladius');
-    expect(stub.updates).toContain(
-      jasmine.objectContaining({
+    expect(stub.updates).toContainEqual(expect.objectContaining({
         table: 'profiles',
         values: { flagship_ship_class: 'AEGS_Gladius' },
-      }),
-    );
+      }));
     expect(localStorage.getItem(MIGRATED_KEY)).toBe('1');
 
     // After the marker is set, a remote NULL means "cleared" and wins.

@@ -68,11 +68,11 @@ describe('image annotation', () => {
       drawAnnotations(ctx, [shape]);
 
       const [r, g, b, a] = pixel(ctx, 10, 20);
-      expect(a).withContext('the edge is painted').toBeGreaterThan(200);
+      expect(a, 'the edge is painted').toBeGreaterThan(200);
       expect(r).toBeGreaterThan(200);
       expect(g).toBeLessThan(60);
       expect(b).toBeLessThan(60);
-      expect(pixel(ctx, 20, 20)[3]).withContext('the inside stays transparent').toBe(0);
+      expect(pixel(ctx, 20, 20)[3], 'the inside stays transparent').toBe(0);
     });
 
     it('normalises a rectangle dragged up and to the left', () => {
@@ -92,8 +92,8 @@ describe('image annotation', () => {
       ]);
       // The head is wider than the shaft: a few pixels off-axis near the tip are
       // painted, while the same offset near the tail is not.
-      expect(pixel(ctx, 42, 27)[3]).withContext('arrow head').toBeGreaterThan(150);
-      expect(pixel(ctx, 10, 27)[3]).withContext('bare shaft').toBe(0);
+      expect(pixel(ctx, 42, 27)[3], 'arrow head').toBeGreaterThan(150);
+      expect(pixel(ctx, 10, 27)[3], 'bare shaft').toBe(0);
     });
 
     it('draws a freehand path through every point it was given', () => {
@@ -138,7 +138,7 @@ describe('image annotation', () => {
       const out = await exportAnnotated(TINY_PNG, [
         { tool: 'rect', color: '#ff0000', width: 1, points: [{ x: 0, y: 0 }, { x: 3, y: 3 }] },
       ]);
-      expect(out.startsWith('data:image/jpeg')).toBeTrue();
+      expect(out.startsWith('data:image/jpeg')).toBe(true);
 
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const el = new Image();
@@ -165,7 +165,7 @@ describe('image annotation', () => {
     });
 
     it('rejects when the source cannot be loaded at all', async () => {
-      await expectAsync(exportAnnotated('data:image/png;base64,not-an-image', [])).toBeRejected();
+      await expect(exportAnnotated('data:image/png;base64,not-an-image', [])).rejects.toThrow();
     });
   });
 });

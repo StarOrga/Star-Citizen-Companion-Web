@@ -51,8 +51,8 @@ describe('own-set search words (A10)', () => {
       wished: () => true,
     });
     expect(r.groups.map((g) => g.id).sort()).toEqual(['item', 'ship', 'upcoming']);
-    expect(r.groups.every((g) => g.moreTarget === null)).toBeTrue();
-    expect(r.empty).toBeFalse();
+    expect(r.groups.every((g) => g.moreTarget === null)).toBe(true);
+    expect(r.empty).toBe(false);
   });
 
   it('"lager" alone lists the whole Inventar, nothing from the catalog', () => {
@@ -78,7 +78,7 @@ describe('own-set search words (A10)', () => {
     const own = searchOwn('rakete', { ships: [], configs: [], sets: [], items: [] }, { kinds: ['item'], all: true });
     const r = composeSearchResult({ term: 'rakete', groups: [], context: ctx, chips: p.chips, own, signedIn: true });
     expect(r.groups).toEqual([]);
-    expect(r.empty).toBeTrue();
+    expect(r.empty).toBe(true);
   });
 
   it('searchOwn without `all` still returns nothing for an empty term', () => {

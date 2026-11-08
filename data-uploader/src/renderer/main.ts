@@ -1074,7 +1074,7 @@ type UpdateEvent =
 // Public download page — opened for portable builds that can't self-update.
 // window.open is intercepted by the main process' setWindowOpenHandler and
 // routed through shell.openExternal (opens in the default browser, no in-app window).
-const DOWNLOAD_PAGE_URL = 'https://versecompanion-alpha.vercel.app/desktop';
+const DOWNLOAD_PAGE_URL = 'https://versecompanion-alpha.vercel.app/apps/uploader';
 
 // Update checks ride on navigation instead of a manual button: every view
 // transition (opening the uploader, moving to the next step, …) triggers a

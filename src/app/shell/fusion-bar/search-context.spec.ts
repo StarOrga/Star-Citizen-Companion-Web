@@ -52,10 +52,10 @@ describe('search-context', () => {
     });
 
     it('lets the gallery and HQ lead with places, HQ with own ships', () => {
-      expect(searchContextOf('/verse/gallery').placesFirst).toBeTrue();
+      expect(searchContextOf('/verse/gallery').placesFirst).toBe(true);
       const hq = searchContextOf('/hq');
-      expect(hq.placesFirst).toBeTrue();
-      expect(hq.ownedFirst).toBeTrue();
+      expect(hq.placesFirst).toBe(true);
+      expect(hq.ownedFirst).toBe(true);
     });
   });
 
@@ -121,7 +121,7 @@ describe('search-context · HQ pages (exclusion)', () => {
       'fusionBar.ctx.hqStock',
       'fusionBar.ctx.hqStats',
     ]);
-    expect(keys.every((c) => c.ownedFirst && c.placesFirst)).toBeTrue();
+    expect(keys.every((c) => c.ownedFirst && c.placesFirst)).toBe(true);
   });
 
   it('lets the Bestand chip follow the tab (I14); a link without a tab stays Inventar', () => {
@@ -151,7 +151,7 @@ describe('search-context · HQ pages (exclusion)', () => {
     const out = weightGroups(groups, ctx, () => false, () => ({ commands: ['/x'] }) as never);
     expect(out.map((w) => w.group.kind)).toEqual(['ship', 'weapon', 'upcoming']);
     const up = out.find((w) => w.group.kind === 'upcoming')!;
-    expect(up.collapsed).toBeTrue();
+    expect(up.collapsed).toBe(true);
     expect(up.shown.length).toBe(CAP_EXCLUDED);
     expect(up.more).not.toBeNull();
   });

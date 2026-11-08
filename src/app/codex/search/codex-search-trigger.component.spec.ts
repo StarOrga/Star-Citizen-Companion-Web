@@ -56,7 +56,7 @@ describe('CodexSearchTriggerComponent', () => {
     document.body.appendChild(fixture.nativeElement);
     fixture.detectChanges();
     el = fixture.nativeElement;
-    spyOn(window, 'scrollTo');
+    vi.spyOn(window, 'scrollTo').mockReturnValue(undefined as never);
   });
 
   afterEach(() => (fixture.nativeElement as HTMLElement).remove());

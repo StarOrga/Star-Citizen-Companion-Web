@@ -11,6 +11,7 @@ import { PatchDossierComponent, sectionOrder } from './patch-dossier.component';
 import type { PatchOutline } from './patch-outline';
 import type { RoadmapPayload } from './roadmap';
 import { RoadmapService } from './roadmap.service';
+import deCatalog from '../../../public/i18n/de.json';
 
 /**
  * The dossier as rendered (rethink Ⓚ): four question-named sections behind a
@@ -119,10 +120,8 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
   let stub: ReturnType<typeof roadmapStub>;
   let de: TranslationObject;
 
-  beforeAll(async () => {
-    const res = await fetch('/i18n/de.json');
-    expect(res.ok).toBeTrue();
-    de = await res.json();
+  beforeAll(() => {
+    de = deCatalog;
   });
 
   // `q` defaults to undefined on purpose: that is what the router binds for a
@@ -188,11 +187,11 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
   it('orders the sections by one question: is the patch out yet?', () => {
     // Not out yet — when does it come, and how do I get ready.
     for (const status of ['next', 'evocati', 'ptu'] as const) {
-      expect(sectionOrder(status)).withContext(status).toEqual(['next', 'prep', 'contents', 'fixed']);
+      expect(sectionOrder(status), status).toEqual(['next', 'prep', 'contents', 'fixed']);
     }
     // Landed — what is in it, is my bug gone; preparation is done and goes last.
     for (const status of ['live', 'superseded', 'other'] as const) {
-      expect(sectionOrder(status)).withContext(status).toEqual(['contents', 'fixed', 'next', 'prep']);
+      expect(sectionOrder(status), status).toEqual(['contents', 'fixed', 'next', 'prep']);
     }
   });
 
@@ -229,7 +228,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
    * that frame is, rather than waiting on Karma's (testing/frames.ts).
    */
   it('opens, lights and scrolls to the ONE roadmap card the board linked to', async () => {
-    const scroll = spyOn(Element.prototype, 'scrollIntoView');
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockReturnValue(undefined as never);
     const frames = installFrameClock();
     await render('4.10', undefined, ROADMAP, 'orison');
     frames.runFrame();
@@ -237,13 +236,13 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
 
     const cards = Array.from(root().querySelectorAll('#pd-contents .fc')) as HTMLElement[];
     const [orison, fuel] = cards;
-    expect(orison.dataset['card']).withContext('the card is addressable at all').toBe('orison');
-    expect(orison.classList.contains('open')).withContext('opened, not just scrolled to').toBeTrue();
+    expect(orison.dataset['card'], 'the card is addressable at all').toBe('orison');
+    expect(orison.classList.contains('open'), 'opened, not just scrolled to').toBe(true);
     expect(orison.textContent).toContain('Long text about Orison.');
-    expect(orison.classList.contains('flash')).withContext('and it says "here I am"').toBeTrue();
-    expect(fuel.classList.contains('open')).withContext('only that one').toBeFalse();
+    expect(orison.classList.contains('flash'), 'and it says "here I am"').toBe(true);
+    expect(fuel.classList.contains('open'), 'only that one').toBe(false);
     expect(scroll).toHaveBeenCalled();
-    expect(scroll.calls.mostRecent().object).toBe(orison);
+    expect(vi.mocked(scroll).mock.contexts.at(-1)).toBe(orison);
   });
 
   it('ignores a focus that names no card of this release', async () => {
@@ -253,7 +252,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     fixture.detectChanges();
     const cards = Array.from(root().querySelectorAll('#pd-contents .fc')) as HTMLElement[];
     expect(cards.length).toBe(2);
-    expect(cards.some((c) => c.classList.contains('open') || c.classList.contains('flash'))).toBeFalse();
+    expect(cards.some((c) => c.classList.contains('open') || c.classList.contains('flash'))).toBe(false);
   });
 
   it('search inside the patch: hits in context, honest coverage, and a way to load the rest', async () => {
@@ -264,7 +263,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(root().querySelector('#pd-fixed mark')).not.toBeNull();
     expect(text('#pd-fixed .coverage')).toContain('1 von 5 Notes');
     (root().querySelector('#pd-fixed .coverage .pill-btn') as HTMLButtonElement | null)!.click();
-    expect(stub.requested.some((s) => s.length === 5)).withContext('load-the-rest asks for every note of the line').toBeTrue();
+    expect(stub.requested.some((s) => s.length === 5), 'load-the-rest asks for every note of the line').toBe(true);
     // Every note stays reachable underneath, the three waves folded into one row.
     expect(text('#pd-fixed .all-notes summary')).toContain('Alle Notes (5)');
     expect(text('#pd-fixed .wave summary')).toContain('3 Build-Wellen');
@@ -274,8 +273,8 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     await render('4.10');
     const axis = root().querySelector('#pd-next .axis')!;
     expect(axis.querySelector('.bar.real:not(.lead)')).not.toBeNull();
-    expect(axis.querySelector('.bar.usual:not(.lead)')).withContext('a live line projects the usual next release').not.toBeNull();
-    expect(axis.querySelector('.bar.real.lead')).withContext('the test phase is measured retrospectively').not.toBeNull();
+    expect(axis.querySelector('.bar.usual:not(.lead)'), 'a live line projects the usual next release').not.toBeNull();
+    expect(axis.querySelector('.bar.real.lead'), 'the test phase is measured retrospectively').not.toBeNull();
     // The fixture's dates are fixed while "now" is the real clock, so whether
     // today falls before or after the projected usual release depends on the
     // day the suite runs — only the fixed points have a fixed order.
@@ -286,7 +285,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(text('#pd-next .facts')).toContain('Test → Live: 24 Tage');
     expect(text('#pd-next .facts')).toContain('1 Hotfix seit Live');
     const charts = root().querySelector('#pd-next details.charts') as HTMLDetailsElement | null;
-    expect(charts!.open).toBeFalse();
+    expect(charts!.open).toBe(false);
     expect(charts!.querySelector('sc-patch-cadence')).not.toBeNull();
   });
 
@@ -305,13 +304,13 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     fixture.detectChanges();
     frames.runFrame();
     fixture.detectChanges();
-    expect(root().querySelector('#pd-next')!.classList.contains('flash')).toBeTrue();
+    expect(root().querySelector('#pd-next')!.classList.contains('flash')).toBe(true);
   });
 
   it('the preparation section is there even without an "Important Build Info" block', async () => {
     await render('4.8');
     const prep = root().querySelector('#pd-prep');
-    expect(prep).withContext('the question is always answerable').not.toBeNull();
+    expect(prep, 'the question is always answerable').not.toBeNull();
     expect(prep!.textContent).toContain('Gilt für jeden Patch');
   });
 
@@ -345,7 +344,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(sentence).toContain('Noch kein Testbuild');
     // The caveat is still said — one click away, under the (i) (feedback 01df732d).
     expect(text('#pd-next sc-info-note .pop')).toContain('Median-Schätzungen');
-    expect((root().querySelector('#pd-next sc-info-note .pop') as HTMLElement).hidden).toBeTrue();
+    expect((root().querySelector('#pd-next sc-info-note .pop') as HTMLElement).hidden).toBe(true);
     expect(text('#pd-next .facts')).toContain('Live → Live:');
     // No real stretch exists, so nothing is drawn — a borrowed axis would lie.
     expect(root().querySelector('#pd-next .axis')).toBeNull();

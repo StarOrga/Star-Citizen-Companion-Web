@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
@@ -46,11 +47,11 @@ describe('HangarService writes and loads', () => {
     ...over,
   });
 
-  let analytics: { capture: jasmine.Spy };
+  let analytics: { capture: Mock };
 
   function setup(answer?: (call: FakeCall) => FakeResult | Promise<FakeResult>, user: { id: string } | null = { id: 'u1' }) {
     const fake = fakeSupabase({ answer });
-    analytics = { capture: jasmine.createSpy('capture') };
+    analytics = { capture: vi.fn().mockName('capture') };
     TestBed.configureTestingModule({
       providers: [
         HangarService,
@@ -65,7 +66,7 @@ describe('HangarService writes and loads', () => {
   /** The one call to `table`, failing when there is none or several. */
   const only = (calls: FakeCall[], table: string): FakeCall => {
     const hits = calls.filter((c) => c.target === table);
-    expect(hits.length).withContext(`calls to ${table}`).toBe(1);
+    expect(hits.length, `calls to ${table}`).toBe(1);
     return hits[0];
   };
 
@@ -140,7 +141,7 @@ describe('HangarService writes and loads', () => {
     it('deletes by id and reports true', async () => {
       const { svc, calls } = setup();
 
-      expect(await svc.deleteConfig('cfg-1')).toBeTrue();
+      expect(await svc.deleteConfig('cfg-1')).toBe(true);
 
       const call = only(calls, 'hangar_ship_configs');
       expect(call.chain.map(([m]) => m)).toContain('delete');
@@ -151,7 +152,7 @@ describe('HangarService writes and loads', () => {
     it('reports false and sets an error key on failure', async () => {
       const { svc } = setup(() => ({ error: failure }));
 
-      expect(await svc.deleteConfig('cfg-1')).toBeFalse();
+      expect(await svc.deleteConfig('cfg-1')).toBe(false);
       expect(svc.error()).toBe('errors.forbidden');
     });
   });
@@ -216,7 +217,7 @@ describe('HangarService writes and loads', () => {
       const { svc, calls } = setup();
       svc.roleLoadouts.set([{ id: 'set-1' } as HangarRoleLoadout, { id: 'set-2' } as HangarRoleLoadout]);
 
-      expect(await svc.deleteRoleLoadout('set-1')).toBeTrue();
+      expect(await svc.deleteRoleLoadout('set-1')).toBe(true);
 
       const call = only(calls, 'hangar_role_loadouts');
       expect(call.chain.map(([m]) => m)).toContain('delete');
@@ -228,7 +229,7 @@ describe('HangarService writes and loads', () => {
       const { svc } = setup(() => ({ error: failure }));
       svc.roleLoadouts.set([{ id: 'set-1' } as HangarRoleLoadout]);
 
-      expect(await svc.deleteRoleLoadout('set-1')).toBeFalse();
+      expect(await svc.deleteRoleLoadout('set-1')).toBe(false);
       expect(svc.roleLoadouts().map((l) => l.id)).toEqual(['set-1']);
       expect(svc.error()).toBe('errors.forbidden');
     });
@@ -300,7 +301,7 @@ describe('HangarService writes and loads', () => {
         { custom_name: 'Ace', status: 'wishlist', selected_skin_id: 's1', notes: 'n' },
       ]);
       expect(chainArgs(call, 'eq')).toEqual(['id', 'ship-1']);
-      expect(ok).toBeTrue();
+      expect(ok).toBe(true);
       expect(svc.ships()[0].customName).toBe('Ace');
       expect(svc.ships()[0].status).toBe('wishlist');
     });
@@ -315,7 +316,7 @@ describe('HangarService writes and loads', () => {
       const { svc } = setup(() => ({ error: failure }));
       svc.ships.set([cached()]);
 
-      expect(await svc.updateShip('ship-1', { notes: 'x' })).toBeFalse();
+      expect(await svc.updateShip('ship-1', { notes: 'x' })).toBe(false);
       expect(svc.ships()[0].customName).toBeNull();
       expect(svc.error()).toBe('errors.forbidden');
     });
@@ -342,7 +343,7 @@ describe('HangarService writes and loads', () => {
       expect(svc.roleLoadouts().map((l) => l.id)).toEqual(['set-1']);
       // The hangar reads its own two tables and nothing else: wishes live in `search_wishlist` (WishlistStore).
       expect(calls.map((c) => c.target).filter((t) => t !== 'profiles').sort()).toEqual(['hangar_role_loadouts', 'hangar_ships']);
-      expect(svc.loading()).toBeFalse();
+      expect(svc.loading()).toBe(false);
       expect(svc.error()).toBeNull();
     });
 
@@ -352,7 +353,7 @@ describe('HangarService writes and loads', () => {
       await svc.loadAll();
 
       expect(svc.error()).toBe('errors.forbidden');
-      expect(svc.loading()).toBeFalse();
+      expect(svc.loading()).toBe(false);
       expect(svc.ships()).toEqual([]);
     });
 

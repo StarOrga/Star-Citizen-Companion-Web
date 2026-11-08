@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { NavigationEnd, NavigationError, Router } from '@angular/router';
@@ -20,8 +21,8 @@ import { RouteLoadRecoveryService, isRouteChunkError } from './route-load-recove
  */
 describe('RouteLoadRecoveryService', () => {
   let events: Subject<unknown>;
-  let assign: jasmine.Spy;
-  let reload: jasmine.Spy;
+  let assign: Mock;
+  let reload: Mock;
   let sessionStore: Map<string, string>;
   let fakeSession: {
     getItem: (k: string) => string | null;
@@ -41,8 +42,8 @@ describe('RouteLoadRecoveryService', () => {
 
   function setup(swUpdate?: unknown): RouteLoadRecoveryService {
     events = new Subject<unknown>();
-    assign = jasmine.createSpy('assign');
-    reload = jasmine.createSpy('reload');
+    assign = vi.fn().mockName('assign');
+    reload = vi.fn().mockName('reload');
     sessionStore = new Map<string, string>();
     fakeSession = {
       getItem: (k: string) => (sessionStore.has(k) ? sessionStore.get(k)! : null),
@@ -69,11 +70,11 @@ describe('RouteLoadRecoveryService', () => {
 
   describe('isRouteChunkError', () => {
     it('recognises every engine phrasing of a failed lazy route chunk', () => {
-      expect(isRouteChunkError(chunkError())).toBeTrue();
+      expect(isRouteChunkError(chunkError())).toBe(true);
       expect(
         isRouteChunkError(new Error('error loading dynamically imported module: /chunk-A.js')),
-      ).toBeTrue();
-      expect(isRouteChunkError(new Error('Importing a module script failed.'))).toBeTrue();
+      ).toBe(true);
+      expect(isRouteChunkError(new Error('Importing a module script failed.'))).toBe(true);
       expect(
         isRouteChunkError(
           new Error(
@@ -81,21 +82,21 @@ describe('RouteLoadRecoveryService', () => {
               'responded with a MIME type of "text/html".',
           ),
         ),
-      ).toBeTrue();
-      expect(isRouteChunkError(new Error('Loading chunk 42 failed.'))).toBeTrue();
+      ).toBe(true);
+      expect(isRouteChunkError(new Error('Loading chunk 42 failed.'))).toBe(true);
 
       const named = new Error('boom');
       named.name = 'ChunkLoadError';
-      expect(isRouteChunkError(named)).toBeTrue();
+      expect(isRouteChunkError(named)).toBe(true);
     });
 
     it('does not claim any other navigation failure', () => {
       // Reloading on these would turn a broken guard or a bad redirect into a
       // reload loop, which is strictly worse than the dead click.
-      expect(isRouteChunkError(new Error("Cannot match any routes. URL Segment: 'nope'"))).toBeFalse();
-      expect(isRouteChunkError(new TypeError('roles.role is not a function'))).toBeFalse();
-      expect(isRouteChunkError(null)).toBeFalse();
-      expect(isRouteChunkError(undefined)).toBeFalse();
+      expect(isRouteChunkError(new Error("Cannot match any routes. URL Segment: 'nope'"))).toBe(false);
+      expect(isRouteChunkError(new TypeError('roles.role is not a function'))).toBe(false);
+      expect(isRouteChunkError(null)).toBe(false);
+      expect(isRouteChunkError(undefined)).toBe(false);
     });
   });
 
@@ -103,11 +104,12 @@ describe('RouteLoadRecoveryService', () => {
     const service = setup();
 
     events.next(new NavigationError(1, '/admin/telemetry', chunkError()));
-    expect(service.recovering()).withContext('indicator stays up until the reload').toBeTrue();
+    expect(service.recovering(), 'indicator stays up until the reload').toBe(true);
     await flush();
 
-    expect(assign).toHaveBeenCalledOnceWith('/admin/telemetry');
-    expect(service.loadFailed()).withContext('recovery is running, not given up').toBeFalse();
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith('/admin/telemetry');
+    expect(service.loadFailed(), 'recovery is running, not given up').toBe(false);
   });
 
   it('leaves every other navigation failure alone', async () => {
@@ -117,15 +119,15 @@ describe('RouteLoadRecoveryService', () => {
     await flush();
 
     expect(assign).not.toHaveBeenCalled();
-    expect(service.recovering()).toBeFalse();
-    expect(service.loadFailed()).toBeFalse();
+    expect(service.recovering()).toBe(false);
+    expect(service.loadFailed()).toBe(false);
   });
 
   it('adopts a newer service-worker version before reloading', async () => {
     const swUpdate = {
       isEnabled: true,
-      checkForUpdate: jasmine.createSpy('checkForUpdate').and.resolveTo(true),
-      activateUpdate: jasmine.createSpy('activateUpdate').and.resolveTo(true),
+      checkForUpdate: vi.fn().mockName('checkForUpdate').mockResolvedValue(true),
+      activateUpdate: vi.fn().mockName('activateUpdate').mockResolvedValue(true),
     };
     setup(swUpdate);
 
@@ -133,10 +135,9 @@ describe('RouteLoadRecoveryService', () => {
     await flush();
 
     expect(swUpdate.checkForUpdate).toHaveBeenCalled();
-    expect(swUpdate.activateUpdate)
-      .withContext('otherwise the reload is served the very cache that just failed')
-      .toHaveBeenCalled();
-    expect(assign).toHaveBeenCalledOnceWith('/friends');
+    expect(swUpdate.activateUpdate, 'otherwise the reload is served the very cache that just failed').toHaveBeenCalled();
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith('/friends');
   });
 
   it('gives up loudly instead of looping when the same URL fails again', async () => {
@@ -150,8 +151,8 @@ describe('RouteLoadRecoveryService', () => {
     events.next(new NavigationError(2, '/friends', chunkError()));
     await flush();
 
-    expect(assign).withContext('no second reload — that would be a loop').toHaveBeenCalledTimes(1);
-    expect(service.loadFailed()).toBeTrue();
+    expect(assign, 'no second reload — that would be a loop').toHaveBeenCalledTimes(1);
+    expect(service.loadFailed()).toBe(true);
   });
 
   it('rearms the one-shot once the URL navigates successfully', async () => {
@@ -161,12 +162,12 @@ describe('RouteLoadRecoveryService', () => {
     await flush();
     events.next(new NavigationEnd(2, '/friends', '/friends'));
 
-    expect(service.loadFailed()).toBeFalse();
+    expect(service.loadFailed()).toBe(false);
 
     events.next(new NavigationError(3, '/friends', chunkError()));
     await flush();
 
-    expect(assign).withContext('a later, unrelated failure may recover too').toHaveBeenCalledTimes(2);
+    expect(assign, 'a later, unrelated failure may recover too').toHaveBeenCalledTimes(2);
   });
 
   it('keeps working when sessionStorage is unavailable', async () => {
@@ -181,7 +182,8 @@ describe('RouteLoadRecoveryService', () => {
     events.next(new NavigationError(1, '/friends', chunkError()));
     await flush();
 
-    expect(assign).toHaveBeenCalledOnceWith('/friends');
-    expect(service.loadFailed()).toBeFalse();
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith('/friends');
+    expect(service.loadFailed()).toBe(false);
   });
 });

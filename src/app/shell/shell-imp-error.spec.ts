@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component, signal, ChangeDetectionStrategy, input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -33,12 +34,12 @@ class FooterStub { readonly overlay = input(false); }
  * that "somewhere" and its dismiss control.
  */
 describe('ShellComponent — preview write-failed notice', () => {
-  let clearEnterFailed: jasmine.Spy;
+  let clearEnterFailed: Mock;
   let enterFailed: ReturnType<typeof signal<boolean>>;
 
   function setup() {
     enterFailed = signal(false);
-    clearEnterFailed = jasmine.createSpy('clearEnterFailed').and.callFake(() => enterFailed.set(false));
+    clearEnterFailed = vi.fn().mockName('clearEnterFailed').mockImplementation(() => enterFailed.set(false));
     TestBed.configureTestingModule({
       imports: [ShellComponent],
       providers: [

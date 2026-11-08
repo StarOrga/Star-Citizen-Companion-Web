@@ -167,7 +167,7 @@ describe('CodexSwapPickerComponent', () => {
 
   it('closes on its X, never on a click on the veil or the window', async () => {
     const el = await open();
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     fixture.componentInstance.closed.subscribe(spy);
     (el.querySelector('.pick-win') as HTMLElement).click();
     (el.querySelector('.pick-veil') as HTMLElement).click();
@@ -196,7 +196,7 @@ describe('CodexSwapPickerComponent', () => {
     // LOW finding: the scope segments read as plain labels ("Nur Repeater"),
     // the live count lives only in the `n von total` note below the bar.
     const segLabels = Array.from(el.querySelectorAll('.pick-seg .seg-btn')).map((b) => b.textContent?.trim());
-    expect(segLabels.some((l) => /\(\d+\)/.test(l ?? ''))).toBeFalse();
+    expect(segLabels.some((l) => /\(\d+\)/.test(l ?? ''))).toBe(false);
     expect(el.querySelector('.pick-count')?.textContent).toContain('codex.picker.count');
   });
 
@@ -238,7 +238,7 @@ describe('CodexSwapPickerComponent', () => {
     const gradeBox = Array.from(el.querySelectorAll('.pc-row:not(.off) input')).find(
       (b) => (b.closest('.pc-row') as HTMLElement).textContent?.includes('codex.picker.col.grade'),
     ) as HTMLInputElement;
-    expect(gradeBox.checked).toBeTrue();
+    expect(gradeBox.checked).toBe(true);
     gradeBox.dispatchEvent(new Event('change'));
     fixture.detectChanges();
     expect(fixture.componentInstance.chooser().visible).not.toContain('codex.picker.col.grade');
@@ -262,13 +262,13 @@ describe('CodexSwapPickerComponent', () => {
   it('picks a row on click and emits it to the host', async () => {
     const el = await open();
     widenToAllSize(el);
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     fixture.componentInstance.picked.subscribe(spy);
     const row = Array.from(el.querySelectorAll('.pick-row')).find((r) =>
       r.textContent?.includes('Omnisky IX Cannon'),
     ) as HTMLElement;
     row.click();
-    const emitted = spy.calls.mostRecent().args[0] as SwapPick;
+    const emitted = vi.mocked(spy).mock.lastCall![0] as SwapPick;
     expect(emitted.className).toBe(FACTORY);
     expect(emitted.target).toBe(TARGET);
   });
@@ -333,7 +333,7 @@ describe('CodexSwapPickerComponent', () => {
 
   it('closes on Escape', async () => {
     const el = await open();
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     fixture.componentInstance.closed.subscribe(spy);
     (el.querySelector('.pick-win') as HTMLElement).dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
@@ -403,8 +403,8 @@ describe('CodexSwapPickerComponent', () => {
     // the Δ column must still measure every remaining row against it.
     cmp.query.set('omnisky');
     fixture.detectChanges();
-    expect(cmp.rows().some((r) => r.className === INSTALLED)).toBeFalse();
-    expect(cmp.baselineOutOfSet()).toBeTrue();
+    expect(cmp.rows().some((r) => r.className === INSTALLED)).toBe(false);
+    expect(cmp.baselineOutOfSet()).toBe(true);
     expect(fixture.nativeElement.querySelector('.baseline-note')).toBeTruthy();
     expect(cmp.deltaColumn().get(FACTORY)).not.toBeNull();
   });
@@ -462,7 +462,7 @@ describe('CodexSwapPickerComponent', () => {
     expect(cmp.columnMenu().secondarySort?.key).toBe('codex.picker.col.manufacturer');
     expect(cmp.sortRankTitle('codex.picker.col.grade')).toBe('Sort 1');
     expect(cmp.sortRankTitle('codex.picker.col.manufacturer')).toBe('Sort 2');
-    expect(cmp.isSecondarySort('codex.picker.col.manufacturer')).toBeTrue();
+    expect(cmp.isSecondarySort('codex.picker.col.manufacturer')).toBe(true);
 
     // the column menu's "als zweite Sortierung" entry does the same thing.
     cmp.columnMenu.set({ sort: { key: 'codex.picker.col.grade', dir: 'asc' }, filters: {} });
@@ -491,13 +491,13 @@ describe('CodexSwapPickerComponent', () => {
     widenToAllSize(el);
     const cmp = fixture.componentInstance;
     // no primary sort yet — never eligible.
-    expect(cmp.secondarySortEligible('codex.picker.col.grade')).toBeFalse();
+    expect(cmp.secondarySortEligible('codex.picker.col.grade')).toBe(false);
     cmp.onHeadClick('codex.picker.col.grade');
     fixture.detectChanges();
     // the primary column itself is never eligible as its own tie-breaker.
-    expect(cmp.secondarySortEligible('codex.picker.col.grade')).toBeFalse();
+    expect(cmp.secondarySortEligible('codex.picker.col.grade')).toBe(false);
     // any other column is.
-    expect(cmp.secondarySortEligible('codex.picker.col.manufacturer')).toBeTrue();
+    expect(cmp.secondarySortEligible('codex.picker.col.manufacturer')).toBe(true);
   });
 
   // ── LOW-6: unavailable columns as a disabled fieldset group ─────────────────
@@ -509,12 +509,12 @@ describe('CodexSwapPickerComponent', () => {
     fixture.detectChanges();
     const group = el.querySelector('fieldset.pc-unavail-group') as HTMLFieldSetElement;
     expect(group).toBeTruthy();
-    expect(group.disabled).toBeTrue();
+    expect(group.disabled).toBe(true);
     const massRow = Array.from(group.querySelectorAll('.pc-row')).find((r) =>
       r.textContent?.includes('codex.picker.col.mass'),
     );
     expect(massRow).toBeTruthy();
-    expect((massRow as HTMLElement).classList.contains('off')).toBeTrue();
+    expect((massRow as HTMLElement).classList.contains('off')).toBe(true);
   });
 
   // ── LOW-3: unit as a separate <small>, not concatenated into the label ──────
@@ -565,7 +565,7 @@ describe('CodexSwapPickerComponent', () => {
     // so no ancestor's `overflow` can ever clip it.
     const panel = document.querySelector('.cdk-overlay-container .cm-panel');
     expect(panel).toBeTruthy();
-    expect(scroll.contains(panel)).toBeFalse();
+    expect(scroll.contains(panel)).toBe(false);
     el.remove();
   });
 });
@@ -651,7 +651,7 @@ describe('CodexSwapPickerComponent — part-type filter (E-main-gap #40, MEDIUM-
 
   it('renders a fourth scope-bar control when the candidates span more than one archetype', async () => {
     const el = await open();
-    expect(fixture.componentInstance.showTypeFilter()).toBeTrue();
+    expect(fixture.componentInstance.showTypeFilter()).toBe(true);
     const group = Array.from(el.querySelectorAll('.pick-seg')).find((g) =>
       g.textContent?.includes('codex.swap.typeFilter'),
     );
@@ -664,7 +664,7 @@ describe('CodexSwapPickerComponent — part-type filter (E-main-gap #40, MEDIUM-
     expect(cmp.rows().length).toBe(3);
     cmp.typeFilter.set('Missile Rack');
     fixture.detectChanges();
-    expect(cmp.rows().every((r) => r.archetype === 'Missile Rack')).toBeTrue();
+    expect(cmp.rows().every((r) => r.archetype === 'Missile Rack')).toBe(true);
     expect(cmp.rows().length).toBe(2);
     expect(cmp.typeFilterChip()?.label).toContain('Missile Rack');
     const chipBtn = Array.from(el.querySelectorAll('.fc-list .fc button')).find((b) =>
@@ -679,7 +679,7 @@ describe('CodexSwapPickerComponent — part-type filter (E-main-gap #40, MEDIUM-
   it('hides the type-filter control when every candidate shares one archetype', async () => {
     await configure(new SingleArchetypeServiceStub() as unknown as CodexService);
     await open();
-    expect(fixture.componentInstance.showTypeFilter()).toBeFalse();
+    expect(fixture.componentInstance.showTypeFilter()).toBe(false);
   });
 
   it('LOW-1 (main parity, pruneSwapFilters): resets a stale archetype filter once it no longer occurs', async () => {

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component, signal, ChangeDetectionStrategy, input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -56,8 +57,8 @@ describe('ShellComponent menu navigation', () => {
   let isAdmin: ReturnType<typeof signal<boolean>>;
   let loadFailed: ReturnType<typeof signal<boolean>>;
   let recovering: ReturnType<typeof signal<boolean>>;
-  let recoveryReload: jasmine.Spy;
-  let recoveryDismiss: jasmine.Spy;
+  let recoveryReload: Mock;
+  let recoveryDismiss: Mock;
 
   afterEach(() => localStorage.removeItem('sc.beta'));
 
@@ -65,14 +66,16 @@ describe('ShellComponent menu navigation', () => {
     isAdmin = signal(admin);
     loadFailed = signal(false);
     recovering = signal(false);
-    recoveryReload = jasmine.createSpy('reload');
-    recoveryDismiss = jasmine.createSpy('dismiss');
+    recoveryReload = vi.fn().mockName('reload');
+    recoveryDismiss = vi.fn().mockName('dismiss');
 
     TestBed.configureTestingModule({
       imports: [ShellComponent],
       providers: [
         provideTranslateService(),
-        provideRouter([]),
+        // Links the specs click land somewhere: an unmatched route throws after the
+        // test, which Vitest counts as a failed run (Karma only logged it).
+        provideRouter([{ path: '**', children: [] }]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request: () => true } },
         {
@@ -160,8 +163,8 @@ describe('ShellComponent menu navigation', () => {
     ) as HTMLAnchorElement[];
     const hrefs = items.map((a) => a.getAttribute('href'));
     const hub = items[hrefs.indexOf('/admin/hub')];
-    expect(hub).withContext('Admin hub as a real anchor').toBeTruthy();
-    expect(hub.classList.contains('elevated')).toBeTrue();
+    expect(hub, 'Admin hub as a real anchor').toBeTruthy();
+    expect(hub.classList.contains('elevated')).toBe(true);
     expect(hub.querySelector('.sc-sr-only')?.textContent?.trim()).toBe('nav.adminOnly');
     expect(hrefs.indexOf('/admin/api-tokens')).toBe(hrefs.indexOf('/admin/hub') + 1);
   });
@@ -190,7 +193,7 @@ describe('ShellComponent menu navigation', () => {
     openMenu(fixture);
     const link = fixture.nativeElement.querySelector('a.dropdown-item[href="/social"]') as HTMLAnchorElement;
     expect(link.querySelector('.di-count')).toBeTruthy();
-    expect(link.classList.contains('elevated')).toBeFalse();
+    expect(link.classList.contains('elevated')).toBe(false);
     expect(link.getAttribute('aria-label')).toBeTruthy();
   });
 
@@ -201,18 +204,18 @@ describe('ShellComponent menu navigation', () => {
       'nav.nav a[href="/admin/telemetry"]',
     ) as HTMLAnchorElement | null;
 
-    expect(link).withContext('Telemetrie must be an <a>, not a click handler').toBeTruthy();
+    expect(link, 'Telemetrie must be an <a>, not a click handler').toBeTruthy();
     expect(link!.textContent!.trim().length).toBeGreaterThan(0);
   });
 
   it('folds the account menu away on a plain left click', () => {
     const fixture = setup();
     openMenu(fixture);
-    expect(fixture.componentInstance.menuOpen()).toBeTrue();
+    expect(fixture.componentInstance.menuOpen()).toBe(true);
 
     click(fixture.nativeElement.querySelector('a.dropdown-item[href="/social"]'));
 
-    expect(fixture.componentInstance.menuOpen()).toBeFalse();
+    expect(fixture.componentInstance.menuOpen()).toBe(false);
   });
 
   it('leaves the account menu open for modified and middle clicks', () => {
@@ -222,9 +225,7 @@ describe('ShellComponent menu navigation', () => {
       openMenu(fixture);
       click(fixture.nativeElement.querySelector('a.dropdown-item[href="/social"]'), init);
 
-      expect(fixture.componentInstance.menuOpen())
-        .withContext(`a ${JSON.stringify(init)} click opens a tab and stays here`)
-        .toBeTrue();
+      expect(fixture.componentInstance.menuOpen(), `a ${JSON.stringify(init)} click opens a tab and stays here`).toBe(true);
       fixture.componentInstance.closeMenu();
       fixture.detectChanges();
     }
@@ -255,8 +256,6 @@ describe('ShellComponent menu navigation', () => {
     recovering.set(true);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.nav-scan'))
-      .withContext('the seconds before the recovery reload must not look like nothing happened')
-      .toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.nav-scan'), 'the seconds before the recovery reload must not look like nothing happened').toBeTruthy();
   });
 });

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -13,11 +14,11 @@ import { PRESENCE_MIN_INTERVAL_MS, PresenceService } from './presence.service';
  */
 describe('PresenceService', () => {
   let realUser: ReturnType<typeof signal<{ id: string } | null>>;
-  let rpc: jasmine.Spy;
+  let rpc: Mock;
 
   function setup(user: { id: string } | null) {
     realUser = signal<{ id: string } | null>(user);
-    rpc = jasmine.createSpy('rpc').and.resolveTo({ data: '2026-09-21T20:00:00Z', error: null });
+    rpc = vi.fn().mockName('rpc').mockResolvedValue({ data: '2026-09-21T20:00:00Z', error: null });
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { realUser } },
@@ -36,7 +37,8 @@ describe('PresenceService', () => {
   it('calls touch_last_seen on the real client for a signed-in user', async () => {
     const svc = setup({ id: 'u1' });
     await svc.touch(1_000_000);
-    expect(rpc).toHaveBeenCalledOnceWith('touch_last_seen');
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('touch_last_seen');
   });
 
   it('touches at most once per floor window', async () => {
@@ -50,18 +52,18 @@ describe('PresenceService', () => {
 
   it('lets the next trigger retry after an RPC error instead of waiting out the floor', async () => {
     const svc = setup({ id: 'u1' });
-    rpc.and.resolveTo({ data: null, error: { message: 'boom' } });
+    rpc.mockResolvedValue({ data: null, error: { message: 'boom' } });
     await svc.touch(1_000_000);
-    rpc.and.resolveTo({ data: '2026-09-21T20:00:00Z', error: null });
+    rpc.mockResolvedValue({ data: '2026-09-21T20:00:00Z', error: null });
     await svc.touch(1_000_001);
     expect(rpc).toHaveBeenCalledTimes(2);
   });
 
   it('swallows a thrown fetch and retries on the next trigger', async () => {
     const svc = setup({ id: 'u1' });
-    rpc.and.rejectWith(new Error('offline'));
-    await expectAsync(svc.touch(1_000_000)).toBeResolved();
-    rpc.and.resolveTo({ data: null, error: null });
+    rpc.mockRejectedValue(new Error('offline'));
+    await expect(svc.touch(1_000_000)).resolves.not.toThrow();
+    rpc.mockResolvedValue({ data: null, error: null });
     await svc.touch(1_000_001);
     expect(rpc).toHaveBeenCalledTimes(2);
   });

@@ -22,17 +22,17 @@ describe('PauseOffscreenDirective', () => {
     fixture.detectChanges();
     const box = (fixture.nativeElement as HTMLElement).querySelector('.box') as HTMLElement;
     await settle(box, false);
-    expect(box.hasAttribute(OFFSCREEN_ATTR)).toBeFalse();
+    expect(box.hasAttribute(OFFSCREEN_ATTR)).toBe(false);
 
     fixture.componentInstance.top.set(-10000);
     fixture.detectChanges();
     await settle(box, true);
-    expect(box.hasAttribute(OFFSCREEN_ATTR)).toBeTrue();
+    expect(box.hasAttribute(OFFSCREEN_ATTR)).toBe(true);
 
     fixture.componentInstance.top.set(10);
     fixture.detectChanges();
     await settle(box, false);
-    expect(box.hasAttribute(OFFSCREEN_ATTR)).toBeFalse();
+    expect(box.hasAttribute(OFFSCREEN_ATTR)).toBe(false);
     fixture.destroy();
   });
 });

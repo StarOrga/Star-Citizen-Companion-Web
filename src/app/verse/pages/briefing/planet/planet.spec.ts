@@ -87,8 +87,8 @@ describe('Verse planet — trains', () => {
       }
     }
     expect(maxRunning).toBeGreaterThanOrEqual(TRAINS_MIN);
-    expect(dwelled).toBeTrue();
-    expect(reversed).toBeTrue();
+    expect(dwelled).toBe(true);
+    expect(reversed).toBe(true);
   });
 });
 

@@ -24,7 +24,7 @@ describe('FusionSearchComponent recent term click', () => {
     engine.recent.set(['idris', 'reclaimer']);
     const s = setupFusionSearch(engine);
     const router = TestBed.inject(Router);
-    const nav = spyOn(router, 'navigateByUrl').and.resolveTo(true);
+    const nav = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     s.field.click();
     s.fixture.detectChanges();
     const term = s.el.querySelector('a.term') as HTMLAnchorElement;
@@ -35,10 +35,10 @@ describe('FusionSearchComponent recent term click', () => {
     const { term, nav, engine, fixture, cmp } = setup();
     const left = click(term);
     fixture.detectChanges();
-    expect(left).withContext('the anchor default is cancelled').toBeFalse();
+    expect(left, 'the anchor default is cancelled').toBe(false);
     expect(nav).not.toHaveBeenCalled();
     expect(engine.input()).toBe('idris');
-    expect(cmp.open()).toBeTrue();
+    expect(cmp.open()).toBe(true);
   });
 
   it('keeps a real href so "open in new tab" works (B3.4)', () => {
@@ -51,7 +51,7 @@ describe('FusionSearchComponent recent term click', () => {
       const { term, engine, fixture, nav } = setup();
       const left = click(term, mod);
       fixture.detectChanges();
-      expect(left).withContext('left to the browser: opens a new tab').toBeTrue();
+      expect(left, 'left to the browser: opens a new tab').toBe(true);
       expect(nav).not.toHaveBeenCalled();
       expect(engine.input()).toBe('');
     });

@@ -9,7 +9,7 @@ import { VerseNewsItemComponent } from './verse-news-item.component';
 
 describe('VerseNewsItemComponent', () => {
   it('a direct load whose feed fails shows an error state with retry, not a blank page', async () => {
-    const get = jasmine.createSpy('get').and.returnValue(throwError(() => new Error('offline')));
+    const get = vi.fn().mockName('get').mockReturnValue(throwError(() => new Error('offline')));
     TestBed.configureTestingModule({
       imports: [VerseNewsItemComponent],
       providers: [
@@ -27,11 +27,11 @@ describe('VerseNewsItemComponent', () => {
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('[role=alert]')).withContext('error state').not.toBeNull();
-    expect(el.querySelector('.miss')).withContext('not the "item missing" note').toBeNull();
-    const calls = get.calls.count();
+    expect(el.querySelector('[role=alert]'), 'error state').not.toBeNull();
+    expect(el.querySelector('.miss'), 'not the "item missing" note').toBeNull();
+    const calls = vi.mocked(get).mock.calls.length;
     el.querySelector<HTMLButtonElement>('.retry')!.click();
-    expect(get.calls.count()).toBe(calls + 1);
+    expect(vi.mocked(get).mock.calls.length).toBe(calls + 1);
     fixture.destroy();
   });
 });

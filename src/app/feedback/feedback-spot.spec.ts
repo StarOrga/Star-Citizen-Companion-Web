@@ -125,14 +125,14 @@ describe('FeedbackSpotService', () => {
   }
 
   it('is open while a launcher reports its panel', () => {
-    expect(svc.open()).toBeFalse();
+    expect(svc.open()).toBe(false);
     const el = document.createElement('div');
     svc.setPanel('user', el, 'user:new');
-    expect(svc.open()).toBeTrue();
+    expect(svc.open()).toBe(true);
     svc.setPanel('admin', el, 'admin:new');
     svc.setPanel('admin', null, 'admin:new');
     svc.setPanel('user', null, 'user:new');
-    expect(svc.open()).toBeFalse();
+    expect(svc.open()).toBe(false);
   });
 
   it('settles when a launcher reports its panel from an effect (no open/close loop)', () => {
@@ -156,7 +156,7 @@ describe('FeedbackSpotService', () => {
     fixture.detectChanges();
     fixture.componentInstance.open.set(true);
     fixture.detectChanges();
-    expect(svc.open()).toBeTrue();
+    expect(svc.open()).toBe(true);
     expect(runs).toBe(2);
   });
 

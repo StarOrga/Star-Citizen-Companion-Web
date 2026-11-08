@@ -89,7 +89,7 @@ describe('ConsentService', () => {
       ];
       for (const k of legacy) localStorage.setItem(k, 'x');
       svc.setPreferences(false);
-      for (const k of legacy) expect(localStorage.getItem(k)).withContext(k).toBeNull();
+      for (const k of legacy) expect(localStorage.getItem(k), k).toBeNull();
     });
 
     // The 2026-09-04 rethink stopped writing these four; they were never

@@ -24,7 +24,7 @@ describe('rollingThresholds', () => {
     const t = rollingThresholds(history([5, 5, 40, 50, 60, 80, 90, 70, 65]));
     const same = rollingThresholds(history([40, 50, 60, 80, 90, 70, 65]));
     expect(t).toEqual(same);
-    expect(t.rolling).toBeTrue();
+    expect(t.rolling).toBe(true);
   });
 
   it('never counts the newest (LIVE) line', () => {
@@ -32,8 +32,8 @@ describe('rollingThresholds', () => {
   });
 
   it('skips insufficient lines', () => {
-    expect(rollingThresholds(history([40, null, 50, 60, 80])).rolling).toBeFalse();
-    expect(rollingThresholds(history([40, null, 50, 60, 80, 90])).rolling).toBeTrue();
+    expect(rollingThresholds(history([40, null, 50, 60, 80])).rolling).toBe(false);
+    expect(rollingThresholds(history([40, null, 50, 60, 80, 90])).rolling).toBe(true);
   });
 
   it('falls back when the values give no valid ordering', () => {

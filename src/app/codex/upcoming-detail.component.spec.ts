@@ -28,8 +28,8 @@ function rsiStub(ships: UpcomingShip[], error: string | null = null) {
   return {
     feed,
     error: err,
-    ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
-    refresh: jasmine.createSpy('refresh').and.callFake(async () => {
+    ensureLoaded: vi.fn().mockName('ensureLoaded').mockResolvedValue(undefined),
+    refresh: vi.fn().mockName('refresh').mockImplementation(async () => {
       err.set(null);
       feed.set({ ships });
     }),
@@ -120,7 +120,7 @@ describe('UpcomingDetailComponent', () => {
     const conceptFixture = await setup('polaris', [upcomingShip({ id: 'polaris', name: 'RSI Polaris' })]);
     expect(
       conceptFixture.fixture.nativeElement.querySelector('.badge.status')?.classList.contains('concept'),
-    ).toBeTrue();
+    ).toBe(true);
 
     TestBed.resetTestingModule();
     const readyFixture = await setup('zeus', [
@@ -133,6 +133,6 @@ describe('UpcomingDetailComponent', () => {
     ]);
     expect(
       readyFixture.fixture.nativeElement.querySelector('.badge.status')?.classList.contains('concept'),
-    ).toBeFalse();
+    ).toBe(false);
   });
 });

@@ -22,11 +22,11 @@ describe('placeLabel', () => {
     const right = placeLabel({ x: 650, y: 300 }, HULL, LABEL, VP);
     expect(right.side).toBe('right');
     expect(right.left).toBe(HULL.right + LABEL_GAP);
-    expect(overlapsHull(right)).toBeFalse();
+    expect(overlapsHull(right)).toBe(false);
     const left = placeLabel({ x: 320, y: 300 }, HULL, LABEL, VP);
     expect(left.side).toBe('left');
     expect(left.left + LABEL.w).toBe(HULL.left - LABEL_GAP);
-    expect(overlapsHull(left)).toBeFalse();
+    expect(overlapsHull(left)).toBe(false);
   });
 
   it('centres the label on the anchor height and clamps it into the viewer', () => {
@@ -34,14 +34,14 @@ describe('placeLabel', () => {
     expect(p.top).toBe(300 - LABEL.h / 2);
     const low = placeLabel({ x: 650, y: 598 }, HULL, LABEL, VP);
     expect(low.top).toBe(VP.h - LABEL.h - LABEL_MARGIN);
-    expect(inside(low)).toBeTrue();
+    expect(inside(low)).toBe(true);
   });
 
   it('switches to the other side when the preferred one has no room', () => {
     const wideRight = { left: 300, top: 200, right: 900, bottom: 400 };
     const p = placeLabel({ x: 850, y: 300 }, wideRight, LABEL, VP);
     expect(p.side).toBe('left');
-    expect(inside(p)).toBeTrue();
+    expect(inside(p)).toBe(true);
   });
 
   it('goes above or below a hull that fills the width', () => {
@@ -57,7 +57,7 @@ describe('placeLabel', () => {
     const all = { left: -50, top: -50, right: 1050, bottom: 650 };
     const p = placeLabel({ x: 990, y: 5 }, all, LABEL, VP);
     expect(p.side).toBe('over');
-    expect(inside(p)).toBeTrue();
+    expect(inside(p)).toBe(true);
   });
 
   it('draws the leader line from the clamped anchor to the nearest label edge', () => {
@@ -69,7 +69,7 @@ describe('placeLabel', () => {
     const off = placeLabel({ x: -200, y: 900 }, HULL, LABEL, VP);
     expect(off.line.x1).toBe(0);
     expect(off.line.y1).toBe(VP.h);
-    expect(inside(off)).toBeTrue();
+    expect(inside(off)).toBe(true);
   });
 
   it('works without a silhouette (falls back to the anchor itself)', () => {

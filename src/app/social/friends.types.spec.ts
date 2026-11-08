@@ -68,17 +68,17 @@ describe('friends.types — labels', () => {
 
 describe('friends.types — client-side validation', () => {
   it('accepts only handles set_username() would accept', () => {
-    expect(isValidHandle('nova')).toBeTrue();
-    expect(isValidHandle('  nova_7  ')).toBeTrue();
-    expect(isValidHandle('no')).toBeFalse();
-    expect(isValidHandle('a'.repeat(21))).toBeFalse();
-    expect(isValidHandle('nova prime')).toBeFalse();
-    expect(isValidHandle('nova@rsi')).toBeFalse();
+    expect(isValidHandle('nova')).toBe(true);
+    expect(isValidHandle('  nova_7  ')).toBe(true);
+    expect(isValidHandle('no')).toBe(false);
+    expect(isValidHandle('a'.repeat(21))).toBe(false);
+    expect(isValidHandle('nova prime')).toBe(false);
+    expect(isValidHandle('nova@rsi')).toBe(false);
   });
 
   it('mirrors the reason length the DB constraint enforces', () => {
-    expect(isValidReportReason('a'.repeat(REPORT_REASON_MAX))).toBeTrue();
-    expect(isValidReportReason('a'.repeat(REPORT_REASON_MAX + 1))).toBeFalse();
+    expect(isValidReportReason('a'.repeat(REPORT_REASON_MAX))).toBe(true);
+    expect(isValidReportReason('a'.repeat(REPORT_REASON_MAX + 1))).toBe(false);
   });
 });
 

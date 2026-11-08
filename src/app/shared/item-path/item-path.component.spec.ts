@@ -16,7 +16,7 @@ interface Opts {
 
 function setup(o: Opts = {}) {
   const path: FakeItemPath = fakeItemPath(o.state);
-  const cart = { open: jasmine.createSpy('open').and.resolveTo(true) };
+  const cart = { open: vi.fn().mockName('open').mockResolvedValue(true) };
   TestBed.configureTestingModule({
     imports: [ItemPathComponent],
     providers: [
@@ -78,7 +78,8 @@ describe('ItemPathComponent: the two-node path', () => {
   it('an empty wish node puts one piece on the wishlist, with an undo toast', async () => {
     const t = setup();
     await t.click(t.node('wish')!);
-    expect(t.path.addWish).toHaveBeenCalledOnceWith('item', 'cls', 'Helm');
+    expect(t.path.addWish).toHaveBeenCalledTimes(1);
+    expect(t.path.addWish).toHaveBeenCalledWith('item', 'cls', 'Helm');
     expect(t.cart.open).not.toHaveBeenCalled();
     expect(t.toast.current()?.messageKey).toBe('itemPath.done.wishOn');
   });
@@ -120,22 +121,25 @@ describe('ItemPathComponent: the two-node path', () => {
     expect(pop).not.toBeNull();
     pop.querySelector<HTMLButtonElement>('.place')!.click();
     await t.settle();
-    expect(t.path.moveToInventar).toHaveBeenCalledOnceWith('item', 'cls', 'Helm', 'Bei mir', 1);
+    expect(t.path.moveToInventar).toHaveBeenCalledTimes(1);
+    expect(t.path.moveToInventar).toHaveBeenCalledWith('item', 'cls', 'Helm', 'Bei mir', 1);
   });
 
   it('an empty Hangar node adds the ship; an empty Sammlung node collects the blueprint', async () => {
     const ship = setup({ kind: 'ship' });
     await ship.click(ship.node('hangar')!);
-    expect(ship.path.addToHangar).toHaveBeenCalledOnceWith('cls', 'Helm');
+    expect(ship.path.addToHangar).toHaveBeenCalledTimes(1);
+    expect(ship.path.addToHangar).toHaveBeenCalledWith('cls', 'Helm');
     TestBed.resetTestingModule();
     const bp = setup({ kind: 'blueprint' });
     await bp.click(bp.node('inventar')!);
-    expect(bp.path.moveToInventar).toHaveBeenCalledOnceWith('blueprint', 'cls', 'Helm', 'Blueprints', 1);
+    expect(bp.path.moveToInventar).toHaveBeenCalledTimes(1);
+    expect(bp.path.moveToInventar).toHaveBeenCalledWith('blueprint', 'cls', 'Helm', 'Blueprints', 1);
   });
 
   it('a failure shows its translated key at the node, no toast', async () => {
     const t = setup();
-    t.path.addWish.and.resolveTo({ ok: false, key: 'errors.itemPath.failed' });
+    t.path.addWish.mockResolvedValue({ ok: false, key: 'errors.itemPath.failed' });
     await t.click(t.node('wish')!);
     expect(t.popover()!.textContent).toContain('errors.itemPath.failed');
     expect(t.popover()!.classList).toContain('err');
@@ -145,7 +149,7 @@ describe('ItemPathComponent: the two-node path', () => {
 
   it('a refusal (tone info) shows neutral, as a status - never in the danger tone (AUD-2)', async () => {
     const t = setup();
-    t.path.addWish.and.resolveTo({ ok: false, key: 'itemPath.err.unavailable', tone: 'info' });
+    t.path.addWish.mockResolvedValue({ ok: false, key: 'itemPath.err.unavailable', tone: 'info' });
     await t.click(t.node('wish')!);
     expect(t.popover()!.textContent).toContain('itemPath.err.unavailable');
     expect(t.popover()!.classList).not.toContain('err');
@@ -156,7 +160,8 @@ describe('ItemPathComponent: the two-node path', () => {
     const t = setup({ kind: 'ship', state: { inHangar: true, hangarQty: 2, hangarShipId: 's1' } });
     expect(t.node('hangar')!.textContent).toContain('2');
     await t.click(t.node('wish')!);
-    expect(t.path.addWish).toHaveBeenCalledOnceWith('ship', 'cls', 'Helm');
+    expect(t.path.addWish).toHaveBeenCalledTimes(1);
+    expect(t.path.addWish).toHaveBeenCalledWith('ship', 'cls', 'Helm');
   });
 
   describe('the detail page (primary level)', () => {

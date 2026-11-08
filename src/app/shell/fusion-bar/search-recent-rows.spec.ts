@@ -31,7 +31,7 @@ describe('recent rows: one entry per class (AUD-17)', () => {
     const next = rememberRow(storage, first, ownShip('7', 'argo_raft'));
     expect(next.map((r) => r.id)).toEqual(['own-ship-7']);
     expect(readRecentRows(storage).map((r) => r.id)).toEqual(['own-ship-7']);
-    expect(store.has(RECENT_ROWS_KEY)).toBeTrue();
+    expect(store.has(RECENT_ROWS_KEY)).toBe(true);
   });
 
   it('reading an old list that already holds both shows one', () => {

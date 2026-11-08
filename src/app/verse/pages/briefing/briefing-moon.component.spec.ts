@@ -8,7 +8,7 @@ describe('moonSchedule', () => {
   it('gives three moons consecutive 11 s slots in a 41.25 s loop', () => {
     const t = [0, 1, 2].map((i) => moonSchedule(i, 3, 4.2));
     expect(t.map((x) => x.start)).toEqual(['4.20s', '15.20s', '26.20s']);
-    expect(t.every((x) => x.cycle === '41.25s')).toBeTrue();
+    expect(t.every((x) => x.cycle === '41.25s')).toBe(true);
   });
 
   it('never lets two slots overlap and keeps the calm at 20 % or more', () => {
@@ -45,8 +45,8 @@ describe('BriefingMoonComponent', () => {
     const a = render('Neues Bild').querySelector('a.moon')!;
     expect(a.getAttribute('href')).toBe('/verse/gallery');
     expect(a.getAttribute('aria-label')).toBe('Galerie: NEU · Neues Bild');
-    expect(a.hasAttribute('title')).toBeFalse();
-    expect(a.hasAttribute('scTooltip')).toBeFalse();
+    expect(a.hasAttribute('title')).toBe(false);
+    expect(a.hasAttribute('scTooltip')).toBe(false);
   });
 
   it('draws Hurston for the gallery and types the item char by char', () => {

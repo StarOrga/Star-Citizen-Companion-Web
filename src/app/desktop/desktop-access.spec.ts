@@ -16,7 +16,7 @@ describe('ringsForRole', () => {
     for (const role of ['admin', 'collaborator', 'viewer', null]) {
       for (const product of ['uploader', 'starscape'] as const) {
         const rings = ringsForRole(product, role);
-        expect(rings.every((r) => r === 'stable')).toBeTrue();
+        expect(rings.every((r) => r === 'stable')).toBe(true);
       }
     }
   });
@@ -45,11 +45,11 @@ describe('ringsForRole', () => {
 
 describe('the red-accent rules (admin feedback b8b31f24)', () => {
   it('calls the uploader restricted — a plain viewer is offered nothing', () => {
-    expect(isRestrictedProduct('uploader')).toBeTrue();
+    expect(isRestrictedProduct('uploader')).toBe(true);
   });
 
   it('does NOT call Starscape restricted — every visitor may download it', () => {
-    expect(isRestrictedProduct('starscape')).toBeFalse();
+    expect(isRestrictedProduct('starscape')).toBe(false);
   });
 });
 

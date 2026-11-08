@@ -43,15 +43,15 @@ describe('HqStockComponent · Frachtdeck', () => {
       shipStorage: signal([{ ship_ref: 'sh1', location: 'Area18' }]),
       kinds: signal<ReadonlyMap<string, BestandKind>>(new Map([['cds_helmet_pembroke', { area: 'armor', sub: 'helmet', role: null }]])),
       lastRemovals: () => [{ key: 'r1', at: '2026-11-08T12:00:00Z', location: 'Lorville', name: 'Medpen', className: 'medpen', qty: 4, unit: 'pcs', quality: null, kind: 'take' }],
-      ensureKinds: jasmine.createSpy('ensureKinds').and.resolveTo(),
-      load: jasmine.createSpy('load').and.resolveTo(),
-      addManual: jasmine.createSpy('addManual').and.resolveTo(true),
-      deleteRow: jasmine.createSpy('deleteRow').and.resolveTo(true),
-      setAmount: jasmine.createSpy('setAmount').and.resolveTo(true),
-      reserve: jasmine.createSpy('reserve').and.resolveTo(true),
+      ensureKinds: vi.fn().mockName('ensureKinds').mockResolvedValue(undefined),
+      load: vi.fn().mockName('load').mockResolvedValue(undefined),
+      addManual: vi.fn().mockName('addManual').mockResolvedValue(true),
+      deleteRow: vi.fn().mockName('deleteRow').mockResolvedValue(true),
+      setAmount: vi.fn().mockName('setAmount').mockResolvedValue(true),
+      reserve: vi.fn().mockName('reserve').mockResolvedValue(true),
       lastKnownLocation: () => Promise.resolve(null),
     };
-    const picker = { open: jasmine.createSpy('open').and.resolveTo(null) };
+    const picker = { open: vi.fn().mockName('open').mockResolvedValue(null) };
     const ships = [
       { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Pfeil', status: 'owned', pinnedRank: 1, qty: 1, origin: 'pledge' },
       { id: 'sh2', shipClassName: 'MISC_Freelancer', customName: null, status: 'owned', pinnedRank: null, qty: 1, origin: 'ingame' },
@@ -73,7 +73,7 @@ describe('HqStockComponent · Frachtdeck', () => {
         { provide: HqSuppliesService, useValue: { items: signal([]) } },
         { provide: NachschubService, useValue: { packages: signal([]), ensureLoaded: () => Promise.resolve() } },
         { provide: SammlungService, useValue: { blueprints: signal([{ kind: 'blueprint', id: 'gallant_bp', name: 'Gallant' }]), rep: signal([]), news: signal(new Set()), gallery: signal(new Set(['g1'])), load: () => Promise.resolve() } },
-        { provide: NachschubEdgeService, useValue: { resetIngameStock: jasmine.createSpy('reset').and.resolveTo(true), lastError: null } },
+        { provide: NachschubEdgeService, useValue: { resetIngameStock: vi.fn().mockName('reset').mockResolvedValue(true), lastError: null } },
         { provide: HqLiveService, useValue: { state: signal(null), events: signal([]) } },
         { provide: ScrapInfoService, useValue: { info: () => ({ state: 'unknown' }), load: () => Promise.resolve() } },
         { provide: FriendsService, useValue: { graph: signal({ friends: [] }) } },
@@ -81,7 +81,7 @@ describe('HqStockComponent · Frachtdeck', () => {
       ],
     });
     const router = TestBed.inject(Router);
-    spyOn(router, 'navigate').and.callFake((_c, extras) => {
+    vi.spyOn(router, 'navigate').mockImplementation((_c, extras) => {
       const next = { ...Object.fromEntries(qp.value.keys.map((k) => [k, qp.value.get(k)!])) } as Record<string, string>;
       for (const [k, v] of Object.entries((extras?.queryParams ?? {}) as Record<string, string | null>)) {
         if (v === null) delete next[k];
@@ -106,8 +106,8 @@ describe('HqStockComponent · Frachtdeck', () => {
     const { el } = mount();
     const tabs = [...el.querySelectorAll<HTMLAnchorElement>('.tabs a.tab')];
     expect(tabs.map((t) => t.textContent?.trim())).toEqual(['hq.bestand.tab.alles', 'hq.bestand.tab.inventar', 'hq.bestand.tab.hangar', 'hq.bestand.tab.sammlung']);
-    expect(tabs.every((t) => !/\d/.test(t.textContent ?? ''))).toBeTrue();
-    expect(tabs.every((t) => t.querySelector('svg path'))).toBeTrue();
+    expect(tabs.every((t) => !/\d/.test(t.textContent ?? ''))).toBe(true);
+    expect(tabs.every((t) => t.querySelector('svg path'))).toBe(true);
     expect(tabs[1].getAttribute('aria-current')).toBe('page');
   });
 
@@ -137,7 +137,7 @@ describe('HqStockComponent · Frachtdeck', () => {
     const { el } = mount();
     const bays = [...el.querySelectorAll('.bays .bay')].map((b) => b.textContent?.replace(/\s+/g, ' ').trim());
     expect(bays).toContain('Area18ArcCorp');
-    expect(bays.some((b) => b?.startsWith('Pfeil') && b.includes('Area18 (Stanton)'))).toBeTrue();
+    expect(bays.some((b) => b?.startsWith('Pfeil') && b.includes('Area18 (Stanton)'))).toBe(true);
     const q = [...el.querySelectorAll('sc-hq-crate .q')].map((x) => x.textContent?.trim());
     expect(q).toContain('Ø Q 727');
   });
@@ -158,7 +158,7 @@ describe('HqStockComponent · Frachtdeck', () => {
     const bar = el.querySelector('.selbar')!;
     expect([...bar.querySelectorAll('button')].map((b) => b.textContent?.trim()).slice(0, 4)).toEqual(['hq.bestand.deck.reserve', 'hq.bestand.deck.sell', 'hq.bestand.deck.pickup', 'hq.bestand.deck.delete']);
     click([...bar.querySelectorAll('button')].find((b) => b.textContent?.includes('pickup')));
-    const req = picker.open.calls.mostRecent().args[0];
+    const req = picker.open.mock.lastCall![0];
     expect(req.intent).toBe('pickup');
     expect(req.lines[0].stops.map((s: { location: string }) => s.location)).toEqual(['Area18', 'Lorville']);
   });
@@ -186,8 +186,8 @@ describe('HqStockComponent · Frachtdeck', () => {
     fixture.detectChanges();
     expect(el.querySelector('.head input[type=search]')).toBeNull();
     const alts = [...el.querySelectorAll('.ghost .alt')].map((a) => a.textContent ?? '');
-    expect(alts.some((t) => t.includes('alt.elsewhere'))).toBeTrue();
-    expect(alts.some((t) => t.includes('alt.wishQ'))).toBeTrue();
+    expect(alts.some((t) => t.includes('alt.elsewhere'))).toBe(true);
+    expect(alts.some((t) => t.includes('alt.wishQ'))).toBe(true);
   });
 
   it('table mode: Excel-like rows, amount edit writes, highlight selection, wide table scrolls (I7, X2)', () => {

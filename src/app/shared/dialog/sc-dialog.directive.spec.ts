@@ -108,13 +108,13 @@ describe('ScDialogDirective', () => {
     ) as HTMLElement[];
     expect(anchors.length).toBe(2);
     for (const a of anchors) {
-      expect(a.getAttribute('tabindex') === null || a.getAttribute('tabindex') === '-1').toBeTrue();
+      expect(a.getAttribute('tabindex') === null || a.getAttribute('tabindex') === '-1').toBe(true);
     }
   });
 
   it('emits Escape exactly once and keeps it away from document listeners', async () => {
     await openFrom();
-    const docSpy = jasmine.createSpy('docKeydown');
+    const docSpy = vi.fn().mockName('docKeydown');
     document.addEventListener('keydown', docSpy);
     try {
       el('.first').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));

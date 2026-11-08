@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
 import { fakeSupabase } from '../../testing/fake-supabase';
@@ -6,7 +7,7 @@ import { ConceptPageService, ConceptTicketFailure } from './concept-page.service
 describe('ConceptPageService', () => {
   const ticketUrl = `${environment.supabase.url}/functions/v1/concept-page/ticket`;
   const goodUrl = `${environment.supabase.url}/functions/v1/concept-page/abc?t=sig`;
-  let fetchSpy: jasmine.Spy;
+  let fetchSpy: Mock;
 
   function setup(token: string | null = 'jwt-1'): ConceptPageService {
     const fake = fakeSupabase({ session: token ? { access_token: token, user: { id: 'u1' } } : null });
@@ -15,7 +16,7 @@ describe('ConceptPageService', () => {
   }
 
   function reply(status: number, body?: unknown): void {
-    fetchSpy.and.resolveTo({
+    fetchSpy.mockResolvedValue({
       ok: status >= 200 && status < 300,
       status,
       json: () => (body === undefined ? Promise.reject(new Error('no body')) : Promise.resolve(body)),
@@ -32,7 +33,7 @@ describe('ConceptPageService', () => {
   }
 
   beforeEach(() => {
-    fetchSpy = spyOn(window, 'fetch');
+    fetchSpy = vi.spyOn(window, 'fetch').mockReturnValue(undefined as never);
   });
 
   it('is forbidden without a session token and never calls fetch', async () => {
@@ -44,11 +45,11 @@ describe('ConceptPageService', () => {
     reply(200, { url: goodUrl, title: 'T', expiresAt: '2030-01-01T00:00:00Z' });
     const ticket = await setup().mintTicket('abc');
     expect(ticket).toEqual({ url: goodUrl, title: 'T', expiresAt: '2030-01-01T00:00:00Z' });
-    const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+    const [url, init] = vi.mocked(fetchSpy).mock.lastCall! as [string, RequestInit];
     expect(url).toBe(ticketUrl);
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toEqual({ id: 'abc' });
-    expect(init.headers).toEqual(jasmine.objectContaining({ Authorization: 'Bearer jwt-1' }));
+    expect(init.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer jwt-1' }));
   });
 
   it('defaults a missing title and expiry to empty strings', async () => {
@@ -71,7 +72,7 @@ describe('ConceptPageService', () => {
   }
 
   it('maps a network failure to error', async () => {
-    fetchSpy.and.rejectWith(new TypeError('Failed to fetch'));
+    fetchSpy.mockRejectedValue(new TypeError('Failed to fetch'));
     expect(await kindOf(setup().mintTicket('abc'))).toBe('error');
   });
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Waits for the web-ci run of a commit, so a feedback worker gets the verdict of
- * the full gate (typecheck, lint, Karma, build) in about 3 minutes instead of
+ * the full gate (typecheck, lint, unit tests, build) in about 3 minutes instead of
  * building locally, which took 10 to 30 minutes with three workers on one PC.
  *
  *   node <repo>/scripts/routine-ci-wait.mjs [--sha <sha>] [--minutes 9]

@@ -55,16 +55,16 @@ describe('MainHeaderComponent', () => {
   it('holds the header back only during the first-visit hub intro, scaled by k', async () => {
     const fixture = await setup('/verse', false);
     const host = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
-    expect(host.classList.contains('hero-intro')).toBeFalse();
+    expect(host.classList.contains('hero-intro')).toBe(false);
     const chrome = TestBed.inject(ShellChromeService);
     chrome.startHeroIntro(1, true);
     fixture.detectChanges();
-    expect(host.classList.contains('hero-intro')).toBeTrue();
-    expect(host.hasAttribute('inert')).toBeTrue();
+    expect(host.classList.contains('hero-intro')).toBe(true);
+    expect(host.hasAttribute('inert')).toBe(true);
     expect(host.style.getPropertyValue('--sc-intro-k')).toBe('1');
     chrome.endHeroIntro();
     fixture.detectChanges();
-    expect(host.classList.contains('hero-intro')).toBeFalse();
+    expect(host.classList.contains('hero-intro')).toBe(false);
   });
 
   it('does not delay the header on a repeat visit of the hub', async () => {
@@ -72,7 +72,7 @@ describe('MainHeaderComponent', () => {
     const host = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
     TestBed.inject(ShellChromeService).startHeroIntro(0.1765, false);
     fixture.detectChanges();
-    expect(host.classList.contains('hero-intro')).toBeFalse();
+    expect(host.classList.contains('hero-intro')).toBe(false);
   });
 
   it('hides the admin entry from non-admins', async () => {
@@ -111,12 +111,12 @@ describe('MainHeaderComponent', () => {
     chrome.setStageSearch('docked');
     chrome.setDockProgress(0.5);
     fixture.detectChanges();
-    expect(header.classList).withContext('half docked is still reachable').not.toContain('compressed');
-    expect(header.hasAttribute('inert')).toBeFalse();
+    expect(header.classList, 'half docked is still reachable').not.toContain('compressed');
+    expect(header.hasAttribute('inert')).toBe(false);
     chrome.setDockProgress(1);
     fixture.detectChanges();
     expect(header.classList).toContain('compressed');
-    expect(header.hasAttribute('inert')).toBeTrue();
+    expect(header.hasAttribute('inert')).toBe(true);
     chrome.setDockProgress(0.3);
     fixture.detectChanges();
     expect(header.classList).not.toContain('compressed');
@@ -129,7 +129,7 @@ describe('MainHeaderComponent', () => {
     const fixture = await setup('/verse', true);
     const header = fixture.nativeElement.querySelector('sc-main-header') as HTMLElement;
     const account = header.querySelector('.account') as HTMLElement;
-    expect(account.children.length).withContext('only the apps + profile row').toBe(1);
+    expect(account.children.length, 'only the apps + profile row').toBe(1);
     if (window.innerWidth > 720) {
       expect(getComputedStyle(header.querySelector('.brand')!).position).toBe('absolute');
       expect(getComputedStyle(account).position).toBe('absolute');

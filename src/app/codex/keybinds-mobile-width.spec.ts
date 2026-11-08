@@ -73,9 +73,9 @@ describe('Codex keybinds at a 375px viewport (REQ-24)', () => {
       build: signal({ patchVersion: '4.2', buildNumber: '9000000' }) as never,
       stale: signal(false) as never,
       latestLivePatch: signal(null) as never,
-      loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
-      listKeybinds: jasmine.createSpy('listKeybinds').and.resolveTo(BINDS),
-      resolveLocaleKeys: jasmine.createSpy('resolveLocaleKeys').and.resolveTo(labels),
+      loadCurrentBuild: vi.fn().mockName('loadCurrentBuild').mockResolvedValue(null),
+      listKeybinds: vi.fn().mockName('listKeybinds').mockResolvedValue(BINDS),
+      resolveLocaleKeys: vi.fn().mockName('resolveLocaleKeys').mockResolvedValue(labels),
     };
     await TestBed.configureTestingModule({
       imports: [HostComponent],
@@ -91,8 +91,8 @@ describe('Codex keybinds at a 375px viewport (REQ-24)', () => {
             loaded: signal(true).asReadonly(),
             saving: signal(false),
             error: signal<string | null>(null),
-            load: jasmine.createSpy('load').and.resolveTo(undefined),
-            apply: jasmine.createSpy('apply').and.resolveTo(true),
+            load: vi.fn().mockName('load').mockResolvedValue(undefined),
+            apply: vi.fn().mockName('apply').mockResolvedValue(true),
           },
         },
       ],
@@ -142,13 +142,13 @@ describe('Codex keybinds at a 375px viewport (REQ-24)', () => {
     expect(text).toContain(LONG_LABEL);
     expect(text).toContain('Linke Alt'); // the chord reads as words now (audit L18)
     expect(text).not.toContain('codex.keybinds.');
-    expect(iframe.contentWindow!.matchMedia('(max-width: 640px)').matches).toBeTrue();
+    expect(iframe.contentWindow!.matchMedia('(max-width: 640px)').matches).toBe(true);
     expect(iframe.contentWindow!.innerWidth).toBe(PHONE_PX);
 
     // On failure, name what sticks out past the viewport's right edge.
     const offenders = Array.from(doc.body.querySelectorAll<HTMLElement>('*'))
       .filter((e) => e.getBoundingClientRect().right > PHONE_PX + 1)
       .map((e) => `${e.tagName.toLowerCase()}.${e.className} (${Math.round(e.getBoundingClientRect().width)}px)`);
-    expect(root.scrollWidth).withContext(offenders.slice(0, 8).join(', ')).toBeLessThanOrEqual(root.clientWidth);
+    expect(root.scrollWidth, offenders.slice(0, 8).join(', ')).toBeLessThanOrEqual(root.clientWidth);
   });
 });

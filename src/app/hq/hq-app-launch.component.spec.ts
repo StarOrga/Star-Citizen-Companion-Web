@@ -7,9 +7,9 @@ import { HqAppLaunchComponent } from './hq-app-launch.component';
 describe('HqAppLaunchComponent', () => {
   function mount(answered: boolean, launchedBefore = false, mode: 'launch' | 'download' = 'launch') {
     const launcher = {
-      launch: jasmine.createSpy('launch').and.resolveTo(answered),
+      launch: vi.fn().mockName('launch').mockResolvedValue(answered),
       launchedBefore: () => launchedBefore,
-      downloadInstaller: jasmine.createSpy('downloadInstaller'),
+      downloadInstaller: vi.fn().mockName('downloadInstaller'),
     };
     TestBed.configureTestingModule({
       providers: [provideTranslateService(), { provide: SccAppLauncherService, useValue: launcher }],
@@ -41,7 +41,7 @@ describe('HqAppLaunchComponent', () => {
   it('does not download when the app answers', async () => {
     const { f, launcher } = mount(true);
     const ev = await clickPlain(f);
-    expect(ev.defaultPrevented).toBeTrue();
+    expect(ev.defaultPrevented).toBe(true);
     expect(launcher.downloadInstaller).not.toHaveBeenCalled();
     expect(f.componentInstance.status()).toBe('started');
   });
@@ -76,7 +76,7 @@ describe('HqAppLaunchComponent', () => {
       { once: true },
     );
     anchor(f).dispatchEvent(ev);
-    expect(leftToBrowser).toBeTrue();
+    expect(leftToBrowser).toBe(true);
     expect(launcher.launch).not.toHaveBeenCalled();
   });
 
@@ -84,7 +84,7 @@ describe('HqAppLaunchComponent', () => {
     const { f, launcher } = mount(false, false, 'download');
     expect(anchor(f).textContent).toContain('hq.app.downloadCta');
     const ev = await clickPlain(f);
-    expect(ev.defaultPrevented).toBeTrue();
+    expect(ev.defaultPrevented).toBe(true);
     expect(launcher.launch).not.toHaveBeenCalled();
     expect(launcher.downloadInstaller).toHaveBeenCalledTimes(1);
     expect(f.componentInstance.status()).toBe('downloadStarted');

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
@@ -8,16 +9,16 @@ import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 describe('CodexCompareTrayComponent', () => {
   const keys = signal<string[]>([]);
   const rejected = signal<string | null>(null);
-  let unpin: jasmine.Spy;
-  let clearCompare: jasmine.Spy;
-  let getDetail: jasmine.Spy;
+  let unpin: Mock;
+  let clearCompare: Mock;
+  let getDetail: Mock;
 
   function mount(initial: string[]) {
     keys.set(initial);
     rejected.set(null);
-    unpin = jasmine.createSpy('unpin');
-    clearCompare = jasmine.createSpy('clearCompare');
-    getDetail = jasmine.createSpy('getDetail').and.resolveTo(null);
+    unpin = vi.fn().mockName('unpin');
+    clearCompare = vi.fn().mockName('clearCompare');
+    getDetail = vi.fn().mockName('getDetail').mockResolvedValue(null);
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -50,7 +51,8 @@ describe('CodexCompareTrayComponent', () => {
   it('removes a pin via .chip-x and clears all via .clear', () => {
     const { el } = mount(['ship:a', 'ship:b']);
     (el.querySelectorAll('button.chip-x')[1] as HTMLButtonElement).click();
-    expect(unpin).toHaveBeenCalledOnceWith('ship:b');
+    expect(unpin).toHaveBeenCalledTimes(1);
+    expect(unpin).toHaveBeenCalledWith('ship:b');
     (el.querySelector('button.clear') as HTMLButtonElement).click();
     expect(clearCompare).toHaveBeenCalled();
   });

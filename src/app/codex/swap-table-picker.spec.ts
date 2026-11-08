@@ -93,15 +93,15 @@ describe('comparison scope', () => {
     // R-B22: the interpolation object must use the SAME key the i18n string
     // interpolates (`Alle {{family}}` / `All {{family}}`), not `damage`.
     expect(options[1].params['family']).toBe('energy');
-    expect(options.every((o) => o.available)).toBeTrue();
+    expect(options.every((o) => o.available)).toBe(true);
   });
 
   it('marks a stage unavailable when the fitted component has no archetype', () => {
     const vague = cand('VAGUE', 10, { archetype: null, damageChannels: [] });
     const options = swapScopeOptions([...all, vague], vague);
-    expect(options[0].available).toBeFalse();
-    expect(options[1].available).toBeFalse();
-    expect(options[2].available).toBeTrue();
+    expect(options[0].available).toBe(false);
+    expect(options[1].available).toBe(false);
+    expect(options[2].available).toBe(true);
   });
 });
 
@@ -119,9 +119,9 @@ describe('column catalogue and chooser', () => {
   });
 
   it('flags the lower-is-better values', () => {
-    expect(swapValueDef(MASS)!.lowerIsBetter).toBeTrue();
-    expect(swapValueDef('codex.picker.col.power')!.lowerIsBetter).toBeTrue();
-    expect(swapValueDef(DPS)!.lowerIsBetter).toBeFalse();
+    expect(swapValueDef(MASS)!.lowerIsBetter).toBe(true);
+    expect(swapValueDef('codex.picker.col.power')!.lowerIsBetter).toBe(true);
+    expect(swapValueDef(DPS)!.lowerIsBetter).toBe(false);
   });
 
   it('adds and removes columns, keeping catalogue order, and never drops the name', () => {
@@ -163,14 +163,14 @@ describe('percent bars', () => {
 
   it('marks the overall optimum even when it is filtered out', () => {
     const bars = swapValueBars([panther, attrition], all, DPS);
-    expect(bars.get('BEHR_Attrition')!.optimum).toBeFalse(); // 360 (Badger) is better
-    expect(swapValueBars(all, all, DPS).get('KLWE_Badger')!.optimum).toBeTrue();
+    expect(bars.get('BEHR_Attrition')!.optimum).toBe(false); // 360 (Badger) is better
+    expect(swapValueBars(all, all, DPS).get('KLWE_Badger')!.optimum).toBe(true);
   });
 
   it('inverts for lower-is-better values', () => {
     const bars = swapValueBars([badger, panther, attrition], all, MASS);
     expect(bars.get('KLWE_Panther')!.percent).toBe(100);
-    expect(bars.get('KLWE_Panther')!.optimum).toBeTrue();
+    expect(bars.get('KLWE_Panther')!.optimum).toBe(true);
     expect(bars.get('BEHR_Attrition')!.percent).toBeLessThan(100);
   });
 

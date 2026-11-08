@@ -39,11 +39,11 @@ describe('StarscapeAppPromoComponent', () => {
     const f = setup();
     tick(2000);
     f.detectChanges();
-    expect(f.componentInstance.visible()).toBeFalse();
+    expect(f.componentInstance.visible()).toBe(false);
 
     tick(1000);
     f.detectChanges();
-    expect(f.componentInstance.visible()).toBeTrue();
+    expect(f.componentInstance.visible()).toBe(true);
     expect(f.nativeElement.querySelector('.promo')).not.toBeNull();
 
     f.componentInstance.closeForSession();
@@ -54,14 +54,14 @@ describe('StarscapeAppPromoComponent', () => {
     const first = setup();
     tick(3000);
     first.detectChanges();
-    expect(first.componentInstance.visible()).toBeTrue();
+    expect(first.componentInstance.visible()).toBe(true);
     first.componentInstance.closeForSession();
     first.destroy();
 
     const second = setup();
     tick(3000);
     second.detectChanges();
-    expect(second.componentInstance.visible()).toBeFalse();
+    expect(second.componentInstance.visible()).toBe(false);
     second.destroy();
   }));
 
@@ -71,7 +71,7 @@ describe('StarscapeAppPromoComponent', () => {
     f.detectChanges();
     (f.nativeElement.querySelector('.x') as HTMLButtonElement).click();
     f.detectChanges();
-    expect(f.componentInstance.visible()).toBeFalse();
+    expect(f.componentInstance.visible()).toBe(false);
     expect(localStorage.getItem(DISMISS_KEY)).toBe('1');
     f.destroy();
 
@@ -80,7 +80,7 @@ describe('StarscapeAppPromoComponent', () => {
     const later = setup();
     tick(3000);
     later.detectChanges();
-    expect(later.componentInstance.visible()).toBeFalse();
+    expect(later.componentInstance.visible()).toBe(false);
     later.destroy();
   }));
 
@@ -95,11 +95,11 @@ describe('StarscapeAppPromoComponent', () => {
     try {
       cta.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
       f.detectChanges();
-      expect(f.componentInstance.visible()).toBeTrue();
+      expect(f.componentInstance.visible()).toBe(true);
 
       cta.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       f.detectChanges();
-      expect(f.componentInstance.visible()).toBeFalse();
+      expect(f.componentInstance.visible()).toBe(false);
     } finally {
       document.removeEventListener('click', stop, true);
     }
@@ -111,7 +111,7 @@ describe('StarscapeAppPromoComponent', () => {
     const f = setup();
     tick(3000);
     f.detectChanges();
-    expect(f.componentInstance.visible()).toBeFalse();
+    expect(f.componentInstance.visible()).toBe(false);
     f.destroy();
   }));
 

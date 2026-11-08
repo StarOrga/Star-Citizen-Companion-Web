@@ -40,16 +40,16 @@ describe('career -> class', () => {
 
   it('maps every career key found in the data, whatever the case', () => {
     for (const [key, cls] of Object.entries(real)) {
-      expect(rankClassOfCareer(key)).withContext(key).toBe(cls);
-      expect(rankClassOfCareer(key.toUpperCase())).withContext(key.toUpperCase()).toBe(cls);
-      expect(rankCareerIsMapped(key)).withContext(key).toBeTrue();
+      expect(rankClassOfCareer(key), key).toBe(cls);
+      expect(rankClassOfCareer(key.toUpperCase()), key.toUpperCase()).toBe(cls);
+      expect(rankCareerIsMapped(key), key).toBe(true);
     }
   });
 
   it('falls back to the Kampf list for an unknown, empty or missing key', () => {
     for (const key of ['@vehicle_focus_brandnew', '', '   ', null, undefined]) {
       expect(rankClassOfCareer(key)).toBe('combat');
-      expect(rankCareerIsMapped(key)).toBeFalse();
+      expect(rankCareerIsMapped(key)).toBe(false);
     }
   });
 });
@@ -58,8 +58,8 @@ describe('axis lists', () => {
   it('has exactly one list of six axes per class and per Einsatz-only id', () => {
     for (const id of [...CLASSES, 'travel', 'stealth']) {
       const p = RANK_AXIS_PROFILES.filter((x) => x.id === id);
-      expect(p.length).withContext(id).toBe(1);
-      expect(p[0].axes.length).withContext(id).toBe(6);
+      expect(p.length, id).toBe(1);
+      expect(p[0].axes.length, id).toBe(6);
     }
   });
 

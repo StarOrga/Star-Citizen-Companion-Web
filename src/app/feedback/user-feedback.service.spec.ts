@@ -115,7 +115,7 @@ describe('UserFeedbackService — withdraw (feedback 892013b6)', () => {
     setup([topic(OPEN_TOPIC, true), topic(WORKED_TOPIC, false)]);
     await svc.refresh();
 
-    await expectAsync(svc.withdraw(OPEN_TOPIC)).toBeResolvedTo(true);
+    await expect(svc.withdraw(OPEN_TOPIC)).resolves.toEqual(true);
     expect(sb.deletes).toEqual([OPEN_TOPIC]);
     expect(svc.topics().map((t) => t.id)).toEqual([WORKED_TOPIC]);
     expect(svc.error()).toBeNull();
@@ -128,7 +128,7 @@ describe('UserFeedbackService — withdraw (feedback 892013b6)', () => {
     sb.refuse.add(OPEN_TOPIC);
     await svc.refresh();
 
-    await expectAsync(svc.withdraw(OPEN_TOPIC)).toBeResolvedTo(false);
+    await expect(svc.withdraw(OPEN_TOPIC)).resolves.toEqual(false);
     expect(svc.error()).toBe('withdrawRefused');
     expect(svc.topics().map((t) => t.id)).toEqual([OPEN_TOPIC]);
   });
@@ -138,10 +138,10 @@ describe('UserFeedbackService — withdraw (feedback 892013b6)', () => {
     sb.failNextDelete = OPEN_TOPIC;
     await svc.refresh();
 
-    await expectAsync(svc.withdraw(OPEN_TOPIC)).toBeResolvedTo(false);
+    await expect(svc.withdraw(OPEN_TOPIC)).resolves.toEqual(false);
     expect(svc.error()).toBe('errors.generic');
     expect(svc.topics().map((t) => t.id)).toEqual([OPEN_TOPIC]);
-    expect(svc.busy()).toBeFalse();
+    expect(svc.busy()).toBe(false);
   });
 
   it('refuses to withdraw while a role preview is active', async () => {
@@ -151,7 +151,7 @@ describe('UserFeedbackService — withdraw (feedback 892013b6)', () => {
     await svc.refresh();
     previewing.set(true);
 
-    await expectAsync(svc.withdraw(OPEN_TOPIC)).toBeResolvedTo(false);
+    await expect(svc.withdraw(OPEN_TOPIC)).resolves.toEqual(false);
     expect(sb.deletes).toEqual([]);
     expect(svc.error()).toBe('preview');
   });

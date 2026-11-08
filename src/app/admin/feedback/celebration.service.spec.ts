@@ -32,16 +32,16 @@ describe('CelebrationService', () => {
 
   it('reports reduced motion from the media query', () => {
     stubMotion(true);
-    expect(TestBed.inject(CelebrationService).reducedMotion).toBeTrue();
+    expect(TestBed.inject(CelebrationService).reducedMotion).toBe(true);
     stubMotion(false);
-    expect(TestBed.inject(CelebrationService).reducedMotion).toBeFalse();
+    expect(TestBed.inject(CelebrationService).reducedMotion).toBe(false);
   });
 
   it('treats a throwing matchMedia as no preference', () => {
     window.matchMedia = (() => {
       throw new Error('boom');
     }) as unknown as typeof window.matchMedia;
-    expect(TestBed.inject(CelebrationService).reducedMotion).toBeFalse();
+    expect(TestBed.inject(CelebrationService).reducedMotion).toBe(false);
   });
 
   it('attaches a decorative layer with the requested particles and removes it afterwards', fakeAsync(() => {
@@ -53,7 +53,7 @@ describe('CelebrationService', () => {
     expect(layer.querySelectorAll('i').length).toBe(7);
     expect(layer.style.pointerEvents).toBe('none');
     flush();
-    expect(layer.isConnected).toBeFalse();
+    expect(layer.isConnected).toBe(false);
     expect(layers().length).toBe(before);
   }));
 

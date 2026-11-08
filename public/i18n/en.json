@@ -6166,17 +6166,17 @@
       "planen": {
         "empty": "Nothing planned yet",
         "emptyHint": "Your Nachschub turns into an Einsatz.",
-        "go": "Plan now",
         "count": "{{n}} open",
         "needs": "{{n}} in supplies",
-        "route": "Open Einsatz"
+        "open": "Open planning"
       },
       "stats": {
         "missions": "{{n}} missions",
         "missionsOne": "1 mission",
         "week": "this week",
         "open": "Stats"
-      }
+      },
+      "tip": "{{action}} · Hotkey: {{key}}"
     },
     "hotkey": "Hotkey: {{key}}",
     "step": {
@@ -7411,6 +7411,11 @@
     "eyebrow": "Admin",
     "title": "Command centre",
     "subtitle": "Every admin tool in one place.",
+    "groups": {
+      "people": "People & access",
+      "operations": "Operations",
+      "content": "Content & data"
+    },
     "tiles": {
       "users": {
         "title": "Users",

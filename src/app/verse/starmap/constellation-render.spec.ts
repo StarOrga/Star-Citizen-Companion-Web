@@ -67,7 +67,7 @@ describe('constellation renderer', () => {
   it('adds the subtle brand-initials hint only to the supernova', () => {
     const r = recorder();
     renderConstellationWallpaper(r.ctx, { ...opts, supernova: true });
-    expect(r.log.some((l) => l.startsWith(`fillText(${BRAND_INITIALS}`))).toBeTrue();
+    expect(r.log.some((l) => l.startsWith(`fillText(${BRAND_INITIALS}`))).toBe(true);
   });
 
   it('draws only the current constellation large', () => {

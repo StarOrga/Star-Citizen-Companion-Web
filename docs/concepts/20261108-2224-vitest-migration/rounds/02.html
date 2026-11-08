@@ -1,0 +1,82 @@
+<section data-iteration="2" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Alle Unit-Tests laufen jetzt unter Vitest in echtem Chromium; Karma und Jasmine sind aus dem Projekt entfernt.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🧪</span><span><b>547 Spec-Dateien</b> grün unter Vitest, im echten Browser.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⚡</span><span>Testzeit <b>46 s statt 79 s</b> für die ganze Suite.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧹</span><span><b>Karma und Jasmine</b> samt Sonderregeln sind weg.</span></li>
+      </ul>
+    </div>
+    <ol class="fr-flow">
+      <li>Treiber stellt 405 Dateien formatgetreu um</li>
+      <li>24 Dateien von Hand nachgezogen</li>
+      <li>Fenster 1280 × 800, Sonderbreiten per <code>useViewport</code></li>
+      <li><code>npm test</code> und CI laufen nur noch Vitest</li>
+    </ol>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="6489 von 6490 Tests laufen, 1 überspringt sich selbst, wenn der Browser keine View Transition kann; Anforderung: kein Test geht beim Umzug verloren (geschätzt).">
+        <span class="fr-meter-name">🧩 Datenintegrität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6489 / 6490</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Testzeit 46 s gegen 79 s unter Karma; die Wandzeit schwankt mit der Last des Rechners (58–135 s). Anforderung: nicht langsamer als Karma (geschätzt).">
+        <span class="fr-meter-name">⚡ Performance</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">46 s</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 75%" data-tip="Drei Flakes behoben: i18n-fetch unter Last, Testreihenfolge bei codex-page, ein Spec, der aus einem anderen Spec importierte („No test suite found“). Danach 5 von 6 vollen Läufen grün; einmal rot: pause-offscreen, Ursache offen. Anforderung: kein Flake (geschätzt).">
+        <span class="fr-meter-name">🔁 Stabilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">5 / 6 Läufe</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 6 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_local}} · ○ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_local}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_prod}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-routine-prompt"
+          data-issue-title="[CHORE] Drop Karma wording from the headless feedback routine prompt"
+          data-issue-type="chore"
+          data-issue-body="docs/routine/tasks/scc-feedback-headless/SKILL.md (and its live copy in ~/.claude/scheduled-tasks, kept equal by scripts/check-routine-prompts.mjs) still says web-ci runs 'Karma' and tells workers to rerun once on 'a Karma disconnect'. Since the Vitest migration (concept 20261108-2224-vitest-migration) the unit job is Vitest and a Karma disconnect cannot happen. Update the repo copy, then npm run sync:routine-prompts -- --to-live. Left out of the migration PR because it changes the running routine's live prompt."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="Live-Routine"
+          data-routed="implement">
+        <span class="oq-label">Routine-Prompt nennt Karma</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Der Feedback-Routine-Prompt spricht noch von Karma und einem Karma-Disconnect.</dd>
+          <dt>{{final.fund_where}}</dt><dd><code>docs/routine/tasks/scc-feedback-headless/SKILL.md</code> und die Live-Kopie</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — die Änderung greift in die laufende Routine ein.</dd>
+        </dl>
+        <p class="oq-done">umgesetzt: Prompt nennt jetzt Vitest, Live-Kopie per <code>sync:routine-prompts --to-live</code> abgeglichen.</p>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Commit <code>2465b65c</code> · Treiber <code>scripts/jasmine-to-vitest.mjs</code>, Setup <code>src/app/testing/vitest-setup.ts</code>, <code>viewport.ts</code></li>
+      <li>Handarbeit: <code>pending()</code> → <code>context.skip</code> (das Schematic hatte 10 Tests ganz abgeschaltet), kein <code>compileComponents()</code> in fakeAsync, Catch-all-Routen, −0 / toBeCloseTo</li>
+      <li>Tests: 547 Dateien, 6489 grün, 1 übersprungen · <code>test:gate</code> 127 grün · Lint 0 Fehler · Typecheck grün</li>
+      <li>Nach QA: i18n-Kataloge per Import statt fetch (6 Specs), holdOnLower-Specs starten in neuem Task, Asset-Package-Fixtures in <code>asset-package.testing.ts</code> (Gate verbietet Spec-Importe); main gemergt, 2 Konflikt-Specs auf Vitest umgestellt</li>
+      <li><code>d-guards</code> war unberührt (5 s): gebaut mit der Vorauswahl, keine Änderung gegenüber dem Pilot</li>
+      <li>Ausnahme vom Agenten-Pfad: ein Bereich, streng aufeinander aufbauende Schritte, darum inline gebaut; geprüft von einem unabhängigen QA-Agenten</li>
+    </ul>
+  </details>
+  </div>
+</section>

@@ -23,20 +23,20 @@ describe('HqAppConnectionService', () => {
 
   it('nothing connected, or only Starscape: not connected', () => {
     const s = setup(null);
-    expect(s.everConnected()).toBeFalse();
-    expect(s.connected()).toBeFalse();
+    expect(s.everConnected()).toBe(false);
+    expect(s.connected()).toBe(false);
   });
 
   it('SCC app reporting a fresh life sign: connected', () => {
     const s = setup({ presence: { at: new Date().toISOString(), gameRunning: false } });
-    expect(s.everConnected()).toBeTrue();
-    expect(s.connected()).toBeTrue();
+    expect(s.everConnected()).toBe(true);
+    expect(s.connected()).toBe(true);
   });
 
   it('an old signal: ever connected but off', () => {
     const s = setup({ presence: { at: new Date(Date.now() - 3_600_000).toISOString(), gameRunning: true } });
-    expect(s.everConnected()).toBeTrue();
-    expect(s.connected()).toBeFalse();
+    expect(s.everConnected()).toBe(true);
+    expect(s.connected()).toBe(false);
   });
 
   it('derives the four states', () => {

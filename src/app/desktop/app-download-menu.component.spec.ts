@@ -47,12 +47,12 @@ describe('AppDownloadMenuComponent', () => {
   } = {}) {
     const lastSeenAt = opts.lastSeenAt ?? null;
     const canInstall = signal(!opts.mobile);
-    const ringsFor = jasmine.createSpy('ringsFor').and.resolveTo({
+    const ringsFor = vi.fn().mockName('ringsFor').mockResolvedValue({
       releases: opts.releases ?? [ring('stable', '1.2.0'), ring('beta', '1.3.0')],
       error: opts.error ?? null,
     });
     const conn: Partial<DesktopConnectionService> = {
-      refresh: jasmine.createSpy('refresh').and.resolveTo(undefined) as never,
+      refresh: vi.fn().mockName('refresh').mockResolvedValue(undefined) as never,
       for: () => (lastSeenAt ? { product: 'uploader', lastSeenAt, appVersion: null } : null),
       stateFor: (_p: DesktopProduct, now = Date.now()) => connectionState(lastSeenAt, now),
     };
@@ -141,7 +141,7 @@ describe('AppDownloadMenuComponent', () => {
     const { fixture, el } = setup({ product: 'starscape', role: 'admin' });
     await open(fixture, el);
     const notes = Array.from(el.querySelectorAll('.pop-note')).map((n) => n.textContent ?? '');
-    expect(notes.some((n) => n.includes('appMenu.prerelease'))).toBeTrue();
+    expect(notes.some((n) => n.includes('appMenu.prerelease'))).toBe(true);
   });
 
   it('offers Starscape stable to everyone, including a viewer', async () => {
@@ -185,7 +185,7 @@ describe('AppDownloadMenuComponent', () => {
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pop-dl'));
     expect(links.length).toBe(1);
     expect(links[0].getAttribute('href')).toBe('https://example.test/app-stable.exe');
-    expect(links[0].hasAttribute('download')).toBeTrue();
+    expect(links[0].hasAttribute('download')).toBe(true);
     expect(links[0].getAttribute('target')).toBe('_blank');
     expect(links[0].getAttribute('rel')).toBe('noopener noreferrer');
     const tooltip = fixture.debugElement.query(By.css('a.pop-dl')).injector.get(ScTooltipDirective).scTooltip();
@@ -221,7 +221,7 @@ describe('AppDownloadMenuComponent', () => {
 
   it('stays open on a modified click on the uploader page link, closes on a plain one', async () => {
     const { fixture, el } = setup({ product: 'uploader', role: 'admin' });
-    spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     await open(fixture, el);
 
     clickNoNav(el.querySelector('a.pop-link') as HTMLElement, { ctrlKey: true });

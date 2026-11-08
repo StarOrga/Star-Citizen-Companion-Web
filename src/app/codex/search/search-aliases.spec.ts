@@ -33,21 +33,21 @@ describe('search aliases (C6)', () => {
   it('expands like a synonym in the client matcher', () => {
     setAliasLanguage('de');
     const m = searchMatcher('connie')!;
-    expect(m('Constellation Andromeda')).toBeTrue();
-    expect(m('Cutlass Black')).toBeFalse();
+    expect(m('Constellation Andromeda')).toBe(true);
+    expect(m('Cutlass Black')).toBe(false);
   });
 
   it('does not expand German words when English is active', () => {
     setAliasLanguage('en');
-    expect(searchMatcher('quantenantrieb')!('Quantum Drive')).toBeFalse();
+    expect(searchMatcher('quantenantrieb')!('Quantum Drive')).toBe(false);
     setAliasLanguage('de');
-    expect(searchMatcher('quantenantrieb')!('Quantum Drive')).toBeTrue();
+    expect(searchMatcher('quantenantrieb')!('Quantum Drive')).toBe(true);
   });
 
   it('adds the alias to the server ILIKE patterns', () => {
     setAliasLanguage('de');
     const group = ilikeTokenGroups('connie')[0];
-    expect(group.some((p) => p.includes('constellation'))).toBeTrue();
+    expect(group.some((p) => p.includes('constellation'))).toBe(true);
   });
 });
 
@@ -101,7 +101,7 @@ describe('search query parse (C2, C8)', () => {
 
   it('a size chip is switchable S1 to S3', () => {
     const chip = parseQuery('s1').chips[0];
-    expect(chip.switchable).toBeTrue();
+    expect(chip.switchable).toBe(true);
     const next = switchChip(chip, '3');
     expect(next.filter).toEqual({ size: 3 });
     expect(next.labelParams).toEqual({ size: 3 });
@@ -119,7 +119,7 @@ describe('search query parse (C2, C8)', () => {
   });
 
   it('the size menu has more than 7 values, so it gets the mini search', () => {
-    expect(needsMiniSearch(sizeChip(2))).toBeTrue();
+    expect(needsMiniSearch(sizeChip(2))).toBe(true);
     expect(GRADE_VALUES.length).toBe(4);
   });
 });

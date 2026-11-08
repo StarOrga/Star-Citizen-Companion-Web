@@ -24,10 +24,10 @@ function mount(over: Partial<Record<string, unknown>> = {}) {
       rows: [row('k', 'Karna', { qty: 1 })],
       all: { commands: ['/hq'], fragment: 'inventar', queryParams: { bestand: 'inventar', cat: 'weapons' } },
     }),
-    refresh: jasmine.createSpy('refresh'),
+    refresh: vi.fn().mockName('refresh'),
     ...over,
   };
-  const cart = { open: jasmine.createSpy('open').and.resolveTo(true) };
+  const cart = { open: vi.fn().mockName('open').mockResolvedValue(true) };
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
@@ -87,7 +87,7 @@ describe('MerklisteComponent (Schnellzugriff)', () => {
     const f = mount();
     open(f);
     const sections = Array.from(f.el.querySelectorAll('.sec h4')).map((h) => h.textContent!.trim());
-    expect(sections.some((s) => s.includes('quick.section.inventar'))).toBeTrue();
+    expect(sections.some((s) => s.includes('quick.section.inventar'))).toBe(true);
     expect(sections.join(' ').toLowerCase()).not.toContain('nachschub');
     const links = Array.from(f.el.querySelectorAll<HTMLAnchorElement>('a.all'));
     expect(links[1].getAttribute('href')).toContain('bestand=inventar');

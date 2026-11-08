@@ -20,7 +20,7 @@ describe('shared stock gain (H4)', () => {
     // a is already done (closed by an earlier pass), b and c are open; stock rose by 2 against a baseline of 0.
     const ev = evaluateNachschub([line('a', 'x', 1, true), line('b', 'x', 1), line('c', 'x', 1)], { a: 0, b: 0, c: 0 }, owned, new Map());
     expect(ev.closeIds).toEqual(['b']);
-    expect(ev.statuses.get('c')?.closed).toBeFalse();
+    expect(ev.statuses.get('c')?.closed).toBe(false);
   });
 
   it('a partly filled older line still takes its share (the rest is what is left for the next line)', () => {
@@ -63,7 +63,7 @@ describe('baseline follows the stock down (M1)', () => {
   it('lowers a baseline above the current stock and reports the snapshot as changed', () => {
     const ev = evaluateNachschub([line('a', 'x', 5)], { a: 10 }, () => 0);
     expect(ev.snapshot['a']).toBe(0);
-    expect(ev.snapshotChanged).toBeTrue();
+    expect(ev.snapshotChanged).toBe(true);
   });
 
   it('a later purchase then closes the line', () => {
@@ -76,7 +76,7 @@ describe('baseline follows the stock down (M1)', () => {
     const snap = { a: 2 };
     const ev = evaluateNachschub([line('a', 'x', 5)], snap, () => 3);
     expect(ev.snapshot).toBe(snap);
-    expect(ev.snapshotChanged).toBeFalse();
+    expect(ev.snapshotChanged).toBe(false);
   });
 
   it('a line without a baseline starts at the current stock (migrated lines)', () => {
@@ -105,8 +105,8 @@ describe('stock matching (AUD-8)', () => {
 
   it('a material line counts the cargo crates of that ingredient, not ore', () => {
     expect(stockQtyOf([row(CRATE, 4), row(`item:${CRATE}`, 1), row(ORE, 9)], 'Iron')).toBe(5);
-    expect(stockMatches(ORE, 'Iron')).toBeFalse();
-    expect(stockMatches(ORE, 'Iron_Ore')).toBeFalse();
+    expect(stockMatches(ORE, 'Iron')).toBe(false);
+    expect(stockMatches(ORE, 'Iron_Ore')).toBe(false);
   });
 
   it('an exact crate class still matches itself', () => {
@@ -115,6 +115,6 @@ describe('stock matching (AUD-8)', () => {
 
   it('ignores rows without a class and bad quantities', () => {
     expect(stockQtyOf([row(null, 3), row('', 3), { class_name: 'x', qty: 'abc' }], 'x')).toBe(0);
-    expect(stockMatches('x', '')).toBeFalse();
+    expect(stockMatches('x', '')).toBe(false);
   });
 });

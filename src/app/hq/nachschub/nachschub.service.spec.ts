@@ -209,7 +209,7 @@ describe('NachschubService', () => {
       addWish('rattler', 1);
       supplies.max = 1;
       const r = await create([{ key: 'item:medpen' }, { key: 'item:rattler' }]);
-      expect(r.ok).toBeTrue();
+      expect(r.ok).toBe(true);
       expect(r.warn).toEqual({ key: 'hq.nachschub.partial', params: { count: 1 } });
       expect(wish.qty('medpen')).toBe(0);
       expect(wish.qty('rattler')).toBe(1);
@@ -245,7 +245,7 @@ describe('NachschubService', () => {
       server.push(row('other', 1));
       addWish('medpen', 1);
       const r = await create([{ key: 'item:medpen' }]);
-      expect(r.ok).toBeTrue();
+      expect(r.ok).toBe(true);
       expect(upserts()).toBe(1);
       expect(server.find((s) => s.id === r.id)?.slot).toBe(2);
     });
@@ -254,7 +254,7 @@ describe('NachschubService', () => {
       conflictOnce = () => server.push(row('other', 1));
       addWish('medpen', 1);
       const r = await create([{ key: 'item:medpen' }]);
-      expect(r.ok).toBeTrue();
+      expect(r.ok).toBe(true);
       expect(upserts()).toBe(2);
       expect(server.find((s) => s.id === r.id)?.slot).toBe(2);
       expect(svc.packages().find((p) => p.id === r.id)?.slot).toBe(2);
@@ -284,7 +284,7 @@ describe('NachschubService', () => {
       const cold = TestBed.inject(NachschubService);
       addWish('rattler', 1);
       const r = await cold.createFromWishlist({ picks: [{ key: 'item:rattler' }], name: 'Kalt' });
-      expect(r.ok).toBeTrue();
+      expect(r.ok).toBe(true);
       expect(server.find((s) => s.id === r.id)!.snapshot).toEqual({});
     });
 
@@ -293,7 +293,7 @@ describe('NachschubService', () => {
       const r = await create([{ key: 'item:medpen' }]);
       addWish('rattler', 1);
       const u = await r.undo!();
-      expect(u.ok).toBeTrue();
+      expect(u.ok).toBe(true);
       expect(wish.qty('medpen')).toBe(3);
       expect(wish.qty('rattler')).toBe(1);
       expect(supplies.items().length).toBe(0);
@@ -310,7 +310,7 @@ describe('NachschubService', () => {
       addWish('rattler', 2); // a wish added during the toast window
       wish.rows.update((rs) => rs.map((x) => (x.className === 'medpen' ? { ...x, qty: 4 } : x))); // and one more medpen
       const u = await r.undo!();
-      expect(u.ok).toBeTrue();
+      expect(u.ok).toBe(true);
       expect(wish.qty('rattler')).toBe(2);
       expect(wish.qty('medpen')).toBe(1);
       expect(supplies.linesOfPackage(made.id!).length).toBe(1);
@@ -341,10 +341,10 @@ describe('NachschubService', () => {
       const made = await create([{ key: 'item:medpen' }]);
       failDrop = true;
       const r = await svc.remove(made.id!, true);
-      expect(r.ok).toBeFalse();
+      expect(r.ok).toBe(false);
       expect(supplies.linesOfPackage(made.id!).length).toBe(1);
       expect(wish.qty('medpen')).toBe(0);
-      expect(svc.packages().some((p) => p.id === made.id)).toBeTrue();
+      expect(svc.packages().some((p) => p.id === made.id)).toBe(true);
     });
 
     it('M7: undoing a delete when the slot was taken meanwhile uses the next free slot', async () => {
@@ -353,7 +353,7 @@ describe('NachschubService', () => {
       const r = await svc.remove(made.id!, false);
       server.push(row('other', 1));
       const u = await r.undo!();
-      expect(u.ok).toBeTrue();
+      expect(u.ok).toBe(true);
       const back = server.find((s) => s.id === made.id)!;
       expect(back.deleted_at).toBeNull();
       expect(back.slot).toBe(2);
@@ -383,12 +383,12 @@ describe('NachschubService', () => {
       inventory.items.set([{ class_name: 'medpen', qty: 7 }]);
       addWish('medpen', 3);
       const r = await svc.addFromWishlist(made.id!, [{ key: 'item:medpen' }]);
-      expect(r.ok).toBeTrue();
+      expect(r.ok).toBe(true);
       expect(supplies.linesOfPackage(made.id!)[0].qty).toBe(5);
       expect(svc.packages()[0].snapshot[lineId]).toBe(5);
 
       const u = await r.undo!();
-      expect(u.ok).toBeTrue();
+      expect(u.ok).toBe(true);
       const lines = supplies.linesOfPackage(made.id!);
       expect(lines.length).toBe(1);
       expect(lines[0].qty).toBe(2);
@@ -413,7 +413,7 @@ describe('NachschubService', () => {
       server.push(row('a', 1));
       await svc.ensureLoaded();
       server[0].deleted_at = '2026-11-08T10:00:00Z'; // deleted on another device
-      expect(await svc.rename('a', 'Neu')).toBeFalse();
+      expect(await svc.rename('a', 'Neu')).toBe(false);
       expect(svc.packages().length).toBe(0);
       expect(server[0].deleted_at).not.toBeNull();
       expect(upserts()).toBe(0);
@@ -422,7 +422,7 @@ describe('NachschubService', () => {
     it('a rename sends only the name', async () => {
       server.push(row('a', 1));
       await svc.ensureLoaded();
-      expect(await svc.rename('a', 'Neu')).toBeTrue();
+      expect(await svc.rename('a', 'Neu')).toBe(true);
       const upd = calls.find((c) => chainArgs(c, 'update'))!;
       expect(Object.keys(chainArgs(upd, 'update')![0] as object).sort()).toEqual(['name', 'updated_at']);
     });
@@ -432,7 +432,7 @@ describe('NachschubService', () => {
       await svc.ensureLoaded();
       server.push(row('other', 1));
       const r = await svc.reactivate('old');
-      expect(r.ok).toBeTrue();
+      expect(r.ok).toBe(true);
       expect(server.find((s) => s.id === 'old')?.slot).toBe(2);
     });
   });
@@ -455,8 +455,8 @@ describe('NachschubService', () => {
       await svc.reload();
       inventory.items.set([{ class_name: 'laser', qty: 1 }]);
       await svc.reconcile();
-      expect(supplies.items().find((l) => l.id === la)!.done).toBeTrue();
-      expect(supplies.items().find((l) => l.id === lb)!.done).toBeFalse();
+      expect(supplies.items().find((l) => l.id === la)!.done).toBe(true);
+      expect(supplies.items().find((l) => l.id === lb)!.done).toBe(false);
       expect(svc.packages().find((p) => p.id === 'a')!.status).toBe('archived');
       expect(svc.packages().find((p) => p.id === 'b')!.status).toBe('active');
     });
@@ -471,7 +471,7 @@ describe('NachschubService', () => {
       expect(server[0].snapshot[la]).toBe(0);
       inventory.items.set([{ class_name: 'laser', qty: 5 }]);
       await svc.reconcile();
-      expect(supplies.items().find((l) => l.id === la)!.done).toBeTrue();
+      expect(supplies.items().find((l) => l.id === la)!.done).toBe(true);
     });
 
     it('M2: nothing is compared while the stock failed to load', async () => {
@@ -483,8 +483,8 @@ describe('NachschubService', () => {
       inventory.error.set('errors.generic');
       const before = calls.length;
       await svc.reconcile();
-      expect(supplies.items()[0].done).toBeFalse();
-      expect(calls.slice(before).some((c) => chainArgs(c, 'update'))).toBeFalse();
+      expect(supplies.items()[0].done).toBe(false);
+      expect(calls.slice(before).some((c) => chainArgs(c, 'update'))).toBe(false);
     });
 
     it('M2: a migrated line (no baseline) starts counting at the stock of the first pass, then a purchase closes it', async () => {
@@ -494,10 +494,10 @@ describe('NachschubService', () => {
       inventory.items.set([{ class_name: 'laser', qty: 2 }]);
       await svc.reconcile();
       expect(server[0].snapshot[la]).toBe(2);
-      expect(supplies.items()[0].done).toBeFalse();
+      expect(supplies.items()[0].done).toBe(false);
       inventory.items.set([{ class_name: 'laser', qty: 3 }]);
       await svc.reconcile();
-      expect(supplies.items()[0].done).toBeTrue();
+      expect(supplies.items()[0].done).toBe(true);
     });
 
     it('AUD-8: a manual row and a cargo crate close the lines they stand for', async () => {
@@ -511,7 +511,7 @@ describe('NachschubService', () => {
         { class_name: 'Carryable_TBO_FL_32SCU_Commodity_Metal_Iron', qty: 2 },
       ]);
       await svc.reconcile();
-      expect(supplies.items().every((l) => l.done)).toBeTrue();
+      expect(supplies.items().every((l) => l.done)).toBe(true);
     });
   });
 });

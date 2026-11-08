@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component, signal, ChangeDetectionStrategy, input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -49,16 +50,18 @@ function click(el: HTMLElement, init: MouseEventInit = {}): void {
  * click, so Ctrl/⌘/middle click keep opening a new tab.
  */
 describe('ShellComponent navigation', () => {
-  let request: jasmine.Spy;
+  let request: Mock;
   const betaState = signal({ verse: false, codex: true });
 
   function setup() {
-    request = jasmine.createSpy('request').and.returnValue(true);
+    request = vi.fn().mockName('request').mockReturnValue(true);
     TestBed.configureTestingModule({
       imports: [ShellComponent],
       providers: [
         provideTranslateService(),
-        provideRouter([]),
+        // Links the specs click land somewhere: an unmatched route throws after the
+        // test, which Vitest counts as a failed run (Karma only logged it).
+        provideRouter([{ path: '**', children: [] }]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request } },
         { provide: AuthService, useValue: { ready: () => false, realUser: () => null, user: signal(null), isAuthenticated: signal(false), signOut: () => Promise.resolve() } },
@@ -96,7 +99,7 @@ describe('ShellComponent navigation', () => {
     const fixture = setup();
     const brand = fixture.nativeElement.querySelector('a.brand') as HTMLAnchorElement | null;
 
-    expect(brand).withContext('brand must be an <a>, not a div/button').toBeTruthy();
+    expect(brand, 'brand must be an <a>, not a div/button').toBeTruthy();
     expect(brand!.getAttribute('href')).toBe('/verse');
     expect(brand!.querySelector('img.logo')).toBeTruthy();
     expect(brand!.getAttribute('aria-label')).toBeTruthy();
@@ -167,14 +170,14 @@ describe('ShellComponent navigation', () => {
     const fixture = setup();
     const links = Array.from(fixture.nativeElement.querySelectorAll('nav.nav > a')) as HTMLAnchorElement[];
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['/verse', '/codex', '/hq', '/verse/gallery']);
-    expect(links[3].classList.contains('admin-link')).toBeFalse();
+    expect(links[3].classList.contains('admin-link')).toBe(false);
   });
 
   it('marks only the Starscape entry on the gallery', () => {
-    expect(isVerseGallery('/verse/gallery?image=x')).toBeTrue();
-    expect(isVerseGallery('/verse/gallery/constellations')).toBeTrue();
-    expect(isVerseGallery('/verse/galleryx')).toBeFalse();
-    expect(isVerseGallery('/verse/news')).toBeFalse();
+    expect(isVerseGallery('/verse/gallery?image=x')).toBe(true);
+    expect(isVerseGallery('/verse/gallery/constellations')).toBe(true);
+    expect(isVerseGallery('/verse/galleryx')).toBe(false);
+    expect(isVerseGallery('/verse/news')).toBe(false);
   });
 
   it('reaches the hangar only through HQ, never as its own top-level entry', () => {
@@ -183,7 +186,7 @@ describe('ShellComponent navigation', () => {
     const hq = fixture.nativeElement.querySelector('nav.nav > a[href="/hq"]') as HTMLAnchorElement | null;
     expect(hq).not.toBeNull();
     // Every user has an HQ: normal accent, never the red elevated-access style.
-    expect(hq?.classList.contains('admin-link')).toBeFalse();
+    expect(hq?.classList.contains('admin-link')).toBe(false);
   });
 
   /**

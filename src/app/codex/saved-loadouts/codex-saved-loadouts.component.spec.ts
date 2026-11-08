@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
@@ -45,8 +46,8 @@ describe('SavedLoadoutsService', () => {
 
 describe('CodexSavedLoadoutsComponent', () => {
   let fixture: ComponentFixture<CodexSavedLoadoutsComponent>;
-  let prompt: jasmine.Spy;
-  let confirm: jasmine.Spy;
+  let prompt: Mock;
+  let confirm: Mock;
 
   function render(draft: DraftMap, readOnly = false): HTMLElement {
     fixture = TestBed.createComponent(CodexSavedLoadoutsComponent);
@@ -60,8 +61,8 @@ describe('CodexSavedLoadoutsComponent', () => {
 
   beforeEach(() => {
     localStorage.removeItem(SAVED_LOADOUTS_STORAGE_KEY);
-    prompt = jasmine.createSpy('prompt').and.resolveTo('Mining');
-    confirm = jasmine.createSpy('confirm').and.resolveTo(true);
+    prompt = vi.fn().mockName('prompt').mockResolvedValue('Mining');
+    confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
     TestBed.configureTestingModule({
       imports: [CodexSavedLoadoutsComponent],
       providers: [
@@ -74,10 +75,10 @@ describe('CodexSavedLoadoutsComponent', () => {
 
   it('cannot save an empty or read-only draft', () => {
     let el = render(new Map());
-    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBeTrue();
+    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBe(true);
     fixture.destroy();
     el = render(new Map([[PORT, 'GUN_A']]), true);
-    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBeTrue();
+    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('saves the draft under the prompted name and recalls it', async () => {
@@ -101,7 +102,7 @@ describe('CodexSavedLoadoutsComponent', () => {
   });
 
   it('a cancelled prompt saves nothing', async () => {
-    prompt.and.resolveTo(null);
+    prompt.mockResolvedValue(null);
     render(new Map([[PORT, 'GUN_A']]));
     await fixture.componentInstance.saveCurrent();
     expect(TestBed.inject(SavedLoadoutsService).all().length).toBe(0);
@@ -115,14 +116,14 @@ describe('CodexSavedLoadoutsComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.remove')).not.toBeNull();
     await fixture.componentInstance.removeSelected(e);
-    expect(confirm).toHaveBeenCalledWith(jasmine.objectContaining({ tone: 'danger' }));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ tone: 'danger' }));
     expect(store.all().length).toBe(0);
   });
 
   it('shows the cart action disabled until a cart exists', () => {
     const el = render(new Map([[PORT, 'GUN_A']]));
     const cart = el.querySelector('.cart') as HTMLButtonElement;
-    expect(cart.disabled).toBeTrue();
+    expect(cart.disabled).toBe(true);
     expect(cart.getAttribute('aria-describedby')).toBe('codex-saved-loadouts-cart-hint');
     expect(fixture.componentInstance.cartRequests()).toEqual([{ className: 'GUN_A', portPath: PORT, quantity: 1 }]);
   });

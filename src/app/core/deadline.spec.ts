@@ -44,7 +44,7 @@ describe('deadline', () => {
       // A change here means an RPC was added or removed — re-check that it
       // is stable / writes nothing (see the doc comment on READ_RPCS).
       expect(READ_RPCS.size).toBe(35);
-      expect(READ_RPCS.has('hangar_follow_snapshot')).toBeFalse();
+      expect(READ_RPCS.has('hangar_follow_snapshot')).toBe(false);
     });
   });
 
@@ -64,7 +64,7 @@ describe('deadline', () => {
 
     it('passes a write through without adding a signal', async () => {
       const seen: RequestInit[] = [];
-      const base = jasmine.createSpy('base').and.callFake((_i: RequestInfo | URL, init?: RequestInit) => {
+      const base = vi.fn().mockName('base').mockImplementation((_i: RequestInfo | URL, init?: RequestInit) => {
         if (init) seen.push(init);
         return Promise.resolve(new Response('{}'));
       });
@@ -81,7 +81,7 @@ describe('deadline', () => {
       const f = createReadDeadlineFetch(REST, 30, hangingFetch(seen));
       await f(`${REST}rpc/codex_armor_rating`, { method: 'POST', body: '{}' }).catch(() => undefined);
       expect(seen[0].signal).toBeDefined();
-      expect(seen[0].signal!.aborted).toBeTrue();
+      expect(seen[0].signal!.aborted).toBe(true);
     });
 
     it('forwards a caller abort with the caller reason', async () => {
@@ -120,9 +120,9 @@ describe('deadline', () => {
     it('follows the outer signal', () => {
       const outer = new AbortController();
       const s = deadlineSignal(10_000, outer.signal);
-      expect(s.aborted).toBeFalse();
+      expect(s.aborted).toBe(false);
       outer.abort('stop');
-      expect(s.aborted).toBeTrue();
+      expect(s.aborted).toBe(true);
       expect(s.reason).toBe('stop');
     });
   });

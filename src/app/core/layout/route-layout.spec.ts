@@ -53,7 +53,7 @@ describe('route layout coverage (data.layout)', () => {
     expect(byUrl.get('/verse/explorer')).toBe('cinematic');
     expect(byUrl.get('/codex')).toBe('cinematic');
     // /codex/index only redirects to /codex#more, the lower part of the one Codex page (#319).
-    expect(byUrl.has('/codex/index')).toBeFalse();
+    expect(byUrl.has('/codex/index')).toBe(false);
     expect(byUrl.get('/codex/:kind/:className')).toBe('content');
     expect(byUrl.get('/hq/hangar')).toBe('tool');
     expect(byUrl.get('/hq/hangar/:id')).toBe('content');

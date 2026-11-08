@@ -76,20 +76,20 @@ describe('describeError', () => {
   });
 
   it('toErrorKey logs exactly once and returns only the key', () => {
-    const warn = spyOn(console, 'warn');
+    const warn = vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const err = new Error('boom');
     const key = toErrorKey('codex', 'list', err, { id: 7 });
     expect(key).toBe('errors.generic');
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.calls.mostRecent().args[0]).toBe('[codex] list failed');
-    expect(warn.calls.mostRecent().args[1]).toEqual({ id: 7, error: err });
+    expect(vi.mocked(warn).mock.lastCall![0]).toBe('[codex] list failed');
+    expect(vi.mocked(warn).mock.lastCall![1]).toEqual({ id: 7, error: err });
   });
 
   it('every key describeError can return (plus errors.retry) exists in de and en', () => {
     const keys = [...ERROR_KINDS.map((k) => `errors.${k}`), 'errors.retry'];
     for (const key of keys) {
-      expect(typeof lookup(de as Catalogue, key)).withContext(`de ${key}`).toBe('string');
-      expect(typeof lookup(en as Catalogue, key)).withContext(`en ${key}`).toBe('string');
+      expect(typeof lookup(de as Catalogue, key), `de ${key}`).toBe('string');
+      expect(typeof lookup(en as Catalogue, key), `en ${key}`).toBe('string');
     }
   });
 });

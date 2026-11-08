@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -14,16 +15,16 @@ import { HangarService } from './hangar.service';
 // shared import UI, and shows the empty state when nothing arrives.
 describe('HangarImportPageComponent', () => {
   let fixture: ComponentFixture<HangarImportPageComponent>;
-  let bridge: { waitForExtension: jasmine.Spy; requestPayload: jasmine.Spy; confirmImported: jasmine.Spy; discard: jasmine.Spy };
+  let bridge: { waitForExtension: Mock; requestPayload: Mock; confirmImported: Mock; discard: Mock };
 
   const SHIPS = [{ name: 'Carrack', ship_name: null, ship_code: 'ANVL_Carrack', entity_type: 'ship' }];
 
   async function setup(payload: unknown): Promise<void> {
     bridge = {
-      waitForExtension: jasmine.createSpy().and.resolveTo(true),
-      requestPayload: jasmine.createSpy().and.resolveTo(payload),
-      confirmImported: jasmine.createSpy(),
-      discard: jasmine.createSpy(),
+      waitForExtension: vi.fn().mockResolvedValue(true),
+      requestPayload: vi.fn().mockResolvedValue(payload),
+      confirmImported: vi.fn(),
+      discard: vi.fn(),
     };
     TestBed.configureTestingModule({
       imports: [HangarImportPageComponent],
@@ -31,16 +32,16 @@ describe('HangarImportPageComponent', () => {
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: ExtensionBridgeService, useValue: bridge },
-        { provide: AnalyticsService, useValue: { capture: jasmine.createSpy(), flags: () => ({}) } },
+        { provide: AnalyticsService, useValue: { capture: vi.fn(), flags: () => ({}) } },
         { provide: LocaleService, useValue: { language: () => 'en', region: () => 'DE' } },
         {
           provide: CodexService,
           useValue: {
-            getShipsByClassNames: jasmine.createSpy().and.resolveTo(new Map()),
-            listByKind: jasmine.createSpy().and.resolveTo({ rows: [], count: 0 }),
+            getShipsByClassNames: vi.fn().mockResolvedValue(new Map()),
+            listByKind: vi.fn().mockResolvedValue({ rows: [], count: 0 }),
           },
         },
-        { provide: HangarService, useValue: { ships: signal([]), addShip: jasmine.createSpy(), updateShip: jasmine.createSpy() } },
+        { provide: HangarService, useValue: { ships: signal([]), addShip: vi.fn(), updateShip: vi.fn() } },
       ],
     });
     fixture = TestBed.createComponent(HangarImportPageComponent);
@@ -59,7 +60,7 @@ describe('HangarImportPageComponent', () => {
       .flatMap((c) => c.queryAll((d) => d.componentInstance instanceof HangarImportComponent))[0]
       .componentInstance as HangarImportComponent;
     expect(child.preloadedRows()).toEqual(SHIPS);
-    expect(child.embedded()).toBeTrue();
+    expect(child.embedded()).toBe(true);
   });
 
   it('shows the empty state when the extension sends nothing', async () => {

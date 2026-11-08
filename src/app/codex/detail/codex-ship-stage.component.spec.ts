@@ -89,7 +89,7 @@ describe('CodexShipStageComponent', () => {
   it('emits viewToggle when the 2D/3D switch is pressed', () => {
     fixture.componentRef.setInput('has3dView', true);
     fixture.detectChanges();
-    const spy = jasmine.createSpy('viewToggle');
+    const spy = vi.fn().mockName('viewToggle');
     fixture.componentInstance.viewToggle.subscribe(spy);
     const btn = fixture.nativeElement.querySelector('.view-switch') as HTMLButtonElement;
     expect(btn).toBeTruthy();

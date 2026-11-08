@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexHoloShareComponent, reusableShareLink } from './codex-holo-share.component';
@@ -57,28 +58,28 @@ describe('reusableShareLink (#645)', () => {
 
 describe('CodexHoloShareComponent', () => {
   let fixture: ComponentFixture<CodexHoloShareComponent>;
-  let createShareLink: jasmine.Spy;
-  let revokeShareLink: jasmine.Spy;
-  let refreshFollowedLoadout: jasmine.Spy;
-  let listShareLinks: jasmine.Spy;
-  let confirm: jasmine.Spy;
-  let ensureEditable: jasmine.Spy;
+  let createShareLink: Mock;
+  let revokeShareLink: Mock;
+  let refreshFollowedLoadout: Mock;
+  let listShareLinks: Mock;
+  let confirm: Mock;
+  let ensureEditable: Mock;
   let calls: string[];
 
   function setup(): void {
     calls = [];
-    createShareLink = jasmine.createSpy('createShareLink').and.callFake(async () => {
+    createShareLink = vi.fn().mockName('createShareLink').mockImplementation(async () => {
       calls.push('create');
       return link({ id: 'new', token: 'newtoken0001' });
     });
-    revokeShareLink = jasmine.createSpy('revokeShareLink').and.resolveTo(true);
-    refreshFollowedLoadout = jasmine.createSpy('refreshFollowedLoadout');
-    listShareLinks = jasmine.createSpy('listShareLinks').and.callFake(async () => {
+    revokeShareLink = vi.fn().mockName('revokeShareLink').mockResolvedValue(true);
+    refreshFollowedLoadout = vi.fn().mockName('refreshFollowedLoadout');
+    listShareLinks = vi.fn().mockName('listShareLinks').mockImplementation(async () => {
       calls.push('list');
       return [];
     });
-    confirm = jasmine.createSpy('confirm').and.resolveTo(true);
-    ensureEditable = jasmine.createSpy('ensureEditable').and.resolveTo('forked');
+    confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
+    ensureEditable = vi.fn().mockName('ensureEditable').mockResolvedValue('forked');
     TestBed.configureTestingModule({
       imports: [CodexHoloShareComponent],
       providers: [
@@ -113,12 +114,12 @@ describe('CodexHoloShareComponent', () => {
     let emitted = false;
     fixture.componentInstance.copyCurrentLink.subscribe(() => (emitted = true));
     btn.click();
-    expect(emitted).toBeTrue();
+    expect(emitted).toBe(true);
   });
 
   it('lists the config\'s active links with created-at, copy and revoke', async () => {
     setup();
-    listShareLinks.and.resolveTo([link({ id: 'a' }), link({ id: 'b', token: 'second000001' })]);
+    listShareLinks.mockResolvedValue([link({ id: 'a' }), link({ id: 'b', token: 'second000001' })]);
     fixture.componentRef.setInput('config', config({}));
     await settle();
     const el: HTMLElement = fixture.nativeElement;
@@ -131,12 +132,12 @@ describe('CodexHoloShareComponent', () => {
 
   it('a failed link list is an error with retry — never "no links"', async () => {
     setup();
-    listShareLinks.and.rejectWith({ message: 'Failed to fetch' });
+    listShareLinks.mockRejectedValue({ message: 'Failed to fetch' });
     fixture.componentRef.setInput('config', config({}));
     await settle();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.links-err')).toBeTruthy();
-    listShareLinks.and.resolveTo([link({})]);
+    listShareLinks.mockResolvedValue([link({})]);
     (el.querySelector('.links-err button') as HTMLButtonElement).click();
     await settle();
     expect(el.querySelectorAll('.link-row').length).toBe(1);
@@ -144,9 +145,9 @@ describe('CodexHoloShareComponent', () => {
 
   it('Save & share saves the draft BEFORE it asks for links, then mints and copies', async () => {
     setup();
-    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     const saved = config({ loadout: [LASER], updatedAt: '2026-10-08' });
-    const saveDraft = jasmine.createSpy('saveDraft').and.callFake(async () => {
+    const saveDraft = vi.fn().mockName('saveDraft').mockImplementation(async () => {
       calls.push('save');
       return saved;
     });
@@ -166,9 +167,9 @@ describe('CodexHoloShareComponent', () => {
 
   it('reuses the newest matching link instead of minting a duplicate', async () => {
     setup();
-    spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     const existing = link({ id: 'keep', token: 'keeptoken001', loadout: [] });
-    listShareLinks.and.resolveTo([existing]);
+    listShareLinks.mockResolvedValue([existing]);
     fixture.componentRef.setInput('config', config({}));
     await settle();
     (fixture.nativeElement.querySelector('.save-share') as HTMLButtonElement).click();
@@ -183,7 +184,7 @@ describe('CodexHoloShareComponent', () => {
     fixture.componentRef.setInput('unsavedChanges', 2);
     fixture.componentRef.setInput('saveDraft', async () => null);
     await settle();
-    listShareLinks.calls.reset();
+    listShareLinks.mockClear();
     (fixture.nativeElement.querySelector('.save-share') as HTMLButtonElement).click();
     await settle();
     expect(listShareLinks).not.toHaveBeenCalled();
@@ -192,39 +193,39 @@ describe('CodexHoloShareComponent', () => {
 
   it('a followed config goes through the fork guard first; declining shares nothing', async () => {
     setup();
-    spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     fixture.componentRef.setInput('config', config({ followsOwner: true, ownerName: 'Kestrel', ownerUpdatedAt: '2026-09-01' }));
     await settle();
     expect(fixture.nativeElement.querySelector('.follow-hint')).toBeTruthy();
     expect(listShareLinks).not.toHaveBeenCalled(); // a following copy has no links of its own
 
-    ensureEditable.and.resolveTo('cancelled');
+    ensureEditable.mockResolvedValue('cancelled');
     (fixture.nativeElement.querySelector('.save-share') as HTMLButtonElement).click();
     await settle();
     expect(createShareLink).not.toHaveBeenCalled();
 
-    ensureEditable.and.resolveTo('forked');
+    ensureEditable.mockResolvedValue('forked');
     let refreshed: HangarShipConfig | null = null;
     fixture.componentInstance.configRefreshed.subscribe((c) => (refreshed = c));
     (fixture.nativeElement.querySelector('.save-share') as HTMLButtonElement).click();
     await settle();
-    expect(refreshed!.followsOwner).toBeFalse();
+    expect(refreshed!.followsOwner).toBe(false);
     expect(createShareLink).toHaveBeenCalled();
   });
 
   it('revoke asks first in the app dialog (danger tone) and only then revokes', async () => {
     setup();
-    listShareLinks.and.resolveTo([link({ id: 'r1' })]);
+    listShareLinks.mockResolvedValue([link({ id: 'r1' })]);
     fixture.componentRef.setInput('config', config({}));
     await settle();
-    confirm.and.resolveTo(false);
+    confirm.mockResolvedValue(false);
     (fixture.nativeElement.querySelector('.link-row .revoke') as HTMLButtonElement).click();
     await settle();
-    expect(confirm).toHaveBeenCalledWith(jasmine.objectContaining({ tone: 'danger' }));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ tone: 'danger' }));
     expect(revokeShareLink).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelectorAll('.link-row').length).toBe(1);
 
-    confirm.and.resolveTo(true);
+    confirm.mockResolvedValue(true);
     (fixture.nativeElement.querySelector('.link-row .revoke') as HTMLButtonElement).click();
     await settle();
     expect(revokeShareLink).toHaveBeenCalledWith('r1');
@@ -232,10 +233,10 @@ describe('CodexHoloShareComponent', () => {
   });
 
   it('says so when the clipboard refuses the copy (AUD-312)', async () => {
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     setup();
-    listShareLinks.and.resolveTo([link({})]);
-    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new DOMException('denied', 'NotAllowedError'));
+    listShareLinks.mockResolvedValue([link({})]);
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new DOMException('denied', 'NotAllowedError'));
     fixture.componentRef.setInput('config', config({}));
     await settle();
     expect(fixture.nativeElement.querySelector('.copy-failed')).toBeNull();
@@ -259,11 +260,11 @@ describe('CodexHoloShareComponent', () => {
 
   it('forgets the links when the ship changes — a token never shows under another hull', async () => {
     setup();
-    listShareLinks.and.resolveTo([link({})]);
+    listShareLinks.mockResolvedValue([link({})]);
     fixture.componentRef.setInput('config', config({}));
     await settle();
     expect(fixture.componentInstance.links().length).toBe(1);
-    listShareLinks.and.resolveTo([]);
+    listShareLinks.mockResolvedValue([]);
     fixture.componentRef.setInput('shipClassName', 'DRAK_Cutlass_Black');
     fixture.componentRef.setInput('config', config({ id: 'cfg-2' }));
     await settle();
@@ -272,10 +273,10 @@ describe('CodexHoloShareComponent', () => {
 
   it('keeps the list when the host hands over a fresh object of the SAME config (after a save)', async () => {
     setup();
-    listShareLinks.and.resolveTo([link({})]);
+    listShareLinks.mockResolvedValue([link({})]);
     fixture.componentRef.setInput('config', config({ id: 'cfg-1' }));
     await settle();
-    listShareLinks.calls.reset();
+    listShareLinks.mockClear();
     fixture.componentRef.setInput('config', config({ id: 'cfg-1', updatedAt: '2026-02-02' }));
     await settle();
     expect(listShareLinks).not.toHaveBeenCalled();

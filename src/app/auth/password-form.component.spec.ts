@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
@@ -5,12 +6,12 @@ import { PasswordFormComponent } from './password-form.component';
 
 // AUD-054/073: the one form that sets a password (invite, recovery, account page).
 describe('PasswordFormComponent', () => {
-  let updatePassword: jasmine.Spy;
+  let updatePassword: Mock;
   let fixture: ComponentFixture<PasswordFormComponent>;
   let saved: number;
 
   beforeEach(() => {
-    updatePassword = jasmine.createSpy('updatePassword').and.resolveTo({ data: {}, error: null });
+    updatePassword = vi.fn().mockName('updatePassword').mockResolvedValue({ data: {}, error: null });
     TestBed.configureTestingModule({
       imports: [PasswordFormComponent],
       providers: [provideTranslateService({ fallbackLang: 'en' }), { provide: AuthService, useValue: { updatePassword } }],
@@ -41,17 +42,18 @@ describe('PasswordFormComponent', () => {
 
   it('keeps submit disabled for a short or mismatching password', () => {
     type('short');
-    expect(submitBtn().disabled).toBeTrue();
+    expect(submitBtn().disabled).toBe(true);
     type('longenough1', 'longenough2');
-    expect(submitBtn().disabled).toBeTrue();
+    expect(submitBtn().disabled).toBe(true);
     type('longenough1');
-    expect(submitBtn().disabled).toBeFalse();
+    expect(submitBtn().disabled).toBe(false);
   });
 
   it('saves, clears the fields and fires saved exactly once', async () => {
     type('longenough1');
     await submit();
-    expect(updatePassword).toHaveBeenCalledOnceWith('longenough1');
+    expect(updatePassword).toHaveBeenCalledTimes(1);
+    expect(updatePassword).toHaveBeenCalledWith('longenough1');
     expect(saved).toBe(1);
     expect(el().querySelector('.flash.success')?.textContent).toContain('auth.setPassword.saved');
     expect(el().querySelector('.flash.error')).toBeNull();
@@ -60,7 +62,7 @@ describe('PasswordFormComponent', () => {
 
   it('shows an error key for a returned error and does not fire saved', async () => {
     type('longenough1');
-    updatePassword.and.resolveTo({ data: null, error: { message: 'weak', status: 422 } });
+    updatePassword.mockResolvedValue({ data: null, error: { message: 'weak', status: 422 } });
     await submit();
     const alert = el().querySelector('.flash.error[role="alert"]');
     expect(alert).not.toBeNull();
@@ -71,10 +73,10 @@ describe('PasswordFormComponent', () => {
 
   it('shows an error when the call throws', async () => {
     type('longenough1');
-    updatePassword.and.rejectWith(new TypeError('Failed to fetch'));
+    updatePassword.mockRejectedValue(new TypeError('Failed to fetch'));
     await submit();
     expect(el().querySelector('.flash.error[role="alert"]')).not.toBeNull();
     expect(saved).toBe(0);
-    expect(submitBtn().disabled).toBeFalse();
+    expect(submitBtn().disabled).toBe(false);
   });
 });

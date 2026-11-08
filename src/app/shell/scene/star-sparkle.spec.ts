@@ -1,8 +1,9 @@
+import type { Mock } from 'vitest';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { SPARKLE_COUNT, StarSparkle } from './star-sparkle';
 
 describe('StarSparkle', () => {
-  interface FakeAnim { pause: jasmine.Spy; play: jasmine.Spy; cancel: jasmine.Spy; onfinish: (() => void) | null; oncancel: (() => void) | null }
+  interface FakeAnim { pause: Mock; play: Mock; cancel: Mock; onfinish: (() => void) | null; oncancel: (() => void) | null }
   let host: HTMLElement, anims: FakeAnim[];
   const sparks = () => Array.from(host.querySelectorAll<HTMLElement>('.spark'));
   const LONGEST_GAP = 3000;
@@ -10,8 +11,8 @@ describe('StarSparkle', () => {
   beforeEach(() => {
     host = document.createElement('div');
     anims = [];
-    spyOn(Element.prototype, 'animate').and.callFake(() => {
-      const a: FakeAnim = { pause: jasmine.createSpy(), play: jasmine.createSpy(), cancel: jasmine.createSpy(), onfinish: null, oncancel: null };
+    vi.spyOn(Element.prototype, 'animate').mockImplementation(() => {
+      const a: FakeAnim = { pause: vi.fn(), play: vi.fn(), cancel: vi.fn(), onfinish: null, oncancel: null };
       anims.push(a);
       return a as unknown as Animation;
     });
@@ -30,9 +31,9 @@ describe('StarSparkle', () => {
     tick(LONGEST_GAP);
     const first = sparks()[0].style.left + sparks()[0].style.top;
     tick(LONGEST_GAP);
-    expect(sparks().length).withContext('still running: nothing new').toBe(1);
+    expect(sparks().length, 'still running: nothing new').toBe(1);
     anims[0].onfinish?.();
-    expect(sparks().length).withContext('it goes away').toBe(0);
+    expect(sparks().length, 'it goes away').toBe(0);
     tick(LONGEST_GAP);
     expect(sparks().length).toBe(1);
     expect(sparks()[0].style.left + sparks()[0].style.top).not.toBe(first);
@@ -57,14 +58,14 @@ describe('StarSparkle', () => {
     const s = new StarSparkle(host, 2);
     tick(LONGEST_GAP);
     s.pause();
-    expect(anims.every((a) => a.pause.calls.count() === 1)).toBeTrue();
+    expect(anims.every((a) => vi.mocked(a.pause).mock.calls.length === 1)).toBe(true);
     anims[0].onfinish?.();
     tick(LONGEST_GAP);
-    expect(sparks().length).withContext('nothing new while paused').toBe(1);
+    expect(sparks().length, 'nothing new while paused').toBe(1);
     s.resume();
     expect(anims[1].play).toHaveBeenCalled();
     tick(LONGEST_GAP);
-    expect(sparks().length).withContext('back up to two').toBe(2);
+    expect(sparks().length, 'back up to two').toBe(2);
     s.stop();
   }));
 

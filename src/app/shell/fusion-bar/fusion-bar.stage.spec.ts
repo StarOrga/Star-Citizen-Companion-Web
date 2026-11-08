@@ -28,14 +28,14 @@ describe('Gleiche Leiste: the scroll-linked condense progress', () => {
 
 describe('Gleiche Leiste: reduced motion jumps between the ends at the hysteresis thresholds', () => {
   it('docks once past the threshold and stays docked inside the hysteresis band', () => {
-    expect(nextStageDocked(false, 0)).toBeFalse();
-    expect(nextStageDocked(false, STAGE_DOCK_PX)).toBeFalse();
-    expect(nextStageDocked(false, STAGE_DOCK_PX + 1)).toBeTrue();
+    expect(nextStageDocked(false, 0)).toBe(false);
+    expect(nextStageDocked(false, STAGE_DOCK_PX)).toBe(false);
+    expect(nextStageDocked(false, STAGE_DOCK_PX + 1)).toBe(true);
     // Scrolling back a little does not flutter the bar back into the stage.
-    expect(nextStageDocked(true, STAGE_UNDOCK_PX + 1)).toBeTrue();
-    expect(nextStageDocked(true, STAGE_UNDOCK_PX)).toBeFalse();
+    expect(nextStageDocked(true, STAGE_UNDOCK_PX + 1)).toBe(true);
+    expect(nextStageDocked(true, STAGE_UNDOCK_PX)).toBe(false);
     // Between both thresholds an undocked bar stays staged.
-    expect(nextStageDocked(false, STAGE_UNDOCK_PX + 10)).toBeFalse();
+    expect(nextStageDocked(false, STAGE_UNDOCK_PX + 10)).toBe(false);
   });
 });
 

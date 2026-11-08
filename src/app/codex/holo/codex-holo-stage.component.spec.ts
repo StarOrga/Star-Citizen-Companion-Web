@@ -75,11 +75,13 @@ async function setup(inputs: Partial<{
   hardpointFrame: HardpointFrame | null;
   previewSilhouette: string | null;
 }> = {}): Promise<ComponentFixture<CodexHoloStageComponent>> {
-  await TestBed.configureTestingModule({
+  // No compileComponents(): the components are AOT-compiled, and its native
+  // promise would escape fakeAsync (Angular code runs untransformed under Vitest).
+  TestBed.configureTestingModule({
     imports: [CodexHoloStageComponent],
     providers: [
       provideNoShipBlueprints(),provideRouter([]), provideTranslateService({})],
-  }).compileComponents();
+  });
   const fixture = TestBed.createComponent(CodexHoloStageComponent);
   fixture.componentRef.setInput('detail', inputs.detail ?? detailWithPorts([]));
   fixture.componentRef.setInput('displayName', 'Nomad');
@@ -322,7 +324,7 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.share-wrap')).toBeNull();
     expect(el.querySelector('sc-codex-holo-share')).toBeNull();
-    expect(el.querySelector('.holo-topbar .sc-head-strip')).withContext('the head strip on the title row').toBeTruthy();
+    expect(el.querySelector('.holo-topbar .sc-head-strip'), 'the head strip on the title row').toBeTruthy();
     c.inspectedPort.set('hardpoint_gun_left');
     c.onKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(c.inspectedPort()).toBeNull();
@@ -391,8 +393,8 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
       fixture.detectChanges();
       const buttons = Array.from(el.querySelectorAll<HTMLButtonElement>('.sub-views .sv'));
       expect(buttons.length).toBe(4);
-      expect(buttons[0].disabled).toBeFalse();
-      expect(buttons[3].disabled).withContext('no front view without a drawing').toBeTrue();
+      expect(buttons[0].disabled).toBe(false);
+      expect(buttons[3].disabled, 'no front view without a drawing').toBe(true);
       c.chosenSurface.set('front');
       expect(c.surface()).toBe('simple');
     });
@@ -717,27 +719,27 @@ describe('CodexHoloStageComponent sound (cx-sound)', () => {
   it('is off by default and silent until switched on', async () => {
     const fixture = await setup();
     const c = fixture.componentInstance;
-    expect(c.soundOn()).toBeFalse();
+    expect(c.soundOn()).toBe(false);
     c.has3d.set(true);
     c.pickSurface('3d');
-    expect(started.length).withContext('no sound while off').toBe(0);
+    expect(started.length, 'no sound while off').toBe(0);
   });
 
   it('plays quiet tones once on: toggle blip, view + Einsatz switch, every gain <= 0.05', async () => {
     const fixture = await setup();
     const c = fixture.componentInstance;
     c.toggleSound();
-    expect(started.length).withContext('confirmation blip').toBe(1);
+    expect(started.length, 'confirmation blip').toBe(1);
     c.has3d.set(true);
     c.pickSurface('3d');
-    expect(started.length).withContext('view switch tick').toBe(2);
+    expect(started.length, 'view switch tick').toBe(2);
     fixture.componentRef.setInput('activeMissionId', 'combat');
     fixture.detectChanges();
-    expect(started.length).withContext('Einsatz switch tick').toBe(3);
+    expect(started.length, 'Einsatz switch tick').toBe(3);
     c.tone('arrive');
-    expect(started.length).withContext('arrival = two notes').toBe(5);
-    expect(started.every((s) => s.gain > 0 && s.gain <= 0.05)).toBeTrue();
-    expect(Object.values(HOLO_TONES).flat().every((n) => n.gain <= 0.05)).toBeTrue();
+    expect(started.length, 'arrival = two notes').toBe(5);
+    expect(started.every((s) => s.gain > 0 && s.gain <= 0.05)).toBe(true);
+    expect(Object.values(HOLO_TONES).flat().every((n) => n.gain <= 0.05)).toBe(true);
   });
 });
 

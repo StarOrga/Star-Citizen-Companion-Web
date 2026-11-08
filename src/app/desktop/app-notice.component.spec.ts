@@ -14,24 +14,28 @@ describe('AppNoticeService', () => {
 
   it('is not snoozed until dismissed, then for 14 days', () => {
     const s = new AppNoticeService();
-    expect(s.isSnoozed('starscape', 1000)).toBeFalse();
+    expect(s.isSnoozed('starscape', 1000)).toBe(false);
     s.snooze('starscape', 1000);
-    expect(s.isSnoozed('starscape', 1000 + APP_NOTICE_SNOOZE_MS - 1)).toBeTrue();
-    expect(s.isSnoozed('starscape', 1000 + APP_NOTICE_SNOOZE_MS + 1)).toBeFalse();
+    expect(s.isSnoozed('starscape', 1000 + APP_NOTICE_SNOOZE_MS - 1)).toBe(true);
+    expect(s.isSnoozed('starscape', 1000 + APP_NOTICE_SNOOZE_MS + 1)).toBe(false);
   });
 
   it('snoozes per app', () => {
     const s = new AppNoticeService();
     s.snooze('starscape', 1000);
-    expect(s.isSnoozed('scc', 1001)).toBeFalse();
+    expect(s.isSnoozed('scc', 1001)).toBe(false);
   });
 
   it('survives unavailable storage', () => {
-    spyOn(Storage.prototype, 'getItem').and.throwError('blocked');
-    spyOn(Storage.prototype, 'setItem').and.throwError('blocked');
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
     const s = new AppNoticeService();
     expect(() => s.snooze('scc')).not.toThrow();
-    expect(s.isSnoozed('scc')).toBeFalse();
+    expect(s.isSnoozed('scc')).toBe(false);
   });
 });
 
@@ -103,11 +107,11 @@ describe('AppNoticeComponent', () => {
     const toast = el().querySelector<HTMLElement>('.toast')!;
     toast.click();
     fixture.detectChanges();
-    expect(toast.classList.contains('open')).toBeTrue();
+    expect(toast.classList.contains('open')).toBe(true);
     el().querySelector<HTMLElement>('.x')!.click();
     fixture.detectChanges();
     expect(el().querySelector('.toast')).toBeNull();
-    expect(new AppNoticeService().isSnoozed('starscape')).toBeTrue();
+    expect(new AppNoticeService().isSnoozed('starscape')).toBe(true);
     tick();
   }));
 

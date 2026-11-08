@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AnalyticsService } from '../../core/analytics.service';
@@ -10,14 +11,14 @@ import { ConsentService } from '../../core/consent.service';
 describe('Verse analytics consent gate', () => {
   let svc: AnalyticsService;
   let consent: ConsentService;
-  let capture: jasmine.Spy;
+  let capture: Mock;
 
   beforeEach(() => {
     localStorage.clear();
     TestBed.configureTestingModule({ providers: [AnalyticsService, ConsentService, provideRouter([])] });
     svc = TestBed.inject(AnalyticsService);
     consent = TestBed.inject(ConsentService);
-    capture = jasmine.createSpy('capture');
+    capture = vi.fn().mockName('capture');
     (svc as unknown as { client: unknown }).client = { capture };
   });
 
@@ -45,12 +46,13 @@ describe('Verse analytics consent gate', () => {
     (svc as unknown as { flagValues: { set(v: unknown): void } }).flagValues.set({ 'verse-beta-news': true });
     expect(svc.featureFlag('verse-beta-news')).toBeUndefined();
     consent.setStatistics(true);
-    expect(svc.featureFlag('verse-beta-news')).toBeTrue();
+    expect(svc.featureFlag('verse-beta-news')).toBe(true);
   });
 
   it('sends the typed event once statistics consent is granted', () => {
     consent.setStatistics(true);
     svc.captureVerse('verse_door_open', { door: 'patches' });
-    expect(capture).toHaveBeenCalledOnceWith('verse_door_open', { door: 'patches' });
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(capture).toHaveBeenCalledWith('verse_door_open', { door: 'patches' });
   });
 });

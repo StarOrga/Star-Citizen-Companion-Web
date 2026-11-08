@@ -19,14 +19,14 @@ describe('HqSpotStageComponent', () => {
       flagshipClassName: signal<string | null>(null),
       loading: signal(false),
       error: signal<string | null>(null),
-      loadAll: jasmine.createSpy('loadAll').and.resolveTo(),
-      markShipPicked: jasmine.createSpy('markShipPicked'),
-      markSetPicked: jasmine.createSpy('markSetPicked'),
+      loadAll: vi.fn().mockName('loadAll').mockResolvedValue(undefined),
+      markShipPicked: vi.fn().mockName('markShipPicked'),
+      markSetPicked: vi.fn().mockName('markSetPicked'),
     };
     const codex = {
       build: signal(null),
-      loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(),
-      getShipsByClassNames: jasmine.createSpy('getShipsByClassNames').and.resolveTo(new Map()),
+      loadCurrentBuild: vi.fn().mockName('loadCurrentBuild').mockResolvedValue(undefined),
+      getShipsByClassNames: vi.fn().mockName('getShipsByClassNames').mockResolvedValue(new Map()),
       previewUrl: () => null,
     };
     TestBed.configureTestingModule({
@@ -65,7 +65,7 @@ describe('HqSpotStageComponent', () => {
   it('keeps the archive quick-access links', async () => {
     const { el } = await setup();
     const hrefs = Array.from(el.querySelectorAll('a.archive-line__link')).map((a) => a.getAttribute('href') ?? '');
-    expect(hrefs.some((h) => h.startsWith('/codex/index?kind=ship'))).toBeTrue();
-    expect(hrefs.some((h) => h.startsWith('/codex/index?kind=armor'))).toBeTrue();
+    expect(hrefs.some((h) => h.startsWith('/codex/index?kind=ship'))).toBe(true);
+    expect(hrefs.some((h) => h.startsWith('/codex/index?kind=armor'))).toBe(true);
   });
 });

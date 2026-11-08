@@ -108,8 +108,8 @@ describe('patch-stability components', () => {
 
   it('isEarly / daysBetween', () => {
     expect(EARLY_DAYS).toBe(14);
-    expect(isEarly(13.9)).toBeTrue();
-    expect(isEarly(14)).toBeFalse();
+    expect(isEarly(13.9)).toBe(true);
+    expect(isEarly(14)).toBe(false);
     expect(daysBetween('2026-08-26T00:00:00Z', '2026-09-05T12:00:00Z')).toBeCloseTo(10.5, 6);
   });
 });
@@ -127,11 +127,11 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
     const v47 = computeVerdict(p47, [], { now: NOW, endAt: '2026-05-13T00:00:00Z' });
     const v48 = computeVerdict(p48, [], { now: NOW, endAt: '2026-07-15T00:00:00Z' });
     const v49 = computeVerdict(p49, [], { now: NOW, endAt: '2026-08-26T00:00:00Z' });
-    expect(v47.historical).toBeTrue();
+    expect(v47.historical).toBe(true);
     expect(v47.level).toBe(2);
     expect(v48.level).toBe(4);
     expect(v49.level).toBe(2);
-    expect(v47.early).toBeFalse();
+    expect(v47.early).toBe(false);
   });
 
   it('a young patch with daily samples: 4.10 at day 10 → 3, early', () => {
@@ -142,9 +142,9 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
         hotfix_events: [{ date: '2026-09-03', build: '12572603', text: 'Client Hotfix' }] }),
     ];
     const v = computeVerdict(p410, samples, { now: NOW, endAt: null });
-    expect(v.historical).toBeFalse();
-    expect(v.insufficient).toBeFalse();
-    expect(v.early).toBeTrue();
+    expect(v.historical).toBe(false);
+    expect(v.insufficient).toBe(false);
+    expect(v.early).toBe(true);
     expect(v.level).toBe(3);
     expect(v.days.length).toBe(2);
     // day 2 velocity = (78+271) − (70+240) = 39 replies over 1 day → band saturates
@@ -158,7 +158,7 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
   it('minimum-data rule: fewer than 10 replies → insufficient, no level', () => {
     const p = patch('4.11', '2026-10-01T00:00:00Z');
     const v = computeVerdict(p, [sample('4.11', '2026-10-01', { rn_replies: 3 })], { now: '2026-10-02T00:00:00Z', endAt: null });
-    expect(v.insufficient).toBeTrue();
+    expect(v.insufficient).toBe(true);
     expect(v.level).toBeNull();
     expect(v.stability).toBeNull();
     expect(v.tone).toBeNull();
@@ -167,9 +167,9 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
   it('one sample is enough once the reply floor is cleared', () => {
     const p = patch('4.11', '2026-10-01T00:00:00Z');
     const v = computeVerdict(p, [sample('4.11', '2026-10-03', { rn_replies: 40 })], { now: '2026-10-03T12:00:00Z', endAt: null });
-    expect(v.insufficient).toBeFalse();
+    expect(v.insufficient).toBe(false);
     expect(v.level).not.toBeNull();
-    expect(v.early).toBeTrue();
+    expect(v.early).toBe(true);
     expect(v.stability).toBe(stabilityPercent(v.score));
     expect(v.tone).toBe(toneOf(v.level!));
   });
@@ -184,8 +184,8 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
     });
     const stray = sample('4.9', '2026-09-05', { rn_replies: 98, hf_replies: 289 });
     const v = computeVerdict(p49, [stray], { now: NOW, endAt: '2026-08-26T00:00:00Z' });
-    expect(v.historical).toBeTrue();
-    expect(v.insufficient).toBeFalse();
+    expect(v.historical).toBe(true);
+    expect(v.insufficient).toBe(false);
     expect(v.level).toBe(2);
     expect(v.stability).not.toBeNull();
     // …and it agrees with the same line read without the stray sample.
@@ -198,7 +198,7 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
       sample('4.10', '2026-09-04', { rn_replies: 70 }),
       sample('4.10', '2026-09-05', { rn_replies: 78 }),
     ], { now: NOW, endAt: null });
-    expect(v.historical).toBeFalse();
+    expect(v.historical).toBe(false);
     expect(v.days.length).toBe(2);
   });
 

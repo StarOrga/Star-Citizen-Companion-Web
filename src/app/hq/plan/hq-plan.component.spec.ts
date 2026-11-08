@@ -100,7 +100,7 @@ describe('HqPlanComponent', () => {
     expect(el.querySelector('.classic')).toBeNull();
     expect(el.querySelector('.switch')).toBeNull();
     for (const tag of ['sc-hq-community-optin', 'sc-hq-blueprint-progress', 'sc-hq-commodity-prices', 'sc-hq-shared-einsaetze', 'sc-hq-plan-map', 'sc-hq-mood-toggles']) {
-      expect(el.querySelector(tag)).withContext(tag).toBeNull();
+      expect(el.querySelector(tag), tag).toBeNull();
     }
   });
 
@@ -108,7 +108,7 @@ describe('HqPlanComponent', () => {
     const { f } = make();
     const row = { id: 'e1', title: 'Bounty v3', status: 'planned', steps: [], deletedAt: null, packageId: 'pkg-1' };
     (TestBed.inject(EinsatzServiceToken) as unknown as { rows: { set(v: unknown[]): void } }).rows.set([row]);
-    const select = spyOn(f.componentInstance['focus'], 'select');
+    const select = vi.spyOn(f.componentInstance['focus'], 'select').mockReturnValue(undefined as never);
     TestBed.inject(HqPageNavService).routeFocus.set({ id: row.id });
     f.detectChanges();
     expect(select).toHaveBeenCalledWith('pkg-1');

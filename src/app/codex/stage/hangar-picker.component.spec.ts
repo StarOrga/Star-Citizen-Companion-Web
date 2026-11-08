@@ -12,10 +12,12 @@ const ITEMS: HangarPickerItem[] = [
 
 describe('HangarPickerComponent', () => {
   async function setup(items: HangarPickerItem[] = ITEMS): Promise<ComponentFixture<HangarPickerComponent>> {
-    await TestBed.configureTestingModule({
+    // No compileComponents(): the components are AOT-compiled, and its native
+    // promise would escape fakeAsync (Angular code runs untransformed under Vitest).
+    TestBed.configureTestingModule({
       imports: [HangarPickerComponent],
       providers: [provideRouter([]), provideTranslateService({ fallbackLang: 'en' })],
-    }).compileComponents();
+    });
     const fixture = TestBed.createComponent(HangarPickerComponent);
     fixture.componentRef.setInput('kind', 'ship');
     fixture.componentRef.setInput('items', items);
@@ -52,15 +54,15 @@ describe('HangarPickerComponent', () => {
       const picker = el.querySelector('.picker')!;
       picker.dispatchEvent(new Event('mouseenter'));
       fixture.detectChanges();
-      expect(fixture.componentInstance.expanded()).toBeFalse();
+      expect(fixture.componentInstance.expanded()).toBe(false);
 
       tick(299);
       fixture.detectChanges();
-      expect(fixture.componentInstance.expanded()).toBeFalse();
+      expect(fixture.componentInstance.expanded()).toBe(false);
 
       tick(1);
       fixture.detectChanges();
-      expect(fixture.componentInstance.expanded()).toBeTrue();
+      expect(fixture.componentInstance.expanded()).toBe(true);
     });
   }));
 
@@ -70,7 +72,7 @@ describe('HangarPickerComponent', () => {
     const btn = el.querySelector<HTMLAnchorElement>('.picker-btn')!;
     btn.dispatchEvent(new Event('focus'));
     fixture.detectChanges();
-    expect(fixture.componentInstance.expanded()).toBeTrue();
+    expect(fixture.componentInstance.expanded()).toBe(true);
   });
 
   it('Escape collapses the chain', async () => {
@@ -82,7 +84,7 @@ describe('HangarPickerComponent', () => {
     const picker = el.querySelector<HTMLElement>('.picker')!;
     picker.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
-    expect(cmp.expanded()).toBeFalse();
+    expect(cmp.expanded()).toBe(false);
   });
 
   it('collapses 150 ms after the pointer leaves', fakeAsync(() => {
@@ -94,12 +96,12 @@ describe('HangarPickerComponent', () => {
       const picker = el.querySelector<HTMLElement>('.picker')!;
       picker.dispatchEvent(new Event('mouseleave'));
       fixture.detectChanges();
-      expect(cmp.expanded()).toBeTrue();
+      expect(cmp.expanded()).toBe(true);
 
       tick(149);
-      expect(cmp.expanded()).toBeTrue();
+      expect(cmp.expanded()).toBe(true);
       tick(1);
-      expect(cmp.expanded()).toBeFalse();
+      expect(cmp.expanded()).toBe(false);
     });
   }));
 
@@ -137,7 +139,7 @@ describe('HangarPickerComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     el.querySelector<HTMLAnchorElement>('.picker-btn')!.click();
     fixture.detectChanges();
-    expect(fixture.componentInstance.expanded()).toBeTrue();
+    expect(fixture.componentInstance.expanded()).toBe(true);
     expect(opened).toBe(0);
   });
 
@@ -173,7 +175,7 @@ describe('HangarPickerComponent', () => {
 
     const el: HTMLElement = fixture.nativeElement;
     const item = el.querySelectorAll<HTMLAnchorElement>('.picker-chain__item')[1];
-    expect(ctrlClick(item)).withContext('the anchor keeps the click for its new tab').toBeTrue();
+    expect(ctrlClick(item), 'the anchor keeps the click for its new tab').toBe(true);
     expect(picked).toEqual([]);
   });
 
@@ -182,10 +184,9 @@ describe('HangarPickerComponent', () => {
     let opened = 0;
     fixture.componentInstance.open.subscribe(() => opened++);
     const el: HTMLElement = fixture.nativeElement;
-    expect(ctrlClick(el.querySelector<HTMLAnchorElement>('.picker-btn')!))
-      .withContext('the anchor keeps the click for its new tab').toBeTrue();
+    expect(ctrlClick(el.querySelector<HTMLAnchorElement>('.picker-btn')!), 'the anchor keeps the click for its new tab').toBe(true);
     fixture.detectChanges();
-    expect(fixture.componentInstance.expanded()).toBeFalse();
+    expect(fixture.componentInstance.expanded()).toBe(false);
     expect(opened).toBe(0);
   });
 
@@ -215,7 +216,7 @@ describe('HangarPickerComponent', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const picker = el.querySelector<HTMLElement>('.picker')!;
-    expect(picker.classList.contains('docked')).toBeTrue();
+    expect(picker.classList.contains('docked')).toBe(true);
     expect(getComputedStyle(picker).position).toBe('static');
   });
 });

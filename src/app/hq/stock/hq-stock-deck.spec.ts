@@ -44,7 +44,7 @@ describe('hq-stock-deck · Frachtdeck view helpers', () => {
     expect(area.min).toBe(620);
     expect(area.max).toBe(940);
     expect(area.reserved).toBe(4);
-    expect(crates.some((c) => c.name === 'Gallant')).toBeFalse();
+    expect(crates.some((c) => c.name === 'Gallant')).toBe(false);
   });
 
   it('derives the sub-kind from the Codex slot, and ore vs refined from the crate class (I9)', () => {
@@ -127,9 +127,9 @@ describe('hq-stock-deck · Frachtdeck view helpers', () => {
     const g = groupPlaces(['Area18', 'Stanton1_Lorville', 'Some Outpost'], new Map([['Area18', 3]]));
     const stanton = g.find((x) => x.system === 'Stanton')!;
     const arc = stanton.bodies.find((b) => b.body === 'ArcCorp')!;
-    expect(arc.places[0]).toEqual(jasmine.objectContaining({ id: 'Area18', amount: 3 }));
-    expect(stanton.bodies.find((b) => b.body === 'Hurston')!.places.some((p) => p.id === 'Stanton1_Lorville')).toBeTrue();
-    expect(g.some((x) => x.system === 'Pyro')).toBeTrue();
+    expect(arc.places[0]).toEqual(expect.objectContaining({ id: 'Area18', amount: 3 }));
+    expect(stanton.bodies.find((b) => b.body === 'Hurston')!.places.some((p) => p.id === 'Stanton1_Lorville')).toBe(true);
+    expect(g.some((x) => x.system === 'Pyro')).toBe(true);
     expect(g[g.length - 1].system).toBeNull();
     const searched = groupPlaces([], new Map(), 'lorv');
     expect(searched.flatMap((x) => x.bodies.flatMap((b) => b.places.map((p) => p.name)))).toEqual(['Lorville']);

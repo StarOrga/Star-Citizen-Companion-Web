@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
@@ -26,15 +27,15 @@ function chain(result: () => unknown): unknown {
 }
 
 describe('ShipLinkService', () => {
-  let invoke: jasmine.Spy;
+  let invoke: Mock;
   let tables: Record<string, { data: unknown; error: unknown }>;
-  let capture: jasmine.Spy;
+  let capture: Mock;
   let user: ReturnType<typeof signal<{ id: string } | null>>;
 
   function setup(): ShipLinkService {
-    invoke = jasmine.createSpy('invoke').and.resolveTo({ data: { ok: true }, error: null });
+    invoke = vi.fn().mockName('invoke').mockResolvedValue({ data: { ok: true }, error: null });
     tables = {};
-    capture = jasmine.createSpy('capture');
+    capture = vi.fn().mockName('capture');
     user = signal<{ id: string } | null>({ id: 'u1' });
     const client = {
       from: (t: string) => chain(() => tables[t] ?? { data: null, error: null }),
@@ -69,23 +70,23 @@ describe('ShipLinkService', () => {
       ['boom', 'saveFailed'],
     ];
     for (const [code, key] of cases) {
-      invoke.and.resolveTo(httpError({ error: code }));
-      expect(await svc.setMyLink('avenger', URL_A)).withContext(code).toBe(key);
+      invoke.mockResolvedValue(httpError({ error: code }));
+      expect(await svc.setMyLink('avenger', URL_A), code).toBe(key);
       expect(svc.error()).toBe(code);
-      expect(svc.saving()).toBeFalse();
+      expect(svc.saving()).toBe(false);
     }
     expect(svc.myLinks().size).toBe(0);
   });
 
   it('also reads the error code from a 2xx data envelope', async () => {
     const svc = setup();
-    invoke.and.resolveTo({ data: { error: 'rate_limited' }, error: null });
+    invoke.mockResolvedValue({ data: { error: 'rate_limited' }, error: null });
     expect(await svc.removeMyLink('avenger')).toBe('rateLimited');
   });
 
   it('falls back to saveFailed on a network error without a Response', async () => {
     const svc = setup();
-    invoke.and.resolveTo({ data: null, error: new TypeError('Failed to fetch') });
+    invoke.mockResolvedValue({ data: null, error: new TypeError('Failed to fetch') });
     expect(await svc.setMyLink('avenger', URL_A)).toBe('saveFailed');
     expect(svc.error()).toBe('unknown');
   });
@@ -120,7 +121,7 @@ describe('ShipLinkService', () => {
     expect(svc.effectiveLink('cutlass')).toBe(URL_A);
 
     expect(await svc.unpromote('cutlass')).toBeNull();
-    expect(svc.globalLinks().has('cutlass')).toBeFalse();
+    expect(svc.globalLinks().has('cutlass')).toBe(false);
   });
 
   it('loadForShip fills own and global links, dropping rows outside the allowlist', async () => {
@@ -133,7 +134,7 @@ describe('ShipLinkService', () => {
 
     tables['user_ship_links'] = { data: { ship_slug: 'a', url: 'javascript:alert(1)' }, error: null };
     await svc.loadForShip('a');
-    expect(svc.myLinks().has('a')).toBeFalse();
+    expect(svc.myLinks().has('a')).toBe(false);
     expect(svc.effectiveLink('a')).toBe(URL_B);
   });
 
@@ -152,7 +153,7 @@ describe('ShipLinkService', () => {
   it('loadForShip never throws on a read error', async () => {
     const svc = setup();
     tables['ship_pledge_links'] = { data: null, error: { message: 'x' } };
-    await expectAsync(svc.loadForShip('a')).toBeResolved();
+    await expect(svc.loadForShip('a')).resolves.not.toThrow();
     expect(svc.effectiveLink('a')).toBeNull();
   });
 });

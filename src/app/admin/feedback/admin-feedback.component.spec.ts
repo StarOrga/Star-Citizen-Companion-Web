@@ -235,12 +235,12 @@ describe('AdminFeedbackComponent — the stream', () => {
     expect(cards.length).toBe(4);
     for (const card of cards) {
       expect(card.classList).not.toContain('lead');
-      expect(card.querySelector('.card-inline')).withContext(card.id).toBeNull();
-      expect(card.querySelector('sc-feedback-composer')).withContext(card.id).toBeNull();
-      expect(card.querySelector('.review-gate')).withContext(card.id).toBeNull();
-      expect(card.querySelector('.msg-body')).withContext(card.id).toBeNull();
+      expect(card.querySelector('.card-inline'), card.id).toBeNull();
+      expect(card.querySelector('sc-feedback-composer'), card.id).toBeNull();
+      expect(card.querySelector('.review-gate'), card.id).toBeNull();
+      expect(card.querySelector('.msg-body'), card.id).toBeNull();
       // Nothing on the row but its head: the one tap into the topic.
-      expect(card.querySelectorAll('button').length).withContext(card.id).toBe(1);
+      expect(card.querySelectorAll('button').length, card.id).toBe(1);
       expect(card.querySelector('button')?.classList).toContain('card-head');
     }
   });
@@ -280,7 +280,7 @@ describe('AdminFeedbackComponent — the stream', () => {
     fixture.detectChanges();
     document.removeEventListener('keydown', spy);
     expect(cmp.openRow()).toBeNull();
-    expect(reachedDocument).toBeFalse();
+    expect(reachedDocument).toBe(false);
   });
 
   /**
@@ -298,12 +298,10 @@ describe('AdminFeedbackComponent — the stream', () => {
     fixture.detectChanges();
 
     const sheet = el.querySelector('.sheet.topic')!;
-    expect(sheet.querySelector('.sh-meta')).withContext('no profile row').toBeNull();
-    expect(sheet.querySelector('.sh-status')).withContext('no status bar').toBeNull();
+    expect(sheet.querySelector('.sh-meta'), 'no profile row').toBeNull();
+    expect(sheet.querySelector('.sh-status'), 'no status bar').toBeNull();
     // What is left, in this order: the first post, then the composer.
-    expect(sheet.querySelector('.sh-body')!.firstElementChild!.classList)
-      .withContext('the topic itself opens the body')
-      .toContain('msg');
+    expect(sheet.querySelector('.sh-body')!.firstElementChild!.classList, 'the topic itself opens the body').toContain('msg');
     expect(sheet.querySelector('.sh-composer sc-feedback-composer')).not.toBeNull();
 
     cmp.toggleMore('r1');
@@ -311,7 +309,7 @@ describe('AdminFeedbackComponent — the stream', () => {
     const link = Array.from(sheet.querySelectorAll('.more-menu a')).find(
       (a) => a.getAttribute('href') === 'https://github.com/x/y/pull/1',
     ) as HTMLAnchorElement | undefined;
-    expect(link).withContext('the ship link is still reachable').not.toBeUndefined();
+    expect(link, 'the ship link is still reachable').not.toBeUndefined();
     expect(link!.target).toBe('_blank');
     expect(link!.rel).toBe('noopener noreferrer');
   });
@@ -334,7 +332,7 @@ describe('AdminFeedbackComponent — the stream', () => {
     await fixture.whenStable();
     const posted = sb.inserts.filter((i) => i.table === 'admin_feedback_messages');
     expect(posted.length).toBe(1);
-    expect(posted[0].row).toEqual(jasmine.objectContaining({ feedback_id: 'q1', is_system: false, body: 'Unten' }));
+    expect(posted[0].row).toEqual(expect.objectContaining({ feedback_id: 'q1', is_system: false, body: 'Unten' }));
   });
 
   it('folds the thread to the newest message and reveals one more per tap', async () => {
@@ -366,10 +364,10 @@ describe('AdminFeedbackComponent — the stream', () => {
   it('clamps a sent message longer than three lines until it is unfolded', async () => {
     const { cmp } = await mount(fixtureTables());
     const long = 'Zeile 1\nZeile 2\nZeile 3\nZeile 4\nZeile 5';
-    expect(cmp.isLong('x', long)).toBeTrue();
-    expect(cmp.isLong('x', 'kurz')).toBeFalse();
+    expect(cmp.isLong('x', long)).toBe(true);
+    expect(cmp.isLong('x', 'kurz')).toBe(false);
     cmp.toggleLong('x');
-    expect(cmp.isLong('x', long)).toBeFalse();
+    expect(cmp.isLong('x', long)).toBe(false);
   });
 
   it('narrows every band through the filter sheet and counts the active filters', async () => {
@@ -448,7 +446,7 @@ describe('AdminFeedbackComponent — the stream', () => {
     // An author chip is the same single-choice set, one tier down.
     who()[4].click();
     fixture.detectChanges();
-    expect(cmp.whoIsAuthor(cmp.authorOptions()[0].id)).toBeTrue();
+    expect(cmp.whoIsAuthor(cmp.authorOptions()[0].id)).toBe(true);
     expect(who()[3].getAttribute('aria-pressed')).toBe('false');
     expect(who()[4].classList).toContain('sub');
   });
@@ -544,16 +542,14 @@ describe('AdminFeedbackComponent — the stream', () => {
     fixture.detectChanges();
 
     const sheet = el.querySelector('.sheet.topic')!;
-    expect(sheet.querySelector('.review-gate')).withContext('no review box in the sheet').toBeNull();
+    expect(sheet.querySelector('.review-gate'), 'no review box in the sheet').toBeNull();
 
     // The sign-off is IN the composer, left of the send button.
     const signOff = sheet.querySelector<HTMLButtonElement>('.sh-composer .sign-off')!;
     expect(signOff).not.toBeNull();
     expect(signOff.textContent).toContain('adminFeedback.review.accept');
     const send = sheet.querySelector<HTMLElement>('.sh-composer .foot .send')!;
-    expect(signOff.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .withContext('sign-off comes before the send button')
-      .toBeTruthy();
+    expect(signOff.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING, 'sign-off comes before the send button').toBeTruthy();
 
     // "In App ansehen" is the card's job — the ⋯ menu keeps only the PR link.
     cmp.toggleMore('r1');
@@ -561,7 +557,7 @@ describe('AdminFeedbackComponent — the stream', () => {
     const items = Array.from(sheet.querySelectorAll('.more-menu a, .more-menu button')).map(
       (n) => n.textContent ?? '',
     );
-    expect(items.some((t) => t.includes('adminFeedback.actions.viewInApp'))).toBeFalse();
+    expect(items.some((t) => t.includes('adminFeedback.actions.viewInApp'))).toBe(false);
   });
 
   /**
@@ -584,19 +580,15 @@ describe('AdminFeedbackComponent — the stream', () => {
     for (const id of ['r1', 'd1']) {
       sb.updates.length = 0;
       await cmp.sheetReplySubmitFor(id)({ text: `steer for ${id}`, images: [] });
-      expect(sb.inserts.some((i) => i.table === 'admin_feedback_messages'))
-        .withContext('the reason lands in the thread first')
-        .toBeTrue();
-      expect(sb.updates.map((u) => u.patch))
-        .withContext(`${id} goes back into the routine's queue`)
-        .toEqual([
+      expect(sb.inserts.some((i) => i.table === 'admin_feedback_messages'), 'the reason lands in the thread first').toBe(true);
+      expect(sb.updates.map((u) => u.patch), `${id} goes back into the routine's queue`).toEqual([
           { status: 'open', reviewed_at: null, processing_note: null, processed_at: null },
         ]);
     }
 
     sb.updates.length = 0;
     await cmp.sheetReplySubmitFor('o1')({ text: 'one more thing', images: [] });
-    expect(sb.updates).withContext('an open topic is not re-opened').toEqual([]);
+    expect(sb.updates, 'an open topic is not re-opened').toEqual([]);
   });
 
   // #518: nothing reads these any more. The panel is the only place that can
@@ -673,7 +665,7 @@ describe('AdminFeedbackComponent — the flight path reads as four steps', () =>
     const steps = Array.from(path.querySelectorAll('i'));
     expect(steps.length).toBe(4);
     const paths = steps.map((i) => i.querySelector('svg path')!.getAttribute('d'));
-    expect(paths.every((d) => !!d && d.length > 0)).toBeTrue();
+    expect(paths.every((d) => !!d && d.length > 0)).toBe(true);
     expect(new Set(paths).size).toBe(4);
 
     // Each step names itself on hover…
@@ -985,7 +977,7 @@ describe('AdminFeedbackComponent — frame nesting', () => {
   it('nests at most two boxes inside the panel wall, in the stream', async () => {
     const { el } = await mount(fixtureTables());
     const worst = deepestBoxNesting(el);
-    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
+    expect(worst.depth, `deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
   });
 
   it('nests at most two boxes with the new-topic sheet open, and the sheet is not one of them', async () => {
@@ -999,12 +991,12 @@ describe('AdminFeedbackComponent — frame nesting', () => {
     expect(sheet).not.toBeNull();
     // The sheet parts itself from the stream with a rule, not a frame — so the
     // chain down to the field is panel wall → field, and nothing between.
-    expect(drawsBox(sheet)).toBeFalse();
+    expect(drawsBox(sheet)).toBe(false);
     expect(parseFloat(getComputedStyle(sheet).borderTopWidth)).toBeGreaterThan(0);
     expect(sheet.querySelector('.composer.frameless')).not.toBeNull();
 
     const worst = deepestBoxNesting(el);
-    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
+    expect(worst.depth, `deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
   });
 
   it('nests at most two boxes in an opened topic, author channel included', async () => {
@@ -1016,7 +1008,7 @@ describe('AdminFeedbackComponent — frame nesting', () => {
 
     expect(el.querySelector('.sheet')).not.toBeNull();
     const worst = deepestBoxNesting(el);
-    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
+    expect(worst.depth, `deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
   });
 });
 
@@ -1103,7 +1095,7 @@ describe('AdminFeedbackComponent — motion', () => {
     // The fold waits a frame for the sheet to unrender; the spec says when
     // that frame is, rather than waiting on Karma's (testing/frames.ts).
     const frames = installFrameClock();
-    expect(cmp.arrived('r1')).withContext('the first load highlights nothing').toBeFalse();
+    expect(cmp.arrived('r1'), 'the first load highlights nothing').toBe(false);
 
     cmp.openTopic('r1');
     fixture.detectChanges();
@@ -1116,18 +1108,18 @@ describe('AdminFeedbackComponent — motion', () => {
     // Before the write even resolves, the sheet is gone and the row folds.
     frames.runFrame();
     fixture.detectChanges();
-    expect(cmp.openRow()).withContext('the sheet closes at once').toBeNull();
+    expect(cmp.openRow(), 'the sheet closes at once').toBeNull();
     expect(el.querySelector('.sheet.topic')).toBeNull();
     await accepted;
     fixture.detectChanges();
-    expect(motion.folded).withContext('the Du-bist-dran row folded out').toEqual(['fb-card-r1']);
-    expect(sb.updates.map((u) => u.patch)).toEqual([jasmine.objectContaining({ reviewed_at: jasmine.any(String) })]);
+    expect(motion.folded, 'the Du-bist-dran row folded out').toEqual(['fb-card-r1']);
+    expect(sb.updates.map((u) => u.patch)).toEqual([expect.objectContaining({ reviewed_at: expect.any(String) })]);
 
     // The poll after the write moved the topic to Geliefert — only that one glows.
     expect(cmp.yourTurn().map((m) => m.id)).not.toContain('r1');
-    expect(cmp.arrived('r1')).toBeTrue();
-    expect(cmp.bandPulse('nobody')).withContext('the Geliefert count beats once').toBeTrue();
-    expect(cmp.bandPulse('admin')).toBeFalse();
+    expect(cmp.arrived('r1')).toBe(true);
+    expect(cmp.bandPulse('nobody'), 'the Geliefert count beats once').toBe(true);
+    expect(cmp.bandPulse('admin')).toBe(false);
     expect(el.querySelector('#fb-card-r1-feed.arrived')).not.toBeNull();
     expect(el.querySelectorAll('.card.arrived').length).toBe(1);
   });
@@ -1140,12 +1132,12 @@ describe('AdminFeedbackComponent — motion', () => {
     await cmp.acceptReview(r1);
     fixture.detectChanges();
     expect(motion.folded).toEqual([]);
-    expect(cmp.settled('r1')).toBeTrue();
+    expect(cmp.settled('r1')).toBe(true);
     expect(cmp.openRow()).toBeNull();
   });
 
   it('a failed sign-off puts the folded row back and shows the error', async () => {
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const tables = fixtureTables();
     const { fixture, cmp, sb, motion } = await mount(tables);
     // The next update fails.
@@ -1168,18 +1160,18 @@ describe('AdminFeedbackComponent — motion', () => {
     await accepted;
     fixture.detectChanges();
     expect(motion.folded).toEqual(['fb-card-r1']);
-    expect(motion.restored).withContext('the row comes back').toEqual(['fb-card-r1']);
-    expect(cmp.errorMsg()).withContext('an i18n key, never the raw text').toBe('errors.generic');
-    expect(cmp.yourTurn().map((m) => m.id)).withContext('still waiting for the sign-off').toContain('r1');
+    expect(motion.restored, 'the row comes back').toEqual(['fb-card-r1']);
+    expect(cmp.errorMsg(), 'an i18n key, never the raw text').toBe('errors.generic');
+    expect(cmp.yourTurn().map((m) => m.id), 'still waiting for the sign-off').toContain('r1');
   });
 
   it('a failed thread load keeps the board and shows the calm threadsStale hint (AUD-022)', async () => {
-    const warn = spyOn(console, 'warn');
+    const warn = vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const tables = fixtureTables();
     // Separate thread loads exist only on the legacy path (plan D14) — the
     // delta RPC reads topics and threads in one statement.
     const { fixture, cmp, el, sb } = await mount(tables, { rpcError: MISSING_RPC });
-    expect(cmp.threadsStale()).toBeFalse();
+    expect(cmp.threadsStale()).toBe(false);
     expect(el.querySelector('.threads-stale')).toBeNull();
     const threadsBefore = cmp.threads();
 
@@ -1197,10 +1189,10 @@ describe('AdminFeedbackComponent — motion', () => {
 
     await cmp.refresh();
     fixture.detectChanges();
-    expect(cmp.threadsStale()).toBeTrue();
-    expect(cmp.errorMsg()).withContext('a hint, not an action error').toBeNull();
-    expect(cmp.messages().length).withContext('the board is not blanked').toBe(tables.admin_feedback.length);
-    expect(cmp.threads()).withContext('threads are additive, the old map stays').toBe(threadsBefore);
+    expect(cmp.threadsStale()).toBe(true);
+    expect(cmp.errorMsg(), 'a hint, not an action error').toBeNull();
+    expect(cmp.messages().length, 'the board is not blanked').toBe(tables.admin_feedback.length);
+    expect(cmp.threads(), 'threads are additive, the old map stays').toBe(threadsBefore);
     const hint = el.querySelector('.threads-stale');
     expect(hint?.textContent?.trim()).toBe('adminFeedback.threadsStale');
     expect(hint?.getAttribute('role')).toBe('status');
@@ -1209,7 +1201,7 @@ describe('AdminFeedbackComponent — motion', () => {
     failing = false;
     await cmp.refresh();
     fixture.detectChanges();
-    expect(cmp.threadsStale()).withContext('a successful reload clears the hint').toBeFalse();
+    expect(cmp.threadsStale(), 'a successful reload clears the hint').toBe(false);
     expect(el.querySelector('.threads-stale')).toBeNull();
   });
 
@@ -1223,9 +1215,9 @@ describe('AdminFeedbackComponent — motion', () => {
     (tables.admin_feedback_messages as FeedbackMessage[]).push(msg('m9', 'o1', true, T('12'), 'Und jetzt?'));
     await cmp.refresh();
     fixture.detectChanges();
-    expect(cmp.arrived('o1')).toBeTrue();
-    expect(cmp.bandPulse('admin')).toBeTrue();
-    expect(cmp.bandPulse('routine')).toBeFalse();
+    expect(cmp.arrived('o1')).toBe(true);
+    expect(cmp.bandPulse('admin')).toBe(true);
+    expect(cmp.bandPulse('routine')).toBe(false);
     expect(el.querySelector('#fb-card-o1.arrived')).not.toBeNull();
     // Nothing else moved, nothing else glows.
     expect(el.querySelectorAll('.card.arrived').length).toBe(1);
@@ -1237,8 +1229,8 @@ describe('AdminFeedbackComponent — motion', () => {
     (tables.admin_feedback as FeedbackRow[]).push(row('n1', 'open', T('13')));
     await cmp.refresh();
     fixture.detectChanges();
-    expect(cmp.arrived('n1')).toBeTrue();
-    expect(cmp.bandPulse('routine')).toBeTrue();
+    expect(cmp.arrived('n1')).toBe(true);
+    expect(cmp.bandPulse('routine')).toBe(true);
   });
 
   it('rows carry their index so the rise-in staggers, capped in CSS', async () => {
@@ -1275,28 +1267,28 @@ describe('AdminFeedbackComponent — change-only polling (plan D14)', () => {
     expect(cmp.messages()).toBe(before.messages);
     expect(cmp.threads()).toBe(before.threads);
     expect(cmp.authorThreads()).toBe(before.authorThreads);
-    expect(cmp.busy()).toBeFalse();
+    expect(cmp.busy()).toBe(false);
   });
 
   it('falls back to the legacy selects when the RPC is missing, and stops asking for it', async () => {
-    const warn = spyOn(console, 'warn');
+    const warn = vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const tables = fixtureTables();
     const { fixture, cmp, el, sb } = await mount(tables, { rpcError: MISSING_RPC });
     fixture.detectChanges();
     expect(sb.rpcCalls.length).toBe(1);
-    expect(cmp.errorMsg()).withContext('a missing migration is no error for the admin').toBeNull();
-    expect(cmp.messages().length).withContext('the legacy path loaded the board').toBe(tables.admin_feedback.length);
+    expect(cmp.errorMsg(), 'a missing migration is no error for the admin').toBeNull();
+    expect(cmp.messages().length, 'the legacy path loaded the board').toBe(tables.admin_feedback.length);
     expect(el.querySelector('#fb-card-o1')).not.toBeNull();
     expect(warn).toHaveBeenCalledTimes(1);
 
     await cmp.refresh();
-    expect(sb.rpcCalls.length).withContext('no second attempt until the page reloads').toBe(1);
+    expect(sb.rpcCalls.length, 'no second attempt until the page reloads').toBe(1);
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it('another RPC error keeps the loaded board and shows the error key', async () => {
-    spyOn(console, 'warn');
-    spyOn(console, 'error');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
+    vi.spyOn(console, 'error').mockReturnValue(undefined as never);
     const tables = fixtureTables();
     const { cmp, sb } = await mount(tables);
     const loaded = cmp.messages();
@@ -1304,8 +1296,8 @@ describe('AdminFeedbackComponent — change-only polling (plan D14)', () => {
     client.rpc = () => Promise.resolve({ data: null, error: { code: '57014', message: 'statement timeout' } });
     await cmp.refresh();
     expect(cmp.errorMsg()).not.toBeNull();
-    expect(cmp.messages()).withContext('the board is not blanked').toBe(loaded);
-    expect(cmp.busy()).toBeFalse();
+    expect(cmp.messages(), 'the board is not blanked').toBe(loaded);
+    expect(cmp.busy()).toBe(false);
   });
 });
 
@@ -1335,10 +1327,29 @@ describe('AdminFeedbackComponent — the Codex view travels with a topic (admin 
     expect(sheetBody.textContent).not.toContain('[sc-view');
 
     const ok = await cmp.createTopic({ text: 'Neue Frage', images: [], area: 'codex', view: 'classic' });
-    expect(ok).toBeTrue();
+    expect(ok).toBe(true);
     const created = sb.inserts.filter((i) => i.table === 'admin_feedback');
     expect(created.at(-1)?.row).toEqual(
-      jasmine.objectContaining({ body: 'Neue Frage\n\n[sc-view:classic]', area: 'codex' }),
+      expect.objectContaining({ body: 'Neue Frage\n\n[sc-view:classic]', area: 'codex' }),
     );
+  });
+});
+
+describe('AdminFeedbackComponent — new topic focuses the field (admin feedback #327)', () => {
+  it('puts the caret in the new-topic textarea when the docked bar unfolds', async () => {
+    const { el, fixture } = await mount(fixtureTables());
+    document.body.appendChild(el);
+    try {
+      el.querySelector<HTMLButtonElement>('.new-topic-bar')!.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const ta = el.querySelector<HTMLTextAreaElement>('.compose-sheet textarea');
+      expect(ta).not.toBeNull();
+      expect(document.activeElement).toBe(ta);
+    } finally {
+      el.remove();
+    }
   });
 });

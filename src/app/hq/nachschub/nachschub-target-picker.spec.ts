@@ -63,14 +63,14 @@ describe('Nachschub target util', () => {
 describe('NachschubTargetDialogComponent', () => {
   const packages = signal<readonly Nachschub[]>([]);
   const result = { ok: true, key: 'hq.nachschub.done.added', id: 'a' };
-  let addToNachschub: jasmine.Spy;
-  let createSellNachschub: jasmine.Spy;
-  let einsatzCreate: jasmine.Spy;
+  let addToNachschub: ReturnType<typeof vi.fn>;
+  let createSellNachschub: ReturnType<typeof vi.fn>;
+  let einsatzCreate: ReturnType<typeof vi.fn>;
 
   function setup(intent: 'pickup' | 'sell' | 'buy', lines: NachschubLineInput[] = [AGRICIUM]) {
-    addToNachschub = jasmine.createSpy('addToNachschub').and.resolveTo(result);
-    createSellNachschub = jasmine.createSpy('createSellNachschub').and.resolveTo({ ...result, id: 'new1' });
-    einsatzCreate = jasmine.createSpy('create').and.returnValue(null);
+    addToNachschub = vi.fn().mockName('addToNachschub').mockResolvedValue(result);
+    createSellNachschub = vi.fn().mockName('createSellNachschub').mockResolvedValue({ ...result, id: 'new1' });
+    einsatzCreate = vi.fn().mockName('create').mockReturnValue(null);
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService(),
@@ -114,13 +114,13 @@ describe('NachschubTargetDialogComponent', () => {
     fixture.detectChanges();
     primary(el).click();
     await fixture.whenStable();
-    expect(addToNachschub).toHaveBeenCalledWith('a', jasmine.any(Array));
-    const sent = addToNachschub.calls.mostRecent().args[1] as NachschubLineInput[];
+    expect(addToNachschub).toHaveBeenCalledWith('a', expect.any(Array));
+    const sent = addToNachschub.mock.lastCall![1] as NachschubLineInput[];
     expect(sent[0].stops!.map((s) => s.location)).toEqual(['Area18', 'Lorville', 'Port Tressler']);
     expect(einsatzCreate).toHaveBeenCalled();
-    const steps = einsatzCreate.calls.mostRecent().args[0].steps as { kind: string; location: string; supplyId: string }[];
+    const steps = einsatzCreate.mock.lastCall![0].steps as { kind: string; location: string; supplyId: string }[];
     expect(steps.map((s) => s.location)).toEqual(['Area18', 'Lorville', 'Port Tressler']);
-    expect(steps.every((s) => s.kind === 'pickup' && s.supplyId === 'L1')).toBeTrue();
+    expect(steps.every((s) => s.kind === 'pickup' && s.supplyId === 'L1')).toBe(true);
     expect(closed).toEqual([{ nachschubId: 'a', created: false }]);
   });
 
@@ -153,7 +153,7 @@ describe('NachschubTargetDialogComponent', () => {
     fixture.detectChanges();
     primary(el).click();
     await fixture.whenStable();
-    expect(createSellNachschub).toHaveBeenCalledWith(1500000, jasmine.any(Array), { name: 'hq.nachschub.target.sellName' });
+    expect(createSellNachschub).toHaveBeenCalledWith(1500000, expect.any(Array), { name: 'hq.nachschub.target.sellName' });
     expect(closed).toEqual([{ nachschubId: 'new1', created: true }]);
   });
 
@@ -166,12 +166,12 @@ describe('NachschubTargetDialogComponent', () => {
     expect(el.querySelector('input.input')).toBeNull();
     primary(el).click();
     await fixture.whenStable();
-    expect(addToNachschub).toHaveBeenCalledWith('b', jasmine.any(Array));
+    expect(addToNachschub).toHaveBeenCalledWith('b', expect.any(Array));
   });
 
   it('shows a translated key when the write fails', async () => {
     const { fixture, el, closed } = setup('pickup');
-    addToNachschub.and.resolveTo({ ok: false, key: 'hq.nachschub.slotsFull' });
+    addToNachschub.mockResolvedValue({ ok: false, key: 'hq.nachschub.slotsFull' });
     radios(el)[1].click();
     fixture.detectChanges();
     primary(el).click();
@@ -184,7 +184,7 @@ describe('NachschubTargetDialogComponent', () => {
   it('blocks "new" and falls back to an existing Nachschub when all 7 slots are in use', () => {
     packages.set(Array.from({ length: 7 }, (_, i) => pkg(`s${i}`, i + 1)));
     const { el } = setup('pickup');
-    expect(radios(el)[0].disabled).toBeTrue();
+    expect(radios(el)[0].disabled).toBe(true);
     expect(radios(el)[1].getAttribute('aria-checked')).toBe('true');
   });
 });

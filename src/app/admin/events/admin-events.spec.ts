@@ -7,7 +7,7 @@ const pendingSheet = () =>
 describe('admin event review', () => {
   it('F11: a pending field needs a decision and is blank in the public sheet', () => {
     const s = pendingSheet();
-    expect(needsReview(s.fields.end)).toBeTrue();
+    expect(needsReview(s.fields.end)).toBe(true);
     expect(publicSheet(s).fields.end.value).toBeNull();
   });
 

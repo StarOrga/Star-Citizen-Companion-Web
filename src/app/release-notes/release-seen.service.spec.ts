@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { AccountPrefsService } from '../core/account-prefs.service';
@@ -10,7 +11,7 @@ describe('ReleaseSeenService', () => {
   let notes: ReturnType<typeof signal<ReleaseNotes | null>>;
   let prefs: ReturnType<typeof signal<Record<string, unknown> | null>>;
   let user: ReturnType<typeof signal<object | null>>;
-  let prefSet: jasmine.Spy;
+  let prefSet: Mock;
 
   const release = (version: string): ReleaseNotes => ({
     generatedFrom: 'CHANGELOG.md',
@@ -34,7 +35,7 @@ describe('ReleaseSeenService', () => {
     notes = signal<ReleaseNotes | null>(null);
     prefs = signal<Record<string, unknown> | null>(null);
     user = signal<object | null>(null);
-    prefSet = jasmine.createSpy('set');
+    prefSet = vi.fn().mockName('set');
   });
 
   afterEach(() => localStorage.removeItem(KEY));
@@ -43,7 +44,7 @@ describe('ReleaseSeenService', () => {
     notes.set(release('0.2.0'));
     const svc = setup();
     TestBed.flushEffects();
-    expect(svc.unseen()).toBeFalse();
+    expect(svc.unseen()).toBe(false);
     expect(localStorage.getItem(KEY)).toBe('0.2.0');
   });
 
@@ -52,10 +53,10 @@ describe('ReleaseSeenService', () => {
     notes.set(release('0.2.0'));
     const svc = setup();
     TestBed.flushEffects();
-    expect(svc.unseen()).toBeTrue();
+    expect(svc.unseen()).toBe(true);
     svc.markSeen();
     TestBed.flushEffects();
-    expect(svc.unseen()).toBeFalse();
+    expect(svc.unseen()).toBe(false);
     expect(localStorage.getItem(KEY)).toBe('0.2.0');
   });
 
@@ -64,7 +65,7 @@ describe('ReleaseSeenService', () => {
     notes.set(release('0.2.0'));
     const svc = setup();
     TestBed.flushEffects();
-    expect(svc.unseen()).toBeFalse();
+    expect(svc.unseen()).toBe(false);
     expect(prefSet).not.toHaveBeenCalled();
   });
 
@@ -74,7 +75,7 @@ describe('ReleaseSeenService', () => {
     notes.set(release('0.2.0'));
     const svc = setup();
     TestBed.flushEffects();
-    expect(svc.unseen()).toBeTrue();
+    expect(svc.unseen()).toBe(true);
     svc.markSeen();
     TestBed.flushEffects();
     expect(prefSet).toHaveBeenCalledWith(KEY, '0.2.0');

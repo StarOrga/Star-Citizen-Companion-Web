@@ -14,22 +14,22 @@ describe('ComposerPrefsService', () => {
 
   it('defaults to Enter-sends when nothing is stored', () => {
     localStorage.removeItem(KEY);
-    expect(make().sendOnEnter()).toBeTrue();
+    expect(make().sendOnEnter()).toBe(true);
   });
 
   it('persists the choice and restores it on the next visit', () => {
     make().setSendOnEnter(false);
     expect(localStorage.getItem(KEY)).toBe('0');
     // A fresh injector stands in for a reload.
-    expect(make().sendOnEnter()).toBeFalse();
+    expect(make().sendOnEnter()).toBe(false);
 
     make().setSendOnEnter(true);
     expect(localStorage.getItem(KEY)).toBe('1');
-    expect(make().sendOnEnter()).toBeTrue();
+    expect(make().sendOnEnter()).toBe(true);
   });
 
   it('treats any unknown stored value as the Enter-sends default', () => {
     localStorage.setItem(KEY, 'garbage');
-    expect(make().sendOnEnter()).toBeTrue();
+    expect(make().sendOnEnter()).toBe(true);
   });
 });

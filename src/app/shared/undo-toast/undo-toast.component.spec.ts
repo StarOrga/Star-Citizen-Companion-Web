@@ -8,8 +8,8 @@ describe('UndoToastComponent', () => {
 
   it('renders only while an offer is pending and its button undoes it', () => {
     const svc = TestBed.inject(UndoToastService);
-    const commit = jasmine.createSpy('commit');
-    const onUndo = jasmine.createSpy('onUndo');
+    const commit = vi.fn().mockName('commit');
+    const onUndo = vi.fn().mockName('onUndo');
     const f = TestBed.createComponent(UndoToastComponent);
     f.detectChanges();
     expect(f.nativeElement.querySelector('.toast')).toBeNull();
@@ -37,10 +37,10 @@ describe('UndoToastComponent', () => {
     const toast = f.nativeElement.querySelector('.toast') as HTMLElement;
     toast.dispatchEvent(new MouseEvent('mouseenter'));
     f.detectChanges();
-    expect(svc.held()).toBeTrue();
+    expect(svc.held()).toBe(true);
     expect(toast.classList).toContain('paused');
     toast.dispatchEvent(new MouseEvent('mouseleave'));
-    expect(svc.held()).toBeFalse();
+    expect(svc.held()).toBe(false);
     svc.undo();
   });
 });

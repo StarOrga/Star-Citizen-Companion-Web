@@ -22,23 +22,23 @@ describe('page screenshot helpers', () => {
     it('drops a subtree marked as capture-hidden', () => {
       const el = document.createElement('div');
       el.setAttribute(CAPTURE_HIDE_ATTR, '');
-      expect(isHidden(el)).toBeTrue();
+      expect(isHidden(el)).toBe(true);
     });
 
     it('drops the CDK overlay container, where the panel portals its lightboxes', () => {
       const el = document.createElement('div');
       el.className = 'cdk-overlay-container';
-      expect(isHidden(el)).toBeTrue();
+      expect(isHidden(el)).toBe(true);
     });
 
     it('keeps ordinary page content', () => {
       const el = document.createElement('section');
       el.className = 'sc-card';
-      expect(isHidden(el)).toBeFalse();
+      expect(isHidden(el)).toBe(false);
     });
 
     it('keeps text nodes — they are not elements and carry no marker', () => {
-      expect(isHidden(document.createTextNode('hello'))).toBeFalse();
+      expect(isHidden(document.createTextNode('hello'))).toBe(false);
     });
   });
 
@@ -53,26 +53,26 @@ describe('page screenshot helpers', () => {
     };
 
     it('drops a phone-only <picture> source, which would otherwise blank the image', () => {
-      expect(isPictureSource(source('(max-width: 480px)', 'picture'))).toBeTrue();
+      expect(isPictureSource(source('(max-width: 480px)', 'picture'))).toBe(true);
     });
 
     it('drops a <picture> source regardless of its media query — the clone renders in a narrow viewport', () => {
-      expect(isPictureSource(source(null, 'picture'))).toBeTrue();
+      expect(isPictureSource(source(null, 'picture'))).toBe(true);
     });
 
     it('keeps the <img> inside the picture — it carries the inlined data url', () => {
       const pic = document.createElement('picture');
       const img = document.createElement('img');
       pic.appendChild(img);
-      expect(isPictureSource(img)).toBeFalse();
+      expect(isPictureSource(img)).toBe(false);
     });
 
     it('leaves a <source> that is not a picture source alone', () => {
-      expect(isPictureSource(source(null, 'video'))).toBeFalse();
+      expect(isPictureSource(source(null, 'video'))).toBe(false);
     });
 
     it('ignores non-element nodes', () => {
-      expect(isPictureSource(document.createTextNode('x'))).toBeFalse();
+      expect(isPictureSource(document.createTextNode('x'))).toBe(false);
     });
   });
 

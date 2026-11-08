@@ -3,7 +3,7 @@ import { AFTER_PAINT_FALLBACK_MS, afterPaint } from './staged-build';
 
 describe('afterPaint', () => {
   it('runs behind the next frame, and only once', fakeAsync(() => {
-    const run = jasmine.createSpy('run');
+    const run = vi.fn().mockName('run');
     afterPaint(run);
     expect(run).not.toHaveBeenCalled();
     tick(AFTER_PAINT_FALLBACK_MS + 50);
@@ -11,8 +11,8 @@ describe('afterPaint', () => {
   }));
 
   it('does not wait for a frame that never comes (hidden tab)', fakeAsync(() => {
-    const raf = spyOn(window, 'requestAnimationFrame').and.returnValue(1);
-    const run = jasmine.createSpy('run');
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+    const run = vi.fn().mockName('run');
     afterPaint(run);
     tick(AFTER_PAINT_FALLBACK_MS - 1);
     expect(run).not.toHaveBeenCalled();
@@ -22,7 +22,7 @@ describe('afterPaint', () => {
   }));
 
   it('can be cancelled', fakeAsync(() => {
-    const run = jasmine.createSpy('run');
+    const run = vi.fn().mockName('run');
     afterPaint(run)();
     tick(AFTER_PAINT_FALLBACK_MS + 50);
     expect(run).not.toHaveBeenCalled();

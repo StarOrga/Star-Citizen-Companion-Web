@@ -25,29 +25,29 @@ describe('isCaptureClick', () => {
   const field = document.createElement('input');
 
   it('Alt+click captures anywhere, links included', () => {
-    expect(isCaptureClick(click({ altKey: true }), plain)).toBeTrue();
-    expect(isCaptureClick(click({ altKey: true }), inner)).toBeTrue();
+    expect(isCaptureClick(click({ altKey: true }), plain)).toBe(true);
+    expect(isCaptureClick(click({ altKey: true }), inner)).toBe(true);
   });
 
   it('Ctrl+click captures outside links and fields only', () => {
-    expect(isCaptureClick(click({ ctrlKey: true }), plain)).toBeTrue();
-    expect(isCaptureClick(click({ ctrlKey: true }), inner)).toBeFalse();
-    expect(isCaptureClick(click({ ctrlKey: true }), field)).toBeFalse();
+    expect(isCaptureClick(click({ ctrlKey: true }), plain)).toBe(true);
+    expect(isCaptureClick(click({ ctrlKey: true }), inner)).toBe(false);
+    expect(isCaptureClick(click({ ctrlKey: true }), field)).toBe(false);
   });
 
   it('leaves plain, AltGr (Ctrl+Alt), Cmd, Shift and non-left clicks alone', () => {
-    expect(isCaptureClick(click({}), plain)).toBeFalse();
-    expect(isCaptureClick(click({ ctrlKey: true, altKey: true }), plain)).toBeFalse();
-    expect(isCaptureClick(click({ metaKey: true }), plain)).toBeFalse();
-    expect(isCaptureClick(click({ altKey: true, shiftKey: true }), plain)).toBeFalse();
-    expect(isCaptureClick(click({ altKey: true, button: 1 }), plain)).toBeFalse();
+    expect(isCaptureClick(click({}), plain)).toBe(false);
+    expect(isCaptureClick(click({ ctrlKey: true, altKey: true }), plain)).toBe(false);
+    expect(isCaptureClick(click({ metaKey: true }), plain)).toBe(false);
+    expect(isCaptureClick(click({ altKey: true, shiftKey: true }), plain)).toBe(false);
+    expect(isCaptureClick(click({ altKey: true, button: 1 }), plain)).toBe(false);
   });
 
   it('never captures the feedback UI itself', () => {
     const fab = document.createElement('sc-feedback-fab');
     const btn = document.createElement('button');
     fab.append(btn);
-    expect(isCaptureClick(click({ altKey: true }), btn)).toBeFalse();
+    expect(isCaptureClick(click({ altKey: true }), btn)).toBe(false);
   });
 });
 
@@ -139,7 +139,7 @@ describe('FeedbackCaptureComponent', () => {
   it('admin: Alt+click captures the element, cancels its action and seeds the draft', () => {
     const { page, seeds, root } = setup(true);
     const ev = fire(root.querySelector('#btn')!, { altKey: true });
-    expect(ev.defaultPrevented).toBeTrue();
+    expect(ev.defaultPrevented).toBe(true);
     expect(page.componentInstance.fired()).toBe(0);
     const body = seeds.take('admin:new')?.body ?? '';
     expect(body).toContain('›');
@@ -163,10 +163,10 @@ describe('FeedbackCaptureComponent', () => {
     const { page, seeds, root } = setup(false);
     const ev = fire(root.querySelector('#btn')!, { altKey: true });
     fire(root.querySelector('#btn')!, { ctrlKey: true });
-    expect(ev.defaultPrevented).toBeFalse();
+    expect(ev.defaultPrevented).toBe(false);
     expect(page.componentInstance.fired()).toBe(2);
     expect(seeds.openRequests()).toBe(0);
-    expect(TestBed.inject(FeedbackSpotService).captureActive()).toBeFalse();
+    expect(TestBed.inject(FeedbackSpotService).captureActive()).toBe(false);
     root.remove();
   });
 

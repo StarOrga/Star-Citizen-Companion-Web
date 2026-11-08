@@ -27,11 +27,11 @@ describe('fusion-bar model', () => {
   it('hides after more than one bar height down, reveals after a few px up', () => {
     const t = new HideTracker();
     t.reset(0);
-    expect(t.update(50, 64)).toBeFalse(); // inside the first bar height
-    expect(t.update(100, 64)).toBeFalse(); // 50px of downward scroll: less than one bar height
-    expect(t.update(200, 64)).toBeTrue(); // 150px: more than one bar height
-    expect(t.update(200 - (REVEAL_UP_PX - 1), 64)).toBeTrue();
-    expect(t.update(200 - REVEAL_UP_PX - 1, 64)).toBeFalse();
+    expect(t.update(50, 64)).toBe(false); // inside the first bar height
+    expect(t.update(100, 64)).toBe(false); // 50px of downward scroll: less than one bar height
+    expect(t.update(200, 64)).toBe(true); // 150px: more than one bar height
+    expect(t.update(200 - (REVEAL_UP_PX - 1), 64)).toBe(true);
+    expect(t.update(200 - REVEAL_UP_PX - 1, 64)).toBe(false);
   });
 
   it('maps URLs to areas and Codex segments', () => {
@@ -46,8 +46,8 @@ describe('fusion-bar model', () => {
     expect(activeSegmentOf('/codex/index')).toBe('ship');
     expect(activeSegmentOf('/codex/index?kind=item')).toBeNull();
     expect(activeSegmentOf('/codex/fps')).toBe('fps');
-    expect(isCodexToolPage('/codex/index?kind=item')).toBeTrue();
-    expect(isCodexToolPage('/codex/ship/x')).toBeFalse();
+    expect(isCodexToolPage('/codex/index?kind=item')).toBe(true);
+    expect(isCodexToolPage('/codex/ship/x')).toBe(false);
   });
 });
 
@@ -85,12 +85,12 @@ describe('ShellChromeService', () => {
     expect(s.dockProgress).toBeNull();
     s.setDockProgress(0.4);
     expect(el.style.getPropertyValue('--sc-dock-p')).toBe('0.4');
-    expect(s.dockFull()).toBeFalse();
+    expect(s.dockFull()).toBe(false);
     s.setDockProgress(7);
     expect(el.style.getPropertyValue('--sc-dock-p')).toBe('1');
-    expect(s.dockFull()).toBeTrue();
+    expect(s.dockFull()).toBe(true);
     s.setDockProgress(0.9);
-    expect(s.dockFull()).toBeFalse();
+    expect(s.dockFull()).toBe(false);
     off();
     s.setDockProgress(0);
     expect(el.style.getPropertyValue('--sc-dock-p')).toBe('0.9');
@@ -111,12 +111,12 @@ describe('ShellChromeService', () => {
     s.registerDockTarget(el);
     s.setStageSearch('none');
     expect(s.dockProgress).toBe(1);
-    expect(s.dockFull()).toBeTrue();
-    expect(el.hasAttribute('data-ease')).toBeFalse();
+    expect(s.dockFull()).toBe(true);
+    expect(el.hasAttribute('data-ease')).toBe(false);
     // Arriving on a main page expands it again, eased.
     s.setStageSearch('stage');
     expect(s.dockProgress).toBe(0);
-    expect(el.hasAttribute('data-ease')).toBeTrue();
+    expect(el.hasAttribute('data-ease')).toBe(true);
   });
 
   it('merges Benutzer and Telemetrie into one admin entry that links to the hub', () => {
@@ -128,10 +128,10 @@ describe('ShellChromeService', () => {
 
   it('knows the main pages the cinematic header stands on', () => {
     for (const url of ['/verse', '/codex', '/hq', '/admin/hub', '/verse?x=1', '/codex/']) {
-      expect(isMainHeaderPage(url)).withContext(url).toBeTrue();
+      expect(isMainHeaderPage(url), url).toBe(true);
     }
     for (const url of ['/verse/news', '/codex/index', '/admin', '/admin/telemetry', '/settings']) {
-      expect(isMainHeaderPage(url)).withContext(url).toBeFalse();
+      expect(isMainHeaderPage(url), url).toBe(false);
     }
   });
 
@@ -150,17 +150,17 @@ describe('ShellChromeService', () => {
 
   it('Ctrl+K goes to the newest page search that takes it, else to the subheader', () => {
     const s = new ShellChromeService();
-    expect(s.focusPageSearch()).toBeFalse();
+    expect(s.focusPageSearch()).toBe(false);
     const a = {};
     const b = {};
     const calls: string[] = [];
     s.registerSearchFocus(a, () => (calls.push('a'), true));
     const offB = s.registerSearchFocus(b, () => (calls.push('b'), false));
-    expect(s.focusPageSearch()).toBeTrue();
+    expect(s.focusPageSearch()).toBe(true);
     expect(calls).toEqual(['b', 'a']);
     offB();
     calls.length = 0;
-    expect(s.focusPageSearch()).toBeTrue();
+    expect(s.focusPageSearch()).toBe(true);
     expect(calls).toEqual(['a']);
   });
 });

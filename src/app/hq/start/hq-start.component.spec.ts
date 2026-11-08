@@ -6,6 +6,7 @@ import { AuthService } from '../../auth/auth.service';
 import { SccAppLauncherService } from '../../desktop/scc-app-launcher.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
+import { EventHqService } from '../events/event-hq.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { HqStatsService } from '../data/hq-stats.service';
 import { HqOwnershipService } from '../hq-ownership.service';
@@ -31,6 +32,7 @@ interface Setup {
   remembered?: boolean;
   snapshots?: { location: string; taken_at: string }[];
   missions?: number;
+  openEvents?: string[];
 }
 
 const liveState = () => ({
@@ -45,12 +47,12 @@ function providers(o: Setup) {
   const launcher = {
     launch: () => Promise.resolve(false),
     launchedBefore: () => !!o.remembered,
-    downloadInstaller: jasmine.createSpy('downloadInstaller'),
-    rememberLaunch: jasmine.createSpy('rememberLaunch'),
+    downloadInstaller: vi.fn().mockName('downloadInstaller'),
+    rememberLaunch: vi.fn().mockName('rememberLaunch'),
     remembered: signal(!!o.remembered),
   };
-  const refresh = jasmine.createSpy('refresh');
-  const sync = jasmine.createSpy('sync');
+  const refresh = vi.fn().mockName('refresh');
+  const sync = vi.fn().mockName('sync');
   return {
     launcher,
     refresh,
@@ -94,6 +96,13 @@ function providers(o: Setup) {
       },
       { provide: HqSuppliesService, useValue: { open: signal(Array.from({ length: o.supplies ?? 0 }, (_, i) => ({ id: `n${i}` }))) } },
       { provide: SccAppLauncherService, useValue: launcher },
+      {
+        provide: EventHqService,
+        useValue: (() => {
+          const open = signal((o.openEvents ?? []).map((name) => ({ event: { name } })));
+          return { open, nearest: () => open()[0] ?? null, ensure: () => undefined };
+        })(),
+      },
     ],
   };
 }
@@ -130,18 +139,39 @@ describe('HqStartTilesComponent', () => {
   it('a plain click goes through the page nav, a modified click is left to the browser', async () => {
     const { tile } = await mount();
     const nav = TestBed.inject(HqPageNavService);
-    const open = jasmine.createSpy('open');
+    const open = vi.fn().mockName('open');
     nav.attach(open);
     const a = tile('planen').querySelector('a.stretch') as HTMLAnchorElement;
     let leftAlone: boolean | null = null;
     a.addEventListener('click', (e) => { leftAlone = !e.defaultPrevented; e.preventDefault(); }, { once: true });
     a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
-    expect(leftAlone).toBeTrue();
+    expect(leftAlone).toBe(true);
     expect(open).not.toHaveBeenCalled();
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true });
     a.dispatchEvent(plain);
-    expect(plain.defaultPrevented).toBeTrue();
-    expect(open).toHaveBeenCalledOnceWith('planen');
+    expect(plain.defaultPrevented).toBe(true);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith('planen');
+  });
+
+  it('Bestand and Planen show no visible open-link line; the words sit in the anchor name and tooltip only', async () => {
+    const { tile } = await mount({ ships: 3 });
+    const bestand = tile('bestand').querySelector('a.stretch') as HTMLAnchorElement;
+    const planen = tile('planen').querySelector('a.stretch') as HTMLAnchorElement;
+    expect(bestand.getAttribute('aria-label')).toBe('hq.start.bestand.open');
+    expect(planen.getAttribute('aria-label')).toBe('hq.start.planen.open');
+    expect(tile('bestand').querySelector('.cta')).toBeNull();
+    expect(tile('planen').querySelector('.cta')).toBeNull();
+    expect(bestand.textContent?.trim()).toBe('');
+  });
+
+  it('Bestand and Planen share one fixed height, whatever they hold', async () => {
+    const { tile } = await mount({ ships: 3, upcoming: [einsatz('e1', 'Bounty v3', [step('S3')])], openEvents: ['Xenothreat', 'Jumptown', 'Siege of Orison'] });
+    const h = (n: string) => tile(n).getBoundingClientRect().height;
+    expect(getComputedStyle(tile('bestand')).height).toBe(getComputedStyle(tile('planen')).height);
+    expect(h('bestand')).toBeGreaterThan(0);
+    expect(Math.abs(h('bestand') - h('planen'))).toBeLessThan(0.5);
+    expect(Math.abs(tile('bestand').getBoundingClientRect().width - tile('planen').getBoundingClientRect().width)).toBeLessThan(0.5);
   });
 
   it('every tile says its hotkey for assistive tech (1 Bestand, 2 Jetzt, 3 Planen)', async () => {
@@ -163,7 +193,6 @@ describe('HqStartTilesComponent', () => {
       expect(tile('bestand').textContent).toContain('hq.start.bestand.ships');
       expect(tile('bestand').textContent).toContain('hq.start.bestand.sets');
       expect(tile('bestand').textContent).toContain('hq.start.bestand.blueprints');
-      expect(tile('bestand').textContent).toContain('hq.start.bestand.open');
       expect(tile('bestand').querySelector('a.own')).toBeNull();
     });
 
@@ -191,22 +220,25 @@ describe('HqStartTilesComponent', () => {
       expect(tile('planen').querySelector('a.own')).toBeNull();
     });
 
-    it('with plans: count, name and Route oeffnen to exactly this route; the tile stays neutral', async () => {
+    it('with plans: count and name, no text link of its own; the whole tile leads to Planen', async () => {
       const { tile, f } = await mount({ upcoming: [einsatz('e1', 'Bounty v3', [step('S3'), step('Core')])] });
       f.detectChanges();
       expect(tile('planen').textContent).toContain('hq.start.planen.count');
       expect(tile('planen').textContent).toContain('Bounty v3');
-      const route = tile('planen').querySelector('a.own') as HTMLAnchorElement;
-      expect(route.getAttribute('href')).toBe('/hq?einsatz=e1#planen');
+      expect(tile('planen').querySelector('a.own')).toBeNull();
       expect(tile('planen').querySelector('a.stretch')?.getAttribute('href')).toBe('/hq#planen');
-      const nav = TestBed.inject(HqPageNavService);
-      const open = jasmine.createSpy('open');
-      nav.attach(open);
-      const plain = new MouseEvent('click', { bubbles: true, cancelable: true });
-      route.dispatchEvent(plain);
-      expect(plain.defaultPrevented).toBeTrue();
-      expect(nav.routeFocus()).toEqual({ id: 'e1' });
-      expect(open).toHaveBeenCalledOnceWith('planen');
+    });
+
+    it('open events are one compact line inside the tile, not a link box of their own', async () => {
+      const { tile, f } = await mount({ openEvents: ['Xenothreat', 'Jumptown', 'Siege of Orison'] });
+      f.detectChanges();
+      const mark = tile('planen').querySelector('[data-event-marker]') as HTMLElement;
+      expect(mark).not.toBeNull();
+      expect(mark.tagName).toBe('SPAN');
+      expect(mark.textContent).toContain('hq.events.marker');
+      expect(tile('planen').querySelectorAll('a').length).toBe(1);
+      const line = parseFloat(getComputedStyle(mark).lineHeight) || 20;
+      expect(mark.getBoundingClientRect().height).toBeLessThan(line * 1.6);
     });
 
     it('a sync failure before the first pull is an error state with retry', async () => {

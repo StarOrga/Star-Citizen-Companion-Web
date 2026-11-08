@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -9,12 +10,12 @@ import { SetPasswordComponent } from './set-password.component';
 // AUD-054/073: the invite / recovery landing page.
 describe('SetPasswordComponent', () => {
   let fixture: ComponentFixture<SetPasswordComponent>;
-  let sendPasswordReset: jasmine.Spy;
+  let sendPasswordReset: Mock;
   const user = signal<{ email: string } | null>(null);
 
   function create(query: Record<string, string> = {}) {
     user.set(null);
-    sendPasswordReset = jasmine.createSpy('sendPasswordReset').and.resolveTo({ data: {}, error: null });
+    sendPasswordReset = vi.fn().mockName('sendPasswordReset').mockResolvedValue({ data: {}, error: null });
     TestBed.configureTestingModule({
       imports: [SetPasswordComponent],
       providers: [
@@ -22,7 +23,7 @@ describe('SetPasswordComponent', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         {
           provide: AuthService,
-          useValue: { ready: signal(true), realUser: user, sendPasswordReset, updatePassword: jasmine.createSpy() },
+          useValue: { ready: signal(true), realUser: user, sendPasswordReset, updatePassword: vi.fn() },
         },
         { provide: ActivatedRoute, useValue: { queryParamMap: new BehaviorSubject(convertToParamMap(query)) } },
       ],
@@ -67,17 +68,18 @@ describe('SetPasswordComponent', () => {
   it('keeps "send link" disabled for an invalid address', () => {
     create();
     typeEmail('not-an-address');
-    expect(btn().disabled).toBeTrue();
+    expect(btn().disabled).toBe(true);
     typeEmail('pilot@example.com');
-    expect(btn().disabled).toBeFalse();
+    expect(btn().disabled).toBe(false);
   });
 
   it('shows the rate limit, and only the rate limit, as an error', async () => {
     create();
     typeEmail('pilot@example.com');
-    sendPasswordReset.and.resolveTo({ data: null, error: { status: 429, message: 'rate limited' } });
+    sendPasswordReset.mockResolvedValue({ data: null, error: { status: 429, message: 'rate limited' } });
     await resend();
-    expect(sendPasswordReset).toHaveBeenCalledOnceWith('pilot@example.com');
+    expect(sendPasswordReset).toHaveBeenCalledTimes(1);
+    expect(sendPasswordReset).toHaveBeenCalledWith('pilot@example.com');
     expect(el().querySelector('.flash.error[role="alert"]')).not.toBeNull();
     expect(el().textContent).not.toContain('auth.setPassword.resent');
   });
@@ -85,7 +87,7 @@ describe('SetPasswordComponent', () => {
   it('answers any other returned error like a success, so the form reveals no membership', async () => {
     create();
     typeEmail('stranger@example.com');
-    sendPasswordReset.and.resolveTo({ data: null, error: { status: 400, message: 'user not found' } });
+    sendPasswordReset.mockResolvedValue({ data: null, error: { status: 400, message: 'user not found' } });
     await resend();
     expect(el().querySelector('[role="alert"]')).toBeNull();
     expect(el().querySelector('.flash.success')?.textContent).toContain('auth.setPassword.resent');
@@ -101,7 +103,7 @@ describe('SetPasswordComponent', () => {
   it('shows an error when the send throws', async () => {
     create();
     typeEmail('pilot@example.com');
-    sendPasswordReset.and.rejectWith(new TypeError('Failed to fetch'));
+    sendPasswordReset.mockRejectedValue(new TypeError('Failed to fetch'));
     await resend();
     expect(el().querySelector('.flash.error[role="alert"]')).not.toBeNull();
     expect(el().textContent).not.toContain('auth.setPassword.resent');
