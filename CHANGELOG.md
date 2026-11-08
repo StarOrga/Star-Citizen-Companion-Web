@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.230.1] - 2026-11-08
+
+### Fixed
+- Event migrations renumbered past a version already taken on the remote ledger, so `db push` applies them instead of skipping the event data sheet.
+
 ## [0.230.0] - 2026-11-08
 
 ### Added

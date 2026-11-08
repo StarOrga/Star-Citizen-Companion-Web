@@ -54,7 +54,7 @@ mechanism is flexible** - nothing is locked to today's events. Every value may b
 - Every write goes through `sc_event_sheet_apply(p_event_id text, p_sheet jsonb, p_actor_kind 'ai'|'admin', p_actor_id text)`
   (service role or admin): stores draft + public sheet + one row in `sc_event_sheet_history` (admin-only read).
 
-## Related tables (migrations `20261108140000`, `20261108140100`)
+## Related tables (migrations `20261108190000`, `20261108190100`)
 
 `user_event_state` (per user, see `docs/contracts/scc-app-event-progress.md`), `hq_supply_packages.type/event_id`,
 `hq_einsaetze.event_id/area`, `hq_einsatz_steps.kind='event'/event_id/area`, `hq_inventory_items.origin`.
