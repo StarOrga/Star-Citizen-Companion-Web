@@ -1,0 +1,304 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "d-collab-tone",
+        "label": "Collaborator-Farbe",
+        "mode": "single",
+        "value": "copper",
+        "rec": "copper",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "alle Flächen, die Admins + Collaborators sehen, Viewer nicht",
+        "finding": "f-tone",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 11563,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-hint-a11y",
+        "label": "Text-Hinweise",
+        "mode": "single",
+        "value": "sronly",
+        "rec": "sronly",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "alle „Nur Admin…“-Labels",
+        "finding": "f-hint",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 14152,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-rule",
+        "label": "Projektregel",
+        "mode": "yesnoalt",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "rec": "yes",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "CLAUDE.md „Red means elevated access“",
+        "finding": "f-rule",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 9742,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-more-codex",
+        "label": "Mehr in Codex",
+        "mode": "single",
+        "value": "scroll",
+        "rec": "scroll",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "exakt so wie mehr in verse!\n\nvom mechanismus",
+        "appliesTo": "/codex und alle Links auf die Übersicht",
+        "finding": "f-more",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 57245,
+          "noteWords": 8,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-datasheet",
+        "label": "Landing-Datenblatt",
+        "mode": "single",
+        "value": "trim",
+        "rec": "trim",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "Codex-Landing, rechtes Datenblatt",
+        "finding": "f-sheet",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 18544,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-classic",
+        "label": "Klassische Ansicht",
+        "mode": "single",
+        "value": "restore",
+        "rec": "restore",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Codex-Detail aller Nicht-Schiffe",
+        "finding": "f-classic",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 13906,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-holo-back",
+        "label": "Was im Holotisch zurückkommt",
+        "mode": "multi",
+        "value": [
+          "graphs",
+          "noscroll"
+        ],
+        "rec": "graphs noscroll",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "Holotisch-Ansicht Nicht-Schiffe",
+        "finding": "f-holo",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 19861,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-default-view",
+        "label": "Standardansicht Nicht-Schiffe",
+        "mode": "single",
+        "value": "remember",
+        "rec": "remember",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "Codex-Detail Nicht-Schiffe",
+        "finding": "f-default",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 31592,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-conn",
+        "label": "Was „App verbunden“ heißt",
+        "mode": "single",
+        "value": "scc",
+        "rec": "scc",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "HQ-Startseite, HQ Jetzt, Live-Ticker",
+        "finding": "f-conn",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 7848,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-event-line",
+        "label": "Event-Anzeige zweite Zeile",
+        "mode": "single",
+        "value": "names",
+        "rec": "names",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "HQ-Startseite, Planen-Kachel",
+        "finding": "f-event",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 35379,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-sun-name",
+        "label": "Name des Patch-Tipps",
+        "mode": "wording",
+        "choice": "patch",
+        "value": "",
+        "rec": "sun",
+        "deviates": true,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "/verse/explorer, Briefing, Patch News",
+        "finding": "f-sun",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 22521,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-fd9db5",
+        "label": "Umgang mit claude/batch-fd9db5",
+        "mode": "single",
+        "value": "mergefirst",
+        "rec": "mergefirst",
+        "deviates": false,
+        "none": false,
+        "untouched": false,
+        "note": "",
+        "appliesTo": "B1, B2, B5, B7",
+        "finding": "f-fd9",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 10877,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      },
+      {
+        "id": "d-minimap",
+        "label": "Mini-Sternkarte im Kopf",
+        "mode": "yesnoalt",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "rec": "yes",
+        "deviates": false,
+        "none": false,
+        "untouched": true,
+        "note": "",
+        "appliesTo": "/verse/explorer, Seitenkopf",
+        "finding": "f-mini",
+        "issue": false,
+        "epic": "",
+        "hesitation": {
+          "ms": 7869,
+          "noteWords": 0,
+          "revisits": 0,
+          "flagged": false
+        }
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "d-more-codex-note",
+          "text": "exakt so wie mehr in verse!\n\nvom mechanismus",
+          "attachments": []
+        }
+      ]
+    }
+  }
+]
