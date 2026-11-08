@@ -1681,9 +1681,7 @@ export class CodexService {
     if (this.silhouetteCache.has(cacheKey)) return this.silhouetteCache.get(cacheKey)!;
     const { data, error } = await this.sb.client
       .from('codex_silhouettes')
-      .select(
-        'kind, class_name, channel, patch_version, build_number, view_box, path, bbox, anchors, unresolved, meta, generated_at',
-      )
+      .select('*') // edges arrives as a column once the migration is live; * never 400s on a missing one
       .eq('build_id', build.id)
       .eq('kind', kind)
       .eq('class_name', className)
@@ -1736,9 +1734,7 @@ export class CodexService {
       const chunk = toFetch.slice(i, i + CHUNK);
       const { data, error } = await this.sb.client
         .from('codex_silhouettes')
-        .select(
-          'kind, class_name, channel, patch_version, build_number, view_box, path, bbox, anchors, unresolved, meta, generated_at',
-        )
+        .select('*') // edges arrives as a column once the migration is live; * never 400s on a missing one
         .eq('build_id', build.id)
         .eq('kind', kind)
         .in('class_name', chunk);
