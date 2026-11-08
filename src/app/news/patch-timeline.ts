@@ -1,4 +1,4 @@
-import type { PatchNoteEntry, PatchStage } from './patch-notes';
+import { compareVersionsDesc, versionSegments, type PatchNoteEntry, type PatchStage } from './patch-notes';
 import { levelOf, stabilityPercent, type StabilityLevel, type StabilityVerdict } from './patch-stability';
 import type { StackCard } from './patch-stack';
 
@@ -52,7 +52,10 @@ function liveStability(
 }
 
 /**
- * Sub-version rows of one patch line, newest first. Every row carries a
+ * Sub-version rows of one patch line, the newest VERSION first and newest first
+ * inside a version (feedback #317: "4.10.3 … müsste ganz oben stehen"). A
+ * rolling hotfix thread of 4.10.2 bumped last week must not push the 4.10.3
+ * PTU notes down — the point release is the newer information. Every row carries a
  * stability slot: LIVE builds read it from the line's daily verdict, test
  * builds have none yet (rendered as "noch früh"). On a line that has shipped,
  * all but the newest test wave start folded.
@@ -63,7 +66,7 @@ export function subVersionRows(card: StackCard, verdict: StabilityVerdict | null
   );
   const shipped = card.liveAt !== null;
   let seenTest = false;
-  return entries.map((e, i) => {
+  const rows = entries.map((e, i) => {
     let st: { stability: number; level: StabilityLevel } | null = null;
     if (e.stage === 'live') {
       const newerLive = entries.slice(0, i).reverse().find((n) => n.stage === 'live');
@@ -84,5 +87,11 @@ export function subVersionRows(card: StackCard, verdict: StabilityVerdict | null
       level: st?.level ?? null,
       older,
     };
+  });
+  // Stable sort: the date order computed above survives inside one version, and
+  // the stability windows were already measured on it. Unversioned rows go last.
+  return rows.sort((a, b) => {
+    if (!a.version !== !b.version) return a.version ? -1 : 1;
+    return compareVersionsDesc(versionSegments(a.version), versionSegments(b.version));
   });
 }

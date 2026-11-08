@@ -60,4 +60,18 @@ describe('subVersionRows', () => {
     const rows = subVersionRows(card([entry(1, '4.11.0', 'ptu', false, '2026-10-01T00:00:00Z'), entry(2, '4.11.0', 'evocati', false, '2026-09-20T00:00:00Z')], null), null);
     expect(rows.every((r) => !r.older)).toBeTrue();
   });
+
+  it('lists the newest point release first, even under a newer hotfix of the previous one (feedback #317)', () => {
+    const rows = subVersionRows(
+      card([
+        entry(1, '4.10.2', 'live', false, '2026-10-15T00:00:00Z'),
+        entry(2, '4.10.3', 'ptu', false, '2026-11-01T00:00:00Z'),
+        entry(3, '4.10.2', 'live', true, '2026-11-05T00:00:00Z'),
+        entry(4, '4.10.3', 'ptu', false, '2026-11-04T00:00:00Z'),
+        entry(5, '', null, false, '2026-11-06T00:00:00Z'),
+      ], Date.parse('2026-08-27')),
+      null,
+    );
+    expect(rows.map((r) => r.id)).toEqual(['4', '2', '3', '1', '5']);
+  });
 });
