@@ -396,6 +396,8 @@ type Step = 1 | 2 | 3;
       .e-grid:not(:has(.lcol)) { grid-template-columns: minmax(0, 1fr); }
       @media (max-width: 860px) { .e-grid { grid-template-columns: minmax(0, 1fr); } }
       .lcol { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); min-width: 0; }
+      /* A material line wraps its controls below the name instead of squeezing the name to a few letters. */
+      .mats li .nm { flex: 1 0 8.5rem; min-width: 8.5rem; overflow-wrap: break-word; }
       .mats li.out .nm { color: var(--sc-fg-2); text-decoration: line-through; }
       .why { color: var(--sc-fg-2); font-size: 0.78rem; }
       .why.warn { color: var(--sc-warning); }
