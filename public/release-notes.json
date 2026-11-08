@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.238.1",
+  "current": "0.238.2",
   "releases": [
+    {
+      "version": "0.238.2",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex index: the area tree always ends inside the visible screen (also embedded in /codex), the page keeps scrolling past its end, and a click on an open group like \"Hersteller\" folds it without leaving the area."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.238.1",
       "date": "2026-11-08",
