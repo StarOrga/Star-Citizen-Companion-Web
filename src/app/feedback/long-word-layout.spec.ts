@@ -18,14 +18,14 @@ import { FEEDBACK_LONG_WORD_CHARS } from './feedback-limits';
  * The frame is 375px because that is the viewport the topic blew up on.
  */
 @Component({
-    standalone: true,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    template: `
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
     <div class="frame">
       <div class="body" [innerHTML]="html()"></div>
     </div>
   `,
-    styles: [`
+  styles: [`
     /* Stand-in for the phone viewport: it must NOT be widened by its content. */
     .frame { width: 375px; }
     /* The same two declarations every feedback body surface carries. */
@@ -33,59 +33,61 @@ import { FEEDBACK_LONG_WORD_CHARS } from './feedback-limits';
   `],
 })
 class BodyHostComponent {
-    readonly html = input('');
+  readonly html = input('');
 }
 
 describe('runaway feedback text at 375px', () => {
-    async function render(body: string) {
-        await TestBed.configureTestingModule({ imports: [BodyHostComponent] }).compileComponents();
-        const fixture = TestBed.createComponent(BodyHostComponent);
-        fixture.componentRef.setInput('html', renderFeedbackBody(body).html);
-        fixture.detectChanges();
+  async function render(body: string) {
+    await TestBed.configureTestingModule({ imports: [BodyHostComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(BodyHostComponent);
+    fixture.componentRef.setInput('html', renderFeedbackBody(body).html);
+    fixture.detectChanges();
 
-        const root = fixture.nativeElement as HTMLElement;
-        return {
-            fixture,
-            frame: root.querySelector('.frame') as HTMLElement,
-            bodyEl: root.querySelector('.body') as HTMLElement,
-        };
-    }
+    const root = fixture.nativeElement as HTMLElement;
+    return {
+      fixture,
+      frame: root.querySelector('.frame') as HTMLElement,
+      bodyEl: root.querySelector('.body') as HTMLElement,
+    };
+  }
 
-    afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => TestBed.resetTestingModule());
 
-    it('keeps a 9.800-character run on one line and scrolls it inside its own box', async () => {
-        const { frame, bodyEl } = await render('a'.repeat(9800));
+  it('keeps a 9.800-character run on one line and scrolls it inside its own box', async () => {
+    const { frame, bodyEl } = await render('a'.repeat(9800));
 
-        const span = bodyEl.querySelector('span.sc-longword') as HTMLElement | null;
-        expect(span, 'the runaway token is marked').not.toBeNull();
-        expect(getComputedStyle(span!).whiteSpace, 'the GLOBAL .sc-longword rule reaches innerHTML content').toBe('nowrap');
+    const span = bodyEl.querySelector('span.sc-longword') as HTMLElement | null;
+    expect(span).withContext('the runaway token is marked').not.toBeNull();
+    expect(getComputedStyle(span!).whiteSpace)
+      .withContext('the GLOBAL .sc-longword rule reaches innerHTML content')
+      .toBe('nowrap');
 
-        // One line, not two hundred — an inline box that wrapped would report one
-        // client rect per line it occupies.
-        expect(span!.getClientRects().length).toBe(1);
-        // …the overflow goes sideways, inside the body box…
-        expect(bodyEl.scrollWidth).toBeGreaterThan(bodyEl.clientWidth);
-        // …and the 375px frame around it is not one pixel wider for it.
-        expect(frame.clientWidth).toBe(375);
-        expect(frame.scrollWidth).toBe(frame.clientWidth);
-    });
+    // One line, not two hundred — an inline box that wrapped would report one
+    // client rect per line it occupies.
+    expect(span!.getClientRects().length).toBe(1);
+    // …the overflow goes sideways, inside the body box…
+    expect(bodyEl.scrollWidth).toBeGreaterThan(bodyEl.clientWidth);
+    // …and the 375px frame around it is not one pixel wider for it.
+    expect(frame.clientWidth).toBe(375);
+    expect(frame.scrollWidth).toBe(frame.clientWidth);
+  });
 
-    it('leaves ordinary prose wrapping exactly as it did', async () => {
-        const prose = `${'wort '.repeat(80)}und ein normaler Satz dazu`;
-        const { frame, bodyEl } = await render(prose);
+  it('leaves ordinary prose wrapping exactly as it did', async () => {
+    const prose = `${'wort '.repeat(80)}und ein normaler Satz dazu`;
+    const { frame, bodyEl } = await render(prose);
 
-        expect(bodyEl.querySelector('span.sc-longword')).toBeNull();
-        expect(bodyEl.scrollWidth, 'no sideways scroll for prose').toBe(bodyEl.clientWidth);
-        expect(bodyEl.clientHeight, 'prose still wraps onto many lines').toBeGreaterThan(40);
-        expect(frame.scrollWidth).toBe(frame.clientWidth);
-    });
+    expect(bodyEl.querySelector('span.sc-longword')).toBeNull();
+    expect(bodyEl.scrollWidth).withContext('no sideways scroll for prose').toBe(bodyEl.clientWidth);
+    expect(bodyEl.clientHeight).withContext('prose still wraps onto many lines').toBeGreaterThan(40);
+    expect(frame.scrollWidth).toBe(frame.clientWidth);
+  });
 
-    it('still breaks a merely long token mid-word, below the threshold', async () => {
-        const { frame, bodyEl } = await render('b'.repeat(FEEDBACK_LONG_WORD_CHARS - 1));
+  it('still breaks a merely long token mid-word, below the threshold', async () => {
+    const { frame, bodyEl } = await render('b'.repeat(FEEDBACK_LONG_WORD_CHARS - 1));
 
-        expect(bodyEl.querySelector('span.sc-longword')).toBeNull();
-        // overflow-wrap: anywhere is untouched for everything under the threshold.
-        expect(bodyEl.scrollWidth).toBe(bodyEl.clientWidth);
-        expect(frame.scrollWidth).toBe(frame.clientWidth);
-    });
+    expect(bodyEl.querySelector('span.sc-longword')).toBeNull();
+    // overflow-wrap: anywhere is untouched for everything under the threshold.
+    expect(bodyEl.scrollWidth).toBe(bodyEl.clientWidth);
+    expect(frame.scrollWidth).toBe(frame.clientWidth);
+  });
 });
