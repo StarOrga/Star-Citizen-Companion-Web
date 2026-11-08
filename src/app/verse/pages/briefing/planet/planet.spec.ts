@@ -1,4 +1,4 @@
-import { AuroraClock, DWELL_MAX_MS, LEG_MAX_MS, LEG_MIN_MS, TRAINS_MAX, TRAINS_MIN, TrainNetwork, easeLeg, legDuration } from './planet-trains';
+import { AURORA_BASE_MAX, AURORA_FLOOR, AuroraClock, auroraBase, auroraLevel, DWELL_MAX_MS, LEG_MAX_MS, LEG_MIN_MS, TRAINS_MAX, TRAINS_MIN, TrainNetwork, easeLeg, legDuration } from './planet-trains';
 import { DAY_MS, PlanetWorld, SUN, angle, buildWorldSync, project, seeded, slerp, sph } from './planet-world';
 
 describe('Verse planet — world', () => {
@@ -93,16 +93,39 @@ describe('Verse planet — trains', () => {
 });
 
 describe('Verse planet — aurora', () => {
-  it('shows up now and then and fades back out', () => {
+  it('base intensity never drops below the floor and drifts between weak and strong', () => {
+    const phases = [0.3, 2.1, 4.4];
+    let min = 1, max = 0;
+    for (let t = 0; t < 60 * 60 * 1000; t += 1000) {
+      const b = auroraBase(t, phases);
+      min = Math.min(min, b);
+      max = Math.max(max, b);
+    }
+    expect(min).toBeGreaterThanOrEqual(AURORA_FLOOR);
+    expect(max).toBeLessThanOrEqual(AURORA_BASE_MAX + 1e-9);
+    expect(max - min).toBeGreaterThan(0.25);
+  });
+
+  it('a burst lifts the level towards full strength without leaving 0..1', () => {
+    expect(auroraLevel(0.3, 0)).toBeCloseTo(0.3, 6);
+    expect(auroraLevel(0.3, 1)).toBe(1);
+    expect(auroraLevel(0, 0)).toBe(AURORA_FLOOR);
+    expect(auroraLevel(0.5, 2)).toBe(1);
+  });
+
+  it('is always there, weaker and stronger, with strong bursts now and then', () => {
     const a = new AuroraClock(seeded(5));
-    let on = 0, peaks = 0, wasHigh = false;
+    expect(a.level).toBeGreaterThanOrEqual(AURORA_FLOOR);
+    let min = 1, peaks = 0, wasHigh = false, strong = 0;
     for (let t = 0; t < 20 * 60 * 1000; t += 1000) {
       const l = a.step(1000);
-      if (l > 0.5) on++;
+      min = Math.min(min, l);
+      if (l > 0.8) strong++;
       if (l > 0.9 && !wasHigh) peaks++;
       wasHigh = l > 0.9;
     }
-    expect(peaks).toBeGreaterThanOrEqual(4);
-    expect(on).toBeLessThan(20 * 60 * 0.75);
+    expect(min).toBeGreaterThanOrEqual(AURORA_FLOOR);
+    expect(peaks).toBeGreaterThanOrEqual(5);
+    expect(strong).toBeLessThan(20 * 60 * 0.75);
   });
 });

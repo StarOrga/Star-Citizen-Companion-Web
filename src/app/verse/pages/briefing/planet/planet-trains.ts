@@ -108,31 +108,66 @@ export class TrainNetwork {
   }
 }
 
+/** The aurora never goes fully dark (admin feedback #324): its faintest phase. */
+export const AURORA_FLOOR = 0.22;
+/** The drifting base tops out here; only a burst lifts it to full strength. */
+export const AURORA_BASE_MAX = 0.65;
+/** Periods (ms) of the slow drift — incommensurate, so it never repeats visibly. */
+const AURORA_DRIFT_MS = [83_000, 197_000, 461_000] as const;
+
 /**
- * The aurora: now and then, never on a countable timer — first after
- * 20–60 s, then every 40 s – 2.5 min, each lasting 45–90 s, faded in and out.
+ * The aurora's resting intensity at `ms`: drifts smoothly between
+ * AURORA_FLOOR (weak) and AURORA_BASE_MAX (strong) over minutes. `phases`
+ * (radians, one per drift period) give every visit another pattern.
+ */
+export function auroraBase(ms: number, phases: readonly number[]): number {
+  let w = 0;
+  for (let i = 0; i < AURORA_DRIFT_MS.length; i++) {
+    w += Math.sin((ms / AURORA_DRIFT_MS[i]) * Math.PI * 2 + (phases[i] ?? 0));
+  }
+  const k = (w / AURORA_DRIFT_MS.length + 1) / 2; // 0..1
+  const eased = k * k * (3 - 2 * k);
+  return AURORA_FLOOR + (AURORA_BASE_MAX - AURORA_FLOOR) * eased;
+}
+
+/** Base plus a burst (0..1) on top: never below the floor, never above 1. */
+export function auroraLevel(base: number, burst: number): number {
+  const b = Math.min(1, Math.max(0, burst));
+  return Math.min(1, Math.max(AURORA_FLOOR, base + (1 - base) * b));
+}
+
+/**
+ * The aurora: always there, drifting between weaker and stronger phases
+ * (auroraBase), and now and then a strong burst on top, never on a countable
+ * timer — first after 15–40 s, then every 30 s – 1.5 min, each lasting
+ * 30–75 s, faded in and out.
  */
 export class AuroraClock {
-  level = 0;
+  level: number;
+  private burst = 0;
   private on = false;
   private clock = 0;
   private next: number;
   private end = 0;
+  private readonly phases: number[];
 
   constructor(private readonly rnd: () => number) {
-    this.next = 20_000 + rnd() * 40_000;
+    this.phases = AURORA_DRIFT_MS.map(() => rnd() * Math.PI * 2);
+    this.next = 15_000 + rnd() * 25_000;
+    this.level = auroraLevel(auroraBase(0, this.phases), 0);
   }
 
   step(dt: number): number {
     this.clock += dt;
     if (!this.on && this.clock >= this.next) {
       this.on = true;
-      this.end = this.clock + 45_000 + this.rnd() * 45_000;
+      this.end = this.clock + 30_000 + this.rnd() * 45_000;
     } else if (this.on && this.clock >= this.end) {
       this.on = false;
-      this.next = this.clock + 40_000 + this.rnd() * 110_000;
+      this.next = this.clock + 30_000 + this.rnd() * 60_000;
     }
-    this.level += ((this.on ? 1 : 0) - this.level) * Math.min(1, dt / 6000);
+    this.burst += ((this.on ? 1 : 0) - this.burst) * Math.min(1, dt / 6000);
+    this.level = auroraLevel(auroraBase(this.clock, this.phases), this.burst);
     return this.level;
   }
 }
