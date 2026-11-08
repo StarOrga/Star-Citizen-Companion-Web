@@ -102,6 +102,7 @@ import {
 import { nullUndefinedPlaceholders } from './_placeholders.ts';
 import { isCarryUnavailable, isRpcMissing, parseCarry, parsePrune } from './_carry.ts';
 import { parseSkips } from './_silhouette-skips.ts';
+import { recordPatchNews } from './_patch-news.ts';
 import { MAX_MISSION_ROWS, parseMissions } from './_missions.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
@@ -807,6 +808,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
       const { error } = await admin.rpc('set_current_codex_build', { p_build_id: buildId });
       if (error) throw error;
+      // "New / changed in patch X": first-seen + changed records. Insert-only, so a
+      // re-upload of the same patch resets nothing. Never fatal (see _patch-news.ts).
+      const patchNews = await recordPatchNews((fn, args) => admin.rpc(fn, args), buildId);
+      if (patchNews.status === 'failed') console.error(`ingest-catalog: patch news ${buildId} failed: ${patchNews.message}`);
       // KI patch summary, once per build (idempotent, graceful - a failure only
       // leaves the News button hidden). Fire-and-forget after the response.
       afterResponse(
