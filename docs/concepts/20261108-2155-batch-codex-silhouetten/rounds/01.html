@@ -1,0 +1,303 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full">
+<style>
+  .d1-cs-cov { font-size:.85rem; line-height:1.45; margin:.4rem 0 0; padding-left:1.1rem; }
+  .d1-cs-cov li { margin:.2rem 0; }
+  .d1-cs-head { display:inline-flex; align-items:stretch; border:1px solid #23495c; border-radius:9px; overflow:hidden; font: .82rem system-ui, sans-serif; background:#0f2230; }
+  .d1-cs-head span { padding:.35rem .7rem; display:inline-flex; align-items:center; gap:.35rem; color:#c9d6de; }
+  .d1-cs-head .own { background:rgba(79,195,232,.14); color:#e8f3f8; }
+  .d1-cs-head .badge { background:transparent; color:#9fb3bf; }
+  .d1-cs-head em { font-style:normal; color:#7f97a5; }
+  .d1-cs-stack { display:grid; gap:.5rem; margin:.4rem 0; }
+  .d1-cs-list { font: .8rem system-ui, sans-serif; background:#0f2230; border:1px solid #23495c; border-radius:8px; padding:.5rem .7rem; max-width:20rem; }
+  .d1-cs-list p { margin:.2rem 0; color:#c9d6de; }
+  .d1-cs-list .t { color:#4fc3e8; letter-spacing:.08em; text-transform:uppercase; font-size:.72rem; }
+  .d1-cs-list .m { color:#7f97a5; }
+</style>
+
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>4 Notizen vom 8.11. gegen Code und Live-Daten geprüft. Zwei sind beantwortet, für drei Flächen gibt es 6 offene Entscheidungen.</p>
+    <p data-briefing-why>Die Codex-Liste ist nicht kaputt programmiert, ihr fehlen die Daten. Der Vergleich findet nichts Neues, weil der aktuelle Build und der vorherige beide zu Patch 4.10.2 gehören. Ältere Patches sind nicht mehr in der Datenbank.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"4","unit":"Notizen","label":"3 Bündel, 6 offene Fragen"}'>4 Notizen</div>
+    <a data-briefing-topic="t-codex" data-share="50">Codex</a>
+    <a data-briefing-topic="t-sil" data-share="30">Silhouetten</a>
+    <a data-briefing-topic="t-watcher" data-share="20">Feedback-Routine</a>
+    <p data-briefing-duration>≈ 5 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="bars" data-viz-spec='{"items":[{"label":"beantwortet","value":2},{"label":"offene Entscheidungen","value":6}],"unit":""}'></div></div>
+      <div data-slot="long">
+        <p><b>Abdeckung (alle 4 Notizen):</b></p>
+        <ol class="d1-cs-cov">
+          <li>#1 übernommen: Codex-Landing, linke Liste „Codex · neu in 4.10.2“ ist leer, und sie soll ohne Scrollen auskommen (B1).</li>
+          <li>#2 übernommen: Silhouetten kleiner Komponenten und Munition sind Quadrate oder Striche. Der Data Uploader wird angepasst (B3).</li>
+          <li>#3 Frage, beantwortet, dann übernommen: „Im Hangar“ heißt „dir gehört dieses Schiff“, die Seite zeigt die Serie. Das wird im Kopf eindeutig gemacht (B2).</li>
+          <li>#4 Frage, beantwortet: Die Abholung funktioniert. Alle 15 Feedbacks sind gemergt und gehen in der DB nicht verloren. Nebenbefunde stehen unten unter „Feedback-Routine“.</li>
+        </ol>
+        <p><b>Bündel</b> (teilen keine Datei, laufen parallel): B1 Codex-Landing-Liste · B2 Codex-Kopf Besitzstatus · B3 Uploader-Silhouetten für Items. Optional B4 Watcher, wenn du unten etwas auswählst.</p>
+        <p><b>Fest steht:</b> v0.238.0 (#1027) ist gemergt, aber nicht live, weil Vercel Deploys gerade sperrt (Rate-Limit). Deine Screenshots zeigen noch 0.237. Der manuelle Deploy ist in #1028 beschrieben und liegt bei dir.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Themenfeld 1: Codex ============ -->
+  <section id="t-codex" data-topic data-nav-label="Codex">
+    <div data-alevel="2" data-title="Codex">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Einträge","label":"„neu in 4.10.2“, in allen Kategorien"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="flow" data-viz-spec='{"steps":[{"label":"13.10.","value":"Build 4.10.2 (1. Upload)"},{"label":"01.11.","value":"Build 4.10.2 (Re-Upload)"},{"label":"Vergleich","value":"4.10.2 gegen 4.10.2, nichts neu"}]}'></div>
+        <p>Die Liste vergleicht immer die zwei neuesten Builds (codex-build-diff.service.ts:68–95). Nach dem Re-Upload vom 1.11. sind das zwei Uploads desselben Patches. „Neu“ und „aktualisiert“ sind deshalb leer, und die Pane blendet ihre Mitte aus (codex-landing-codex-pane.component.ts:101–124). Der Holotisch zeigt trotzdem „Neueste · Schiff“, weil die Auswahl dort auf das jüngste Schiff ausweicht.</p>
+        <p>Die Neu-Liste von 4.10.2 lässt sich nicht nachträglich wiederherstellen, denn der Build von 4.10.1 ist schon gelöscht. Eine Änderung an der Quelle wirkt erst ab dem nächsten Patch. Für jetzt braucht die Pane deshalb einen sinnvollen leeren Zustand.</p>
+      </div>
+    </div>
+
+    <section id="d-new-source" data-nav-label="Quelle „neu“" data-decision="d-new-source" data-decision-mode="single"
+             data-label="Quelle für „neu im Patch“" data-rec="ingest"
+             data-rec-why="Sie hält Re-Uploads und die Aufbewahrungsregel aus und kostet nur eine kleine Tabelle statt eines kompletten zusätzlichen Builds im 500-MB-Budget."
+             data-applies-to="Codex-Landing, Index-Filter „fresh“, Badges „Neu/Aktualisiert“" data-finding="f-new-source">
+      <p data-applies>Gilt für: Codex-Landing-Liste, Index-Filter „neu im Patch“, Badges „Neu“ und „Aktualisiert“</p>
+      <p data-situation>Heute gilt etwas als neu, wenn es im vorherigen Build fehlt. Jeder Re-Upload desselben Patches setzt die Liste damit auf null zurück.</p>
+      <h3 data-question>Woher weiß der Codex künftig, was in einem Patch neu ist?</h3>
+      <div data-options>
+        <label data-opt="ingest" data-recommended>
+          <input type="radio" name="dm-d-new-source" value="ingest" checked>
+          <span data-opt-label>Beim Upload festschreiben, in welchem Patch ein Eintrag zuerst auftaucht</span>
+          <span data-opt-consequence>Eine Tabelle „zuerst gesehen in Patch X“ und „geändert in Patch X“. Re-Uploads ändern nichts mehr daran. Das braucht eine Migration.</span>
+        </label>
+        <label data-opt="prevpatch">
+          <input type="radio" name="dm-d-new-source" value="prevpatch">
+          <span data-opt-label>Gegen den letzten Build eines älteren Patches vergleichen</span>
+          <span data-opt-consequence>Ohne neue Tabelle, aber die Aufbewahrungsregel muss einen ganzen Build zusätzlich behalten.</span>
+        </label>
+        <label data-opt="asis">
+          <input type="radio" name="dm-d-new-source" value="asis">
+          <span data-opt-label>Wie heute gegen den Vor-Build vergleichen</span>
+          <span data-opt-consequence>Nach jedem Re-Upload ist die Liste wieder leer.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-new-source-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-new-source-none" value="">
+      <input type="hidden" name="dm-d-new-source-hes" value="">
+      <input type="hidden" name="dm-d-new-source-touched" value="">
+      <input type="hidden" name="dm-d-new-source-issue" value="">
+      <input type="hidden" name="dm-d-new-source-epic" value="">
+      <div data-alevel="3" data-title="Quelle „neu“">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"2","unit":"Builds","label":"in der DB, beide 4.10.2"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="compare" data-viz-spec='{"before":{"label":"neu heute (4.10.2 gegen 4.10.2)","value":0},"after":{"label":"neu mit Festschreiben (ab 4.11)","value":1},"unit":""}'></div>
+          <p>codex_builds: f99645d3 (aktuell, 1.11.) und f42717ba (13.10.), beide patch_version 4.10.2. Gezählt wird in addedClassNamesMemo / changedClassNamesMemo, die Vorschläge dazu in codex-landing-data.service.ts:423–436. Die Aufbewahrungsregel und das DB-Budget stehen in .claude/deep-knowledge/storage.md.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-empty" data-nav-label="Nichts neu" data-decision="d-empty" data-decision-mode="single"
+             data-label="Liste ohne Neues" data-rec="discover"
+             data-rec-why="Notiz #1 nennt genau den leeren Kasten als Fehler. Eine gefüllte Liste, die im Takt des Holotischs mitläuft, nutzt die Fläche, statt sie leer zu lassen."
+             data-applies-to="Codex-Landing, linke Pane, jede Kategorie ohne Neues" data-finding="f-empty">
+      <p data-applies>Gilt für: Codex-Landing, linke Pane, jeder Kategorie-Tab ohne neue Einträge</p>
+      <p data-situation>In 4.10.2 betrifft das alle fünf Kategorien. Heute bleibt der Kasten leer, nur „Alle Raumschiffe ↗“ und „Tastenbelegungen“ stehen noch darin.</p>
+      <h3 data-question>Was zeigt die Liste, solange in einem Patch nichts als neu erfasst ist?</h3>
+      <div data-options>
+        <label data-opt="discover" data-recommended>
+          <input type="radio" name="dm-d-empty" value="discover" checked>
+          <span data-opt-label>Einträge der Kategorie zum Entdecken zeigen, Titel „Codex · 4.10.2“</span>
+          <span data-opt-consequence>Die Pane ist nie leer. Ein Klick legt den Eintrag auf den Holotisch, das Wort „neu“ steht nur bei echtem Neuen.</span>
+        </label>
+        <label data-opt="hint">
+          <input type="radio" name="dm-d-empty" value="hint">
+          <span data-opt-label>Kurzen Hinweis „In 4.10.2 nichts Neues“ zeigen, die Pane schrumpft</span>
+          <span data-opt-consequence>Ehrlich und ohne leeren Kasten, aber die Pane bietet dann kaum etwas.</span>
+        </label>
+        <label data-opt="hide">
+          <input type="radio" name="dm-d-empty" value="hide">
+          <span data-opt-label>Kategorien ohne Neues aus den Tabs ausblenden</span>
+          <span data-opt-consequence>Ist überall nichts neu, bleiben nur die Links übrig. In 4.10.2 wäre das jetzt der Fall.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-empty-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-empty-none" value="">
+      <input type="hidden" name="dm-d-empty-hes" value="">
+      <input type="hidden" name="dm-d-empty-touched" value="">
+      <input type="hidden" name="dm-d-empty-issue" value="">
+      <input type="hidden" name="dm-d-empty-epic" value="">
+      <div data-alevel="3" data-title="Nichts neu">
+        <div data-slot="short">
+          <div class="d1-cs-list"><p class="t">Codex · 4.10.2</p><p>Aegis Avenger Stalker <span class="m">· auf dem Tisch</span></p><p>Anvil Arrow</p><p>Drake Cutlass Black</p><p class="m">Alle Raumschiffe ↗</p></div>
+        </div>
+        <div data-slot="long"><p>Skizze für „Entdecken“: Dieselbe Pane und dieselbe Rotation, die Einträge kommen aus dem Bestand der Kategorie. Sobald ab dem nächsten Patch echte Neue erfasst sind, kehrt der Titel zu „Codex · neu in 4.11“ zurück.</p></div>
+        <div data-example><img src="20261108-2155-batch-codex-silhouetten/assets/2026-11-08T20-42-47-831Z-1.webp" alt="Codex-Landing: linke Pane mit leerem Kasten, rot eingekreist" style="max-width:100%"></div>
+      </div>
+    </section>
+
+    <section id="d-noscroll" data-nav-label="Ohne Scrollen" data-decision="d-noscroll" data-decision-mode="single"
+             data-label="Liste ohne Scrollen" data-rec="fixed"
+             data-rec-why="Das Drehrad fängt das Mausrad ab. Eine feste Liste gibt das Scrollen der Seite zurück und bleibt bei jeder Anzahl gleich hoch."
+             data-applies-to="Codex-Landing, linke Pane" data-finding="f-noscroll">
+      <p data-applies>Gilt für: Codex-Landing, linke Pane</p>
+      <p data-situation>Fest steht: Die Pane scrollt nicht. Heute ist die Liste ein Drehrad mit 5 Zeilen, das bei mehr Einträgen das Mausrad abfängt (WHEEL_ROWS, onWheel).</p>
+      <h3 data-question>Wie zeigt die Pane mehr Einträge, als in ihre Höhe passen?</h3>
+      <div data-options>
+        <label data-opt="fixed" data-recommended>
+          <input type="radio" name="dm-d-noscroll" value="fixed" checked>
+          <span data-opt-label>So viele Zeilen zeigen, wie in die Höhe passen, den Rest über „+ N weitere ↗“</span>
+          <span data-opt-consequence>Kein Drehrad mehr, das Mausrad scrollt wieder die Seite. Der Eintrag auf dem Tisch ist immer sichtbar.</span>
+        </label>
+        <label data-opt="grow">
+          <input type="radio" name="dm-d-noscroll" value="grow">
+          <span data-opt-label>Alle Einträge zeigen, die Pane wächst mit</span>
+          <span data-opt-consequence>Bei 30 neuen Komponenten wird die Pane höher als der Holotisch.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-noscroll-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-noscroll-none" value="">
+      <input type="hidden" name="dm-d-noscroll-hes" value="">
+      <input type="hidden" name="dm-d-noscroll-touched" value="">
+      <input type="hidden" name="dm-d-noscroll-issue" value="">
+      <input type="hidden" name="dm-d-noscroll-epic" value="">
+      <div data-alevel="3" data-title="Ohne Scrollen">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"5","unit":"Zeilen","label":"Drehrad heute, darunter „+ N weitere“"}'></div></div>
+        <div data-slot="long"><p>codex-landing-codex-pane.component.ts:29–31 und :186–214. Den Fit bis zu einem Fenster von 1280×720 prüft heute codex-landing-codex-pane.component.spec. Diese Prüfung bleibt und gilt künftig auch für 1920×1080.</p></div>
+      </div>
+    </section>
+
+    <section id="d-own-head" data-nav-label="„Im Hangar“" data-decision="d-own-head" data-decision-mode="single"
+             data-label="„Im Hangar“ im Codex-Kopf" data-rec="shown"
+             data-rec-why="Notiz #3 verwechselt Besitz mit „das ist die Hangar-Version“. Steht im Kopf, was die Bühne zeigt, ist beides getrennt lesbar."
+             data-applies-to="Codex-Detail Schiffe, Kopfleiste nach [Patch ▾]" data-finding="f-own-head">
+      <p data-applies>Gilt für: Codex-Schiffsseiten, die Kopfleiste rechts nach [Patch ▾]</p>
+      <p data-situation>Fest steht aus deinem Concept codex-kopf-besitz von heute: Der Kopf trägt „Hangar ja/nein“ und die Variante, rechts steht die Karte „Dein Exemplar“. Ohne gespeicherte Variante fehlt aber das Varianten-Select, und „⌂ Im Hangar“ steht allein und hervorgehoben neben „Patch“ (codex-own-segment.component.ts:27–35).</p>
+      <h3 data-question>Wie zeigt der Kopf, dass dir das Schiff gehört, die Seite aber die Serie zeigt?</h3>
+      <div data-options>
+        <label data-opt="shown" data-recommended>
+          <input type="radio" name="dm-d-own-head" value="shown" checked>
+          <span data-opt-label>Immer dazuschreiben, was gezeigt wird: „⌂ 1× im Hangar · Gezeigt: Serie“</span>
+          <span data-opt-consequence>Auch ohne Variante sichtbar. Sobald es Varianten gibt, wird „Serie“ zum Auswahlmenü.</span>
+        </label>
+        <label data-opt="text">
+          <input type="radio" name="dm-d-own-head" value="text">
+          <span data-opt-label>Nur den Text ändern: „1× in deinem Hangar“</span>
+          <span data-opt-consequence>Der Besitz ist klarer, welche Version gezeigt wird, bleibt aber unausgesprochen.</span>
+        </label>
+        <label data-opt="badge">
+          <input type="radio" name="dm-d-own-head" value="badge">
+          <span data-opt-label>Als ruhiges Status-Badge ohne Hintergrund darstellen</span>
+          <span data-opt-consequence>Sieht nicht mehr wie ein aktiver Schalter aus, der Text bleibt „Im Hangar“.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-own-head-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-own-head-none" value="">
+      <input type="hidden" name="dm-d-own-head-hes" value="">
+      <input type="hidden" name="dm-d-own-head-touched" value="">
+      <input type="hidden" name="dm-d-own-head-issue" value="">
+      <input type="hidden" name="dm-d-own-head-epic" value="">
+      <div data-alevel="3" data-title="„Im Hangar“">
+        <div data-slot="short">
+          <div class="d1-cs-stack">
+            <div class="d1-cs-head"><span>Patch 4.10.2-LIVE ▾</span><span class="own">⌂ Im Hangar</span></div>
+            <div class="d1-cs-head"><span>Patch 4.10.2-LIVE ▾</span><span class="own">⌂ 1× im Hangar <em>· Gezeigt:</em> Serie</span></div>
+          </div>
+        </div>
+        <div data-slot="long"><div data-viz="compare" data-viz-spec='{"before":{"label":"Hinweis auf die gezeigte Version heute (ohne Variante)","value":0},"after":{"label":"mit „Gezeigt: Serie“","value":1},"unit":""}'></div><p>Oben ist der Stand heute, darunter die Empfehlung. Die Karte „Dein Exemplar“ rechts bleibt wie im Concept beschlossen. Besitz ist eine Fläche für alle Viewer, deshalb Cyan (--sc-accent), ohne Rechte-Farbe.</p></div>
+        <div data-example><img src="20261108-2155-batch-codex-silhouetten/assets/2026-11-08T20-47-33-949Z-1.webp" alt="Avenger Stalker im Codex: Kopf mit „Im Hangar“, rechts Karte „Dein Exemplar“" style="max-width:100%"></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============ Themenfeld 2: Silhouetten ============ -->
+  <section id="t-sil" data-topic data-nav-label="Silhouetten">
+    <div data-alevel="2" data-title="Silhouetten">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"alle","unit":"Mesh-Knoten","label":"gehen ungefiltert in den Umriss ein"}'></div></div>
+      <div data-slot="long">
+        <p>Der Uploader liest jedes Mesh einer Item-Datei ein, auch Physik- und Proxy-Hüllen (silhouette_export.py:236–266, kein Filter), und zeichnet dann den äußeren Umriss von oben (silhouette.py:79). Eine Proxy-Box umschließt das ganze Bauteil, deshalb bleibt ein Rechteck übrig. Bei Munition ergibt die Draufsicht einen Strich.</p>
+        <p>Fest steht: Schiffe bleiben in der Draufsicht mit der Nase nach oben, darauf baut der Holotisch auf. Der JSON-Vertrag (viewBox 0..1000, Pfad, bbox) bleibt gleich. Das Recipe wird angehoben, damit der nächste Upload alle Items neu rechnet.</p>
+      </div>
+    </div>
+
+    <section id="d-sil-fix" data-nav-label="Umriss-Ansatz" data-decision="d-sil-fix" data-decision-mode="multi"
+             data-label="Silhouetten-Ansatz für Items" data-rec="proxy axis"
+             data-rec-why="Notiz #2 will den Umriss besser erfasst, aber nicht detailgetreu. Der Filter behebt die Quadrate, die Ansichtswahl die Striche, Innenlinien wären mehr als verlangt."
+             data-applies-to="Data Uploader, Silhouetten aller Nicht-Schiffe (Komponenten, Waffen, Munition, Ausrüstung)" data-finding="f-sil-fix">
+      <p data-applies>Gilt für: Data Uploader, Silhouetten aller Nicht-Schiffe</p>
+      <p data-situation>Die Bracer-Silhouette ist ein leeres Viereck, das 3D-Modell desselben Bauteils zeigt Rohrschleifen und Gehäuse. Die Ursache „Proxy-Box“ ist im Code wahrscheinlich, am echten Bracer-Mesh aber noch nicht bewiesen.</p>
+      <h3 data-question>Was bauen wir in die Silhouetten-Berechnung für Items ein?</h3>
+      <div data-options>
+        <label data-opt="proxy" data-recommended>
+          <input type="checkbox" name="dm-d-sil-fix.proxy" checked>
+          <span data-opt-label>Physik- und Proxy-Hüllen vor dem Umriss herausfiltern</span>
+          <span data-opt-consequence>Behebt die Quadrate. Wird zuerst am Bracer gegen das echte P4K bewiesen, mit Vorher/Nachher-SVG.</span>
+        </label>
+        <label data-opt="axis" data-recommended>
+          <input type="checkbox" name="dm-d-sil-fix.axis" checked>
+          <span data-opt-label>Für Items die Ansicht mit dem größten Umriss wählen statt immer von oben</span>
+          <span data-opt-consequence>Munition und schlanke Teile zeigen ihr Profil statt eines Strichs.</span>
+        </label>
+        <label data-opt="edges">
+          <input type="checkbox" name="dm-d-sil-fix.edges">
+          <span data-opt-label>Innere Kanten als zweite, feinere Linie mitzeichnen</span>
+          <span data-opt-consequence>Näher am 3D-Modell, aber größere Pfade, und die Website muss die zweite Linie zeichnen.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-sil-fix-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-sil-fix-none" value="">
+      <input type="hidden" name="dm-d-sil-fix-hes" value="">
+      <input type="hidden" name="dm-d-sil-fix-touched" value="">
+      <input type="hidden" name="dm-d-sil-fix-issue" value="">
+      <input type="hidden" name="dm-d-sil-fix-epic" value="">
+      <div data-alevel="3" data-title="Umriss-Ansatz">
+        <div data-slot="short"><div data-viz="flow" data-viz-spec='{"steps":[{"label":"Meshes","value":"ohne Proxy"},{"label":"Ansicht","value":"größter Umriss"},{"label":"Umriss","value":"wie heute geglättet"}]}'></div></div>
+        <div data-slot="long">
+          <p>Belegt wird mit pytest (PYTEST_DISABLE_PLUGIN_AUTOLOAD=1) und neuen Fällen „Box mit Proxy“ und „länglicher Munitionskörper“. Dazu kommt eine Probe am echten P4K mit COOL_AEGS_S01_Bracer_SCItem und einer Munition. Achtung: Der Converter darf nicht in einem Ordnerpfad über 258 Zeichen laufen.</p>
+        </div>
+        <div data-example><img src="20261108-2155-batch-codex-silhouetten/assets/2026-11-08T20-45-16-109Z-1.png" alt="Silhouette eines Bauteils: nur ein schräges Viereck" style="max-width:48%"> <img src="20261108-2155-batch-codex-silhouetten/assets/2026-11-08T20-45-16-109Z-2.png" alt="Bracer im 3D-Modell mit Rohrschleifen" style="max-width:48%"></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============ Themenfeld 3: Feedback-Routine ============ -->
+  <section id="t-watcher" data-topic data-nav-label="Feedback-Routine">
+    <div data-alevel="2" data-title="Feedback-Routine">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"15 / 15","unit":"Feedbacks","label":"gemergt, DB-Status stimmt"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"direkt geshippt","value":6},{"label":"nach Rückfrage erneut geshippt","value":9},{"label":"verloren","value":0}],"unit":"Feedbacks"}'></div>
+        <p>Antwort auf Notiz #4: Die Abholung und das Shippen funktionieren, es geht nichts verloren. Kein Eintrag hängt in „open“ oder „in_progress“, und der Watcher ist aktiv (letzter Lauf 20:47 UTC). Nicht synchron ist nur „online“: Die DB setzt „shipped“, sobald der PR gemergt ist, auch wenn Vercel noch nicht deployt hat.</p>
+        <p>Fest steht: Die veraltete Prompt-Kopie (promptInSync:false, nur die Umbenennung zu „Verse Companion“) wird per <code>npm run watcher -- install</code> erneuert.</p>
+      </div>
+    </div>
+
+    <section id="d-watcher" data-nav-label="Nebenbefunde" data-decision="d-watcher" data-decision-mode="multi"
+             data-label="Watcher-Nebenbefunde" data-rec="gateerr double live"
+             data-rec-why="„live“ beantwortet direkt deine Frage nach der Synchronität. Die beiden anderen sind die einzigen ungeklärten Auffälligkeiten im Log."
+             data-applies-to="Feedback-Watcher (scripts/routine-watcher.mjs, routine-gate.mjs), Feedback-Board" data-finding="f-watcher">
+      <p data-applies>Gilt für: Feedback-Watcher und Feedback-Board</p>
+      <p data-situation>Das Audit der letzten 4 Tage Log hat drei Auffälligkeiten gefunden. Jede hat sich bisher von selbst erholt.</p>
+      <h3 data-question>Welche Watcher-Befunde werden in diesem Batch behoben?</h3>
+      <div data-options>
+        <label data-opt="gateerr" data-recommended>
+          <input type="checkbox" name="dm-d-watcher.gateerr" checked>
+          <span data-opt-label>Ursache von „gate error: exit null“ finden und mitloggen</span>
+          <span data-opt-consequence>12-mal seit 6.11. Heute fehlt die Ursache im Log, ein Alarm kommt erst nach 10 Fehlern in Folge.</span>
+        </label>
+        <label data-opt="double" data-recommended>
+          <input type="checkbox" name="dm-d-watcher.double" checked>
+          <span data-opt-label>Doppelstart wie am 6.11. 15:24 (#266) verhindern</span>
+          <span data-opt-consequence>Zwei Läufe für dasselbe Feedback im Abstand von 35 s, ohne sichtbaren Schaden. Wird erst nachgewiesen, dann abgesichert.</span>
+        </label>
+        <label data-opt="live" data-recommended>
+          <input type="checkbox" name="dm-d-watcher.live" checked>
+          <span data-opt-label>„Gemergt“ und „live“ auf dem Board getrennt anzeigen</span>
+          <span data-opt-consequence>„Shipped“ heißt dann wirklich online. Hängt ein Deploy (Rate-Limit), sieht man das am Feedback.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-watcher-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-watcher-none" value="">
+      <input type="hidden" name="dm-d-watcher-hes" value="">
+      <input type="hidden" name="dm-d-watcher-touched" value="">
+      <input type="hidden" name="dm-d-watcher-issue" value="">
+      <input type="hidden" name="dm-d-watcher-epic" value="">
+      <div data-alevel="3" data-title="Nebenbefunde">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"12","unit":"×","label":"gate error: exit null seit 6.11."}'></div></div>
+        <div data-slot="long">
+          <p>Beleg: ~/.claude/scc-routine/logs/watcher-2026-11-05 bis -08.log. „exit null“ wird in scripts/routine-watcher.mjs:416 ohne Ursache geloggt, der Alarm kommt erst bei :413. Live ist heute Commit ed5a51a7 (0.237.x). main steht auf a86b388d, und der Vercel-Check zu #1027 meldet „rate limited“.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
