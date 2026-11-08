@@ -129,7 +129,8 @@ describe('HqStockPopupComponent: capture and links', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('li.row button.again') as HTMLButtonElement).click();
-    await fixture.whenStable();
+    // Not whenStable: the undo toast holds its window open in the zone.
+    await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
     expect(path.nachholen).toHaveBeenCalledOnceWith('item', 'Medpen_01', 'Medpen', 4);
     expect(inv.addManual).not.toHaveBeenCalled();
@@ -149,7 +150,8 @@ describe('HqStockPopupComponent: capture and links', () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('li.row button.again') as HTMLButtonElement).click();
-    await fixture.whenStable();
+    // Not whenStable: the undo toast holds its window open in the zone.
+    await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
     expect(el.querySelector('[role=alert].warn')?.textContent).toContain('itemPath.err.failed');
   });
