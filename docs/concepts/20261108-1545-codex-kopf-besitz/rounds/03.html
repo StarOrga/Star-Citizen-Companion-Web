@@ -1,0 +1,103 @@
+<section data-iteration="3" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Der Kopf jeder Schiffs- und Gegenstandsseite zeigt jetzt in einer Leiste, was es ist, welcher Patch und was dir davon gehört. Ansicht und Teilen sitzen unten rechts.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🧭</span><span><b>Eine Kopfleiste</b>: Patch, Hangar ja/nein, Variante. Kein Datenstand mehr.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🗂</span><span><b>Besitz-Karte</b> oben im Panel statt Kästen und Knopfreihen im Kopf.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">↗</span><span><b>Eine Ecke</b>: Teilen links vom Feedback, darüber Ansicht und β.</span></li>
+      </ul>
+      <a class="fr-try" href="http://localhost:4200/hq/hangar" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
+      <p class="fr-try-auth">🔑 Mit deinem eigenen Konto auf localhost:4200 anmelden, dann ein Schiff im Hangar öffnen.</p>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="20261108-1545-codex-kopf-besitz/shots/before.webp" alt=""><figcaption>Vier lose Zeilen, großer Kasten, Teilen schwebt</figcaption></figure>
+      <figure class="fr-shot"><img src="20261108-1545-codex-kopf-besitz/shots/after.jpg" alt=""><figcaption>Kennleiste, Besitz-Karte, aufgeräumte Ecke</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Alle 6375 Unit-Tests grün, Typecheck, Lint und Build sauber; Anforderung: kein roter Test (geschätzt).">
+        <span class="fr-meter-name">🧱 Stabilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6375 grün</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Ecke bei 1440 und 375 px gemessen: keine Überlappung, Teilen auf der Mittellinie, Menü am Handy über allen Knöpfen; Anforderung: nichts verdeckt (geschätzt).">
+        <span class="fr-meter-name">📱 Kompatibilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">2 / 2 Breiten</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 80%" data-tip="Labels und Tooltips an allen Symbolknöpfen, Fokus springt ins Teilen-Menü; Escape und Fokus-Rückkehr nur per Unit-Test belegt, nicht live; Anforderung: voll bedienbar per Tastatur (geschätzt).">
+        <span class="fr-meter-name">♿ Barrierefreiheit</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">teils live</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ◌ {{final.level_interplay}} · ✓ {{final.level_local}} · ○ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_local}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_prod}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-item-note-pin"
+          data-issue-title="[FEATURE] Note and pin for inventory items on the item page card"
+          data-issue-type="feature"
+          data-issue-body="Concept 20261108-1545-codex-kopf-besitz, round 2 design d1 screen d1-s4: the item page ownership card 'Dein Bestand' shows note, pin and remove next to the quantity stepper. Built: stepper, remove (danger + confirm), 'Im HQ zeigen', 'Noch eins wünschen'. Not built: note and pin, because inventory items have no persistence for either (ships have hangar_ships.note / pinned_rank, inventory rows have nothing comparable). Needs a schema decision (columns on the inventory table vs. a shared notes/pins table) before the UI can follow. Card: src/app/codex/detail/codex-own-card.component.ts."
+          data-issue-module="hq"
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="braucht Schema">
+        <span class="oq-label">Gegenstand: Notiz, Anheften</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Nicht umgesetzt, weil Inventar-Gegenstände weder Notiz noch Anheften speichern können.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Gegenstandsseite, Karte „Dein Bestand“</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue: braucht erst eine Entscheidung zur Datenbank.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-hangar-mine-flash"
+          data-issue-title="[BUG] /hq/hangar/:id briefly redirects to /codex/ship/...?mine= before settling"
+          data-issue-type="bug"
+          data-issue-body="Seen during QA of concept 20261108-1545-codex-kopf-besitz, not caused by it (git diff c04eeb61..HEAD over src/app/hangar and hq-routes.ts is empty). hangar-ship-page.component.ts:69-72: when shellBeta() is still false at resolve time, ownShipLink() -> personalItemLink sends a ship without variants to /codex/ship/<cls>?mine=, and the beta Codex page then sends it back via leavePersonalForHq. Visible as a URL/page flash on opening a hangar ship. Fix idea: await the beta flags before resolve, or decide the redirect after BetaService is ready."
+          data-issue-module="hangar"
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="im Repo">
+        <span class="oq-label">Hangar-Seite springt kurz</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Ein Hangar-Schiff zeigt beim Öffnen kurz die Codex-Adresse und springt dann zurück.</dd>
+          <dt>{{final.fund_where}}</dt><dd>HQ › Hangar › Schiff öffnen</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt: kleine Reihenfolge-Korrektur im Repo, war schon vorher so.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Commits <code>0c9cc81a</code> <code>fcb09c40</code> <code>31aa115f</code> <code>e6c2eb3a</code> auf <code>claude/codex-subsysteme-hangar-f302c7</code></li>
+      <li><code>codex-detail.component.ts</code>, <code>detail/codex-own-card.component.ts</code>, <code>shell/corners/view-toggle-fab.component.ts</code></li>
+      <li>Tests: Karma 6375 grün · Typecheck, Lint (0 Fehler), Build grün</li>
+      <li>Parität C1–C11 (briefs/implement.md): 10 erfüllt per QA-Livemessung, C7 teilweise (Notiz/Anheften, s. Funde)</li>
+      <li>Hangar-Link-Teilen (#645) bleibt erhalten, jetzt im Menü des Teilen-Knopfs</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-variant" data-crit="mid" data-guide="">Schiff mit Varianten: Variante im Kopf wechseln</li>
+      <li data-todo-id="t-bestand" data-crit="mid" data-guide="">Eigenen Gegenstand: „Dein Bestand“ mit −/+</li>
+      <li data-todo-id="t-phone-share" data-crit="low" data-guide="">Handy: Teilen-Menü öffnen und schließen</li>
+    </ul>
+  </section>
+</section>
