@@ -226,7 +226,7 @@ export class RunTracker {
     if (covered < 0.05) return null;
     const ms = measured / covered;
     const workerMs = c.workerMs + (now - c.lastT) * c.lastWorkers;
-    return { step: c.step, record: { ms, workers: Math.max(1, workerMs / ms) } };
+    return { step: c.step, record: { ms, workers: Math.max(1, workerMs / measured) } };
   }
 
   running(): RunningStep | null {
