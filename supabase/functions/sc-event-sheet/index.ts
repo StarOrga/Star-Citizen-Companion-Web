@@ -91,7 +91,9 @@ async function askModel(prompt: string, key: string): Promise<unknown> {
       model: MODEL,
       max_tokens: 6000,
       tools: [{ name: SHEET_TOOL_NAME, description: 'Record the structured data sheet of the event.', input_schema: SHEET_TOOL_SCHEMA }],
-      tool_choice: { type: 'tool', name: SHEET_TOOL_NAME },
+      // A forced tool_choice ('tool' / 'any') is refused with 400 by the current models; the prompt demands the tool call
+      // and parseModelAnswer falls back to a JSON text block.
+      tool_choice: { type: 'auto' },
       messages: [{ role: 'user', content: prompt }],
     }),
     signal: AbortSignal.timeout(90_000),
