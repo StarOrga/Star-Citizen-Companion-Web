@@ -32,7 +32,11 @@ import {
   positionKey,
   reactivate,
   takeFromWishlist,
+  type NachschubType,
 } from './nachschub.model';
+import { archiveAtEventEnd, clearEventNachschub, isEventNachschub, rewardWishes, wishlistAfterClaim } from '../events/event-nachschub';
+import type { EventReward } from '../events/event-sheet';
+import type { ResolvedEnd } from '../events/event-logic';
 
 /** Outcome of a Nachschub write. `key` is an i18n key (`hq.nachschub.done.*` on success, `errors.*` / `hq.nachschub.*` on failure). */
 export interface NachschubResult {
@@ -44,6 +48,14 @@ export interface NachschubResult {
   readonly warn?: { readonly key: string; readonly params?: Record<string, string | number> };
   /** Present where the checklist asks for an undo. Resolves to the result of the undo. */
   readonly undo?: () => Promise<NachschubResult>;
+}
+
+/** Binds a new Nachschub to an event (type event with rewards, sightseeing without). */
+export interface EventBinding {
+  readonly type: Exclude<NachschubType, 'normal'>;
+  readonly eventId: string;
+  readonly name: string;
+  readonly rewards: readonly { name: string; className: string; ship: boolean }[];
 }
 
 const fail = (key: string): NachschubResult => ({ ok: false, key });
@@ -72,6 +84,7 @@ interface AddedPick {
   readonly line: AddedLine;
 }
 
+const asPicks = (lines: readonly AddedLine[]): Pick<AddedPick, 'line'>[] => lines.map((line) => ({ line }));
 const capWarn = (lost: number): NachschubResult['warn'] => (lost > 0 ? { key: 'hq.nachschub.wishCapped', params: { count: lost } } : undefined);
 const inverse = (applied: readonly Shift[]): Shift[] => [...applied].reverse().map((a) => ({ p: a.p, delta: -a.delta }));
 
@@ -249,7 +262,7 @@ export class NachschubService {
    * takes the full quantity; a smaller `qty` splits and the rest stays on the wishlist. Only positions that really
    * got a line leave the wishlist; with no line at all nothing is saved. Undo puts back exactly what was taken.
    */
-  async createFromWishlist(opts: { picks: readonly WishPick[]; name?: string }): Promise<NachschubResult> {
+  async createFromWishlist(opts: { picks: readonly WishPick[]; name?: string; event?: EventBinding }): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
     if (!uid) return fail('errors.generic');
     await this.ensureLoaded();
@@ -257,12 +270,12 @@ export class NachschubService {
     const slot = freeSlot(this.packages());
     if (slot === null) return fail('hq.nachschub.slotsFull');
     const { taken } = takeFromWishlist(this.wishPositions(), opts.picks);
-    if (!taken.length) return fail('hq.nachschub.nothingPicked');
+    if (!taken.length && !opts.event) return fail('hq.nachschub.nothingPicked');
     const stock = await this.ensureStock();
 
     const id = newClientId();
     const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
-    const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(taken.map((p) => ({ name: label(p), qty: p.qty })))), NACHSCHUB_NAME_MAX);
+    const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(taken.map((p) => ({ name: label(p), qty: p.qty })))) || opts.event?.name || '', NACHSCHUB_NAME_MAX);
 
     const lines: AddedPick[] = [];
     const snapshot: Record<string, number> = {};
@@ -277,19 +290,25 @@ export class NachschubService {
       // No baseline from unloaded stock: a line without one is filled by the first reconcile after the stock loaded.
       if (stock) snapshot[added.line.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
     }
-    // Nothing fit (the line list is full): no empty Nachschub that would hold a slot for ever.
-    if (!lines.length) return fail('hq.nachschub.linesFull');
-    const lineIds = lines.map((x) => x.line.id);
+    // Rewards of the chosen event are lines of their own (they close when the claimed reward lands in Bestand).
+    const rewardLines = this.addRewardLines(opts.event?.rewards ?? [], id, snapshot);
+    // Nothing fit (the line list is full): no empty Nachschub that would hold a slot for ever. An event Nachschub
+    // may have no line at all (sightseeing, or only rewards).
+    if (taken.length && !lines.length && !rewardLines.length) return fail('hq.nachschub.linesFull');
+    const lineIds = [...lines.map((x) => x.line.id), ...rewardLines.map((l) => l.id)];
 
     const now = new Date().toISOString();
-    const saved = await this.insertNew({ id, name, status: 'active', slot, snapshot, createdAt: now, archivedAt: null }, uid);
+    const saved = await this.insertNew(
+      { id, name, status: 'active', slot, snapshot, createdAt: now, archivedAt: null, ...(opts.event ? { type: opts.event.type, eventId: opts.event.eventId } : {}) },
+      uid,
+    );
     if (!saved) {
-      this.undoPicks(lines);
+      this.undoPicks([...lines, ...asPicks(rewardLines)]);
       return fail(this.error() ?? 'errors.generic');
     }
     const took = await this.shiftWishes(lines.map((x) => ({ p: x.p, delta: -x.p.qty })));
     if (!took.ok) {
-      this.undoPicks(lines);
+      this.undoPicks([...lines, ...asPicks(rewardLines)]);
       await this.drop(id, uid);
       return fail('hq.nachschub.wishlistFailed');
     }
@@ -313,12 +332,12 @@ export class NachschubService {
    * {@link createFromWishlist}). A pick that lands on a line already there raises it and keeps its baseline; undo
    * lowers it back to its previous quantity and only removes lines this call created.
    */
-  async addFromWishlist(id: string, picks: readonly WishPick[]): Promise<NachschubResult> {
+  async addFromWishlist(id: string, picks: readonly WishPick[], eventRewards: EventBinding['rewards'] = []): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
     const n = this.packages().find((p) => p.id === id && p.status === 'active');
     if (!uid || !n) return fail('errors.generic');
     const { taken } = takeFromWishlist(this.wishPositions(), picks);
-    if (!taken.length) return fail('hq.nachschub.nothingPicked');
+    if (!taken.length && !eventRewards.length) return fail('hq.nachschub.nothingPicked');
     const stock = await this.ensureStock();
     const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
     const lines: AddedPick[] = [];
@@ -338,15 +357,19 @@ export class NachschubService {
         newBaselines = true;
       }
     }
-    if (!lines.length) return fail('hq.nachschub.linesFull');
+    // Rewards of an event added while editing become reward lines too, exactly like on creation.
+    const rewardLines = this.addRewardLines(eventRewards, id, snapshot);
+    if (rewardLines.length) newBaselines = true;
+    const all = [...lines, ...asPicks(rewardLines)];
+    if (taken.length && !lines.length && !rewardLines.length) return fail('hq.nachschub.linesFull');
     const took = await this.shiftWishes(lines.map((x) => ({ p: x.p, delta: -x.p.qty })));
     if (!took.ok) {
-      this.undoPicks(lines);
+      this.undoPicks(all);
       return fail('hq.nachschub.wishlistFailed');
     }
     if (newBaselines) {
       if ((await this.patch(id, uid, { snapshot })) !== 'ok') {
-        this.undoPicks(lines);
+        this.undoPicks(all);
         await this.shiftWishes(inverse(took.applied));
         return fail(this.error() ?? 'errors.generic');
       }
@@ -360,18 +383,33 @@ export class NachschubService {
       undo: async () => {
         const back = await this.shiftWishes(inverse(took.applied));
         if (!back.ok) return fail('hq.nachschub.wishlistFailed');
-        this.undoPicks(lines);
+        this.undoPicks(all);
         return { ...UNDONE, warn: capWarn(back.lost) };
       },
     };
+  }
+
+  /** Reward lines of chosen events: one line per reward; they close when the claimed reward lands in Bestand. */
+  private addRewardLines(rewards: EventBinding['rewards'], packageId: string, snapshot: Record<string, number>): AddedLine[] {
+    const out: AddedLine[] = [];
+    for (const r of rewards) {
+      const added = this.supplies.addLine(r.name, 1, { entityKind: r.ship ? 'ship' : 'item', className: r.className, packageId, source: 'search' });
+      if (!added) continue;
+      out.push(added);
+      snapshot[added.id] = this.ownedOf({ ship: r.ship, className: r.className });
+    }
+    return out;
   }
 
   /** "Bearbeiten" > remove one line: it goes back to the wishlist (counted up there) or is dropped. */
   async removeLine(lineId: string, backToWishlist: boolean): Promise<NachschubResult> {
     const l = this.supplies.items().find((x) => x.id === lineId);
     if (!l) return fail('errors.generic');
+    const owner = this.packages().find((p) => p.id === l.packageId);
+    // A line of an event Nachschub never goes back to the wishlist.
+    const toWishlist = backToWishlist && !(owner && isEventNachschub(owner));
     const goes =
-      backToWishlist && !l.done && l.className
+      toWishlist && !l.done && l.className
         ? [{ kind: l.entityKind ?? 'item', className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName }]
         : [];
     const put = await this.shiftWishes(goes.map((p) => ({ p, delta: +p.qty })));
@@ -477,6 +515,34 @@ export class NachschubService {
     };
   }
 
+  /** Persist a changed Nachschub (the event services use this). */
+  async update(next: Nachschub): Promise<boolean> {
+    const uid = this.auth.user()?.id;
+    if (!uid) return false;
+    const out = await this.patch(next.id, uid, {
+      name: next.name,
+      status: next.status,
+      slot: next.slot,
+      snapshot: next.snapshot,
+      archived_at: next.archivedAt,
+      type: next.type ?? 'normal',
+      event_id: next.eventId ?? null,
+    });
+    if (out !== 'ok') return false;
+    this.packages.update((ps) => ps.map((p) => (p.id === next.id ? next : p)));
+    return true;
+  }
+
+  /** An event Nachschub archives itself at its OFFICIAL end (C12); an estimate never does. */
+  async applyEventEnds(ends: ReadonlyMap<string, ResolvedEnd>, nowMs: number, idsOf?: (n: Nachschub) => readonly string[]): Promise<void> {
+    const at = new Date(nowMs).toISOString();
+    const next = archiveAtEventEnd(this.packages(), ends, nowMs, at, idsOf);
+    for (const n of next) {
+      const before = this.packages().find((p) => p.id === n.id);
+      if (before && before !== n) await this.update(n);
+    }
+  }
+
   /**
    * One pass over all active Nachschuebe: lines whose stock rose past the snapshot are ticked, baselines are stored
    * (and lowered when the stock fell below them), a Nachschub with every line closed archives itself and frees its slot.
@@ -519,6 +585,20 @@ export class NachschubService {
     }
   }
 
+  /**
+   * An event reward landed: only a wish that IS this reward (exact class) shrinks, never the base item (C11).
+   * Returns 1 when a wish was touched, 0 when nothing was wished.
+   */
+  async fulfilEventReward(reward: Pick<EventReward, 'className'>, gained: number): Promise<number> {
+    const before = this.wishPositions();
+    const wished = rewardWishes(before, reward);
+    if (!wished.length) return 0;
+    const after = wishlistAfterClaim(before, reward, gained);
+    const shifts = wished.map((p) => ({ p, delta: (after.find((a) => positionKey(a) === positionKey(p))?.qty ?? 0) - p.qty }));
+    await this.shiftWishes(shifts);
+    return 1;
+  }
+
   // ------------------------------------------------------------------------------------------------ internals
 
   /** Put one wishlist position onto a line of the Nachschub `packageId`. */
@@ -534,7 +614,7 @@ export class NachschubService {
   }
 
   /** Revert {@link addPick}s: a line that existed before goes back to its quantity, a line created by them is removed. */
-  private undoPicks(lines: readonly AddedPick[]): void {
+  private undoPicks(lines: readonly Pick<AddedPick, 'line'>[]): void {
     for (const { line } of [...lines].reverse()) {
       if (line.prevQty === 0) this.supplies.remove(line.id);
       else this.supplies.setLine(line.id, line.prevQty, line.prevAmount);
@@ -557,9 +637,11 @@ export class NachschubService {
         forClassName: l.forClassName,
         closed: l.done || (ev?.statuses.get(l.id)?.closed ?? false),
       }));
-    const out = clearNachschub(open, [], false);
+    // An event Nachschub keeps its progress and NEVER sends lines back to the wishlist (C9).
+    const isEvent = isEventNachschub(n);
+    const out = isEvent ? clearEventNachschub(open, []) : clearNachschub(open, [], false);
     const gone = new Set(out.removeIds);
-    const returned = backToWishlist
+    const returned = backToWishlist && !isEvent
       ? open.filter((l) => gone.has(l.id)).map((l) => ({ kind: l.kind, className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName }))
       : [];
     return { n, removeIds: out.removeIds, returned };
@@ -616,6 +698,8 @@ export class NachschubService {
           slot: cur.slot,
           snapshot: cur.snapshot,
           archived_at: cur.archivedAt,
+          type: cur.type ?? 'normal',
+          event_id: cur.eventId ?? null,
           deleted_at: null,
           updated_at: new Date().toISOString(),
         },
@@ -651,7 +735,7 @@ export class NachschubService {
         }
       }
       const back: Nachschub = { ...n, slot };
-      const out = await this.patch(n.id, uid, { name: back.name, status: back.status, slot: back.slot, snapshot: back.snapshot, archived_at: back.archivedAt }, true);
+      const out = await this.patch(n.id, uid, { name: back.name, status: back.status, slot: back.slot, snapshot: back.snapshot, archived_at: back.archivedAt, type: back.type ?? 'normal', event_id: back.eventId ?? null }, true);
       if (out === 'ok') {
         this.packages.update((ps) => [...ps.filter((p) => p.id !== back.id), back]);
         return back;
@@ -743,5 +827,7 @@ function fromRow(r: HqSupplyPackageRow): Nachschub {
     snapshot: snap,
     createdAt: r.created_at,
     archivedAt: r.archived_at,
+    type: r.type === 'event' || r.type === 'sightseeing' ? r.type : 'normal',
+    eventId: r.event_id ?? null,
   };
 }

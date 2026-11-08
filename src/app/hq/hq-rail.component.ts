@@ -1,3 +1,4 @@
+import { EventHqService } from './events/event-hq.service';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -26,6 +27,7 @@ import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from './hq-page-nav.ser
            [attr.aria-current]="nav.active() === p ? 'page' : null"
            [attr.aria-label]="'hq.rail.goto' | translate: { page: ('hq.pages.' + p | translate) }">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons[p]" /></svg>
+          @if (p === 'planen' && events.hasOpen()) { <i class="evdot" [attr.aria-label]="'hq.events.dot' | translate" role="img"></i> }
           <span class="label" aria-hidden="true">{{ 'hq.pages.' + p | translate }}</span>
         </a>
       }
@@ -33,6 +35,8 @@ import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from './hq-page-nav.ser
   `,
   styles: [
     `
+      .evdot { position: absolute; top: 6px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--sc-accent); box-shadow: 0 0 0 2px var(--sc-bg-1); }
+      .stop { position: relative; }
       :host { display: none; }
       @media (min-width: 1024px) {
         :host {
@@ -90,6 +94,8 @@ import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from './hq-page-nav.ser
   ],
 })
 export class HqRailComponent {
+  protected readonly events = inject(EventHqService);
+  private readonly warm = this.events.ensure();
   protected readonly nav = inject(HqPageNavService);
   protected readonly icons = HQ_PAGE_ICONS;
   protected readonly hotkey = hqPageHotkey;

@@ -12,6 +12,9 @@ import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
 import { EINSATZ_NAME_MAX, NACHSCHUB_NAME_MAX, type Nachschub, clampName } from '../nachschub/nachschub.model';
 import { NachschubService } from '../nachschub/nachschub.service';
 import { NACHSCHUB_ICON_PATHS, STEP_ICON_PATHS, TRANSPORT_WHEELS } from '../nachschub/step-icons';
+import { EventHqService } from '../events/event-hq.service';
+import { isEventNachschub } from '../events/event-nachschub';
+import { HqEventSectionComponent } from '../events/hq-event-section.component';
 import { HqRouteGraphicComponent, type RouteSharedStop } from './route/route-graphic.component';
 import { routeFilterKey } from './route/route-filter.store';
 import type { RouteGraphStep } from './route/route-layout';
@@ -57,7 +60,7 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
 @Component({
   selector: 'sc-hq-nachschub-panel',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqRouteGraphicComponent],
+  imports: [TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqRouteGraphicComponent, HqEventSectionComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel" [attr.aria-label]="nachschub().name">
@@ -93,7 +96,9 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
         </span>
       </header>
 
-      @if (einsaetze().length === 0) {
+      @if (isEvent()) {
+        <sc-hq-event-section [nachschub]="nachschub()" (abortAsk)="abortEvent()" />
+      } @else if (einsaetze().length === 0) {
         <div class="none">
           <p class="n-title">{{ 'hq.panel.noEinsaetze' | translate }}</p>
           <p class="n-hint">{{ 'hq.panel.noEinsaetzeHint' | translate }}</p>
@@ -209,6 +214,16 @@ export class HqNachschubPanelComponent {
   /** Open the flow (step 1 = edit the content, 3 = propose Einsätze). */
   readonly edit = output<1 | 3>();
   readonly emptyIt = output<void>();
+  private readonly eventsSvc = inject(EventHqService);
+  private readonly confirmSvc = inject(ScConfirmService);
+  protected readonly isEvent = computed(() => isEventNachschub(this.nachschub()));
+
+  /** Abort an event Nachschub: the slot frees, progress stays, nothing goes back to the wishlist; resumable from the Archiv. */
+  protected async abortEvent(): Promise<void> {
+    const n = this.nachschub();
+    const ok = await this.confirmSvc.confirm({ titleKey: 'hq.events.abortDialog.title', messageKey: 'hq.events.abortDialog.message', params: { name: n.name }, confirmKey: 'hq.events.abort', tone: 'danger' });
+    if (ok) await this.eventsSvc.abort(n);
+  }
   readonly remove = output<void>();
 
   protected readonly svc = inject(NachschubService);

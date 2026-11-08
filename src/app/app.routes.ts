@@ -424,6 +424,12 @@ export const routes: Routes = [
           import('./admin/translations/translations.component').then((m) => m.AdminTranslationsComponent),
       },
       {
+        path: 'admin/events',
+        data: { layout: 'content' },
+        canActivate: [roleGuard('admin')],
+        loadComponent: () => import('./admin/events/admin-events.component').then((m) => m.AdminEventsComponent),
+      },
+      {
         path: 'admin/feedback',
         data: { layout: 'tool' },
         canActivate: [roleGuard('admin')],

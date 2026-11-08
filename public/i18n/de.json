@@ -5433,7 +5433,8 @@
       "archive": "Archiv",
       "archiveAria": "Archiv, {{n}} Nachschübe",
       "introTitle": "Noch kein Nachschub",
-      "introText": "Tippe auf ein Plus und nimm Dinge von deiner Wunschliste mit. Aus ihnen wird ein Nachschub mit Einsätzen, die du in Jetzt Schritt für Schritt abarbeitest."
+      "introText": "Tippe auf ein Plus und nimm Dinge von deiner Wunschliste mit. Aus ihnen wird ein Nachschub mit Einsätzen, die du in Jetzt Schritt für Schritt abarbeitest.",
+      "newAriaEvent": "Neuer Nachschub in Slot {{n}} – Event verfügbar"
     },
     "remove": {
       "titleRemove": "„{{name}}“ löschen?",
@@ -5535,7 +5536,6 @@
     },
     "run": {
       "aria": "Nachschub, den Jetzt bedient",
-      "archived": "Abgeschlossen: Dieser Nachschub liegt im Archiv, seine Einsätze laufen hier weiter. Unter Planen › Archiv kannst du ihn wieder aktivieren.",
       "for": "für",
       "stepOf": "Schritt {{n}} von {{total}}",
       "switch": "Nachschub wechseln",
@@ -5546,7 +5546,8 @@
       "doneKicker": "Alles abgehakt",
       "allDone": "Alle Schritte dieses Einsatzes sind erledigt.",
       "allDoneHint": "Wähle einen anderen Einsatz des Nachschubs oder wechsle den Nachschub.",
-      "einsaetze": "Einsätze dieses Nachschubs"
+      "einsaetze": "Einsätze dieses Nachschubs",
+      "archived": "Abgeschlossen: Dieser Nachschub liegt im Archiv, seine Einsätze laufen hier weiter. Unter Planen › Archiv kannst du ihn wieder aktivieren."
     },
     "ticker": {
       "app": "Companion-App",
@@ -5605,12 +5606,6 @@
     "nachschub": {
       "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
       "nothingPicked": "Wähle mindestens einen Gegenstand von der Wunschliste.",
-      "linesFull": "Deine Nachschub-Liste ist voll (100 Positionen). Entferne erst Positionen, dann kann die Wunschliste einziehen.",
-      "partial": "{{count}} Positionen sind geblieben: Deine Nachschub-Liste ist voll.",
-      "wishlistFailed": "Die Wunschliste konnte nicht geändert werden. Es wurde nichts verschoben.",
-      "wishCapped": "{{count}} Stück passen nicht mehr auf die Wunschliste (höchstens 999 je Eintrag) und gehen verloren.",
-      "gone": "Dieser Nachschub existiert nicht mehr (auf einem anderen Gerät gelöscht). Die Ansicht wird aktualisiert.",
-      "capReached": "Du hast das Limit an gespeicherten Nachschüben erreicht. Lösche alte aus dem Archiv, dann klappt es wieder.",
       "newName": "Neuer Nachschub",
       "newEinsatz": "Neuer Einsatz",
       "verb": {
@@ -5654,7 +5649,13 @@
           "craft": "Craften",
           "buy": "Kaufen"
         }
-      }
+      },
+      "linesFull": "Deine Nachschub-Liste ist voll (100 Positionen). Entferne erst Positionen, dann kann die Wunschliste einziehen.",
+      "partial": "{{count}} Positionen sind geblieben: Deine Nachschub-Liste ist voll.",
+      "wishlistFailed": "Die Wunschliste konnte nicht geändert werden. Es wurde nichts verschoben.",
+      "wishCapped": "{{count}} Stück passen nicht mehr auf die Wunschliste (höchstens 999 je Eintrag) und gehen verloren.",
+      "gone": "Dieser Nachschub existiert nicht mehr (auf einem anderen Gerät gelöscht). Die Ansicht wird aktualisiert.",
+      "capReached": "Du hast das Limit an gespeicherten Nachschüben erreicht. Lösche alte aus dem Archiv, dann klappt es wieder."
     },
     "title": "HQ",
     "eyebrow": "Persönlicher Bereich",
@@ -5822,7 +5823,8 @@
         "refine": "Raffinieren",
         "craft": "Craften",
         "transport": "Transportieren",
-        "pickup": "Abholen"
+        "pickup": "Abholen",
+        "event": "Event"
       },
       "state": {
         "todo": "zu tun",
@@ -5838,12 +5840,24 @@
       "more": "Mehr laden",
       "undone": "Rückgängig gemacht",
       "event": {
-        "shop.purchase": "{{quantity}}× {{item}} gekauft ({{shop}})",
-        "refinery.complete": "Raffinerie fertig: {{count}} Aufträge ({{location}})",
-        "contract.completed": "Mission abgeschlossen: {{name}}",
-        "qt.arrived": "Quantum-Sprung beendet",
-        "hangar.ready": "Hangar bereit",
-        "inventory.opened": "Inventar geöffnet ({{location}})",
+        "shop": {
+          "purchase": "{{quantity}}× {{item}} gekauft ({{shop}})"
+        },
+        "refinery": {
+          "complete": "Raffinerie fertig: {{count}} Aufträge ({{location}})"
+        },
+        "contract": {
+          "completed": "Mission abgeschlossen: {{name}}"
+        },
+        "qt": {
+          "arrived": "Quantum-Sprung beendet"
+        },
+        "hangar": {
+          "ready": "Hangar bereit"
+        },
+        "inventory": {
+          "opened": "Inventar geöffnet ({{location}})"
+        },
         "other": "Ereignis: {{type}}"
       }
     },
@@ -5917,9 +5931,21 @@
         "none": "Du hast noch keinen geplanten oder laufenden Einsatz.",
         "new": "Neuer Einsatz"
       },
-      "add": {"action":"Einsatz hinzufügen","title":"Neuer Einsatz","label":"Name des Einsatzes (höchstens 40 Zeichen)","confirm":"Hinzufügen"},
-      "rename": {"action":"Einsatz „{{name}}“ umbenennen","aria":"Neuer Name des Einsatzes","empty":"Der Name darf nicht leer sein."},
-      "noneYet": {"title":"„{{name}}“ hat noch keine Einsätze","hint":"Schlage in Planen Einsätze aus den Positionen vor oder füge einen hinzu."}
+      "add": {
+        "action": "Einsatz hinzufügen",
+        "title": "Neuer Einsatz",
+        "label": "Name des Einsatzes (höchstens 40 Zeichen)",
+        "confirm": "Hinzufügen"
+      },
+      "rename": {
+        "action": "Einsatz „{{name}}“ umbenennen",
+        "aria": "Neuer Name des Einsatzes",
+        "empty": "Der Name darf nicht leer sein."
+      },
+      "noneYet": {
+        "title": "„{{name}}“ hat noch keine Einsätze",
+        "hint": "Schlage in Planen Einsätze aus den Positionen vor oder füge einen hinzu."
+      }
     },
     "activity": {
       "kopfgeld": "Kopfgeld",
@@ -6000,6 +6026,10 @@
         "title": "Hier wächst deine Statistik",
         "text": "So sieht es aus, sobald die Companion-App beim Spielen mitliest: aUEC, Missionen, Abschlussquote, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
         "textLinked": "Die Companion-App ist verbunden. Sobald du spielst, füllen sich aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
+      },
+      "events": {
+        "title": "Erledigte Events",
+        "doneOn": "erledigt am {{date}}"
       }
     },
     "stock": {
@@ -6216,6 +6246,95 @@
       "now": {
         "online": "Gerade online:",
         "active": "Läuft gerade: {{title}} · {{n}} Zusagen"
+      }
+    },
+    "events": {
+      "teaser": "Event verfügbar",
+      "marker": "{{n}} Event(s) offen",
+      "dot": "Events offen",
+      "end": {
+        "official": "bis {{date}}",
+        "estimate": "spätestens mit {{date}} (geschätzt)",
+        "unknown": "Ende unbekannt"
+      },
+      "pick": {
+        "title": "Events",
+        "hint": "Laufende Events, die du noch nicht erledigt hast – wähle die Belohnungen, die du holen willst.",
+        "sightseeing": "Keine Belohnung – als Sightseeing-Nachschub."
+      },
+      "draft": {
+        "area": "Gebiet des Events statt eines festen Ortes"
+      },
+      "severalHint": "Mehrere Events in einem Nachschub sind möglich, aber nicht empfohlen.",
+      "doneTag": "Erledigt",
+      "abort": "Abbrechen",
+      "complete": "Event erledigt",
+      "gone": "Dieses Event ist nicht mehr verfügbar.",
+      "area": {
+        "title": "Gebiet",
+        "any": "Überall",
+        "none": "Kein fester Ort",
+        "unknown": "Gebiet unbekannt",
+        "ac": "Arena Commander"
+      },
+      "prereq": {
+        "title": "Voraussetzung (Schätzung)",
+        "none": "Keine Angabe",
+        "and": "und",
+        "or": "oder"
+      },
+      "gear": {
+        "fps-combat-set": "FPS-Kampfset",
+        "combat-ship": "Kampfschiff",
+        "salvage-ship": "Bergungsschiff",
+        "cargo-ship": "Frachtschiff",
+        "mining-ship": "Bergbauschiff",
+        "medical-ship": "Medizinschiff",
+        "any-ship": "Beliebiges Schiff"
+      },
+      "progress": {
+        "title": "Fortschritt",
+        "none": "Dieses Event hat keinen Fortschritt.",
+        "live": "live",
+        "tiers": "Stufen",
+        "appHint": "Die SCC-App ist verbunden und aktualisiert den Fortschritt, sobald sie ihn im Spiel erkennt."
+      },
+      "rewards": {
+        "title": "Belohnungen",
+        "claim": "Abholen",
+        "sightseeing": "Keine Belohnung – nur ansehen.",
+        "unknown": "Belohnungen noch unbekannt.",
+        "state": {
+          "open": "offen",
+          "waiting": "wartet auf Verteilung",
+          "claimed": "abgeholt"
+        }
+      },
+      "channel": {
+        "pledge": "Pledge",
+        "ingame": "Ingame",
+        "both": "Beides"
+      },
+      "claim": {
+        "title": "{{name}} abholen",
+        "channel": "Wie hast du es bekommen?",
+        "byApp": "Die SCC-App hat den Weg erkannt; du kannst ihn ändern.",
+        "store": "In den Bestand legen",
+        "isShip": "Ist ein Schiff",
+        "toHangar": "Kommt in den Hangar.",
+        "toInventory": "Kommt ins Inventar (Ort „Event-Belohnungen“).",
+        "complete": "Ganzes Event als erledigt markieren",
+        "confirm": "Abholen"
+      },
+      "offer": {
+        "area": "Du bist im Gebiet von {{event}}. Zu diesem Nachschub wechseln?",
+        "ac": "Arena Commander läuft – passt zu {{event}}. Zu diesem Nachschub wechseln?",
+        "switch": "Wechseln",
+        "notNow": "Nicht jetzt"
+      },
+      "abortDialog": {
+        "title": "{{name}} abbrechen?",
+        "message": "Der Fortschritt bleibt gespeichert, nichts geht zurück auf die Wunschliste. Du kannst das Event jederzeit aus dem Archiv fortsetzen."
       }
     }
   },
@@ -6703,7 +6822,6 @@
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
       "dayAria": "Komet auf {{date}} setzen",
-      "locked": {},
       "undoToast": "Komet für {{patch}} gesetzt: {{date}}"
     },
     "guess": {
@@ -6896,6 +7014,10 @@
       "translations": {
         "title": "KI-Übersetzung",
         "text": "Schalter, Limits, Sprachen, Aufträge und Glossar der Spiel-Übersetzung."
+      },
+      "events": {
+        "title": "Events",
+        "text": "Datenblätter der Events prüfen, freigeben, von Hand setzen und neu auswerten."
       }
     }
   },
@@ -7595,14 +7717,14 @@
       "wishOff": "„{{name}}“ ist nicht mehr auf der Wunschliste",
       "inventar": "„{{name}}“ liegt jetzt in {{where}}",
       "hangar": "„{{name}}“ ist im Hangar",
-      "hangarCopy": "„{{name}}“ ist jetzt {{n}}× im Hangar",
-      "ownWish": "„{{name}}“ ist da – Wunsch erfüllt",
-      "ownWishLeft": "„{{name}}“ ist da – noch {{left}} auf der Wunschliste",
       "undone": "Rückgängig gemacht",
       "inventarOff": "„{{name}}“ ist nicht mehr im Inventar",
       "inventarWithMe": "„{{name}}“ hast du jetzt bei dir",
       "inventarBlueprint": "Blaupause „{{name}}“ gesammelt",
-      "hangarOff": "„{{name}}“ ist nicht mehr im Hangar"
+      "hangarOff": "„{{name}}“ ist nicht mehr im Hangar",
+      "hangarCopy": "„{{name}}“ ist jetzt {{n}}× im Hangar",
+      "ownWish": "„{{name}}“ ist da – Wunsch erfüllt",
+      "ownWishLeft": "„{{name}}“ ist da – noch {{left}} auf der Wunschliste"
     },
     "err": {
       "failed": "Das hat nicht geklappt. Versuch es noch einmal.",
@@ -7618,8 +7740,6 @@
     "more": "Mehr anzeigen",
     "less": "Weniger anzeigen",
     "emptyRecent": "Noch nichts geöffnet.",
-    "recentNeedsConsent": "Geöffnete Seiten merkt sich dieses Gerät nur mit der Einwilligung „Präferenzen“.",
-    "recentConsentLink": "Einstellungen öffnen",
     "wish": "Wunschliste",
     "lastAdded": "zuletzt hinzugefügt",
     "emptyWish": "Noch nichts auf der Wunschliste.",
@@ -7642,7 +7762,9 @@
       "item": "Gegenstände",
       "blueprint": "Blaupausen",
       "news": "News"
-    }
+    },
+    "recentNeedsConsent": "Geöffnete Seiten merkt sich dieses Gerät nur mit der Einwilligung „Präferenzen“.",
+    "recentConsentLink": "Einstellungen öffnen"
   },
   "cart": {
     "title": "Wunschliste",
@@ -7672,8 +7794,6 @@
     "selected": "gewählt",
     "clear": "Alle abwählen",
     "toNachschub": "In einen Nachschub",
-    "slotsFullHint": "Alle 7 Nachschub-Plätze sind belegt. Die Auswahl kommt in einen bestehenden Nachschub.",
-    "toExisting": "In einen bestehenden Nachschub",
     "kind": {
       "ship": "Schiff",
       "vehicle": "Fahrzeug",
@@ -7690,7 +7810,9 @@
       "count": "{{n}} Vorschläge",
       "add": "auf die Wunschliste",
       "dismiss": "{{name}} nicht vorschlagen"
-    }
+    },
+    "slotsFullHint": "Alle 7 Nachschub-Plätze sind belegt. Die Auswahl kommt in einen bestehenden Nachschub.",
+    "toExisting": "In einen bestehenden Nachschub"
   },
   "pathCtl": {
     "node": {
@@ -7776,5 +7898,56 @@
     "craftTimes": "Wie oft herstellen",
     "button": "Material ×{{n}} auf die Wunschliste",
     "done": "{{n}}× {{name}}: Material auf die Wunschliste gelegt"
+  },
+  "adminEvents": {
+    "eyebrow": "Nur für Admins",
+    "title": "Event-Datenblätter",
+    "subtitle": "Felder unter 80 % Sicherheit bleiben unbekannt, bis du sie freigibst oder von Hand setzt.",
+    "retry": "Erneut versuchen",
+    "listAria": "Events",
+    "pending": "{{n}} warten",
+    "noSheet": "Kein Datenblatt",
+    "loading": "Lädt …",
+    "empty": "Keine Events.",
+    "reextract": "Neu auswerten",
+    "col": {
+      "field": "Feld",
+      "value": "Wert",
+      "confidence": "Sicherheit",
+      "source": "Herkunft",
+      "review": "Prüfung",
+      "actions": "Aktionen"
+    },
+    "field": {
+      "venues": "Schauplätze",
+      "area": "Gebiet",
+      "tasks": "Aufgaben",
+      "progress": "Fortschritt",
+      "rewards": "Belohnungen",
+      "prerequisites": "Voraussetzung",
+      "start": "Start",
+      "end": "Ende"
+    },
+    "editAria": "Wert als JSON",
+    "unknown": "unbekannt",
+    "save": "Speichern",
+    "approve": "Freigeben",
+    "reject": "Verwerfen",
+    "edit": "Von Hand setzen",
+    "review": {
+      "auto": "automatisch",
+      "pending": "wartet",
+      "approved": "freigegeben",
+      "edited": "von Hand",
+      "rejected": "verworfen"
+    },
+    "history": "Verlauf",
+    "historyEmpty": "Noch kein Eintrag.",
+    "actor": {
+      "ai": "KI",
+      "admin": "Admin"
+    },
+    "pick": "Wähle links ein Event.",
+    "badJson": "Der Wert ist kein gültiges JSON."
   }
 }

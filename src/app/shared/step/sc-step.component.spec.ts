@@ -24,7 +24,7 @@ describe('ScStepComponent', () => {
   }
 
   it('has one shape per kind (D29)', () => {
-    expect(STEP_KINDS.length).toBe(7);
+    expect(STEP_KINDS.length).toBe(8);
     for (const k of STEP_KINDS) expect(STEP_SHAPES[k]).toBeTruthy();
   });
 

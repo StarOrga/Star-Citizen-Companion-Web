@@ -192,13 +192,13 @@ export class HqInventoryService {
   }
 
   /** Adds `qty` to what already lies at `location` (addManual overwrites). */
-  async addStock(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null): Promise<boolean> {
+  async addStock(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null, origin: 'pledge' | 'ingame' | null = null): Promise<boolean> {
     const loc = location.trim();
     const have = this.items().find((i) => i.location === loc && (i.name === item.trim() || (!!classRef && i.class_name === classRef)));
     // One row holds one unit: an exact SCU amount must not land in a row counted in pieces. (A piece
     // count on an SCU row stays the stepper's old behaviour: it adds to the row's own unit.)
     if (have && unit === 'scu' && have.unit !== 'scu') return false;
-    return this.addManual(loc, have?.name ?? item, roundQty((have?.qty ?? 0) + qty), have?.unit ?? unit, classRef ?? have?.class_name ?? null);
+    return this.addManual(loc, have?.name ?? item, roundQty((have?.qty ?? 0) + qty), have?.unit ?? unit, classRef ?? have?.class_name ?? null, origin);
   }
 
   /** Takes `qty` back out of a place (undo of {@link addStock}); the row goes at zero. False on failure. */
@@ -306,7 +306,7 @@ export class HqInventoryService {
   }
 
   /** "liegt in …": put `qty` of `item` into `location` (source `manual`). False on invalid input or failure. */
-  async addManual(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null): Promise<boolean> {
+  async addManual(location: string, item: string, qty: number, unit: 'pcs' | 'scu', classRef: string | null = null, origin: 'pledge' | 'ingame' | null = null): Promise<boolean> {
     const loc = location.trim().slice(0, HQ_LOCATION_MAX);
     const name = item.trim().slice(0, HQ_ITEM_NAME_MAX);
     const q = Number(qty);
@@ -332,7 +332,7 @@ export class HqInventoryService {
       if (snap.error) throw snap.error;
       const row = await c
         .from('hq_inventory_items' as never)
-        .upsert({ user_id: userId, location: loc, name, qty: q, unit, class_name: classRef?.trim().slice(0, 200) || null } as never, {
+        .upsert({ user_id: userId, location: loc, name, qty: q, unit, class_name: classRef?.trim().slice(0, 200) || null, ...(origin ? { origin } : {}) } as never, {
           onConflict: 'user_id,location,name',
         });
       if (row.error) throw row.error;

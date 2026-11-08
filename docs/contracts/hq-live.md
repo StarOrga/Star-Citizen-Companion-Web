@@ -120,3 +120,10 @@ web migration.)
   500 ship storage rows. Desktop clamps items to 400 per location.
 - Events are deleted after **90 days** (pg_cron on the web side).
 - Batches: every 5 s or 50 events; state 1 / 10 s; backoff 15 s ... 15 min.
+
+## Related contracts
+
+- `docs/contracts/scc-app-event-progress.md` (event progress, location / Arena Commander mode, received rewards) extends
+  this contract: same opt-in, same session token, same RLS-self-only rule, no new live table. It follows the same copy
+  rule - it exists in BOTH repos and the SCC-App copy must stay byte-identical to the web file. A change to either
+  contract file is a change in both repos; whoever edits one of the two cross-references updates the other copy too.

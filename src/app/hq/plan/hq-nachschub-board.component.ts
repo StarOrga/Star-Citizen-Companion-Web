@@ -5,6 +5,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { NACHSCHUB_MAX_SLOTS, type Nachschub } from '../nachschub/nachschub.model';
 import { NachschubService } from '../nachschub/nachschub.service';
+import { boardTiles } from '../events/event-hq.util';
 import { NachschubCrateComponent } from '../nachschub/nachschub-crate.component';
 
 /** One of the seven slots: a Nachschub, or free (a "+" that starts a new one). */
@@ -30,7 +31,7 @@ export interface BoardSlot {
     <ul class="board" [attr.aria-label]="'hq.slots.aria' | translate">
       @for (s of slots(); track s.index) {
         @if (s.nachschub; as n) {
-          <li class="slot" [class.on]="n.id === selectedId()" [class.done]="s.total > 0 && s.done >= s.total">
+          <li class="slot" [class.event]="n.type === 'event' || n.type === 'sightseeing'" [class.on]="n.id === selectedId()" [class.done]="s.total > 0 && s.done >= s.total">
             <button type="button" class="hit" [attr.aria-pressed]="n.id === selectedId()" (click)="selectNachschub.emit(n.id)">
               <sc-nachschub-crate [done]="s.done" [total]="s.total" [open]="n.id === selectedId()" />
               <span class="name">{{ n.name }}</span>
@@ -46,9 +47,10 @@ export interface BoardSlot {
           </li>
         } @else {
           <li class="slot free">
-            <button type="button" class="hit" [attr.aria-label]="'hq.slots.newAria' | translate: { n: s.index }" (click)="create.emit()">
+            <button type="button" class="hit" [attr.aria-label]="(eventAvailable() ? 'hq.slots.newAriaEvent' : 'hq.slots.newAria') | translate: { n: s.index }" (click)="create.emit()">
               <span class="plus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></span>
               <small>{{ 'hq.slots.free' | translate: { n: s.index } }}</small>
+              @if (eventAvailable()) { <span class="teaser">{{ 'hq.events.teaser' | translate }}</span> }
             </button>
           </li>
         }
@@ -71,6 +73,7 @@ export interface BoardSlot {
         box-shadow: 0 6px 14px rgb(0 0 0 / 0.28); transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s; }
       .slot:hover { border-color: color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border)); transform: translateY(-1px); }
       .slot.on { border-color: var(--sc-accent); box-shadow: 0 0 0 1px var(--sc-accent), 0 0 24px color-mix(in srgb, var(--sc-accent) 30%, transparent), 0 8px 18px rgb(0 0 0 / 0.35); }
+      .slot.event .name::before { content: '✦ '; color: var(--sc-accent); }
       .slot.done { border-color: color-mix(in srgb, var(--sc-success) 55%, var(--sc-border)); }
       .slot.done small { color: var(--sc-success); }
       .hit { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px 9px; border: 0; border-radius: inherit; background: transparent; color: var(--sc-fg); font: inherit; text-align: center; cursor: pointer; }
@@ -85,6 +88,7 @@ export interface BoardSlot {
       .plus { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--sc-accent) 60%, transparent); color: var(--sc-accent); transition: background 0.2s, transform 0.2s; }
       .plus svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
       .free:hover .plus, .free .hit:focus-visible .plus { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); transform: scale(1.06); }
+      .teaser { margin-top: 2px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-accent); font-size: 0.72rem; font-weight: 600; }
       .archive-li { flex: 0 0 84px; display: flex; }
       .archive { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--sc-border); border-radius: 12px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); color: var(--sc-fg-1); font: inherit; font-size: 0.78rem; cursor: pointer; }
       .archive:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
@@ -98,6 +102,8 @@ export interface BoardSlot {
 })
 export class HqNachschubBoardComponent {
   readonly selectedId = input<string | null>(null);
+  /** An open event exists: the free slot carries the teaser "Event verfuegbar" (ev-a2). */
+  readonly eventAvailable = input(false);
   readonly selectNachschub = output<string>();
   readonly create = output<void>();
   readonly remove = output<string>();
@@ -108,9 +114,8 @@ export class HqNachschubBoardComponent {
 
   protected readonly archivedCount = computed(() => this.svc.archived().length);
   protected readonly slots = computed<BoardSlot[]>(() => {
-    const active = this.svc.active();
-    return Array.from({ length: NACHSCHUB_MAX_SLOTS }, (_, i) => {
-      const n = active.find((a) => a.slot === i + 1) ?? null;
+    // Oldest planned first, a finished one drops out and the rest move up, exactly one "+" (F1).
+    return boardTiles(this.svc.active(), NACHSCHUB_MAX_SLOTS).map((n, i) => {
       if (!n) return { index: i + 1, nachschub: null, done: 0, total: 0, einsaetze: 0 };
       const progress = this.svc.evaluation(n.id)?.progress ?? { done: 0, total: 0 };
       return { index: i + 1, nachschub: n, done: progress.done, total: progress.total, einsaetze: this.einsatz.ofPackage(n.id).length };

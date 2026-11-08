@@ -1,0 +1,22 @@
+{
+  "note": "Past Free Fly 2026-05-14..27 (DefenseCon / Invictus). Manufacturer days of two days each; rewards not in the sources.",
+  "event": { "id": "inv-2956", "series": "invictus", "name": "Invictus Launch Week 2956", "start_date": "2026-05-14", "end_date": "2026-05-27", "date_status": "confirmed", "status": "scheduled", "url": "", "source_comm_link_id": null },
+  "sources": [
+    { "kind": "comm-link", "label": "Invictus Launch Week 2956", "url": "https://robertsspaceindustries.com/en/comm-link/transmission/0-Invictus", "text": "Invictus Launch Week (DefenseCon) runs May 14 to May 27 with a Free Fly. Each manufacturer has a two day showcase with ship releases and ship sales on the website." }
+  ],
+  "llm": { "fields": {
+    "venues": { "value": ["Verse", "Website"], "confidence": 0.88, "source": "official" },
+    "area": { "value": { "kind": "any", "systems": [], "places": [] }, "confidence": 0.5, "source": "ai" },
+    "tasks": { "value": [ { "label": "Visit the manufacturer showcases", "trackId": null } ], "confidence": 0.8, "source": "comm-link" },
+    "progress": { "value": { "model": "none", "tracks": [] }, "confidence": 0.8, "source": "official" },
+    "rewards": { "value": null, "confidence": 0, "source": "ai" },
+    "prerequisites": { "value": null, "confidence": 0, "source": "ai" },
+    "start": { "value": "2026-05-14", "confidence": 0.95, "source": "official" },
+    "end": { "value": "2026-05-27", "confidence": 0.95, "source": "official" }
+  } },
+  "expect": {
+    "public": { "venues": ["verse", "website"], "area": null, "rewards": null, "start": "2026-05-14", "end": "2026-05-27" },
+    "pending": ["area"],
+    "progressModel": "none"
+  }
+}

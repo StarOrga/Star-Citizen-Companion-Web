@@ -5,7 +5,7 @@
  * Timestamps are ISO strings, numeric columns arrive as numbers.
  */
 
-export type HqStepKind = 'buy' | 'mission' | 'mine' | 'refine' | 'craft' | 'transport' | 'pickup';
+export type HqStepKind = 'buy' | 'mission' | 'mine' | 'refine' | 'craft' | 'transport' | 'pickup' | 'event';
 export type HqActivity =
   | 'kopfgeld' | 'bunker' | 'medizin' | 'rennen' | 'bergbau' | 'fracht' | 'bergung' | 'erkunden' | 'piraterie';
 export type HqSetKind = 'ship' | 'fps';
@@ -50,6 +50,9 @@ export interface HqEinsatzRow {
   start_location: string | null;
   /** hq_supply_packages.id (migration 20261108130100). */
   package_id?: string | null;
+  /** Migration 20261108140100: event Einsatz - sc_events.id + area {kind, systems, places, venues} instead of a fixed location. */
+  event_id?: string | null;
+  area?: Record<string, unknown> | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -72,6 +75,8 @@ export interface HqEinsatzStepRow {
   state: 'todo' | 'done';
   done_at: string | null;
   done_by: 'user' | 'live' | null;
+  event_id?: string | null;
+  area?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -224,6 +229,9 @@ export interface HqSupplyPackageRow {
   status: 'active' | 'archived';
   slot: number | null;
   snapshot: Record<string, number>;
+  /** Migration 20261108140100: normal | event | sightseeing; event_id = sc_events.id (null for normal). */
+  type?: 'normal' | 'event' | 'sightseeing';
+  event_id?: string | null;
   archived_at: string | null;
   deleted_at: string | null;
   created_at: string;

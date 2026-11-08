@@ -1,0 +1,33 @@
+{
+  "note": "Running event, ends 2026-11-09. Arena Commander + website. Research 1b: mask channel unknown, delivered after the end.",
+  "event": { "id": "dotv-2956", "series": "day-of-the-vara", "name": "Day of the Vara 2956", "start_date": "2026-10-21", "end_date": "2026-11-09", "date_status": "confirmed", "status": "scheduled", "url": "https://robertsspaceindustries.com/en/comm-link/transmission/21337-Day-Of-The-Vara-2956", "source_comm_link_id": 21337 },
+  "sources": [
+    { "kind": "comm-link", "label": "Day of the Vara 2956 (comm-link 21337)", "url": "https://robertsspaceindustries.com/en/comm-link/transmission/21337-Day-Of-The-Vara-2956", "text": "Kill Collector returns to Arena Commander with a skeleton horde. Survive two rounds of Kill Collector to claim a Vanduul mask. The pumpkin decorating contest runs outside the game; the winner receives a themed ship with paint and a full mask bundle. New paints are available from 21 October through 9 November, including the Drake Vulture, Aegis Eclipse and Kruger Wolf, plus returning ones. The mask is distributed after the event ends." }
+  ],
+  "llm": { "fields": {
+    "venues": { "value": ["Arena Commander", "Website"], "confidence": 0.93, "source": "official" },
+    "area": { "value": { "kind": "none", "systems": [], "places": [] }, "confidence": 0.9, "source": "official" },
+    "tasks": { "value": [ { "id": "survive-2", "label": "Survive two rounds of Kill Collector", "trackId": null } ], "confidence": 0.92, "source": "official" },
+    "progress": { "value": { "model": "once", "tracks": [] }, "confidence": 0.85, "source": "official" },
+    "rewards": { "value": [
+      { "id": "vanduul-mask", "name": "Vanduul mask", "className": null, "variant": null, "channel": "unknown", "timing": { "kind": "after-end" }, "trackId": null, "tier": null },
+      { "id": "paints-sale", "name": "Drake Vulture, Aegis Eclipse and Kruger Wolf paints", "className": null, "variant": null, "channel": "pledge", "timing": { "kind": "immediate" }, "trackId": null, "tier": null }
+    ], "confidence": 0.84, "source": "official" },
+    "prerequisites": { "value": null, "confidence": 0, "source": "ai" },
+    "start": { "value": "2026-10-21", "confidence": 0.95, "source": "official" },
+    "end": { "value": "2026-11-09", "confidence": 0.9, "source": "official" }
+  } },
+  "expect": {
+    "public": {
+      "venues": ["arena-commander", "website"],
+      "area": { "kind": "none", "systems": [], "places": [] },
+      "start": "2026-10-21",
+      "end": "2026-11-09",
+      "prerequisites": null
+    },
+    "pending": [],
+    "progressModel": "once",
+    "channels": { "vanduul-mask": "unknown", "paints-sale": "pledge" },
+    "timing": { "vanduul-mask": "after-end", "paints-sale": "immediate" }
+  }
+}
