@@ -199,7 +199,7 @@ export class CodexLandingValuesPaneComponent {
 
   constructor() {
     const destroy = inject(DestroyRef);
-    // The sheet is as tall as the Codex column and never scrolls: the rows that do not fit are cut, lowest priority first.
+    // The sheet is as tall as the hologram box and never scrolls: the rows that do not fit are cut, lowest priority first.
     effect(() => {
       this.rows();
       this.canSwitch();

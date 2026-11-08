@@ -26,6 +26,7 @@ import { routeFilterKey } from '../plan/route/route-filter.store';
 import { HqRouteGraphicComponent, type RouteSharedStop } from '../plan/route/route-graphic.component';
 import type { RouteGraphStep } from '../plan/route/route-layout';
 import { HqAppConnectionService } from './hq-app-connection.service';
+import { hqAppAction } from './hq-app-status.util';
 import { HqAppLaunchComponent } from '../hq-app-launch.component';
 import { HqLogDialogComponent } from './hq-log-dialog.component';
 import { HqNowFriendsComponent } from './hq-now-friends.component';
@@ -176,17 +177,12 @@ const UPCOMING = 4;
 
         @if (live.loaded() && !live.state() && !live.error()) {
           <section class="connect">
-            <span class="connect-title">{{ (appConnected() ? 'hq.now.connect.syncOffTitle' : 'hq.now.connect.title') | translate }}</span>
-            <span class="muted">{{ (appConnected() ? 'hq.now.connect.syncOffHint' : 'hq.now.connect.hint') | translate }}</span>
-            <div class="explain" role="group" [attr.aria-label]="'hq.now.connect.explain.aria' | translate">
-              <p class="explain-what">{{ 'hq.now.connect.explain.what' | translate }}</p>
-              <ul class="explain-list">
-                <li>{{ 'hq.now.connect.explain.e1' | translate }}</li>
-                <li>{{ 'hq.now.connect.explain.e2' | translate }}</li>
-                <li>{{ 'hq.now.connect.explain.e3' | translate }}</li>
-              </ul>
-            </div>
-            <sc-hq-app-launch class="connect-go" />
+            <!-- The same state words and action as the status chip (sc-hq-live-ticker); what the app does here lives in its Aussicht. -->
+            <span class="connect-title">{{ connectTitle() | translate }}</span>
+            <span class="muted">{{ (appStatus() === 'ready' ? 'hq.now.connect.syncOffHint' : 'hq.now.connect.hint') | translate }}</span>
+            @if (appAction(); as a) {
+              <sc-hq-app-launch class="connect-go" [mode]="a" />
+            }
           </section>
         }
 
@@ -322,10 +318,6 @@ const UPCOMING = 4;
       .fresh { margin: 4px 0 0; color: var(--sc-fg-2); font-size: 0.78rem; }
       .connect { display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); margin-top: auto; padding: var(--sc-space-3, 12px); color: var(--sc-fg); border: 1px dashed var(--sc-accent); border-radius: var(--sc-radius, 10px); }
       .connect-title { font-weight: 600; font-size: 1rem; color: var(--sc-accent); }
-      .explain { margin-top: var(--sc-space-2, 8px); color: var(--sc-fg-2); font-size: 0.85rem; }
-      .explain-what { margin: 0 0 var(--sc-space-1, 4px); }
-      .explain-list { list-style: disc; margin: 0; padding-left: var(--sc-space-5, 20px); }
-      .explain-list li { display: list-item; padding: 0; border: 0; }
       .connect-go { margin-top: var(--sc-space-2, 8px); }
       .h { margin: 0; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
       .log-head { display: flex; align-items: center; justify-content: space-between; }
@@ -468,7 +460,14 @@ export class HqNowComponent {
   readonly zones = computed(() => readZones(this.live.events()));
   readonly lastSignal = computed(() => presenceAt(this.live.state()) ?? this.live.stateUpdatedAt());
   /** Signed-in app without any live state yet: the app is there, only the opt-in sync or the game is missing. */
-  readonly appConnected = this.conn.connected;
+  /** The desktop app's state, shared with the status chip and the Start tile. */
+  readonly appStatus = this.conn.status;
+  readonly appAction = computed(() => hqAppAction(this.appStatus()));
+  readonly connectTitle = computed(() => {
+    const st = this.appStatus();
+    if (st === 'missing') return 'hq.now.connect.titleMissing';
+    return st === 'off' ? 'hq.now.connect.titleOff' : 'hq.now.connect.syncOffTitle';
+  });
 
   private timer: ReturnType<typeof setTimeout> | null = null;
 
