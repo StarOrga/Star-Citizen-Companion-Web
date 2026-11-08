@@ -200,6 +200,7 @@ import { TRANSLATIONS_TAB_STYLES } from './translations-shared.styles';
       .choice .txt { overflow-wrap: anywhere; }
       .choice .src { font-size: 0.8rem; color: var(--sc-fg-2); }
       .check { display: flex; gap: var(--sc-space-2); align-items: center; min-height: 44px; cursor: pointer; }
+      .check input { accent-color: var(--sc-accent); width: 20px; height: 20px; }
       .ctx { display: grid; gap: var(--sc-space-2); padding-top: var(--sc-space-3); border-top: 1px solid var(--sc-border); }
       .result .impact { margin: 0; font-size: 1.1rem; }
       .result .points { margin: 0; color: var(--sc-accent); font-weight: 600; }
