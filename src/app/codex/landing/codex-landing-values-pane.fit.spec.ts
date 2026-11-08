@@ -30,7 +30,7 @@ describe('Codex landing data sheet: always the column height, never scrolls (#8)
       fixture.componentRef.setInput('item', item(9));
       fixture.componentRef.setInput('still', true);
       fixture.detectChanges();
-      await fixture.whenStable();
+      await new Promise((r) => setTimeout(r, 120));
       fixture.componentInstance.fitRows();
       const body = host.querySelector<HTMLElement>('.body')!;
       expect(body.scrollHeight).withContext('no scrolling').toBeLessThanOrEqual(body.clientHeight + 1);
