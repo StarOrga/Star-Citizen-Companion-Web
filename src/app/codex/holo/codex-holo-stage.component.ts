@@ -803,7 +803,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .area-empty { margin: 4px 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
   .holo-below .holo-details { grid-column: 2 / 6; grid-row: 3; min-width: 0; }
   /* At the page's end the perspectives sit right on the strip. */
-  .below-persp { margin-top: 14px; margin-bottom: -6px; }
+  .below-persp { margin-top: 14px; margin-bottom: 0; }
   .holo-stage.first:is(.ph-wait, .ph-hero) .holo-below { opacity: 0; }
   .first.ph-reveal .holo-below { animation: rise 600ms var(--e-out) 440ms backwards; }
   .holo-below { transition: opacity var(--holo-t-fast) var(--e-io); }
@@ -1491,6 +1491,28 @@ export class CodexHoloStageComponent {
       measureTop();
       window.addEventListener('resize', measureTop, { passive: true });
       this.destroyRef.onDestroy(() => window.removeEventListener('resize', measureTop));
+      // Perspektiven panel + Einsatz bar are one box where they touch at the
+      // page's end: --holo-join = 1 squares the bar's top corners and drops its
+      // top edge/shadow (strip CSS, desktop only); floating over the page the
+      // bar keeps its own rounded top.
+      let joinRaf = 0;
+      const measureJoin = (): void => {
+        joinRaf = 0;
+        const panel = root.querySelector<HTMLElement>('.below-persp');
+        const bar = root.querySelector<HTMLElement>('sc-codex-holo-strip .holo-strip');
+        if (!stage || !panel || !bar) return;
+        const gap = bar.getBoundingClientRect().top - panel.getBoundingClientRect().bottom;
+        stage.style.setProperty('--holo-join', gap <= 2 ? '1' : '0');
+      };
+      const queueJoin = (): void => { joinRaf ||= requestAnimationFrame(measureJoin); };
+      queueJoin();
+      document.addEventListener('scroll', queueJoin, { capture: true, passive: true });
+      window.addEventListener('resize', queueJoin, { passive: true });
+      this.destroyRef.onDestroy(() => {
+        cancelAnimationFrame(joinRaf);
+        document.removeEventListener('scroll', queueJoin, { capture: true });
+        window.removeEventListener('resize', queueJoin);
+      });
       if (typeof ResizeObserver !== 'function') return;
       // In the next frame: these sizes change layout, inside the callback that is a "ResizeObserver loop".
       let raf = 0;
@@ -1501,7 +1523,7 @@ export class CodexHoloStageComponent {
           const h = Math.round(el.getBoundingClientRect().height);
           if (el.matches('.holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
           else if (el.matches('.hs-row')) stage?.style.setProperty('--holo-row-h', `${h}px`);
-          else if (el.matches('.below-persp')) el.style.setProperty('--persp-h', `${h}px`);
+          else if (el.matches('.below-persp')) { el.style.setProperty('--persp-h', `${h}px`); queueJoin(); }
           else if (el.matches('.holo-topbar')) measureTop();
         }
         pending.clear();
