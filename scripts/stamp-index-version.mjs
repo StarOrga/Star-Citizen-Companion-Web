@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const dist = join(root, 'dist', 'sc-companion', 'browser');
+const dist = join(root, 'dist', 'verse-companion', 'browser');
 const indexPath = join(dist, 'index.html');
 const ngswPath = join(dist, 'ngsw.json');
 

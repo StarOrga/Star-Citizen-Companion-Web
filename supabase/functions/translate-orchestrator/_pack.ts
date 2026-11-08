@@ -110,7 +110,7 @@ export const MAX_ZIP_BYTES = 120 * 1024 * 1024;
 
 const GH_HEADERS = (token?: string): Record<string, string> => ({
   accept: 'application/vnd.github+json',
-  'user-agent': 'sc-companion-translation',
+  'user-agent': 'VerseCompanion-translation',
   ...(token ? { authorization: `Bearer ${token}` } : {}),
 });
 

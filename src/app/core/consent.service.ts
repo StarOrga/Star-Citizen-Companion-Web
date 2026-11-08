@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { legacyStorageKey } from './storage-keys';
 
 /**
  * Browser-storage consent (issue #130, extended for analytics in #139).
@@ -43,12 +44,19 @@ const CONSENT_KEY = 'sc.consent';
 // here at all. `FeedbackDraftService` imports and removes them on first load;
 // they stay listed so a decline also clears the copy of anyone who has not
 // opened the feedback panel since.
+// The product-prefixed keys are listed by their new name; `legacyStorageKey` adds the pre-rename
+// `sc-companion.*` twin so a decline clears both, whether or not the key was migrated yet.
+const PREFIXED_PREFERENCE_KEYS = [
+  'verse-companion.news.channels',
+  'verse-companion.news.favorites',
+  'verse-companion.news.watched',
+  'verse-companion.upcoming.favorites',
+  'verse-companion.upcoming.baseline',
+] as const;
+
 const PREFERENCE_KEYS = [
-  'sc-companion.news.channels',
-  'sc-companion.news.favorites',
-  'sc-companion.news.watched',
-  'sc-companion.upcoming.favorites',
-  'sc-companion.upcoming.baseline',
+  ...PREFIXED_PREFERENCE_KEYS,
+  ...PREFIXED_PREFERENCE_KEYS.map((k) => legacyStorageKey(k) as string),
   'sc-telemetry-product',
   'sc.adminFeedback.draft',
   'sc.adminFeedback.lastSeenDelivered',

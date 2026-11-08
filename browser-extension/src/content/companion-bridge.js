@@ -14,8 +14,11 @@
  *   page → extension  hangar-import:discard     user cancelled; drop the payload
  */
 (() => {
-  const APP = 'sc-companion-app';
-  const EXT = 'sc-companion-extension';
+  // Verse Companion rename (stage 2): speak the new ids, still accept the legacy app id from a web
+  // build that has not switched yet. The presence attribute is set under both names for the same reason.
+  const APP = 'verse-companion-app';
+  const LEGACY_APP = 'sc-companion-app';
+  const EXT = 'verse-companion-extension';
   const STATE_KEY = 'nudgeState';
   const PENDING_KEY = 'pendingImport';
   /** A payload nobody picked up expires rather than lingering in storage. */
@@ -27,6 +30,7 @@
   // users who already have it. Nothing but the version is exposed.
   const mark = () => {
     if (document.documentElement) {
+      document.documentElement.setAttribute('data-verse-companion-extension', version);
       document.documentElement.setAttribute('data-sc-companion-extension', version);
     }
   };
@@ -76,7 +80,7 @@
   window.addEventListener('message', (event) => {
     if (event.source !== window || event.origin !== location.origin) return;
     const data = event.data;
-    if (!data || typeof data !== 'object' || data.source !== APP) return;
+    if (!data || typeof data !== 'object' || (data.source !== APP && data.source !== LEGACY_APP)) return;
 
     if (data.type === 'hangar-import:request') {
       void sendPending();

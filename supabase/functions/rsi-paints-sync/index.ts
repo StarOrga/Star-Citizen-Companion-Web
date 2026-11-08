@@ -34,7 +34,7 @@ const json = (body: unknown, status = 200) =>
 async function fetchPage(page: number, products: number[]): Promise<unknown> {
   const res = await fetch(`${RSI_BASE}/graphql`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'user-agent': 'sc-companion-paints/1.0' },
+    headers: { 'content-type': 'application/json', 'user-agent': 'VerseCompanion-paints/1.0' },
     body: JSON.stringify([{
       operationName: 'GetBrowseListingsQuery',
       variables: { query: { limit: PAGE_SIZE, page, skus: { products }, sort: { field: 'weight', direction: 'desc' } } },

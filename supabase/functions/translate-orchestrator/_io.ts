@@ -157,7 +157,7 @@ const NC_SA = 'CC-BY-NC-SA-4.0';
 
 /**
  * Uniform credit line, the same form for every language (d2-license note); only the words
- * follow the target language: `Community-Übersetzung: A, B (MIT) · KI-Ergänzung: SC Companion`.
+ * follow the target language: `Community-Übersetzung: A, B (MIT) · KI-Ergänzung: Verse Companion`.
  */
 export function attributionLine(lang: string, sources: OverlaySource[]): string {
   const de = lang === 'de';
@@ -168,7 +168,7 @@ export function attributionLine(lang: string, sources: OverlaySource[]): string 
     const lics = [...new Set(community.map((s) => s.license).filter(Boolean))].join(', ');
     parts.push(`${de ? 'Community-Übersetzung' : 'Community translation'}: ${names}${lics ? ` (${lics})` : ''}`);
   }
-  if (sources.some((s) => s.id === AI_SOURCE_ID)) parts.push(`${de ? 'KI-Ergänzung' : 'AI supplement'}: SC Companion`);
+  if (sources.some((s) => s.id === AI_SOURCE_ID)) parts.push(`${de ? 'KI-Ergänzung' : 'AI supplement'}: Verse Companion`);
   return parts.join(' · ');
 }
 
@@ -204,10 +204,10 @@ export function buildOverlayMeta(
   if (ai) {
     sources.push({
       id: AI_SOURCE_ID,
-      name: 'SC Companion KI',
+      name: 'Verse Companion KI',
       url: 'https://versecompanion-alpha.vercel.app',
-      license: nc ? NC_SA : 'SC Companion',
-      attribution: 'SC Companion',
+      license: nc ? NC_SA : 'Verse Companion',
+      attribution: 'Verse Companion',
     });
   }
   // Folder and CIG-table flag come from the contributing source, else from any usable source.

@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.233.0] - 2026-11-08
+
+### Changed
+- Verse Companion rename, stage 2: saved browser state (hangar recents, upcoming-ship favorites and baseline, news bookmarks) moves from `sc-companion.*` to `verse-companion.*` keys on first read, nothing is lost; the cookie-consent decline clears both names.
+- The browser-extension handover uses `verse-companion-*` message ids. The web still talks to extensions up to 0.1.3 and accepts both ids.
+- Edge functions identify themselves as `VerseCompanion/x` in their User-Agent.
+- The package and build output are now named `verse-companion` (`dist/verse-companion/browser`).
+- Translator outreach mails and the AI translation credit say Verse Companion.
+
+### Added
+- The social preview image (OG) carries the official Fan Kit "Made by the Community" logo.
+- Browser extension 0.1.4: accepts both bridge ids and sends the new one.
+
 ## [0.232.6] - 2026-11-08
 
 ### Fixed

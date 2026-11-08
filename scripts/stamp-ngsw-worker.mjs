@@ -35,7 +35,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const worker = join(root, 'dist', 'sc-companion', 'browser', 'ngsw-worker.js');
+const worker = join(root, 'dist', 'verse-companion', 'browser', 'ngsw-worker.js');
 
 if (!existsSync(worker)) {
   console.error(`✗ ${worker} does not exist — build the app before stamping the worker.`);
@@ -51,7 +51,7 @@ const headerHash = createHash('sha256')
   .update(JSON.stringify(JSON.parse(readFileSync(join(root, 'vercel.json'), 'utf8')).headers ?? []))
   .digest('hex')
   .slice(0, 12);
-const stamp = `\n// sc-companion v${version}+h.${headerHash} — byte-stamp so header-only changes (CSP!) reach installed workers; see scripts/stamp-ngsw-worker.mjs\n`;
+const stamp = `\n// verse-companion v${version}+h.${headerHash} — byte-stamp so header-only changes (CSP!) reach installed workers; see scripts/stamp-ngsw-worker.mjs\n`;
 
 const source = readFileSync(worker, 'utf8');
 if (source.includes(stamp)) {

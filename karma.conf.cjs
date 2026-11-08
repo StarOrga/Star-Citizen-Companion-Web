@@ -20,7 +20,7 @@ module.exports = function (config) {
     },
     jasmineHtmlReporter: { suppressAll: true },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/sc-companion'),
+      dir: require('path').join(__dirname, './coverage/verse-companion'),
       subdir: '.',
       reporters: [{ type: 'html' }, { type: 'text-summary' }],
     },

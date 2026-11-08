@@ -186,6 +186,9 @@ emit(resolve(BRAND, 'scc-apple-touch-180.png'), png(appMark.scc, 180, { backgrou
 // Social preview. X and Facebook do not render SVG, so the og:image was a
 // no-op; this is the raster that replaces it. No text — a font missing on a
 // build host would make the bytes non-deterministic and flake `--check`.
+// Fan Kit rule: the official "Made by the Community" logo on anything that shows the product to
+// outsiders. The committed Fan Kit file (white, 256 px) is only scaled down — no recolour, no effects.
+const FAN_KIT_BADGE = readFileSync(resolve(ROOT, 'public/icons/made-by-community.png'));
 const ogCard = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
   <defs>
     <radialGradient id="og" cx="50%" cy="46%" r="62%">
@@ -194,6 +197,7 @@ const ogCard = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" w
   </defs>
   <rect width="1200" height="630" fill="url(#og)"/>
   ${embed(png(appMark.scc, 520), 340, 55, 520, 520)}
+  <g opacity="0.85">${embed(FAN_KIT_BADGE, 1010, 444, 150, 150)}</g>
 </svg>`;
 emit(resolve(BRAND, 'scc-og-1200x630.png'), pngBox(ogCard, 1200, 630, C.canvas));
 

@@ -5,7 +5,7 @@ Angular 22 PWA · Supabase · Vercel — live at `versecompanion-alpha.vercel.ap
 ## Commands
 
 - `npm start` — `ng serve` on `http://127.0.0.1:4200` (default = cloud Supabase)
-- `npm run build` — production build → `dist/sc-companion/browser`
+- `npm run build` — production build → `dist/verse-companion/browser`
 - `npm run typecheck` — `tsc --noEmit -p tsconfig.app.json`
 - `npm test` — Karma + Jasmine (ChromeHeadless), no watch
 - `npm run lint` — ESLint via angular-eslint (`ng lint`)
