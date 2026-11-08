@@ -927,7 +927,6 @@
         "staticMass": "Masse",
         "staticCargo": "Laderaum",
         "strengthsWeaknesses": "Stärken · Schwächen",
-        "top3": "Top 3 · zuletzt gesehen & Hangar",
         "portsCount": "{{n}} Ports",
         "legendConfigurable": "konfigurierbar",
         "legendMissiles": "Raketen",
@@ -6540,6 +6539,7 @@
       },
       "ready": {
         "title": "Pre-Flight für {{line}}",
+        "titleRenamed": "Pre-Flight für {{line}} (ehemals {{former}})",
         "progress": "{{done}} von {{total}} erledigt",
         "step": {
           "notes": "Patch Notes gelesen",
@@ -6591,6 +6591,14 @@
       "sun": "Patch-Status",
       "sunValue": "LIVE {{v}} ·",
       "sunValueNoScore": "LIVE {{v}}",
+      "hq": "HQ",
+      "hqEvent": "{{name}} läuft · noch {{n}} Tage",
+      "hqEventOne": "{{name}} läuft · noch 1 Tag",
+      "hqEventToday": "{{name}} läuft · endet heute",
+      "hqEventOpen": "{{name}} läuft",
+      "hqSupplies": "{{n}} offene Nachschübe",
+      "hqSuppliesOne": "1 offener Nachschub",
+      "hqCalm": "Alles ruhig im HQ",
       "newsEmpty": "Gerade keine News.",
       "patchesEmpty": "Noch keine Patch Notes.",
       "patchTitle": "Star Citizen Alpha {{v}}",
@@ -6867,15 +6875,18 @@
         "tipped": "gesetzt · wartet auf LIVE",
         "hit": "Treffer",
         "miss": "daneben",
-        "locked": "geschlossen"
+        "locked": "geschlossen",
+        "missed": "verpasst"
       },
       "head": {
         "closed": "Tipps für {{patch}} sind geschlossen",
         "tipped": "Dein Tipp für {{patch}}: {{date}}",
         "hit": "Eingeschlagen am {{date}}",
         "miss": "Dein Komet: {{date}}",
-        "open": "Tipps für {{patch}} offen"
+        "open": "Tipps für {{patch}} offen",
+        "missed": "Dein Tipp für {{patch}} verpasst: {{date}}"
       },
+      "formerly": "ehemals {{patch}}",
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
       "dayAria": "Komet auf {{date}} setzen",
@@ -7081,20 +7092,19 @@
   "appsMenu": {
     "trigger": "Apps",
     "aria": "Apps herunterladen",
-    "platform": "Windows · immer die neueste Version",
     "scc": {
       "name": "Companion-App",
-      "desc": "Die Companion-App für deinen Desktop."
+      "desc": "Dein Begleiter neben dem Spiel: Live-Infos, Overlays und Tastenbelegung, ohne Alt-Tab."
     },
     "starscape": {
       "name": "Starscape",
-      "desc": "Wechselt dein Wallpaper durch die Starscape-Galerie."
+      "desc": "Dein Desktop wird zum Fenster ins Verse — jeden Tag ein neues Bild aus der Galerie."
     },
     "uploader": {
       "name": "Data Uploader",
-      "tag": "Nur für Collaborators",
-      "desc": "Liest deinen Star-Citizen-Install aus und lädt die Codex-Daten hoch."
-    }
+      "desc": "Liest dein Star Citizen aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen."
+    },
+    "footer": "Hier lädst du die stabile Version. Beta und Alpha wählst du nach dem Login in der App — welche Kanäle du siehst, hängt von deiner Rolle ab."
   },
   "appNotice": {
     "aria": "App-Hinweis",

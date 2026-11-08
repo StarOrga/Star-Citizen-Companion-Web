@@ -1,3 +1,4 @@
+import { currentPatchName, samePatch } from '../verse/data/patch-alias';
 import { PatchLineGroup, compareVersionsDesc } from './patch-notes';
 import { firstTestAt, linesInTesting, liveReleaseAt } from './patch-stats';
 import type { RoadmapPayload, RoadmapRelease } from './roadmap';
@@ -67,8 +68,8 @@ function parsedTime(iso: string): number {
 /** RSI's roadmap release for a patch line, if the payload names it. */
 export function releaseFor(line: string, roadmap: RoadmapPayload | null): RoadmapRelease | null {
   if (!roadmap || !line) return null;
-  if (roadmap.current?.patchLine === line) return roadmap.current;
-  if (roadmap.next?.patchLine === line) return roadmap.next;
+  if (roadmap.current && samePatch(roadmap.current.patchLine, line)) return roadmap.current;
+  if (roadmap.next && samePatch(roadmap.next.patchLine, line)) return roadmap.next;
   return null;
 }
 
@@ -116,7 +117,7 @@ function cardOf(
 /** A "next" card that exists only on the roadmap — no build has been posted yet. */
 function plannedCard(release: RoadmapRelease): StackCard {
   return {
-    line: release.patchLine,
+    line: currentPatchName(release.patchLine),
     status: 'next',
     group: null,
     release,
@@ -152,7 +153,7 @@ export function buildPatchStack(
   let next: StackCard | null = null;
   if (ahead.length > 0) {
     next = cardOf(ahead[0], testStatus(ahead[0]), roadmap, null);
-  } else if (roadmap?.next && roadmap.next.patchLine && roadmap.next.patchLine !== liveGroup?.line) {
+  } else if (roadmap?.next && roadmap.next.patchLine && !samePatch(roadmap.next.patchLine, liveGroup?.line ?? '')) {
     next = plannedCard(roadmap.next);
   }
 
@@ -188,7 +189,7 @@ export function stackCardFor(
   groups: readonly PatchLineGroup[],
   roadmap: RoadmapPayload | null,
 ): StackCard | null {
-  return stackCards(buildPatchStack(groups, roadmap)).find((c) => c.line === line) ?? null;
+  return stackCards(buildPatchStack(groups, roadmap)).find((c) => samePatch(c.line, line)) ?? null;
 }
 
 /**

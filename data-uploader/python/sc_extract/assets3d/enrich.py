@@ -71,7 +71,13 @@ def enrich(resolved: List[ResolvedPort], root: EntityDef,
     out: List[Placement] = []
     groups: Dict[str, Group] = {}
     classes: Dict[str, str] = {}
+    taken: set = set()
     for rp in resolved:
+        # Belt and braces: stage 1 already skips nameless/duplicate ports, but
+        # one bad id throws the WHOLE package away at validation.
+        if not rp.path or rp.path.lower() in taken:
+            continue
+        taken.add(rp.path.lower())
         parent_group = groups.get(rp.parent_path or "")
         group = group_of(rp.item, rp.port.types if rp.port else [], parent_group)
         groups[rp.path] = group

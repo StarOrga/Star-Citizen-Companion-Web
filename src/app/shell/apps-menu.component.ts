@@ -11,12 +11,17 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { environment } from '../../environments/environment';
 import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
+import { logWarn } from '../core/log';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { DesktopProduct, ringsForRole } from '../desktop/desktop-access';
 import { DesktopReleaseService, RingRelease } from '../desktop/desktop-release.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
+
+/** Edge proxy for the scc-app-latest alias release: {version, sizeBytes}, nulls when unknown. */
+const SCC_RELEASE_META = `${environment.supabase.url}/functions/v1/scc-release-meta`;
 
 const STARSCAPE_FALLBACK_URL =
   'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-latest/starscape-wallpaper.exe';
@@ -35,8 +40,7 @@ export interface AppEntry {
   id: 'scc' | 'starscape' | 'uploader';
   nameKey: string;
   descKey: string;
-  tagKey: string | null;
-  /** Collaborator-gated app: head painted in the hot accent. */
+  /** Collaborator-gated app: head painted in the hot accent (no badge, the colour is the signal). */
   elevated: boolean;
   /** The stable download, or null when no release resolved (uploader -> its page). */
   href: string | null;
@@ -82,7 +86,7 @@ export interface AppEntry {
               }
             }
             <!-- Stable only: beta/alpha are picked inside each app after sign-in. -->
-            <p class="hint">{{ 'appMenu.prerelease' | translate }}</p>
+            <p class="hint">{{ 'appsMenu.footer' | translate }}</p>
           </div>
         }
       </div>
@@ -91,24 +95,14 @@ export interface AppEntry {
       <span class="ico" aria-hidden="true">
         @switch (app.id) {
           @case ('scc') { <img src="icons/brand/scc-mark.svg" alt="" width="22" height="22" /> }
-          @case ('starscape') {
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 17l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" /></svg>
-          }
-          @default {
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14" /></svg>
-          }
+          @case ('starscape') { <img src="icons/brand/starscape-tray.png" alt="" width="28" height="28" /> }
+          @default { <img src="icons/brand/uploader-tray.png" alt="" width="28" height="28" /> }
         }
       </span>
       <span class="txt">
-        <strong>{{ app.nameKey | translate }}@if (app.tagKey) {<em>{{ app.tagKey | translate }}</em>}</strong>
+        <strong>{{ app.nameKey | translate }}</strong>
         <span class="desc">{{ app.descKey | translate }}</span>
-        <span class="meta">
-          @if (app.id === 'scc') {
-            {{ 'appsMenu.platform' | translate }}
-          } @else {
-            {{ app.meta }}
-          }
-        </span>
+        <span class="meta">{{ app.meta }}</span>
       </span>
     </ng-template>
   `,
@@ -127,7 +121,8 @@ export interface AppEntry {
     .trigger:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .pop {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
-      width: min(var(--sc-ov-menu), calc(100vw - 32px)); display: flex; flex-direction: column; gap: 2px;
+      /* 22rem: the chosen two-line copy per app fits at this width (20rem wrapped it to three). */
+      width: min(22rem, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 2px;
       padding: 6px; border-radius: 12px; border: 1px solid var(--sc-border);
       background: var(--sc-bg-1); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
     }
@@ -141,18 +136,17 @@ export interface AppEntry {
       flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent); color: var(--sc-accent);
     }
-    .ico svg { width: 20px; height: 20px; }
+    .ico img { width: 24px; height: 24px; object-fit: contain; }
     .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
     .txt strong { font-family: var(--sc-font-display); font-size: 0.86rem; font-weight: 600; }
-    .txt em {
-      margin-left: 8px; font-style: normal; font-size: 0.66rem; letter-spacing: 0.08em;
-      text-transform: uppercase;
+    .desc {
+      font-size: 0.76rem; line-height: 1.35; color: var(--sc-fg-2);
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
     }
-    .desc { font-size: 0.76rem; line-height: 1.35; color: var(--sc-fg-2); }
     .meta { font-size: 0.72rem; color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
     .entry.elevated { margin-top: 4px; border-top: 1px solid color-mix(in srgb, var(--sc-accent-hot) 40%, transparent); border-radius: 0 0 8px 8px; }
     .entry.elevated .ico { color: var(--sc-accent-hot); background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); }
-    .entry.elevated strong, .entry.elevated em { color: var(--sc-accent-hot); }
+    .entry.elevated strong { color: var(--sc-accent-hot); }
     .entry.elevated:hover, .entry.elevated:focus-visible { background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent); }
     .entry.elevated:focus-visible { box-shadow: inset 0 0 0 2px var(--sc-accent-hot); }
     .hint {
@@ -176,6 +170,8 @@ export class AppsMenuComponent {
     uploader: [],
   });
   private loaded = false;
+  /** Version + size of the scc-app-latest alias; null until read (or GitHub unreachable). */
+  private readonly sccRelease = signal<{ version: string | null; sizeBytes: number | null } | null>(null);
 
   private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
   readonly offered = computed(() => this.device.canInstall());
@@ -191,8 +187,8 @@ export class AppsMenuComponent {
     const rel = this.loadedReleases();
     const list: AppEntry[] = [
       {
-        id: 'scc', nameKey: 'appsMenu.scc.name', descKey: 'appsMenu.scc.desc', tagKey: null, elevated: false,
-        href: SCC_INSTALLER_URL, meta: '',
+        id: 'scc', nameKey: 'appsMenu.scc.name', descKey: 'appsMenu.scc.desc', elevated: false,
+        href: SCC_INSTALLER_URL, meta: this.sccMeta(),
       },
     ];
     const build = (product: DesktopProduct, base: Omit<AppEntry, 'href' | 'meta'>, fallback: string | null) => {
@@ -200,12 +196,22 @@ export class AppsMenuComponent {
       const stable = rel[product].find((r) => allowed.includes(r.ring)) ?? null;
       list.push({ ...base, href: stable?.url ?? fallback, meta: this.metaOf(stable) });
     };
-    build('starscape', { id: 'starscape', nameKey: 'appsMenu.starscape.name', descKey: 'appsMenu.starscape.desc', tagKey: null, elevated: false }, STARSCAPE_FALLBACK_URL);
+    build('starscape', { id: 'starscape', nameKey: 'appsMenu.starscape.name', descKey: 'appsMenu.starscape.desc', elevated: false }, STARSCAPE_FALLBACK_URL);
     if (this.roles.isCollaborator() && ringsForRole('uploader', role).length > 0) {
-      build('uploader', { id: 'uploader', nameKey: 'appsMenu.uploader.name', descKey: 'appsMenu.uploader.desc', tagKey: 'appsMenu.uploader.tag', elevated: true }, null);
+      build('uploader', { id: 'uploader', nameKey: 'appsMenu.uploader.name', descKey: 'appsMenu.uploader.desc', elevated: true }, null);
     }
     return list;
   });
+
+  /** "Windows · v0.100.0 · 462.7 MB" from the alias release; bare "Windows" while unknown. */
+  private sccMeta(): string {
+    const r = this.sccRelease();
+    const parts = ['Windows'];
+    if (r?.version) parts.push(r.version);
+    const size = formatAppSize(r?.sizeBytes);
+    if (size) parts.push(size);
+    return parts.join(' · ');
+  }
 
   metaOf(r: RingRelease | null): string {
     const parts = ['Windows'];
@@ -232,6 +238,7 @@ export class AppsMenuComponent {
   private async load(): Promise<void> {
     if (this.loaded) return;
     this.loaded = true;
+    void this.loadScc();
     const role = this.roles.role();
     const wantsUploader = this.roles.isCollaborator() && ringsForRole('uploader', role).length > 0;
     const [s, u] = await Promise.all([
@@ -239,6 +246,20 @@ export class AppsMenuComponent {
       wantsUploader ? this.releases.ringsFor('uploader', ringsForRole('uploader', role)) : Promise.resolve({ releases: [] as RingRelease[] }),
     ]);
     this.loadedReleases.set({ starscape: s.releases, uploader: u.releases });
+  }
+
+  /** Version + size come from the scc-release-meta edge proxy (cached there, no GitHub call from the browser). */
+  private async loadScc(): Promise<void> {
+    try {
+      const res = await fetch(SCC_RELEASE_META, { headers: { Accept: 'application/json' } });
+      if (!res.ok) return;
+      const j = (await res.json()) as { version?: string | null; sizeBytes?: number | null };
+      const version = typeof j.version === 'string' ? j.version : null;
+      const sizeBytes = typeof j.sizeBytes === 'number' ? j.sizeBytes : null;
+      if (version || sizeBytes) this.sccRelease.set({ version, sizeBytes });
+    } catch (err) {
+      logWarn('apps-menu', 'scc release meta unavailable', err);
+    }
   }
 
   @HostListener('document:click', ['$event'])

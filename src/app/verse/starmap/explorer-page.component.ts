@@ -9,6 +9,7 @@ import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet, VerseExplorerPatch } from '../data/verse.models';
+import { currentPatchName } from '../data/patch-alias';
 import { CometTrackComponent } from './comet-track.component';
 import { downloadBlob, renderConstellationPng } from './constellation-render';
 import { KartographCrestComponent, type CrestState } from './kartograph-crest.component';
@@ -81,9 +82,9 @@ const LADDER_SPAN = 3;
       @let st = state()!;
       @let p = selected()!;
       @let v = view()!;
-      <div #mapEl class="page" [attr.aria-label]="'starmap.stageAria' | translate: { patch: p.patchLine }" role="region">
+      <div #mapEl class="page" [attr.aria-label]="'starmap.stageAria' | translate: { patch: name(p.patchLine) }" role="region">
         <sc-verse-header planet="starmap"
-                         [title]="(mine() ? 'starmap.gallery.title' : 'starmap.map.title') | translate: { patch: p.patchLine }"
+                         [title]="(mine() ? 'starmap.gallery.title' : 'starmap.map.title') | translate: { patch: name(p.patchLine) }"
                          [subtitle]="mine() ? ('starmap.gallery.subtitle' | translate) : ('starmap.map.subtitle' | translate: { total: total })">
           @if (patchOptions().length > 1 && !mine()) {
             <sc-select vhActions class="patch-pick" [options]="patchOptions()" [value]="p.patchLine" [allowEmpty]="false"
@@ -279,7 +280,7 @@ export class ExplorerPageComponent {
     return (st?.patches ?? [])
       .filter((p) => p.patchLine !== up || p.liveAt)
       .slice(0, MAX_PATCH_OPTIONS)
-      .map((p) => (p === live ? { value: p.patchLine, labelKey: 'starmap.map.patchLive', labelParams: { patch: p.patchLine } } : { value: p.patchLine, labelKey: 'starmap.map.patchOld', labelParams: { patch: p.patchLine } }));
+      .map((p) => (p === live ? { value: p.patchLine, labelKey: 'starmap.map.patchLive', labelParams: { patch: this.name(p.patchLine) } } : { value: p.patchLine, labelKey: 'starmap.map.patchOld', labelParams: { patch: this.name(p.patchLine) } }));
   });
   readonly badge = inject(OwnBadgeService).link;
   /** Kartograph ladder: up to three earned ranks before, the current one, three locked ones after. */
@@ -299,6 +300,9 @@ export class ExplorerPageComponent {
    * patch the newest map must not headline its LIVE patch's closed comet, so
    * the rail is hidden (a tipped / hit / missed record still shows).
    */
+  /** Display name of a patch line (CIG renames: 4.11 became 5.0); the stored key stays. */
+  readonly name = currentPatchName;
+
   readonly cometTarget = computed<{ patchLine: string; comet: VerseComet } | null>(() => {
     const p = this.selected();
     if (!p) return null;

@@ -1,3 +1,4 @@
+import { samePatch } from '../verse/data/patch-alias';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
@@ -245,7 +246,7 @@ export class PatchMonitorComponent {
    */
   private readonly card = computed<StackCard | null>(() => {
     const line = this.estimate()?.anchorLine;
-    const anchored = line ? stackCards(this.stack()).find((c) => c.line === line) : undefined;
+    const anchored = line ? stackCards(this.stack()).find((c) => samePatch(c.line, line)) : undefined;
     return anchored ?? this.stack().live ?? this.stack().next;
   });
 

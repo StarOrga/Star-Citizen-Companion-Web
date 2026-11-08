@@ -91,10 +91,10 @@ const POINT_RELEASE_IN_PTU: VerseNewsItem[] = [
   patch('p4101', '[Wave 1] Star Citizen Alpha 4.10.1 PTU Patch Notes 12600000', daysAgo(5)),
 ];
 
-/** The same feed plus a real next LINE in the test ring — 4.11, four days in. */
+/** The same feed plus a real next LINE in the test ring — 4.12, four days in. */
 const MAIN_LINE_IN_PTU: VerseNewsItem[] = [
   ...POINT_RELEASE_IN_PTU,
-  patch('p411', '[Wave 1] Star Citizen Alpha 4.11 PTU Patch Notes 12700000', daysAgo(4)),
+  patch('p412', '[Wave 1] Star Citizen Alpha 4.12 PTU Patch Notes 12700000', daysAgo(4)),
 ];
 
 function feed(news: VerseNewsItem[]): VerseFeed {
@@ -204,7 +204,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
     expect(card.line).not.toMatch(/in \d+ Tagen/);
   });
 
-  it('states the SAME distance on both surfaces once 4.11 is in the test ring', async () => {
+  it('states the SAME distance on both surfaces once 4.12 is in the test ring', async () => {
     const when = expectedWhen(MAIN_LINE_IN_PTU);
     const panel = monitorPanel(MAIN_LINE_IN_PTU);
     const card = await verdictCard(MAIN_LINE_IN_PTU);
@@ -217,10 +217,10 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
     // Nothing but a point release in testing → the number IS the line cadence.
     expect((await verdictCard(POINT_RELEASE_IN_PTU)).basis)
       .toBe('Schätzung aus der bisherigen Patch-Kadenz');
-    // 4.11 in the ring → the number is that build plus the usual test run, and
+    // 4.12 in the ring → the number is that build plus the usual test run, and
     // the caption may not keep claiming it came from the cadence.
     const withNextLine = (await verdictCard(MAIN_LINE_IN_PTU)).basis;
-    expect(withNextLine).toContain('Alpha 4.11 im Test');
+    expect(withNextLine).toContain('Alpha 4.12 im Test');
     expect(withNextLine).not.toContain('Kadenz');
   });
 
@@ -262,7 +262,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
   it('prefers a main line already in the ring — that build demonstrably exists', () => {
     const est = computeNextPatch(notesOf(MAIN_LINE_IN_PTU))!;
     expect(est.basis).toBe('leadTime');
-    expect(est.anchorLine).toBe('4.11');
+    expect(est.anchorLine).toBe('4.12');
     expect(est.medianDays).toBe(21);
   });
 

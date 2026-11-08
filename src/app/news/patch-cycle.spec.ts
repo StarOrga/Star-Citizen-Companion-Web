@@ -90,9 +90,9 @@ describe('buildPatchCycle — real and usual measure the same stretch from the s
   });
 
   it('a line still in testing anchors on its first test build against the lead-time median', () => {
-    const feed = [...FEED, patch('p411', '[Wave 1] Star Citizen Alpha 4.11 PTU Patch Notes 12600000', '2026-09-01T00:00:00Z')];
+    const feed = [...FEED, patch('p412', '[Wave 1] Star Citizen Alpha 4.12 PTU Patch Notes 12600000', '2026-09-01T00:00:00Z')];
     const g = groupPatchNotes(feed);
-    const cycle = buildPatchCycle(stackCardFor('4.11', g, null)!, g, NOW)!;
+    const cycle = buildPatchCycle(stackCardFor('4.12', g, null)!, g, NOW)!;
     expect(cycle.main!.key).toBe('leadTime');
     expect(cycle.main!.realDays).toBe(4);
     expect(cycle.lead).toBeNull();

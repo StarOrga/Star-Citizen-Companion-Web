@@ -114,6 +114,15 @@ describe('groupPatchNotes — newest main patch on top, small patches nested (44
     expect(groupPatchNotes(news).map((g) => g.line)).toEqual(['4.10', '4.9', '4.8']);
   });
 
+  it('groups a renamed patch under its current name — 4.11 notes land in 5.0', () => {
+    const renamed = groupPatchNotes([
+      patch('p-411-ptu', 'Star Citizen Alpha 4.11 PTU Patch Notes 12400000', '2026-10-20T00:00:00.000Z'),
+      patch('p-50-ptu', 'Star Citizen Alpha 5.0 PTU Patch Notes 12500000', '2026-11-06T00:00:00.000Z'),
+    ]);
+    expect(renamed.map((g) => g.line)).toEqual(['5.0']);
+    expect(renamed[0].entries.map((e) => e.item.id)).toEqual(['p-50-ptu', 'p-411-ptu']);
+  });
+
   it('nests every entry of a line under it, newest first', () => {
     const line49 = groupPatchNotes(news).find((g) => g.line === '4.9')!;
     expect(line49.entries.map((e) => e.item.id)).toEqual(['p-49-hotfix', 'p-49-live', 'p-49-ptu']);

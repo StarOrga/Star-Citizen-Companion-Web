@@ -63,7 +63,7 @@ function feedWithLiveAge(liveDaysAgo: number): VerseFeed {
   } as VerseFeed;
 }
 
-/** 4.11 entered the PTU `ptuDaysAgo` days ago; 4.10 has been live for a while. */
+/** 4.12 entered the PTU `ptuDaysAgo` days ago; 4.10 has been live for a while. */
 function feedWithPtuAge(ptuDaysAgo: number): VerseFeed {
   return {
     status: null,
@@ -72,7 +72,7 @@ function feedWithPtuAge(ptuDaysAgo: number): VerseFeed {
       article(),
       note('n1', 'Star Citizen Alpha 4.9 LIVE Release Notes', daysAgo(110)),
       note('n2', 'Star Citizen Alpha 4.10 LIVE Release Notes', daysAgo(60)),
-      note('n3', 'Star Citizen Alpha 4.11 PTU Patch Notes 12600000', daysAgo(ptuDaysAgo)),
+      note('n3', 'Star Citizen Alpha 4.12 PTU Patch Notes 12600000', daysAgo(ptuDaysAgo)),
     ],
   } as VerseFeed;
 }
@@ -182,7 +182,7 @@ describe('Verse News — the build-status card', () => {
     const card = el('.verdict')!;
     expect(card.classList).toContain('fresh');
     expect(card.getAttribute('data-fresh')).toBe('ptu');
-    expect(el('.verdict-line')!.textContent).toContain('Alpha 4.11 ist im PTU');
+    expect(el('.verdict-line')!.textContent).toContain('Alpha 4.12 ist im PTU');
     // The card stays a complete build status while it celebrates.
     expect(el('.verdict-basis')!.textContent).toContain('Alpha 4.10 bleibt live');
   });

@@ -30,8 +30,27 @@ export const RUN_STEP_KEYS: readonly RunStepKey[] = ['codex', 'silhouettes', 'mo
 export interface StepRecord {
   ms: number;
   workers: number;
+  /** Finished runs folded into this record (rolling average); absent = 1. */
+  runs?: number;
 }
 export type StepHistory = Partial<Record<RunStepKey, StepRecord>>;
+
+/** Runs a step's rolling average remembers (older ones fade at 1/n per new run). */
+export const HISTORY_RUNS = 5;
+
+/**
+ * Fold a freshly measured step into the stored one. Both are normalised to the
+ * newer run's worker count first, then averaged over up to {@link HISTORY_RUNS}
+ * runs — one odd run (a paused game, a cold cache) no longer defines the next
+ * estimate, and the knowledge survives uploader updates because the history is
+ * stored per step, not per version.
+ */
+export function mergeRecord(prev: StepRecord | undefined, next: StepRecord): StepRecord {
+  if (!prev || !(prev.ms > 0)) return { ...next, runs: 1 };
+  const n = Math.min(HISTORY_RUNS - 1, Math.max(1, prev.runs ?? 1));
+  const prevMs = scaleSeconds(prev.ms, prev.workers, next.workers);
+  return { ms: (prevMs * n + next.ms) / (n + 1), workers: next.workers, runs: n + 1 };
+}
 
 /** Share of a run's time that scales with the worker count. */
 export const PARALLEL_SHARE = 0.6;
@@ -70,6 +89,12 @@ export interface EstimateInput {
   /** Steps still to come after `current` (idle: the whole planned run). */
   upcoming: readonly RunStepKey[];
   history: StepHistory;
+  /**
+   * Rule-of-thumb durations (profile seconds-per-GB × archive size, see
+   * `estimateForSize`) for steps with no history on this PC. Only a fallback;
+   * a measured step always wins.
+   */
+  fallback?: StepHistory;
   /** Workers under the limits in force now. */
   workers: number;
 }
@@ -95,8 +120,8 @@ export function liveRemaining(cur: RunningStep, now: number): number | null {
   return (100 - cur.pct) / rate;
 }
 
-function fromHistory(h: StepHistory, step: RunStepKey, workers: number): number | null {
-  const r = h[step];
+function fromHistory(h: StepHistory, step: RunStepKey, workers: number, fb?: StepHistory): number | null {
+  const r = h[step] ?? fb?.[step];
   if (!r || !(r.ms > 0)) return null;
   return scaleSeconds(r.ms / 1000, r.workers, workers);
 }
@@ -111,7 +136,7 @@ export function estimateRun(input: EstimateInput): RunEstimate | null {
       seconds = live;
       basis = 'live';
     } else {
-      const whole = fromHistory(history, current.step, workers);
+      const whole = fromHistory(history, current.step, workers, input.fallback);
       if (whole === null) return null;
       seconds = whole * (1 - Math.min(100, Math.max(0, current.pct)) / 100);
     }
@@ -121,7 +146,7 @@ export function estimateRun(input: EstimateInput): RunEstimate | null {
   let scope: RunEstimate['scope'] = 'run';
   let later = 0;
   for (const step of input.upcoming) {
-    const s = fromHistory(history, step, workers);
+    const s = fromHistory(history, step, workers, input.fallback);
     if (s === null) {
       scope = 'step';
       break;
@@ -149,7 +174,7 @@ export function formatApprox(seconds: number): string {
   return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
 
-type Tracked = RunningStep & { samples: ThroughputSample[]; workerMs: number; lastT: number; lastWorkers: number };
+type Tracked = RunningStep & { startPct: number; samples: ThroughputSample[]; workerMs: number; lastT: number; lastWorkers: number };
 
 /**
  * Follows a run's steps as their rail percentage moves and hands back each
@@ -170,7 +195,8 @@ export class RunTracker {
     let ended: { step: RunStepKey; record: StepRecord } | null = null;
     if (this.cur && this.cur.step !== step) ended = this.finish(now);
     if (!this.cur) {
-      this.cur = { step, startedAt: now, pct: 0, samples: [{ t: now, current: 0 }], workerMs: 0, lastT: now, lastWorkers: workers };
+      const startPct = Math.min(100, Math.max(0, pct));
+      this.cur = { step, startedAt: now, pct: startPct, startPct, samples: [{ t: now, current: startPct }], workerMs: 0, lastT: now, lastWorkers: workers };
     }
     const c = this.cur;
     c.workerMs += (now - c.lastT) * c.lastWorkers;
@@ -191,10 +217,16 @@ export class RunTracker {
     const c = this.cur;
     this.cur = null;
     if (!c) return null;
-    const ms = now - c.startedAt;
-    if (c.pct < FINISHED_MIN_PCT || ms <= 0) return null;
+    const measured = now - c.startedAt;
+    if (c.pct < FINISHED_MIN_PCT || measured <= 0) return null;
+    // A step that came in already part-done (resume, items skipped as current)
+    // only timed the rest of its rail: scale to a whole step, so a mostly
+    // skipped run does not teach the estimate that the step is quick.
+    const covered = (c.pct - c.startPct) / 100;
+    if (covered < 0.05) return null;
+    const ms = measured / covered;
     const workerMs = c.workerMs + (now - c.lastT) * c.lastWorkers;
-    return { step: c.step, record: { ms, workers: Math.max(1, workerMs / ms) } };
+    return { step: c.step, record: { ms, workers: Math.max(1, workerMs / measured) } };
   }
 
   running(): RunningStep | null {
@@ -210,7 +242,8 @@ export function parseHistory(raw: unknown): StepHistory {
   for (const key of RUN_STEP_KEYS) {
     const r = (raw as Record<string, unknown>)[key] as Partial<StepRecord> | undefined;
     if (r && typeof r.ms === 'number' && Number.isFinite(r.ms) && r.ms > 0 && typeof r.workers === 'number' && r.workers >= 1) {
-      out[key] = { ms: r.ms, workers: r.workers };
+      const runs = typeof r.runs === 'number' && r.runs >= 1 ? Math.min(HISTORY_RUNS, Math.floor(r.runs)) : undefined;
+      out[key] = runs ? { ms: r.ms, workers: r.workers, runs } : { ms: r.ms, workers: r.workers };
     }
   }
   return out;

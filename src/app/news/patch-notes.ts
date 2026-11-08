@@ -1,6 +1,7 @@
 // Type-only: news.service imports the grouping helpers back, and an erased
 // import keeps that pair from becoming a runtime cycle.
 import type { VerseNewsItem } from './news.service';
+import { currentPatchName } from '../verse/data/patch-alias';
 
 /**
  * Patch-note grouping (feedback 44e90e30).
@@ -152,7 +153,9 @@ export function groupPatchNotes(news: readonly VerseNewsItem[]): PatchLineGroup[
   for (const item of news) {
     if (item.channel !== 'patch') continue;
     const entry = toEntry(item);
-    const line = patchLineOf(entry.version);
+    // A renamed patch (4.11 -> 5.0) groups under its current name.
+    const raw = patchLineOf(entry.version);
+    const line = raw ? currentPatchName(raw) : raw;
     const bucket = byLine.get(line);
     if (bucket) bucket.push(entry);
     else byLine.set(line, [entry]);

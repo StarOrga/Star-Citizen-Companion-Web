@@ -12,11 +12,13 @@ import {
   RUN_STEP_KEYS,
   RunTracker,
   estimateRun,
+  mergeRecord,
   parseHistory,
   type RunStepKey,
   type StepHistory,
   type StepRecord,
 } from '../lib/run-estimate.js';
+import { estimateForSize, workersFor } from '../lib/performance.js';
 import { dockWorkers, setRunEstimate } from './resource-dock.js';
 
 const HISTORY_KEY = 'sc.runEstimate.steps';
@@ -32,6 +34,21 @@ let timer: number | null = null;
 let idleTicks = 0;
 let lastPublish = 0;
 let history: StepHistory | null = null;
+/** Source archive size of the planned run — only feeds the no-history fallback. */
+let sizeBytes = 0;
+
+/** The archive the coming run reads (bytes); 0 = unknown. */
+export function setRunSizeBytes(bytes: number): void {
+  sizeBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
+}
+
+/** Profile rule of thumb for the extraction step, used only where nothing was measured yet. */
+function fallbackHistory(): StepHistory | undefined {
+  if (!sizeBytes) return undefined;
+  return {
+    codex: { ms: estimateForSize('standard', sizeBytes).seconds * 1000, workers: workersFor('standard') },
+  };
+}
 
 function isRunStep(step: string): step is RunStepKey {
   return (RUN_STEP_KEYS as readonly string[]).includes(step);
@@ -49,7 +66,8 @@ function loadHistory(): StepHistory {
 
 function saveStep(ended: { step: RunStepKey; record: StepRecord } | null): void {
   if (!ended) return;
-  history = { ...loadHistory(), [ended.step]: ended.record };
+  const all = loadHistory();
+  history = { ...all, [ended.step]: mergeRecord(all[ended.step], ended.record) };
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   } catch {
@@ -69,7 +87,7 @@ function publish(): void {
   const upcoming = current
     ? plan.filter((s) => RUN_STEP_KEYS.indexOf(s) > RUN_STEP_KEYS.indexOf(current.step))
     : plan;
-  setRunEstimate(estimateRun({ now: Date.now(), current, upcoming, history: loadHistory(), workers }));
+  setRunEstimate(estimateRun({ now: Date.now(), current, upcoming, history: loadHistory(), fallback: fallbackHistory(), workers }));
 }
 
 /** Re-read the figure while a run goes; an idle uploader keeps no timer (README "Idle behaviour"). */

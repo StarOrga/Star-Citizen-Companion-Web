@@ -61,8 +61,8 @@ describe('buildPatchStack — one monotonic stack: next · live · last · older
   });
 
   it('takes the roadmap "next" as the top card when no newer build has been posted', () => {
-    const stack = buildPatchStack(groupPatchNotes(FEED), roadmap(release('4.10', 11), release('4.11', 16)));
-    expect(stack.next?.line).toBe('4.11');
+    const stack = buildPatchStack(groupPatchNotes(FEED), roadmap(release('4.10', 11), release('4.12', 16)));
+    expect(stack.next?.line).toBe('4.12');
     expect(stack.next?.status).toBe('next');
     expect(stack.next?.group).toBeNull();
     expect(stack.next?.plannedCount).toBe(16);
@@ -72,15 +72,15 @@ describe('buildPatchStack — one monotonic stack: next · live · last · older
   it('promotes a line in a test ring above live to the top card, ring by its notes', () => {
     const feed = [
       ...FEED,
-      patch('e411', '[Evo NDA] Star Citizen Alpha 4.11 PTU Patch Notes 12600000', '2026-09-10T10:00:00Z'),
+      patch('e411', '[Evo NDA] Star Citizen Alpha 4.12 PTU Patch Notes 12600000', '2026-09-10T10:00:00Z'),
     ];
-    const stack = buildPatchStack(groupPatchNotes(feed), roadmap(null, release('4.11')));
-    expect(stack.next?.line).toBe('4.11');
+    const stack = buildPatchStack(groupPatchNotes(feed), roadmap(null, release('4.12')));
+    expect(stack.next?.line).toBe('4.12');
     expect(stack.next?.status).toBe('evocati');
     expect(stack.next?.group).not.toBeNull();
-    expect(stack.next?.release?.patchLine).toBe('4.11');
+    expect(stack.next?.release?.patchLine).toBe('4.12');
 
-    const ptu = [...feed, patch('p411', '[Wave 1] Star Citizen Alpha 4.11 PTU Patch Notes 12610000', '2026-09-12T10:00:00Z')];
+    const ptu = [...feed, patch('p412', '[Wave 1] Star Citizen Alpha 4.12 PTU Patch Notes 12610000', '2026-09-12T10:00:00Z')];
     expect(buildPatchStack(groupPatchNotes(ptu), null).next?.status).toBe('ptu');
   });
 
@@ -103,10 +103,10 @@ describe('buildPatchStack — one monotonic stack: next · live · last · older
   });
 
   it('survives an empty feed', () => {
-    const stack = buildPatchStack([], roadmap(null, release('4.11')));
+    const stack = buildPatchStack([], roadmap(null, release('4.12')));
     expect(stack.live).toBeNull();
     expect(stack.last).toBeNull();
-    expect(stack.next?.line).toBe('4.11');
+    expect(stack.next?.line).toBe('4.12');
     expect(stackCards(stack).length).toBe(1);
   });
 });
@@ -115,7 +115,7 @@ describe('stackCardFor / previousLiveAt / releaseFor', () => {
   it('resolves a dossier route against any card of the stack', () => {
     const groups = groupPatchNotes(FEED);
     expect(stackCardFor('4.8', groups, null)?.status).toBe('superseded');
-    expect(stackCardFor('4.11', groups, roadmap(null, release('4.11')))?.status).toBe('next');
+    expect(stackCardFor('4.12', groups, roadmap(null, release('4.12')))?.status).toBe('next');
     expect(stackCardFor('3.0', groups, null)).toBeNull();
   });
 
@@ -128,10 +128,19 @@ describe('stackCardFor / previousLiveAt / releaseFor', () => {
   });
 
   it('maps a line to the roadmap release that names it', () => {
-    const rm = roadmap(release('4.10'), release('4.11'));
+    const rm = roadmap(release('4.10'), release('4.12'));
     expect(releaseFor('4.10', rm)?.patchLine).toBe('4.10');
-    expect(releaseFor('4.11', rm)?.patchLine).toBe('4.11');
+    expect(releaseFor('4.12', rm)?.patchLine).toBe('4.12');
     expect(releaseFor('4.9', rm)).toBeNull();
     expect(releaseFor('4.9', null)).toBeNull();
+  });
+
+  it('matches a renamed patch under either name — 4.11 notes and a 5.0 roadmap are one card', () => {
+    const feed = [...FEED, patch('p411', '[Wave 1] Star Citizen Alpha 4.11 PTU Patch Notes 12600000', '2026-09-01T00:00:00Z')];
+    const g = groupPatchNotes(feed);
+    const rm = roadmap(null, release('5.0'));
+    expect(stackCardFor('4.11', g, rm)?.line).toBe('5.0');
+    expect(stackCardFor('5.0', g, rm)?.release?.patchLine).toBe('5.0');
+    expect(releaseFor('4.11', rm)?.patchLine).toBe('5.0');
   });
 });

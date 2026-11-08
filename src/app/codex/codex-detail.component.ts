@@ -852,7 +852,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [seenThisSession]="holoSeenThisSession()"
             [rankCohort]="rankCohort()"
             [recentlyViewedShips]="recentlyViewedShips()"
-            [hangarShipClassNames]="hangarShipClassNames()"
             [hardpointPortRefs]="hardpointPortRefs()"
             [hardpointFrame]="hardpointFrame()"
             [hardpointMarkers]="hardpointMarkers()"
@@ -1943,11 +1942,6 @@ export class CodexDetailComponent implements OnInit {
   onHoloArrived(slug: string): void {
     this.holoSeenShips.update((seen) => new Set(seen).add(slug));
   }
-
-  /** Wave 2.5 (item 8/slot: hangar-tab + top-3): this user's OTHER hangar
-   * ships, by slug — same format as `classNameSlug`/`recentlyViewedShips`
-   * (`inHangar` above already compares `s.shipClassName` to a slug 1:1). */
-  readonly hangarShipClassNames = computed(() => this.hangar.ships().map((s) => s.shipClassName));
 
   /** Wave 2.5 (slot: patch-delta): the currently-shown build, as the
    * `BuildRef` shape `sc-codex-holo-patch` wants. */

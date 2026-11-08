@@ -335,6 +335,19 @@ let uidSeq = 0;
         color: var(--sc-fg-0);
         font-size: max(12px, var(--sc-fs-floor));
       }
+      /* Desktop, touching the Perspektiven panel above (--holo-join, set by the
+         stage): one box with it — top corners square, no top edge or shadow,
+         bottom corners rounded like the box's outer corners. */
+      @media (min-width: 901px) {
+        .holo-strip {
+          border-radius: calc(18px * (1 - var(--holo-join, 0))) calc(18px * (1 - var(--holo-join, 0))) calc(16px * var(--holo-join, 0)) calc(16px * var(--holo-join, 0));
+          border-block-start-width: calc(1px * (1 - var(--holo-join, 0)));
+          border-block-end: calc(1px * var(--holo-join, 0)) solid color-mix(in srgb, var(--holo-e, var(--sc-accent)) 28%, transparent);
+          box-shadow: 0 -10px 30px rgb(0 0 0 / calc(0.5 * (1 - var(--holo-join, 0))));
+        }
+        .holo-strip .einsatz { border-start-start-radius: calc(18px * (1 - var(--holo-join, 0))); }
+        .holo-strip .hs-toggle { border-end-end-radius: calc(16px * var(--holo-join, 0)); }
+      }
       /* --fab-clear: the feedback launcher owns the bottom-right corner
          (--sc-fab-lane in styles.scss) — where the strip reaches into that
          lane, its content stops short of it (measured, see the class). */

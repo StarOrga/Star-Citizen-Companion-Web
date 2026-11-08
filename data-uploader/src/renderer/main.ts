@@ -34,7 +34,7 @@ import {
   repaintResourceDock,
 } from './resource-dock.js';
 import { whenDoneChipHtml, wireWhenDoneChip, closeWhenDonePopoverIfOpen } from './when-done-chip.js';
-import { beginRunEta, endRunEta, initRunEta, noteRunEta, refreshRunEta } from './run-eta.js';
+import { beginRunEta, endRunEta, initRunEta, noteRunEta, refreshRunEta, setRunSizeBytes } from './run-eta.js';
 import { RUN_STEP_KEYS, type RunStepKey } from '../lib/run-estimate.js';
 import { createLogBudget, type LogBudget } from '../lib/log-budget.js';
 import {
@@ -1052,7 +1052,13 @@ function paintConnection(): void {
 
   $('#conn-connect')?.addEventListener('click', () => void connectNow());
   $('#conn-signout')?.addEventListener('click', () => void signOutNow());
-  $('#conn-sync')?.addEventListener('click', () => void autoSync());
+  $('#conn-sync')?.addEventListener('click', () => {
+    // The refresh button also asks for a newer uploader: bypasses the 2 min
+    // navigation throttle (the main process still skips a running download).
+    lastAutoUpdateCheckAt = Date.now();
+    window.sc.update.checkSilent();
+    void autoSync();
+  });
 }
 
 type UpdateEvent =
@@ -1349,6 +1355,7 @@ export async function startRun(plan: RunPlan): Promise<void> {
   else await window.sc.resources.restoreOperator().catch(() => undefined);
   state.runPlan = plan;
   state.whenDone = plan.whenDone;
+  setRunSizeBytes(state.channels.find((c) => c.selected)?.sizeBytes ?? 0);
   beginRunEta();
   // A fresh run: every row of every step starts open again.
   state.lastResult = null;

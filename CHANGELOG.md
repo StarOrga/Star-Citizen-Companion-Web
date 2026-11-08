@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.236.0] - 2026-11-08
+
+### Added
+- Verse landing: an HQ station in the sky shows one line about the HQ (running event, open Nachschub, or an all-clear) and links to the HQ.
+- Gallery: upvote in the single view and in fullscreen.
+- Apps menu: the SCC App shows its version and download size, read through the new `scc-release-meta` edge function.
+- Data Uploader: the time estimate covers the whole run and learns from your earlier runs.
+
+### Changed
+- Patch renames are handled everywhere: 4.11 now appears as 5.0 in the comet tip, star map and patch news.
+- A comet tip whose date has passed shows "missed".
+- Verse landing: larger sun placed lower, smaller star map and planets.
+- Holotable: the Top-3 block is gone; perspectives and the Einsatz bar form one box.
+- Apps menu: two-line descriptions, real tray icons, no collaborator badge.
+- Data Uploader: dock shows the mode without the word "Performance"; times read as hours and minutes.
+- Starscape: tray menu styled like the Data Uploader's.
+
+### Fixed
+- Data Uploader shows available updates at start and after a manual refresh.
+- 3D packages no longer fail on duplicate placement ids; converter failures retry cleanly.
+- Uploads no longer fail on a transient storage signing error.
+
 ## [0.234.0] - 2026-11-08
 
 ### Added

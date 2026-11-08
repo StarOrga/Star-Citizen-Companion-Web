@@ -5,6 +5,8 @@ import { OverlayNeighbour } from '../../shared/overlay-frame/overlay-frame.compo
 import { OverlayOriginService } from '../../shared/overlay-frame/overlay-origin.service';
 import { ShareButtonComponent } from '../../shared/share-button/share-button.component';
 import { StarscapeService, Wallpaper } from '../../starscape/starscape.service';
+import { StarscapeVoteButtonComponent } from '../../starscape/starscape-vote-button.component';
+import { StarscapeVotesService } from '../../starscape/starscape-votes.service';
 
 /**
  * `/verse/gallery/:imageId` - one Starscape image. Over the gallery as an
@@ -14,11 +16,14 @@ import { StarscapeService, Wallpaper } from '../../starscape/starscape.service';
 @Component({
   selector: 'sc-verse-gallery-item',
   standalone: true,
-  imports: [TranslatePipe, LightboxComponent, ShareButtonComponent],
+  imports: [TranslatePipe, LightboxComponent, ShareButtonComponent, StarscapeVoteButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (wallpaper(); as w) {
-      <sc-lightbox [image]="w" [prev]="prev()" [next]="next()" [overlay]="overlaid()" (closed)="close()" />
+      <sc-lightbox [image]="w" [prev]="prev()" [next]="next()" [overlay]="overlaid()" (closed)="close()">
+        <!-- The same upvote as on the list tile (one component, one service); rides the lightbox's bottom-right slot, in page, overlay and fullscreen. -->
+        <sc-vote-button [imageId]="w.imageId" />
+      </sc-lightbox>
       <!-- The takeover covers the floating share button; it belongs to the page mode. -->
       @if (!overlaid()) { <sc-share-button [shareTitle]="w.title ?? 'Starscape'" /> }
     } @else if (missing()) {
@@ -34,6 +39,7 @@ import { StarscapeService, Wallpaper } from '../../starscape/starscape.service';
 export class VerseGalleryItemComponent {
   private readonly svc = inject(StarscapeService);
   private readonly origin = inject(OverlayOriginService);
+  private readonly votes = inject(StarscapeVotesService);
 
   /** Route param `:imageId` (component input binding). */
   readonly imageId = input.required<string>();
@@ -50,6 +56,11 @@ export class VerseGalleryItemComponent {
   protected readonly next = computed<OverlayNeighbour | null>(() => this.neighbour(1));
 
   constructor() {
+    // A direct load / shared link never went through the grid, so the tally and own-vote flag are fetched here.
+    effect(() => {
+      const w = this.wallpaper();
+      if (w) void this.votes.syncCounts([w.imageId]);
+    });
     // The image is often not on the first grid page (shared link): fetch it by id.
     effect(() => {
       const id = this.imageId();

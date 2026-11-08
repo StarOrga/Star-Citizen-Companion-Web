@@ -301,8 +301,18 @@ function followRing(): void {
  * counts without a session: fetchUserRole() collapses every transient failure
  * to 'viewer', and that must not drop an admin back to stable mid-session.
  */
-function noteRoleRing(role: 'admin' | 'collaborator' | 'viewer', signedIn: boolean): void {
+function noteRoleRing(
+  role: 'admin' | 'collaborator' | 'viewer',
+  signedIn: boolean,
+  explicitSignOut = false,
+): void {
   if (role === 'viewer' && signedIn) return;
+  // No token + 'viewer' is what fetchUserRole() answers while the session is
+  // merely not ready (token refresh pending, offline start). That used to
+  // overwrite the persisted ring with 'stable' and re-point the updater at the
+  // stable feed — an admin/collaborator then saw no alpha/beta update at start.
+  // Only a deliberate sign-out may drop the ring.
+  if (role === 'viewer' && !signedIn && !explicitSignOut) return;
   const ring = highestRingFor(role);
   if (getSettings().autoRing !== ring) patchSettings({ autoRing: ring });
   followRing();
@@ -628,7 +638,7 @@ ipcMain.handle('sc:session:token', async () => {
 
 ipcMain.handle('sc:session:signOut', () => {
   clearSession();
-  noteRoleRing('viewer', false);
+  noteRoleRing('viewer', false, true);
   return { ok: true };
 });
 

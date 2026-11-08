@@ -318,6 +318,7 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
 
   // Defer first check so the UI is interactive before any network call.
   setTimeout(() => {
+    log.info(`[updater] start-up check on channel ${currentChannel} (running v${TOOL_VERSION})`);
     autoUpdater.checkForUpdates().catch((err) => {
       log.warn('[updater] checkForUpdates failed:', err);
       broadcast({ type: 'error', message: err?.message ?? String(err) });
@@ -347,6 +348,7 @@ export function checkForUpdatesSilently(): void {
     void checkPortableForUpdate();
     return;
   }
+  log.info(`[updater] checking channel ${currentChannel} (running v${TOOL_VERSION})`);
   autoUpdater.checkForUpdates().catch((err) => {
     log.warn('[updater] silent checkForUpdates failed:', err);
   });

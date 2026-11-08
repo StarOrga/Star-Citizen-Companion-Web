@@ -255,6 +255,10 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector('.brief-world')).not.toBeNull();
     expect(el.querySelector<HTMLAnchorElement>('a.sun-l')?.getAttribute('href')).toBe('/verse/patches/4.3');
     expect(el.querySelector('a.sun-l')?.getAttribute('aria-label')).toContain('verse.hub.sun');
+    // The HQ station: a real anchor to /hq; signed out its one line is the all-clear.
+    expect(el.querySelector<HTMLAnchorElement>('a.hq-l')?.getAttribute('href')).toBe('/hq');
+    expect(el.querySelector('a.hq-l')?.getAttribute('aria-label')).toBe('verse.hub.hq · verse.hub.hqCalm');
+    expect(el.querySelectorAll('a.hq-l .lab-v').length).toBe(1);
     expect(el.querySelector<HTMLAnchorElement>('.hrow h1 a.tl')?.getAttribute('href')).toBe('/verse/news?item=n1');
     expect(el.querySelector('.kick')?.textContent).toContain('verse.hub.area.news');
     expect(el.querySelectorAll('.hrow button.step').length).toBe(2);

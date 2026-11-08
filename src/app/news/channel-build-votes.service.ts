@@ -1,3 +1,4 @@
+import { samePatch } from '../verse/data/patch-alias';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { toErrorKey } from '../core/describe-error';
@@ -125,7 +126,7 @@ export class ChannelBuildVotesService {
 
   /** Running votable builds of one patch line (`4.4` → its PTU build, `4.3` → its hotfix). */
   forLine(line: string): ChannelBuildVotes[] {
-    return (this._builds() ?? []).filter((b) => b.line === line);
+    return (this._builds() ?? []).filter((b) => samePatch(b.line, line));
   }
 
   /** Correction of build stability `S`; null before the load or for a build that is not running. */

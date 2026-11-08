@@ -46,6 +46,11 @@ describe('AppsMenuComponent', () => {
         { provide: DesktopReleaseService, useValue: { ringsFor } },
       ],
     });
+    spyOn(window, 'fetch').and.resolveTo(
+      new Response(
+        JSON.stringify({ version: 'v0.100.0', sizeBytes: 100 * 1024 * 1024 }),
+      ),
+    );
     fixture = TestBed.createComponent(AppsMenuComponent);
     fixture.detectChanges();
   };
@@ -88,9 +93,19 @@ describe('AppsMenuComponent', () => {
       expect(hrefs('.pop a.entry.elevated')).toEqual(['https://example.test/uploader-stable.exe']);
       expect(ringsFor).toHaveBeenCalledWith('starscape', ['stable']);
       expect(ringsFor).toHaveBeenCalledWith('uploader', ['stable']);
-      expect(el().querySelector('.pop .hint')?.textContent).toContain('appMenu.prerelease');
+      expect(el().querySelector('.pop .hint')?.textContent).toContain('appsMenu.footer');
     });
   }
+
+  it('SCC App meta reads "Windows · vX · MB" from the alias release; no collaborator badge', async () => {
+    setup('collaborator');
+    await openMenu();
+    await new Promise((r) => setTimeout(r, 20)); // Response.json() settles on a macrotask
+    fixture.detectChanges();
+    const entries = Array.from(el().querySelectorAll<HTMLAnchorElement>('.pop a.entry'));
+    expect(entries[0].querySelector('.meta')?.textContent).toContain('Windows · v0.100.0 · 100.0 MB');
+    expect(el().querySelector('.pop em')).toBeNull();
+  });
 
   it('closes on Escape and returns focus to the trigger', async () => {
     setup('viewer');

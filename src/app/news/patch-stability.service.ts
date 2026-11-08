@@ -1,3 +1,4 @@
+import { samePatch } from '../verse/data/patch-alias';
 import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -69,13 +70,13 @@ export class PatchStabilityService {
 
   /** The newest line with a verdict is the LIVE one; every older line is finished. */
   isLiveLine(line: string): boolean {
-    return this.allTime().at(-1)?.line === line;
+    return samePatch(this.allTime().at(-1)?.line ?? '', line);
   }
 
   /** The nearest older line with a usable stability — what a chip compares against. */
   previousOf(line: string): { line: string; percent: number } | null {
     const all = this.allTime();
-    const i = all.findIndex((v) => v.line === line);
+    const i = all.findIndex((v) => samePatch(v.line, line));
     if (i <= 0) return null;
     for (let j = i - 1; j >= 0; j--) {
       const v = all[j];
@@ -85,7 +86,7 @@ export class PatchStabilityService {
   }
 
   patchRowFor(line: string): StabilityPatchRow | null {
-    return this.patches().find((p) => p.patch_line === line) ?? null;
+    return this.patches().find((p) => samePatch(p.patch_line, line)) ?? null;
   }
 
   /** Load once; concurrent callers share the same request. */
