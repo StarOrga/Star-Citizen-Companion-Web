@@ -317,3 +317,17 @@ export function pickEvents(
 }
 
 export { SHEET_CONFIDENCE_MIN };
+
+// ------------------------------------------------------------------------------------------------ http
+
+/** CORS for the admin's browser invoke (functions.invoke sends authorization, x-client-info, apikey, content-type). */
+export const CORS: Readonly<Record<string, string>> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+/** The preflight answer, or null when the request is not a preflight. Without it "Neu auswerten" got a 405. */
+export function preflight(method: string): Response | null {
+  return method === 'OPTIONS' ? new Response(null, { headers: { ...CORS } }) : null;
+}
