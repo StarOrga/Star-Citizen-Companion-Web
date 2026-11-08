@@ -52,6 +52,13 @@ describe('parseHoloSilhouette', () => {
     expect(parseHoloSilhouette(undefined)).toBeNull();
   });
 
+  it('carries the optional inner-edge path (column or meta), and null without it', () => {
+    expect(parseHoloSilhouette(validRow({ kind: 'item', edges: 'M 1 1 L 9 9' }))!.edges).toBe('M 1 1 L 9 9');
+    expect(parseHoloSilhouette(validRow({ kind: 'item', meta: { edges: 'M 2 2 L 8 8' } }))!.edges).toBe('M 2 2 L 8 8');
+    expect(parseHoloSilhouette(validRow())!.edges).toBeNull();
+    expect(parseHoloSilhouette(validRow({ edges: '' }))!.edges).toBeNull();
+  });
+
   it('parses a full valid row into the typed contract', () => {
     const result = parseHoloSilhouette(validRow());
     expect(result).not.toBeNull();

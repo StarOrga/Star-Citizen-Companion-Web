@@ -328,6 +328,16 @@ describe('CodexHoloTableComponent', () => {
       expect(el.querySelectorAll('.pin-key button.pk').length).toBe(47);
     });
 
+    it('draws the inner edges under the outline only when the silhouette carries them', () => {
+      const plain = leaderSetup(NOMAD_ANCHORS);
+      expect((plain.nativeElement as HTMLElement).querySelector('svg.silhouette path.hull-edges')).toBeNull();
+      const edged: HoloAnchorFixture = { ...NOMAD_ANCHORS, silhouette: { ...NOMAD_ANCHORS.silhouette, edges: 'M10 10L90 90' } };
+      const fixture = leaderSetup(edged);
+      const e = (fixture.nativeElement as HTMLElement).querySelector('svg.silhouette path.hull-edges')!;
+      expect(e.getAttribute('d')).toBe('M10 10L90 90');
+      expect(e.getAttribute('fill')).toBe('none');
+    });
+
     it('keeps the numbered key for a silhouette without anchors', () => {
       const bare: HoloAnchorFixture = { ...NOMAD_ANCHORS, silhouette: { ...NOMAD_ANCHORS.silhouette, anchors: [] } };
       const fixture = leaderSetup(bare);

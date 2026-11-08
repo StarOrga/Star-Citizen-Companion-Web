@@ -576,6 +576,23 @@ describe('CodexBrowseComponent', () => {
     expect(rows[1].querySelector('.sil.icon sc-codex-icon')).not.toBeNull();
   });
 
+  it('draws the inner edges as a second path on a row whose silhouette has them, none otherwise', async () => {
+    const { fixture } = await setup({
+      query: { kind: 'weapon' },
+      rows: [row('A_Gun'), row('B_Gun')],
+      silhouettes: new Map([
+        ['A_Gun', { ...silhouette('A_Gun'), edges: 'M1 1L5 5' }],
+        ['B_Gun', silhouette('B_Gun')],
+      ]),
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const rows = Array.from(fixture.nativeElement.querySelectorAll('.rows li.row')) as HTMLElement[];
+    expect(rows[0].querySelectorAll('.sil svg path').length).toBe(2);
+    expect(rows[0].querySelector('.sil svg path.edges')?.getAttribute('d')).toBe('M1 1L5 5');
+    expect(rows[1].querySelectorAll('.sil svg path').length).toBe(1);
+  });
+
   it('shows a translated error with retry on a failed load, never the empty state', async () => {
     const { fixture, cmp, listByKind } = await setup({ query: { kind: 'ship' } });
     listByKind.and.rejectWith(new TypeError('Failed to fetch'));
