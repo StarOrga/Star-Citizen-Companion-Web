@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bestand: "Blaupause anlegen" picks the blueprint from the Codex instead of free text, so it links to its page and its materials
 - Ship verification probes the Verse Companion host
 
+## [0.230.1] - 2026-11-08
+
+### Fixed
+- Event migrations renumbered past a version already taken on the remote ledger, so `db push` applies them instead of skipping the event data sheet.
+
 ## [0.230.0] - 2026-11-08
 
 ### Added
