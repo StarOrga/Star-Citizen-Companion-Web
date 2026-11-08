@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.238.0",
+  "current": "0.238.1",
   "releases": [
+    {
+      "version": "0.238.1",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex index: every ship row has the same height; the aUEC price sits right next to the maker, the location has a fixed end column of at most two lines (all shops in the tooltip), and the HQ icons stay in the same row (on phones they move to a line below)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.238.0",
       "date": "2026-11-08",
