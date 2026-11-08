@@ -3,9 +3,13 @@
 
 export interface TmEntry {
   t: string;
-  o: 'ai' | 'cig' | 'admin';
+  o: 'ai' | 'cig' | 'admin' | 'community';
   m?: string;
   at?: string;
+  /** Source id (translation_sources.id) for community entries. */
+  src?: string;
+  /** Licence of the source text (SPDX-ish), community entries only. */
+  lic?: string;
 }
 
 export interface UniqueText {
