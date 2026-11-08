@@ -4,6 +4,13 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.237.1] - 2026-11-08
+
+### Changed
+- Dependencies: Angular build/CLI/CDK/Material 22.2.6, supabase-js 2.119.0, Supabase CLI 3.0.0, uploader vitest 5.1.0.
+- `npm run db:push` passes `--remote --yes` (Supabase CLI 3 targets the local stack otherwise) and `npm run functions:deploy` passes `--yes`.
+- jasmine-core and @types/jasmine stay on 6.x: jasmine 7 breaks zone.js testing, Dependabot skips their majors for now.
+
 ## [0.237.0] - 2026-11-08
 
 ### Added
