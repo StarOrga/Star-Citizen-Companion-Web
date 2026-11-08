@@ -1,7 +1,7 @@
 // nachschub-names - a short name for a Nachschub (what you get, <= 28 chars) or an Einsatz (what you do, <= 40).
 //
 //   POST { kind: 'nachschub' | 'einsatz', locale?: 'de' | 'en', items: [{ name, qty }] }   signed-in users only
-//   -> { ok: true, status: 'generated', name } | { ok: true, status: 'no_key' | 'model_failed' }
+//   -> { ok: true, status: 'generated', name } | { ok: true, status: 'no_key' | 'model_failed' | 'rate_limited' }
 //
 // Graceful: every failure is a 200 with a status and no name; the client then uses its rule-based fallback, so the
 // feature never depends on this function. The key lives only here (ANTHROPIC_API_KEY secret); model override via
@@ -15,6 +15,25 @@ import { CORS, buildPrompt, limitOf, parseName, parseRequest, preflight } from '
 const MODEL = Deno.env.get('NACHSCHUB_NAMES_MODEL') ?? 'claude-sonnet-5-5';
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
+
+// Per-user rate limit, kept in the memory of this function instance (no table, no extra infra): a burst from one user
+// is answered with the graceful 'rate_limited' (the client uses its fallback name). It resets when the instance
+// recycles and is not shared between instances, so it caps accidental loops and casual abuse, not a determined
+// attacker - the platform's own limits and the model key's spend cap stay the hard stop.
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 12;
+const hits = new Map<string, number[]>();
+function rateLimited(userId: string, now = Date.now()): boolean {
+  const recent = (hits.get(userId) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_MAX) {
+    hits.set(userId, recent);
+    return true;
+  }
+  recent.push(now);
+  hits.set(userId, recent);
+  if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < RATE_WINDOW_MS)) hits.delete(k);
+  return false;
+}
 
 async function askClaude(prompt: string, key: string): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -49,6 +68,7 @@ Deno.serve(async (req) => {
 
   const key = Deno.env.get('ANTHROPIC_API_KEY');
   if (!key) return json({ ok: true, status: 'no_key' });
+  if (rateLimited(user.user.id)) return json({ ok: true, status: 'rate_limited' });
   try {
     const name = parseName(await askClaude(buildPrompt(request), key), limitOf(request.kind));
     return name ? json({ ok: true, status: 'generated', name }) : json({ ok: true, status: 'model_failed' });
