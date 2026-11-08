@@ -21,8 +21,8 @@ const fixtures = readdirSync(fixtureDir).filter((f) => f.endsWith('.json')).sort
 const FORBIDDEN_WORDS = /patch|alpha|game-?package|package|edition|account/;
 const walkGear = (node) => prereqGear(node ?? null);
 
-test('the six recorded events are all present', () => {
-  assert.deepEqual(fixtures.map((f) => f.event.id).sort(), ['dm-2956', 'dotv-2956', 'ff-2956', 'iae-2956', 'inv-2956', 'lum-2955']);
+test('the seven recorded events are all present', () => {
+  assert.deepEqual(fixtures.map((f) => f.event.id).sort(), ['dm-2956', 'dotv-2956', 'ff-2956', 'iae-2956', 'inv-2956', 'lum-2955', 'orison-2956']);
 });
 
 for (const fx of fixtures) {
@@ -270,4 +270,18 @@ test('index.ts imports the shared sheet module and holds no key or write path ot
   assert.match(src, /sc_event_sheet_apply/);
   assert.doesNotMatch(src, /\.from\('sc_events'\)\s*\.(update|insert|upsert)/);
   assert.doesNotMatch(src, /sk-ant-/);
+});
+
+test('a conflicting community claim (replaced PTU track) does not win over the personal track', () => {
+  const orison = fixtures.find((f) => f.event.id === 'orison-2956');
+  const stored = sheetFromModel(orison.llm, orison.event).sheet;
+  assert.equal(stored.fields.progress.review, 'auto');
+  const stale = sheetFromModel({ fields: { progress: { value: { model: 'community', tracks: [
+    { id: 'community', label: 'Community', unit: 'points', tiers: [{ at: 288000, label: 'Goal', rewardIds: [] }, { at: 72000, label: 'Half', rewardIds: [] }] },
+  ] }, confidence: 0.4, source: 'wiki' } } }, orison.event).sheet;
+  assert.equal(stale.fields.progress.review, 'pending');
+  const merged = mergeSheets(stored, stale);
+  assert.equal(merged.fields.progress.value.model, 'tiers');
+  assert.deepEqual(merged.fields.progress.value.tracks.map((x) => x.id), ['relief']);
+  assert.equal(publicSheet(merged).fields.progress.value.model, 'tiers');
 });

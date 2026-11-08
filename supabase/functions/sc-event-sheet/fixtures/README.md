@@ -1,6 +1,6 @@
 # sc-event-sheet fixtures
 
-One JSON file per event: `event` (the `sc_events` row), `sources` (text the function would feed the model), `llm`
+Seven events, one JSON file each: `event` (the `sc_events` row), `sources` (text the function would feed the model), `llm`
 (the model's tool answer), `expect` (what the normalised, review-gated sheet must look like). Used by
 `../extract.test.mjs` (`npm run test:functions`).
 
@@ -20,13 +20,16 @@ Unknown stays unknown: Day of the Vara mask channel, Foundation Festival and Inv
 | iae-2956 | IAE 2956 (13-27 Nov) | Free Fly without reward (`rewards: []`), ISO instants, place from secondary source stays pending |
 | foundation-festival-2026 | Foundation Festival (29 Jul - 10 Aug) | rewards and area unknown |
 | invictus-2956 | Invictus / DefenseCon (14-27 May) | venues Verse + website, weak "any" area pending |
+| orison-relief-support-2956 | Orison Relief Support (4.10.1, past) | place-bound area (Orison), six-tier personal track with in-game rewards per tier, wiki-only end pending, cargo OR combat OR salvage gear, community-track conflict |
 | luminalia-2955 | Luminalia 2955 (10-22 Dec 2025) | website advent calendar (daily progress), pledge gift vs in-game payout, "RSI account" prerequisite dropped |
 
-## Open question: Orison Relief
+## Orison Relief Support (answered)
 
-The research (section 2) names "Orison Relief" as an event that ended just before Discovery Month and may carry a
-global/community counter, but no source in the research says what it was (dates, venue, progress, rewards). It could
-not be looked up from the build session (no web access), so it is NOT a fixture and the "last 3 big events" are taken
-as Invictus 2956, Foundation Festival 2026 and Luminalia 2955 plus IAE 2956 as the next one. If Orison Relief turns out
-to be a community-goal event, add `orison-relief.json` with `progress.model = "community"` and a `group`/`community`
-track; the schema already allows it (open model slug).
+Orison Relief Support (Alpha 4.10.1, 2026-09-16, bound to Orison in Stanton) was a PU contract event with one personal
+six-tier track and in-game, account-attributed rewards - the last big reward event before Discovery Month. It is the
+seventh fixture; its facts come from web research on 2026-11-08 (patch notes comm-link 21330 and
+https://starcitizen.tools/Orison_Relief_Support, mostly community sources): the end date is wiki-only (low confidence,
+pending), prerequisites are a gear estimate (pending), the replaced PTU community track (288 000 -> 72 000) must not
+beat the personal track (test: a conflicting community claim does not win), and the FBL-8u undersuit at the last tier
+is deliberately not in the rewards (single low-confidence claim). So the last three big reward events are Orison Relief,
+Foundation Festival (Free Fly, no rewards) and Invictus, plus the two running ones and IAE 2956 as the next.
