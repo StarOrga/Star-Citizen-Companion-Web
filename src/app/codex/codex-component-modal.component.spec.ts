@@ -89,16 +89,17 @@ describe('CodexComponentModalComponent', () => {
     expect(keys).toContain('Lifetime');
   });
 
-  it('emits closed on the backdrop, the button and Escape', () => {
+  it('emits closed on the button and Escape, never on a click beside it', () => {
     let closes = 0;
     fixture.componentInstance.closed.subscribe(() => closes++);
     const el = render(PANTHER);
-    (el.querySelector('.cm-close') as HTMLButtonElement).click();
     (el.querySelector('.cm-backdrop') as HTMLElement).click();
+    expect(closes).toBe(0);
+    (el.querySelector('.cm-close') as HTMLButtonElement).click();
     render(PANTHER)
       .querySelector('.cm-panel')!
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(closes).toBe(3);
+    expect(closes).toBe(2);
   });
 
   it('says so instead of rendering an empty window when nothing is extracted', () => {

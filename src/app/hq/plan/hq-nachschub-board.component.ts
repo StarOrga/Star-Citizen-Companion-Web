@@ -15,12 +15,14 @@ export interface BoardSlot {
   readonly done: number;
   readonly total: number;
   readonly einsaetze: number;
+  /** A slot after the one "+": shown so all seven places are always visible, not clickable itself. */
+  readonly ghost?: boolean;
 }
 
 /**
  * The seven Nachschub slots of Planen as separate freight crates (round 4: "einzelne Kisten statt Leiste", never one
- * connected strip), the Archiv at the end. A free slot is a "+" and IS the entry to a new Nachschub - there is no
- * separate button. A trash button (hover, focus, always on touch) deletes with the "zurück auf die Wunschliste" choice.
+ * connected strip), the Archiv at the end. All seven always show: the taken ones, exactly one "+" (it IS the entry to a
+ * new Nachschub - there is no separate button), then the remaining places as quiet outlines. A trash button (hover, focus, always on touch) deletes with the "zurück auf die Wunschliste" choice.
  */
 @Component({
   selector: 'sc-hq-nachschub-board',
@@ -44,6 +46,10 @@ export interface BoardSlot {
                     [scTooltip]="'hq.slots.delete' | translate: { name: n.name }" scTooltipTier="label" (click)="remove.emit(n.id)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" /></svg>
             </button>
+          </li>
+        } @else if (s.ghost) {
+          <li class="slot ghost" aria-hidden="true">
+            <span class="hit"><span class="gnum">{{ s.index }}</span></span>
           </li>
         } @else {
           <li class="slot free">
@@ -89,6 +95,10 @@ export interface BoardSlot {
       .plus svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
       .free:hover .plus, .free .hit:focus-visible .plus { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); transform: scale(1.06); }
       .teaser { margin-top: 2px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-accent); font-size: 0.72rem; font-weight: 600; }
+      .ghost { border-style: dashed; border-color: color-mix(in srgb, var(--sc-border) 70%, transparent); background: transparent; box-shadow: none; }
+      .ghost:hover { border-color: color-mix(in srgb, var(--sc-border) 70%, transparent); transform: none; }
+      .ghost .hit { justify-content: center; min-height: 128px; cursor: default; }
+      .gnum { font: 600 0.9rem var(--sc-font-display, inherit); color: var(--sc-fg-2); opacity: 0.55; }
       .archive-li { flex: 0 0 84px; display: flex; }
       .archive { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--sc-border); border-radius: 12px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); color: var(--sc-fg-1); font: inherit; font-size: 0.78rem; cursor: pointer; }
       .archive:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
@@ -114,11 +124,14 @@ export class HqNachschubBoardComponent {
 
   protected readonly archivedCount = computed(() => this.svc.archived().length);
   protected readonly slots = computed<BoardSlot[]>(() => {
-    // Oldest planned first, a finished one drops out and the rest move up, exactly one "+" (F1).
-    return boardTiles(this.svc.active(), NACHSCHUB_MAX_SLOTS).map((n, i) => {
+    // Oldest planned first, a finished one drops out and the rest move up, exactly one "+" (F1); the places after it
+    // stay visible as quiet outlines, so all seven slots always show, the Archiv last.
+    const tiles: BoardSlot[] = boardTiles(this.svc.active(), NACHSCHUB_MAX_SLOTS).map((n, i) => {
       if (!n) return { index: i + 1, nachschub: null, done: 0, total: 0, einsaetze: 0 };
       const progress = this.svc.evaluation(n.id)?.progress ?? { done: 0, total: 0 };
       return { index: i + 1, nachschub: n, done: progress.done, total: progress.total, einsaetze: this.einsatz.ofPackage(n.id).length };
     });
+    for (let i = tiles.length; i < NACHSCHUB_MAX_SLOTS; i++) tiles.push({ index: i + 1, nachschub: null, done: 0, total: 0, einsaetze: 0, ghost: true });
+    return tiles;
   });
 }

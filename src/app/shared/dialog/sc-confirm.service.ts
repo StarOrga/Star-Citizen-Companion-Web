@@ -83,13 +83,11 @@ export class ScConfirmService {
         settled = true;
         this.open = false;
         closedSub.unsubscribe();
-        backdropSub.unsubscribe();
         detachSub.unsubscribe();
         overlayRef.dispose();
         resolve(value);
       };
       const closedSub = ref.instance.closed.subscribe((v) => finish(v));
-      const backdropSub = overlayRef.backdropClick().subscribe(() => finish(null));
       const detachSub = overlayRef.detachments().subscribe(() => finish(null));
     });
   }

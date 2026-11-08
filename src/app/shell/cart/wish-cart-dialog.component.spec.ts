@@ -74,11 +74,32 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
     expect(el.querySelector('.dlg-title small')!.textContent).toContain('cart.summary');
   });
 
-  it('the tile name is a real anchor to the Codex page; the silhouette box never stretches (contain)', () => {
+  it('the Codex page is a real anchor on the tile (the arrow); the silhouette box never stretches (contain)', () => {
     const { el } = setup(rows);
-    const a = el.querySelector<HTMLAnchorElement>('.tile a.nm')!;
+    const a = el.querySelector<HTMLAnchorElement>('.tile a.open')!;
     expect(a.getAttribute('href')).toBe('/codex/item/klwe_rifle_energy_01');
+    expect(a.getAttribute('aria-label')).toContain('cart.open');
     expect(el.querySelector('.tile .sil sc-sil-thumb')).not.toBeNull();
+  });
+
+  it('a click on the picture or the name ticks the position instead of leaving the cart', () => {
+    const { fixture, el } = setup(rows);
+    const cart = TestBed.inject(WishCartService);
+    const close = spyOn(cart, 'close').and.callThrough();
+    el.querySelector<HTMLElement>('.tile .pickarea .nm')!.click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.tile.sel').length).toBe(1);
+    el.querySelector<HTMLElement>('.tile .pickarea .sil')!.click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.tile.sel').length).toBe(0);
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it('a click beside the cart keeps it open (the selection would be lost)', () => {
+    const { el } = setup(rows);
+    const close = spyOn(TestBed.inject(WishCartService), 'close');
+    el.querySelector<HTMLElement>('.scrim')!.click();
+    expect(close).not.toHaveBeenCalled();
   });
 
   it('a group checkbox selects the whole group, and "In einen Nachschub" carries the selection to Planen', () => {

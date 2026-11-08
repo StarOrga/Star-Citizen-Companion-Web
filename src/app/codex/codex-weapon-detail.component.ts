@@ -95,7 +95,7 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
-      <div class="wd-backdrop" (click)="closed.emit()">
+      <div class="wd-backdrop">
         <article class="wd-panel sc-card" role="dialog" aria-modal="true" aria-labelledby="wd-title"
                  tabindex="-1" (click)="$event.stopPropagation()"
                  scDialog scDialogInitialFocus="container" (scDialogEscape)="closed.emit()">

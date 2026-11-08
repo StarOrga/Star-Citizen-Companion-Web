@@ -3,7 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
-import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { fakeSupabase } from '../../testing/fake-supabase';
 import { HqEinsatzService } from '../data/hq-einsatz.service';
@@ -60,7 +59,7 @@ describe('Nachschub board, panel and dialogs', () => {
     return TestBed.inject(NachschubService);
   }
 
-  it('board: oldest first, exactly one plus, the archive with its count', () => {
+  it('board: oldest first, exactly one plus, all seven places always shown, the archive with its count', () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Rattler-Vorrat', 1), nach('b', 'Medpens', 3), nach('old', 'Altes', null, 'archived')]);
     const f = TestBed.createComponent(HqNachschubBoardComponent);
@@ -68,12 +67,16 @@ describe('Nachschub board, panel and dialogs', () => {
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
     const slots = el.querySelectorAll('.board .slot');
-    expect(slots.length).toBe(3);
+    expect(slots.length).toBe(7);
     expect(slots[0].classList).toContain('on');
     expect(slots[0].querySelector('.name')?.textContent).toBe('Rattler-Vorrat');
     expect(slots[1].querySelector('.name')?.textContent).toBe('Medpens');
     expect(slots[2].classList).toContain('free');
     expect(el.querySelectorAll('.slot.free').length).toBe(1);
+    // The places after the one plus are quiet outlines, not buttons.
+    expect([...slots].slice(3).every((x) => x.classList.contains('ghost'))).toBeTrue();
+    expect(el.querySelectorAll('.slot.ghost button').length).toBe(0);
+    expect(el.querySelector('.board > li:last-child .archive')).not.toBeNull();
     expect(el.querySelector('.teaser')).toBeNull();
     f.componentRef.setInput('eventAvailable', true);
     f.detectChanges();
@@ -110,7 +113,7 @@ describe('Nachschub board, panel and dialogs', () => {
     expect(el.querySelector('sc-nachschub-crate.full')).not.toBeNull();
   });
 
-  it('panel: Einsätze first with goods as chips, the route beside them, "Jetzt" as the one primary', () => {
+  it('panel: Einsätze first with goods as chips, the route beside them, no "Jetzt" / "Leeren" in the header', () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Rattler-Vorrat', 1)]);
     const einsatz = TestBed.inject(HqEinsatzService);
@@ -128,7 +131,11 @@ describe('Nachschub board, panel and dialogs', () => {
     expect(cards[0].querySelector('.pick')?.textContent).toBe('Einkauf Area18');
     expect([...cards[0].querySelectorAll('.good')].map((g) => g.textContent?.trim())).toEqual(['6× Rattler', '12× Medpen']);
     expect(el.querySelector('sc-hq-route-graphic')).not.toBeNull();
-    expect(el.querySelectorAll('[scAction][class*="primary"], .sc-action--primary').length).toBe(1);
+    // Jetzt runs the Nachschub picked here by itself, and an emptied Nachschub is a deleted one: neither is a button.
+    const acts = [...el.querySelectorAll('.acts [scAction]')].map((b) => b.textContent ?? '');
+    expect(acts.some((t) => t.includes('hq.panel.run') || t.includes('hq.panel.empty') || t.includes('hq.einsatz.add.action'))).toBeFalse();
+    // "Einsatz hinzufügen" sits inline after the cards, not as a header action.
+    expect(el.querySelector('.cards .add-e')).not.toBeNull();
     // Picking the second Einsatz moves the route.
     click(f, cards[1].querySelector('.pick'));
     expect(cards[1].classList).toContain('on');
@@ -232,35 +239,46 @@ describe('Nachschub board, panel and dialogs', () => {
       expect(einsatz.ofPackage('a')[0].title).toBe('Einkauf');
     });
 
-    it('"Einsatz hinzufügen" asks for a title (40 characters) and adds one Einsatz to this Nachschub', async () => {
+    it('"Einsatz hinzufügen" is guided: what you do, to what, where and how many make one Einsatz with one step', async () => {
       const { f, el, einsatz } = mountPanel();
-      const prompt = spyOn(TestBed.inject(ScConfirmService), 'prompt').and.resolveTo('Fracht holen');
-      const add = [...el.querySelectorAll('.acts button')].find((b) => b.textContent?.includes('hq.einsatz.add.action'))!;
-      click(f, add);
+      spyOn(TestBed.inject(NachschubNamingService), 'einsatzName').and.resolveTo('Medpens kaufen');
+      click(f, el.querySelector('.cards .add-e'));
+      const form = el.querySelector('form.addform') as HTMLFormElement;
+      expect(form).not.toBeNull();
+      const save = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      // Buying needs a thing and a place.
+      expect(save.disabled).toBeTrue();
+      type(form.querySelector('.af-input') as HTMLInputElement, 'Medpen');
+      f.detectChanges();
+      expect(save.disabled).toBeTrue();
+      // A mission may leave the place open.
+      const mission = [...form.querySelectorAll('.seg button')].find((b) => b.textContent?.includes('hq.step.kind.mission'))!;
+      click(f, mission);
+      expect(save.disabled).toBeFalse();
+      const more = form.querySelectorAll('.stepper .step')[1] as HTMLButtonElement;
+      click(f, more);
+      click(f, save);
       await f.whenStable();
       f.detectChanges();
-      expect(prompt.calls.mostRecent().args[0].inputMaxLength).toBe(40);
       const list = einsatz.ofPackage('a');
-      expect(list.map((e) => e.title)).toEqual(['Einkauf', 'Fracht holen']);
-      expect(list[1].steps.length).toBe(1);
-      expect(el.querySelectorAll('.ecard').length).toBe(2);
+      expect(list.map((e) => e.title)).toEqual(['Einkauf', 'Medpens kaufen']);
+      expect(list[1].steps.map((x) => ({ kind: x.kind, label: x.label, qty: x.qty }))).toEqual([{ kind: 'mission', label: 'Medpen', qty: 2 }]);
+      expect(el.querySelector('form.addform')).toBeNull();
     });
 
-    it('a cancelled or empty title adds nothing', async () => {
+    it('cancelling the guided form adds nothing', () => {
       const { f, el, einsatz } = mountPanel();
-      const prompt = spyOn(TestBed.inject(ScConfirmService), 'prompt');
-      const add = [...el.querySelectorAll('.acts button')].find((b) => b.textContent?.includes('hq.einsatz.add.action'))!;
-      prompt.and.resolveTo(null);
-      click(f, add);
-      await f.whenStable();
-      prompt.and.resolveTo('   ');
-      click(f, add);
-      await f.whenStable();
+      click(f, el.querySelector('.cards .add-e'));
+      type(el.querySelector('form.addform .af-input') as HTMLInputElement, 'Fracht');
+      f.detectChanges();
+      const cancel = [...el.querySelectorAll('form.addform .af-acts button')].find((b) => b.textContent?.includes('common.dialog.cancel'))!;
+      click(f, cancel);
+      expect(el.querySelector('form.addform')).toBeNull();
       expect(einsatz.ofPackage('a').length).toBe(1);
     });
   });
 
-  it('panel: a Nachschub without Einsätze offers to propose them (opens the flow on step 3)', () => {
+  it('panel: a Nachschub without Einsätze offers to propose them (opens the flow on its Einsätze, step 2)', () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Leer', 1)]);
     const f = TestBed.createComponent(HqNachschubPanelComponent);
@@ -269,7 +287,7 @@ describe('Nachschub board, panel and dialogs', () => {
     const steps: number[] = [];
     f.componentInstance.edit.subscribe((s) => steps.push(s));
     click(f, (f.nativeElement as HTMLElement).querySelector('.none button'));
-    expect(steps).toEqual([3]);
+    expect(steps).toEqual([2]);
   });
 
   it('panel: marks a place that also serves another Nachschub and switches to it on click', () => {
@@ -439,11 +457,31 @@ describe('HqNachschubFlowComponent', () => {
     expect(steps.map((s) => [s.kind, s.eventId, s.className])).toEqual([['event', 'ev', 'ARGO_KEELBACK']]);
   });
 
-  it('step 1 on an empty wishlist explains and leads to filling it', () => {
-    const { f, el, startSearch } = setup([]);
-    expect(el.querySelector('.empty')).not.toBeNull();
-    click(f, el.querySelector('.empty button'));
-    expect(startSearch).toHaveBeenCalled();
+  it('step 1 shows the Wunschliste under its own title with its own search, also when it is empty', () => {
+    const { el, startSearch } = setup([]);
+    expect(el.querySelector('.wishsec h3')?.textContent?.trim()).toBe('hq.flow.wishTitle');
+    expect(el.querySelector('.wishsec sc-hq-wish-search input[type="search"]')).not.toBeNull();
+    expect(el.querySelector('.wishsec .dlg-msg')?.textContent).toContain('hq.flow.emptyWish');
+    // Searching happens in place: the flow is never left for the shell's search.
+    expect(startSearch).not.toHaveBeenCalled();
+  });
+
+  it('a hit put on the wishlist from the flow search is ticked at once', () => {
+    const { f, el } = setup();
+    (f.componentInstance as unknown as { onWishAdded(a: { kind: string; className: string; name: string }): void }).onWishAdded({ kind: 'item', className: 'medpen', name: 'Medpen' });
+    f.detectChanges();
+    expect(el.querySelectorAll('.grp li.on').length).toBe(1);
+  });
+
+  it('the name sits on top of step 1 and only the X, Abbrechen or Escape close the flow', () => {
+    const { f, el } = setup();
+    expect(el.querySelector('.name-field input')).not.toBeNull();
+    let closes = 0;
+    f.componentInstance.closed.subscribe(() => closes++);
+    click(f, el.querySelector('.scrim'));
+    expect(closes).toBe(0);
+    click(f, el.querySelector('.dlg-head [scAction]'));
+    expect(closes).toBe(1);
   });
 
   it('step 1 groups the wishlist (items first, the blueprint group last) and "Alles" picks it all', () => {
@@ -461,7 +499,7 @@ describe('HqNachschubFlowComponent', () => {
     expect((el.querySelector('.dlg-foot button:last-child') as HTMLButtonElement).disabled).toBeTrue();
   });
 
-  it('walks the three steps and creates the Nachschub with its Einsätze, crafting last', async () => {
+  it('walks the two steps and creates the Nachschub with its Einsätze, crafting last', async () => {
     const { f, el, created } = setup();
     const einsatz = TestBed.inject(HqEinsatzService);
     const done: unknown[] = [];
@@ -469,11 +507,9 @@ describe('HqNachschubFlowComponent', () => {
     click(f, el.querySelector('.pick-bar button'));
     click(f, el.querySelector('.dlg-foot button:last-child')); // Weiter
     await whenIdle(f);
+    expect(el.querySelectorAll('.steps li').length).toBe(2);
     expect(el.querySelector('.steps li.on b')?.textContent).toBe('2');
     expect((el.querySelector('.name-field input') as HTMLInputElement).value).toBe('Gallant-Ausrüstung');
-    click(f, el.querySelector('.dlg-foot button:last-child'));
-    await whenIdle(f);
-    expect(el.querySelector('.steps li.on b')?.textContent).toBe('3');
     expect(el.querySelector('.einsatz-head small')?.textContent).toContain('hq.flow.einsatzCount');
     const cards = [...el.querySelectorAll('.ecard')];
     expect(cards.length).toBeGreaterThanOrEqual(2);
@@ -505,8 +541,6 @@ describe('HqNachschubFlowComponent', () => {
     click(f, el.querySelector('.pick-bar button'));
     click(f, el.querySelector('.dlg-foot button:last-child'));
     await whenIdle(f);
-    click(f, el.querySelector('.dlg-foot button:last-child'));
-    await whenIdle(f);
     const cards = el.querySelectorAll('.ecard').length;
     expect(cards).toBeGreaterThanOrEqual(2);
     click(f, el.querySelector('.dlg-foot button:last-child')); // Nachschub anlegen: the wishlist is empty from here on
@@ -516,10 +550,8 @@ describe('HqNachschubFlowComponent', () => {
     expect(einsatz.ofPackage('new').every((e) => e.steps.length > 0)).toBeTrue();
   });
 
-  async function toStep3(r: ReturnType<typeof setup>) {
+  async function toStep2(r: ReturnType<typeof setup>) {
     click(r.f, r.el.querySelector('.pick-bar button'));
-    click(r.f, r.el.querySelector('.dlg-foot button:last-child'));
-    await whenIdle(r.f);
     click(r.f, r.el.querySelector('.dlg-foot button:last-child'));
     await whenIdle(r.f);
   }
@@ -527,7 +559,7 @@ describe('HqNachschubFlowComponent', () => {
 
   it('W5.4: a craftable item without a merchant is crafted by default; the line offers only what is available', async () => {
     const r = setup(WISH, new Map([['medpen', { state: 'ready', kind: 'item', options: [], craftable: true }]]));
-    await toStep3(r);
+    await toStep2(r);
     const row = itemRow(r.el);
     expect([...row.querySelectorAll('.seg button')].map((b) => b.textContent?.trim())).toEqual(['hq.step.kind.craft']);
     expect(row.textContent).not.toContain('hq.flow.noMerchant');
@@ -536,7 +568,7 @@ describe('HqNachschubFlowComponent', () => {
 
   it('W5.5: a line without a merchant can get a place of its own, or be taken out of the Einsatz and put back', async () => {
     const r = setup(WISH, new Map([['medpen', { state: 'ready', kind: 'item', options: [] }]]));
-    await toStep3(r);
+    await toStep2(r);
     const cardsBefore = r.el.querySelectorAll('.ecard').length;
     let row = itemRow(r.el);
     expect(row.querySelector('a[href*="/codex/item/medpen"]')).not.toBeNull();
@@ -557,14 +589,30 @@ describe('HqNachschubFlowComponent', () => {
     expect(itemRow(r.el).classList).not.toContain('out');
   });
 
-  it('splitting a quantity keeps the rest on the wishlist and shows it in the summary', async () => {
+  it('splitting a quantity takes only that part into the Einsätze', async () => {
     const { f, el } = setup();
     click(f, el.querySelector('.grp li sc-tristate button'));
     const more = [...el.querySelectorAll('.grp li .step')];
     click(f, more[0]); // less
     click(f, el.querySelector('.dlg-foot button:last-child'));
     await whenIdle(f);
-    expect(el.querySelector('.rest .chips li')?.textContent).toContain('Medpen');
+    expect(itemRow(el).textContent).toContain('×11');
+  });
+
+  it('crafting an item checks its blueprint and material and plans what is missing', async () => {
+    const recipe = { blueprintClassName: 'bp_medpen', blueprintName: 'Medpen-Blaupause', ingredients: [{ className: 'chem', name: 'Chemikalie', qty: 2 }] };
+    const r = setup([w('item', 'medpen', 3, null, 'Medpen')], new Map([['medpen', { state: 'ready', kind: 'item', options: [], craftable: true, recipe }]]));
+    await toStep2(r);
+    const row = itemRow(r.el);
+    expect(row.querySelector('.craft')?.textContent).toContain('hq.flow.craft.bpMissing');
+    expect(row.querySelector('.craft')?.textContent).toContain('hq.flow.craft.matMissing');
+    // The missing material is a line of its own for the item; a mission earns the blueprint; crafting is last.
+    const chem = [...r.el.querySelectorAll('.mats li')].find((li) => li.textContent?.includes('Chemikalie'))!;
+    expect(chem.textContent).toContain('×6');
+    expect(chem.textContent).toContain('hq.flow.craft.forItem');
+    const cards = [...r.el.querySelectorAll('.cards .ecard')];
+    expect(cards.length).toBe(3);
+    expect(cards[cards.length - 1].classList).toContain('last');
   });
 
   describe('edit mode: Einsätze for the lines a Nachschub already has', () => {
@@ -602,7 +650,7 @@ describe('HqNachschubFlowComponent', () => {
       const f = TestBed.createComponent(HqNachschubFlowComponent);
       f.componentRef.setInput('mode', 'edit');
       f.componentRef.setInput('nachschubId', 'p1');
-      f.componentRef.setInput('startStep', 3);
+      f.componentRef.setInput('startStep', 2);
       f.detectChanges();
       return { f, el: f.nativeElement as HTMLElement, einsatz };
     }

@@ -127,8 +127,8 @@ function scrollBehavior(): ScrollBehavior {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="scrim" (click)="onScrim($event)">
-      <div class="panel" role="dialog" aria-modal="true" scDialog (scDialogEscape)="onEscape()" [attr.aria-label]="title()" (click)="$event.stopPropagation()" #panel>
+    <div class="scrim">
+      <div class="panel" role="dialog" aria-modal="true" scDialog (scDialogEscape)="onEscape()" [attr.aria-label]="title()" #panel>
         @if (card(); as c) {
           <header class="hero" [attr.data-status]="c.status">
             <a class="close" [routerLink]="['/verse/patches']" [queryParams]="closeParams()" (click)="onClose($event)" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
@@ -890,7 +890,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     if (panel && this.scrollListener) panel.removeEventListener('scroll', this.scrollListener);
   }
 
-  /** Escape inside the panel (ScDialogDirective), the scrim and the ✕ all close. */
+  /** Escape inside the panel (ScDialogDirective) and the ✕ close; a click on the scrim does not. */
   onEscape(): void {
     // History back when the board is the entry before (Forward reopens the dossier); never a pushed entry.
     this.overlayOrigin.close(['/verse/patches'], { queryParams: this.closeParams() });
@@ -900,12 +900,6 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   onClose(ev: MouseEvent): void {
     if (!isPlainLeftClick(ev)) return;
     ev.preventDefault();
-    this.onEscape();
-  }
-
-  /** A click on the scrim (not the panel) closes — same as Esc and the ✕. */
-  onScrim(ev: MouseEvent): void {
-    if (!isPlainLeftClick(ev)) return;
     this.onEscape();
   }
 

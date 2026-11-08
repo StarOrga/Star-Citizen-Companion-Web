@@ -36,6 +36,104 @@ export interface ProposalLine {
   readonly craftable?: boolean;
   /** Running events whose reward IS this line (exact class); only then the fourth way "Event" exists. */
   readonly eventIds?: readonly string[];
+  /**
+   * Set on a line the proposal made itself for a line the reader chose to craft (its missing blueprint or a missing
+   * ingredient): the key of that crafted line. Such a line is planned like any other, but it is not a wishlist position.
+   */
+  readonly derivedFor?: string;
+}
+
+/** What crafting one item takes, from the Codex recipe. */
+export interface CraftRecipe {
+  readonly blueprintClassName: string;
+  readonly blueprintName: string;
+  /** Per crafted piece. */
+  readonly ingredients: readonly { readonly className: string; readonly name: string; readonly qty: number }[];
+}
+
+/** One ingredient of a crafted line against the stock: what the whole line needs, what is there, what is missing. */
+export interface CraftIngredientCheck {
+  readonly className: string;
+  readonly name: string;
+  readonly need: number;
+  readonly have: number;
+  readonly missing: number;
+}
+
+/** Whether a line to craft can be crafted from what the reader has, and what the Nachschub still has to plan. */
+export interface CraftCheck {
+  readonly blueprintClassName: string;
+  readonly blueprintName: string;
+  /** The blueprint is in the Sammlung (written by hand or by the companion app's `blueprint.received`). */
+  readonly blueprintOwned: boolean;
+  readonly ingredients: readonly CraftIngredientCheck[];
+}
+
+/** Units are whole pieces or SCU; float noise from the stock sums is trimmed before rounding a shortfall up. */
+const ceilQty = (n: number): number => Math.ceil(Math.round(n * 1e6) / 1e6);
+
+/**
+ * Check a line the reader wants to craft against the Sammlung (blueprint) and the Inventar (ingredients). Ingredient
+ * needs are per crafted piece times the line's quantity. Each crafted line is checked on its own: two lines sharing an
+ * ingredient both count the same stock (the shortfall is a plan, not a reservation).
+ */
+export function craftCheck(
+  l: Pick<ProposalLine, 'qty'>,
+  recipe: CraftRecipe,
+  have: { blueprint(className: string): boolean; stock(className: string): number },
+): CraftCheck {
+  const byClass = new Map<string, { className: string; name: string; qty: number }>();
+  for (const i of recipe.ingredients) {
+    if (!i.className || !(i.qty > 0)) continue;
+    const k = i.className.toLowerCase();
+    const cur = byClass.get(k);
+    byClass.set(k, { className: i.className, name: cur?.name ?? i.name, qty: (cur?.qty ?? 0) + i.qty });
+  }
+  const ingredients = [...byClass.values()].map((i) => {
+    const need = ceilQty(i.qty * l.qty);
+    const stock = Math.max(0, have.stock(i.className));
+    return { className: i.className, name: i.name, need, have: stock, missing: Math.max(0, ceilQty(need - stock)) };
+  });
+  return {
+    blueprintClassName: recipe.blueprintClassName,
+    blueprintName: recipe.blueprintName,
+    blueprintOwned: have.blueprint(recipe.blueprintClassName),
+    ingredients,
+  };
+}
+
+/**
+ * The lines a crafted line adds to the plan: its blueprint when the reader does not have it (a mission line), and each
+ * missing ingredient (a material line "for" the crafted item, bought or mined like any other material).
+ */
+export function craftDerivedLines(l: ProposalLine, check: CraftCheck): ProposalLine[] {
+  const out: ProposalLine[] = [];
+  if (!check.blueprintOwned && check.blueprintClassName) {
+    out.push({
+      key: `craft:${l.key}:bp`,
+      name: check.blueprintName,
+      className: check.blueprintClassName,
+      kind: 'blueprint',
+      qty: 1,
+      forClassName: null,
+      forName: null,
+      derivedFor: l.key,
+    });
+  }
+  for (const i of check.ingredients) {
+    if (i.missing <= 0) continue;
+    out.push({
+      key: `craft:${l.key}:${i.className.toLowerCase()}`,
+      name: i.name,
+      className: i.className,
+      kind: 'material',
+      qty: i.missing,
+      forClassName: l.className,
+      forName: l.name,
+      derivedFor: l.key,
+    });
+  }
+  return out;
 }
 
 /** How a line is met: bought at a merchant, crafted from its blueprint, or gathered (mined) as material. */
@@ -235,22 +333,26 @@ export function proposeEinsaetze(all: readonly ProposalLine[], ctx: ProposalCtx)
   }
 
   // Crafting is the last Einsatz: one step per blueprint / crafted item the materials are for.
-  const crafted = new Map<string, { name: string; className: string; qty: number }>();
+  const crafted = new Map<string, { name: string; className: string; qty: number; lineKey: string | null }>();
+  // A line the reader chose to craft (its blueprint is known) is itself a craft step, tied to that line; its own
+  // missing material (derived lines "for" it) adds no second step.
+  for (const l of lines) {
+    const c = (l.className ?? '').toLowerCase();
+    if (c && modeOf(l, ctx) === 'craft' && !crafted.has(c)) crafted.set(c, { name: l.name, className: l.className ?? '', qty: l.qty, lineKey: l.key });
+  }
   for (const l of lines) {
     const target = (l.forClassName ?? '').trim();
-    if (!target) continue;
-    const have = crafted.get(target.toLowerCase());
+    if (!target || crafted.has(target.toLowerCase())) continue;
     const times = bps.find((b) => (b.className ?? '').toLowerCase() === target.toLowerCase())?.qty ?? 1;
-    crafted.set(target.toLowerCase(), { name: l.forName?.trim() || target, className: target, qty: have?.qty ?? times });
+    crafted.set(target.toLowerCase(), { name: l.forName?.trim() || target, className: target, qty: times, lineKey: null });
   }
   for (const b of bps) {
-    // A blueprint without material on the Nachschub is still crafted once you have it.
+    // A blueprint without material on the Nachschub is still crafted once you have it; a blueprint the proposal added
+    // for a crafted line is that line's craft step already.
     const c = (b.className ?? '').toLowerCase();
-    if (c && !crafted.has(c)) crafted.set(c, { name: b.name, className: b.className ?? '', qty: b.qty });
+    if (c && !b.derivedFor && !crafted.has(c)) crafted.set(c, { name: b.name, className: b.className ?? '', qty: b.qty, lineKey: null });
   }
-  // A line the reader chose to craft (its blueprint is known) is itself a craft step, tied to that line.
-  const craftLines = lines.filter((l) => modeOf(l, ctx) === 'craft' && !crafted.has((l.className ?? '').toLowerCase()));
-  if (crafted.size || craftLines.length) {
+  if (crafted.size) {
     const steps: DraftStep[] = [...crafted.values()].map((c) => ({
       kind: 'craft' as const,
       label: c.name,
@@ -258,12 +360,9 @@ export function proposeEinsaetze(all: readonly ProposalLine[], ctx: ProposalCtx)
       system: null,
       className: c.className,
       qty: c.qty,
-      lineKey: null,
+      lineKey: c.lineKey,
       missionRef: null,
     }));
-    for (const l of craftLines) {
-      steps.push({ kind: 'craft', label: l.name, location: null, system: null, className: l.className, qty: l.qty, lineKey: l.key, missionRef: null });
-    }
     out.push({ role: 'craft', steps, goods: steps.map((s) => ({ name: s.label, qty: s.qty ?? 1, purpose: null })) });
   }
   return out;

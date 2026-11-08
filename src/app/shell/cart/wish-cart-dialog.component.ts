@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { polyHitLink, type PolyHitKind } from '../../codex/codex-poly-search';
+import { isPlainLeftClick } from '../../core/modified-click.util';
 import { hqNachschubPickLink } from '../../hq/hq-routes';
 import { pickedShare, setPicked, toggleGroup, type FlowGroup } from '../../hq/plan/hq-nachschub-flow.util';
 import { HQ_DIALOG_STYLES } from '../../hq/plan/hq-dialog.styles';
@@ -21,6 +22,7 @@ const TRASH = ['M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5'] a
 const PLUS = ['M12 5v14M5 12h14'] as const;
 const MINUS = ['M5 12h14'] as const;
 const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
+const OPEN = ['M14 5h5v5M19 5l-8 8M17 14v5H5V7h5'] as const;
 
 /**
  * `<sc-wish-cart>` - the Warenkorb (concept nachschub-hq, r4-d1-s2). The wishlist as a dialog with its own URL
@@ -35,7 +37,8 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
   imports: [RouterLink, TranslatePipe, ScActionDirective, ScDialogDirective, ScEntryDirective, ScTooltipDirective, SilThumbComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="scrim" (click)="onScrim($event)">
+    <!-- The scrim does not close the cart (a selection would be lost): the X, Escape or the browser's back do. -->
+    <div class="scrim">
       <section class="sheet cart" role="dialog" aria-modal="true" scDialog [scEntry]="'cart'" (scDialogEscape)="cart.close()"
                [attr.aria-label]="'cart.title' | translate" data-cart>
         <header class="dlg-head ce" style="--ce: 0">
@@ -75,14 +78,20 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
                     @for (r of g.rows; track r.key) {
                       @let it = cart.byKey().get(r.key);
                       @if (it) {
+                        @let chkId = 'cart-chk-' + g.id + '-' + $index;
                         <div class="tile" [class.sel]="(picks().get(r.key) ?? 0) > 0">
-                          <input type="checkbox" class="chk tile-chk" [checked]="(picks().get(r.key) ?? 0) > 0"
+                          <input type="checkbox" class="chk tile-chk" [id]="chkId" [checked]="(picks().get(r.key) ?? 0) > 0"
                                  [attr.aria-label]="'cart.select' | translate: { name: cart.nameOf(it) }" (change)="onTile(g, r.key, r.qty)" />
-                          <a class="sil" [routerLink]="link(it)" (click)="cart.close()" tabindex="-1" aria-hidden="true">
-                            <sc-sil-thumb [kind]="it.kind" [className]="it.className" />
+                          <!-- A click on the picture or the name ticks the position (the label of its checkbox); the Codex page is the arrow. -->
+                          <label class="pickarea" [for]="chkId">
+                            <span class="sil"><sc-sil-thumb [kind]="it.kind" [className]="it.className" /></span>
+                            <span class="nm">{{ cart.nameOf(it) }}</span>
+                            <small class="sub">{{ ('cart.kind.' + kindKey(it)) | translate }}@if (it.manufacturer) { · {{ it.manufacturer }} }</small>
+                          </label>
+                          <a scAction tier="tertiary" class="open" [routerLink]="link(it)" (click)="onOpen($event)"
+                             [attr.aria-label]="'cart.open' | translate: { name: cart.nameOf(it) }" [scTooltip]="'cart.open' | translate: { name: cart.nameOf(it) }" scTooltipTier="label">
+                            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="openIcon[0]" /></svg>
                           </a>
-                          <a class="nm" [routerLink]="link(it)" (click)="cart.close()">{{ cart.nameOf(it) }}</a>
-                          <small class="sub">{{ ('cart.kind.' + kindKey(it)) | translate }}@if (it.manufacturer) { · {{ it.manufacturer }} }</small>
                           <span class="foot">
                             <span class="step" role="group" [attr.aria-label]="'cart.qtyOf' | translate: { name: cart.nameOf(it) }">
                               <button type="button" [disabled]="it.qty <= 1" [attr.aria-label]="'cart.less' | translate" (click)="bump(it, -1)">
@@ -178,11 +187,12 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
       .tile { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px; border: 1px solid var(--sc-border); border-radius: 10px; background: color-mix(in srgb, var(--sc-bg-1) 85%, transparent); min-width: 0; }
       .tile.sel { border-color: var(--sc-accent); box-shadow: 0 0 14px color-mix(in srgb, var(--sc-accent) 25%, transparent); }
       .tile-chk { position: absolute; top: 8px; left: 8px; z-index: 1; }
-      .sil { display: block; height: 96px; margin-bottom: 4px; padding: 10px 8px; border-radius: 8px; color: var(--sc-fg-1); text-decoration: none;
+      .pickarea { display: flex; flex-direction: column; gap: 2px; min-width: 0; cursor: pointer; }
+      .open { position: absolute; top: 4px; right: 4px; z-index: 1; }
+      .sil { display: block; height: 96px; margin-bottom: 4px; padding: 10px 8px; border-radius: 8px; color: var(--sc-fg-1);
         background: radial-gradient(ellipse at 50% 80%, color-mix(in srgb, var(--sc-accent) 14%, transparent), transparent 70%), color-mix(in srgb, var(--sc-accent) 4%, transparent); }
-      .nm { font-size: 0.82rem; font-weight: 600; color: var(--sc-fg-0); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .nm:hover, .nm:focus-visible { text-decoration: underline; }
-      .nm:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
+      .pickarea:hover .sil { background-color: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+      .nm { font-size: 0.82rem; font-weight: 600; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sub { font-size: max(0.72rem, var(--sc-fs-floor, 0.75rem)); color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 4px; }
       .step { display: inline-flex; align-items: center; border: 1px solid var(--sc-border); border-radius: 999px; overflow: hidden; }
@@ -239,6 +249,7 @@ export class WishCartDialogComponent {
   protected readonly plus = PLUS;
   protected readonly minus = MINUS;
   protected readonly close = CLOSE;
+  protected readonly openIcon = OPEN;
   protected readonly emptyPicks: ReadonlyMap<string, number> = new Map();
 
   /** The selection: position key -> picked quantity (the whole quantity unless a split was made in Planen). */
@@ -317,9 +328,9 @@ export class WishCartDialogComponent {
     void this.cart.addSuggestion(s);
   }
 
-  /** The scrim itself (not the sheet) closes the cart. */
-  protected onScrim(ev: MouseEvent): void {
-    if (ev.target === ev.currentTarget) void this.cart.close();
+  /** The Codex page of a position: a plain click leaves the cart for it, a modified click opens a tab and keeps it. */
+  protected onOpen(ev: MouseEvent): void {
+    if (isPlainLeftClick(ev)) void this.cart.close();
   }
 
   protected onGo(ev: MouseEvent): void {
