@@ -94,7 +94,7 @@ describe('RoutineStatusDirective', () => {
     // The global tint rules select on the directive's own attribute to outweigh
     // the component-scoped `color` on those titles — so it has to reach the DOM.
     // A static attribute value keeps it there; a binding would not.
-    expect(title().hasAttribute('scRoutineStatus')).toBeTrue();
+    expect(title().hasAttribute('scRoutineStatus')).toBe(true);
   });
 
   it('puts nothing at all inside the title element', async () => {

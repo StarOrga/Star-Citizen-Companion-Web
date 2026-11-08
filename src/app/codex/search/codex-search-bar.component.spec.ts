@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ItemPathService } from '../../hq/data/item-path.service';
 import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
@@ -38,10 +39,10 @@ describe('CodexSearchBarComponent', () => {
         {
           provide: CodexService,
           useValue: {
-            searchAll: jasmine.createSpy('searchAll').and.resolveTo({ hits, totals: { ship: 14 } }),
+            searchAll: vi.fn().mockName('searchAll').mockResolvedValue({ hits, totals: { ship: 14 } }),
             suggestNames: () => Promise.resolve([]),
             isPinned: () => false,
-            togglePin: jasmine.createSpy('togglePin'),
+            togglePin: vi.fn().mockName('togglePin'),
           },
         },
         { provide: CodexBuildDiffService, useValue: { addedShipsMemo: () => Promise.resolve([]) } },
@@ -61,8 +62,8 @@ describe('CodexSearchBarComponent', () => {
     input().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...init }));
 
   it('registers with the hub; activation (Ctrl+K / typing) expands, focuses and seeds the field', fakeAsync(() => {
-    const scroll = spyOn(window, 'scrollTo');
-    expect(TestBed.inject(CodexSearchHub).activate('g')).toBeTrue();
+    const scroll = vi.spyOn(window, 'scrollTo').mockReturnValue(undefined as never);
+    expect(TestBed.inject(CodexSearchHub).activate('g')).toBe(true);
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
@@ -96,14 +97,14 @@ describe('CodexSearchBarComponent', () => {
 
     const options = Array.from(host.querySelectorAll<HTMLAnchorElement>('[role="option"]'));
     expect(options.length).toBe(3);
-    expect(options.every((a) => a.tagName === 'A' && !!a.getAttribute('href'))).toBeTrue();
+    expect(options.every((a) => a.tagName === 'A' && !!a.getAttribute('href'))).toBe(true);
     expect(options[0].getAttribute('href')).toBe('/codex/ship/AEGS_Gladius');
     expect(options[2].getAttribute('href')).toBe('/codex/index?kind=ship&q=gladius');
     expect(host.querySelector('.group-head .count')?.textContent?.trim()).toBe('14');
   }));
 
   it('ArrowDown sets aria-activedescendant on the field; Enter opens the active hit and collapses', fakeAsync(() => {
-    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const nav = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.componentInstance.activate();
     fixture.componentInstance.engine.searchFor('gladius');
     tick();
@@ -194,8 +195,8 @@ describe('CodexSearchBarComponent', () => {
   }));
 
   it('a partial search keeps its hits and says quietly which part is missing, with retry', fakeAsync(() => {
-    const codex = TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy };
-    spyOn(console, 'warn');
+    const codex = TestBed.inject(CodexService) as unknown as { searchAll: Mock };
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const hit = {
       kind: 'ship' as const,
       classNameSlug: 'AEGS_Gladius',
@@ -205,7 +206,7 @@ describe('CodexSearchBarComponent', () => {
       grade: null,
       scope: scopeForKind('ship'),
     };
-    codex.searchAll.and.resolveTo({
+    codex.searchAll.mockResolvedValue({
       hits: [hit],
       totals: { ship: 1 },
       failed: ['item'],
@@ -222,8 +223,8 @@ describe('CodexSearchBarComponent', () => {
     expect(note?.closest('[role="listbox"]')).toBeNull();
     expect(host.querySelectorAll('.hit').length).toBe(1);
 
-    codex.searchAll.calls.reset();
-    codex.searchAll.and.resolveTo({ hits: [hit], totals: { ship: 1 } });
+    codex.searchAll.mockClear();
+    codex.searchAll.mockResolvedValue({ hits: [hit], totals: { ship: 1 } });
     host.querySelector<HTMLButtonElement>('.partial-retry')!.click();
     tick();
     fixture.detectChanges();
@@ -232,7 +233,7 @@ describe('CodexSearchBarComponent', () => {
   }));
 
   it('the group pill counts the cards it lists; folded variants get a quiet hint, "all N" keeps the raw total', fakeAsync(() => {
-    const codex = TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy };
+    const codex = TestBed.inject(CodexService) as unknown as { searchAll: Mock };
     const weapon = {
       kind: 'weapon' as const,
       classNameSlug: 'behr_rifle_p4ar',
@@ -242,7 +243,7 @@ describe('CodexSearchBarComponent', () => {
       grade: null,
       scope: scopeForKind('weapon'),
     };
-    codex.searchAll.and.resolveTo({ hits: [weapon], totals: { weapon: 49 }, distinct: { weapon: 1 }, read: { weapon: 49 } });
+    codex.searchAll.mockResolvedValue({ hits: [weapon], totals: { weapon: 49 }, distinct: { weapon: 1 }, read: { weapon: 49 } });
     fixture.componentInstance.activate();
     fixture.componentInstance.engine.searchFor('p4');
     tick();
@@ -291,22 +292,22 @@ describe('CodexSearchBarComponent', () => {
     });
 
     it('a call brings it forward, focused; the hub reports it expanded', fakeAsync(() => {
-      spyOn(window, 'scrollTo');
+      vi.spyOn(window, 'scrollTo').mockReturnValue(undefined as never);
       const hub = TestBed.inject(CodexSearchHub);
       trigger.focus();
-      expect(hub.activate()).toBeTrue();
+      expect(hub.activate()).toBe(true);
       fixture.detectChanges();
       tick();
       fixture.detectChanges();
 
       expect(getComputedStyle(host.querySelector('.shell')!).display).not.toBe('none');
       expect(document.activeElement).toBe(input());
-      expect(hub.expanded()).toBeTrue();
+      expect(hub.expanded()).toBe(true);
       tick(1000);
     }));
 
     it('Esc on an empty field collapses and hands focus back to where it came from', fakeAsync(() => {
-      spyOn(window, 'scrollTo');
+      vi.spyOn(window, 'scrollTo').mockReturnValue(undefined as never);
       trigger.focus();
       TestBed.inject(CodexSearchHub).activate();
       fixture.detectChanges();
@@ -317,13 +318,13 @@ describe('CodexSearchBarComponent', () => {
       fixture.detectChanges();
 
       expect(host.classList).not.toContain('active');
-      expect(TestBed.inject(CodexSearchHub).expanded()).toBeFalse();
+      expect(TestBed.inject(CodexSearchHub).expanded()).toBe(false);
       expect(document.activeElement).toBe(trigger);
       tick(1000);
     }));
 
     it('type-to-search (no field focused) also lands focus back on the trigger after Esc', fakeAsync(() => {
-      spyOn(window, 'scrollTo');
+      vi.spyOn(window, 'scrollTo').mockReturnValue(undefined as never);
       (document.activeElement as HTMLElement | null)?.blur();
       TestBed.inject(CodexSearchHub).activate('g');
       fixture.detectChanges();

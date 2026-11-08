@@ -6,7 +6,7 @@ interface RpcResult { data?: unknown; error?: { message: string } | null }
 
 function setup(results: Record<string, RpcResult> = {}) {
   const make = (tag: string) =>
-    jasmine.createSpy(tag).and.callFake(async (fn: string) => {
+    vi.fn().mockName(tag).mockImplementation(async (fn: string) => {
       const r = results[fn] ?? {};
       return { data: r.data ?? null, error: r.error ?? null };
     });
@@ -35,7 +35,7 @@ describe('LoadoutShareService', () => {
     const { svc } = setup({ create_loadout_link: { error: { message: 'loadout_not_found' } } });
     expect(await svc.createLink('l1')).toBeNull();
     expect(svc.error()).toBe('share.error.loadoutNotFound');
-    expect(svc.busy()).toBeFalse();
+    expect(svc.busy()).toBe(false);
   });
 
   it('shareWithFriend passes both ids and returns the verdict (default created)', async () => {
@@ -60,13 +60,13 @@ describe('LoadoutShareService', () => {
 
   it('revoke calls revoke_loadout_share and resolves true', async () => {
     const { svc, rpc } = setup();
-    expect(await svc.revoke('s1')).toBeTrue();
+    expect(await svc.revoke('s1')).toBe(true);
     expect(rpc).toHaveBeenCalledWith('revoke_loadout_share', { share_id: 's1' });
   });
 
   it('revoke failure resolves false with the key', async () => {
     const { svc } = setup({ revoke_loadout_share: { error: { message: 'share_not_found' } } });
-    expect(await svc.revoke('s1')).toBeFalse();
+    expect(await svc.revoke('s1')).toBe(false);
     expect(svc.error()).toBe('share.error.shareNotFound');
   });
 

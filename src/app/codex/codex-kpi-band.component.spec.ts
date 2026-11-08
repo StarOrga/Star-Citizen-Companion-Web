@@ -99,7 +99,7 @@ describe('CodexKpiBandComponent', () => {
     const warning = resolved('--sc-warning');
     expect(warning).not.toBe(resolved('--sc-danger'));
     const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.kpi-delta.bad');
-    expect(chip).withContext('worse delta chip').toBeTruthy();
+    expect(chip, 'worse delta chip').toBeTruthy();
     expect(getComputedStyle(chip!).color).toBe(warning);
   });
 

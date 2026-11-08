@@ -47,12 +47,12 @@ function providers(o: Setup) {
   const launcher = {
     launch: () => Promise.resolve(false),
     launchedBefore: () => !!o.remembered,
-    downloadInstaller: jasmine.createSpy('downloadInstaller'),
-    rememberLaunch: jasmine.createSpy('rememberLaunch'),
+    downloadInstaller: vi.fn().mockName('downloadInstaller'),
+    rememberLaunch: vi.fn().mockName('rememberLaunch'),
     remembered: signal(!!o.remembered),
   };
-  const refresh = jasmine.createSpy('refresh');
-  const sync = jasmine.createSpy('sync');
+  const refresh = vi.fn().mockName('refresh');
+  const sync = vi.fn().mockName('sync');
   return {
     launcher,
     refresh,
@@ -139,18 +139,19 @@ describe('HqStartTilesComponent', () => {
   it('a plain click goes through the page nav, a modified click is left to the browser', async () => {
     const { tile } = await mount();
     const nav = TestBed.inject(HqPageNavService);
-    const open = jasmine.createSpy('open');
+    const open = vi.fn().mockName('open');
     nav.attach(open);
     const a = tile('planen').querySelector('a.stretch') as HTMLAnchorElement;
     let leftAlone: boolean | null = null;
     a.addEventListener('click', (e) => { leftAlone = !e.defaultPrevented; e.preventDefault(); }, { once: true });
     a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
-    expect(leftAlone).toBeTrue();
+    expect(leftAlone).toBe(true);
     expect(open).not.toHaveBeenCalled();
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true });
     a.dispatchEvent(plain);
-    expect(plain.defaultPrevented).toBeTrue();
-    expect(open).toHaveBeenCalledOnceWith('planen');
+    expect(plain.defaultPrevented).toBe(true);
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith('planen');
   });
 
   it('Bestand and Planen show no visible open-link line; the words sit in the anchor name and tooltip only', async () => {

@@ -100,7 +100,7 @@ export type FakeEngine = ReturnType<typeof fakeEngine>;
 
 export function fakeActions() {
   return {
-    cta: jasmine.createSpy('cta').and.resolveTo(null),
+    cta: vi.fn().mockName('cta').mockResolvedValue(null),
   };
 }
 

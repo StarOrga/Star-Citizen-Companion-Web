@@ -7,7 +7,7 @@ const hit = (kind: string, classNameSlug: string, name: string) => ({ kind, clas
 
 describe('HqBlueprintPickerComponent (Blaupause aus dem Katalog)', () => {
   function mount(hits: unknown[], owned: string[] = [], fail = false) {
-    const searchAll = jasmine.createSpy('searchAll').and.callFake(() => (fail ? Promise.reject(new Error('x')) : Promise.resolve({ hits, totals: {} })));
+    const searchAll = vi.fn().mockName('searchAll').mockImplementation(() => (fail ? Promise.reject(new Error('x')) : Promise.resolve({ hits, totals: {} })));
     TestBed.configureTestingModule({
       imports: [HqBlueprintPickerComponent],
       providers: [provideTranslateService(), { provide: CodexService, useValue: { searchAll } }],
@@ -19,12 +19,12 @@ describe('HqBlueprintPickerComponent (Blaupause aus dem Katalog)', () => {
   }
 
   async function type(f: ReturnType<typeof mount>['f'], text: string): Promise<void> {
-    jasmine.clock().install();
+    vi.useFakeTimers();
     try {
       f.componentInstance.onInput(text);
-      jasmine.clock().tick(250);
+      vi.advanceTimersByTime(250);
     } finally {
-      jasmine.clock().uninstall();
+      vi.useRealTimers();
     }
     await f.whenStable();
     f.detectChanges();

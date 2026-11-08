@@ -1,6 +1,7 @@
 // #646 — a shared link (`?shared=`) and an own config (`?config=`) on the
 // Holotable, on the real page with the same Nomad fixture/stub shape as
 // codex-detail-holo-toggle.spec.ts.
+import type { Mock } from 'vitest';
 import { HqItemMarksService } from '../hq/data/hq-item-marks.service';
 import { fakeItemMarks } from '../hq/data/hq-item-marks.testing';
 import { ItemPathService } from '../hq/data/item-path.service';
@@ -149,9 +150,9 @@ const PEEK: PeekedSharedLoadout = {
 };
 
 interface HangarStub {
-  peekSharedLoadout?: jasmine.Spy;
-  listConfigs?: jasmine.Spy;
-  listAllConfigs?: jasmine.Spy;
+  peekSharedLoadout?: Mock;
+  listConfigs?: Mock;
+  listAllConfigs?: Mock;
 }
 
 /**
@@ -174,7 +175,7 @@ function settle(fixture: ComponentFixture<CodexDetailComponent>): void {
 function setup(
   queryParams: Record<string, string>,
   hangar: HangarStub,
-  adoptAndOpen = jasmine.createSpy('adoptAndOpen').and.resolveTo(true),
+  adoptAndOpen = vi.fn().mockName('adoptAndOpen').mockResolvedValue(true),
 ): ComponentFixture<CodexDetailComponent> {
   TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
@@ -236,7 +237,7 @@ function setup(
   });
   void TestBed.compileComponents();
   flushMicrotasks();
-  spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+  vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   const fixture: ComponentFixture<CodexDetailComponent> = TestBed.createComponent(CodexDetailComponent);
   fixture.detectChanges();
   settle(fixture);
@@ -273,60 +274,60 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
 
   it('?shared= puts the peeked loadout on the table READ-ONLY with the banner', fakeAsync(() => {
     const hangar = {
-      peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo(PEEK),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
+      peekSharedLoadout: vi.fn().mockName('peek').mockResolvedValue(PEEK),
+      listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue([]),
     };
     const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     const c = fixture.componentInstance;
     expect(hangar.peekSharedLoadout).toHaveBeenCalledWith('tok');
-    expect(c.draftReadOnly()).toBeTrue();
-    expect(c.sharedDraft()).toEqual(jasmine.objectContaining({ status: 'ready', ownerName: 'Kestrel', configName: 'Brawler' }));
+    expect(c.draftReadOnly()).toBe(true);
+    expect(c.sharedDraft()).toEqual(expect.objectContaining({ status: 'ready', ownerName: 'Kestrel', configName: 'Brawler' }));
     expect(c.draftChangedCount()).toBe(1);
     const banner = (fixture.nativeElement as HTMLElement).querySelector('.shared-banner');
     expect(banner?.textContent).toContain('codex.holo.shared.banner');
     // Read-only: the swap picker never opens.
-    const open = spyOn(c, 'openSwapPicker');
+    const open = vi.spyOn(c, 'openSwapPicker').mockReturnValue(undefined as never);
     c.onHoloSwapRequested({} as never);
     expect(open).not.toHaveBeenCalled();
   }));
 
   it('switching to the classic view leaves the read-only shared view', fakeAsync(() => {
     const hangar = {
-      peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo(PEEK),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
+      peekSharedLoadout: vi.fn().mockName('peek').mockResolvedValue(PEEK),
+      listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue([]),
     };
     const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     const c = fixture.componentInstance;
-    expect(c.draftReadOnly()).toBeTrue();
+    expect(c.draftReadOnly()).toBe(true);
     c.toggleHoloView();
-    expect(c.draftReadOnly()).toBeFalse();
+    expect(c.draftReadOnly()).toBe(false);
     expect(c.sharedDraft()).toBeNull();
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(
       [],
-      jasmine.objectContaining({ queryParams: { view: 'classic', shared: null } }),
+      expect.objectContaining({ queryParams: { view: 'classic', shared: null } }),
     );
   }));
 
   it('a failed peek is an error banner with retry; the retry loads it', fakeAsync(() => {
     const hangar = {
-      peekSharedLoadout: jasmine.createSpy('peek').and.rejectWith({ message: 'Failed to fetch' }),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
+      peekSharedLoadout: vi.fn().mockName('peek').mockRejectedValue({ message: 'Failed to fetch' }),
+      listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue([]),
     };
     const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     const c = fixture.componentInstance;
     expect(c.sharedDraft()?.status).toBe('error');
-    expect(c.draftReadOnly()).toBeFalse();
-    hangar.peekSharedLoadout.and.resolveTo(PEEK);
+    expect(c.draftReadOnly()).toBe(false);
+    hangar.peekSharedLoadout.mockResolvedValue(PEEK);
     c.retrySharedDraft();
     settle(fixture);
     expect(c.sharedDraft()?.status).toBe('ready');
-    expect(c.draftReadOnly()).toBeTrue();
+    expect(c.draftReadOnly()).toBe(true);
   }));
 
   it('a link for another hull keeps stock and says so', fakeAsync(() => {
     const hangar = {
-      peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo({ ...PEEK, shipClassName: 'AEGS_Gladius' }),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
+      peekSharedLoadout: vi.fn().mockName('peek').mockResolvedValue({ ...PEEK, shipClassName: 'AEGS_Gladius' }),
+      listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue([]),
     };
     const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     expect(fixture.componentInstance.sharedDraft()?.status).toBe('unavailable');
@@ -335,10 +336,10 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
 
   it('adopt hands the token to the adopter', fakeAsync(() => {
     const hangar = {
-      peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo(PEEK),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
+      peekSharedLoadout: vi.fn().mockName('peek').mockResolvedValue(PEEK),
+      listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue([]),
     };
-    const adopt = jasmine.createSpy('adoptAndOpen').and.resolveTo(true);
+    const adopt = vi.fn().mockName('adoptAndOpen').mockResolvedValue(true);
     const fixture = setup({ view: 'holo', shared: 'tok' }, hangar, adopt);
     void fixture.componentInstance.adoptSharedDraft();
     settle(fixture);
@@ -359,27 +360,27 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     const configs = [{ id: 'other', hangarShipId: 'ship-1', name: 'Stock', isActive: true, loadout: [] }, adopted];
     ownedConfigs = configs;
     const hangar = {
-      peekSharedLoadout: jasmine.createSpy('peek'),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo(configs),
-      listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo(configs),
+      peekSharedLoadout: vi.fn().mockName('peek'),
+      listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue(configs),
+      listAllConfigs: vi.fn().mockName('listAllConfigs').mockResolvedValue(configs),
     };
     const fixture = setup({ view: 'holo', config: 'cfg-adopted' }, hangar);
     const c = fixture.componentInstance;
-    const nav = TestBed.inject(Router).navigate as jasmine.Spy;
-    expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({
+    const nav = TestBed.inject(Router).navigate as Mock;
+    expect(nav).toHaveBeenCalledWith([], expect.objectContaining({
       queryParams: { config: null, v: 'cfg-adopted' },
       replaceUrl: true,
     }));
-    expect(c.personalMode()).toBeTrue();
+    expect(c.personalMode()).toBe(true);
     expect(c.activeVariantId()).toBe('cfg-adopted');
-    expect(c.draftReadOnly()).toBeFalse();
+    expect(c.draftReadOnly()).toBe(false);
     expect(c.activeHangarConfig()?.id).toBe('cfg-adopted');
     expect(c.draftChangedCount()).toBe(1);
     expect(c.sharedDraft()).toBeNull();
     expect(hangar.peekSharedLoadout).not.toHaveBeenCalled();
     // Personal mode: the parent crumb leads to HQ, the switch names the variant.
-    expect(c.crumbs()).toEqual([jasmine.objectContaining({ labelKey: 'codex.personal.hqCrumb', link: '/hq/hangar' })]);
-    expect(c.showModeSwitch()).toBeTrue();
+    expect(c.crumbs()).toEqual([expect.objectContaining({ labelKey: 'codex.personal.hqCrumb', link: '/hq/hangar' })]);
+    expect(c.showModeSwitch()).toBe(true);
   }));
 
   it('?v= of the reader puts that variant on the table and keeps v in the URL', fakeAsync(() => {
@@ -387,27 +388,26 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
       loadout: [{ portName: GUN_PORT, className: SHARED_GUN, kind: 'weapon' }] };
     ownedConfigs = [mine];
     const fixture = setup({ view: 'holo', v: 'cfg-mine' }, {
-      listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([mine]),
+      listAllConfigs: vi.fn().mockName('listAllConfigs').mockResolvedValue([mine]),
     });
     const c = fixture.componentInstance;
-    expect(c.personalMode()).toBeTrue();
+    expect(c.personalMode()).toBe(true);
     expect(c.activeHangarConfig()?.id).toBe('cfg-mine');
-    expect(c.foreignVariant()).toBeFalse();
-    const nav = TestBed.inject(Router).navigate as jasmine.Spy;
-    expect(nav.calls.allArgs().some(([, extras]) => (extras as { queryParams?: Record<string, unknown> })?.queryParams?.['v'] === null))
-      .withContext('v stays').toBeFalse();
+    expect(c.foreignVariant()).toBe(false);
+    const nav = TestBed.inject(Router).navigate as Mock;
+    expect(vi.mocked(nav).mock.calls.some(([, extras]) => (extras as { queryParams?: Record<string, unknown> })?.queryParams?.['v'] === null), 'v stays').toBe(false);
   }));
 
   it('a foreign ?v= falls back to codex mode, drops v and says how variants are shared', fakeAsync(() => {
     const fixture = setup({ view: 'holo', v: 'cfg-someone-else' }, {
-      listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([]),
+      listAllConfigs: vi.fn().mockName('listAllConfigs').mockResolvedValue([]),
     });
     const c = fixture.componentInstance;
-    expect(c.personalMode()).toBeFalse();
-    expect(c.foreignVariant()).toBeTrue();
+    expect(c.personalMode()).toBe(false);
+    expect(c.foreignVariant()).toBe(true);
     expect(c.activeHangarConfig()).toBeNull();
-    const nav = TestBed.inject(Router).navigate as jasmine.Spy;
-    expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { v: null }, replaceUrl: true }));
+    const nav = TestBed.inject(Router).navigate as Mock;
+    expect(nav).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: { v: null }, replaceUrl: true }));
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.foreign-note')?.textContent).toContain('codex.personal.foreignVariant');
   }));

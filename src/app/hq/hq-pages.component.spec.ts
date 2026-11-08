@@ -120,7 +120,7 @@ describe('HqPagesComponent', () => {
   it('a plain click scrolls and adds one history entry; a modified click is left to the browser', () => {
     const f = mount();
     const location = TestBed.inject(Location);
-    const go = spyOn(location, 'go').and.callThrough();
+    const go = vi.spyOn(location, 'go');
     const link = (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('sc-hq-rail a[href="/hq#inventar"]')!;
     // A listener registered after the component's own sees whether it already took the click;
     // it then cancels the click so the browser never opens a real tab in the Karma page.
@@ -130,13 +130,13 @@ describe('HqPagesComponent', () => {
       e.preventDefault();
     }, { once: true });
     link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
-    expect(preventedByComponent).toBeFalse();
+    expect(preventedByComponent).toBe(false);
     expect(go).not.toHaveBeenCalled();
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true });
     link.dispatchEvent(plain);
-    expect(plain.defaultPrevented).toBeTrue();
+    expect(plain.defaultPrevented).toBe(true);
     expect(go).toHaveBeenCalledTimes(1);
-    expect(go.calls.mostRecent().args[0]).toContain('#inventar');
+    expect(vi.mocked(go).mock.lastCall![0]).toContain('#inventar');
   });
 
   it('the cue leads to Bestand, the page after Start, as a real anchor', () => {
@@ -161,11 +161,11 @@ describe('HqPagesComponent', () => {
     const el: HTMLElement = f.nativeElement;
     const start = el.querySelector<HTMLElement>('[data-hq-page="start"]')!;
     const measure = (f.componentInstance as unknown as { measureCue(): void });
-    const rect = spyOn(start, 'getBoundingClientRect').and.returnValue({ bottom: window.innerHeight + 400 } as DOMRect);
+    const rect = vi.spyOn(start, 'getBoundingClientRect').mockReturnValue({ bottom: window.innerHeight + 400 } as DOMRect);
     measure.measureCue();
     f.detectChanges();
     expect(el.querySelector('sc-hq-cue')?.classList).toContain('gone');
-    rect.and.returnValue({ bottom: window.innerHeight } as DOMRect);
+    rect.mockReturnValue({ bottom: window.innerHeight } as DOMRect);
     measure.measureCue();
     f.detectChanges();
     expect(el.querySelector('sc-hq-cue')?.classList).not.toContain('gone');
@@ -209,7 +209,7 @@ describe('HqPagesComponent', () => {
 
   it('hotkeys stand back for modifiers, typing and open dialogs', () => {
     const ev = (init: KeyboardEventInit = {}) => new KeyboardEvent('keydown', { key: '1', cancelable: true, bubbles: true, ...init });
-    for (const m of ['altKey', 'ctrlKey', 'metaKey', 'shiftKey']) expect(hotkeyPage(ev({ [m]: true }), false)).withContext(m).toBeNull();
+    for (const m of ['altKey', 'ctrlKey', 'metaKey', 'shiftKey']) expect(hotkeyPage(ev({ [m]: true }), false), m).toBeNull();
     expect(hotkeyPage(ev(), true)).toBeNull();
     for (const html of ['<input />', '<textarea></textarea>', '<div contenteditable="true"></div>']) {
       const host = document.createElement('div');

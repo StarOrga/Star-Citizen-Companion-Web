@@ -24,7 +24,7 @@ describe('WishlistStore', () => {
     pending[0]({ data: [{ entity_kind: 'item', class_name: 'secret_a' }], error: null });
     await forA;
     expect(store.rows().map((r) => r.className)).toEqual(['mine_b']);
-    expect(store.loaded()).toBeTrue();
+    expect(store.loaded()).toBe(true);
   });
 
   describe('quantity', () => {
@@ -68,10 +68,10 @@ describe('WishlistStore', () => {
 
     it('a first add writes qty 1; a further add leaves the quantity (the cart opens instead)', async () => {
       const { store, calls } = setup();
-      expect(await store.add({ kind: 'item', className: 'rattler', name: 'Rattler' })).toBeTrue();
+      expect(await store.add({ kind: 'item', className: 'rattler', name: 'Rattler' })).toBe(true);
       expect(store.qtyOf('item', 'rattler')).toBe(1);
-      expect(calls.find((c) => c.op === 'insert')?.args[0]).toEqual(jasmine.objectContaining({ qty: 1, for_class_name: '' }));
-      expect(await store.add({ kind: 'item', className: 'rattler', name: 'Rattler' })).toBeTrue();
+      expect(calls.find((c) => c.op === 'insert')?.args[0]).toEqual(expect.objectContaining({ qty: 1, for_class_name: '' }));
+      expect(await store.add({ kind: 'item', className: 'rattler', name: 'Rattler' })).toBe(true);
       expect(store.qtyOf('item', 'rattler')).toBe(1);
     });
 
@@ -84,7 +84,7 @@ describe('WishlistStore', () => {
       await store.addQty({ kind: 'item', className: 'rattler' }, 5);
       expect(store.qtyOf('item', 'rattler')).toBe(25);
       await store.setQty({ kind: 'item', className: 'rattler' }, 0);
-      expect(store.has('item', 'rattler')).toBeFalse();
+      expect(store.has('item', 'rattler')).toBe(false);
     });
 
     it('clamps to 1..999', async () => {

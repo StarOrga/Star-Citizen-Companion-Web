@@ -46,7 +46,7 @@ describe('ScActionDirective', () => {
     fixture.componentInstance.busy.set(false);
     fixture.detectChanges();
     expect(q('.p .sc-action-ring')).toBeNull();
-    expect(q('.p').hasAttribute('aria-busy')).toBeFalse();
+    expect(q('.p').hasAttribute('aria-busy')).toBe(false);
   });
 
   it('tertiary keeps its accessible name', () => {

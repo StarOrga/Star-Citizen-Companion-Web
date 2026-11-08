@@ -35,13 +35,13 @@ describe('HqEventNamesComponent', () => {
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       const text = el.textContent ?? '';
-      expect(el.scrollWidth).withContext(`width ${w}`).toBeLessThanOrEqual(el.clientWidth);
+      expect(el.scrollWidth, `width ${w}`).toBeLessThanOrEqual(el.clientWidth);
       expect(text).not.toContain('…');
       const names = f.componentInstance.names();
       const shown = text.replace(/ ?\+\d+$/, '').split(', ').filter(Boolean);
       for (const n of shown) expect(names).toContain(n);
       const rest = names.length - shown.length;
-      if (rest > 0) expect(text.endsWith(`+${rest}`)).toBeTrue();
+      if (rest > 0) expect(text.endsWith(`+${rest}`)).toBe(true);
     }
   });
 });

@@ -192,8 +192,8 @@ describe('occupantDraw', () => {
   });
 
   it('flags an item without any resource group as missing, not as zero-draw', () => {
-    expect(occupantDraw(occ({ section: 'radar' })).missing).toBeTrue();
-    expect(occupantDraw(coolers).missing).toBeFalse();
+    expect(occupantDraw(occ({ section: 'radar' })).missing).toBe(true);
+    expect(occupantDraw(coolers).missing).toBe(false);
   });
 });
 
@@ -202,7 +202,7 @@ describe('computePowerSheet — the Nomad baseline', () => {
 
   it('reads the reactor budget from generated segments', () => {
     expect(sheet.budgetTotal).toBe(14);
-    expect(sheet.available).toBeTrue();
+    expect(sheet.available).toBe(true);
     expect(sheet.gapKeys).toEqual([]);
   });
 
@@ -268,7 +268,7 @@ describe('computePowerSheet — the Nomad baseline', () => {
   });
 
   it('is ready for combat when the reactor covers every minimum', () => {
-    expect(sheet.ready).toBeTrue();
+    expect(sheet.ready).toBe(true);
     expect(sheet.readinessKey).toBe('codex.energy.readiness.ok');
   });
 });
@@ -291,7 +291,7 @@ describe('computePowerSheet — cutting the weapons group', () => {
     const g = after.groups.find((x) => x.group === 'weapons')!;
     expect(g.state).toBe('off');
     expect(g.stateLabelKey).toBe('codex.energy.state.off');
-    expect(g.pips.every((p) => p.kind === 'empty')).toBeTrue();
+    expect(g.pips.every((p) => p.kind === 'empty')).toBe(true);
     expect(g.pips.length).toBe(3);
   });
 
@@ -305,7 +305,7 @@ describe('computePowerSheet — cutting the weapons group', () => {
     const ir = after.facts.find((f) => f.key === 'ir')!;
     expect(em.delta).toBe(-834);
     expect(ir.delta).toBe(-830);
-    expect(em.lowerIsBetter).toBeTrue();
+    expect(em.lowerIsBetter).toBe(true);
   });
 
   it('never moves the cross-section', () => {
@@ -315,8 +315,8 @@ describe('computePowerSheet — cutting the weapons group', () => {
   });
 
   it('reports the weapons cut so the KPI strip can zero the DPS', () => {
-    expect(after.weaponsCut).toBeTrue();
-    expect(before.weaponsCut).toBeFalse();
+    expect(after.weaponsCut).toBe(true);
+    expect(before.weaponsCut).toBe(false);
   });
 });
 
@@ -350,7 +350,7 @@ describe('computePowerSheet — modes, presets and gaps', () => {
     const bare = computePowerSheet({
       occupants: [occ({ section: 'weapons', entityKind: 'weapon' })],
     });
-    expect(bare.available).toBeFalse();
+    expect(bare.available).toBe(false);
     expect(bare.budgetTotal).toBeNull();
     expect(bare.gapKeys).toContain('codex.energy.gap.reExtractPending');
     expect(bare.coolant.percent).toBeNull();
@@ -362,9 +362,9 @@ describe('dock state helpers', () => {
   it('toggles a group in and out of the cut set', () => {
     let cut: ReadonlySet<PowerColumnKey> = new Set();
     cut = togglePowerGroup(cut, 'weapons');
-    expect(cut.has('weapons')).toBeTrue();
+    expect(cut.has('weapons')).toBe(true);
     cut = togglePowerGroup(cut, 'weapons');
-    expect(cut.has('weapons')).toBeFalse();
+    expect(cut.has('weapons')).toBe(false);
   });
 
   it('resets to auto / SCM / nothing cut / no pins', () => {
@@ -399,24 +399,24 @@ describe('clickPowerPip (590230e3)', () => {
   it('clicking pip N pins the group at exactly N', () => {
     const r = clickPowerPip(none, {}, shields, 2);
     expect(r.levels).toEqual({ shields: 2 });
-    expect(r.cutGroups.has('shields')).toBeFalse();
+    expect(r.cutGroups.has('shields')).toBe(false);
   });
 
   it('clicking the topmost pip of a group at full capacity switches it off', () => {
     const r = clickPowerPip(none, { shields: 3 }, shields, 3);
-    expect(r.cutGroups.has('shields')).toBeTrue();
+    expect(r.cutGroups.has('shields')).toBe(true);
     expect(r.levels).toEqual({});
   });
 
   it('the top pip does NOT switch off a group that is below capacity — it raises it', () => {
     const r = clickPowerPip(none, {}, { ...shields, allocated: 1 }, 3);
-    expect(r.cutGroups.has('shields')).toBeFalse();
+    expect(r.cutGroups.has('shields')).toBe(false);
     expect(r.levels).toEqual({ shields: 3 });
   });
 
   it('any pip on a cut group switches it back on at that level', () => {
     const r = clickPowerPip(new Set<PowerColumnKey>(['shields']), {}, { ...shields, allocated: 0, cut: true }, 3);
-    expect(r.cutGroups.has('shields')).toBeFalse();
+    expect(r.cutGroups.has('shields')).toBe(false);
     expect(r.levels).toEqual({ shields: 3 });
   });
 
@@ -502,9 +502,9 @@ describe('cooler units (590230e3, F1d)', () => {
     const auto = computePowerSheet({ occupants: twoCoolers });
     const pinned = computePowerSheet({ occupants: twoCoolers, levels: { cooler2: 1 } });
     expect(col(pinned, 'cooler2').allocated).toBe(1);
-    expect(col(pinned, 'cooler2').pinned).toBeTrue();
-    expect(col(pinned, 'cooler2').belowMinimum).toBeTrue();
-    expect(col(pinned, 'cooler1').pinned).toBeFalse();
+    expect(col(pinned, 'cooler2').pinned).toBe(true);
+    expect(col(pinned, 'cooler2').belowMinimum).toBe(true);
+    expect(col(pinned, 'cooler1').pinned).toBe(false);
     expect(col(pinned, 'cooler1').allocated).toBe(col(auto, 'cooler1').allocated);
 
     const cut = computePowerSheet({ occupants: twoCoolers, cutGroups: ['cooler1'], previous: auto });
@@ -546,7 +546,7 @@ describe('cooler units (590230e3, F1d)', () => {
     expect(untouched.levels).toEqual({ cooler1: 1 });
     // and the migrated draft actually drives the sheet per unit
     const s = computePowerSheet({ occupants: twoCoolers, cutGroups: cut.cutGroups, levels: pin.levels });
-    expect(s.groups.filter((g) => g.group === 'coolers').every((g) => g.state === 'off')).toBeTrue();
+    expect(s.groups.filter((g) => g.group === 'coolers').every((g) => g.state === 'off')).toBe(true);
   });
 });
 

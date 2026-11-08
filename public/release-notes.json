@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.239.7",
+  "current": "0.240.0",
   "releases": [
+    {
+      "version": "0.240.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Development: the unit tests run on Vitest in a real Chromium browser instead of Karma and Jasmine; the whole suite takes about 45 s instead of 80 s."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.239.7",
       "date": "2026-11-09",

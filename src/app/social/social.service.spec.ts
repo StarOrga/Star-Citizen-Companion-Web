@@ -6,11 +6,11 @@ import { EinsatzCrew, SharedEinsatz } from './social.types';
 interface RpcResult { data?: unknown; error?: { message: string } | null }
 
 function setup(results: Record<string, RpcResult> = {}) {
-  const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string) => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string) => {
     const r = results[fn] ?? {};
     return { data: r.data ?? null, error: r.error ?? null };
   });
-  const realRpc = jasmine.createSpy('realRpc').and.callFake(async (fn: string) => {
+  const realRpc = vi.fn().mockName('realRpc').mockImplementation(async (fn: string) => {
     const r = results[fn] ?? {};
     return { data: r.data ?? null, error: r.error ?? null };
   });
@@ -52,12 +52,12 @@ describe('SocialService', () => {
     };
     const { svc } = setup(results);
     await svc.loadOnline();
-    expect(svc.onlineIds().has('u1')).toBeTrue();
+    expect(svc.onlineIds().has('u1')).toBe(true);
 
     results['list_online_friends'] = { error: { message: 'account_suspended' } };
     await svc.loadOnline();
     expect(svc.loadError()).toBe('social.error.accountSuspended');
-    expect(svc.onlineIds().has('u1')).toBeTrue();
+    expect(svc.onlineIds().has('u1')).toBe(true);
   });
 
   it('an unknown failure falls through to the shared translator, never raw text', async () => {
@@ -71,7 +71,7 @@ describe('SocialService', () => {
     const { svc, rpc } = setup({ create_friend_invite: { data: { token: 't', expires_at: 'e' } } });
     expect((await svc.createInvite())?.token).toBe('t');
     expect(svc.invite()?.token).toBe('t');
-    expect(await svc.revokeInvite()).toBeTrue();
+    expect(await svc.revokeInvite()).toBe(true);
     expect(rpc).toHaveBeenCalledWith('revoke_friend_invite');
     expect(svc.invite()).toBeNull();
   });
@@ -111,11 +111,11 @@ describe('SocialService', () => {
 
   it('setGroupMember passes the membership and does not reload on failure', async () => {
     const { svc, rpc } = setup({ set_friend_group_member: { error: { message: 'not_friends' } } });
-    expect(await svc.setGroupMember('g', 'u', true)).toBeFalse();
+    expect(await svc.setGroupMember('g', 'u', true)).toBe(false);
     expect(rpc).toHaveBeenCalledWith('set_friend_group_member', { p_group: 'g', p_member: 'u', p_in: true });
     expect(rpc).not.toHaveBeenCalledWith('list_my_friend_groups');
     expect(svc.error()).toBe('social.error.notFriends');
-    expect(svc.busy()).toBeFalse();
+    expect(svc.busy()).toBe(false);
   });
 
   it('setFriendVisibility sends null facets through as inherit', async () => {

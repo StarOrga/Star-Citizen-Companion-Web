@@ -69,8 +69,8 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
             targets: signal(opts.targets),
             enterFailed: signal(false),
             clearEnterFailed: () => {},
-            enter: jasmine.createSpy('enter'),
-            exit: jasmine.createSpy('exit'),
+            enter: vi.fn().mockName('enter'),
+            exit: vi.fn().mockName('exit'),
           },
         },
       ],
@@ -108,7 +108,7 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
 
     expect(targets.length).toBe(3);
     for (const entry of targets) {
-      expect(entry.classList).withContext(entry.textContent ?? '').toContain('collab');
+      expect(entry.classList, entry.textContent ?? '').toContain('collab');
     }
   });
 
@@ -117,7 +117,7 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
 
     const sep = el.querySelector('.dropdown-sep.collab');
 
-    expect(sep).withContext('the "Ansehen als" separator must carry .collab').toBeTruthy();
+    expect(sep, 'the "Ansehen als" separator must carry .collab').toBeTruthy();
     expect(sep!.textContent).toContain('nav.viewAs.title');
     // Colour carries the meaning visually; the words stay as sr-only text.
     expect(sep!.querySelector('.sc-sr-only')?.textContent).toContain('nav.viewAs.restricted');
@@ -148,8 +148,8 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
 
     for (const href of ['/settings', '/social']) {
       const item = el.querySelector<HTMLAnchorElement>('a.dropdown-item[href="' + href + '"]');
-      expect(item).withContext(href).toBeTruthy();
-      expect(item!.classList).withContext(href).not.toContain('elevated');
+      expect(item, href).toBeTruthy();
+      expect(item!.classList, href).not.toContain('elevated');
     }
     const signOut = items(el).find((b) => (b.textContent ?? '').includes('nav.signOut'));
     expect(signOut).toBeTruthy();

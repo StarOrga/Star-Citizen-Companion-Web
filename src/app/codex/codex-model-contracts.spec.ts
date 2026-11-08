@@ -26,7 +26,7 @@ describe('picker columns read the resource group (R7)', () => {
     expect(stats['codex.picker.col.power'].value).toBe(
       Math.round((1 / STANDARD_UNITS_PER_SEGMENT) * 100) / 100,
     );
-    expect(stats['codex.picker.col.power'].derived).toBeTrue();
+    expect(stats['codex.picker.col.power'].derived).toBe(true);
     expect(stats['codex.picker.col.minPower'].value).toBe(0);
     expect(stats['codex.picker.col.em'].value).toBe(0);
     expect(stats['codex.picker.col.ir'].value).toBe(0);

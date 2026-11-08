@@ -24,7 +24,7 @@ describe('AdminHubComponent', () => {
     const groups = Array.from(fixture.nativeElement.querySelectorAll('section.group')) as HTMLElement[];
     expect(groups.map((g) => g.dataset['group'])).toEqual(['people', 'operations', 'content']);
     for (const g of groups) {
-      expect(g.querySelector('h2')).withContext(`${g.dataset['group']} has an eyebrow heading`).not.toBeNull();
+      expect(g.querySelector('h2'), `${g.dataset['group']} has an eyebrow heading`).not.toBeNull();
     }
     expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
   });
@@ -48,7 +48,7 @@ describe('AdminHubComponent stage slot (beta shell)', () => {
     const el = render(true);
     const h1 = el.querySelector('h1')!;
     const slot = el.querySelector('[data-stage-slot]')!;
-    expect(slot).withContext('slot rendered with the shell β on').not.toBeNull();
+    expect(slot, 'slot rendered with the shell β on').not.toBeNull();
     expect(h1.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

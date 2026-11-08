@@ -28,8 +28,8 @@ function friendsMock(graph = emptyGraph()) {
     error: signal<string | null>(null),
     incomingCount: () => g().incoming.length,
     friendCount: () => g().friends.length,
-    load: jasmine.createSpy('load').and.resolveTo(),
-    respond: jasmine.createSpy('respond').and.resolveTo(true),
+    load: vi.fn().mockName('load').mockResolvedValue(undefined),
+    respond: vi.fn().mockName('respond').mockResolvedValue(true),
   };
 }
 
@@ -39,8 +39,8 @@ function socialMock(extra: Record<string, unknown> = {}) {
     groups: signal<unknown[]>([]),
     busy: signal(false),
     error: signal<string | null>(null),
-    loadSharedEinsaetze: jasmine.createSpy('loadSharedEinsaetze').and.resolveTo(),
-    loadGroups: jasmine.createSpy('loadGroups').and.resolveTo(),
+    loadSharedEinsaetze: vi.fn().mockName('loadSharedEinsaetze').mockResolvedValue(undefined),
+    loadGroups: vi.fn().mockName('loadGroups').mockResolvedValue(undefined),
     ...extra,
   };
 }
@@ -112,7 +112,7 @@ describe('HqSharedEinsaetzeComponent', () => {
   });
 
   it('shows who shared it as an anchor, offers no editing and answers through respond()', () => {
-    const respond = jasmine.createSpy('respond').and.resolveTo(null);
+    const respond = vi.fn().mockName('respond').mockResolvedValue(null);
     const social = socialMock({ respond });
     social.sharedEinsaetze.set([shared()]);
     setup(friendsMock(), social);

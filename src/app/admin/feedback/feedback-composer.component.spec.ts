@@ -153,7 +153,7 @@ describe('FeedbackComposerComponent — Enter sends', () => {
     const e = press();
     await fixture.whenStable();
 
-    expect(e.defaultPrevented).toBeTrue();
+    expect(e.defaultPrevented).toBe(true);
     expect(sent.map((p) => p.text)).toEqual(['ship it']);
     expect(cmp.draft()).toBe('');
   });
@@ -175,7 +175,7 @@ describe('FeedbackComposerComponent — Enter sends', () => {
     const e = press({ shiftKey: true });
     await fixture.whenStable();
 
-    expect(e.defaultPrevented).toBeFalse();
+    expect(e.defaultPrevented).toBe(false);
     expect(sent).toEqual([]);
     expect(cmp.draft()).toBe('line one');
   });
@@ -186,7 +186,7 @@ describe('FeedbackComposerComponent — Enter sends', () => {
     await fixture.whenStable();
 
     expect(sent).toEqual([]);
-    expect(e.defaultPrevented).toBeTrue();
+    expect(e.defaultPrevented).toBe(true);
     expect(cmp.draft()).toBe('- first\n- ');
   });
 
@@ -215,7 +215,7 @@ describe('FeedbackComposerComponent — Enter sends', () => {
 
     expect(sent).toEqual([]);
     // Enter is still consumed as "send" — it must not sneak in a newline either.
-    expect(e.defaultPrevented).toBeTrue();
+    expect(e.defaultPrevented).toBe(true);
   });
 
   it('ignores Enter while an IME composition is open', async () => {
@@ -224,7 +224,7 @@ describe('FeedbackComposerComponent — Enter sends', () => {
     await fixture.whenStable();
 
     expect(sent).toEqual([]);
-    expect(e.defaultPrevented).toBeFalse();
+    expect(e.defaultPrevented).toBe(false);
   });
 
   describe('with "Enter sendet" turned off', () => {
@@ -233,7 +233,7 @@ describe('FeedbackComposerComponent — Enter sends', () => {
       const e = press();
       await fixture.whenStable();
 
-      expect(e.defaultPrevented).toBeFalse();
+      expect(e.defaultPrevented).toBe(false);
       expect(sent).toEqual([]);
       expect(cmp.draft()).toBe('line one');
     });
@@ -331,7 +331,7 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
 
     expect(cmp.draft()).toBe('the long report');
     expect(cmp.attachments().map((a) => a.url)).toEqual([IMG]);
-    expect(cmp.draftRestored()).toBeTrue();
+    expect(cmp.draftRestored()).toBe(true);
     // The restored image has no local bytes — the bucket URL is what renders.
     expect(cmp.pendingImages().map((i) => i.src)).toEqual([IMG]);
   });
@@ -342,7 +342,7 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
     type('half a thought');
 
     expect(drafts.staged.map((s) => s.body)).toEqual(['half a th', 'half a thought']);
-    expect(drafts.staged.every((s) => s.scope === SCOPE)).toBeTrue();
+    expect(drafts.staged.every((s) => s.scope === SCOPE)).toBe(true);
 
     cmp.flushDraft();
     expect(drafts.flushed).toContain(SCOPE);
@@ -379,14 +379,14 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
 
     // A screenshot is still attached — the draft is not empty, so it stays.
     type('');
-    expect(drafts.discarded).withContext('an attachment keeps the draft alive').toEqual([]);
-    expect(cmp.hasStoredDraft()).toBeTrue();
+    expect(drafts.discarded, 'an attachment keeps the draft alive').toEqual([]);
+    expect(cmp.hasStoredDraft()).toBe(true);
 
     cmp.removeAt(0);
     expect(drafts.discarded).toEqual([SCOPE]);
     expect(cmp.draft()).toBe('');
     expect(cmp.attachments()).toEqual([]);
-    expect(cmp.hasStoredDraft()).toBeFalse();
+    expect(cmp.hasStoredDraft()).toBe(false);
   });
 
   it('treats whitespace-only text as empty rather than as a draft worth keeping', async () => {
@@ -395,7 +395,7 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
 
     type('   \n  ');
     expect(drafts.discarded).toEqual([SCOPE]);
-    expect(cmp.hasStoredDraft()).toBeFalse();
+    expect(cmp.hasStoredDraft()).toBe(false);
   });
 
   it('hands the old draft back and pulls the new one when the scope moves on', async () => {
@@ -425,7 +425,7 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
 
     drafts.seed(SCOPE, { body: 'x', dirty: true, failed: true });
     expect(cmp.draftLabel()).toBe('adminFeedback.compose.draftFailed');
-    expect(cmp.draftFailed()).toBeTrue();
+    expect(cmp.draftFailed()).toBe(true);
   });
 
   it('persists nothing at all without a scope', async () => {
@@ -434,7 +434,7 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
 
     expect(drafts.staged).toEqual([]);
     expect(cmp.draftLabel()).toBeNull();
-    expect(cmp.hasStoredDraft()).toBeFalse();
+    expect(cmp.hasStoredDraft()).toBe(false);
   });
 });
 
@@ -498,16 +498,16 @@ describe('FeedbackComposerComponent — character limit', () => {
     await mount();
     drop('hello');
     const counter: HTMLElement = fixture.nativeElement.querySelector('sc-char-counter');
-    expect(counter).withContext('counter is rendered').not.toBeNull();
+    expect(counter, 'counter is rendered').not.toBeNull();
     expect(counter.textContent?.trim()).toBe(`5 / ${FEEDBACK_MAX_CHARS}`);
     // Same block as the field, but below it in normal flow (admin feedback
     // d08f1983: "immer sichtbar, aber darunter und nicht abgeschnitten"). It
     // used to be an overlay pinned inside the box - which is exactly what a box
     // that changes height, inside a panel that scrolls, ends up clipping.
     const block = counter.closest('.field');
-    expect(block).withContext('counter lives in the field block').not.toBeNull();
+    expect(block, 'counter lives in the field block').not.toBeNull();
     expect(block!.querySelector('textarea')).toBe(field());
-    expect(getComputedStyle(counter).position).withContext('in flow, not pinned').toBe('static');
+    expect(getComputedStyle(counter).position, 'in flow, not pinned').toBe('static');
   });
 
   it('renders the count from the very first empty field, not only near the cap', async () => {
@@ -523,7 +523,7 @@ describe('FeedbackComposerComponent — character limit', () => {
     expect(cmp.draft().length).toBe(FEEDBACK_MAX_CHARS);
     // …and it is gone from the DOM too, not just from the signal.
     expect(el.value.length).toBe(FEEDBACK_MAX_CHARS);
-    expect(cmp.overLimit()).toBeFalse();
+    expect(cmp.overLimit()).toBe(false);
     expect(drafts.staged.at(-1)!.body.length).toBe(FEEDBACK_MAX_CHARS);
   });
 
@@ -533,7 +533,7 @@ describe('FeedbackComposerComponent — character limit', () => {
     drop(text);
     expect(cmp.draft()).toBe(text);
     expect(cmp.charCount()).toBe(FEEDBACK_MAX_CHARS);
-    expect(cmp.canSend()).toBeTrue();
+    expect(cmp.canSend()).toBe(true);
   });
 
   it('refuses to send a restored draft that is over the cap', async () => {
@@ -542,13 +542,13 @@ describe('FeedbackComposerComponent — character limit', () => {
     await mount();
 
     expect(cmp.draft().length).toBe(FEEDBACK_MAX_CHARS + 1);
-    expect(cmp.overLimit()).toBeTrue();
-    expect(cmp.canSend()).toBeFalse();
+    expect(cmp.overLimit()).toBe(true);
+    expect(cmp.canSend()).toBe(false);
 
     // One edit through the field is enough to bring it back under the cap.
     drop(cmp.draft());
-    expect(cmp.overLimit()).toBeFalse();
-    expect(cmp.canSend()).toBeTrue();
+    expect(cmp.overLimit()).toBe(false);
+    expect(cmp.canSend()).toBe(true);
   });
 
   it('caps the list-continuation insert as well', async () => {
@@ -704,7 +704,7 @@ describe('FeedbackComposerComponent — attachments', () => {
     expect(att.mime).toBe('text/plain');
     // The bytes ride along untouched — a log must not go through the JPEG
     // re-encoder that images do.
-    expect(att.file instanceof File).toBeTrue();
+    expect(att.file instanceof File).toBe(true);
     expect(att.dataUrl).toBe('');
     expect(cmp.pendingImages()[0].kind).toBe('file');
   });
@@ -728,7 +728,7 @@ describe('FeedbackComposerComponent — attachments', () => {
     const att = cmp.attachments()[0];
     expect(att.name).toBe('screenshot.png');
     // Re-encoded like everything else, so one path handles every image.
-    expect(att.dataUrl.startsWith('data:image/jpeg')).toBeTrue();
+    expect(att.dataUrl.startsWith('data:image/jpeg')).toBe(true);
     expect(cmp.pendingImages()[0].kind).toBe('image');
   });
 
@@ -750,7 +750,7 @@ describe('FeedbackComposerComponent — attachments', () => {
     cmp.onAnnotated({ index: 0, dataUrl: 'data:image/jpeg;base64,QUJD' });
 
     const marked = cmp.attachments()[0];
-    expect(marked.id).withContext('same chip, new bytes').toBe(id);
+    expect(marked.id, 'same chip, new bytes').toBe(id);
     expect(marked.dataUrl).toBe('data:image/jpeg;base64,QUJD');
     // The cached object described the UNMARKED image, so its URL cannot stand.
     expect(cmp.attachments().length).toBe(1);
@@ -840,8 +840,8 @@ describe('FeedbackComposerComponent - a field that grows with what is typed', ()
     it('opens ' + name + ' at three rows', async () => {
       await mount(compact);
       const rows = (ta().clientHeight - padding()) / lineHeight();
-      expect(rows).withContext(name + ': visible rows while empty').toBeGreaterThan(2.6);
-      expect(rows).withContext(name + ': visible rows while empty').toBeLessThan(3.6);
+      expect(rows, name + ': visible rows while empty').toBeGreaterThan(2.6);
+      expect(rows, name + ': visible rows while empty').toBeLessThan(3.6);
     });
 
     it('grows ' + name + ' by a row per added line', async () => {
@@ -849,23 +849,19 @@ describe('FeedbackComposerComponent - a field that grows with what is typed', ()
       const start = ta().clientHeight;
       type('one\ntwo\nthree\nfour');
       const four = ta().clientHeight;
-      expect(four).withContext(name + ': a fourth line makes it taller').toBeGreaterThan(start);
-      expect(four - start)
-        .withContext(name + ': one line, not a jump')
-        .toBeLessThan(lineHeight() * 2);
+      expect(four, name + ': a fourth line makes it taller').toBeGreaterThan(start);
+      expect(four - start, name + ': one line, not a jump').toBeLessThan(lineHeight() * 2);
 
       type('one\ntwo\nthree\nfour\nfive\nsix');
-      expect(ta().clientHeight).withContext(name + ': keeps growing').toBeGreaterThan(four);
+      expect(ta().clientHeight, name + ': keeps growing').toBeGreaterThan(four);
     });
 
     it('stops ' + name + ' growing and scrolls instead once it is long', async () => {
       await mount(compact);
       type(Array.from({ length: 80 }, (_, i) => 'line ' + i).join('\n'));
       const el = ta();
-      expect(el.clientHeight).withContext(name + ': capped').toBeLessThan(500);
-      expect(el.scrollHeight)
-        .withContext(name + ': the text is still all there')
-        .toBeGreaterThan(el.clientHeight);
+      expect(el.clientHeight, name + ': capped').toBeLessThan(500);
+      expect(el.scrollHeight, name + ': the text is still all there').toBeGreaterThan(el.clientHeight);
       // Scrollable, not clipped: the caret can always be brought back into view.
       expect(getComputedStyle(el).overflowY).toBe('auto');
     });
@@ -875,15 +871,11 @@ describe('FeedbackComposerComponent - a field that grows with what is typed', ()
       type(Array.from({ length: 80 }, (_, i) => 'line ' + i).join('\n'));
       const counter = host.querySelector('sc-char-counter') as HTMLElement;
       const box = counter.getBoundingClientRect();
-      expect(box.height).withContext(name + ': counter has a box').toBeGreaterThan(0);
-      expect(box.top)
-        .withContext(name + ': below the field')
-        .toBeGreaterThanOrEqual(ta().getBoundingClientRect().bottom - 1);
+      expect(box.height, name + ': counter has a box').toBeGreaterThan(0);
+      expect(box.top, name + ': below the field').toBeGreaterThanOrEqual(ta().getBoundingClientRect().bottom - 1);
       // Inside the composer's own frame, so no ancestor overflow can eat it.
       const frame = (host.querySelector('.composer') as HTMLElement).getBoundingClientRect();
-      expect(box.bottom)
-        .withContext(name + ': inside the composer frame')
-        .toBeLessThanOrEqual(frame.bottom + 1);
+      expect(box.bottom, name + ': inside the composer frame').toBeLessThanOrEqual(frame.bottom + 1);
     });
 
     it('keeps ' + name + ' whole on a 375px phone', async () => {
@@ -895,17 +887,11 @@ describe('FeedbackComposerComponent - a field that grows with what is typed', ()
       const counter = host.querySelector('sc-char-counter') as HTMLElement;
       const box = counter.getBoundingClientRect();
       const frame = (host.querySelector('.composer') as HTMLElement).getBoundingClientRect();
-      expect(box.width).withContext(name + ': counter is rendered').toBeGreaterThan(0);
-      expect(box.right).withContext(name + ': not past the right edge').toBeLessThanOrEqual(
-        frame.right + 1,
-      );
-      expect(box.left).withContext(name + ': not past the left edge').toBeGreaterThanOrEqual(
-        frame.left - 1,
-      );
+      expect(box.width, name + ': counter is rendered').toBeGreaterThan(0);
+      expect(box.right, name + ': not past the right edge').toBeLessThanOrEqual(frame.right + 1);
+      expect(box.left, name + ': not past the left edge').toBeGreaterThanOrEqual(frame.left - 1);
       const foot = (host.querySelector('.foot') as HTMLElement).getBoundingClientRect();
-      expect(box.bottom)
-        .withContext(name + ': above the send row, not under it')
-        .toBeLessThanOrEqual(foot.top + 1);
+      expect(box.bottom, name + ': above the send row, not under it').toBeLessThanOrEqual(foot.top + 1);
     });
   }
 });
@@ -984,40 +970,32 @@ describe('FeedbackComposerComponent - the send row', () => {
   it('carries the attachment chips and the send button on ONE line', async () => {
     await mount();
     const row = q('.foot .att-row');
-    expect(row).withContext('the chips live in the send row').not.toBeNull();
+    expect(row, 'the chips live in the send row').not.toBeNull();
 
     const chips = box('.foot .att-row');
     const send = box('.foot .send');
     // Left of the button, not above it - in both media branches, because the
     // row never turns into a column any more.
-    expect(chips.right).withContext('chips end before the button starts').toBeLessThanOrEqual(
-      send.left + 1,
-    );
-    expect(Math.abs(chips.top - send.top))
-      .withContext('same line')
-      .toBeLessThan(Math.max(chips.height, send.height));
+    expect(chips.right, 'chips end before the button starts').toBeLessThanOrEqual(send.left + 1);
+    expect(Math.abs(chips.top - send.top), 'same line').toBeLessThan(Math.max(chips.height, send.height));
   });
 
   it('leaves nothing at all above the field - the draft notice included', async () => {
     await mount({}, true);
     const flag = q('.draft-flag');
-    expect(flag).withContext('a restored draft still says so').not.toBeNull();
+    expect(flag, 'a restored draft still says so').not.toBeNull();
     // No ✕ any more (admin feedback 187574ed) - emptying the box is the discard.
-    expect(q('.draft-clear')).withContext('no discard control in this panel').toBeNull();
+    expect(q('.draft-clear'), 'no discard control in this panel').toBeNull();
 
     const field = box('textarea');
     // The notice is BELOW the writing room, on the readout line.
-    expect(box('.draft-flag').top)
-      .withContext('draft state sits under the field, not over it')
-      .toBeGreaterThanOrEqual(field.bottom - 1);
-    expect(q('.draft-flag')!.closest('.meta')).withContext('on the readout line').not.toBeNull();
+    expect(box('.draft-flag').top, 'draft state sits under the field, not over it').toBeGreaterThanOrEqual(field.bottom - 1);
+    expect(q('.draft-flag')!.closest('.meta'), 'on the readout line').not.toBeNull();
 
     // Nothing between the top of the box and the field but the box's own padding.
     const frame = box('.composer');
     const padTop = parseFloat(getComputedStyle(q('.composer')!).paddingTop);
-    expect(field.top - frame.top)
-      .withContext('the field opens the box')
-      .toBeLessThanOrEqual(padTop + 2);
+    expect(field.top - frame.top, 'the field opens the box').toBeLessThanOrEqual(padTop + 2);
   });
 
   /**
@@ -1032,10 +1010,8 @@ describe('FeedbackComposerComponent - the send row', () => {
     const flag = box('.draft-flag');
     const counter = box('sc-char-counter');
 
-    expect(flag.right).withContext('left of the count').toBeLessThanOrEqual(counter.left + 1);
-    expect(Math.abs(flag.top - counter.top))
-      .withContext('same line')
-      .toBeLessThan(Math.max(flag.height, counter.height));
+    expect(flag.right, 'left of the count').toBeLessThanOrEqual(counter.left + 1);
+    expect(Math.abs(flag.top - counter.top), 'same line').toBeLessThan(Math.max(flag.height, counter.height));
   });
 
   /**
@@ -1048,9 +1024,9 @@ describe('FeedbackComposerComponent - the send row', () => {
     await mount({ iconSend: true });
     const send = q('.foot .send')!;
 
-    expect(send.textContent?.trim()).withContext('the key, not the word').toBe('⏎');
+    expect(send.textContent?.trim(), 'the key, not the word').toBe('⏎');
     expect(send.getAttribute('aria-label')).toBe('Reply');
-    expect(tooltipOf(fixture, send)).withContext('the mapping in words').toContain('Enter');
+    expect(tooltipOf(fixture, send), 'the mapping in words').toContain('Enter');
   });
 
   it('names Ctrl+Enter on the icon-send button when Enter does not send', async () => {
@@ -1063,8 +1039,8 @@ describe('FeedbackComposerComponent - the send row', () => {
   it('drops its own frame where the surface around it already draws one', async () => {
     await mount({ frameless: true });
     const cs = getComputedStyle(q('.composer')!);
-    expect(cs.borderTopWidth).withContext('no second border').toBe('0px');
-    expect(parseFloat(cs.paddingTop)).withContext('no second padding').toBe(0);
+    expect(cs.borderTopWidth, 'no second border').toBe('0px');
+    expect(parseFloat(cs.paddingTop), 'no second padding').toBe(0);
     // The field itself keeps its border - that one says "type here".
     expect(getComputedStyle(q('textarea')!).borderTopWidth).not.toBe('0px');
   });
@@ -1161,23 +1137,21 @@ describe('FeedbackComposerComponent - the complex opt-in', () => {
 
   it('is absent on a composer that is not a new-topic box', async () => {
     await mount();
-    expect(q('.foot .complex')).withContext('a reply inherits its topic').toBeNull();
+    expect(q('.foot .complex'), 'a reply inherits its topic').toBeNull();
   });
 
   it('is a real checkbox with a name, not a styled div', async () => {
     await mount({ complexToggle: true });
     const input = cb();
     expect(input.type).toBe('checkbox');
-    expect(input.checked).withContext('opt-in, so it starts off').toBeFalse();
+    expect(input.checked, 'opt-in, so it starts off').toBe(false);
 
     // The label wraps the input, which is what makes the words the hit area and
     // gives the control its accessible name without an id/for pair to drift.
     const label = input.closest('label');
-    expect(label).withContext('wrapped in its label').not.toBeNull();
+    expect(label, 'wrapped in its label').not.toBeNull();
     expect(label!.textContent?.trim()).toBe('Complex');
-    expect(tooltipOf(fixture, label!)).withContext('what it means, in words').toContain(
-      'reasoning',
-    );
+    expect(tooltipOf(fixture, label!), 'what it means, in words').toContain('reasoning');
   });
 
   it('sits left of the send button, on the same line', async () => {
@@ -1185,11 +1159,9 @@ describe('FeedbackComposerComponent - the complex opt-in', () => {
     const label = q('.foot .complex')!.getBoundingClientRect();
     const send = q('.foot .send')!.getBoundingClientRect();
 
-    expect(label.width).withContext('rendered').toBeGreaterThan(0);
-    expect(label.right).withContext('left of the button').toBeLessThanOrEqual(send.left + 1);
-    expect(Math.abs(label.top - send.top))
-      .withContext('same line')
-      .toBeLessThan(Math.max(label.height, send.height));
+    expect(label.width, 'rendered').toBeGreaterThan(0);
+    expect(label.right, 'left of the button').toBeLessThanOrEqual(send.left + 1);
+    expect(Math.abs(label.top - send.top), 'same line').toBeLessThan(Math.max(label.height, send.height));
   });
 
   it('sends false while the box is untouched and true once it is ticked', async () => {
@@ -1202,7 +1174,7 @@ describe('FeedbackComposerComponent - the complex opt-in', () => {
     cb().checked = true;
     cb().dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    expect(fixture.componentInstance.complex()).toBeTrue();
+    expect(fixture.componentInstance.complex()).toBe(true);
 
     await fixture.componentInstance.submit();
     expect(sent.map((p) => p.complex)).toEqual([false, true]);
@@ -1217,8 +1189,8 @@ describe('FeedbackComposerComponent - the complex opt-in', () => {
 
     await fixture.componentInstance.submit();
     fixture.detectChanges();
-    expect(fixture.componentInstance.complex()).toBeFalse();
-    expect(cb().checked).withContext('and the box shows it').toBeFalse();
+    expect(fixture.componentInstance.complex()).toBe(false);
+    expect(cb().checked, 'and the box shows it').toBe(false);
   });
 
   it('has no opinion at all where the checkbox is not shown', async () => {
@@ -1336,7 +1308,7 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
     expect(cmp.area()).toBe('desktop');
     // Pinned: the picker's route detection (this box sits on /admin/…) must
     // not flip the tag back.
-    expect(cmp.areaPinned()).toBeTrue();
+    expect(cmp.areaPinned()).toBe(true);
     expect(cmp.attachments()[0].name).toBe('run.log');
     expect(cmp.attachments()[0].mime).toBe('text/plain');
     // Persisted like anything typed: the file went to the bucket and the
@@ -1344,7 +1316,7 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
     expect(drafts.staged.at(-1)?.body).toBe('Uploader logged 2 warnings');
     expect(drafts.staged.at(-1)?.images.map((i) => i.name)).toEqual(['run.log']);
     // One-shot — nothing left for a second composer with the same scope.
-    expect(seeds.pendingScopes().has('admin:new')).toBeFalse();
+    expect(seeds.pendingScopes().has('admin:new')).toBe(false);
   });
 
   it('takes a seed planted while it is already on screen', async () => {
@@ -1369,7 +1341,7 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
     await new Promise((r) => setTimeout(r, 30));
     fixture.detectChanges();
     expect(cmp.draft()).toBe('');
-    expect(seeds.pendingScopes().has('admin:new')).toBeTrue();
+    expect(seeds.pendingScopes().has('admin:new')).toBe(true);
   });
 });
 

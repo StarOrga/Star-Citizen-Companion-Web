@@ -52,13 +52,13 @@ describe('sc-news-thumb — its z-index ladder stays inside the component', () =
     // The channel pill is the component's highest layer (z-index: 2) and always
     // renders, so it is the strictest probe available.
     const pill = root.querySelector<HTMLElement>('.ch-pill')!;
-    expect(pill).withContext('channel pill rendered').not.toBeNull();
+    expect(pill, 'channel pill rendered').not.toBeNull();
 
     const r = pill.getBoundingClientRect();
-    expect(r.width * r.height).withContext('pill laid out').toBeGreaterThan(0);
+    expect(r.width * r.height, 'pill laid out').toBeGreaterThan(0);
     const onTop = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
 
-    expect(onTop).withContext('page content wins over the thumb internals').toBe(body);
+    expect(onTop, 'page content wins over the thumb internals').toBe(body);
     fixture.destroy();
   });
 

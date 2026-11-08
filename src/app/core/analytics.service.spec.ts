@@ -42,7 +42,9 @@ describe('AnalyticsService', () => {
 
   it('captureException() sends nothing without statistics consent', () => {
     consent.essentialOnly();
-    const fake = jasmine.createSpyObj('PostHog', ['captureException']);
+    const fake = {
+      captureException: vi.fn().mockName("PostHog.captureException")
+    };
     (svc as unknown as { client: unknown }).client = fake;
     svc.captureException(new Error('probe'), { handled: false });
     expect(fake.captureException).not.toHaveBeenCalled();

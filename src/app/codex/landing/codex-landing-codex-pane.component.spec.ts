@@ -92,7 +92,7 @@ describe('Codex landing pane', () => {
     const turn = new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true });
     list.dispatchEvent(turn);
     fixture.detectChanges();
-    expect(turn.defaultPrevented).toBeTrue();
+    expect(turn.defaultPrevented).toBe(true);
     expect(rowsShown()[0]).toBe('Entry 3');
     list.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
     fixture.detectChanges();
@@ -107,7 +107,7 @@ describe('Codex landing pane', () => {
     mount([{ category: 'tool', entries: entries(3) }], 'tool', item('tool', 'E1'));
     const still = new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true });
     host.querySelector('.new')!.dispatchEvent(still);
-    expect(still.defaultPrevented).withContext('the page keeps the turn').toBeFalse();
+    expect(still.defaultPrevented, 'the page keeps the turn').toBe(false);
   });
 
   it('lists the new items of every category, not only the active one (#318)', () => {
@@ -123,8 +123,8 @@ describe('Codex landing pane', () => {
     );
     expect(rowsShown()).toEqual(['Ship 0', 'Ship 1', 'Gun 0', 'Tool 0']);
     const glyphs = Array.from(host.querySelectorAll('.new li .cat')).map((g) => g.textContent!.trim());
-    expect(new Set(glyphs).size).withContext('each row tagged with its category glyph').toBe(3);
-    expect(host.querySelector('a.more')).withContext('armour has nothing new of its own').toBeNull();
+    expect(new Set(glyphs).size, 'each row tagged with its category glyph').toBe(3);
+    expect(host.querySelector('a.more'), 'armour has nothing new of its own').toBeNull();
   });
 
   it('the wheel spans all categories and centres the active one; "+ N" counts only the active category', () => {
@@ -147,17 +147,17 @@ describe('Codex landing pane', () => {
 
   it('is as tall as its content, and a full wheel still fits the 400px cap at 1280x720', () => {
     mount([{ category: 'tool', entries: entries(2) }], 'tool', item('tool', 'E1'), 'auto');
-    expect(host.getBoundingClientRect().height).withContext('a short list keeps the pane short').toBeLessThan(330);
+    expect(host.getBoundingClientRect().height, 'a short list keeps the pane short').toBeLessThan(330);
     const foot = host.querySelector('.foot')!.getBoundingClientRect();
     const lastRow = host.querySelectorAll('.new li')[1].getBoundingClientRect();
-    expect(foot.top - lastRow.bottom).withContext('the foot follows the list, no empty middle').toBeLessThan(20);
+    expect(foot.top - lastRow.bottom, 'the foot follows the list, no empty middle').toBeLessThan(20);
     host.remove();
     TestBed.resetTestingModule();
 
     mount([{ category: 'tool', entries: entries(20) }], 'tool', item('tool', 'E10'), 'auto');
     const body = host.querySelector<HTMLElement>('.body')!;
     expect(host.getBoundingClientRect().height).toBeLessThanOrEqual(400);
-    expect(body.scrollHeight).withContext('no hidden overflow with a full wheel').toBeLessThanOrEqual(body.clientHeight);
+    expect(body.scrollHeight, 'no hidden overflow with a full wheel').toBeLessThanOrEqual(body.clientHeight);
     expect(rowsShown().length).toBe(WHEEL_ROWS);
   });
 });

@@ -18,7 +18,7 @@ describe('Verse entrance announcement', () => {
   it('peeks the same answer the claim then gives, without claiming', () => {
     const s = store();
     expect(peekIntro(s, noon(5))).toBe('full');
-    expect(peekIntro(s, noon(5))).withContext('peeking claims nothing').toBe('full');
+    expect(peekIntro(s, noon(5)), 'peeking claims nothing').toBe('full');
     expect(claimIntro(s, noon(5))).toBe('full');
     expect(peekIntro(s, noon(5))).toBe('short');
     expect(claimIntro(s, noon(5))).toBe('short');
@@ -28,7 +28,7 @@ describe('Verse entrance announcement', () => {
     const s = store();
     expect(claimIntro(s, noon(5))).toBe('full');
     resetIntroDocument();
-    expect(peekIntro(s, noon(5))).withContext('reload / new tab').toBe('short');
+    expect(peekIntro(s, noon(5)), 'reload / new tab').toBe('short');
     expect(claimIntro(s, noon(5))).toBe('short');
     expect(peekIntro(s, noon(6))).toBe('full');
     expect(claimIntro(s, noon(6))).toBe('full');
@@ -46,9 +46,9 @@ describe('Verse entrance announcement', () => {
     const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => undefined };
     expect(claimIntro(null, noon(5))).toBe('full');
     expect(peekIntro(null, noon(5))).toBe('short');
-    expect(claimIntro(broken, noon(5))).withContext('same document, same day').toBe('short');
+    expect(claimIntro(broken, noon(5)), 'same document, same day').toBe('short');
     resetIntroDocument();
-    expect(claimIntro(broken, noon(5))).withContext('fresh document').toBe('full');
+    expect(claimIntro(broken, noon(5)), 'fresh document').toBe('full');
   });
 
   it('holds the chrome until the hub starts the entrance, and drops a hold nobody took over', fakeAsync(() => {
@@ -57,11 +57,11 @@ describe('Verse entrance announcement', () => {
     expect(chrome.heroIntro()).toEqual({ k: 1, full: true, hold: true });
     chrome.startHeroIntro(1, true);
     tick(HERO_INTRO_HOLD_MAX_MS);
-    expect(chrome.heroIntro()).withContext('a started entrance is not dropped').toEqual({ k: 1, full: true });
+    expect(chrome.heroIntro(), 'a started entrance is not dropped').toEqual({ k: 1, full: true });
 
     chrome.endHeroIntro();
     chrome.holdHeroIntro();
     tick(HERO_INTRO_HOLD_MAX_MS);
-    expect(chrome.heroIntro()).withContext('no hub took it over').toBeNull();
+    expect(chrome.heroIntro(), 'no hub took it over').toBeNull();
   }));
 });

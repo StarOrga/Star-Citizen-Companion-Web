@@ -30,19 +30,19 @@ describe('InfoNoteComponent — the folded-away explanation', () => {
 
   it('starts closed, with the note hidden but present for its label', () => {
     expect(button().getAttribute('aria-expanded')).toBe('false');
-    expect(pop().hidden).toBeTrue();
+    expect(pop().hidden).toBe(true);
     expect(pop().textContent).toContain('Median-Schätzung');
   });
 
   it('opens and closes on the button', () => {
     button().click();
     fixture.detectChanges();
-    expect(pop().hidden).toBeFalse();
+    expect(pop().hidden).toBe(false);
     expect(button().getAttribute('aria-expanded')).toBe('true');
 
     button().click();
     fixture.detectChanges();
-    expect(pop().hidden).toBeTrue();
+    expect(pop().hidden).toBe(true);
   });
 
   it('closes on Escape and on a click outside, and stays open on a click inside', () => {
@@ -50,16 +50,16 @@ describe('InfoNoteComponent — the folded-away explanation', () => {
     fixture.detectChanges();
     pop().click();
     fixture.detectChanges();
-    expect(pop().hidden).withContext('a click on the note itself keeps it open').toBeFalse();
+    expect(pop().hidden, 'a click on the note itself keeps it open').toBe(false);
 
     document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     fixture.detectChanges();
-    expect(pop().hidden).toBeTrue();
+    expect(pop().hidden).toBe(true);
 
     button().click();
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
-    expect(pop().hidden).toBeTrue();
+    expect(pop().hidden).toBe(true);
   });
 });

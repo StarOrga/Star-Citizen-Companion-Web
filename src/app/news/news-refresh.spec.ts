@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
@@ -15,7 +16,7 @@ import { NewsService, VerseFeed } from './news.service';
  */
 describe('NewsService.refresh coalescing', () => {
   let responses: Subject<VerseFeed>;
-  let get: jasmine.Spy;
+  let get: Mock;
   let service: NewsService;
 
   const feed = (fetchedAt: string): VerseFeed => ({
@@ -26,7 +27,7 @@ describe('NewsService.refresh coalescing', () => {
 
   beforeEach(() => {
     responses = new Subject<VerseFeed>();
-    get = jasmine.createSpy('get').and.returnValue(responses.asObservable());
+    get = vi.fn().mockName('get').mockReturnValue(responses.asObservable());
     TestBed.configureTestingModule({
       providers: [
         { provide: HttpClient, useValue: { get } },
@@ -57,7 +58,7 @@ describe('NewsService.refresh coalescing', () => {
     await first;
 
     responses = new Subject<VerseFeed>();
-    get.and.returnValue(responses.asObservable());
+    get.mockReturnValue(responses.asObservable());
 
     const second = service.refresh(true);
     expect(get).toHaveBeenCalledTimes(2);
@@ -71,7 +72,7 @@ describe('NewsService.refresh coalescing', () => {
 
   it('releases the in-flight latch when the request fails', async () => {
     const failing = service.refresh();
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     responses.error(new TypeError('Failed to fetch'));
     await failing;
 
@@ -79,7 +80,7 @@ describe('NewsService.refresh coalescing', () => {
     expect(service.error()).toBe('errors.network');
 
     responses = new Subject<VerseFeed>();
-    get.and.returnValue(responses.asObservable());
+    get.mockReturnValue(responses.asObservable());
     const retry = service.refresh();
     expect(get).toHaveBeenCalledTimes(2);
 

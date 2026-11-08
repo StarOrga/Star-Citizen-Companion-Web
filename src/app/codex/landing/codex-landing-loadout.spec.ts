@@ -68,7 +68,7 @@ describe('loadout callout set (#884)', () => {
     expect(valueText(by['loadout.weapons'])).toBe('3 × S3');
     expect(by['loadout.weapons'].value).toBe(9);
     expect(by['loadout.shield'].value).toBe(6336);
-    expect(by['loadout.quantum']).toEqual(jasmine.objectContaining({ value: 161411, unit: 'km/s' }));
+    expect(by['loadout.quantum']).toEqual(expect.objectContaining({ value: 161411, unit: 'km/s' }));
     expect(by['loadout.power'].value).toBe(16);
     expect(by['loadout.cooler'].value).toBe(68);
   });
@@ -102,7 +102,7 @@ describe('loadout callout set (#884)', () => {
       own.filter((v) => v.key === 'loadout.shield'),
       [own, [{ key: 'loadout.shield', value: 7200, unit: 'hp' }]],
     );
-    expect(shield).toEqual(jasmine.objectContaining({ classAvg: 6768, classMax: 7200, higherIsBetter: true }));
+    expect(shield).toEqual(expect.objectContaining({ classAvg: 6768, classMax: 7200, higherIsBetter: true }));
     const [alone] = withLoadoutClassStats(own.slice(0, 1), [own]);
     expect(alone.classAvg).toBeNull();
   });
@@ -117,8 +117,8 @@ describe('callout set selection (#884)', () => {
     expect(valuesForSet(it, 'flight')[0].key).toBe('hull.hp');
     expect(valuesForSet(it, 'loadout')[0].key).toBe('loadout.shield');
     expect(valuesForSet(ship([]), 'loadout')[0].key).toBe('hull.hp');
-    expect(hasLoadoutSet(ship([]))).toBeFalse();
-    expect(hasLoadoutSet({ ...ship([{ key: 'loadout.shield', value: 1, unit: 'hp' }]), category: 'tool' } as LandingItem)).toBeFalse();
+    expect(hasLoadoutSet(ship([]))).toBe(false);
+    expect(hasLoadoutSet({ ...ship([{ key: 'loadout.shield', value: 1, unit: 'hp' }]), category: 'tool' } as LandingItem)).toBe(false);
   });
 
   it('parses only the two known sets', () => {

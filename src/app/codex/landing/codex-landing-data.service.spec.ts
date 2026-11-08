@@ -77,9 +77,9 @@ describe('codex-landing-data pure helpers', () => {
     const sorted = sortPaints([paint('1', 'B', '2026-01-01'), paint('2', 'A', '2026-03-01'), paint('3', 'C', '2026-03-01')]);
     expect(sorted.map((p) => p.id)).toEqual(['2', '3', '1']);
     const now = Date.parse('2026-10-29T00:00:00Z');
-    expect(isNewPaint('2026-10-20T00:00:00Z', now)).toBeTrue();
-    expect(isNewPaint(new Date(now - (NEW_PAINT_DAYS + 1) * 86_400_000).toISOString(), now)).toBeFalse();
-    expect(isNewPaint('garbage', now)).toBeFalse();
+    expect(isNewPaint('2026-10-20T00:00:00Z', now)).toBe(true);
+    expect(isNewPaint(new Date(now - (NEW_PAINT_DAYS + 1) * 86_400_000).toISOString(), now)).toBe(false);
+    expect(isNewPaint('garbage', now)).toBe(false);
   });
 
   it('pickPatchThread: exact thread, else the line\'s live thread, else null', () => {
@@ -138,7 +138,7 @@ describe('class comparison + size facts', () => {
     ], cohort);
     expect(hull.classAvg).toBe(200);
     expect(hull.classMax).toBe(300);
-    expect(hull.higherIsBetter).toBeTrue();
+    expect(hull.higherIsBetter).toBe(true);
     expect(mass.classAvg).toBeNull();
     expect(mass.higherIsBetter).toBeNull();
     expect(withClassStats('tool', [{ key: 'weaponParams.a', value: 1, unit: null }], [])[0].higherIsBetter).toBeNull();

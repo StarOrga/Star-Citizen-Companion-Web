@@ -42,9 +42,8 @@ describe('HangarDashboardComponent fleet cards', () => {
     });
     const card = (cls: string, name: string) =>
       ({ classNameSlug: cls, nameLocalized: name, manufacturerCode: 'AEGS', crewSize: 1, payload: {} }) as unknown as CodexListRow;
-    const artFor = jasmine.createSpy('artFor').and.callFake((name: string) =>
-      name === 'Aegis Gladius' ? ['https://media.example.test/gladius/store_small.jpg'] : [],
-    );
+    const artFor = vi.fn().mockName('artFor').mockImplementation((name: string) =>
+      name === 'Aegis Gladius' ? ['https://media.example.test/gladius/store_small.jpg'] : []);
     TestBed.configureTestingModule({
       imports: [HangarDashboardComponent],
       providers: [
@@ -54,7 +53,7 @@ describe('HangarDashboardComponent fleet cards', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         fake.provider,
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } as unknown as AuthService },
-        { provide: AnalyticsService, useValue: { capture: jasmine.createSpy('capture'), flags: () => ({}) } },
+        { provide: AnalyticsService, useValue: { capture: vi.fn().mockName('capture'), flags: () => ({}) } },
         {
           provide: CodexService,
           useValue: {
@@ -87,7 +86,7 @@ describe('HangarDashboardComponent fleet cards', () => {
     const { el, artFor } = await setup();
     const cards = Array.from(el.querySelectorAll('.fleet-card'));
     expect(cards.length).toBe(3);
-    expect(cards.every((c) => c.querySelector('.thumb'))).toBeTrue();
+    expect(cards.every((c) => c.querySelector('.thumb'))).toBe(true);
     expect(artFor).toHaveBeenCalledWith('Aegis Gladius');
     expect(cards[0].querySelector('img')?.getAttribute('src')).toBe('https://media.example.test/gladius/store_small.jpg');
     expect(cards[2].querySelector('img')).toBeNull();

@@ -35,8 +35,8 @@ describe('legal pages', () => {
         const external = Array.from(render().querySelectorAll('a[href^="http"]')) as HTMLAnchorElement[];
         expect(external.length).toBeGreaterThan(0);
         for (const a of external) {
-          expect(a.target).withContext(a.href).toBe('_blank');
-          expect(a.rel).withContext(a.href).toBe('noopener noreferrer');
+          expect(a.target, a.href).toBe('_blank');
+          expect(a.rel, a.href).toBe('noopener noreferrer');
         }
       });
     });

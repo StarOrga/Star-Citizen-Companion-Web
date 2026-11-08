@@ -35,7 +35,7 @@ describe('ScConfirmService', () => {
     const p = service.confirm({ titleKey: 't' });
     await settle();
     q<HTMLButtonElement>('sc-confirm-dialog .confirm')!.click();
-    expect(await p).toBeTrue();
+    expect(await p).toBe(true);
     expect(q('sc-confirm-dialog')).toBeNull();
   });
 
@@ -43,7 +43,7 @@ describe('ScConfirmService', () => {
     const p = service.confirm({ titleKey: 't' });
     await settle();
     q<HTMLButtonElement>('sc-confirm-dialog .cancel')!.click();
-    expect(await p).toBeFalse();
+    expect(await p).toBe(false);
   });
 
   it('resolves false on Escape', async () => {
@@ -52,7 +52,7 @@ describe('ScConfirmService', () => {
     q('sc-confirm-dialog .cancel')!.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
     );
-    expect(await p).toBeFalse();
+    expect(await p).toBe(false);
   });
 
   it('stays open on a backdrop click: only its buttons or Escape answer it', async () => {
@@ -61,9 +61,9 @@ describe('ScConfirmService', () => {
     await settle();
     q<HTMLElement>('.sc-dialog-backdrop')!.click();
     await settle();
-    expect(answered).toBeFalse();
+    expect(answered).toBe(false);
     q<HTMLButtonElement>('sc-confirm-dialog .cancel')!.click();
-    expect(await p).toBeFalse();
+    expect(await p).toBe(false);
   });
 
   it('renders an alertdialog labelled by its title and described by its message', async () => {
@@ -119,18 +119,18 @@ describe('ScConfirmService', () => {
   it('resolves a second call while one is open as cancelled', async () => {
     const first = service.confirm({ titleKey: 't' });
     await settle();
-    expect(await service.confirm({ titleKey: 't2' })).toBeFalse();
+    expect(await service.confirm({ titleKey: 't2' })).toBe(false);
     expect(document.querySelectorAll('sc-confirm-dialog').length).toBe(1);
     q<HTMLButtonElement>('sc-confirm-dialog .confirm')!.click();
-    expect(await first).toBeTrue();
+    expect(await first).toBe(true);
   });
 
   it('ships the default button keys in both catalogues', () => {
     const get = (cat: unknown, key: string) =>
       key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], cat);
     for (const key of [SC_CONFIRM_DEFAULT_CONFIRM_KEY, SC_CONFIRM_DEFAULT_CANCEL_KEY]) {
-      expect(typeof get(de, key)).withContext(`de ${key}`).toBe('string');
-      expect(typeof get(en, key)).withContext(`en ${key}`).toBe('string');
+      expect(typeof get(de, key), `de ${key}`).toBe('string');
+      expect(typeof get(en, key), `en ${key}`).toBe('string');
     }
   });
 });

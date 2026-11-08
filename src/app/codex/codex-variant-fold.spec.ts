@@ -131,7 +131,7 @@ describe('codex-variant-fold', () => {
         row({ classNameSlug: 'b', nameLocalized: 'Omnisky', size: 2 }),
       ]);
       expect(out.length).toBe(2);
-      expect(out.every((r) => r.foldedClassNames.length === 0)).toBeTrue();
+      expect(out.every((r) => r.foldedClassNames.length === 0)).toBe(true);
     });
 
     it('keeps nameless rows apart and in place', () => {
@@ -190,7 +190,7 @@ describe('codex-variant-fold', () => {
       ];
       const out = foldVariantRows(rows);
       expect(out.length).toBe(2);
-      expect(out.every((r) => r.foldedClassNames.length === 0)).toBeTrue();
+      expect(out.every((r) => r.foldedClassNames.length === 0)).toBe(true);
     });
   });
 });

@@ -177,7 +177,7 @@ describe('swapColumns', () => {
 
   it('marks a column whose values are derived rather than extracted', () => {
     const range = swapColumns([PANTHER]).find((c) => c.key === 'codex.equipped.range')!;
-    expect(range.derived).toBeTrue();
+    expect(range.derived).toBe(true);
   });
 });
 

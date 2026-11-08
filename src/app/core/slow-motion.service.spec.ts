@@ -38,7 +38,7 @@ describe('SlowMotionService', () => {
     const el = add('animation: sm-test 10s linear infinite');
     stop = slow.start();
     const a = only(el);
-    expect(a.playState === 'paused' || a.pending).toBeTrue();
+    expect(a.playState === 'paused' || a.pending).toBe(true);
     // Its first step ends a pending pause, whose time still follows the real clock.
     tick(SLOW_TICK_MS);
     const t0 = Number(a.currentTime);
@@ -78,13 +78,13 @@ describe('SlowMotionService', () => {
     tick(SLOW_TICK_MS);
     const window_ = window;
     window_.dispatchEvent(new Event('blur'));
-    expect(focus.focused()).toBeFalse();
+    expect(focus.focused()).toBe(false);
     const t0 = Number(only(el).currentTime);
     tick(5000);
-    expect(Number(only(el).currentTime)).withContext('no focus').toBe(t0);
+    expect(Number(only(el).currentTime), 'no focus').toBe(t0);
     window_.dispatchEvent(new Event('focus'));
     tick(SLOW_TICK_MS);
-    expect(Number(only(el).currentTime) - t0).withContext('no jump').toBeLessThan(SLOW_TICK_MS * 2);
+    expect(Number(only(el).currentTime) - t0, 'no jump').toBeLessThan(SLOW_TICK_MS * 2);
     stop();
     stop = null;
     discardPeriodicTasks();
@@ -95,7 +95,7 @@ describe('SlowMotionService', () => {
     const el = add('animation: sm-test 10s linear infinite');
     expect(only(el).playState).toBe('running');
     el.dispatchEvent(new AnimationEvent('animationstart', { bubbles: true }));
-    expect(only(el).pending || only(el).playState === 'paused').toBeTrue();
+    expect(only(el).pending || only(el).playState === 'paused').toBe(true);
     stop();
     stop = null;
     discardPeriodicTasks();
@@ -105,7 +105,7 @@ describe('SlowMotionService', () => {
     const el = document.createElement('div');
     host.appendChild(el);
     const a = el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
-    const finish = spyOn(a, 'finish').and.callThrough();
+    const finish = vi.spyOn(a, 'finish');
     stop = slow.start();
     slow.adopt(a);
     tick(SLOW_TICK_MS * 5);
@@ -121,7 +121,7 @@ describe('SlowMotionService', () => {
     tick(SLOW_TICK_MS);
     stop();
     stop = null;
-    expect(only(el).playState === 'running' || only(el).pending).toBeTrue();
+    expect(only(el).playState === 'running' || only(el).pending).toBe(true);
     discardPeriodicTasks();
   }));
 });

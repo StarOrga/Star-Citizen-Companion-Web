@@ -171,22 +171,22 @@ describe('HangarService.setRoleLoadoutSlot', () => {
   }
 
   it('logs a refused read instead of failing silently (AUD-255), banner stays clear', async () => {
-    const warn = spyOn(console, 'warn');
+    const warn = vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const rlsError = { message: 'permission denied for table hangar_role_loadouts', code: '42501' };
     const svc = makeService(failingClient({ data: null, error: rlsError }));
 
     expect(await svc.setRoleLoadoutSlot('set-1', 'core', null)).toBeNull();
-    expect(warn).toHaveBeenCalledWith('[hangar] slot write refused', jasmine.objectContaining({ id: 'set-1', slot: 'core', error: rlsError }));
+    expect(warn).toHaveBeenCalledWith('[hangar] slot write refused', expect.objectContaining({ id: 'set-1', slot: 'core', error: rlsError }));
     expect(svc.error()).toBeNull();
   });
 
   it('logs a refused write instead of failing silently (AUD-255)', async () => {
-    const warn = spyOn(console, 'warn');
+    const warn = vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const writeError = { message: 'new row violates row-level security policy', code: '42501' };
     const svc = makeService(failingClient({ data: row('t1', []), error: null }, { data: null, error: writeError }));
 
     expect(await svc.setRoleLoadoutSlot('set-1', 'core', { className: 'x', kind: 'item' })).toBeNull();
-    expect(warn).toHaveBeenCalledWith('[hangar] slot write refused', jasmine.objectContaining({ id: 'set-1', slot: 'core', error: writeError }));
+    expect(warn).toHaveBeenCalledWith('[hangar] slot write refused', expect.objectContaining({ id: 'set-1', slot: 'core', error: writeError }));
     expect(svc.error()).toBeNull();
   });
 
@@ -231,7 +231,7 @@ describe('HangarService.getShip / getRoleLoadout', () => {
 
   it('getShip throws a failed read instead of reporting "not found"', async () => {
     const svc = serviceAnswering({ data: null, error: fetchError });
-    await expectAsync(svc.getShip('ship-1')).toBeRejectedWith(fetchError);
+    await expect(svc.getShip('ship-1')).rejects.toEqual(fetchError);
   });
 
   it('getShip returns null when no row exists', async () => {
@@ -240,7 +240,7 @@ describe('HangarService.getShip / getRoleLoadout', () => {
   });
 
   it('getRoleLoadout throws a failed read and returns null for a missing row', async () => {
-    await expectAsync(serviceAnswering({ data: null, error: fetchError }).getRoleLoadout('set-1')).toBeRejectedWith(fetchError);
+    await expect(serviceAnswering({ data: null, error: fetchError }).getRoleLoadout('set-1')).rejects.toEqual(fetchError);
     TestBed.resetTestingModule();
     expect(await serviceAnswering({ data: null, error: null }).getRoleLoadout('set-1')).toBeNull();
   });

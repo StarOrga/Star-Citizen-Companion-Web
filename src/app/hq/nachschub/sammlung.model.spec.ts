@@ -20,9 +20,9 @@ describe('sammlung.model', () => {
 
   it('news and gallery are collected by the account sets, blueprints and Ruf are not decided here', () => {
     const sets = { news: new Set(['n1']), gallery: new Set(['g1']) };
-    expect(isCollected('news', 'n1', sets)).toBeTrue();
-    expect(isCollected('gallery', 'g1', sets)).toBeTrue();
-    expect(isCollected('news', 'g1', sets)).toBeFalse();
-    expect(isCollected('rep', 'x', sets)).toBeFalse();
+    expect(isCollected('news', 'n1', sets)).toBe(true);
+    expect(isCollected('gallery', 'g1', sets)).toBe(true);
+    expect(isCollected('news', 'g1', sets)).toBe(false);
+    expect(isCollected('rep', 'x', sets)).toBe(false);
   });
 });

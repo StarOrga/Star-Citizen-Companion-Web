@@ -69,8 +69,8 @@ describe('CodexLocaleShards', () => {
 
   it('places keys exactly like the ingest-catalog writer (golden vectors)', () => {
     for (const [key, hash, shard] of GOLDEN) {
-      expect(fnv1a(key)).withContext(key).toBe(hash);
-      expect(shardFor(GOLDEN_INDEX, key)).withContext(key).toBe(shard);
+      expect(fnv1a(key), key).toBe(hash);
+      expect(shardFor(GOLDEN_INDEX, key), key).toBe(shard);
     }
   });
 
@@ -133,7 +133,7 @@ describe('CodexLocaleShards', () => {
     const out = await svc.resolve(BUILD, 'en', ['ui_a', 'dlg_x']);
 
     expect(out?.get('ui_a')).toBe('A');
-    expect(out?.has('dlg_x')).toBeFalse();
+    expect(out?.has('dlg_x')).toBe(false);
   });
 
   it('omits keys the build does not have', async () => {

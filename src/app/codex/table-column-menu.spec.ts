@@ -76,7 +76,7 @@ describe('numeric range filter', () => {
 
   it('drops rows with no value — a gap cannot satisfy a range', () => {
     const state = setNumericFilter(EMPTY_COLUMN_MENU_STATE, 'dps', null, 10000);
-    expect(filterRows(rows, columns, state).some((r) => r.name === 'Prototype')).toBeFalse();
+    expect(filterRows(rows, columns, state).some((r) => r.name === 'Prototype')).toBe(false);
   });
 
   it('clears itself when both bounds go away', () => {

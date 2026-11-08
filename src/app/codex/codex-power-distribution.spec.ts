@@ -60,8 +60,8 @@ describe('power distribution (R1)', () => {
     expect(row(s, 'cooler2').allocated).toBe(2);
     expect(coolersTotal(s)).toBe(4);
     expect(s.budgetUsed).toBe(14);
-    expect(s.overBudget).toBeFalse();
-    expect(s.ready).toBeTrue();
+    expect(s.overBudget).toBe(false);
+    expect(s.ready).toBe(true);
   });
 
   it('cutting weapons frees EXACTLY the weapons allocation', () => {
@@ -74,7 +74,8 @@ describe('power distribution (R1)', () => {
 
   it('stealth runs every group at its minimum', () => {
     const s = sheet({ occupants: nomadOccupants(), preset: 'stealth' });
-    expect(row(s, 'weapons').allocated).toBe(0);
+    // The minimum clamp yields -0; Jasmine's toBe treated it as 0, Vitest's Object.is does not.
+    expect(row(s, 'weapons').allocated + 0).toBe(0);
     expect(row(s, 'shields').allocated).toBe(2);
     expect(coolersTotal(s)).toBe(4);
     expect(s.budgetUsed).toBe(9);
@@ -87,8 +88,8 @@ describe('power distribution (R1)', () => {
     );
     const s = computePowerSheet({ occupants: nomadOccupants(weak) });
     expect(s.budgetTotal).toBe(3);
-    expect(s.overBudget).toBeTrue();
-    expect(s.ready).toBeFalse();
+    expect(s.overBudget).toBe(true);
+    expect(s.ready).toBe(false);
     expect(s.readinessKey).toBe('codex.energy.readiness.no');
     // allocations stay AT the minimum — the dock prints 9 / 3, it does not lie
     expect(coolersTotal(s)).toBe(4);
@@ -112,11 +113,11 @@ describe('power distribution (R1)', () => {
     // the coolers auto-deal to 2 of 3 each; pinning shields down to 2 frees exactly 2
     const down = sheet({ occupants: nomadOccupants(), levels: { shields: 2 } });
     expect(row(down, 'shields').allocated).toBe(2);
-    expect(row(down, 'shields').pinned).toBeTrue();
+    expect(row(down, 'shields').pinned).toBe(true);
     expect(row(down, 'cooler1').allocated).toBe(row(auto, 'cooler1').allocated);
     expect(row(down, 'cooler2').allocated).toBe(row(auto, 'cooler2').allocated);
     expect(down.budgetUsed).toBe(auto.budgetUsed - 2);
-    expect(down.overBudget).toBeFalse();
+    expect(down.overBudget).toBe(false);
   });
 
   it('a pin above the free budget prints the deficit instead of trimming a neighbour', () => {
@@ -125,8 +126,8 @@ describe('power distribution (R1)', () => {
     expect(row(s, 'cooler2').allocated).toBe(3);
     expect(s.budgetUsed).toBe(16);
     expect(s.budgetTotal).toBe(14);
-    expect(s.overBudget).toBeTrue();
-    expect(s.ready).toBeFalse();
+    expect(s.overBudget).toBe(true);
+    expect(s.ready).toBe(false);
     // nobody else lost anything
     expect(row(s, 'weapons').allocated).toBe(3);
     expect(row(s, 'shields').allocated).toBe(4);
@@ -136,19 +137,19 @@ describe('power distribution (R1)', () => {
     const s = sheet({ occupants: nomadOccupants(), levels: { cooler1: 1 } });
     expect(row(s, 'cooler1').allocated).toBe(1);
     expect(row(s, 'cooler1').minimum).toBe(2);
-    expect(row(s, 'cooler1').belowMinimum).toBeTrue();
+    expect(row(s, 'cooler1').belowMinimum).toBe(true);
     expect(row(s, 'cooler1').pips.map((p) => p.kind)).toEqual(['min', 'empty', 'empty']);
     // the sibling unit is not the pinned one
     expect(row(s, 'cooler2').allocated).toBe(2);
-    expect(row(s, 'cooler2').belowMinimum).toBeFalse();
+    expect(row(s, 'cooler2').belowMinimum).toBe(false);
   });
 
   it('a pin is clamped to the stack and dormant on a cut or channel-less group', () => {
     const s = sheet({ occupants: nomadOccupants(), levels: { weapons: 9, shields: 1, quantum: 1 }, cutGroups: ['shields'] });
     expect(row(s, 'weapons').allocated).toBe(3);
     expect(row(s, 'shields').allocated).toBe(0);
-    expect(row(s, 'shields').pinned).toBeFalse();
-    expect(row(s, 'quantum').pinned).toBeFalse();
+    expect(row(s, 'shields').pinned).toBe(false);
+    expect(row(s, 'quantum').pinned).toBe(false);
   });
 
   it('distributePower keeps min ≤ alloc ≤ capacity', () => {
@@ -167,8 +168,8 @@ describe('power distribution (R1)', () => {
 
 describe('passive shield generator (R2)', () => {
   it('draws nothing and does not inflate the shield capacity', () => {
-    expect(isPassiveShield(fixtureOccupant(NOMAD_SHIELD_PASSIVE))).toBeTrue();
-    expect(isPassiveShield(fixtureOccupant(NOMAD_SHIELD_ACTIVE))).toBeFalse();
+    expect(isPassiveShield(fixtureOccupant(NOMAD_SHIELD_PASSIVE))).toBe(true);
+    expect(isPassiveShield(fixtureOccupant(NOMAD_SHIELD_ACTIVE))).toBe(false);
     const s = computePowerSheet({
       occupants: nomadOccupants([NOMAD_SHIELD_ACTIVE, NOMAD_SHIELD_PASSIVE]),
     });
@@ -183,9 +184,9 @@ describe('weaponsCut (R3)', () => {
     const bare = { ...NOMAD_REPEATERS, consumeUnits: undefined, minFraction: undefined };
     const s = computePowerSheet({ occupants: nomadOccupants([...NOMAD_POWER_FIXTURE.slice(0, 4), bare]) });
     expect(row(s, 'weapons').allocated).toBe(0);
-    expect(s.weaponsCut).toBeFalse(); // …and must NOT zero the DPS
+    expect(s.weaponsCut).toBe(false); // …and must NOT zero the DPS
     const cut = sheet({ occupants: nomadOccupants(), cutGroups: ['weapons'] });
-    expect(cut.weaponsCut).toBeTrue();
+    expect(cut.weaponsCut).toBe(true);
   });
 });
 
@@ -217,7 +218,7 @@ describe('resource state prefix (R8)', () => {
     expect(resourceStateNames(navOnly.payload)).toEqual(['Nav', 'Standby']);
     expect(resolveResourceState(navOnly.payload)).toBe('nav');
     expect(occupantDraw(navOnly).consumeSegments).toBe(6);
-    expect(occupantDraw(navOnly).missing).toBeFalse();
+    expect(occupantDraw(navOnly).missing).toBe(false);
   });
 
   it('an absent group is missing, not zero', () => {
@@ -229,7 +230,7 @@ describe('resource state prefix (R8)', () => {
     } as unknown as Parameters<typeof occupantDraw>[0];
     expect(resolveResourceState({ className: 'X', stats: {} })).toBeNull();
     const draw = occupantDraw(bare);
-    expect(draw.missing).toBeTrue();
+    expect(draw.missing).toBe(true);
     expect(draw.state).toBeNull();
   });
 });
@@ -237,7 +238,7 @@ describe('resource state prefix (R8)', () => {
 describe('schema gate (R5)', () => {
   it('reports reExtractPending and no sheet below schema 3', () => {
     const s = sheet({ occupants: nomadOccupants(), schemaVersion: POWER_REQUIRED_SCHEMA - 1 });
-    expect(s.available).toBeFalse();
+    expect(s.available).toBe(false);
     expect(s.gapKeys).toContain('codex.energy.gap.reExtractPending');
     expect(s.budgetTotal).toBeNull();
   });
@@ -256,9 +257,7 @@ describe('cut honesty (R9)', () => {
     // moves, because it follows the consumed load (#967 EM model).
     expect(after.facts.find((f) => f.key === 'em')!.delta).toBeLessThan(0);
     for (const key of ['ir', 'coolant', 'crossSection'] as const) {
-      expect(after.facts.find((f) => f.key === key)!.delta)
-        .withContext(key)
-        .toBeNull();
+      expect(after.facts.find((f) => f.key === key)!.delta, key).toBeNull();
     }
   });
 });

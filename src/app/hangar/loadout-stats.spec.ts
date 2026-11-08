@@ -270,12 +270,8 @@ describe('mergeLoadout', () => {
     const merged = mergeLoadout(ship, [
       { portName: 'gun_left', className: 'CUSTOM_GUN', kind: 'weapon' },
     ]);
-    expect(merged).toContain(
-      jasmine.objectContaining({ portName: 'gun_left', className: 'CUSTOM_GUN' }),
-    );
-    expect(merged).toContain(
-      jasmine.objectContaining({ portName: 'shield', className: 'STOCK_SHIELD' }),
-    );
+    expect(merged).toContainEqual(expect.objectContaining({ portName: 'gun_left', className: 'CUSTOM_GUN' }));
+    expect(merged).toContainEqual(expect.objectContaining({ portName: 'shield', className: 'STOCK_SHIELD' }));
     expect(merged.length).toBe(2);
   });
 
@@ -283,9 +279,7 @@ describe('mergeLoadout', () => {
     const merged = mergeLoadout(ship, [
       { portName: 'empty_rack', className: 'NEW_RACK', kind: 'item' },
     ]);
-    expect(merged).toContain(
-      jasmine.objectContaining({ portName: 'empty_rack', className: 'NEW_RACK' }),
-    );
+    expect(merged).toContainEqual(expect.objectContaining({ portName: 'empty_rack', className: 'NEW_RACK' }));
   });
 
   it('handles a null ship payload (overrides only)', () => {

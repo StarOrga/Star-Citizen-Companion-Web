@@ -78,7 +78,7 @@ describe('analysis panels', () => {
     it('open by default: the table shows every weapon and the peek is hidden', () => {
       const fixture = mount(CodexOffensivePanelComponent, { panel: OFFENSIVE });
       const el = root(fixture);
-      expect(el.querySelector('details')!.open).toBeTrue();
+      expect(el.querySelector('details')!.open).toBe(true);
       expect(el.querySelectorAll('table.analysis-table tbody tr').length).toBe(2);
       expect(el.querySelector('.head-peek')).toBeNull();
     });
@@ -86,7 +86,7 @@ describe('analysis panels', () => {
     it('startCollapsed folds it and shows the fold-peek with the totals, without the table', () => {
       const fixture = mount(CodexOffensivePanelComponent, { panel: OFFENSIVE, startCollapsed: true });
       const el = root(fixture);
-      expect(el.querySelector('details')!.open).toBeFalse();
+      expect(el.querySelector('details')!.open).toBe(false);
       expect(el.querySelector('table')).toBeNull();
       const peek = el.querySelector('.head-peek')!.textContent!;
       expect(peek).toContain('codex.analysis.offensive.hintDps');
@@ -117,11 +117,11 @@ describe('analysis panels', () => {
 
     it('a mission change that asks for a fold re-folds an opened panel', () => {
       const fixture = mount(CodexOffensivePanelComponent, { panel: OFFENSIVE });
-      expect(root(fixture).querySelector('details')!.open).toBeTrue();
+      expect(root(fixture).querySelector('details')!.open).toBe(true);
       fixture.componentRef.setInput('startCollapsed', true);
       fixture.detectChanges();
       fixture.detectChanges();
-      expect(root(fixture).querySelector('details')!.open).toBeFalse();
+      expect(root(fixture).querySelector('details')!.open).toBe(false);
     });
 
     it('has no peek when nothing offensive is known, even when folded', () => {
@@ -183,7 +183,7 @@ describe('analysis panels', () => {
 
     it('startCollapsed folds the body away', () => {
       const fixture = mount(CodexShipPanelComponent, { groups: GROUPS, startCollapsed: true });
-      expect(root(fixture).querySelector('details')!.open).toBeFalse();
+      expect(root(fixture).querySelector('details')!.open).toBe(false);
       expect(root(fixture).querySelector('dl.fact-grid')).toBeNull();
     });
   });

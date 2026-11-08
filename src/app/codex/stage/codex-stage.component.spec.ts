@@ -29,11 +29,11 @@ describe('CodexStageComponent', () => {
 
   /** Run the post-load work at once instead of waiting for an idle slot / a real decode. */
   function runLoadWorkImmediately(): void {
-    spyOn(globalThis as unknown as IdleGlobal, 'requestIdleCallback').and.callFake((cb: () => void) => {
+    vi.spyOn(globalThis as unknown as IdleGlobal, 'requestIdleCallback').mockImplementation((cb: () => void) => {
       cb();
       return 0;
     });
-    spyOn(HTMLImageElement.prototype, 'decode').and.resolveTo();
+    vi.spyOn(HTMLImageElement.prototype, 'decode').mockResolvedValue(undefined);
   }
 
   async function flush(fixture: ComponentFixture<CodexStageComponent>): Promise<void> {

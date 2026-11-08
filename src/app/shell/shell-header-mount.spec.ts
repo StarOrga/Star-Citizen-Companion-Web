@@ -126,9 +126,9 @@ describe('ShellComponent beta header across main ↔ subpage', () => {
     expect(header.classList).not.toContain('compressed');
 
     await go('/verse/news');
-    expect(el.querySelector('sc-main-header')).withContext('header stays mounted').toBe(header);
+    expect(el.querySelector('sc-main-header'), 'header stays mounted').toBe(header);
     expect(header.classList).toContain('compressed');
-    expect(header.hasAttribute('inert')).toBeTrue();
+    expect(header.hasAttribute('inert')).toBe(true);
 
     await go('/verse');
     expect(el.querySelector('sc-main-header')).toBe(header);

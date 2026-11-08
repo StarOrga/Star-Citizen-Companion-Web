@@ -64,7 +64,7 @@ describe('feedback composer style retention', () => {
           !!p && typeof p === 'object' && 'provide' in p &&
           (p as { provide: unknown }).provide === REMOVE_STYLES_ON_COMPONENT_DESTROY,
       );
-    expect(provider).withContext('REMOVE_STYLES_ON_COMPONENT_DESTROY must be provided').toBeDefined();
+    expect(provider, 'REMOVE_STYLES_ON_COMPONENT_DESTROY must be provided').toBeDefined();
     expect(provider!.useValue).toBe(false);
   });
 
@@ -100,8 +100,8 @@ describe('feedback composer style retention', () => {
       if (!ta) continue;
       // A styled composer is border-box and fills its column; an unstyled one
       // falls back to the UA's content-box 20-column default.
-      expect(getComputedStyle(ta).boxSizing).withContext(`after opening ${next}`).toBe('border-box');
-      expect(ta.clientWidth).withContext(`after opening ${next}`).toBeGreaterThan(200);
+      expect(getComputedStyle(ta).boxSizing, `after opening ${next}`).toBe('border-box');
+      expect(ta.clientWidth, `after opening ${next}`).toBeGreaterThan(200);
     }
   });
 });

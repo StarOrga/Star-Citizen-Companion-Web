@@ -54,12 +54,12 @@ describe('keybind taxonomy', () => {
     });
     expect(a.activity).toBe('mining');
     expect(a.actionGroup).toBe('mining_tools');
-    expect(isAssigned(a)).toBeTrue();
+    expect(isAssigned(a)).toBe(true);
   });
 
   it('treats an all-null assignment as unassigned', () => {
-    expect(isAssigned(EMPTY_ASSIGNMENT)).toBeFalse();
-    expect(isAssigned({ ...EMPTY_ASSIGNMENT, scope: 'verse' })).toBeTrue();
+    expect(isAssigned(EMPTY_ASSIGNMENT)).toBe(false);
+    expect(isAssigned({ ...EMPTY_ASSIGNMENT, scope: 'verse' })).toBe(true);
   });
 
   it('builds i18n keys, never literal labels', () => {

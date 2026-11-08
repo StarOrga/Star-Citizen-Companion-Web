@@ -46,7 +46,7 @@ describe('missions as a search source', () => {
       expect(row.cta?.id).toBe('toEinsatz');
       expect(row.icons).toEqual({ wishlist: false, lager: false });
     }
-    expect(r.empty).toBeFalse();
+    expect(r.empty).toBe(false);
   });
 
   it('a chip that names other groups keeps missions out', () => {
@@ -54,7 +54,7 @@ describe('missions as a search source', () => {
     const r = composeSearchResult({
       term: 'cargo', signedIn: true, groups: [group('ship', [ship])], context: searchContextOf('/codex'), chips: [chip], missions: mapMissionRows([rpc()]),
     });
-    expect(r.groups.some((g) => g.id === 'mission')).toBeFalse();
+    expect(r.groups.some((g) => g.id === 'mission')).toBe(false);
   });
 
   it('renders CIG descriptions with line breaks and marked runtime placeholders', () => {

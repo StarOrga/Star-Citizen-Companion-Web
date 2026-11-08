@@ -83,25 +83,25 @@ describe('starmap model — rewards helpers', () => {
   it('meteor day = the local calendar day containing live_at', () => {
     // Instants built from local wall-clock times, so the spec holds in every time zone.
     const now = new Date(2026, 9, 29, 15, 0, 0);
-    expect(isLiveDay(new Date(2026, 9, 29, 0, 0, 0).toISOString(), now)).toBeTrue();
-    expect(isLiveDay(new Date(2026, 9, 29, 23, 59, 0).toISOString(), now)).toBeTrue();
-    expect(isLiveDay(new Date(2026, 9, 28, 23, 59, 0).toISOString(), now)).toBeFalse();
-    expect(isLiveDay(new Date(2026, 9, 30, 0, 0, 0).toISOString(), now)).toBeFalse();
-    expect(isLiveDay('2026-10-01T08:00:00Z', now)).toBeFalse();
-    expect(isLiveDay(null, now)).toBeFalse();
-    expect(isLiveDay('nonsense', now)).toBeFalse();
+    expect(isLiveDay(new Date(2026, 9, 29, 0, 0, 0).toISOString(), now)).toBe(true);
+    expect(isLiveDay(new Date(2026, 9, 29, 23, 59, 0).toISOString(), now)).toBe(true);
+    expect(isLiveDay(new Date(2026, 9, 28, 23, 59, 0).toISOString(), now)).toBe(false);
+    expect(isLiveDay(new Date(2026, 9, 30, 0, 0, 0).toISOString(), now)).toBe(false);
+    expect(isLiveDay('2026-10-01T08:00:00Z', now)).toBe(false);
+    expect(isLiveDay(null, now)).toBe(false);
+    expect(isLiveDay('nonsense', now)).toBe(false);
   });
 
   it('meteor day follows the local date of live_at, not its UTC date', () => {
     // 23:30 local on the 29th: east of UTC its UTC date is still the 29th, west
     // of UTC it is already the 30th — either way the LIVE day is the local 29th.
     const at = new Date(2026, 9, 29, 23, 30, 0);
-    expect(isLiveDay(at.toISOString(), new Date(2026, 9, 29, 23, 45, 0))).toBeTrue();
-    expect(isLiveDay(at.toISOString(), new Date(2026, 9, 30, 0, 15, 0))).toBeFalse();
+    expect(isLiveDay(at.toISOString(), new Date(2026, 9, 29, 23, 45, 0))).toBe(true);
+    expect(isLiveDay(at.toISOString(), new Date(2026, 9, 30, 0, 15, 0))).toBe(false);
     // 00:30 local on the 29th — counts on the 29th, not on the 28th.
     const early = new Date(2026, 9, 29, 0, 30, 0);
-    expect(isLiveDay(early.toISOString(), new Date(2026, 9, 28, 23, 0, 0))).toBeFalse();
-    expect(isLiveDay(early.toISOString(), new Date(2026, 9, 29, 8, 0, 0))).toBeTrue();
+    expect(isLiveDay(early.toISOString(), new Date(2026, 9, 28, 23, 0, 0))).toBe(false);
+    expect(isLiveDay(early.toISOString(), new Date(2026, 9, 29, 8, 0, 0))).toBe(true);
   });
 
   it('badge links round-trip and reject junk', () => {

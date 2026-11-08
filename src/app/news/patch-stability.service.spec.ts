@@ -24,10 +24,10 @@ describe('buildVerdicts', () => {
     const v49 = verdicts.get('4.9')!;
     const v410 = verdicts.get('4.10')!;
     expect(v49.daysLive).toBeCloseTo(42, 6);
-    expect(v49.historical).toBeTrue();
-    expect(v49.early).toBeFalse();
-    expect(v410.historical).toBeFalse();
-    expect(v410.early).toBeTrue();
+    expect(v49.historical).toBe(true);
+    expect(v49.early).toBe(false);
+    expect(v410.historical).toBe(false);
+    expect(v410.early).toBe(true);
   });
 });
 
@@ -67,8 +67,8 @@ describe('PatchStabilityService', () => {
     await Promise.all([first, second]);
 
     expect(calls).toEqual(['patch_stability_patches', 'patch_stability_samples']);
-    expect(service.loaded()).toBeTrue();
-    expect(service.unavailable()).toBeFalse();
+    expect(service.loaded()).toBe(true);
+    expect(service.unavailable()).toBe(false);
     expect(service.allTime().map((v) => v.line)).toEqual(['4.9', '4.10']);
     expect(service.verdictFor('4.9')).not.toBeNull();
     expect(service.verdictFor('4.11')).toBeNull();
@@ -87,8 +87,8 @@ describe('PatchStabilityService', () => {
 
     await service.load();
 
-    expect(service.unavailable()).toBeTrue();
-    expect(service.loaded()).toBeFalse();
+    expect(service.unavailable()).toBe(true);
+    expect(service.loaded()).toBe(false);
     expect(service.allTime()).toEqual([]);
   });
 
@@ -103,8 +103,8 @@ describe('PatchStabilityService', () => {
     });
     const service = TestBed.inject(PatchStabilityService);
 
-    await expectAsync(service.load()).toBeResolved();
+    await expect(service.load()).resolves.not.toThrow();
 
-    expect(service.unavailable()).toBeTrue();
+    expect(service.unavailable()).toBe(true);
   });
 });

@@ -71,11 +71,11 @@ describe('FusionBarComponent, wave B parity', () => {
     layout.set('cinematic');
     const fixture = await setup('/verse');
     const search = () => fixture.debugElement.query(By.directive(FusionSearchStub)).componentInstance as FusionSearchStub;
-    expect(search().demo()).toBeTrue();
+    expect(search().demo()).toBe(true);
     fixture.componentInstance.onScroll(200);
     fixture.detectChanges();
     expect(fixture.nativeElement.getAttribute('data-mode')).toBe('docked');
-    expect(search().demo()).withContext('docked: no demo').toBeFalse();
+    expect(search().demo(), 'docked: no demo').toBe(false);
     // Ruhige Leiste (concept 2026-11-01): no light line along the docked bar any more, depth only;
     // the echo frames belong to the staged field.
     expect(fixture.nativeElement.querySelector('.cap .band')).toBeNull();
@@ -122,7 +122,7 @@ describe('FusionBarComponent, wave B parity', () => {
     const panel = el.querySelector('.fpanel') as HTMLElement;
     expect(panel).not.toBeNull();
     expect(getComputedStyle(panel).position).toBe('absolute');
-    expect(after.getBoundingClientRect().top).withContext('no layout shift').toBe(before);
+    expect(after.getBoundingClientRect().top, 'no layout shift').toBe(before);
     // Checkbox columns instead of the page's toolbar.
     expect(panel.querySelector('.fcols')).toBeNull();
     const boxes = Array.from(panel.querySelectorAll<HTMLInputElement>('.fcol input[type="checkbox"]'));
@@ -169,11 +169,11 @@ describe('FusionSearchComponent typed demo', () => {
     const el = fixture.nativeElement as HTMLElement;
     engine.setInput('gla');
     fixture.detectChanges();
-    expect(el.querySelector('.demo')).withContext('input').toBeNull();
+    expect(el.querySelector('.demo'), 'input').toBeNull();
     engine.setInput('');
     fixture.detectChanges();
     fixture.componentInstance.openPanel();
     fixture.detectChanges();
-    expect(el.querySelector('.demo')).withContext('focus').toBeNull();
+    expect(el.querySelector('.demo'), 'focus').toBeNull();
   });
 });

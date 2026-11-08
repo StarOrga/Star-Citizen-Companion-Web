@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -10,10 +11,10 @@ import { CodexSearchHub, isTypeToSearchKey } from '../codex/search/codex-search-
 import { QuickSearchComponent } from './quick-search.component';
 
 describe('QuickSearchComponent', () => {
-  let searchAll: jasmine.Spy;
+  let searchAll: Mock;
 
   beforeEach(() => {
-    searchAll = jasmine.createSpy('searchAll').and.resolveTo({ hits: [], totals: {} });
+    searchAll = vi.fn().mockName('searchAll').mockResolvedValue({ hits: [], totals: {} });
     TestBed.configureTestingModule({
       imports: [QuickSearchComponent],
       providers: [
@@ -49,14 +50,14 @@ describe('QuickSearchComponent', () => {
       const ev = press('k', { ctrlKey: true });
       fixture.detectChanges();
 
-      expect(ev.defaultPrevented).toBeTrue();
-      expect(fixture.componentInstance.visible()).toBeTrue();
+      expect(ev.defaultPrevented).toBe(true);
+      expect(fixture.componentInstance.visible()).toBe(true);
       expect(document.querySelector('.cdk-overlay-container .qs-input')).not.toBeNull();
     });
 
     it('on a Codex page Ctrl+K, "/" and the header button bring the page bar forward, no overlay', () => {
       const fixture = create();
-      const bar = { activate: jasmine.createSpy('activate') };
+      const bar = { activate: vi.fn().mockName('activate') };
       const unregister = TestBed.inject(CodexSearchHub).register(bar);
 
       press('k', { metaKey: true });
@@ -65,7 +66,7 @@ describe('QuickSearchComponent', () => {
       fixture.detectChanges();
 
       expect(bar.activate).toHaveBeenCalledTimes(3);
-      expect(fixture.componentInstance.visible()).toBeFalse();
+      expect(fixture.componentInstance.visible()).toBe(false);
       expect(document.querySelector('.cdk-overlay-container .qs-input')).toBeNull();
       unregister();
     });
@@ -76,20 +77,21 @@ describe('QuickSearchComponent', () => {
       unregister();
       press('k', { ctrlKey: true });
       fixture.detectChanges();
-      expect(fixture.componentInstance.visible()).toBeTrue();
+      expect(fixture.componentInstance.visible()).toBe(true);
     });
   });
 
   describe('type-to-search', () => {
     it('a letter typed on a Codex page starts the bar with that letter', () => {
       create();
-      const bar = { activate: jasmine.createSpy('activate') };
+      const bar = { activate: vi.fn().mockName('activate') };
       const unregister = TestBed.inject(CodexSearchHub).register(bar);
 
       const ev = press('g');
 
-      expect(bar.activate).toHaveBeenCalledOnceWith('g');
-      expect(ev.defaultPrevented).toBeTrue();
+      expect(bar.activate).toHaveBeenCalledTimes(1);
+      expect(bar.activate).toHaveBeenCalledWith('g');
+      expect(ev.defaultPrevented).toBe(true);
       unregister();
     });
 
@@ -100,7 +102,7 @@ describe('QuickSearchComponent', () => {
       const editable = document.createElement('div');
       editable.contentEditable = 'true';
       document.body.append(input, area, editable);
-      const bar = { activate: jasmine.createSpy('activate') };
+      const bar = { activate: vi.fn().mockName('activate') };
       const unregister = TestBed.inject(CodexSearchHub).register(bar);
 
       press('g', {}, input);
@@ -125,15 +127,15 @@ describe('QuickSearchComponent', () => {
       document.body.append(dialog);
       const ev = new KeyboardEvent('keydown', { key: 'g' });
       Object.defineProperty(ev, 'target', { value: document.body });
-      expect(isTypeToSearchKey(ev)).toBeFalse();
+      expect(isTypeToSearchKey(ev)).toBe(false);
       dialog.remove();
-      expect(isTypeToSearchKey(ev)).toBeTrue();
+      expect(isTypeToSearchKey(ev)).toBe(true);
     });
   });
 
   it('a failed search shows the error state with retry, not "no results" (AUD-236)', fakeAsync(() => {
-    spyOn(console, 'warn');
-    searchAll.and.rejectWith(new TypeError('Failed to fetch'));
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
+    searchAll.mockRejectedValue(new TypeError('Failed to fetch'));
     const fixture = create();
     fixture.componentInstance.open();
     fixture.detectChanges();
@@ -157,10 +159,10 @@ describe('QuickSearchComponent', () => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     tick();
     expect(fixture.componentInstance.engine.input()).toBe('');
-    expect(fixture.componentInstance.visible()).toBeTrue();
+    expect(fixture.componentInstance.visible()).toBe(true);
 
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     tick();
-    expect(fixture.componentInstance.visible()).toBeFalse();
+    expect(fixture.componentInstance.visible()).toBe(false);
   }));
 });

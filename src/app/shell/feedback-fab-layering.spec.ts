@@ -99,7 +99,7 @@ describe('feedback launcher layering', () => {
 
   function layerOf(fixture: { nativeElement: HTMLElement }, selector: string): number {
     const el = fixture.nativeElement.querySelector(selector) as HTMLElement | null;
-    expect(el).withContext(`${selector} rendered`).not.toBeNull();
+    expect(el, `${selector} rendered`).not.toBeNull();
     return Number(getComputedStyle(el as HTMLElement).zIndex);
   }
 
@@ -112,7 +112,7 @@ describe('feedback launcher layering', () => {
 
       expect(z).toBe(FAB_LAYER);
       for (const modalZ of MODAL_BAND) {
-        expect(z).withContext(`launcher must beat the popup layer ${modalZ}`).toBeGreaterThan(modalZ);
+        expect(z, `launcher must beat the popup layer ${modalZ}`).toBeGreaterThan(modalZ);
       }
     });
   }

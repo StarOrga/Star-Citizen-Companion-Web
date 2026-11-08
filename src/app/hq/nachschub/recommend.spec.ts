@@ -88,7 +88,7 @@ describe('recommend', () => {
   describe('weapon', () => {
     it('suggests its magazine first (hard relation), then a fitting attachment, not a wrong-size one', () => {
       const r = recommend(ctx(['p4ar']));
-      expect(r[0]).toEqual(jasmine.objectContaining({ className: 'p4ar_mag', reason: 'magazineFor' }));
+      expect(r[0]).toEqual(expect.objectContaining({ className: 'p4ar_mag', reason: 'magazineFor' }));
       const names = r.map((x) => x.className);
       expect(names).toContain('optic_s1');
       expect(names).not.toContain('optic_s4');
@@ -96,7 +96,7 @@ describe('recommend', () => {
 
     it('a magazine suggests its weapon', () => {
       const r = recommend(ctx(['p4ar_mag']));
-      expect(r[0]).toEqual(jasmine.objectContaining({ className: 'p4ar', reason: 'weaponFor' }));
+      expect(r[0]).toEqual(expect.objectContaining({ className: 'p4ar', reason: 'weaponFor' }));
     });
   });
 
@@ -107,14 +107,14 @@ describe('recommend', () => {
       // ingredients (hard relation + same material) and the crafted item's magazine come before anything else
       expect(['agricium', 'aluminium']).toContain(names[0]);
       expect(names[1]).toBe('gallant_mag');
-      expect(names).toEqual(jasmine.arrayContaining(['agricium', 'aluminium']));
+      expect(names).toEqual(expect.arrayContaining(['agricium', 'aluminium']));
       expect(names.indexOf('bp_other')).toBeGreaterThan(names.indexOf('gallant_mag'));
       expect(names).not.toContain('bp_far');
     });
 
     it('a material suggests blueprints that use it', () => {
       const r = recommend(ctx(['aluminium']));
-      expect(r.map((x) => x.className)).toEqual(jasmine.arrayContaining(['bp_gallant', 'bp_other']));
+      expect(r.map((x) => x.className)).toEqual(expect.arrayContaining(['bp_gallant', 'bp_other']));
       expect(r[0].reason).toBe('usedIn');
     });
   });

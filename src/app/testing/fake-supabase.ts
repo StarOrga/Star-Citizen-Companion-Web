@@ -102,7 +102,7 @@ export function fakeSupabase(opts: FakeSupabaseOptions = {}) {
     return proxy;
   };
 
-  const ok = () => jasmine.createSpy().and.resolveTo({ data: {}, error: null });
+  const ok = () => vi.fn().mockResolvedValue({ data: {}, error: null });
 
   const client = {
     supabaseUrl: environment.supabase.url,
@@ -115,14 +115,14 @@ export function fakeSupabase(opts: FakeSupabaseOptions = {}) {
       from: (bucket: string) => builder('storage', bucket),
     },
     channel: () => builder('from', 'channel'),
-    removeChannel: jasmine.createSpy('removeChannel').and.resolveTo('ok'),
+    removeChannel: vi.fn().mockName('removeChannel').mockResolvedValue('ok'),
     auth: {
       getSession: () => Promise.resolve({ data: { session }, error: null }),
       onAuthStateChange: (cb: (event: string, s: FakeSession | null) => void) => {
         authListeners.push(cb);
         return { data: { subscription: { unsubscribe: () => undefined } } };
       },
-      signOut: jasmine.createSpy('signOut').and.resolveTo({ error: null }),
+      signOut: vi.fn().mockName('signOut').mockResolvedValue({ error: null }),
       signInWithPassword: ok(),
       signInWithOAuth: ok(),
       updateUser: ok(),

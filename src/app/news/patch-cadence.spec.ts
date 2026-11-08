@@ -80,8 +80,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     // Stubbed before the component is built: the constructor reads the query
     // once and subscribes to it, and Karma's own preference must not decide
     // whether these tests exercise the rotation.
-    spyOn(window, 'matchMedia').and.callFake(
-      (query: string) =>
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
         ({
           matches: query.includes('prefers-reduced-motion') ? reduced : false,
           media: query,
@@ -91,8 +90,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
           removeListener: () => {},
           onchange: null,
           dispatchEvent: () => false,
-        }) as unknown as MediaQueryList,
-    );
+        }) as unknown as MediaQueryList);
 
     TestBed.configureTestingModule({
       imports: [PatchCadenceComponent],
@@ -132,7 +130,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
 
     tick(ROTATE_MS);
     f.detectChanges();
-    expect(currentKey(f)).withContext('the forecast is the fourth slide').toBe('forecast');
+    expect(currentKey(f), 'the forecast is the fourth slide').toBe('forecast');
 
     // Wraps rather than stopping on the last slide.
     tick(ROTATE_MS);
@@ -148,12 +146,10 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
 
     tick(ROTATE_MS * 4);
     f.detectChanges();
-    expect(currentKey(f)).withContext('reduced motion holds the first slide').toBe('leadTime');
+    expect(currentKey(f), 'reduced motion holds the first slide').toBe('leadTime');
 
-    expect(f.componentInstance.hasSlides()).toBeTrue();
-    expect(f.componentInstance.canAutoRotate())
-      .withContext('no pause button, because nothing is running')
-      .toBeFalse();
+    expect(f.componentInstance.hasSlides()).toBe(true);
+    expect(f.componentInstance.canAutoRotate(), 'no pause button, because nothing is running').toBe(false);
     expect(f.nativeElement.querySelectorAll('.dot').length).toBe(4);
 
     // The dots are the only way to the forecast here.
@@ -172,14 +168,14 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     f.detectChanges();
     tick(ROTATE_MS * 2);
     f.detectChanges();
-    expect(currentKey(f)).withContext('a hovered chart is being read').toBe('leadTime');
+    expect(currentKey(f), 'a hovered chart is being read').toBe('leadTime');
 
     c.hovered.set(false);
     c.focused.set(true);
     f.detectChanges();
     tick(ROTATE_MS * 2);
     f.detectChanges();
-    expect(currentKey(f)).withContext('keyboard focus holds it too').toBe('leadTime');
+    expect(currentKey(f), 'keyboard focus holds it too').toBe('leadTime');
 
     c.focused.set(false);
     f.detectChanges();
@@ -197,11 +193,11 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     c.show(1);
     f.detectChanges();
     expect(currentKey(f)).toBe('cadence');
-    expect(c.paused()).toBeTrue();
+    expect(c.paused()).toBe(true);
 
     tick(ROTATE_MS * 3);
     f.detectChanges();
-    expect(currentKey(f)).withContext('the pick sticks').toBe('cadence');
+    expect(currentKey(f), 'the pick sticks').toBe('cadence');
 
     c.togglePause();
     f.detectChanges();
@@ -215,7 +211,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
   it('shows no dots and never rotates with a single slide, but keeps the window toggle', fakeAsync(() => {
     const f = setup(ONE);
 
-    expect(f.componentInstance.hasSlides()).toBeFalse();
+    expect(f.componentInstance.hasSlides()).toBe(false);
     expect(f.nativeElement.querySelectorAll('.dot').length).toBe(0);
     // The toggle is reachable even when there is nothing to page through.
     expect(f.nativeElement.querySelectorAll('.win-opt').length).toBe(2);
@@ -236,7 +232,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     // A feed refresh can collapse the panel down to a single slide.
     f.componentRef.setInput('groups', ONE);
     f.detectChanges();
-    expect(currentKey(f)).withContext('never strands the panel on nothing').toBe('leadTime');
+    expect(currentKey(f), 'never strands the panel on nothing').toBe('leadTime');
   });
 
   it('renders nothing at all when there is no data to show', () => {
@@ -259,7 +255,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
   it('keeps the toggle reachable when the six-month window is empty but all-time is not', () => {
     // Everything in STALE predates the window, so the default view is blank.
     const f = setup(STALE, '6m');
-    expect(f.componentInstance.current()).withContext('nothing recent to show').toBeNull();
+    expect(f.componentInstance.current(), 'nothing recent to show').toBeNull();
     // The panel still renders — with its empty hint and, crucially, the toggle.
     expect(f.nativeElement.querySelector('.cadence')).not.toBeNull();
     expect(f.nativeElement.querySelector('.cad-empty')).not.toBeNull();
@@ -286,7 +282,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
 
     tick(ROTATE_MS / 2);
     f.detectChanges();
-    expect(c.fillPct()).withContext('half a turn is about half full').toBeGreaterThan(45);
+    expect(c.fillPct(), 'half a turn is about half full').toBeGreaterThan(45);
     expect(c.fillPct()).toBeLessThan(60);
     expect(currentKey(f)).toBe('leadTime');
 
@@ -295,12 +291,12 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     tick(ROTATE_MS / 2 - 250);
     f.detectChanges();
     expect(c.fillPct()).toBe(100);
-    expect(currentKey(f)).withContext('full, but not switched yet').toBe('leadTime');
+    expect(currentKey(f), 'full, but not switched yet').toBe('leadTime');
 
     tick(250);
     f.detectChanges();
-    expect(currentKey(f)).withContext('full = next slide').toBe('cadence');
-    expect(c.fillPct()).withContext('the next countdown starts from empty').toBeLessThan(10);
+    expect(currentKey(f), 'full = next slide').toBe('cadence');
+    expect(c.fillPct(), 'the next countdown starts from empty').toBeLessThan(10);
 
     discardPeriodicTasks();
   }));
@@ -318,7 +314,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
 
     tick(ROTATE_MS * 2);
     f.detectChanges();
-    expect(c.fillPct()).withContext('a held bar does not creep on').toBe(held);
+    expect(c.fillPct(), 'a held bar does not creep on').toBe(held);
     expect(currentKey(f)).toBe('leadTime');
 
     // Letting go continues the half-run turn — the remaining half is enough.
@@ -339,7 +335,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     f.detectChanges();
     c.show(2);
     f.detectChanges();
-    expect(c.fillPct()).withContext('a pick inherits nothing from the previous slide').toBe(0);
+    expect(c.fillPct(), 'a pick inherits nothing from the previous slide').toBe(0);
 
     discardPeriodicTasks();
   }));
@@ -350,9 +346,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
 
     tick(ROTATE_MS);
     f.detectChanges();
-    expect(f.componentInstance.fillPct())
-      .withContext('no timer to draw, so the pill is simply marked')
-      .toBe(100);
+    expect(f.componentInstance.fillPct(), 'no timer to draw, so the pill is simply marked').toBe(100);
 
     discardPeriodicTasks();
   }));

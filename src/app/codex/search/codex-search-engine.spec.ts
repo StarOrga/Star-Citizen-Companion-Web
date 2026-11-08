@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -70,7 +71,7 @@ describe('codex-search-model', () => {
       read: { weapon: 49 },
     });
     expect(weapons.count).toBe(1);
-    expect(weapons.countIsFloor).toBeFalse();
+    expect(weapons.countIsFloor).toBe(false);
     expect(weapons.folded).toBe(48);
     expect(weapons.total).toBe(49);
     expect(weapons.more).toEqual({ link: ['/codex/index'], queryParams: { kind: 'weapon', q: 'p4' } });
@@ -95,8 +96,8 @@ describe('codex-search-model', () => {
   });
 
   it('marks Paints as a livery', () => {
-    expect(isLivery(hit('item', 'p', { attachType: 'Paints' }))).toBeTrue();
-    expect(isLivery(hit('item', 'h', { attachType: 'Char_Armor_Helmet' }))).toBeFalse();
+    expect(isLivery(hit('item', 'p', { attachType: 'Paints' }))).toBe(true);
+    expect(isLivery(hit('item', 'h', { attachType: 'Char_Armor_Helmet' }))).toBe(false);
   });
 
   it('keeps recent searches newest first, deduped, capped — and survives a broken storage', () => {
@@ -127,20 +128,20 @@ describe('codex-search-model', () => {
 });
 
 describe('CodexSearchEngine', () => {
-  let searchAll: jasmine.Spy;
-  let addedShipsMemo: jasmine.Spy;
+  let searchAll: Mock;
+  let addedShipsMemo: Mock;
   let engine: CodexSearchEngine;
 
   beforeEach(() => {
     localStorage.removeItem(RECENT_SEARCHES_KEY);
-    searchAll = jasmine.createSpy('searchAll');
-    addedShipsMemo = jasmine.createSpy('addedShipsMemo').and.resolveTo([]);
+    searchAll = vi.fn().mockName('searchAll');
+    addedShipsMemo = vi.fn().mockName('addedShipsMemo').mockResolvedValue([]);
     TestBed.configureTestingModule({
       providers: [
         CodexSearchEngine,
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
-        { provide: CodexService, useValue: { searchAll, suggestNames: jasmine.createSpy().and.resolveTo([]) } },
+        { provide: CodexService, useValue: { searchAll, suggestNames: vi.fn().mockResolvedValue([]) } },
         { provide: CodexBuildDiffService, useValue: { addedShipsMemo } },
       ],
     });
@@ -150,24 +151,24 @@ describe('CodexSearchEngine', () => {
   afterEach(() => localStorage.removeItem(RECENT_SEARCHES_KEY));
 
   it('debounces typing into one search for the last term, asking perGroup per kind', fakeAsync(() => {
-    searchAll.and.resolveTo({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } } as PolySearchResult);
+    searchAll.mockResolvedValue({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } } as PolySearchResult);
     engine.perGroup.set(5);
     engine.setInput('gl');
     tick(100);
     engine.setInput('gladius');
     tick(SEARCH_DEBOUNCE_MS);
 
-    expect(searchAll).toHaveBeenCalledOnceWith('gladius', 5);
+    expect(searchAll).toHaveBeenCalledTimes(1);
+    expect(searchAll).toHaveBeenCalledWith('gladius', 5);
     expect(engine.groups().length).toBe(1);
   }));
 
   it('drops the answer of a superseded search (race of in-flight searches)', fakeAsync(() => {
     let resolveOld!: (r: PolySearchResult) => void;
-    searchAll.and.callFake((term: string) =>
+    searchAll.mockImplementation((term: string) =>
       term === 'old'
         ? new Promise<PolySearchResult>((r) => (resolveOld = r))
-        : Promise.resolve({ hits: [hit('weapon', 'new')], totals: {} }),
-    );
+        : Promise.resolve({ hits: [hit('weapon', 'new')], totals: {} }));
     engine.searchFor('old');
     engine.searchFor('new');
     tick();
@@ -175,12 +176,12 @@ describe('CodexSearchEngine', () => {
     tick();
 
     expect(engine.hits().map((h) => h.classNameSlug)).toEqual(['new']);
-    expect(engine.loading()).toBeFalse();
+    expect(engine.loading()).toBe(false);
   }));
 
   it('a clear while a search is in flight leaves no hits behind', fakeAsync(() => {
     let resolve!: (r: PolySearchResult) => void;
-    searchAll.and.returnValue(new Promise<PolySearchResult>((r) => (resolve = r)));
+    searchAll.mockReturnValue(new Promise<PolySearchResult>((r) => (resolve = r)));
     engine.searchFor('gladius');
     engine.clear();
     resolve({ hits: [hit('ship', 'AEGS_Gladius')], totals: {} });
@@ -191,8 +192,8 @@ describe('CodexSearchEngine', () => {
   }));
 
   it('a partial search keeps the hits and carries a translated note; a clean search drops it', fakeAsync(() => {
-    spyOn(console, 'warn');
-    searchAll.and.resolveTo({
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
+    searchAll.mockResolvedValue({
       hits: [hit('ship', 'AEGS_Gladius')],
       totals: { ship: 1 },
       failed: ['item'],
@@ -204,20 +205,20 @@ describe('CodexSearchEngine', () => {
     expect(engine.hits().length).toBe(1);
     expect(engine.partialError()).toBe('errors.timeout');
 
-    searchAll.and.resolveTo({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } });
+    searchAll.mockResolvedValue({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } });
     engine.retry();
     tick();
     expect(engine.partialError()).toBeNull();
   }));
 
   it('a failed search is an error key with retry, never "no results"', fakeAsync(() => {
-    spyOn(console, 'warn');
-    searchAll.and.rejectWith(new TypeError('Failed to fetch'));
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
+    searchAll.mockRejectedValue(new TypeError('Failed to fetch'));
     engine.searchFor('gladius');
     tick();
     expect(engine.error()).toMatch(/^errors\./);
 
-    searchAll.and.resolveTo({ hits: [hit('ship', 'AEGS_Gladius')], totals: {} });
+    searchAll.mockResolvedValue({ hits: [hit('ship', 'AEGS_Gladius')], totals: {} });
     engine.retry();
     tick();
     expect(engine.error()).toBeNull();
@@ -225,7 +226,7 @@ describe('CodexSearchEngine', () => {
   }));
 
   it('arrows walk the options across groups and wrap; Enter / Ctrl+Enter / Escape go to the host', fakeAsync(() => {
-    searchAll.and.resolveTo({
+    searchAll.mockResolvedValue({
       hits: [hit('ship', 's1'), hit('ship', 's2'), hit('weapon', 'w1')],
       totals: { ship: 9, weapon: 1 },
     });
@@ -237,7 +238,7 @@ describe('CodexSearchEngine', () => {
 
     const down = key('ArrowDown');
     expect(engine.keyAction(down)).toBeNull();
-    expect(down.defaultPrevented).toBeTrue();
+    expect(down.defaultPrevented).toBe(true);
     expect(engine.activeIndex()).toBe(0);
     engine.keyAction(key('ArrowDown'));
     engine.keyAction(key('ArrowDown'));
@@ -257,16 +258,17 @@ describe('CodexSearchEngine', () => {
   }));
 
   it('Enter before the debounce fired runs the search instead of opening anything', fakeAsync(() => {
-    searchAll.and.resolveTo({ hits: [], totals: {} });
+    searchAll.mockResolvedValue({ hits: [], totals: {} });
     engine.setInput('gladius');
     expect(engine.keyAction(key('Enter'))).toBeNull();
     tick();
-    expect(searchAll).toHaveBeenCalledOnceWith('gladius', 5);
+    expect(searchAll).toHaveBeenCalledTimes(1);
+    expect(searchAll).toHaveBeenCalledWith('gladius', 5);
   }));
 
   it('opening a hit navigates and remembers the term; a recent search runs in place', fakeAsync(() => {
-    const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
-    searchAll.and.resolveTo({ hits: [hit('ship', 'AEGS_Gladius')], totals: {} });
+    const nav = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    searchAll.mockResolvedValue({ hits: [hit('ship', 'AEGS_Gladius')], totals: {} });
     engine.searchFor('gladius');
     tick();
 
@@ -282,19 +284,19 @@ describe('CodexSearchEngine', () => {
   }));
 
   it('Ctrl+Enter opens the target in a new tab and leaves the search alone', fakeAsync(() => {
-    const open = spyOn(window, 'open');
-    searchAll.and.resolveTo({ hits: [hit('upcoming', 'rsi-x', { nameLocalized: 'Arrastra' })], totals: {} });
+    const open = vi.spyOn(window, 'open').mockReturnValue(undefined as never);
+    searchAll.mockResolvedValue({ hits: [hit('upcoming', 'rsi-x', { nameLocalized: 'Arrastra' })], totals: {} });
     engine.searchFor('arrastra');
     tick();
 
     expect(engine.open(engine.enterOption()!, true)).toBe('new-tab');
-    expect(open).toHaveBeenCalledWith(jasmine.stringMatching(/\/codex\/upcoming\?q=Arrastra$/), '_blank', 'noopener');
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/\/codex\/upcoming\?q=Arrastra$/), '_blank', 'noopener');
     expect(engine.input()).toBe('arrastra');
   }));
 
   it('an empty field offers recent searches, the patch\'s new ships and the Codex areas', fakeAsync(() => {
     engine.recent.set(['gladius']);
-    addedShipsMemo.and.resolveTo([
+    addedShipsMemo.mockResolvedValue([
       { classNameSlug: 'RSI_Zeus', nameLocalized: 'Zeus', manufacturerCode: 'RSI', size: 3, grade: null, attachType: null, payload: {} },
     ]);
     engine.ensureSuggestions();

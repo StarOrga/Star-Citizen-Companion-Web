@@ -154,8 +154,8 @@ describe('MerklisteService (Schnellzugriff)', () => {
       const c = svc.context()!;
       expect(c.ctx.id).toBe('inventar');
       expect(c.rows.map((r) => r.title)).toEqual(['Karna', 'S-38']);
-      expect(c.all.queryParams).toEqual(jasmine.objectContaining({ bestand: 'inventar', cat: 'weapons' }));
-      expect(c.rows[0].target?.queryParams).toEqual(jasmine.objectContaining({ cat: 'weapons', focus: 'klwe_rifle_energy_01' }));
+      expect(c.all.queryParams).toEqual(expect.objectContaining({ bestand: 'inventar', cat: 'weapons' }));
+      expect(c.rows[0].target?.queryParams).toEqual(expect.objectContaining({ cat: 'weapons', focus: 'klwe_rifle_energy_01' }));
       expect(c.rows[1].qty).toBe(2);
     });
 
@@ -172,7 +172,7 @@ describe('MerklisteService (Schnellzugriff)', () => {
       expect(c.ctx.id).toBe('hangar');
       expect(c.rows.map((r) => r.title)).toEqual(['Meine Cutter', 'AEGS_Gladius']);
       expect(c.rows[0].target?.link).toEqual(['/hq/hangar', 's2']);
-      expect(c.all.queryParams).toEqual(jasmine.objectContaining({ bestand: 'hangar' }));
+      expect(c.all.queryParams).toEqual(expect.objectContaining({ bestand: 'hangar' }));
     });
 
     it('Sammlung on a news page: the collected posts; on a blueprint page the collected blueprints', async () => {

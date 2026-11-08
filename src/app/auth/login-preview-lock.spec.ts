@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -20,17 +21,17 @@ import { ViewAs } from './impersonation-policy';
  * sign-in, (2) explain why, (3) offer `leavePreview()` as a shortcut.
  */
 describe('LoginComponent — signed-out preview lock', () => {
-  let signInWithPassword: jasmine.Spy;
-  let signInWithGoogle: jasmine.Spy;
-  let signInWithDiscord: jasmine.Spy;
-  let exit: jasmine.Spy;
+  let signInWithPassword: Mock;
+  let signInWithGoogle: Mock;
+  let signInWithDiscord: Mock;
+  let exit: Mock;
   let viewAs: ViewAs | null;
 
   function setup() {
-    signInWithPassword = jasmine.createSpy('signInWithPassword').and.resolveTo({ error: null });
-    signInWithGoogle = jasmine.createSpy('signInWithGoogle').and.resolveTo({ error: null });
-    signInWithDiscord = jasmine.createSpy('signInWithDiscord').and.resolveTo({ error: null });
-    exit = jasmine.createSpy('exit');
+    signInWithPassword = vi.fn().mockName('signInWithPassword').mockResolvedValue({ error: null });
+    signInWithGoogle = vi.fn().mockName('signInWithGoogle').mockResolvedValue({ error: null });
+    signInWithDiscord = vi.fn().mockName('signInWithDiscord').mockResolvedValue({ error: null });
+    exit = vi.fn().mockName('exit');
     TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [

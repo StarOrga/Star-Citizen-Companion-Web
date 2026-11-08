@@ -25,10 +25,10 @@ describe('codex area taxonomy (package C)', () => {
 
   it('treats game objects as not usable and player items as usable', () => {
     for (const t of ['Door', 'Seat', 'Display', 'ControlPanel', 'NOITEM_Player', 'Char_Head_Hair', 'Armor', '', null]) {
-      expect(isUsableAttachType(t)).withContext(String(t)).toBeFalse();
+      expect(isUsableAttachType(t), String(t)).toBe(false);
     }
     for (const t of ['Food', 'Drink', 'Char_Clothing_Hat', 'WeaponAttachment', 'Missile', 'Char_Armor_Helmet']) {
-      expect(isUsableAttachType(t)).withContext(t).toBeTrue();
+      expect(isUsableAttachType(t), t).toBe(true);
     }
   });
 

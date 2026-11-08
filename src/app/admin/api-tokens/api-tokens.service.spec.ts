@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
 import { fakeSupabase } from '../../testing/fake-supabase';
@@ -5,7 +6,7 @@ import { ApiTokensService } from './api-tokens.service';
 
 describe('ApiTokensService', () => {
   const base = `${environment.supabase.url}/functions/v1/api/v1/tokens`;
-  let fetchSpy: jasmine.Spy;
+  let fetchSpy: Mock;
 
   function setup(
     session: { access_token: string; user: { id: string } } | null = {
@@ -19,7 +20,7 @@ describe('ApiTokensService', () => {
   }
 
   function reply(status: number, body: unknown): void {
-    fetchSpy.and.resolveTo({
+    fetchSpy.mockResolvedValue({
       ok: status >= 200 && status < 300,
       status,
       json: () => (body === undefined ? Promise.reject(new Error('no body')) : Promise.resolve(body)),
@@ -27,17 +28,17 @@ describe('ApiTokensService', () => {
   }
 
   beforeEach(() => {
-    fetchSpy = spyOn(window, 'fetch');
+    fetchSpy = vi.spyOn(window, 'fetch').mockReturnValue(undefined as never);
   });
 
   it('list GETs the tokens route with the session bearer and unwraps data', async () => {
     reply(200, { data: [{ id: 't1' }] });
     const rows = await setup().list();
     expect(rows).toEqual([{ id: 't1' }] as never);
-    const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+    const [url, init] = vi.mocked(fetchSpy).mock.lastCall! as [string, RequestInit];
     expect(url).toBe(base);
     expect(init.method).toBe('GET');
-    expect(init.headers).toEqual(jasmine.objectContaining({ Authorization: 'Bearer jwt-1' }));
+    expect(init.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer jwt-1' }));
   });
 
   it('list answers an empty array when the body has no data', async () => {
@@ -48,7 +49,7 @@ describe('ApiTokensService', () => {
   it('omits the Authorization header without a session', async () => {
     reply(200, { data: [] });
     await setup(null).list();
-    const init = fetchSpy.calls.mostRecent().args[1] as RequestInit;
+    const init = vi.mocked(fetchSpy).mock.lastCall![1] as RequestInit;
     expect(Object.keys(init.headers as object)).not.toContain('Authorization');
   });
 
@@ -57,20 +58,20 @@ describe('ApiTokensService', () => {
     reply(201, { data: created });
     const out = await setup().create('CI', ['news:read']);
     expect(out).toEqual(created as never);
-    const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+    const [url, init] = vi.mocked(fetchSpy).mock.lastCall! as [string, RequestInit];
     expect(url).toBe(base);
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toEqual({ name: 'CI', scopes: ['news:read'] });
-    expect(init.headers).toEqual(jasmine.objectContaining({ Authorization: 'Bearer jwt-1' }));
+    expect(init.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer jwt-1' }));
   });
 
   it('revoke DELETEs the token id route', async () => {
     reply(204, undefined);
     await setup().revoke('t9');
-    const [url, init] = fetchSpy.calls.mostRecent().args as [string, RequestInit];
+    const [url, init] = vi.mocked(fetchSpy).mock.lastCall! as [string, RequestInit];
     expect(url).toBe(`${base}/t9`);
     expect(init.method).toBe('DELETE');
-    expect(init.headers).toEqual(jasmine.objectContaining({ Authorization: 'Bearer jwt-1' }));
+    expect(init.headers).toEqual(expect.objectContaining({ Authorization: 'Bearer jwt-1' }));
   });
 
   it('throws the envelope code with the HTTP status', async () => {

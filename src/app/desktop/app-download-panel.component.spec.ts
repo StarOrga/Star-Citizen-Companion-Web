@@ -90,7 +90,7 @@ describe('AppDownloadPanelComponent', () => {
 
     it('hides the projected channel picker from pointer and a11y tree', () => {
       const f = setup({ entries: [entry] }, true);
-      expect((f.nativeElement.querySelector('.ap-actions') as HTMLElement).hidden).toBeTrue();
+      expect((f.nativeElement.querySelector('.ap-actions') as HTMLElement).hidden).toBe(true);
     });
 
     it('keeps the panel itself — a shared link must not dead-end', () => {
@@ -103,7 +103,7 @@ describe('AppDownloadPanelComponent', () => {
       const f = setup({ entries: [entry] }, false);
       expect(f.nativeElement.querySelectorAll('a.ap-btn').length).toBe(1);
       expect(f.nativeElement.querySelector('.ap-nope')).toBeNull();
-      expect((f.nativeElement.querySelector('.ap-actions') as HTMLElement).hidden).toBeFalse();
+      expect((f.nativeElement.querySelector('.ap-actions') as HTMLElement).hidden).toBe(false);
     });
   });
 });

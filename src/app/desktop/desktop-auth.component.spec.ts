@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -16,18 +17,18 @@ import en from '../../../public/i18n/en.json';
  * explicit "Connect" click — nothing is minted or sent before it.
  */
 describe('DesktopAuthComponent', () => {
-  let invoke: jasmine.Spy;
-  let touch: jasmine.Spy;
-  let submit: jasmine.Spy;
+  let invoke: Mock;
+  let touch: Mock;
+  let submit: Mock;
 
   function setup() {
-    invoke = jasmine.createSpy('invoke').and.resolveTo({
+    invoke = vi.fn().mockName('invoke').mockResolvedValue({
       data: { access_token: 'desk-access', refresh_token: 'desk-refresh', expires_at: 1234 },
       error: null,
     });
-    touch = jasmine.createSpy('touch').and.resolveTo(undefined);
-    submit = spyOn(HTMLFormElement.prototype, 'submit');
-    const getSession = jasmine.createSpy('getSession').and.resolveTo({
+    touch = vi.fn().mockName('touch').mockResolvedValue(undefined);
+    submit = vi.spyOn(HTMLFormElement.prototype, 'submit').mockReturnValue(undefined as never);
+    const getSession = vi.fn().mockName('getSession').mockResolvedValue({
       data: { session: { access_token: 'browser-access', refresh_token: 'browser-refresh', expires_at: 99 } },
       error: null,
     });
@@ -66,7 +67,7 @@ describe('DesktopAuthComponent', () => {
   }
 
   function postedForm(): HTMLFormElement {
-    return submit.calls.mostRecent().object as HTMLFormElement;
+    return vi.mocked(submit).mock.contexts.at(-1) as HTMLFormElement;
   }
 
   afterEach(() => {
@@ -91,7 +92,8 @@ describe('DesktopAuthComponent', () => {
     await cmp.ngOnInit();
     await cmp.confirm();
     expect(invoke).toHaveBeenCalledTimes(1);
-    expect(touch).toHaveBeenCalledOnceWith('uploader');
+    expect(touch).toHaveBeenCalledTimes(1);
+    expect(touch).toHaveBeenCalledWith('uploader');
     expect(submit).toHaveBeenCalledTimes(1);
     const form = postedForm();
     expect(form.action).toBe('http://127.0.0.1:46821/cb');
@@ -136,13 +138,13 @@ describe('DesktopAuthComponent', () => {
 
 /** D16 step 10: callback validation and "token in the body, never the URL". */
 describe('DesktopAuthComponent — callback hardening', () => {
-  let submit: jasmine.Spy;
-  let invoke: jasmine.Spy;
+  let submit: Mock;
+  let invoke: Mock;
 
   function setup(params: Record<string, string>) {
-    invoke = jasmine.createSpy('invoke').and.resolveTo({ data: null, error: { message: 'no mint' } });
-    submit = spyOn(HTMLFormElement.prototype, 'submit');
-    const getSession = jasmine.createSpy('getSession').and.resolveTo({
+    invoke = vi.fn().mockName('invoke').mockResolvedValue({ data: null, error: { message: 'no mint' } });
+    submit = vi.spyOn(HTMLFormElement.prototype, 'submit').mockReturnValue(undefined as never);
+    const getSession = vi.fn().mockName('getSession').mockResolvedValue({
       data: { session: { access_token: 'browser-access', refresh_token: 'browser-refresh', expires_at: 99 } },
       error: null,
     });
@@ -201,7 +203,7 @@ describe('DesktopAuthComponent — callback hardening', () => {
     await cmp.ngOnInit();
     await cmp.confirm();
     expect(submit).toHaveBeenCalledTimes(1);
-    const form = submit.calls.mostRecent().object as HTMLFormElement;
+    const form = vi.mocked(submit).mock.contexts.at(-1) as HTMLFormElement;
     expect(form.method.toLowerCase()).toBe('post');
     expect(form.action).not.toContain('browser-access');
     expect(form.action).not.toContain('?');

@@ -24,7 +24,7 @@ describe('SameRouteRefreshService', () => {
     let hits = 0;
     service.onRefresh('/news').subscribe(() => hits++);
 
-    expect(service.request('/news')).toBeTrue();
+    expect(service.request('/news')).toBe(true);
     expect(hits).toBe(1);
   });
 
@@ -33,7 +33,7 @@ describe('SameRouteRefreshService', () => {
     service.onRefresh('/news').subscribe(() => hits++);
 
     url = '/codex';
-    expect(service.request('/news')).toBeFalse();
+    expect(service.request('/news')).toBe(false);
     expect(hits).toBe(0);
   });
 
@@ -50,13 +50,13 @@ describe('SameRouteRefreshService', () => {
     service.onRefresh('/news').subscribe(() => hits++);
 
     url = '/news?article=abc';
-    expect(service.request('/news')).toBeTrue();
+    expect(service.request('/news')).toBe(true);
 
     url = '/news#top';
-    expect(service.request('/news')).toBeTrue();
+    expect(service.request('/news')).toBe(true);
 
     url = '/news/';
-    expect(service.request('/news')).toBeTrue();
+    expect(service.request('/news')).toBe(true);
 
     expect(hits).toBe(3);
   });

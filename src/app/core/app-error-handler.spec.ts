@@ -1,3 +1,4 @@
+import type { Mock, MockedObject } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AnalyticsService } from './analytics.service';
@@ -7,17 +8,19 @@ import { ConsentService } from './consent.service';
 describe('AppErrorHandler', () => {
   let handler: AppErrorHandler;
   let consent: ConsentService;
-  let fakeClient: jasmine.SpyObj<{ captureException: (e: Error, p?: unknown) => void }>;
+  let fakeClient: MockedObject<{ captureException: (e: Error, p?: unknown) => void }>;
 
   beforeEach(() => {
     localStorage.clear();
-    spyOn(console, 'error');
+    vi.spyOn(console, 'error').mockReturnValue(undefined as never);
     TestBed.configureTestingModule({
       providers: [AppErrorHandler, AnalyticsService, ConsentService, provideRouter([])],
     });
     handler = TestBed.inject(AppErrorHandler);
     consent = TestBed.inject(ConsentService);
-    fakeClient = jasmine.createSpyObj('PostHog', ['captureException']);
+    fakeClient = {
+      captureException: vi.fn().mockName("PostHog.captureException")
+    };
     // Pretend posthog-js finished loading without actually loading it.
     (TestBed.inject(AnalyticsService) as unknown as { client: unknown }).client = fakeClient;
   });
@@ -32,7 +35,7 @@ describe('AppErrorHandler', () => {
     const err = new Error('probe');
     handler.handleError(err);
     expect(console.error).toHaveBeenCalledTimes(1);
-    const args = (console.error as jasmine.Spy).calls.mostRecent().args;
+    const args = vi.mocked((console.error as Mock)).mock.lastCall!;
     expect(args[0]).toBe('[app] unhandled error');
     expect((args[1] as { error: unknown }).error).toBe(err);
     expect(typeof (args[1] as { route: unknown }).route).toBe('string');
@@ -49,7 +52,7 @@ describe('AppErrorHandler', () => {
     handler.handleError(new Error('probe at https://x.test/a?token=1'));
     handler.handleError(new Error('probe at https://x.test/a?token=1'));
     expect(fakeClient.captureException).toHaveBeenCalledTimes(1);
-    const [sent, props] = fakeClient.captureException.calls.mostRecent().args;
+    const [sent, props] = vi.mocked(fakeClient.captureException).mock.lastCall!;
     expect(sent.message).toBe('probe at https://x.test/a');
     expect((props as Record<string, unknown>)['handled']).toBe(false);
   });
@@ -62,7 +65,9 @@ describe('AppErrorHandler', () => {
 
   it('never throws, even when the analytics service does', () => {
     consent.acceptAll();
-    fakeClient.captureException.and.throwError('posthog exploded');
+    fakeClient.captureException.mockImplementation(() => {
+      throw new Error('posthog exploded');
+    });
     expect(() => handler.handleError(new Error('probe'))).not.toThrow();
   });
 });

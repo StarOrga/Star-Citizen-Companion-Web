@@ -24,51 +24,51 @@ describe('canInstallDesktopApps', () => {
   it('says yes for a Windows desktop browser', () => {
     expect(
       canInstallDesktopApps(env({ uaDataPlatform: 'Windows', uaDataMobile: false, platform: 'Win32' })),
-    ).toBeTrue();
+    ).toBe(true);
   });
 
   it('says no when the browser reports itself as mobile', () => {
-    expect(canInstallDesktopApps(env({ uaDataMobile: true }))).toBeFalse();
+    expect(canInstallDesktopApps(env({ uaDataMobile: true }))).toBe(false);
   });
 
   it('says no for Android and iOS via Client Hints', () => {
-    expect(canInstallDesktopApps(env({ uaDataPlatform: 'Android' }))).toBeFalse();
-    expect(canInstallDesktopApps(env({ uaDataPlatform: 'iOS' }))).toBeFalse();
+    expect(canInstallDesktopApps(env({ uaDataPlatform: 'Android' }))).toBe(false);
+    expect(canInstallDesktopApps(env({ uaDataPlatform: 'iOS' }))).toBe(false);
   });
 
   it('falls back to the user agent when Client Hints are absent (Firefox, Safari)', () => {
-    expect(canInstallDesktopApps({ userAgent: ANDROID_UA, platform: 'Linux armv8l' })).toBeFalse();
-    expect(canInstallDesktopApps({ userAgent: IPHONE_UA, platform: 'iPhone' })).toBeFalse();
+    expect(canInstallDesktopApps({ userAgent: ANDROID_UA, platform: 'Linux armv8l' })).toBe(false);
+    expect(canInstallDesktopApps({ userAgent: IPHONE_UA, platform: 'iPhone' })).toBe(false);
   });
 
   it('unmasks an iPad claiming to be desktop Safari', () => {
     expect(
       canInstallDesktopApps({ userAgent: IPAD_DESKTOP_UA, platform: 'MacIntel', maxTouchPoints: 5 }),
-    ).toBeFalse();
+    ).toBe(false);
     // A real Mac reports the same platform with no touch screen.
     expect(
       canInstallDesktopApps({ userAgent: IPAD_DESKTOP_UA, platform: 'MacIntel', maxTouchPoints: 0 }),
-    ).toBeTrue();
+    ).toBe(true);
   });
 
   it('keeps a narrow desktop window a valid download target', () => {
     // Width is never consulted — there is not even an input for it.
-    expect(canInstallDesktopApps(env({ platform: 'Win32', coarsePointer: false }))).toBeTrue();
+    expect(canInstallDesktopApps(env({ platform: 'Win32', coarsePointer: false }))).toBe(true);
   });
 
   it('does not disqualify a touch-screen laptop that can still hover', () => {
     expect(
       canInstallDesktopApps(env({ platform: 'Win32', coarsePointer: true, noHover: false })),
-    ).toBeTrue();
+    ).toBe(true);
   });
 
   it('treats an unidentifiable coarse, hover-less pointer as a touch device', () => {
     expect(
       canInstallDesktopApps({ userAgent: '', platform: '', coarsePointer: true, noHover: true }),
-    ).toBeFalse();
+    ).toBe(false);
     expect(
       canInstallDesktopApps({ userAgent: '', platform: '', coarsePointer: false, noHover: false }),
-    ).toBeTrue();
+    ).toBe(true);
   });
 });
 
@@ -117,26 +117,26 @@ describe('DesktopCapabilityService', () => {
 
   it('allows the download on a desktop browser', () => {
     const { svc } = setup();
-    expect(svc.canInstall()).toBeTrue();
-    expect(svc.isMobileDevice()).toBeFalse();
+    expect(svc.canInstall()).toBe(true);
+    expect(svc.isMobileDevice()).toBe(false);
   });
 
   it('blocks it on a phone', () => {
     const { svc } = setup({ userAgent: ANDROID_UA, uaDataPlatform: 'Android', uaDataMobile: true });
-    expect(svc.canInstall()).toBeFalse();
-    expect(svc.isMobileDevice()).toBeTrue();
+    expect(svc.canInstall()).toBe(false);
+    expect(svc.isMobileDevice()).toBe(true);
   });
 
   it('re-evaluates when the pointer capabilities change', () => {
     // No identifiable platform, so the media queries decide — and keep deciding.
     const { svc, emit } = setup({ userAgent: '', platform: '' });
-    expect(svc.canInstall()).toBeTrue();
+    expect(svc.canInstall()).toBe(true);
 
     emit('(pointer: coarse)', true);
     emit('(hover: none)', true);
-    expect(svc.canInstall()).toBeFalse();
+    expect(svc.canInstall()).toBe(false);
 
     emit('(hover: none)', false);
-    expect(svc.canInstall()).toBeTrue();
+    expect(svc.canInstall()).toBe(true);
   });
 });

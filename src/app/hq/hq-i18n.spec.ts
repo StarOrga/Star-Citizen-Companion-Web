@@ -38,7 +38,7 @@ describe('hq.* wording', () => {
 
   it('names the five pages and the eight step verbs', () => {
     const hq = (de as unknown as { hq: { pages: Tree; step: { kind: Tree } } }).hq;
-    expect(Object.keys(hq.pages)).toEqual(jasmine.arrayContaining(['start', 'planen', 'jetzt', 'inventar', 'statistik']));
+    expect(Object.keys(hq.pages)).toEqual(expect.arrayContaining(['start', 'planen', 'jetzt', 'inventar', 'statistik']));
     expect(Object.keys(hq.step.kind).sort()).toEqual(['buy', 'craft', 'event', 'mine', 'mission', 'pickup', 'refine', 'transport']);
   });
 });

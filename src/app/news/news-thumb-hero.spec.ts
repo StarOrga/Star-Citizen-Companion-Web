@@ -22,23 +22,23 @@ const POSTER = { w: 743, h: 1050 };        // ratio 0.71 — a portrait poster
 
 describe('news thumb · what counts as a title image', () => {
   it('accepts the shapes a real hero comes in', () => {
-    expect(isHeroImage(HERO_BANNER)).toBeTrue();
-    expect(isHeroImage(OG_COVER)).toBeTrue();
-    expect(isHeroImage({ w: 1920, h: 1080 })).toBeTrue();
+    expect(isHeroImage(HERO_BANNER)).toBe(true);
+    expect(isHeroImage(OG_COVER)).toBe(true);
+    expect(isHeroImage({ w: 1920, h: 1080 })).toBe(true);
   });
 
   it('rejects a wide strip — the lower third that reported as "no image"', () => {
-    expect(isHeroImage(LOWER_THIRD)).toBeFalse();
+    expect(isHeroImage(LOWER_THIRD)).toBe(false);
   });
 
   it('rejects a portrait poster, which is what the slideshow is for', () => {
-    expect(isHeroImage(POSTER)).toBeFalse();
-    expect(isArtwork(POSTER)).toBeTrue();
+    expect(isHeroImage(POSTER)).toBe(false);
+    expect(isArtwork(POSTER)).toBe(true);
   });
 
   it('drops divider rules from the tile entirely, hero or slide', () => {
-    expect(isHeroImage(DIVIDER)).toBeFalse();
-    expect(isArtwork(DIVIDER)).toBeFalse();
+    expect(isHeroImage(DIVIDER)).toBe(false);
+    expect(isArtwork(DIVIDER)).toBe(false);
   });
 });
 
@@ -105,14 +105,14 @@ describe('news thumb · hero scan', () => {
     fixture.detectChanges();
     // The strip is rejected, so the next candidate is mounted and nothing the
     // scan has touched may be revealed.
-    expect(thumb.revealable()).toBeFalse();
+    expect(thumb.revealable()).toBe(false);
   });
 
   it('walks past the strip and the rules and settles on the real banner', () => {
     settle();
     expect(thumb.mode()).toBe('hero');
     expect(thumb.display()).toEqual(['banner']);
-    expect(thumb.revealable()).toBeTrue();
+    expect(thumb.revealable()).toBe(true);
   });
 
   it('stops at the first candidate when the feed already leads with the hero', () => {

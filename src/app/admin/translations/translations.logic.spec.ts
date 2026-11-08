@@ -14,17 +14,17 @@ import {
 
 describe('translations.logic', () => {
   it('offers Approve only while awaiting approval', () => {
-    expect(canApprove('awaiting_approval')).toBeTrue();
-    expect(canApprove('queued')).toBeFalse();
-    expect(canApprove('published')).toBeFalse();
+    expect(canApprove('awaiting_approval')).toBe(true);
+    expect(canApprove('queued')).toBe(false);
+    expect(canApprove('published')).toBe(false);
   });
 
   it('offers Cancel for every unfinished status only', () => {
     for (const s of ['estimating', 'awaiting_approval', 'queued', 'submitted', 'validating', 'post_editing', 'publishing']) {
-      expect(canCancel(s)).withContext(s).toBeTrue();
+      expect(canCancel(s), s).toBe(true);
     }
     for (const s of ['published', 'failed', 'cancelled', 'skipped']) {
-      expect(canCancel(s)).withContext(s).toBeFalse();
+      expect(canCancel(s), s).toBe(false);
     }
   });
 

@@ -91,7 +91,7 @@ describe('stat-labels (AUD-060)', () => {
         'Legacy Thrust Params.Boost Scale',
         'Ammo Class Name',
       ]) {
-        expect(isEngineInternalStatLabel(key)).withContext(key).toBeTrue();
+        expect(isEngineInternalStatLabel(key), key).toBe(true);
       }
     });
 
@@ -109,8 +109,8 @@ describe('stat-labels (AUD-060)', () => {
     });
 
     it('keeps a stat that only sounds technical', () => {
-      expect(isEngineInternalStatLabel('Radiation Resistance.Radiation Dissipation Rate')).toBeFalse();
-      expect(isEngineInternalStatLabel('Duration')).toBeFalse();
+      expect(isEngineInternalStatLabel('Radiation Resistance.Radiation Dissipation Rate')).toBe(false);
+      expect(isEngineInternalStatLabel('Duration')).toBe(false);
     });
   });
 });

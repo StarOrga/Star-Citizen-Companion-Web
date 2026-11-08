@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -36,13 +37,13 @@ describe('UpcomingShipsService', () => {
   let http: HttpTestingController;
 
   let wishedNames: Set<string>;
-  let addSpy: jasmine.Spy;
+  let addSpy: Mock;
   let addResult = true;
   let bump: () => void;
 
   function setup(preferencesAllowed = true) {
     wishedNames = new Set();
-    addSpy = jasmine.createSpy('add').and.callFake(async () => addResult);
+    addSpy = vi.fn().mockName('add').mockImplementation(async () => addResult);
     const user = signal<unknown>({ id: 'u1' });
     // The wishlist keys off a signal so the computed in the service re-reads it.
     const names = signal(0);
@@ -103,7 +104,7 @@ describe('UpcomingShipsService', () => {
     setup();
     await flush(feed([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]));
     expect(svc.diff().added.map((s) => s.id)).toEqual(['b']);
-    expect(svc.newIds().has('b')).toBeTrue();
+    expect(svc.newIds().has('b')).toBe(true);
     expect(svc.notificationCount()).toBe(1);
   });
 
@@ -128,10 +129,10 @@ describe('UpcomingShipsService', () => {
   it('reads the wished state from the one wishlist, with no star list of its own', async () => {
     setup();
     await flush(feed([{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }]));
-    expect(svc.isWished('a')).toBeFalse();
+    expect(svc.isWished('a')).toBe(false);
     wishedNames.add('B');
     bump();
-    expect(svc.isWished('b')).toBeTrue();
+    expect(svc.isWished('b')).toBe(true);
     expect([...svc.wishedIds()]).toEqual(['b']);
   });
 
@@ -149,7 +150,8 @@ describe('UpcomingShipsService', () => {
     TestBed.tick();
     await Promise.resolve();
     await Promise.resolve();
-    expect(addSpy).toHaveBeenCalledOnceWith('upcoming', 'a', 'Ship A');
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(addSpy).toHaveBeenCalledWith('upcoming', 'a', 'Ship A');
     expect(localStorage.getItem(FAVORITES_KEY)).toBeNull();
   });
 
@@ -160,7 +162,8 @@ describe('UpcomingShipsService', () => {
     TestBed.tick();
     await Promise.resolve();
     await Promise.resolve();
-    expect(addSpy).toHaveBeenCalledOnceWith('upcoming', 'a', 'Ship A');
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(addSpy).toHaveBeenCalledWith('upcoming', 'a', 'Ship A');
     expect(localStorage.getItem(LEGACY_FAVORITES_KEY)).toBeNull();
     expect(localStorage.getItem(FAVORITES_KEY)).toBeNull();
   });
@@ -275,11 +278,11 @@ describe('UpcomingShipsService', () => {
     it('never flips the visible loading flag (the Codex loads it in the background)', async () => {
       setup();
       const pending = svc.ensureLoaded();
-      expect(svc.loading()).toBeFalse();
+      expect(svc.loading()).toBe(false);
       http.expectOne((r) => r.url.endsWith('/functions/v1/rsi-upcoming-ships'))
         .flush(feed([{ id: 'a', name: 'A' }]));
       await pending;
-      expect(svc.loading()).toBeFalse();
+      expect(svc.loading()).toBe(false);
     });
   });
 

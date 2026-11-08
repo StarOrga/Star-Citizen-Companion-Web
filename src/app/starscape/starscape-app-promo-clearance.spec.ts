@@ -16,7 +16,7 @@ const DISMISS_KEY = 'sc.starscapePromo.dismissed';
 /** A resolved CSS length, e.g. "92px". */
 function px(value: string): number {
   const n = Number.parseFloat(value);
-  expect(Number.isFinite(n)).withContext(`"${value}" is a px length`).toBeTrue();
+  expect(Number.isFinite(n), `"${value}" is a px length`).toBe(true);
   return n;
 }
 
@@ -117,12 +117,10 @@ describe('Starscape promo vs. the feedback launcher', () => {
     fixture.detectChanges();
 
     const card = fixture.nativeElement.querySelector('.promo') as HTMLElement;
-    expect(card).withContext('promo rendered').not.toBeNull();
+    expect(card, 'promo rendered').not.toBeNull();
 
     const right = px(getComputedStyle(card).right);
-    expect(right)
-      .withContext('promo must clear the launcher lane, with a gutter')
-      .toBeGreaterThanOrEqual(lane() + token('--sc-fab-gutter'));
+    expect(right, 'promo must clear the launcher lane, with a gutter').toBeGreaterThanOrEqual(lane() + token('--sc-fab-gutter'));
 
     fixture.componentInstance.closeForSession();
     fixture.destroy();

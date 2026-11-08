@@ -57,10 +57,8 @@ describe('runaway feedback text at 375px', () => {
     const { frame, bodyEl } = await render('a'.repeat(9800));
 
     const span = bodyEl.querySelector('span.sc-longword') as HTMLElement | null;
-    expect(span).withContext('the runaway token is marked').not.toBeNull();
-    expect(getComputedStyle(span!).whiteSpace)
-      .withContext('the GLOBAL .sc-longword rule reaches innerHTML content')
-      .toBe('nowrap');
+    expect(span, 'the runaway token is marked').not.toBeNull();
+    expect(getComputedStyle(span!).whiteSpace, 'the GLOBAL .sc-longword rule reaches innerHTML content').toBe('nowrap');
 
     // One line, not two hundred — an inline box that wrapped would report one
     // client rect per line it occupies.
@@ -77,8 +75,8 @@ describe('runaway feedback text at 375px', () => {
     const { frame, bodyEl } = await render(prose);
 
     expect(bodyEl.querySelector('span.sc-longword')).toBeNull();
-    expect(bodyEl.scrollWidth).withContext('no sideways scroll for prose').toBe(bodyEl.clientWidth);
-    expect(bodyEl.clientHeight).withContext('prose still wraps onto many lines').toBeGreaterThan(40);
+    expect(bodyEl.scrollWidth, 'no sideways scroll for prose').toBe(bodyEl.clientWidth);
+    expect(bodyEl.clientHeight, 'prose still wraps onto many lines').toBeGreaterThan(40);
     expect(frame.scrollWidth).toBe(frame.clientWidth);
   });
 

@@ -67,7 +67,7 @@ describe('usedUpRecently', () => {
       current,
       now,
     );
-    expect(out).toEqual([jasmine.objectContaining({ key: 'nade', qty: 3 })]);
+    expect(out).toEqual([expect.objectContaining({ key: 'nade', qty: 3 })]);
   });
 
   it('ignores snapshots older than 48 hours, undone ones and other event types', () => {
@@ -85,8 +85,8 @@ describe('usedUpRecently', () => {
 describe('pageOf', () => {
   it('pages a list and clamps the page', () => {
     const list = Array.from({ length: 43 }, (_, i) => i);
-    expect(pageOf(list, 0, 22)).toEqual(jasmine.objectContaining({ from: 1, to: 22, pages: 2, total: 43 }));
-    expect(pageOf(list, 9, 22)).toEqual(jasmine.objectContaining({ page: 1, from: 23, to: 43 }));
-    expect(pageOf([], 0, 5)).toEqual(jasmine.objectContaining({ from: 0, to: 0, pages: 1 }));
+    expect(pageOf(list, 0, 22)).toEqual(expect.objectContaining({ from: 1, to: 22, pages: 2, total: 43 }));
+    expect(pageOf(list, 9, 22)).toEqual(expect.objectContaining({ page: 1, from: 23, to: 43 }));
+    expect(pageOf([], 0, 5)).toEqual(expect.objectContaining({ from: 0, to: 0, pages: 1 }));
   });
 });

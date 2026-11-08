@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
@@ -21,12 +22,12 @@ describe('snapshotAge', () => {
   });
 
   it('turns stale exactly from 7 days', () => {
-    expect(snapshotAge(new Date(NOW - (HQ_STOCK_STALE_DAYS * DAY - 1)).toISOString(), NOW).stale).toBeFalse();
-    expect(snapshotAge(new Date(NOW - HQ_STOCK_STALE_DAYS * DAY).toISOString(), NOW).stale).toBeTrue();
+    expect(snapshotAge(new Date(NOW - (HQ_STOCK_STALE_DAYS * DAY - 1)).toISOString(), NOW).stale).toBe(false);
+    expect(snapshotAge(new Date(NOW - HQ_STOCK_STALE_DAYS * DAY).toISOString(), NOW).stale).toBe(true);
   });
 
   it('treats a future or invalid timestamp as just now', () => {
-    expect(snapshotAge(new Date(NOW + DAY).toISOString(), NOW).stale).toBeFalse();
+    expect(snapshotAge(new Date(NOW + DAY).toISOString(), NOW).stale).toBe(false);
     expect(snapshotAge('nope', NOW).n).toBe(0);
   });
 });
@@ -77,12 +78,12 @@ describe('stats zero-fill', () => {
     const s = normalizeStats(null, '30d', NOW);
     expect(s.auec.series.length).toBe(30);
     expect(s.missions.total).toBe(0);
-    expect(s.deaths_claims.series.every((p) => p.deaths === 0 && p.claims === 0)).toBeTrue();
+    expect(s.deaths_claims.series.every((p) => p.deaths === 0 && p.claims === 0)).toBe(true);
   });
 });
 
 describe('HqStatsService', () => {
-  function make(rpc: jasmine.Spy): HqStatsService {
+  function make(rpc: Mock): HqStatsService {
     TestBed.configureTestingModule({
       providers: [{ provide: SupabaseClientProvider, useValue: { client: { rpc } } }],
     });
@@ -90,7 +91,7 @@ describe('HqStatsService', () => {
   }
 
   it('loads and zero-fills', async () => {
-    const svc = make(jasmine.createSpy('rpc').and.resolveTo({ data: { range: '7d', bucket: 'day', missions: { total: 2, series: [] } }, error: null }));
+    const svc = make(vi.fn().mockName('rpc').mockResolvedValue({ data: { range: '7d', bucket: 'day', missions: { total: 2, series: [] } }, error: null }));
     await svc.load('7d');
     expect(svc.stats()?.missions.total).toBe(2);
     expect(svc.stats()?.missions.series.length).toBe(7);
@@ -98,7 +99,7 @@ describe('HqStatsService', () => {
   });
 
   it('records an error key on failure', async () => {
-    const svc = make(jasmine.createSpy('rpc').and.resolveTo({ data: null, error: new Error('boom') }));
+    const svc = make(vi.fn().mockName('rpc').mockResolvedValue({ data: null, error: new Error('boom') }));
     await svc.load('7d');
     expect(svc.error()).toMatch(/^errors\./);
     expect(svc.stats()).toBeNull();
@@ -128,7 +129,7 @@ describe('patch feed', () => {
     expect(mapPatchHit(patch)?.linkQuery).toBeUndefined();
     const fps: HqFleetPatch = { ...patch, lines: [patch.lines[1]] };
     expect(mapPatchHit(fps)?.link).toEqual(['/hq/locker', 'f1']);
-    expect(mapPatchHit(fps)?.weaker).toBeFalse();
+    expect(mapPatchHit(fps)?.weaker).toBe(false);
   });
 
   it('a hit without a set has no link, and a raw class name becomes readable', () => {
@@ -144,7 +145,7 @@ describe('patch feed', () => {
   });
 
   it('feeds HqStartFeedService after load and clears on failure', async () => {
-    const rpc = jasmine.createSpy('rpc').and.resolveTo({ data: patch, error: null });
+    const rpc = vi.fn().mockName('rpc').mockResolvedValue({ data: patch, error: null });
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
@@ -168,7 +169,7 @@ describe('patch feed', () => {
     // The variant id resolves through the ownership index to the ship's personal view.
     expect(feed.patchHit()?.link).toEqual(['/codex/ship', 'AEGS_Gladius']);
     expect(feed.patchHit()?.linkQuery).toEqual({ v: 'sh1' });
-    rpc.and.resolveTo({ data: null, error: new Error('x') });
+    rpc.mockResolvedValue({ data: null, error: new Error('x') });
     await svc.load();
     expect(feed.patchHit()).toBeNull();
     expect(svc.error()).toBeTruthy();
@@ -177,7 +178,7 @@ describe('patch feed', () => {
   it('shell beta: the variant id opens the HQ ship page with that variant', async () => {
     localStorage.setItem('sc.beta', JSON.stringify({ shell: true }));
     try {
-      const rpc = jasmine.createSpy('rpc').and.resolveTo({ data: patch, error: null });
+      const rpc = vi.fn().mockName('rpc').mockResolvedValue({ data: patch, error: null });
       TestBed.configureTestingModule({
         providers: [
           provideTranslateService({ fallbackLang: 'en' }),

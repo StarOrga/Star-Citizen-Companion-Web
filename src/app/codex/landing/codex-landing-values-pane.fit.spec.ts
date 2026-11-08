@@ -36,11 +36,13 @@ describe('Codex landing data sheet: always the column height, never scrolls (#8)
       expect(getComputedStyle(body).overflowY).not.toBe('auto');
       const go = host.querySelector<HTMLElement>('.go')!;
       expect(go.getBoundingClientRect().bottom).toBeLessThanOrEqual(host.getBoundingClientRect().bottom + 1);
-      const cut = Array.from(host.querySelectorAll<HTMLElement>('.row')).map((r) => r.classList.contains('cut'));
+      // Only rows the sheet lists: from 1100 px the callout rows stand at the hologram, not here.
+      const listed = Array.from(host.querySelectorAll<HTMLElement>('.row')).filter((r) => r.classList.contains('cut') || r.getClientRects().length > 0);
+      const cut = listed.map((r) => r.classList.contains('cut'));
       const firstCut = cut.indexOf(true);
-      if (firstCut !== -1) expect(cut.slice(firstCut).every(Boolean)).withContext('the cut rows are the last ones').toBeTrue();
-      if (h === 700) expect(cut.some(Boolean)).toBeFalse();
-      if (h === 180) expect(cut.some(Boolean)).toBeTrue();
+      if (firstCut !== -1) expect(cut.slice(firstCut).every(Boolean), 'the cut rows are the last ones').toBe(true);
+      if (h === 700) expect(cut.some(Boolean)).toBe(false);
+      if (h === 180) expect(cut.some(Boolean)).toBe(true);
       fixture.destroy();
       host.remove();
     });

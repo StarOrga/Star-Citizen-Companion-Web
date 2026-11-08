@@ -133,7 +133,7 @@ describe('rankShip', () => {
       profile: 'combat',
       scope: 'all',
     });
-    expect(r.axes.find((a) => a.key === 'alpha')!.weak).toBeTrue();
+    expect(r.axes.find((a) => a.key === 'alpha')!.weak).toBe(true);
   });
 
   it('scales every axis from 0 to the best value of the chosen group', () => {
@@ -194,7 +194,7 @@ describe('role scope', () => {
     const r = rankShip(target, roleCohort, { profile: 'combat', scope: 'role' });
     expect(r.scope).toBe('all');
     expect(r.scopeFallbackKey).toBe('codex.rank.disabled.noData');
-    expect(r.scopeAvailable.role).toBeFalse();
+    expect(r.scopeAvailable.role).toBe(false);
   });
 });
 
@@ -262,7 +262,7 @@ describe('cohort cache', () => {
 
   it('round-trips a cohort keyed by build and scope', () => {
     const key = cohortCacheKey('build-1', 'sizeClass', '2');
-    expect(writeCohortCache(key, cohort)).toBeTrue();
+    expect(writeCohortCache(key, cohort)).toBe(true);
     expect(readCohortCache(key)!.map((s) => s.className)).toEqual(cohort.map((s) => s.className));
   });
 
@@ -290,7 +290,7 @@ describe('cohort cache — an oversized fleet must not be retried every visit', 
       // ~3 kB per ship pushes the blob past the 2 MB guard
       sheet: { note: 'x'.repeat(3000) } as unknown as RankShipInput['sheet'],
     })) as RankShipInput[];
-    expect(writeCohortCache('scc-cohort-test-fat', fat)).toBeFalse();
+    expect(writeCohortCache('scc-cohort-test-fat', fat)).toBe(false);
     expect(localStorage.getItem('scc-cohort-test-fat')).toBeNull();
   });
 
@@ -298,7 +298,7 @@ describe('cohort cache — an oversized fleet must not be retried every visit', 
     const lean: RankShipInput[] = [
       { className: 'CNOU_Nomad', sizeClass: null, career: null, sheet: { alpha: 131 } as never },
     ];
-    expect(writeCohortCache('scc-cohort-test-lean', lean)).toBeTrue();
+    expect(writeCohortCache('scc-cohort-test-lean', lean)).toBe(true);
     expect(readCohortCache('scc-cohort-test-lean')?.length).toBe(1);
     localStorage.removeItem('scc-cohort-test-lean');
   });

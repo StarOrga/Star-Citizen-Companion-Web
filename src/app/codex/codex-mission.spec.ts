@@ -36,9 +36,9 @@ describe('codex-mission', () => {
   it('folds weapons+missiles for transport, travel and stealth', () => {
     for (const id of ['transport', 'travel', 'stealth'] as const) {
       const folded = foldedSectionsFor(missionById(id));
-      expect(folded.has('weapons')).toBeTrue();
-      expect(folded.has('remoteTurrets')).toBeTrue();
-      expect(folded.has('missiles')).toBeTrue();
+      expect(folded.has('weapons')).toBe(true);
+      expect(folded.has('remoteTurrets')).toBe(true);
+      expect(folded.has('missiles')).toBe(true);
     }
   });
 

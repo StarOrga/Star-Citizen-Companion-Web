@@ -60,7 +60,7 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
   it('Zur Mission: a link, and only where the row names the mission (A9)', () => {
     const target = { link: ['/codex', 'missions', 'm1'], queryParams: null };
     const cta = resolveCta(searchContextOf('/codex'), rowOf('blueprint', { missionTarget: target }));
-    expect(cta).toEqual(jasmine.objectContaining({ id: 'toMission', type: 'link', target }));
+    expect(cta).toEqual(expect.objectContaining({ id: 'toMission', type: 'link', target }));
     expect(resolveCta(searchContextOf('/codex'), rowOf('blueprint'))).toBeNull();
   });
 
@@ -95,7 +95,7 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
     const fitted = { ...OWN, shipId: null, equippedOnShipId: 'h9', fittedOn: [{ shipId: 'h7', name: 'Nachtfalke', count: 2 }] };
     it('links to the hangar ship the piece is fitted on, in its own wording', () => {
       const cta = resolveCta(hangar, rowOf('weaponComponent', { ownership: fitted }));
-      expect(cta).toEqual(jasmine.objectContaining({ id: 'whereInstalled', labelKey: 'search.cta.whereInstalled', type: 'link' }));
+      expect(cta).toEqual(expect.objectContaining({ id: 'whereInstalled', labelKey: 'search.cta.whereInstalled', type: 'link' }));
       expect(cta?.target?.link).toEqual(['/hq/hangar', 'h7']);
     });
     it('also for components', () => {
@@ -113,12 +113,12 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
   describe('Passende Schiffe (Neutral / Abgemeldet x Waffe/Komp.)', () => {
     it('links to the ship index filtered by the piece', () => {
       const cta = resolveCta(searchContextOf('/codex'), rowOf('weaponComponent', { classNameSlug: 'BEHR_LaserCannon_S3' }));
-      expect(cta).toEqual(jasmine.objectContaining({ id: 'fittingShips', type: 'link', labelKey: 'search.cta.fittingShips' }));
+      expect(cta).toEqual(expect.objectContaining({ id: 'fittingShips', type: 'link', labelKey: 'search.cta.fittingShips' }));
       expect(cta?.target).toEqual({ link: ['/codex', 'index'], queryParams: { kind: 'ship', fits: 'BEHR_LaserCannon_S3' } });
     });
     it('is a plain link signed out too (reading needs no account)', () => {
       const cta = resolveCta(searchContextOf('/codex'), rowOf('weaponComponent', { kind: 'component' }));
-      expect(cta).toEqual(jasmine.objectContaining({ id: 'fittingShips' }));
+      expect(cta).toEqual(expect.objectContaining({ id: 'fittingShips' }));
     });
   });
 
@@ -134,7 +134,7 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
     const chipShip = searchContextOf('/codex/ship/AEGS_Gladius');
     it('Chip Schiff x Waffe/Komp.: onto the reader\'s own ship of the chip class, with ?mount=', () => {
       const cta = resolveCta(chipShip, rowOf('weaponComponent', { classNameSlug: 'BEHR_S3', chipShipId: 'h4' }));
-      expect(cta).toEqual(jasmine.objectContaining({ id: 'mount', type: 'link', labelKey: 'search.cta.mount' }));
+      expect(cta).toEqual(expect.objectContaining({ id: 'mount', type: 'link', labelKey: 'search.cta.mount' }));
       expect(cta?.target).toEqual({ link: ['/hq/hangar', 'h4'], queryParams: { mount: 'BEHR_S3' } });
     });
     it('Chip Schiff without an own ship of that class falls back to Passende Schiffe', () => {
@@ -154,7 +154,7 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
   describe('Bezugsquelle for ships (HQ Planen x Schiff)', () => {
     it('links to the ship page at its where-to-buy section', () => {
       const cta = resolveCta(searchContextOf('/hq', 'planen'), rowOf('ship', { target: { link: ['/codex', 'ship', 'AEGS_Gladius'], queryParams: null } }));
-      expect(cta).toEqual(jasmine.objectContaining({ id: 'sourceOf', type: 'link' }));
+      expect(cta).toEqual(expect.objectContaining({ id: 'sourceOf', type: 'link' }));
       expect(cta?.target).toEqual({ link: ['/codex', 'ship', 'AEGS_Gladius'], queryParams: null, fragment: 'bezugsquelle' });
     });
   });
@@ -162,7 +162,7 @@ describe('search CTA matrix (round 3, q3-matrix)', () => {
   describe('Zum Einsatz (Neutral / HQ Planen x Mission)', () => {
     it('is an action (a button), not a link', () => {
       const cta = resolveCta(searchContextOf('/hq', 'planen'), rowOf('mission'));
-      expect(cta).toEqual(jasmine.objectContaining({ id: 'toEinsatz', type: 'action', target: null }));
+      expect(cta).toEqual(expect.objectContaining({ id: 'toEinsatz', type: 'action', target: null }));
     });
   });
 

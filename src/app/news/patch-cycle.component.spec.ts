@@ -6,6 +6,7 @@ import { groupPatchNotes } from './patch-notes';
 import { stackCardFor } from './patch-stack';
 import type { VerseNewsItem } from './news.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import deCatalog from '../../../public/i18n/de.json';
 
 /**
  * The cycle axis as it is laid out (feedback 01df732d, follow-up).
@@ -62,10 +63,8 @@ describe('Patch cycle axis — the panel may not print over itself', () => {
   let fixture: ComponentFixture<PatchCycleComponent>;
   let de: TranslationObject;
 
-  beforeAll(async () => {
-    const res = await fetch('/i18n/de.json');
-    expect(res.ok).toBeTrue();
-    de = await res.json();
+  beforeAll(() => {
+    de = deCatalog;
   });
 
   async function render(line: string, width: number, now = NOW): Promise<void> {
@@ -102,9 +101,7 @@ describe('Patch cycle axis — the panel may not print over itself', () => {
         for (let j = i + 1; j < els.length; j++) {
           const a = els[i].getBoundingClientRect();
           const b = els[j].getBoundingClientRect();
-          expect(overlaps(a, b))
-            .withContext(width + 'px: "' + label(els[i]) + '" over "' + label(els[j]) + '"')
-            .toBeFalse();
+          expect(overlaps(a, b), width + 'px: "' + label(els[i]) + '" over "' + label(els[j]) + '"').toBe(false);
         }
       }
     });
@@ -114,8 +111,8 @@ describe('Patch cycle axis — the panel may not print over itself', () => {
       const host = root().getBoundingClientRect();
       for (const el of boxes()) {
         const r = el.getBoundingClientRect();
-        expect(r.left).withContext('left of "' + label(el) + '"').toBeGreaterThanOrEqual(host.left - 0.5);
-        expect(r.right).withContext('right of "' + label(el) + '"').toBeLessThanOrEqual(host.right + 0.5);
+        expect(r.left, 'left of "' + label(el) + '"').toBeGreaterThanOrEqual(host.left - 0.5);
+        expect(r.right, 'right of "' + label(el) + '"').toBeLessThanOrEqual(host.right + 0.5);
       }
     });
   }
@@ -137,7 +134,7 @@ describe('Patch cycle axis — the panel may not print over itself', () => {
     // The rail still carries every marker — they just stopped carrying prose.
     expect((Array.from(root().querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key')))
       .toEqual(['prevLive', 'firstTest', 'leadUsual', 'live', 'hotfix', 'now', 'usual']);
-    expect(root().querySelector('.track .lab')).withContext('no free-floating labels left').toBeNull();
+    expect(root().querySelector('.track .lab'), 'no free-floating labels left').toBeNull();
     // The names that came off the rail stay reachable on hover, via the app tooltip.
     const hotfixPt = fixture.debugElement.query(By.css('.pt[data-key="hotfix"]'));
     expect(hotfixPt.injector.get(ScTooltipDirective).scTooltip()).toContain('Hotfix');

@@ -11,8 +11,8 @@ describe('VerseGalleryItemComponent upvote', () => {
   const wp = { imageId: 'img-1', title: 'T', sourceUrl: 'https://x/a.jpg', previewUrl: 'https://x/p.jpg', articleUrl: 'https://x/art' };
 
   function setup() {
-    const syncCounts = jasmine.createSpy('syncCounts').and.resolveTo(undefined);
-    const toggle = jasmine.createSpy('toggle').and.resolveTo(undefined);
+    const syncCounts = vi.fn().mockName('syncCounts').mockResolvedValue(undefined);
+    const toggle = vi.fn().mockName('toggle').mockResolvedValue(undefined);
     TestBed.configureTestingModule({
       imports: [VerseGalleryItemComponent],
       providers: [

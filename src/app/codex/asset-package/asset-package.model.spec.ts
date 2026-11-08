@@ -16,60 +16,7 @@ import {
   placementsForPorts,
   scopedHotspots,
 } from './asset-package.model';
-
-export function placementFixture(over: Record<string, unknown>): Record<string, unknown> {
-  return {
-    id: 'hp',
-    portName: 'hp',
-    helperName: null,
-    parentPort: null,
-    group: 'components',
-    itemClass: null,
-    itemGuid: null,
-    itemType: null,
-    itemSubType: null,
-    itemSize: null,
-    parentClass: 'SHIP',
-    port: null,
-    loadout: 'default',
-    partSha256: null,
-    position: null,
-    rotation: null,
-    ...over,
-  };
-}
-
-export function manifestFixture(): Record<string, unknown> {
-  return {
-    schemaVersion: 1,
-    kind: 'ship',
-    coordinateSystem: 'gltf-y-up-metres',
-    entity: { className: 'AEGS_Gladius', guid: 'g' },
-    root: { sha256: 'root', bytes: 10, bounds: { min: [-5, -2, -10], max: [5, 2, 10] } },
-    interior: { sha256: 'int', bytes: 5 },
-    parts: { pp: { bytes: 3, geometryPath: 'a.cgf', bounds: null }, gun: { bytes: 3, geometryPath: 'g.cgf', bounds: null } },
-    placements: [
-      placementFixture({
-        id: 'hardpoint_power_plant', portName: 'hardpoint_power_plant', itemClass: 'POWR_A', itemType: 'PowerPlant',
-        itemSize: 1, partSha256: 'pp', position: [0, 0.1, -1.7], rotation: [0, 0, 0, 1],
-      }),
-      placementFixture({
-        id: 'turret', portName: 'turret', group: 'weapons', itemClass: 'MOUNT', partSha256: 'gun',
-        position: [1, 0, 0], rotation: [0, 0, 0, 1],
-      }),
-      placementFixture({
-        id: 'turret/gun', portName: 'gun', parentPort: 'turret', group: 'weapons', itemClass: 'GUN', partSha256: 'gun',
-        position: [1, 0.5, 0], rotation: [0, 0, 0, 1],
-      }),
-      placementFixture({ id: 'paint', portName: 'hardpoint_paint', group: 'other' }),
-      placementFixture({
-        id: 'optic', portName: 'optics_attach', group: 'attachments',
-        port: { minSize: 1, maxSize: 2, types: ['WeaponAttachment.IronSight'], flags: [], editable: true }, loadout: 'empty',
-      }),
-      placementFixture({ id: 'half', portName: 'half', itemClass: 'X', position: [1, 2, 3], rotation: null }),
-    ],
-  };
-}
+import { manifestFixture, placementFixture } from './asset-package.testing';
 
 describe('asset-package model', () => {
   it('parses a manifest and keeps transforms verbatim', () => {
@@ -108,7 +55,7 @@ describe('asset-package model', () => {
       kind: 'item', entity_class: 'POWR_A', ship_id: null, manifest_sha256: 'm', root_sha256: 'r',
       interior_sha256: null, part_count: 2, total_bytes: 99, schema_version: 1,
     });
-    expect(row).toEqual(jasmine.objectContaining({ kind: 'item', entityClass: 'POWR_A', manifestSha256: 'm', partCount: 2 }));
+    expect(row).toEqual(expect.objectContaining({ kind: 'item', entityClass: 'POWR_A', manifestSha256: 'm', partCount: 2 }));
     expect(rowFromDb({ kind: 'ship', entity_class: 'X' })).toBeNull();
     expect(rowFromDb({ kind: 'boat', entity_class: 'X', manifest_sha256: 'm' })).toBeNull();
   });
@@ -126,7 +73,7 @@ describe('asset-package model', () => {
     const m = parseManifest(manifestFixture());
     expect(hotspotPlacements(m).map((p) => p.id)).toEqual(['hardpoint_power_plant', 'turret', 'turret/gun']);
     expect(listPlacements(m).map((p) => p.id)).toEqual(['hardpoint_power_plant', 'turret', 'turret/gun', 'optic', 'half']);
-    expect(isFreeSlot(m.placements.find((p) => p.id === 'optic')!)).toBeTrue();
+    expect(isFreeSlot(m.placements.find((p) => p.id === 'optic')!)).toBe(true);
     expect(availableGroups(m)).toEqual(['weapons', 'components', 'interior']);
   });
 
@@ -148,9 +95,9 @@ describe('asset-package model', () => {
     const byId = new Map(m.placements.map((p) => [p.id, p] as const));
     const gun = byId.get('turret/gun')!;
     const all = new Set<PlacementGroup>(['weapons', 'components']);
-    expect(placementVisible(gun, all, new Set(), byId)).toBeTrue();
-    expect(placementVisible(gun, all, new Set(['turret']), byId)).toBeFalse();
-    expect(placementVisible(gun, new Set<PlacementGroup>(['components']), new Set(), byId)).toBeFalse();
+    expect(placementVisible(gun, all, new Set(), byId)).toBe(true);
+    expect(placementVisible(gun, all, new Set(['turret']), byId)).toBe(false);
+    expect(placementVisible(gun, new Set<PlacementGroup>(['components']), new Set(), byId)).toBe(false);
   });
 
   it('focuses the hovered placement with its children, or the active ports by exact name', () => {
@@ -181,7 +128,7 @@ describe('scopedHotspots / placementsForPorts', () => {
     const m = swappableManifest();
     const swappable = scopedHotspots(m, 'swappable');
     expect(swappable.length).toBeGreaterThan(0);
-    expect(swappable.every(isSwappable)).toBeTrue();
+    expect(swappable.every(isSwappable)).toBe(true);
     expect(scopedHotspots(m, 'all').length).toBeGreaterThan(swappable.length);
   });
 

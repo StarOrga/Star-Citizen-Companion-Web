@@ -10,7 +10,7 @@ interface Reply {
 }
 
 function setup(reply: (fn: string, args?: Record<string, unknown>) => Reply) {
-  const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string, args?: Record<string, unknown>) => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string, args?: Record<string, unknown>) => {
     const r = reply(fn, args);
     return { data: r.data ?? null, error: r.error ?? null };
   });
@@ -33,15 +33,15 @@ describe('TeamsService', () => {
   it('flags a wrong code as invalidCode without an error key', async () => {
     setup(() => ({ data: null }));
     const svc = TestBed.inject(TeamsService);
-    expect(await svc.join('abcd')).toBeFalse();
-    expect(svc.invalidCode()).toBeTrue();
+    expect(await svc.join('abcd')).toBe(false);
+    expect(svc.invalidCode()).toBe(true);
     expect(svc.error()).toBeNull();
   });
 
   it('maps the last-owner refusal onto its error key', async () => {
     setup((fn) => (fn === 'leave_group' ? { error: { message: 'last_owner' } } : { data: [] }));
     const svc = TestBed.inject(TeamsService);
-    expect(await svc.leave('g1')).toBeFalse();
+    expect(await svc.leave('g1')).toBe(false);
     expect(svc.error()).toBe('social.error.lastOwner');
   });
 
@@ -50,7 +50,7 @@ describe('TeamsService', () => {
     const svc = TestBed.inject(TeamsService);
     await svc.load();
     expect(svc.loadError()).toBeTruthy();
-    expect(svc.loaded()).toBeTrue();
+    expect(svc.loaded()).toBe(true);
   });
 
   it('shares an Einsatz with a group through the one invite path of SocialService', async () => {
@@ -66,12 +66,12 @@ describe('group helpers', () => {
   });
 
   it('mirrors the server role rules', () => {
-    expect(canManageInvite('admin')).toBeTrue();
-    expect(canManageInvite('member')).toBeFalse();
-    expect(canRemoveMember('owner', 'admin')).toBeTrue();
-    expect(canRemoveMember('admin', 'admin')).toBeFalse();
-    expect(canRemoveMember('admin', 'member')).toBeTrue();
-    expect(canRemoveMember('member', 'member')).toBeFalse();
+    expect(canManageInvite('admin')).toBe(true);
+    expect(canManageInvite('member')).toBe(false);
+    expect(canRemoveMember('owner', 'admin')).toBe(true);
+    expect(canRemoveMember('admin', 'admin')).toBe(false);
+    expect(canRemoveMember('admin', 'member')).toBe(true);
+    expect(canRemoveMember('member', 'member')).toBe(false);
   });
 
   it('keeps the existing invite rate-limit code ahead of the new one', () => {

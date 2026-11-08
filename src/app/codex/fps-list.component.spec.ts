@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -46,30 +47,30 @@ describe('FpsListComponent (equip mode)', () => {
   async function setup(opts: {
     query: Record<string, string>;
     set?: HangarRoleLoadout | null;
-    update?: jasmine.Spy;
+    update?: Mock;
     /** Leave the first list query pending, to look at the loading state. */
     holdList?: boolean;
     /** What the list query returns (defaults to one helmet). */
     rows?: CodexListRow[];
     /** True selects an older patch than the live one (CodexService.viewingPastPatch). */
     viewingPastPatch?: boolean;
-    selectBuild?: jasmine.Spy;
+    selectBuild?: Mock;
     /** Replaces the default getRoleLoadout (resolves `set`), e.g. to make the read fail. */
-    getRoleLoadout?: jasmine.Spy;
+    getRoleLoadout?: Mock;
   }): Promise<{
     fixture: ComponentFixture<FpsListComponent>;
     el: HTMLElement;
-    update: jasmine.Spy;
-    selectBuild: jasmine.Spy;
+    update: Mock;
+    selectBuild: Mock;
     viewingPastPatch: ReturnType<typeof signal<boolean>>;
-    hopSpy: jasmine.Spy;
+    hopSpy: Mock;
   }> {
     const list = opts.holdList
-      ? jasmine.createSpy('listFpsCatalog').and.returnValue(new Promise(() => undefined))
-      : jasmine.createSpy('listFpsCatalog').and.resolveTo(opts.rows ?? [HELMET]);
-    const update = opts.update ?? jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(null);
+      ? vi.fn().mockName('listFpsCatalog').mockReturnValue(new Promise(() => undefined))
+      : vi.fn().mockName('listFpsCatalog').mockResolvedValue(opts.rows ?? [HELMET]);
+    const update = opts.update ?? vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(null);
     const viewingPastPatch = signal(opts.viewingPastPatch ?? false);
-    const selectBuild = opts.selectBuild ?? jasmine.createSpy('selectBuild').and.returnValue(true);
+    const selectBuild = opts.selectBuild ?? vi.fn().mockName('selectBuild').mockReturnValue(true);
 
     const codex: Partial<CodexService> = {
       build: signal({ id: 'b1', entityCounts: {} }) as never,
@@ -82,7 +83,7 @@ describe('FpsListComponent (equip mode)', () => {
       compareKeys: signal<string[]>([]).asReadonly(),
       compareCount: signal(0) as never,
       compareRejectedKind: signal(null) as never,
-      loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
+      loadCurrentBuild: vi.fn().mockName('loadCurrentBuild').mockResolvedValue(null),
       listFpsCatalog: list,
       isPinned: () => false,
       previewUrl: () => null,
@@ -90,7 +91,7 @@ describe('FpsListComponent (equip mode)', () => {
       selectBuild: selectBuild as never,
     };
     const hangar: Partial<HangarService> = {
-      getRoleLoadout: opts.getRoleLoadout ?? jasmine.createSpy('getRoleLoadout').and.resolveTo(opts.set ?? null),
+      getRoleLoadout: opts.getRoleLoadout ?? vi.fn().mockName('getRoleLoadout').mockResolvedValue(opts.set ?? null),
       setRoleLoadoutSlot: update,
     };
 
@@ -111,7 +112,7 @@ describe('FpsListComponent (equip mode)', () => {
       ],
     }).compileComponents();
 
-    const hopSpy = spyOn(TestBed.inject(SetArsenalTransition), 'hop').and.resolveTo(true);
+    const hopSpy = vi.spyOn(TestBed.inject(SetArsenalTransition), 'hop').mockResolvedValue(true);
 
     const fixture = TestBed.createComponent(FpsListComponent);
     fixture.detectChanges();
@@ -124,7 +125,7 @@ describe('FpsListComponent (equip mode)', () => {
     const { fixture, el, update } = await setup({
       query: { cat: 'armor', equipInto: 'set-1' },
       set: SET,
-      update: jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(null),
+      update: vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(null),
     });
 
     (el.querySelector('.equip-btn') as HTMLButtonElement).click();
@@ -141,10 +142,7 @@ describe('FpsListComponent (equip mode)', () => {
       ...SET,
       items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }],
     };
-    const update = jasmine.createSpy('setRoleLoadoutSlot').and.returnValues(
-      Promise.resolve(null),
-      Promise.resolve(saved),
-    );
+    const update = vi.fn().mockName('setRoleLoadoutSlot').mockReturnValueOnce(Promise.resolve(null)).mockReturnValueOnce(Promise.resolve(saved));
     const { fixture, el, hopSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
 
     for (let i = 0; i < 2; i++) {
@@ -213,7 +211,7 @@ describe('FpsListComponent (equip mode)', () => {
 
   it('confirms a landed equip in a sticky, polite bar that links back to the set', async () => {
     const saved: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
-    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(saved);
+    const update = vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(saved);
     const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
     const live = el.querySelector('.equip-confirm-live')!;
     // The live region is there before anything lands, so the message gets announced.
@@ -233,7 +231,7 @@ describe('FpsListComponent (equip mode)', () => {
 
   it('confirms a cleared slot as "removed" in the same bar', async () => {
     const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
-    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(SET);
+    const update = vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(SET);
     const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
 
     (el.querySelector('.equip-btn.on') as HTMLButtonElement).click();
@@ -264,7 +262,7 @@ describe('FpsListComponent (equip mode)', () => {
 
     const btn = el.querySelector('.equip-btn.on') as HTMLButtonElement;
     expect(btn.textContent!.replace(/\s+/g, ' ').trim()).toBe('✕ Remove from Helmet');
-    expect(btn.hasAttribute('aria-pressed')).toBeFalse();
+    expect(btn.hasAttribute('aria-pressed')).toBe(false);
   });
 
   it('tells the reader when the linked set cannot be loaded', async () => {
@@ -275,15 +273,15 @@ describe('FpsListComponent (equip mode)', () => {
   });
 
   it('tells a failed set read apart from a missing set and retries it', async () => {
-    spyOn(console, 'warn');
-    const getRoleLoadout = jasmine.createSpy('getRoleLoadout').and.rejectWith(new TypeError('Failed to fetch'));
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
+    const getRoleLoadout = vi.fn().mockName('getRoleLoadout').mockRejectedValue(new TypeError('Failed to fetch'));
     const { el, fixture } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, getRoleLoadout });
 
     const card = el.querySelector('.sc-card.err[role="alert"]');
     expect(card?.textContent).toContain('errors.network');
     expect(el.querySelector('.equip-missing')).toBeNull();
 
-    getRoleLoadout.and.resolveTo(SET);
+    getRoleLoadout.mockResolvedValue(SET);
     (card!.querySelector('button.retry') as HTMLButtonElement).click();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -306,9 +304,7 @@ describe('FpsListComponent (equip mode)', () => {
 
   it('shows the pressed equip button as saving while its write is in flight', async () => {
     let release!: (v: HangarRoleLoadout | null) => void;
-    const update = jasmine.createSpy('setRoleLoadoutSlot').and.returnValue(
-      new Promise<HangarRoleLoadout | null>((r) => (release = r)),
-    );
+    const update = vi.fn().mockName('setRoleLoadoutSlot').mockReturnValue(new Promise<HangarRoleLoadout | null>((r) => (release = r)));
     const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
 
     (el.querySelector('.equip-btn') as HTMLButtonElement).click();
@@ -324,7 +320,7 @@ describe('FpsListComponent (equip mode)', () => {
   it('says so when a clear met a newer piece from another tab', async () => {
     const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
     const other: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_02', kind: 'item' }] };
-    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(other);
+    const update = vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(other);
     const { fixture, el, hopSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
 
     (el.querySelector('.equip-btn.on') as HTMLButtonElement).click();
@@ -351,7 +347,7 @@ describe('FpsListComponent (equip mode)', () => {
     });
 
     const btn = el.querySelector('.equip-btn') as HTMLButtonElement;
-    expect(btn.disabled).toBeTrue();
+    expect(btn.disabled).toBe(true);
     expect(el.querySelector('.equip-past-note')?.textContent).toContain('fps.equip.pastPatch');
 
     // A stale click (e.g. a synthetic event) must not slip through even if
@@ -362,7 +358,7 @@ describe('FpsListComponent (equip mode)', () => {
   });
 
   it('re-enables equip once the reader switches back to the current patch', async () => {
-    const selectBuild = jasmine.createSpy('selectBuild').and.returnValue(true);
+    const selectBuild = vi.fn().mockName('selectBuild').mockReturnValue(true);
     const { fixture, el, viewingPastPatch } = await setup({
       query: { cat: 'armor', equipInto: 'set-1' },
       set: SET,
@@ -377,7 +373,7 @@ describe('FpsListComponent (equip mode)', () => {
     // its effect on the signal the component reads.
     viewingPastPatch.set(false);
     fixture.detectChanges();
-    expect((el.querySelector('.equip-btn') as HTMLButtonElement).disabled).toBeFalse();
+    expect((el.querySelector('.equip-btn') as HTMLButtonElement).disabled).toBe(false);
     expect(el.querySelector('.equip-past-note')).toBeNull();
   });
 
@@ -430,12 +426,10 @@ function weapon(classNameSlug: string, nameLocalized: string, subType: string): 
 
 describe('FpsListComponent (honest slot fitting)', () => {
   async function render(query: Record<string, string>, set: HangarRoleLoadout, rows: CodexListRow[]) {
-    const setSlot = jasmine.createSpy('setRoleLoadoutSlot').and.callFake(
-      async (_id: string, slot: string, piece: { className: string; kind: string } | null) => ({
+    const setSlot = vi.fn().mockName('setRoleLoadoutSlot').mockImplementation(async (_id: string, slot: string, piece: { className: string; kind: string } | null) => ({
         ...set,
         items: piece ? [{ slot, className: piece.className, kind: piece.kind }] : [],
-      }),
-    );
+      }));
     await TestBed.configureTestingModule({
       imports: [FpsListComponent],
       providers: [
@@ -763,7 +757,7 @@ describe('FpsListComponent — URL mirror (D16, REQ-20)', () => {
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(FpsListComponent);
-    const replace = spyOn(TestBed.inject(Location), 'replaceState').and.callThrough();
+    const replace = vi.spyOn(TestBed.inject(Location), 'replaceState');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -773,25 +767,25 @@ describe('FpsListComponent — URL mirror (D16, REQ-20)', () => {
   it('writes cat, slot and q with replaceState', async () => {
     const { fixture, cmp, replace } = await setupRouted();
     expect(replace).toHaveBeenCalled();
-    expect(replace.calls.mostRecent().args[0]).toContain('cat=weapon');
+    expect(vi.mocked(replace).mock.lastCall![0]).toContain('cat=weapon');
 
     cmp.setCategory('armor');
     fixture.detectChanges();
-    expect(replace.calls.mostRecent().args[0]).toContain('cat=armor');
+    expect(vi.mocked(replace).mock.lastCall![0]).toContain('cat=armor');
 
     cmp.setSubType('Light');
     fixture.detectChanges();
-    expect(replace.calls.mostRecent().args[0]).toContain('slot=Light');
+    expect(vi.mocked(replace).mock.lastCall![0]).toContain('slot=Light');
 
-    jasmine.clock().install();
+    vi.useFakeTimers();
     try {
       cmp.onSearchInput('helm');
-      jasmine.clock().tick(1000);
+      vi.advanceTimersByTime(1000);
     } finally {
-      jasmine.clock().uninstall();
+      vi.useRealTimers();
     }
     fixture.detectChanges();
-    const url = replace.calls.mostRecent().args[0] as string;
+    const url = vi.mocked(replace).mock.lastCall![0] as string;
     expect(url).toContain('cat=armor');
     expect(url).toContain('slot=Light');
     expect(url).toContain('q=helm');
@@ -799,12 +793,12 @@ describe('FpsListComponent — URL mirror (D16, REQ-20)', () => {
 
   async function searchFor(term: string) {
     const ctx = await setupRouted();
-    jasmine.clock().install();
+    vi.useFakeTimers();
     try {
       ctx.cmp.onSearchInput(term);
-      jasmine.clock().tick(1000);
+      vi.advanceTimersByTime(1000);
     } finally {
-      jasmine.clock().uninstall();
+      vi.useRealTimers();
     }
     ctx.fixture.detectChanges();
     await ctx.fixture.whenStable();
@@ -814,7 +808,7 @@ describe('FpsListComponent — URL mirror (D16, REQ-20)', () => {
 
   it('trims the search before it reaches the URL (L28)', async () => {
     const { replace } = await searchFor('  helm  ');
-    const url = replace.calls.mostRecent().args[0] as string;
+    const url = vi.mocked(replace).mock.lastCall![0] as string;
     expect(url).toContain('q=helm');
     expect(url).not.toMatch(/q=(%20|\+)/);
   });
@@ -832,7 +826,7 @@ describe('FpsListComponent — URL mirror (D16, REQ-20)', () => {
 
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
     link.dispatchEvent(plain);
-    expect(plain.defaultPrevented).toBeTrue();
+    expect(plain.defaultPrevented).toBe(true);
     expect(cmp.category()).toBe('armor');
   });
 
@@ -903,7 +897,7 @@ describe('FpsListComponent — equip button and slot-keeping reset (L11 / L12)',
     cmp.setGrade('A');
     cmp.searchInput.set('x');
     fixture.detectChanges();
-    expect(cmp.hasActiveFilters()).toBeTrue();
+    expect(cmp.hasActiveFilters()).toBe(true);
 
     cmp.resetAll();
     fixture.detectChanges();
@@ -912,7 +906,7 @@ describe('FpsListComponent — equip button and slot-keeping reset (L11 / L12)',
     expect(cmp.grade()).toBe('');
     expect(cmp.searchInput()).toBe('');
     // Only the pinned slot left: nothing for the toolbar reset to do.
-    expect(cmp.hasActiveFilters()).toBeFalse();
+    expect(cmp.hasActiveFilters()).toBe(false);
     expect(el.querySelector('.toolbar .reset, button.reset')).toBeNull();
   });
 

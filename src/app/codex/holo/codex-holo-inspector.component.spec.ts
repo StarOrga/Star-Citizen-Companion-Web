@@ -106,7 +106,7 @@ describe('CodexHoloInspectorComponent', () => {
     });
 
     it('resolves the maker of a slot without a kind through the component facet', async () => {
-      const facetValues = jasmine.createSpy('facetValues').and.resolveTo({
+      const facetValues = vi.fn().mockName('facetValues').mockResolvedValue({
         manufacturers: [{ code: 'AEG', name: { en: 'Aegis Dynamics', de: 'Aegis Dynamics' } }],
       });
       TestBed.overrideProvider(CodexService, { useValue: { facetValues } });

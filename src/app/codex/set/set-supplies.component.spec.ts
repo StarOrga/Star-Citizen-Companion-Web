@@ -35,7 +35,7 @@ describe('missingParts', () => {
 describe('SetSuppliesComponent', () => {
   it('adds every missing part as a set line in one click and then links to Planen', () => {
     const lines = signal<SupplyItem[]>([]);
-    const add = jasmine.createSpy('add').and.callFake((name: string, _q: number, meta: Partial<SupplyItem>) => {
+    const add = vi.fn().mockName('add').mockImplementation((name: string, _q: number, meta: Partial<SupplyItem>) => {
       lines.set([...lines(), supply({ name, ...meta })]);
       return true;
     });
@@ -56,7 +56,7 @@ describe('SetSuppliesComponent', () => {
     (el.querySelector('button.add') as HTMLButtonElement).click();
     f.detectChanges();
     expect(add).toHaveBeenCalledTimes(3);
-    expect(add.calls.argsFor(0)[2]).toEqual(jasmine.objectContaining({ setKind: 'fps', setId: SET, source: 'set', className: 'KSAR_Rifle_01' }));
+    expect(vi.mocked(add).mock.calls[0][2]).toEqual(expect.objectContaining({ setKind: 'fps', setId: SET, source: 'set', className: 'KSAR_Rifle_01' }));
     expect(el.querySelector('button.add')).toBeNull();
     expect(el.querySelector('a.plan')?.getAttribute('href')).toBe('/hq#planen');
   });

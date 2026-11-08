@@ -169,7 +169,7 @@ describe('CodexSwapCandidatesService', () => {
 
   it('never caches a failure — the retry asks again', async () => {
     rpc.mode = 'error';
-    await expectAsync(svc.load(q('GUN_A'))).toBeRejected();
+    await expect(svc.load(q('GUN_A'))).rejects.toThrow();
     rpc.mode = 'ok';
     const data = await svc.load(q('GUN_A'));
     expect(data.items.length).toBe(1);
@@ -180,7 +180,7 @@ describe('CodexSwapCandidatesService', () => {
     rpc.mode = 'missing';
     const data = await svc.load(q('GUN_A'));
     expect(data.items.map((i) => i.classNameSlug)).toEqual(['GUN_A']);
-    expect(data.payloads.has('GUN_A')).toBeTrue();
+    expect(data.payloads.has('GUN_A')).toBe(true);
     expect(codex.compatibleCalls).toEqual([{ types: ['WeaponGun'], minSize: 3, maxSize: 3 }]);
     await svc.load(q('GUN_B'));
     expect(rpc.calls.length).toBe(1);
@@ -201,7 +201,7 @@ describe('CodexSwapCandidatesService', () => {
       await flush();
       expect(rpc.calls.length).toBe(0);
       expect(scheduled.length).toBe(1);
-      expect(scheduled[0].first).toBeTrue();
+      expect(scheduled[0].first).toBe(true);
       await drain();
       expect(rpc.calls.length).toBe(1);
     });

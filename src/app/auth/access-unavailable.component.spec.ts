@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
@@ -12,8 +13,8 @@ import { RoleService } from './role.service';
  * login page, so a crafted ?redirect= cannot leave the origin.
  */
 describe('AccessUnavailableComponent', () => {
-  let refresh: jasmine.Spy;
-  let signOut: jasmine.Spy;
+  let refresh: Mock;
+  let signOut: Mock;
   // Default: the read has settled and the identity is still unknown — the
   // fail-closed case this page was built for.
   let loaded = signal(true);
@@ -24,8 +25,8 @@ describe('AccessUnavailableComponent', () => {
     loaded = signal(state.loaded ?? true);
     identityUnknown = signal(state.identityUnknown ?? true);
     approved = signal(state.approved ?? false);
-    refresh = jasmine.createSpy('refresh').and.resolveTo(undefined);
-    signOut = jasmine.createSpy('signOut').and.resolveTo(undefined);
+    refresh = vi.fn().mockName('refresh').mockResolvedValue(undefined);
+    signOut = vi.fn().mockName('signOut').mockResolvedValue(undefined);
     TestBed.configureTestingModule({
       imports: [AccessUnavailableComponent],
       providers: [
@@ -47,7 +48,7 @@ describe('AccessUnavailableComponent', () => {
         },
       ],
     });
-    const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     const fixture = TestBed.createComponent(AccessUnavailableComponent);
     fixture.detectChanges();
     const buttons = () => Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
@@ -58,36 +59,39 @@ describe('AccessUnavailableComponent', () => {
     const { fixture, navigate } = create('/codex');
     await fixture.componentInstance.retry();
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledOnceWith('/codex');
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith('/codex');
   });
 
   it('falls back to /news for a foreign or missing redirect', async () => {
     const evil = create('//evil.example');
     await evil.fixture.componentInstance.retry();
-    expect(evil.navigate).toHaveBeenCalledOnceWith('/verse/news');
+    expect(evil.navigate).toHaveBeenCalledTimes(1);
+    expect(evil.navigate).toHaveBeenCalledWith('/verse/news');
 
     TestBed.resetTestingModule();
     const none = create(null);
     await none.fixture.componentInstance.retry();
-    expect(none.navigate).toHaveBeenCalledOnceWith('/verse/news');
+    expect(none.navigate).toHaveBeenCalledTimes(1);
+    expect(none.navigate).toHaveBeenCalledWith('/verse/news');
   });
 
   it('disables both buttons while a retry is running', async () => {
     let finish: () => void = () => undefined;
     const { fixture, buttons } = create('/codex');
-    refresh.and.returnValue(new Promise<void>((r) => (finish = r)));
+    refresh.mockReturnValue(new Promise<void>((r) => (finish = r)));
 
-    expect(buttons().every((b) => !b.disabled)).toBeTrue();
+    expect(buttons().every((b) => !b.disabled)).toBe(true);
     buttons()[0].click();
     fixture.detectChanges();
     expect(buttons().length).toBe(2);
-    expect(buttons().every((b) => b.disabled)).toBeTrue();
+    expect(buttons().every((b) => b.disabled)).toBe(true);
     expect(buttons()[0].textContent).toContain('auth.unavailable.retrying');
 
     finish();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(buttons().every((b) => !b.disabled)).toBeTrue();
+    expect(buttons().every((b) => !b.disabled)).toBe(true);
   });
 
   describe('auto-resume after a late profile read', () => {
@@ -107,7 +111,8 @@ describe('AccessUnavailableComponent', () => {
       approved.set(true);
       fixture.detectChanges();
       await fixture.whenStable();
-      expect(navigate).toHaveBeenCalledOnceWith('/codex/ship/CNOU_Nomad?view=classic', { replaceUrl: true });
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith('/codex/ship/CNOU_Nomad?view=classic', { replaceUrl: true });
 
       // A later signal change must not navigate a second time.
       approved.set(false);
@@ -132,7 +137,7 @@ describe('AccessUnavailableComponent', () => {
     it('does not auto-resume while a manual retry is running', async () => {
       let finish: () => void = () => undefined;
       const { fixture, navigate } = create('/codex');
-      refresh.and.returnValue(new Promise<void>((r) => (finish = r)));
+      refresh.mockReturnValue(new Promise<void>((r) => (finish = r)));
       const run = fixture.componentInstance.retry();
 
       approved.set(true);
@@ -145,7 +150,8 @@ describe('AccessUnavailableComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       // Exactly one navigation: the retry's own.
-      expect(navigate).toHaveBeenCalledOnceWith('/codex');
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith('/codex');
     });
   });
 

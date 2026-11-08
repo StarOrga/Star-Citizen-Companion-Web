@@ -217,15 +217,15 @@ describe('CodexDetailComponent — Holotable / classic view toggle', () => {
     localStorage.setItem(STORAGE_KEY, 'classic');
     const fixture = await setup();
     const router = TestBed.inject(Router);
-    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture.componentInstance['initHoloView']('cnou_nomad');
-    expect(navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { view: 'classic' }, replaceUrl: true }));
+    expect(navigate).toHaveBeenCalledWith([], expect.objectContaining({ queryParams: { view: 'classic' }, replaceUrl: true }));
   });
 
   it('a hangar pick stays in the classic view (carries ?view=classic)', async () => {
     const fixture = await setup({ view: 'classic' });
     const router = TestBed.inject(Router);
-    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture.componentInstance.onShipPickerPick('aegs_gladius');
     expect(navigate).toHaveBeenCalledWith(['/codex', 'ship', 'aegs_gladius'], { queryParams: { view: 'classic' } });
   });
@@ -233,7 +233,7 @@ describe('CodexDetailComponent — Holotable / classic view toggle', () => {
   it('a hangar pick from the Holotable keeps a clean url', async () => {
     const fixture = await setup();
     const router = TestBed.inject(Router);
-    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     fixture.componentInstance.onShipPickerPick('aegs_gladius');
     expect(navigate).toHaveBeenCalledWith(['/codex', 'ship', 'aegs_gladius'], { queryParams: {} });
   });
@@ -244,15 +244,15 @@ describe('CodexDetailComponent — Holotable / classic view toggle', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.m-top')).toBeTruthy();
     expect(el.querySelector('sc-codex-holo-stage')).toBeFalsy();
-    expect(el.querySelector('.holo-toggle')).withContext('no Klassisch | Holotisch segment in the head').toBeNull();
-    expect(el.querySelector('.c-head .sc-head-strip sc-codex-own-segment')).withContext('strip on the classic title row (F1)').toBeTruthy();
-    expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card')).withContext('ownership card directly under the picture (#323)').toBeTruthy();
-    expect(el.querySelector('.hero-stack > .hero.stage + .hero-own')).withContext('right below the stage').toBeTruthy();
-    expect(el.querySelector('.m-side sc-codex-own-card')).withContext('no longer in the side column').toBeNull();
+    expect(el.querySelector('.holo-toggle'), 'no Klassisch | Holotisch segment in the head').toBeNull();
+    expect(el.querySelector('.c-head .sc-head-strip sc-codex-own-segment'), 'strip on the classic title row (F1)').toBeTruthy();
+    expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card'), 'ownership card directly under the picture (#323)').toBeTruthy();
+    expect(el.querySelector('.hero-stack > .hero.stage + .hero-own'), 'right below the stage').toBeTruthy();
+    expect(el.querySelector('.m-side sc-codex-own-card'), 'no longer in the side column').toBeNull();
     const corner = TestBed.inject(PageCornerService);
-    expect(corner.view()?.holo()).toBeFalse();
+    expect(corner.view()?.holo()).toBe(false);
     corner.view()!.toggle();
-    expect(fixture.componentInstance.holoView()).withContext('the FAB toggles exactly like the old segment').toBeTrue();
+    expect(fixture.componentInstance.holoView(), 'the FAB toggles exactly like the old segment').toBe(true);
     expect(corner.share()?.url()).toBe(location.href);
   });
 

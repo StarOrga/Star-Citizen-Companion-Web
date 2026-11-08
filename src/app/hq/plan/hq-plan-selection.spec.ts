@@ -62,26 +62,26 @@ describe('mood pairs (D25)', () => {
   it('Friedlich / Kampf split on mission activity', () => {
     const peaceful = { ...MOODS_OFF, danger: 'left' as const };
     const combat = { ...MOODS_OFF, danger: 'right' as const };
-    expect(matchesMoods(s({ kind: 'buy' }), peaceful)).toBeTrue();
-    expect(matchesMoods(s({ kind: 'buy' }), combat)).toBeFalse();
-    expect(matchesMoods(s({ kind: 'mission', activity: 'kopfgeld' }), combat)).toBeTrue();
-    expect(matchesMoods(s({ kind: 'mission', activity: 'medizin' }), combat)).toBeFalse();
-    expect(matchesMoods(s({ kind: 'mission', activity: 'medizin' }), peaceful)).toBeTrue();
+    expect(matchesMoods(s({ kind: 'buy' }), peaceful)).toBe(true);
+    expect(matchesMoods(s({ kind: 'buy' }), combat)).toBe(false);
+    expect(matchesMoods(s({ kind: 'mission', activity: 'kopfgeld' }), combat)).toBe(true);
+    expect(matchesMoods(s({ kind: 'mission', activity: 'medizin' }), combat)).toBe(false);
+    expect(matchesMoods(s({ kind: 'mission', activity: 'medizin' }), peaceful)).toBe(true);
   });
 
   it('Schnell is under 30 minutes, Zeitintensiv from 30', () => {
     expect(estimateMinutes('buy', 5)).toBe(15);
-    expect(matchesMoods(s({ minutes: 29 }), { ...MOODS_OFF, time: 'left' })).toBeTrue();
-    expect(matchesMoods(s({ minutes: 30 }), { ...MOODS_OFF, time: 'left' })).toBeFalse();
-    expect(matchesMoods(s({ minutes: 30 }), { ...MOODS_OFF, time: 'right' })).toBeTrue();
+    expect(matchesMoods(s({ minutes: 29 }), { ...MOODS_OFF, time: 'left' })).toBe(true);
+    expect(matchesMoods(s({ minutes: 30 }), { ...MOODS_OFF, time: 'left' })).toBe(false);
+    expect(matchesMoods(s({ minutes: 30 }), { ...MOODS_OFF, time: 'right' })).toBe(true);
   });
 
   it('Solo is crew <= 1, Gruppe crew >= 2, and pairs combine with AND', () => {
-    expect(matchesMoods(s({ crew: 2 }), { ...MOODS_OFF, crew: 'left' })).toBeFalse();
-    expect(matchesMoods(s({ crew: 2 }), { ...MOODS_OFF, crew: 'right' })).toBeTrue();
+    expect(matchesMoods(s({ crew: 2 }), { ...MOODS_OFF, crew: 'left' })).toBe(false);
+    expect(matchesMoods(s({ crew: 2 }), { ...MOODS_OFF, crew: 'right' })).toBe(true);
     const both = { danger: 'left' as const, time: 'left' as const, crew: null };
-    expect(matchesMoods(s({ minutes: 50 }), both)).toBeFalse();
-    expect(matchesMoods(s({ minutes: 10 }), both)).toBeTrue();
+    expect(matchesMoods(s({ minutes: 50 }), both)).toBe(false);
+    expect(matchesMoods(s({ minutes: 10 }), both)).toBe(true);
   });
 });
 
@@ -165,13 +165,13 @@ describe('selection transitions (D23)', () => {
   });
 
   it('W5.3: while the codex data is missing (MOODS_AVAILABLE off) no mood hides a line', () => {
-    expect(MOODS_AVAILABLE).toBeFalse();
+    expect(MOODS_AVAILABLE).toBe(false);
     const group = { danger: null, time: null, crew: 'right' as const };
     const peaceful = { danger: 'left' as const, time: null, crew: null };
     for (const moods of [group, peaceful]) {
       const sel = { ...top3Selection(ctx), moods, supplyIds: new Set(needs.map((n) => n.id)) };
       expect(visibleNeeds(sel, needs).map((n) => n.id)).toEqual(['1', '2', '3']);
-      expect(needs.every((n) => passesFilters(sel, n))).toBeTrue();
+      expect(needs.every((n) => passesFilters(sel, n))).toBe(true);
     }
   });
 
@@ -190,7 +190,7 @@ describe('selection transitions (D23)', () => {
     expect(visibleNeeds(sel, needs).map((n) => n.id)).toEqual(['1']);
     sel = togglePlace(toggleStepKind(sel, 'buy'), lorville.id);
     expect(visibleNeeds(sel, needs).map((n) => n.id)).toEqual(['1']);
-    expect(passesFilters(sel, needs[2])).toBeFalse();
+    expect(passesFilters(sel, needs[2])).toBe(false);
   });
 
   it('clicking a set selects all its needs and clicking again removes them; the share follows', () => {
@@ -206,10 +206,10 @@ describe('selection transitions (D23)', () => {
   it('an Einsatz that is due soon marks its set', () => {
     const now = Date.parse('2026-11-01T10:00:00Z');
     const e = (plannedAt: string | null, status = 'planned') => ({ plannedAt, status, steps: [{ supplyId: '1' }] });
-    expect(soonSetKeys([e('2026-11-02T10:00:00Z')], needs, now).has('ship:a')).toBeTrue();
-    expect(soonSetKeys([e('2026-11-09T10:00:00Z')], needs, now).has('ship:a')).toBeFalse();
-    expect(soonSetKeys([e(null, 'active')], needs, now).has('ship:a')).toBeTrue();
-    expect(soonSetKeys([e('2026-11-02T10:00:00Z', 'done')], needs, now).has('ship:a')).toBeFalse();
+    expect(soonSetKeys([e('2026-11-02T10:00:00Z')], needs, now).has('ship:a')).toBe(true);
+    expect(soonSetKeys([e('2026-11-09T10:00:00Z')], needs, now).has('ship:a')).toBe(false);
+    expect(soonSetKeys([e(null, 'active')], needs, now).has('ship:a')).toBe(true);
+    expect(soonSetKeys([e('2026-11-02T10:00:00Z', 'done')], needs, now).has('ship:a')).toBe(false);
   });
 });
 

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { WritableSignal, signal } from '@angular/core';
 import { AnalyticsService } from './analytics.service';
@@ -5,7 +6,7 @@ import { BETA_STORAGE_KEY, BetaService, betaAreaOf } from './beta.service';
 
 describe('BetaService', () => {
   let flags: WritableSignal<Record<string, boolean | string>>;
-  let captureVerse: jasmine.Spy;
+  let captureVerse: Mock;
 
   function create(): BetaService {
     TestBed.configureTestingModule({
@@ -18,7 +19,7 @@ describe('BetaService', () => {
     localStorage.removeItem(BETA_STORAGE_KEY);
     localStorage.removeItem('sc.verse.beta');
     flags = signal<Record<string, boolean | string>>({});
-    captureVerse = jasmine.createSpy('captureVerse');
+    captureVerse = vi.fn().mockName('captureVerse');
   });
 
   afterEach(() => {
@@ -29,11 +30,11 @@ describe('BetaService', () => {
 
   it('keeps the app-wide shell switch off by default and lets it be toggled and persisted', () => {
     const svc = create();
-    expect(svc.state().shell).toBeFalse();
+    expect(svc.state().shell).toBe(false);
     svc.toggle('shell');
-    expect(svc.state().shell).toBeTrue();
+    expect(svc.state().shell).toBe(true);
     TestBed.resetTestingModule();
-    expect(create().state().shell).toBeTrue();
+    expect(create().state().shell).toBe(true);
     expect(betaAreaOf('/verse')).toBe('verse');
   });
 
@@ -48,7 +49,7 @@ describe('BetaService', () => {
     expect(svc.state()).toEqual({ verse: true, codex: true, shell: false });
     svc.set('codex', false);
     expect(svc.state()).toEqual({ verse: true, codex: false, shell: false });
-    expect(svc.isEnabled('codex')()).toBeFalse();
+    expect(svc.isEnabled('codex')()).toBe(false);
     expect(JSON.parse(localStorage.getItem(BETA_STORAGE_KEY) ?? '{}')).toEqual({ verse: true, codex: false });
     expect(captureVerse).toHaveBeenCalledWith('beta_toggle', { area: 'codex', enabled: false });
     TestBed.resetTestingModule();
@@ -58,18 +59,18 @@ describe('BetaService', () => {
   it('treats a boolean flag as default and a flag false as a kill switch', () => {
     const svc = create();
     flags.set({ 'beta-verse': true, 'beta-codex': false });
-    expect(svc.state().verse).toBeTrue();
-    expect(svc.state().codex).toBeFalse();
+    expect(svc.state().verse).toBe(true);
+    expect(svc.state().codex).toBe(false);
     svc.set('codex', true);
-    expect(svc.state().codex).toBeFalse();
-    expect(svc.locked().codex).toBeTrue();
+    expect(svc.state().codex).toBe(false);
+    expect(svc.locked().codex).toBe(true);
     svc.set('verse', false);
-    expect(svc.state().verse).toBeFalse();
+    expect(svc.state().verse).toBe(false);
   });
 
   it('folds the old per-sub-area Verse choices into one and drops the old key', () => {
     localStorage.setItem('sc.verse.beta', JSON.stringify({ briefing: false, news: true }));
-    expect(create().state().verse).toBeTrue();
+    expect(create().state().verse).toBe(true);
     expect(localStorage.getItem('sc.verse.beta')).toBeNull();
     expect(JSON.parse(localStorage.getItem(BETA_STORAGE_KEY) ?? '{}')).toEqual({ verse: true });
   });
@@ -77,9 +78,11 @@ describe('BetaService', () => {
   it('survives unreadable and unwritable storage', () => {
     localStorage.setItem(BETA_STORAGE_KEY, '{not json');
     const svc = create();
-    spyOn(Storage.prototype, 'setItem').and.throwError('quota');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
     expect(() => svc.toggle('verse')).not.toThrow();
-    expect(svc.state().verse).toBeTrue();
+    expect(svc.state().verse).toBe(true);
   });
 });
 

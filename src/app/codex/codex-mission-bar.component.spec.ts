@@ -36,24 +36,24 @@ describe('CodexMissionBarComponent', () => {
     await setup(fullCaps);
     const cs = chips();
     expect(cs.length).toBe(7);
-    expect(cs.every((c) => !c.disabled)).toBeTrue();
+    expect(cs.every((c) => !c.disabled)).toBe(true);
   });
 
   it('disables a mission the hull cannot fly and names the reason as an app tooltip', async () => {
     await setup(bareCaps);
     const mining = chips().find((c) => tooltipOf(c) === 'codex.mission.disabled.noMining')!;
     expect(mining).toBeTruthy();
-    expect(mining.disabled).toBeTrue();
+    expect(mining.disabled).toBe(true);
     expect(mining.getAttribute('title')).toBeNull();
     // An enabled chip repeats nothing: its label is already on screen.
-    expect(chips().every((c) => c.disabled || !tooltipOf(c))).toBeTrue();
+    expect(chips().every((c) => c.disabled || !tooltipOf(c))).toBe(true);
   });
 
   it('never disables all/combat/stealth regardless of capabilities', async () => {
     await setup(bareCaps);
     const cs = chips();
-    expect(cs[0].disabled).toBeFalse(); // all
-    expect(cs[1].disabled).toBeFalse(); // combat
+    expect(cs[0].disabled).toBe(false); // all
+    expect(cs[1].disabled).toBe(false); // combat
   });
 
   it('emits missionChange on an enabled chip click, not on a disabled one', async () => {

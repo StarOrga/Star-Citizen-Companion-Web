@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
@@ -34,9 +35,9 @@ interface World {
 describe('AdminComponent', () => {
   let world: World;
   let calls: FakeCall[];
-  let confirm: jasmine.Spy;
-  let signOut: jasmine.Spy;
-  let refreshRole: jasmine.Spy;
+  let confirm: Mock;
+  let signOut: Mock;
+  let refreshRole: Mock;
 
   const emptyWorld = (): World => ({ users: [], requests: [], allowed: [], reports: [], override: {} });
 
@@ -64,9 +65,9 @@ describe('AdminComponent', () => {
       },
     });
     calls = fake.calls;
-    confirm = jasmine.createSpy('confirm').and.resolveTo(true);
-    signOut = jasmine.createSpy('signOut').and.resolveTo(undefined);
-    refreshRole = jasmine.createSpy('refresh').and.resolveTo(undefined);
+    confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
+    signOut = vi.fn().mockName('signOut').mockResolvedValue(undefined);
+    refreshRole = vi.fn().mockName('refresh').mockResolvedValue(undefined);
     await TestBed.configureTestingModule({
       imports: [AdminComponent],
       providers: [
@@ -120,15 +121,15 @@ describe('AdminComponent', () => {
       world.users = [user(ME, 'me@example.com', 'admin'), user('u2', 'viewer@example.com', 'viewer')];
       const f = await mount();
       const mine = row(f, 'me@example.com');
-      expect(button(mine, 'admin.actions.demoteViewer').disabled).toBeTrue();
-      expect(button(mine, 'admin.actions.promoteCollab').disabled).toBeTrue();
-      expect(button(mine, 'admin.actions.leaveSelf').disabled).toBeTrue();
+      expect(button(mine, 'admin.actions.demoteViewer').disabled).toBe(true);
+      expect(button(mine, 'admin.actions.promoteCollab').disabled).toBe(true);
+      expect(button(mine, 'admin.actions.leaveSelf').disabled).toBe(true);
 
       const admin = f.componentInstance;
       const me = admin.users().find((u) => u.id === ME)!;
       expect(admin.roleLockReason(me, 'viewer')).toBe('admin.lastAdminTip');
       expect(admin.deleteLockReason(me)).toBe('admin.lastAdminTip');
-      expect(admin.deleteLocked(me)).toBeTrue();
+      expect(admin.deleteLocked(me)).toBe(true);
       expect(mine.textContent).toContain('admin.lastAdmin');
     });
 
@@ -136,17 +137,17 @@ describe('AdminComponent', () => {
       world.users = [user(ME, 'me@example.com', 'admin'), user('u2', 'viewer@example.com', 'viewer')];
       const f = await mount();
       const other = row(f, 'viewer@example.com');
-      expect(button(other, 'admin.actions.promoteAdmin').disabled).toBeFalse();
-      expect(button(other, 'admin.actions.promoteCollab').disabled).toBeFalse();
-      expect(button(other, 'admin.actions.delete').disabled).toBeFalse();
+      expect(button(other, 'admin.actions.promoteAdmin').disabled).toBe(false);
+      expect(button(other, 'admin.actions.promoteCollab').disabled).toBe(false);
+      expect(button(other, 'admin.actions.delete').disabled).toBe(false);
     });
 
     it('unlocks the demotion once a second admin exists', async () => {
       world.users = [user(ME, 'me@example.com', 'admin'), user('u2', 'second@example.com', 'admin')];
       const f = await mount();
       const mine = row(f, 'me@example.com');
-      expect(button(mine, 'admin.actions.demoteViewer').disabled).toBeFalse();
-      expect(button(mine, 'admin.actions.leaveSelf').disabled).toBeFalse();
+      expect(button(mine, 'admin.actions.demoteViewer').disabled).toBe(false);
+      expect(button(mine, 'admin.actions.leaveSelf').disabled).toBe(false);
       expect(mine.textContent).not.toContain('admin.lastAdmin');
     });
 
@@ -157,8 +158,8 @@ describe('AdminComponent', () => {
       ];
       const f = await mount();
       const founder = row(f, 'founder@example.com');
-      expect(button(founder, 'admin.actions.demoteViewer').disabled).toBeTrue();
-      expect(button(founder, 'admin.actions.delete').disabled).toBeTrue();
+      expect(button(founder, 'admin.actions.demoteViewer').disabled).toBe(true);
+      expect(button(founder, 'admin.actions.delete').disabled).toBe(true);
       const u = f.componentInstance.users().find((x) => x.id === 'u2')!;
       expect(f.componentInstance.roleLockReason(u, 'viewer')).toBe('admin.protectedTip');
       expect(f.componentInstance.deleteLockReason(u)).toBe('admin.protectedTip');
@@ -203,7 +204,7 @@ describe('AdminComponent', () => {
     it('does not call the edge function when the confirm is declined', async () => {
       world.users = [user(ME, 'me@example.com', 'admin'), user('u2', 'viewer@example.com', 'viewer')];
       const f = await mount();
-      confirm.and.resolveTo(false);
+      confirm.mockResolvedValue(false);
       button(row(f, 'viewer@example.com'), 'admin.actions.delete').click();
       await settle(f);
       expect(confirm).toHaveBeenCalledTimes(1);
@@ -215,8 +216,8 @@ describe('AdminComponent', () => {
       const f = await mount();
       button(row(f, 'viewer@example.com'), 'admin.actions.delete').click();
       await settle(f);
-      expect(confirm.calls.mostRecent().args[0]).toEqual(
-        jasmine.objectContaining({
+      expect(vi.mocked(confirm).mock.lastCall![0]).toEqual(
+        expect.objectContaining({
           messageKey: 'admin.delete.confirmOther',
           params: { email: 'viewer@example.com' },
           tone: 'danger',
@@ -233,8 +234,8 @@ describe('AdminComponent', () => {
       world.override['delete-user'] = () => ({ data: { ok: true, deletedSelf: true } });
       button(row(f, 'me@example.com'), 'admin.actions.leaveSelf').click();
       await settle(f);
-      expect(confirm.calls.mostRecent().args[0]).toEqual(
-        jasmine.objectContaining({ messageKey: 'admin.delete.confirmSelf', confirmKey: 'admin.actions.leaveSelf' }),
+      expect(vi.mocked(confirm).mock.lastCall![0]).toEqual(
+        expect.objectContaining({ messageKey: 'admin.delete.confirmSelf', confirmKey: 'admin.actions.leaveSelf' }),
       );
       expect(called('delete-user')[0].args).toEqual({ body: { userId: ME } });
       expect(signOut).toHaveBeenCalledTimes(1);
@@ -302,7 +303,7 @@ describe('AdminComponent', () => {
       });
       expect(called('decide_access_request')[0].args).toEqual({ request_id: 'req-1', accept: true });
       expect(f.componentInstance.accessMsg()).toEqual(
-        jasmine.objectContaining({ kind: 'success', key: 'admin.requests.accepted' }),
+        expect.objectContaining({ kind: 'success', key: 'admin.requests.accepted' }),
       );
       expect(called('pending_access_requests').length).toBe(2);
     });
@@ -312,7 +313,7 @@ describe('AdminComponent', () => {
       const f = await mount();
       button(requestRow(f), 'admin.requests.accept').click();
       await settle(f);
-      expect((called('invite-user')[0].args as { body: { sendInvite: boolean } }).body.sendInvite).toBeFalse();
+      expect((called('invite-user')[0].args as { body: { sendInvite: boolean } }).body.sendInvite).toBe(false);
       expect(f.componentInstance.accessMsg()?.key).toBe('admin.requests.acceptedNoMail');
     });
 
@@ -327,7 +328,7 @@ describe('AdminComponent', () => {
       expect(f.componentInstance.accessMsg()).toEqual({ kind: 'error', key: 'admin.register.err.invite_failed' });
       // The request stays in the queue, and the accept button is usable again.
       expect(requestRow(f)).toBeTruthy();
-      expect(button(requestRow(f), 'admin.requests.accept').disabled).toBeFalse();
+      expect(button(requestRow(f), 'admin.requests.accept').disabled).toBe(false);
     });
 
     it('accept reports an error from the decide RPC and keeps the row', async () => {
@@ -343,7 +344,7 @@ describe('AdminComponent', () => {
     it('decline asks first and does nothing when declined', async () => {
       world.requests = [request()];
       const f = await mount();
-      confirm.and.resolveTo(false);
+      confirm.mockResolvedValue(false);
       button(requestRow(f), 'admin.requests.decline').click();
       await settle(f);
       expect(confirm).toHaveBeenCalledTimes(1);
@@ -374,7 +375,7 @@ describe('AdminComponent', () => {
     it('withdraw asks first and does nothing when declined', async () => {
       world.allowed = [invite];
       const f = await mount();
-      confirm.and.resolveTo(false);
+      confirm.mockResolvedValue(false);
       button(row(f, 'invited@example.com'), 'admin.people.withdraw').click();
       await settle(f);
       expect(called('remove_allowed_email').length).toBe(0);

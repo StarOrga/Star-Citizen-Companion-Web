@@ -14,11 +14,11 @@ describe('constellationsToStarmap (shell beta redirect)', () => {
 
   it('sends the old route to the star map with the toggle on', () => {
     const out = run(true);
-    expect(out instanceof UrlTree).toBeTrue();
+    expect(out instanceof UrlTree).toBe(true);
     expect(TestBed.inject(Router).serializeUrl(out as UrlTree)).toBe('/verse/explorer?view=constellations');
   });
 
   it('keeps today\'s page with the beta off', () => {
-    expect(run(false)).toBeTrue();
+    expect(run(false)).toBe(true);
   });
 });

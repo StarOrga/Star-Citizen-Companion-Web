@@ -48,25 +48,25 @@ const ZEUS = ship({
 
 describe('upcoming ships — search', () => {
   it('matches everything for an empty or whitespace query', () => {
-    expect(matchesUpcomingQuery(IDRIS, '')).toBeTrue();
-    expect(matchesUpcomingQuery(IDRIS, '   ')).toBeTrue();
+    expect(matchesUpcomingQuery(IDRIS, '')).toBe(true);
+    expect(matchesUpcomingQuery(IDRIS, '   ')).toBe(true);
   });
 
   it('matches on name, manufacturer, code, type and focus, case-insensitively', () => {
-    expect(matchesUpcomingQuery(IDRIS, 'idris')).toBeTrue();
-    expect(matchesUpcomingQuery(IDRIS, 'AEGIS')).toBeTrue();
-    expect(matchesUpcomingQuery(IDRIS, 'aegs')).toBeTrue();
-    expect(matchesUpcomingQuery(IDRIS, 'combat')).toBeTrue();
-    expect(matchesUpcomingQuery(IDRIS, 'frigate')).toBeTrue();
+    expect(matchesUpcomingQuery(IDRIS, 'idris')).toBe(true);
+    expect(matchesUpcomingQuery(IDRIS, 'AEGIS')).toBe(true);
+    expect(matchesUpcomingQuery(IDRIS, 'aegs')).toBe(true);
+    expect(matchesUpcomingQuery(IDRIS, 'combat')).toBe(true);
+    expect(matchesUpcomingQuery(IDRIS, 'frigate')).toBe(true);
   });
 
   it('ANDs multiple tokens instead of widening the result', () => {
-    expect(matchesUpcomingQuery(ZEUS, 'zeus cargo')).toBeTrue();
-    expect(matchesUpcomingQuery(ZEUS, 'zeus frigate')).toBeFalse();
+    expect(matchesUpcomingQuery(ZEUS, 'zeus cargo')).toBe(true);
+    expect(matchesUpcomingQuery(ZEUS, 'zeus frigate')).toBe(false);
   });
 
   it('does not match unrelated terms', () => {
-    expect(matchesUpcomingQuery(IDRIS, 'drake')).toBeFalse();
+    expect(matchesUpcomingQuery(IDRIS, 'drake')).toBe(false);
   });
 });
 

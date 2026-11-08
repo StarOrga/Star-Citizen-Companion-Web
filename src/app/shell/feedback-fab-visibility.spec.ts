@@ -79,28 +79,28 @@ describe('feedback launcher visibility', () => {
 
   it('renders the admin launcher by default and drops it once hidden', () => {
     localStorage.removeItem(KEY);
-    expect(hasFab(adminFab())).withContext('default = shown').toBeTrue();
+    expect(hasFab(adminFab()), 'default = shown').toBe(true);
 
     localStorage.setItem(KEY, '1');
     const fixture = adminFab();
-    expect(hasFab(fixture)).withContext('opted out').toBeFalse();
+    expect(hasFab(fixture), 'opted out').toBe(false);
 
     // And back again, without a reload — the toggle lives on another page.
     TestBed.inject(FeedbackFabPrefsService).setShow(true);
     fixture.detectChanges();
-    expect(hasFab(fixture)).toBeTrue();
+    expect(hasFab(fixture)).toBe(true);
   });
 
   it('renders the user launcher by default and drops it once hidden', () => {
     localStorage.removeItem(KEY);
-    expect(hasFab(userFab())).withContext('default = shown').toBeTrue();
+    expect(hasFab(userFab()), 'default = shown').toBe(true);
 
     localStorage.setItem(KEY, '1');
     const fixture = userFab();
-    expect(hasFab(fixture)).withContext('opted out').toBeFalse();
+    expect(hasFab(fixture), 'opted out').toBe(false);
 
     TestBed.inject(FeedbackFabPrefsService).setShow(true);
     fixture.detectChanges();
-    expect(hasFab(fixture)).toBeTrue();
+    expect(hasFab(fixture)).toBe(true);
   });
 });

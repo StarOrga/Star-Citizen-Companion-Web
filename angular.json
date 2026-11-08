@@ -94,24 +94,20 @@
           "builder": "@angular/build:extract-i18n"
         },
         "test": {
-          "builder": "@angular/build:karma",
+          "builder": "@angular/build:unit-test",
           "options": {
-            "karmaConfig": "karma.conf.cjs",
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "runner": "vitest",
+            "buildTarget": "verse-companion:build:development",
             "tsConfig": "tsconfig.spec.json",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "public"
-              }
+            "runnerConfig": "vitest-base.config.mts",
+            "browsers": [
+              "chromiumHeadless"
             ],
-            "styles": [
-              "src/styles.scss"
+            "browserViewport": "1280x800",
+            "setupFiles": [
+              "src/app/testing/vitest-setup.ts"
             ],
-            "scripts": []
+            "watch": false
           }
         },
         "lint": {

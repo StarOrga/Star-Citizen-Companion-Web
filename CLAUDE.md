@@ -7,7 +7,7 @@ Angular 22 PWA · Supabase · Vercel — live at `versecompanion-alpha.vercel.ap
 - `npm start` — `ng serve` on `http://127.0.0.1:4200` (default = cloud Supabase)
 - `npm run build` — production build → `dist/verse-companion/browser`
 - `npm run typecheck` — `tsc --noEmit -p tsconfig.app.json`
-- `npm test` — Karma + Jasmine (ChromeHeadless), no watch
+- `npm test` — Vitest in headless Chromium via Playwright (`@angular/build:unit-test`, 1280 × 800 window), no watch; `-- --include=app/<area>/**/*.spec.ts` for one area
 - `npm run lint` — ESLint via angular-eslint (`ng lint`)
 - `npm run test:functions` — every `supabase/functions/**/*.test.{ts,mjs}` under `node --test`
 - `npm run test:gate` — script/hook tests (node --test)
@@ -15,7 +15,7 @@ Angular 22 PWA · Supabase · Vercel — live at `versecompanion-alpha.vercel.ap
 - `npm run db:reset` — local stack only, drops and re-applies
 - `npm run functions:deploy` — deploy all edge functions
 
-CI: `.github/workflows/web-ci.yml` runs typecheck, lint, Karma, gate scripts, build and the mobile gate on every PR; `edge-functions-deploy.yml` runs the function tests (Node + Deno) before it deploys. Node 24 (`.nvmrc`).
+CI: `.github/workflows/web-ci.yml` runs typecheck, lint, the Vitest unit tests, gate scripts, build and the mobile gate on every PR; `edge-functions-deploy.yml` runs the function tests (Node + Deno) before it deploys. Node 24 (`.nvmrc`).
 
 ## Key Rules
 
@@ -43,4 +43,5 @@ CI: `.github/workflows/web-ci.yml` runs typecheck, lint, Karma, gate scripts, bu
 - `.claude/deep-knowledge/patch-stability.md` — stability indicator sources (Spectrum replies, status JSON, CIG KB), API quirks, where the formula lives
 - `.claude/deep-knowledge/feedback-watcher.md` — the feedback routine as a model-free watcher + headless runs: why the Desktop tasks went, hazards, what to run before changing it (contract and failure table: `docs/feedback-routine/watcher.md`)
 - `.claude/deep-knowledge/test-account.md` — signed-in Playwright browsers via the test account (init page, Credential Manager setup, admin-on-prod rules, why sign-out is global)
+- `.claude/deep-knowledge/unit-tests.md` — Vitest in a real browser: setup, `useViewport`, the traps that differ from Karma/Jasmine (fakeAsync vs Angular's native async, `toContain`, unhandled errors), the Jasmine converter
 - `.claude/deep-knowledge/storage.md` — which data lives where (Supabase / R2 via Worker / Vercel / GitHub mirror), the 500 MB DB budget and codex retention, R2 cost guard, why no Redis yet

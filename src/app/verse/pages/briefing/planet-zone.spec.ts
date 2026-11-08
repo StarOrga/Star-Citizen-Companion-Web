@@ -47,7 +47,7 @@ describe('Verse hub — verdict + patch grid model', () => {
     const known = ['4.3', '4.2'];
     const v = (l: string): StabilityVerdict | null => ({ '4.3': verdict('4.3', 4, 50, 30), '4.2': verdict('4.2', 2, 79, 16) })[l] ?? null;
     const live = hubChannel('live', { live: '4.3.1' }, known, v);
-    expect(live.chip).toEqual(jasmine.objectContaining({ line: '4.3', percent: 50, previous: 79, previousLabel: '4.2', finished: false }));
+    expect(live.chip).toEqual(expect.objectContaining({ line: '4.3', percent: 50, previous: 79, previousLabel: '4.2', finished: false }));
     const none = hubChannel('live', { live: '4.3.1' }, known, () => null);
     expect(none.chip).toBeNull();
   });
@@ -60,10 +60,10 @@ describe('Verse hub — verdict + patch grid model', () => {
     expect([live.version, live.line, live.chip?.previousLabel, live.chip?.percent]).toEqual(['4.3.1', '4.3', '4.2', 50]);
     const rows = hubChannels(channels, known, v);
     expect(rows.map((r) => r.kind)).toEqual(['hotfix', 'ptu', 'evocati']);
-    expect(rows[0].version).withContext('no hotfix in the data → quiet slot').toBeNull();
-    expect(rows[1].chip?.percent).withContext('no channelInfo → no number').toBeNull();
-    expect(rows[2].chip).withContext('Evocati never carries a chip').toBeNull();
-    expect(hubChannels(null, known, v).every((r) => r.version === null)).toBeTrue();
+    expect(rows[0].version, 'no hotfix in the data → quiet slot').toBeNull();
+    expect(rows[1].chip?.percent, 'no channelInfo → no number').toBeNull();
+    expect(rows[2].chip, 'Evocati never carries a chip').toBeNull();
+    expect(hubChannels(null, known, v).every((r) => r.version === null)).toBe(true);
     expect(lineOf('4.3.1')).toBe('4.3');
     expect(previousLine('4.3', known)).toBe('4.2');
     expect(previousLine('4.2', [])).toBe('4.1');
@@ -74,12 +74,12 @@ describe('Verse hub — verdict + patch grid model', () => {
     expect(patchImage([group('4.3', true, true, [note('43.jpg')])])).toBe('43.jpg');
     expect(patchImage([])).toBeNull();
     const items = Array.from({ length: 20 }, (_, i) => item(`g${i}`, null, 'gallery', { image: `${i}.jpg`, rank: i }));
-    expect(hubGallery(items).length).withContext('spare candidates beyond the 1 + 6 slots').toBe(14);
+    expect(hubGallery(items).length, 'spare candidates beyond the 1 + 6 slots').toBe(14);
     expect(kickerVersion({ live: '4.3.1' }, '4.3')).toBe('4.3.1');
     expect(kickerVersion({}, '4.3')).toBe('4.3');
     expect(holoBody('a '.repeat(100)).length).toBeLessThanOrEqual(112);
-    expect(holoTitle('Cargo Hauling – Day 1').length).withContext('a short title stays whole').toBe(21);
-    expect(holoTitle('word '.repeat(40)).length).withContext('the holo has one size: long titles are capped').toBeLessThanOrEqual(66);
+    expect(holoTitle('Cargo Hauling – Day 1').length, 'a short title stays whole').toBe(21);
+    expect(holoTitle('word '.repeat(40)).length, 'the holo has one size: long titles are capped').toBeLessThanOrEqual(66);
   });
 });
 
@@ -102,7 +102,7 @@ describe('Verse hub — accordion hover intent', () => {
     expect(acc.open()).toBe(0);
     acc.leave();
     tick(ACC_STOP_MS * 4);
-    expect(acc.open()).withContext('leaving after a sweep opens nothing late').toBe(0);
+    expect(acc.open(), 'leaving after a sweep opens nothing late').toBe(0);
     acc.destroy();
   }));
 
@@ -111,7 +111,7 @@ describe('Verse hub — accordion hover intent', () => {
     // 0.25 px/ms (8 px per 32 ms, above the jitter limit) inside entry 3: opens on the second sample, no timer involved.
     expect(8 / 32).toBeLessThanOrEqual(ACC_SLOW_PX_PER_MS);
     acc.move(3, 10, 190, 1000);
-    expect(acc.open()).withContext('the first sample has no speed yet').toBe(0);
+    expect(acc.open(), 'the first sample has no speed yet').toBe(0);
     acc.move(3, 10, 182, 1032);
     expect(acc.open()).toBe(3);
     acc.destroy();
@@ -137,7 +137,7 @@ describe('Verse hub — accordion hover intent', () => {
     acc.move(2, 10, 80, 1000);
     tick(ACC_STOP_MS + 1);
     expect(acc.open()).toBe(2);
-    expect(acc.transitioning).toBeTrue();
+    expect(acc.transitioning).toBe(true);
     // A new target during the transition waits for the transition's end.
     acc.move(3, 10, 120, 1100);
     tick(ACC_STOP_MS + 1);
@@ -186,7 +186,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
         provideTranslateService({}),
         // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
         { provide: PLANET_SOURCES, useValue: () => Promise.reject(new Error('specs generate the planet')) },
-        { provide: AnalyticsService, useValue: { captureVerse: jasmine.createSpy(), flags: () => ({}) } },
+        { provide: AnalyticsService, useValue: { captureVerse: vi.fn(), flags: () => ({}) } },
         { provide: BriefingGalleryFillService, useValue: { items: signal<VerseDigestItem[]>([]), load: () => Promise.resolve() } },
         { provide: BetaService, useValue: { isEnabled: (a: string) => () => !!beta()[a] } },
         { provide: AuthService, useValue: { isAuthenticated: signal(false), user: signal(null) } },
@@ -194,7 +194,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
         {
           provide: PatchStabilityService,
           useValue: {
-            load: jasmine.createSpy().and.resolveTo(), allTime: () => [], thresholds: () => ({ stabilMin: 75, wackeligMin: 45, rolling: false }), previousOf: () => null,
+            load: vi.fn().mockResolvedValue(undefined), allTime: () => [], thresholds: () => ({ stabilMin: 75, wackeligMin: 45, rolling: false }), previousOf: () => null,
             verdictFor: (l: string) => (l === '4.3' ? verdict('4.3', 3, 50, 30) : l === '4.2' ? verdict('4.2', 2, 79, 16) : null),
           },
         },
@@ -203,16 +203,16 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
           useValue: {
             digest: signal(digest), digestState: signal('ready'), digestError: signal(null),
             seen: signal(new Set<string>()), topItems: signal(items.slice(0, 3)),
-            explorer: signal(null), explorerState: signal('idle'), loadExplorer: jasmine.createSpy(),
-            loadDigest: jasmine.createSpy(), loadSeen: jasmine.createSpy(),
-            markSeen: jasmine.createSpy().and.resolveTo({ ok: true, data: undefined }), trackShown: () => () => undefined,
+            explorer: signal(null), explorerState: signal('idle'), loadExplorer: vi.fn(),
+            loadDigest: vi.fn(), loadSeen: vi.fn(),
+            markSeen: vi.fn().mockResolvedValue({ ok: true, data: undefined }), trackShown: () => () => undefined,
           },
         },
         {
           provide: NewsService,
           useValue: {
             feed: signal(null), loading: signal(false), error: signal(null), stage: signal(null), stream: signal(feedNews), streamCount: signal(5),
-            patchLines: signal([group('4.4', false, false), group('4.3', true, true), group('4.2', false, true)]), refresh: jasmine.createSpy(),
+            patchLines: signal([group('4.4', false, false), group('4.3', true, true), group('4.2', false, true)]), refresh: vi.fn(),
           },
         },
       ],
@@ -262,8 +262,8 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector<HTMLAnchorElement>('.hrow h1 a.tl')?.getAttribute('href')).toBe('/verse/news?item=n1');
     expect(el.querySelector('.kick')?.textContent).toContain('verse.hub.area.news');
     expect(el.querySelectorAll('.hrow button.step').length).toBe(2);
-    expect(el.querySelector('button.find')).withContext('the search stands in the shell stage slot').toBeNull();
-    expect(el.querySelector('.cta, .sbar, .pause')).withContext('no CTA, story bars or pause').toBeNull();
+    expect(el.querySelector('button.find'), 'the search stands in the shell stage slot').toBeNull();
+    expect(el.querySelector('.cta, .sbar, .pause'), 'no CTA, story bars or pause').toBeNull();
     const planets = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pl')).map((a) => [a.dataset['door'], a.getAttribute('href')]);
     expect(planets).toEqual([['news', '/verse/news'], ['patches', '/verse/patches'], ['gallery', '/verse/gallery']]);
     expect(el.querySelector<HTMLAnchorElement>('a.holo')?.getAttribute('href')).toBe('/verse/news?item=f1');
@@ -305,23 +305,23 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
       return el.querySelector('button.more-cue')!.classList.contains('gone');
     };
     expect(phase()).toBe('charge');
-    expect(cueGone()).withContext('no message on screen yet → the "more" cue stands').toBeFalse();
+    expect(cueGone(), 'no message on screen yet → the "more" cue stands').toBe(false);
     expect(el.querySelector('a.pl[data-door="news"]')?.classList).toContain('send');
     tick(TX_CHARGE_MS);
     expect(phase()).toBe('build');
-    expect(cueGone()).withContext('the cue stands under a visible message too').toBeFalse();
+    expect(cueGone(), 'the cue stands under a visible message too').toBe(false);
     tick(TX_BUILD_MS);
     expect(phase()).toBe('write');
-    expect(holo().querySelector('.b')?.textContent).withContext('the whole text is there, the scan line reveals it').toBe('Short summary.');
+    expect(holo().querySelector('.b')?.textContent, 'the whole text is there, the scan line reveals it').toBe('Short summary.');
     tick(TX_WRITE_MS);
     expect(phase()).toBe('pull');
     tick(TX_PULL_MS);
     expect(phase()).toBe('hold');
     expect(el.querySelector('a.pl[data-door="news"]')?.classList).not.toContain('send');
-    expect(cueGone()).toBeFalse();
+    expect(cueGone()).toBe(false);
     tick(TX_HOLD_MS);
     expect(phase()).toBe('out');
-    expect(cueGone()).toBeFalse();
+    expect(cueGone()).toBe(false);
     tick(TX_OUT_MS);
     fixture.detectChanges();
     expect(holo().querySelector('.k')?.textContent).toContain('verse.gates.patches.topic');
@@ -344,7 +344,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     el.querySelector('.hrow')!.dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
     tick(HERO_MS * 2);
-    expect(title()).withContext('held while hovered').toBe('/verse/patches/4.3');
+    expect(title(), 'held while hovered').toBe('/verse/patches/4.3');
     el.querySelector('.hrow')!.dispatchEvent(new MouseEvent('mouseleave'));
     fixture.detectChanges();
     el.querySelectorAll<HTMLButtonElement>('.hrow button.step')[0].click();
@@ -366,11 +366,11 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     focus.focused.set(false);
     fixture.detectChanges();
     tick(HERO_MS * 2);
-    expect(title()).withContext('no focus').toBe('/verse/news?item=n1');
+    expect(title(), 'no focus').toBe('/verse/news?item=n1');
     focus.focused.set(true);
     fixture.detectChanges();
     tick(HERO_MS - 1);
-    expect(title()).withContext('full turn').toBe('/verse/news?item=n1');
+    expect(title(), 'full turn').toBe('/verse/news?item=n1');
     tick(1);
     expect(title()).toBe('/verse/patches/4.3');
     fixture.destroy();
@@ -391,16 +391,16 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(feat.getAttribute('href')).toBe('/verse/patches/4.3');
     const chip = feat.querySelector('sc-stability-chip .chip')!;
     expect(chip.getAttribute('data-word')).toBe('wackelig');
-    expect(chip.querySelector('.ind')?.textContent).withContext(' 50 % against 79 % of 4.2').toBe('▼');
-    expect(feat.querySelector('a.chip')).withContext('the row is the link, no anchor inside an anchor').toBeNull();
+    expect(chip.querySelector('.ind')?.textContent, ' 50 % against 79 % of 4.2').toBe('▼');
+    expect(feat.querySelector('a.chip'), 'the row is the link, no anchor inside an anchor').toBeNull();
     expect(el.querySelector('.kv, .verdict')).toBeNull();
     const slots = Array.from(el.querySelectorAll<HTMLElement>('.pcol .ch')).map((c) => [c.dataset['ch'], c.classList.contains('off')]);
     expect(slots).toEqual([['hotfix', true], ['ptu', false], ['evocati', true]]);
     expect(el.querySelector('.ch.off .quiet')?.textContent).toContain('verse.hub.channelOff');
-    expect(el.querySelectorAll('.ch .ch-chip').length).withContext('the running PTU row carries a chip, Evocati none').toBe(1);
+    expect(el.querySelectorAll('.ch .ch-chip').length, 'the running PTU row carries a chip, Evocati none').toBe(1);
     expect(el.querySelector<HTMLAnchorElement>('.gal a.feat')?.getAttribute('href')).toBe('/verse/gallery?image=g1');
-    expect(el.querySelectorAll('.mosaic > .blank').length).withContext('never an empty tile').toBe(0);
-    expect(el.querySelectorAll('.mosaic > *').length).withContext('one picture only: no mosaic tiles to fill').toBe(0);
+    expect(el.querySelectorAll('.mosaic > .blank').length, 'never an empty tile').toBe(0);
+    expect(el.querySelectorAll('.mosaic > *').length, 'one picture only: no mosaic tiles to fill').toBe(0);
     fixture.destroy();
     discardPeriodicTasks();
   }));
@@ -415,11 +415,11 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const name = 'verse.hub.brand'; // no catalogue loaded here: the key is the text
-    expect(el.querySelector('.bstage')?.classList.contains('intro')).toBeTrue();
+    expect(el.querySelector('.bstage')?.classList.contains('intro')).toBe(true);
     const brand = el.querySelector<HTMLElement>('.hrow h1 .tl.brand');
     const letters = Array.from(brand?.querySelectorAll<HTMLElement>('i.ltr') ?? []);
     expect(letters.length).toBe(Array.from(name).length);
-    expect(letters.every((l) => l.getAttribute('aria-hidden') === 'true')).toBeTrue();
+    expect(letters.every((l) => l.getAttribute('aria-hidden') === 'true')).toBe(true);
     // The letters carry no-break spaces so the name never collapses its gaps.
     expect(letters.map((l) => l.textContent).join('').replace(/\u00a0/g, ' ')).toBe(name);
     expect(letters[3].style.getPropertyValue('--i')).toBe('3');
@@ -428,7 +428,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     // After the entrance the hero carries the story, as plain text.
     tick(10000);
     fixture.detectChanges();
-    expect(el.querySelector('.bstage')?.classList.contains('intro')).toBeFalse();
+    expect(el.querySelector('.bstage')?.classList.contains('intro')).toBe(false);
     expect(el.querySelector('.hrow h1 i.ltr')).toBeNull();
     expect(el.querySelector('.hrow h1 a.tl')?.textContent?.trim()).toBe(fixture.componentInstance.current()?.item.title);
     fixture.destroy();
@@ -453,7 +453,7 @@ describe('Verse hub — beacons idle hint', () => {
   afterEach(() => TestBed.resetTestingModule());
 
   it('fires once after 8 s without scroll or pointer movement, calms down after 5 s, and not again', fakeAsync(() => {
-    spyOn(document, 'hasFocus').and.returnValue(true);
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     const fixture = TestBed.createComponent(BriefingBeaconsComponent);
     fixture.componentRef.setInput('version', '4.3.1');
     fixture.componentRef.setInput('stability', 50);
@@ -463,7 +463,7 @@ describe('Verse hub — beacons idle hint', () => {
     window.dispatchEvent(new Event('pointermove'));
     tick(IDLE_HINT_MS - 1000);
     fixture.detectChanges();
-    expect(sun().classList).withContext('movement restarted the clock').not.toContain('idle');
+    expect(sun().classList, 'movement restarted the clock').not.toContain('idle');
     tick(1000);
     fixture.detectChanges();
     expect(sun().classList).toContain('idle');
@@ -473,7 +473,7 @@ describe('Verse hub — beacons idle hint', () => {
     expect(sun().classList).not.toContain('idle');
     tick(IDLE_HINT_MS * 2);
     fixture.detectChanges();
-    expect(sun().classList).withContext('once per visit').not.toContain('idle');
+    expect(sun().classList, 'once per visit').not.toContain('idle');
     expect(sun().getAttribute('aria-label')).toContain('verse.hub.sunValue');
     fixture.destroy();
   }));

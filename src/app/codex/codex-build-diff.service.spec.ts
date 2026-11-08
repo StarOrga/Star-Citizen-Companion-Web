@@ -46,10 +46,8 @@ describe('CodexBuildDiffService', () => {
     });
     const codex = {
       build: () => CUR,
-      recentLiveBuilds: jasmine.createSpy('recentLiveBuilds').and.resolveTo(opts.builds),
-      getShipsByClassNames: jasmine
-        .createSpy('getShipsByClassNames')
-        .and.callFake(async (cns: string[]) => new Map(cns.map((cn) => [cn, row(cn)] as const))),
+      recentLiveBuilds: vi.fn().mockName('recentLiveBuilds').mockResolvedValue(opts.builds),
+      getShipsByClassNames: vi.fn().mockName('getShipsByClassNames').mockImplementation(async (cns: string[]) => new Map(cns.map((cn) => [cn, row(cn)] as const))),
     };
     TestBed.configureTestingModule({
       providers: [sb.provider, { provide: CodexService, useValue: codex }],
@@ -64,7 +62,8 @@ describe('CodexBuildDiffService', () => {
     });
     const rows = await svc.addedShips();
     expect(rows.map((r) => r.classNameSlug)).toEqual(['KRIG_S65_Stingray', 'RSI_Zeus']);
-    expect(codex.getShipsByClassNames).toHaveBeenCalledOnceWith(['KRIG_S65_Stingray', 'RSI_Zeus'], ['name', 'previewImage', 'manufacturer', 'dimensions']);
+    expect(codex.getShipsByClassNames).toHaveBeenCalledTimes(1);
+    expect(codex.getShipsByClassNames).toHaveBeenCalledWith(['KRIG_S65_Stingray', 'RSI_Zeus'], ['name', 'previewImage', 'manufacturer', 'dimensions']);
   });
 
   it('applies the default browse filters and selects only class_name', async () => {
@@ -75,11 +74,11 @@ describe('CodexBuildDiffService', () => {
     for (const call of reads) {
       expect(call.target).toBe('codex_ships');
       expect(chainArgs(call, 'select')).toEqual(['class_name']);
-      expect(call.chain).toContain(['eq', ['is_variant', false]]);
-      expect(call.chain).toContain(['or', ['name_localized.is.null,name_localized.not.like.!*']]);
-      expect(call.chain).toContain(['not', ['class_name', 'ilike', 'SalvageableDebris*']]);
-      expect(call.chain).toContain(['not', ['class_name', 'ilike', 'Orbital_Sentry*']]);
-      expect(call.chain).toContain(['not', ['class_name', 'ilike', 'probe_*']]);
+      expect(call.chain).toContainEqual(['eq', ['is_variant', false]]);
+      expect(call.chain).toContainEqual(['or', ['name_localized.is.null,name_localized.not.like.!*']]);
+      expect(call.chain).toContainEqual(['not', ['class_name', 'ilike', 'SalvageableDebris*']]);
+      expect(call.chain).toContainEqual(['not', ['class_name', 'ilike', 'Orbital_Sentry*']]);
+      expect(call.chain).toContainEqual(['not', ['class_name', 'ilike', 'probe_*']]);
     }
   });
 
@@ -129,7 +128,7 @@ describe('CodexBuildDiffService', () => {
       for (const call of sb.calls.filter((c) => c.op === 'from')) {
         expect(call.target).toBe('codex_components');
         expect(chainArgs(call, 'select')).toEqual(['class_name']);
-        expect(call.chain.some(([m]) => m === 'not' || m === 'or')).toBeFalse();
+        expect(call.chain.some(([m]) => m === 'not' || m === 'or')).toBe(false);
       }
     });
 
@@ -139,7 +138,7 @@ describe('CodexBuildDiffService', () => {
       await svc.addedClassNamesMemo('weapon');
       const reads = sb.calls.filter((c) => c.op === 'from');
       expect(reads.length).toBe(2);
-      expect(reads.every((c) => c.target === 'codex_weapons')).toBeTrue();
+      expect(reads.every((c) => c.target === 'codex_weapons')).toBe(true);
       expect(sb.calls.filter((c) => c.op === 'rpc').length).toBe(1);
     });
 

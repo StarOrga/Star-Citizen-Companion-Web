@@ -23,7 +23,7 @@ const OUTLINE: PatchOutline = {
 class FakeRoadmap {
   readonly outlines = signal<ReadonlyMap<string, PatchOutline>>(new Map());
   readonly pending = signal<ReadonlySet<string>>(new Set());
-  readonly requestOutlines = jasmine.createSpy('requestOutlines');
+  readonly requestOutlines = vi.fn().mockName('requestOutlines');
   outlineFor(slug: string): PatchOutline | null {
     return this.outlines().get(slug) ?? null;
   }

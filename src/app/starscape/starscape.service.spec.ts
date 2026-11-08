@@ -102,7 +102,7 @@ describe('StarscapeService', () => {
     await svc.load(true);
     const page = queries.find((q) => q.range !== null);
     expect(page).toBeTruthy();
-    expect(page!.filters).toContain({
+    expect(page!.filters).toContainEqual({
       op: 'in',
       column: 'variant_role',
       value: VISIBLE_VARIANT_ROLES,
@@ -117,7 +117,7 @@ describe('StarscapeService', () => {
     await svc.load(true);
     const page = queries.find((q) => q.range !== null);
     expect(page!.orders.map((o) => o.column)).toEqual(['published_at', 'image_id']);
-    expect(page!.orders.every((o) => !o.ascending)).toBeTrue();
+    expect(page!.orders.every((o) => !o.ascending)).toBe(true);
   });
 
   it('offers exactly four stable views, All first', () => {
@@ -128,8 +128,8 @@ describe('StarscapeService', () => {
   it('no longer probes series: the table is read only for the page itself', async () => {
     const svc = make();
     await svc.load(true);
-    expect(queries.some((q) => q.select === 'series')).toBeFalse();
-    expect(queries.some((q) => q.filters.some((f) => f.op === 'eq' && f.column === 'series'))).toBeFalse();
+    expect(queries.some((q) => q.select === 'series')).toBe(false);
+    expect(queries.some((q) => q.filters.some((f) => f.op === 'eq' && f.column === 'series'))).toBe(false);
   });
 
   it('serves Community Top / Newest / My votes through the paging RPC', async () => {
@@ -140,7 +140,7 @@ describe('StarscapeService', () => {
     ]);
     expect(svc.wallpapers().length).toBe(1);
     expect(svc.total()).toBe(30);
-    expect(svc.hasMore()).toBeTrue();
+    expect(svc.hasMore()).toBe(true);
     // Next page continues at the loaded count and appends.
     await svc.load();
     expect(rpcCalls[1].args['p_offset']).toBe(1);
@@ -155,7 +155,7 @@ describe('StarscapeService', () => {
     await svc.setFilter('mine');
     expect(svc.filter()).toBe('mine');
     expect(svc.wallpapers().length).toBe(0);
-    expect(svc.hasMore()).toBeFalse();
+    expect(svc.hasMore()).toBe(false);
     await svc.setFilter('all');
     expect(svc.wallpapers().length).toBe(1);
   });
@@ -174,7 +174,7 @@ describe('StarscapeService', () => {
     const found = await svc.loadOne('abc123');
     expect(found?.imageId).toBe('abc123');
     const lookup = queries.find((q) => q.filters.some((f) => f.column === 'image_id'));
-    expect(lookup!.filters.some((f) => f.column === 'variant_role')).toBeFalse();
+    expect(lookup!.filters.some((f) => f.column === 'variant_role')).toBe(false);
   });
 
   it('still lists the gallery when the variant columns are not deployed yet', async () => {
@@ -191,6 +191,6 @@ describe('StarscapeService', () => {
     expect(svc.wallpapers().length).toBe(1);
     const pages = queries.filter((q) => q.range !== null);
     expect(pages.length).toBe(2); // filtered attempt, then the retry
-    expect(pages[1].filters.some((f) => f.column === 'variant_role')).toBeFalse();
+    expect(pages[1].filters.some((f) => f.column === 'variant_role')).toBe(false);
   });
 });

@@ -23,7 +23,7 @@ const stats = (over: Partial<SocialStats> = {}): SocialStats => ({
 });
 
 function setup(handlers: Record<string, Handler>, extra: unknown[] = []) {
-  const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string, args?: Record<string, unknown>) => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string, args?: Record<string, unknown>) => {
     const h = handlers[fn];
     if (!h) return { data: fn === 'list_my_friend_edges' ? [] : null, error: null };
     try {
@@ -112,11 +112,11 @@ describe('SocialInviteBoxComponent', () => {
     const { fixture, el } = await mount(SocialInviteBoxComponent);
     const input = el.querySelector('form input') as HTMLInputElement;
     const submit = el.querySelector('form button[type=submit]') as HTMLButtonElement;
-    expect(submit.disabled).toBeTrue();
+    expect(submit.disabled).toBe(true);
     input.value = 'pilot_ok';
     input.dispatchEvent(new Event('input'));
     await settle(fixture);
-    expect(submit.disabled).toBeFalse();
+    expect(submit.disabled).toBe(false);
   });
 });
 
@@ -250,8 +250,8 @@ describe('SocialFriendComponent', () => {
     fixture.detectChanges();
     expect(el.querySelector('.report-card')).not.toBeNull();
     await page.submitReport();
-    expect(rpc).toHaveBeenCalledWith('report_user', jasmine.objectContaining({ category: 'harassment', reason: 'insults' }));
-    expect(page.reportOpen()).toBeFalse();
+    expect(rpc).toHaveBeenCalledWith('report_user', expect.objectContaining({ category: 'harassment', reason: 'insults' }));
+    expect(page.reportOpen()).toBe(false);
   });
 
   it('null from the server is the not-found state', async () => {

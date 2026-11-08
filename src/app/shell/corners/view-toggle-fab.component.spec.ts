@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -51,12 +52,12 @@ describe('ViewToggleFabComponent + the corner order (concept codex-kopf-besitz C
   it('toggles the registered view and names the view the click leads to', () => {
     const { fixture, corner, el } = setup();
     const holo = signal(true);
-    const toggle = jasmine.createSpy('toggle').and.callFake(() => holo.set(!holo()));
+    const toggle = vi.fn().mockName('toggle').mockImplementation(() => holo.set(!holo()));
     corner.setView({ holo, toggle });
     fixture.detectChanges();
     const fab = el.querySelector<HTMLButtonElement>('sc-view-toggle-fab .fab')!;
     expect(fab.getAttribute('aria-label')).toBe('corner.view.toClassic');
-    expect(fab.hasAttribute('title')).toBeFalse();
+    expect(fab.hasAttribute('title')).toBe(false);
     fab.click();
     fixture.detectChanges();
     expect(toggle).toHaveBeenCalledTimes(1);
@@ -103,12 +104,12 @@ describe('ViewToggleFabComponent + the corner order (concept codex-kopf-besitz C
     corner.setShare({ url: () => 'https://x.test/codex/ship/a?view=classic&loadout=abc' });
     const nav = navigator as Navigator & { share?: unknown };
     const hadShare = 'share' in nav;
-    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
-    if (hadShare) spyOn(nav as { share: (d: ShareData) => Promise<void> }, 'share').and.rejectWith(new Error('x'));
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    if (hadShare) vi.spyOn(nav as { share: (d: ShareData) => Promise<void> }, 'share').mockRejectedValue(new Error('x'));
     el.querySelector<HTMLButtonElement>('sc-share-button .fab')!.click();
     await new Promise((r) => setTimeout(r));
     if (hadShare) {
-      expect((nav as unknown as { share: jasmine.Spy }).share).toHaveBeenCalledWith(jasmine.objectContaining({ url: 'https://x.test/codex/ship/a?view=classic&loadout=abc' }));
+      expect((nav as unknown as { share: Mock }).share).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://x.test/codex/ship/a?view=classic&loadout=abc' }));
     } else {
       expect(write).toHaveBeenCalledWith('https://x.test/codex/ship/a?view=classic&loadout=abc');
     }
@@ -136,14 +137,14 @@ describe('ShareButtonComponent without the beta shell (F5)', () => {
 
   it('opens the page popover instead of sharing directly, and says so in aria', () => {
     const { fixture, corner, el } = setup();
-    const open = jasmine.createSpy('open');
+    const open = vi.fn().mockName('open');
     const expanded = signal(false);
     corner.setShare({ url: () => 'u', open: (t) => { open(t); expanded.set(true); }, expanded });
     fixture.detectChanges();
     const fab = el.querySelector<HTMLButtonElement>('.fab')!;
     expect(fab.getAttribute('aria-haspopup')).toBe('dialog');
     expect(fab.getAttribute('aria-expanded')).toBe('false');
-    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     fab.click();
     fixture.detectChanges();
     expect(open).toHaveBeenCalledWith(fab);

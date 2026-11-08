@@ -1,9 +1,10 @@
+import type { Mock } from 'vitest';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { CONTEXT_LOST_GRACE_MS, PlanetDrawer, PlanetScene, PlanetStatus, PlanetView, WAKE_RAMP_MS } from './planet-scene';
 import { DAY_MS, project, sph } from './planet-world';
 
-function drawer(): PlanetDrawer & { draw: jasmine.Spy; clear: jasmine.Spy } {
-  return { draw: jasmine.createSpy('draw'), clear: jasmine.createSpy('clear'), dispose: jasmine.createSpy('dispose') } as never;
+function drawer(): PlanetDrawer & { draw: Mock; clear: Mock } {
+  return { draw: vi.fn().mockName('draw'), clear: vi.fn().mockName('clear'), dispose: vi.fn().mockName('dispose') } as never;
 }
 
 describe('Verse planet — scene', () => {
@@ -34,7 +35,7 @@ describe('Verse planet — scene', () => {
     trains = document.createElement('canvas');
     status = [];
     first = drawer();
-    spyOn(Date, 'now').and.returnValue(0); // rot 0: the scene and nightFront() agree
+    vi.spyOn(Date, 'now').mockReturnValue(0); // rot 0: the scene and nightFront() agree
   });
 
   it('redraws the planet at 15 fps, and at once when it moved on screen', () => {
@@ -56,17 +57,17 @@ describe('Verse planet — scene', () => {
     s.resize(300, 100, 1);
     s.draw(view, 1001);
     expect(first.draw).toHaveBeenCalledTimes(2);
-    expect(first.draw.calls.mostRecent().args[1]).toBe(1);
+    expect(vi.mocked(first.draw).mock.lastCall![1]).toBe(1);
   });
 
   describe('pause without focus', () => {
     const TURN = (Math.PI * 2) / DAY_MS;
-    const clock = (ms: number) => (Date.now as jasmine.Spy).and.returnValue(ms);
+    const clock = (ms: number) => (Date.now as Mock).mockReturnValue(ms);
     /** The rotation the next draw uses (a new cy forces the pass past its 15 fps gate). */
     let cy = 0;
     const rotAt = (s: PlanetScene) => {
       s.draw({ ...view, cy: 200 + ++cy }, 1000 + cy);
-      return first.draw.calls.mostRecent().args[0].rot as number;
+      return vi.mocked(first.draw).mock.lastCall![0].rot as number;
     };
 
     it('stands while suspended, and does not jump on wake', () => {
@@ -76,9 +77,9 @@ describe('Verse planet — scene', () => {
       expect(before).toBeCloseTo(60_000 * TURN, 6);
       s.suspend();
       clock(120_000);
-      expect(rotAt(s)).withContext('time passes, the turn stands').toBeCloseTo(before, 9);
+      expect(rotAt(s), 'time passes, the turn stands').toBeCloseTo(before, 9);
       s.wake(0);
-      expect(rotAt(s)).withContext('no jump on the way back').toBeCloseTo(before, 9);
+      expect(rotAt(s), 'no jump on the way back').toBeCloseTo(before, 9);
     });
 
     it('comes up to speed softly, then runs at full speed', () => {
@@ -91,12 +92,12 @@ describe('Verse planet — scene', () => {
       clock(120_000 + WAKE_RAMP_MS / 2);
       const halfway = rotAt(s) - start;
       expect(halfway).toBeCloseTo((WAKE_RAMP_MS / 8) * 3 * TURN, 6);
-      expect(halfway).withContext('slower than full speed').toBeLessThan((WAKE_RAMP_MS / 2) * TURN);
+      expect(halfway, 'slower than full speed').toBeLessThan((WAKE_RAMP_MS / 2) * TURN);
       clock(120_000 + WAKE_RAMP_MS);
       const ramped = rotAt(s) - start;
       expect(ramped).toBeCloseTo((WAKE_RAMP_MS / 2) * TURN, 6);
       clock(120_000 + WAKE_RAMP_MS + 10_000);
-      expect(rotAt(s) - start - ramped).withContext('full speed from here on').toBeCloseTo(10_000 * TURN, 6);
+      expect(rotAt(s) - start - ramped, 'full speed from here on').toBeCloseTo(10_000 * TURN, 6);
     });
 
     it('a second pause during the soft start keeps the turn continuous', () => {
@@ -140,28 +141,28 @@ describe('Verse planet — scene', () => {
   it('leaves the train layer alone while no train is lit, and wipes a gone train exactly once', () => {
     const s = scene();
     const ctx = trains.getContext('2d')!;
-    const clear = spyOn(ctx, 'clearRect').and.callThrough();
+    const clear = vi.spyOn(ctx, 'clearRect');
     const net = (s as unknown as { net: { trains: object[]; position: () => readonly number[] } }).net;
     let now = 1000;
     const frames = (n: number) => { for (let i = 0; i < n; i++) s.draw(view, (now += 40)); };
 
     frames(3);
-    expect(clear).withContext('an empty layer stays untouched').not.toHaveBeenCalled();
+    expect(clear, 'an empty layer stays untouched').not.toHaveBeenCalled();
 
     const lit = nightFront();
     net.position = () => lit;
     net.trains.push({ visible: false });
     frames(3);
-    expect(clear).withContext('a lit train repaints every frame').toHaveBeenCalledTimes(3);
+    expect(clear, 'a lit train repaints every frame').toHaveBeenCalledTimes(3);
 
     net.trains.length = 0;
     frames(4);
-    expect(clear).withContext('the gone train is wiped once').toHaveBeenCalledTimes(4);
+    expect(clear, 'the gone train is wiped once').toHaveBeenCalledTimes(4);
   });
 
   it('never moves trains under reduced motion', () => {
     const s = scene(true);
-    const clear = spyOn(trains.getContext('2d')!, 'clearRect');
+    const clear = vi.spyOn(trains.getContext('2d')!, 'clearRect').mockReturnValue(undefined as never);
     (s as unknown as { net: { trains: object[] } }).net.trains.push({ visible: false });
     s.draw(view, 1000);
     expect(first.draw).toHaveBeenCalledTimes(1);
@@ -172,7 +173,7 @@ describe('Verse planet — scene', () => {
     const s = scene();
     const ev = new Event('webglcontextlost', { cancelable: true });
     gl.dispatchEvent(ev);
-    expect(ev.defaultPrevented).withContext('or the browser never restores it').toBeTrue();
+    expect(ev.defaultPrevented, 'or the browser never restores it').toBe(true);
     s.draw(view, 1000);
     expect(first.draw).not.toHaveBeenCalled();
     tick(CONTEXT_LOST_GRACE_MS - 1);
@@ -204,7 +205,7 @@ describe('Verse planet — scene', () => {
 
   it('a parked scene empties both canvases', () => {
     const s = scene();
-    const clear = spyOn(trains.getContext('2d')!, 'clearRect');
+    const clear = vi.spyOn(trains.getContext('2d')!, 'clearRect').mockReturnValue(undefined as never);
     s.clear();
     expect(first.clear).toHaveBeenCalledTimes(1);
     expect(clear).toHaveBeenCalledTimes(1);

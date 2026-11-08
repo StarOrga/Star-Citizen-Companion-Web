@@ -115,7 +115,7 @@ describe('HangarService unique-slot retry', () => {
 
     const ok = await svc.pinShip('A', 1);
 
-    expect(ok).toBeTrue();
+    expect(ok).toBe(true);
     expect(svc.error()).toBeNull();
     const byId = new Map(svc.ships().map((s) => [s.id, s.pinnedRank]));
     expect(byId.get('A')).toBe(1);
@@ -127,9 +127,9 @@ describe('HangarService unique-slot retry', () => {
       { pinned_rank: null },
       { pinned_rank: 1 },
     ]);
-    expect(updates[1].filters).toContain(['eq', 'id', 'B']);
+    expect(updates[1].filters).toContainEqual(['eq', 'id', 'B']);
     const reread = stub.calls.find((c) => c.op === 'select');
-    expect(reread?.filters).toContain(['not', 'pinned_rank', 'is', null]);
+    expect(reread?.filters).toContainEqual(['not', 'pinned_rank', 'is', null]);
   });
 
   it('pinShip: a second 23505 fails with the error set, after exactly two attempts', async () => {
@@ -142,7 +142,7 @@ describe('HangarService unique-slot retry', () => {
 
     const ok = await svc.pinShip('A', 1);
 
-    expect(ok).toBeFalse();
+    expect(ok).toBe(false);
     // The second failure is translated (D05): an i18n key, never the raw Postgres text.
     expect(svc.error()).toBe(describeError(conflict.error).key);
     const pinAttempts = stub.calls.filter((c) => c.op === 'update' && c.values?.['pinned_rank'] === 1);
@@ -156,7 +156,7 @@ describe('HangarService unique-slot retry', () => {
     const svc = makeService(stub.client);
     svc.ships.set([ship('A', null)]);
 
-    expect(await svc.pinShip('A', 1)).toBeFalse();
+    expect(await svc.pinShip('A', 1)).toBe(false);
     expect(svc.error()).toBe(describeError({ code: '42501', message: 'denied' }).key);
     expect(stub.calls.length).toBe(1);
   });
@@ -172,7 +172,7 @@ describe('HangarService unique-slot retry', () => {
     });
     const svc = makeService(stub.client);
 
-    expect(await svc.activateConfig('cfg-1', 'ship-1')).toBeTrue();
+    expect(await svc.activateConfig('cfg-1', 'ship-1')).toBe(true);
     expect(svc.error()).toBeNull();
     expect(stub.calls.map((c) => c.values)).toEqual([
       { is_active: false },
@@ -192,7 +192,7 @@ describe('HangarService unique-slot retry', () => {
     const stub = makeStub({ 'hangar_ship_configs:update': [ok, dup, ok, dup] });
     const svc = makeService(stub.client);
 
-    expect(await svc.activateConfig('cfg-1', 'ship-1')).toBeFalse();
+    expect(await svc.activateConfig('cfg-1', 'ship-1')).toBe(false);
     expect(svc.error()).toBe(describeError(dup.error).key);
     expect(stub.calls.length).toBe(4);
   });

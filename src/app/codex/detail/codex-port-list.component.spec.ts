@@ -63,12 +63,13 @@ describe('CodexPortListComponent', () => {
 
   it('emits portToggle from a port head, and a port that accepts nothing is a disabled head', async () => {
     const el = await render();
-    const toggled = jasmine.createSpy('toggle');
+    const toggled = vi.fn().mockName('toggle');
     fixture.componentInstance.portToggle.subscribe(toggled);
     const heads = el.querySelectorAll<HTMLButtonElement>('button.hp-head');
     heads[0].click();
-    expect(toggled).toHaveBeenCalledOnceWith(GROUPS[0].ports[0]);
-    expect(heads[2].disabled).toBeTrue();
+    expect(toggled).toHaveBeenCalledTimes(1);
+    expect(toggled).toHaveBeenCalledWith(GROUPS[0].ports[0]);
+    expect(heads[2].disabled).toBe(true);
   });
 
   it('folds an open port out into anchors for every compatible item', async () => {

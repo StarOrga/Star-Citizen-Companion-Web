@@ -37,7 +37,7 @@ describe('body engine — worker path', () => {
     tick(START);
     expect(w.of('init')[0].base).toBe(document.baseURI);
     w.say({ t: 'alive' });
-    expect(w.of('add')).withContext('it has not said it can draw').toEqual([]);
+    expect(w.of('add'), 'it has not said it can draw').toEqual([]);
     w.say({ t: 'capable', ok: true });
     const add = w.of('add')[0];
     expect(add.kind).toBe('sun');
@@ -45,7 +45,7 @@ describe('body engine — worker path', () => {
     expect(add.dpr).toBe(devicePixelRatio);
     expect(add.mapWidth).toBe(bodyMapWidth(120 * Math.max(1, screen.availWidth / innerWidth), devicePixelRatio));
     e.dispose();
-    expect(w.terminated).toBeTrue();
+    expect(w.terminated).toBe(true);
   }));
 
   it('a canvas attached later goes over at once; the stage pause reaches the worker', fakeAsync(() => {
@@ -56,7 +56,7 @@ describe('body engine — worker path', () => {
     canvas.style.setProperty('--sc-brief-play', 'paused');
     e.attach(canvas, 'sun');
     expect(w.of('add').length).toBe(1);
-    expect(w.of('paused')).withContext('not read while the page renders').toEqual([]);
+    expect(w.of('paused'), 'not read while the page renders').toEqual([]);
     tick(600);
     expect(w.of('paused')).toEqual([{ t: 'paused', paused: true }]);
     canvas.style.setProperty('--sc-brief-play', 'running');
@@ -67,7 +67,7 @@ describe('body engine — worker path', () => {
 
   it('answers a map request with a bitmap, passes ready on, and takes the art back on a lost context', async () => {
     const e = engine();
-    const ready = jasmine.createSpy('ready'), lost = jasmine.createSpy('lost');
+    const ready = vi.fn().mockName('ready'), lost = vi.fn().mockName('lost');
     e.attach(canvas, 'sun', ready, lost);
     w.say({ t: 'alive' });
     w.say({ t: 'capable', ok: true });
@@ -88,23 +88,23 @@ describe('body engine — worker path', () => {
 
   it('a worker dying after the hand-over shows the CSS art instead of a blank canvas', fakeAsync(() => {
     const e = engine();
-    const lost = jasmine.createSpy('lost');
+    const lost = vi.fn().mockName('lost');
     e.attach(canvas, 'sun', undefined, lost);
     tick(START);
     w.say({ t: 'alive' });
     w.say({ t: 'capable', ok: true });
     w.onerror?.({ preventDefault: () => undefined, message: 'crash' } as ErrorEvent);
     expect(lost).toHaveBeenCalledTimes(1);
-    expect(w.terminated).toBeTrue();
+    expect(w.terminated).toBe(true);
     e.dispose();
   }));
 
   it('a worker that never runs or cannot draw leaves the canvas to the page', fakeAsync(() => {
-    const transfer = spyOn(canvas, 'transferControlToOffscreen');
+    const transfer = vi.spyOn(canvas, 'transferControlToOffscreen').mockReturnValue(undefined as never);
     const e = engine();
     e.attach(canvas, 'sun');
     tick(START + BODY_WORKER_DEADLINE_MS);
-    expect(w.terminated).toBeTrue();
+    expect(w.terminated).toBe(true);
     expect(transfer).not.toHaveBeenCalled();
     e.dispose();
     tick(1000);
@@ -124,7 +124,7 @@ describe('body map width', () => {
       for (const dpr of [1, 1.25, 1.5, 2, 3]) {
         const w = bodyMapWidth(css, dpr);
         const need = Math.PI * css * Math.min(2, dpr) * 1.06;
-        expect(w >= need || w === 1024).withContext(`${css}px @${dpr}`).toBeTrue();
+        expect(w >= need || w === 1024, `${css}px @${dpr}`).toBe(true);
       }
     }
   });
@@ -133,6 +133,6 @@ describe('body map width', () => {
     expect(bodyMapWidth(115, 1)).toBe(512);
     expect(bodyMapWidth(115, 2)).toBe(1024);
     expect(bodyMapWidth(46, 2)).toBe(512);
-    expect(bodyMapWidth(0, 1)).withContext('not laid out yet').toBe(1024);
+    expect(bodyMapWidth(0, 1), 'not laid out yet').toBe(1024);
   });
 });

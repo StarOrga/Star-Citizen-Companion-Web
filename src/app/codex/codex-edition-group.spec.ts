@@ -159,7 +159,7 @@ describe('groupEditionRows', () => {
     ];
     const out = groupEditionRows(rows);
     expect(out.length).toBe(rows.length);
-    expect(out.every((r) => r.editions.length === 0)).toBeTrue();
+    expect(out.every((r) => r.editions.length === 0)).toBe(true);
   });
 
   it('flattens a chain onto the family root, labelled from the root', () => {

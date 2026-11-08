@@ -27,9 +27,9 @@ function fakeLive(state: Record<string, unknown> | null, events: HqLiveEventRow[
     hasMore: signal(true),
     toast: signal<HqLiveEventRow | null>(null),
     connected: signal(true),
-    refresh: jasmine.createSpy('refresh'),
-    loadMore: jasmine.createSpy('loadMore').and.resolveTo(),
-    undo: jasmine.createSpy('undo'),
+    refresh: vi.fn().mockName('refresh'),
+    loadMore: vi.fn().mockName('loadMore').mockResolvedValue(undefined),
+    undo: vi.fn().mockName('undo'),
     undoable: () => false,
     dismissToast: () => undefined,
   };
@@ -146,7 +146,7 @@ describe('HqNowComponent', () => {
       ]);
       const el = mount(live).nativeElement as HTMLElement;
       expect(zoneTexts(el)).toEqual(['hq.now.zone.restricted', 'hq.now.zone.armistice']);
-      expect(el.querySelector('.zone')?.classList.contains('warn')).toBeTrue();
+      expect(el.querySelector('.zone')?.classList.contains('warn')).toBe(true);
     });
 
     it('reads unknown when this session has no zone event', () => {

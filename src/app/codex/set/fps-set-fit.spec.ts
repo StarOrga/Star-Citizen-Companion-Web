@@ -43,9 +43,9 @@ describe('fittingSlots', () => {
   });
 
   it('tells armour positions from weapon positions', () => {
-    expect(isArmorRoleSlot('helmet')).toBeTrue();
-    expect(isArmorRoleSlot('primary')).toBeFalse();
-    expect(isArmorRoleSlot(null)).toBeFalse();
+    expect(isArmorRoleSlot('helmet')).toBe(true);
+    expect(isArmorRoleSlot('primary')).toBe(false);
+    expect(isArmorRoleSlot(null)).toBe(false);
   });
 });
 

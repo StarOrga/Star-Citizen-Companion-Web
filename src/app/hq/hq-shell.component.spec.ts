@@ -44,11 +44,11 @@ describe('HqShellComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     await router.navigateByUrl('/hq/hangar/sh1?v=c1');
     fixture.detectChanges();
-    expect(fixture.componentInstance.onShipPage()).toBeTrue();
+    expect(fixture.componentInstance.onShipPage()).toBe(true);
     expect(el.querySelector('a.supplies-btn')).toBeNull();
     await router.navigateByUrl('/hq/hangar/import');
     fixture.detectChanges();
-    expect(fixture.componentInstance.onShipPage()).toBeFalse();
+    expect(fixture.componentInstance.onShipPage()).toBe(false);
     await router.navigateByUrl('/hq/hangar');
     fixture.detectChanges();
     expect(el.querySelector('a.supplies-btn')).not.toBeNull();

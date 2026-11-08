@@ -59,7 +59,7 @@ describe('ShipSkinsService', () => {
   describe('listSkins', () => {
     it('returns empty (no error) for empty shipId without querying', async () => {
       const svc = makeService({ data: null, error: { message: 'should not run' } });
-      await expectAsync(svc.listSkins('')).toBeResolvedTo({ skins: [], error: false });
+      await expect(svc.listSkins('')).resolves.toEqual({ skins: [], error: false });
     });
 
     it('maps DB rows to ShipSkin and queries by ship_id', async () => {
@@ -85,13 +85,13 @@ describe('ShipSkinsService', () => {
         (c) => (cap = c),
       );
       const { skins, error } = await svc.listSkins('DRAK_Cutlass_Black');
-      expect(error).toBeFalse();
+      expect(error).toBe(false);
       expect(cap.table).toBe('ship_skins');
       expect(cap.eqCol).toBe('ship_id');
       expect(cap.eqVal).toBe('DRAK_Cutlass_Black');
       expect(skins.length).toBe(1);
       expect(skins[0]).toEqual(
-        jasmine.objectContaining({
+        expect.objectContaining({
           shipId: 'DRAK_Cutlass_Black',
           skinId: 'pirate',
           name: 'Cutlass Skull and Crossbones Livery',
@@ -124,13 +124,13 @@ describe('ShipSkinsService', () => {
       const s = skins[0];
       expect(s.description).toBe('');
       expect(s.source).toBe('store');
-      expect(s.nameVerified).toBeFalse();
+      expect(s.nameVerified).toBe(false);
       expect(s.sort).toBe(100);
     });
 
     it('flags error:true on query failure (distinct from empty)', async () => {
       const svc = makeService({ data: null, error: { message: 'boom' } });
-      await expectAsync(svc.listSkins('X')).toBeResolvedTo({ skins: [], error: true });
+      await expect(svc.listSkins('X')).resolves.toEqual({ skins: [], error: true });
     });
   });
 

@@ -205,9 +205,7 @@ describe('i18n keys emitted by the ship-page models', () => {
     for (const g of POWER_GROUP_ORDER) {
       const s = computePowerSheet({ occupants: nomadOccupants() });
       const row = s.groups.find((r) => r.group === g)!;
-      expect(row.tooltipBodyKey.split('.').length)
-        .withContext(`${g} tooltip is flat, not .title/.body`)
-        .toBe(4);
+      expect(row.tooltipBodyKey.split('.').length, `${g} tooltip is flat, not .title/.body`).toBe(4);
       expect(typeof lookup(de as Catalogue, row.tooltipBodyKey)).toBe('string');
     }
   });

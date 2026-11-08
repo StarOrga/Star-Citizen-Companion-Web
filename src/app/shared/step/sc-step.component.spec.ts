@@ -54,6 +54,6 @@ describe('ScStepComponent', () => {
     const el: HTMLElement = f.nativeElement;
     expect(el.querySelector('.state.done')).not.toBeNull();
     el.querySelector<HTMLButtonElement>('.undo')!.click();
-    expect(f.componentInstance.undone).toBeTrue();
+    expect(f.componentInstance.undone).toBe(true);
   });
 });

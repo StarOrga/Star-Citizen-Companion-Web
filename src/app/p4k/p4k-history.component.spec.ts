@@ -35,20 +35,20 @@ function setup(bundles: P4kBundleRow[], isAdmin = false) {
 /** Same page, plus the service and dialog mocks for the admin actions. */
 function setupWithMocks(bundles: P4kBundleRow[], isAdmin = false) {
   const dialog = {
-    confirm: jasmine.createSpy('confirm').and.resolveTo(true),
-    prompt: jasmine.createSpy('prompt').and.resolveTo(''),
+    confirm: vi.fn().mockName('confirm').mockResolvedValue(true),
+    prompt: vi.fn().mockName('prompt').mockResolvedValue(''),
   };
   const svc = {
-    setDisabled: jasmine.createSpy('setDisabled').and.resolveTo(undefined),
-    deleteBundle: jasmine.createSpy('deleteBundle').and.resolveTo(undefined),
+    setDisabled: vi.fn().mockName('setDisabled').mockResolvedValue(undefined),
+    deleteBundle: vi.fn().mockName('deleteBundle').mockResolvedValue(undefined),
     bundles: signal(bundles),
     busy: signal(false),
     errorMsg: signal<string | null>(null),
     includeHistory: signal(false),
     includeDisabled: signal(false),
-    listBundles: jasmine.createSpy('listBundles').and.resolveTo(undefined),
-    toggleHistory: jasmine.createSpy('toggleHistory'),
-    toggleDisabled: jasmine.createSpy('toggleDisabled'),
+    listBundles: vi.fn().mockName('listBundles').mockResolvedValue(undefined),
+    toggleHistory: vi.fn().mockName('toggleHistory'),
+    toggleDisabled: vi.fn().mockName('toggleDisabled'),
   };
   TestBed.configureTestingModule({
     imports: [P4kHistoryComponent],
@@ -141,17 +141,17 @@ describe('P4kHistoryComponent — admin actions ask in the app dialog', () => {
 
   it('does not disable when the reason prompt is cancelled', async () => {
     const { fixture, svc, dialog } = setupWithMocks([bundle()], true);
-    dialog.prompt.and.resolveTo(null);
+    dialog.prompt.mockResolvedValue(null);
     await fixture.componentInstance.disable(bundle());
     expect(dialog.prompt).toHaveBeenCalledWith(
-      jasmine.objectContaining({ titleKey: 'p4k.prompts.disableTitle', inputLabelKey: 'p4k.prompts.reasonLabel' }),
+      expect.objectContaining({ titleKey: 'p4k.prompts.disableTitle', inputLabelKey: 'p4k.prompts.reasonLabel' }),
     );
     expect(svc.setDisabled).not.toHaveBeenCalled();
   });
 
   it('disables with the trimmed reason', async () => {
     const { fixture, svc, dialog } = setupWithMocks([bundle()], true);
-    dialog.prompt.and.resolveTo(' alt ');
+    dialog.prompt.mockResolvedValue(' alt ');
     const b = bundle();
     await fixture.componentInstance.disable(b);
     expect(svc.setDisabled).toHaveBeenCalledWith(b.id, true, 'alt');
@@ -159,7 +159,7 @@ describe('P4kHistoryComponent — admin actions ask in the app dialog', () => {
 
   it('disables with null for an empty reason', async () => {
     const { fixture, svc, dialog } = setupWithMocks([bundle()], true);
-    dialog.prompt.and.resolveTo('   ');
+    dialog.prompt.mockResolvedValue('   ');
     const b = bundle();
     await fixture.componentInstance.disable(b);
     expect(svc.setDisabled).toHaveBeenCalledWith(b.id, true, null);
@@ -167,10 +167,10 @@ describe('P4kHistoryComponent — admin actions ask in the app dialog', () => {
 
   it('does not delete when the question is cancelled', async () => {
     const { fixture, svc, dialog } = setupWithMocks([bundle()], true);
-    dialog.confirm.and.resolveTo(false);
+    dialog.confirm.mockResolvedValue(false);
     await fixture.componentInstance.remove(bundle());
     expect(dialog.confirm).toHaveBeenCalledWith(
-      jasmine.objectContaining({ titleKey: 'p4k.prompts.deleteTitle', tone: 'danger' }),
+      expect.objectContaining({ titleKey: 'p4k.prompts.deleteTitle', tone: 'danger' }),
     );
     expect(svc.deleteBundle).not.toHaveBeenCalled();
   });
@@ -178,10 +178,10 @@ describe('P4kHistoryComponent — admin actions ask in the app dialog', () => {
   it('re-enables only after confirmation', async () => {
     const { fixture, svc, dialog } = setupWithMocks([bundle()], true);
     const b = bundle();
-    dialog.confirm.and.resolveTo(false);
+    dialog.confirm.mockResolvedValue(false);
     await fixture.componentInstance.reenable(b);
     expect(svc.setDisabled).not.toHaveBeenCalled();
-    dialog.confirm.and.resolveTo(true);
+    dialog.confirm.mockResolvedValue(true);
     await fixture.componentInstance.reenable(b);
     expect(svc.setDisabled).toHaveBeenCalledWith(b.id, false, null);
   });

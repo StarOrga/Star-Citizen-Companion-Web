@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { signal } from '@angular/core';
@@ -11,14 +12,14 @@ describe('StarscapeVoteButtonComponent', () => {
   const mine = signal<ReadonlySet<string>>(new Set());
   const busy = signal<ReadonlySet<string>>(new Set());
   const canVote = signal(true);
-  let toggle: jasmine.Spy;
+  let toggle: Mock;
 
   function setup() {
     counts.set(new Map([['img-1', 3]]));
     mine.set(new Set());
     busy.set(new Set());
     canVote.set(true);
-    toggle = jasmine.createSpy('toggle').and.resolveTo(undefined);
+    toggle = vi.fn().mockName('toggle').mockResolvedValue(undefined);
     TestBed.configureTestingModule({
       imports: [StarscapeVoteButtonComponent],
       providers: [
@@ -35,10 +36,11 @@ describe('StarscapeVoteButtonComponent', () => {
 
   it('a click toggles the vote for this image and does not bubble', () => {
     const { fixture, button } = setup();
-    const parentClick = jasmine.createSpy('parent');
+    const parentClick = vi.fn().mockName('parent');
     fixture.nativeElement.addEventListener('click', parentClick);
     button().click();
-    expect(toggle).toHaveBeenCalledOnceWith('img-1');
+    expect(toggle).toHaveBeenCalledTimes(1);
+    expect(toggle).toHaveBeenCalledWith('img-1');
     expect(parentClick).not.toHaveBeenCalled();
   });
 
@@ -54,24 +56,24 @@ describe('StarscapeVoteButtonComponent', () => {
 
   it('is disabled while this image has a request in flight', () => {
     const { fixture, button } = setup();
-    expect(button().disabled).toBeFalse();
+    expect(button().disabled).toBe(false);
     busy.set(new Set(['img-1']));
     fixture.detectChanges();
-    expect(button().disabled).toBeTrue();
+    expect(button().disabled).toBe(true);
   });
 
   it('a request for another image does not disable this button', () => {
     const { fixture, button } = setup();
     busy.set(new Set(['other']));
     fixture.detectChanges();
-    expect(button().disabled).toBeFalse();
+    expect(button().disabled).toBe(false);
   });
 
   it('signed out: disabled, with the signedOut key in the tooltip', () => {
     const { fixture, button } = setup();
     canVote.set(false);
     fixture.detectChanges();
-    expect(button().disabled).toBeTrue();
+    expect(button().disabled).toBe(true);
     const tip = fixture.debugElement.query(By.directive(ScTooltipDirective)).injector.get(ScTooltipDirective).scTooltip();
     expect(tip).toContain('starscape.vote.signedOut');
     expect(button().getAttribute('aria-label')).toContain('starscape.vote.signedOut');

@@ -72,7 +72,7 @@ describe('explorer view model', () => {
   it('carries done dates and never links the hull before the guess', () => {
     const p = patch({ stars: ['notes'], starDates: { notes: '2026-10-01T10:00:00Z' } });
     const tasks = buildTaskViews(p);
-    expect(tasks.find((t) => t.key === 'notes')).toEqual(jasmine.objectContaining({ done: true, doneAt: '2026-10-01T10:00:00Z' }));
+    expect(tasks.find((t) => t.key === 'notes')).toEqual(expect.objectContaining({ done: true, doneAt: '2026-10-01T10:00:00Z' }));
     expect(tasks.find((t) => t.key === 'cx-newship')?.link).toBe('/codex');
     const revealed = buildTaskViews(
       patch({ guess: { state: 'wrong', guessedClass: 'A', answerClass: 'RSI_Zeus', answerName: 'Zeus' } }),
@@ -139,7 +139,7 @@ describe('dome view helpers', () => {
     // the suggested star sits next to the done chain along the outline
     const doneIdx = slots.filter((s) => s.state === 'done').map((s) => s.index);
     const nextIdx = slots.find((s) => s.state === 'next')!.index;
-    expect(doneIdx.some((i) => (i + 1) % 7 === nextIdx || (nextIdx + 1) % 7 === i)).toBeTrue();
+    expect(doneIdx.some((i) => (i + 1) % 7 === nextIdx || (nextIdx + 1) % 7 === i)).toBe(true);
     // dashed (not lit) edges touch every open or suggested star, solid ones only join done stars
     for (const e of constellationEdges(slots)) expect(e.lit).toBe(e.from.state === 'done' && e.to.state === 'done');
   });

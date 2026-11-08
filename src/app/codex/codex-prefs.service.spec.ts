@@ -7,9 +7,9 @@ describe('CodexPrefsService', () => {
   it('hides non-usable items by default and remembers the opt-in', () => {
     localStorage.removeItem('sc.codex.showNonUsable');
     const prefs = TestBed.inject(CodexPrefsService);
-    expect(prefs.showNonUsable()).toBeFalse();
+    expect(prefs.showNonUsable()).toBe(false);
     prefs.setShowNonUsable(true);
-    expect(prefs.showNonUsable()).toBeTrue();
+    expect(prefs.showNonUsable()).toBe(true);
     expect(localStorage.getItem('sc.codex.showNonUsable')).toBe('1');
     prefs.setShowNonUsable(false);
     expect(localStorage.getItem('sc.codex.showNonUsable')).toBeNull();

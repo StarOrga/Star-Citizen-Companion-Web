@@ -47,48 +47,48 @@ describe('codex-search (shared Codex search dialect)', () => {
 
     it('finds "P4-AR" however the separator is typed', () => {
       for (const term of ['P4-AR', 'p4ar', 'p4 ar', 'ar p4', 'P4_AR', '  p4-ar  ']) {
-        expect(searchMatcher(term)!('P4-AR Rifle')).withContext(term).toBeTrue();
+        expect(searchMatcher(term)!('P4-AR Rifle'), term).toBe(true);
       }
     });
 
     it('requires every token (more words narrow)', () => {
       const m = searchMatcher('cutlass black')!;
-      expect(m('Drake Cutlass Black')).toBeTrue();
-      expect(m('Drake Cutlass Red')).toBeFalse();
-      expect(searchMatcher('black cutlass')!('Drake Cutlass Black')).toBeTrue();
+      expect(m('Drake Cutlass Black')).toBe(true);
+      expect(m('Drake Cutlass Red')).toBe(false);
+      expect(searchMatcher('black cutlass')!('Drake Cutlass Black')).toBe(true);
     });
 
     it('matches tokens across fields (name + manufacturer)', () => {
       const m = searchMatcher('behring p4')!;
-      expect(m('P4-AR Rifle', 'BEHR', 'Behring Applied Technology')).toBeTrue();
-      expect(m('P4-AR Rifle', 'KLWE', 'Klaus & Werner')).toBeFalse();
+      expect(m('P4-AR Rifle', 'BEHR', 'Behring Applied Technology')).toBe(true);
+      expect(m('P4-AR Rifle', 'KLWE', 'Klaus & Werner')).toBe(false);
     });
 
     it('ignores case and diacritics on both sides', () => {
-      expect(searchMatcher('kuhl')!('Kühl Helmet')).toBeTrue();
-      expect(searchMatcher('KÜHL')!('kuhl helmet')).toBeTrue();
-      expect(searchMatcher('rustung')!('Rüstung')).toBeTrue();
+      expect(searchMatcher('kuhl')!('Kühl Helmet')).toBe(true);
+      expect(searchMatcher('KÜHL')!('kuhl helmet')).toBe(true);
+      expect(searchMatcher('rustung')!('Rüstung')).toBe(true);
     });
 
     it('keeps `*` as a wildcard', () => {
-      expect(searchMatcher('klwe_*')!('klwe_pistol_energy_01')).toBeTrue();
-      expect(searchMatcher('aegs*glad')!('AEGS_Gladius')).toBeTrue();
-      expect(searchMatcher('aegs*glad')!('ANVL_Gladiator')).toBeFalse();
+      expect(searchMatcher('klwe_*')!('klwe_pistol_energy_01')).toBe(true);
+      expect(searchMatcher('aegs*glad')!('AEGS_Gladius')).toBe(true);
+      expect(searchMatcher('aegs*glad')!('ANVL_Gladiator')).toBe(false);
     });
 
     it('matches a keybind chord contiguously', () => {
-      expect(searchMatcher('alt+f')!('Toggle lights', 'v_lights', 'kb1_lalt+f')).toBeTrue();
-      expect(searchMatcher('alt+g')!('Toggle lights', 'v_lights', 'kb1_lalt+f')).toBeFalse();
+      expect(searchMatcher('alt+f')!('Toggle lights', 'v_lights', 'kb1_lalt+f')).toBe(true);
+      expect(searchMatcher('alt+g')!('Toggle lights', 'v_lights', 'kb1_lalt+f')).toBe(false);
     });
 
     it('does not match a token across two different fields', () => {
       // "gladi" + "us" must not glue the end of one field to the next.
-      expect(searchMatcher('gladius')!('Gladi', 'us')).toBeFalse();
+      expect(searchMatcher('gladius')!('Gladi', 'us')).toBe(false);
     });
 
     it('treats regex metacharacters literally', () => {
-      expect(searchMatcher('a(b')!('a(b')).toBeTrue();
-      expect(searchMatcher('[x]')!('abc')).toBeFalse();
+      expect(searchMatcher('a(b')!('a(b')).toBe(true);
+      expect(searchMatcher('[x]')!('abc')).toBe(false);
       expect(() => searchMatcher('$^?{}|\\')).not.toThrow();
     });
   });
@@ -184,16 +184,16 @@ describe('codex-search (shared Codex search dialect)', () => {
   });
   describe('German search words (audit L05)', () => {
     it('lets a German word find the English-named record', () => {
-      expect(searchMatcher('gewehr')!('P4-AR Rifle')).toBeTrue();
-      expect(searchMatcher('Rüstung')!('Morozov-SH Core Armor')).toBeTrue();
-      expect(searchMatcher('helm')!('Aril Helmet')).toBeTrue();
-      expect(searchMatcher('Pistole')!('S-38 Pistol')).toBeTrue();
+      expect(searchMatcher('gewehr')!('P4-AR Rifle')).toBe(true);
+      expect(searchMatcher('Rüstung')!('Morozov-SH Core Armor')).toBe(true);
+      expect(searchMatcher('helm')!('Aril Helmet')).toBe(true);
+      expect(searchMatcher('Pistole')!('S-38 Pistol')).toBe(true);
     });
 
     it('still matches the German word itself and ANDs with other tokens', () => {
-      expect(searchMatcher('gewehr')!('P6-LR-Snipergewehr (Raureif)')).toBeTrue();
-      expect(searchMatcher('gewehr p4')!('P4-AR Rifle')).toBeTrue();
-      expect(searchMatcher('gewehr p4')!('P6-LR Sniper Rifle')).toBeFalse();
+      expect(searchMatcher('gewehr')!('P6-LR-Snipergewehr (Raureif)')).toBe(true);
+      expect(searchMatcher('gewehr p4')!('P4-AR Rifle')).toBe(true);
+      expect(searchMatcher('gewehr p4')!('P6-LR Sniper Rifle')).toBe(false);
     });
 
     it('sends the synonyms to the server as alternatives of one AND group', () => {

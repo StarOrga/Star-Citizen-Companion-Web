@@ -14,6 +14,8 @@ yarn-error.log*
 
 # Test artifacts
 /coverage/
+# Vitest browser mode: failure screenshots (npm run test:vitest)
+.vitest/
 /test-results/
 /playwright-report/
 /playwright/.cache/

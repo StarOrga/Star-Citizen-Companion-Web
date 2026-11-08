@@ -39,7 +39,7 @@ describe('ConceptPageComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
 
   it('frames the ticketed document once the ticket is minted', async () => {
-    const mint = jasmine.createSpy('mintTicket').and.resolveTo(TICKET);
+    const mint = vi.fn().mockName('mintTicket').mockResolvedValue(TICKET);
     const { cmp, el } = await mount(mint);
 
     expect(mint).toHaveBeenCalledWith(ID);

@@ -38,18 +38,18 @@ describe('Verse hub — channel info (Hotfix / PTU / Evocati)', () => {
     expect(ptu.chip?.previousLabel).toBe('4.10.2 PTU');
     expect(ptu.chip?.percent).not.toBeNull();
     expect(ptu.chip?.previous).not.toBeNull();
-    expect(ptu.chip?.early).withContext('a PTU build is provisional by nature').toBeTrue();
-    expect(ptu.chip?.finished).toBeFalse();
+    expect(ptu.chip?.early, 'a PTU build is provisional by nature').toBe(true);
+    expect(ptu.chip?.finished).toBe(false);
   });
 
   it('shows "–" for what is missing: no predecessor, too few replies, no ticket data, no wave on a hotfix', () => {
     const lone = hubChannel('evocati', {}, known, noVerdict, { evocati: build('4.11', 40) }, NOW);
-    expect(lone.chip).withContext('Evocati has no chip').toBeNull();
+    expect(lone.chip, 'Evocati has no chip').toBeNull();
     const first = hubChannel('ptu', {}, known, noVerdict, { ptu: build('4.11', 40) }, NOW);
     expect(first.chip?.previous).toBeNull();
     expect(first.chip?.percent).not.toBeNull();
     const thin = hubChannel('ptu', {}, known, noVerdict, { ptu: build('4.11', 3) }, NOW);
-    expect(thin.chip?.percent).withContext('too few replies → "Zu wenig Daten"').toBeNull();
+    expect(thin.chip?.percent, 'too few replies → "Zu wenig Daten"').toBeNull();
     const noTickets = hubChannel('ptu', {}, known, noVerdict, { ptu: build('4.11', 80, { ticketShare: null }) }, NOW);
     expect(noTickets.chip?.percent).toBeNull();
     const hot = hubChannel('hotfix', { live: '4.10.2' }, known, noVerdict, { hotfix: build('4.10.2', 339, { wave: 4 }) }, NOW);
@@ -61,7 +61,7 @@ describe('Verse hub — channel info (Hotfix / PTU / Evocati)', () => {
     const rows = hubChannels({ live: '4.10.2', ptu: '4.11.0' }, known, noVerdict, { evocati: build('4.12', 100) }, NOW);
     expect(rows.map((r) => r.version)).toEqual([null, '4.11.0', '4.12']);
     expect(rows[1].sinceDays).toBeNull();
-    expect(rows[1].chip?.percent).withContext('no channelInfo → no number').toBeNull();
+    expect(rows[1].chip?.percent, 'no channelInfo → no number').toBeNull();
     expect(rows[2].chip).toBeNull();
   });
 });
@@ -118,10 +118,10 @@ describe('BriefingHubComponent — channel rows', () => {
     expect(ptu.querySelector('.ch-id')!.textContent).toContain('for 5 days');
     expect(ptu.querySelector('.ch-id')!.textContent).toContain('Wave 2');
     expect(ptu.querySelector('sc-stability-chip .chip')!.textContent).toMatch(/\d+ %/);
-    expect(ptu.querySelector('sc-stability-chip .chip')!.classList.contains('early')).toBeTrue();
+    expect(ptu.querySelector('sc-stability-chip .chip')!.classList.contains('early')).toBe(true);
     const evo = el.querySelector('.ch[data-ch="evocati"]')!;
     expect(evo.querySelector('.ch-id span')!.textContent!.trim()).toBe('–');
-    expect(evo.querySelector('sc-stability-chip')).withContext('Evocati row without chip').toBeNull();
+    expect(evo.querySelector('sc-stability-chip'), 'Evocati row without chip').toBeNull();
     expect(el.querySelector('.ch.off[data-ch="hotfix"] .quiet')!.textContent).toContain('none running');
   });
 
@@ -132,7 +132,7 @@ describe('BriefingHubComponent — channel rows', () => {
     expect(right('.ch.off[data-ch="hotfix"] .quiet')).toBeCloseTo(right('.ch.off[data-ch="hotfix"]'), 0);
     expect(right('.ch[data-ch="ptu"] .ch-chip')).toBeCloseTo(right('.ch[data-ch="ptu"]'), 0);
   });
-  it('puts the stability chip of the live patch card flush right', () => {
+  it('puts the stability chip of the live patch card flush right', ({ skip }) => {
     const live = hubChannel('live', { live: '4.10.2' }, known, noVerdict, { live: build('4.10.2', 200) }, NOW);
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] });
     const fixture = TestBed.createComponent(BriefingHubComponent);
@@ -140,7 +140,10 @@ describe('BriefingHubComponent — channel rows', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const chip = el.querySelector('.feat-h sc-stability-chip');
-    if (!chip) { pending('no chip for this fixture'); return; }
+    if (!chip) {
+      skip('no chip for this fixture');
+      return;
+    }
     expect(chip.getBoundingClientRect().right).toBeCloseTo(el.querySelector('.feat-h')!.getBoundingClientRect().right, 0);
   });
 });

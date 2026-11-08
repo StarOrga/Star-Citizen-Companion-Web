@@ -84,7 +84,7 @@ describe('ItemPathService - exact amounts of blueprint material', () => {
     const st = svc.read('item', 'Agricium');
     const res = await svc.moveToInventar('item', 'Agricium', 'Agricium', 'Port Olisar', st.nachschubQty, { unit: st.nachschubUnit });
     expect(stockCalls.at(-1)).toEqual({ loc: 'Port Olisar', name: 'Agricium', qty: 0.36, unit: 'scu', cls: 'Agricium' });
-    expect(stock()[0]).toEqual(jasmine.objectContaining({ qty: 0.36, unit: 'scu' }));
+    expect(stock()[0]).toEqual(expect.objectContaining({ qty: 0.36, unit: 'scu' }));
     expect(supplies.openLinesFor('Agricium').length).toBe(0);
     await res.undo!();
     expect(stock().length).toBe(0);

@@ -51,13 +51,13 @@ describe('slotAccepts', () => {
 
   it('refuses everything for a slot it does not know, and survives a missing sub-type', () => {
     expect(accepted('Grenade belt')).toEqual([]);
-    expect(slotAccepts('primary', piece('odd_weapon_01', null))).toBeFalse();
+    expect(slotAccepts('primary', piece('odd_weapon_01', null))).toBe(false);
   });
 
   it('narrows every facet-backed slot to a weapon type that slot actually takes', () => {
     for (const [slot, facet] of Object.entries(SLOT_WEAPON_FACET)) {
       const fits = Object.values(ALL).some((p) => p.subType === facet && slotAccepts(slot, p));
-      expect(fits).withContext(`${slot} → ${facet}`).toBeTrue();
+      expect(fits, `${slot} → ${facet}`).toBe(true);
     }
   });
 

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -16,11 +17,11 @@ describe('AddToSetComponent (L09)', () => {
     signedIn?: boolean;
     sets?: HangarRoleLoadout[];
     piece?: { className: string; kind: 'weapon' | 'item'; subType: string | null; attachType: string | null };
-    write?: jasmine.Spy;
-  }): Promise<{ fixture: ComponentFixture<AddToSetComponent>; el: HTMLElement; write: jasmine.Spy; loadAll: jasmine.Spy }> {
+    write?: Mock;
+  }): Promise<{ fixture: ComponentFixture<AddToSetComponent>; el: HTMLElement; write: Mock; loadAll: Mock }> {
     const roleLoadouts = signal<HangarRoleLoadout[]>([]);
-    const loadAll = jasmine.createSpy('loadAll').and.callFake(async () => roleLoadouts.set(opts.sets ?? []));
-    const write = opts.write ?? jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(null);
+    const loadAll = vi.fn().mockName('loadAll').mockImplementation(async () => roleLoadouts.set(opts.sets ?? []));
+    const write = opts.write ?? vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(null);
     await TestBed.configureTestingModule({
       imports: [AddToSetComponent],
       providers: [
@@ -64,7 +65,7 @@ describe('AddToSetComponent (L09)', () => {
 
   it('asks for the set, then the slot, and writes through the equip-mode merge', async () => {
     const saved: HangarRoleLoadout = { ...FPS_SET, items: [{ slot: 'secondary', className: 'behr_rifle_01', kind: 'weapon' }] };
-    const write = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(saved);
+    const write = vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(saved);
     const fps2: HangarRoleLoadout = { ...FPS_SET, id: 'set-3', name: 'Assault' };
     const { fixture, el } = await setup({ sets: [FPS_SET, MINING_SET, fps2], write });
     await open(fixture);
@@ -82,28 +83,30 @@ describe('AddToSetComponent (L09)', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(write).toHaveBeenCalledOnceWith('set-1', 'secondary', { className: 'behr_rifle_01', kind: 'weapon' }, undefined);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledWith('set-1', 'secondary', { className: 'behr_rifle_01', kind: 'weapon' }, undefined);
     expect(fixture.componentInstance.view()).toBe('done');
     expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/locker/set-1');
   });
 
   it('skips both questions for armour with one set: one click writes the one home', async () => {
     const saved: HangarRoleLoadout = { ...FPS_SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
-    const write = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(saved);
+    const write = vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(saved);
     const { fixture, el } = await setup({
       sets: [FPS_SET],
       write,
       piece: { className: 'rsi_helmet_01', kind: 'item', subType: 'Light', attachType: 'Char_Armor_Helmet' },
     });
     await open(fixture);
-    expect(write).toHaveBeenCalledOnceWith('set-1', 'helmet', { className: 'rsi_helmet_01', kind: 'item' }, undefined);
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledWith('set-1', 'helmet', { className: 'rsi_helmet_01', kind: 'item' }, undefined);
     expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/locker/set-1');
   });
 
   it('says so when another tab put a different piece into the slot meanwhile', async () => {
     const helmetSet: HangarRoleLoadout = { ...FPS_SET, items: [{ slot: 'helmet', className: 'old_helmet', kind: 'item' }] };
     const fresh: HangarRoleLoadout = { ...FPS_SET, items: [{ slot: 'helmet', className: 'other_tab_helmet', kind: 'item' }] };
-    const write = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(fresh);
+    const write = vi.fn().mockName('setRoleLoadoutSlot').mockResolvedValue(fresh);
     const { fixture, el } = await setup({
       sets: [helmetSet],
       write,
@@ -111,7 +114,7 @@ describe('AddToSetComponent (L09)', () => {
     });
     await open(fixture);
     // The piece the popover saw rides along, so the newer one is not overwritten blind.
-    expect(write.calls.mostRecent().args[3]).toBe('old_helmet');
+    expect(vi.mocked(write).mock.lastCall![3]).toBe('old_helmet');
     expect(fixture.componentInstance.view()).toBe('pickSlot');
     expect(el.querySelector('.ats-note[role="status"]')).not.toBeNull();
   });

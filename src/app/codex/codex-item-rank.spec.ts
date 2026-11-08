@@ -54,7 +54,7 @@ describe('codex-item-rank (Holotisch rail graphs for weapons and components)', (
     const r = rankItem(mine, peers, 'all')!;
     expect(r.axes.map((a) => a.key)).toEqual(['shieldHp', 'shieldRegen', 'damagedDelay', 'downedDelay']);
     const delay = r.axes.find((a) => a.key === 'damagedDelay')!;
-    expect(delay.lowerIsBetter).toBeTrue();
+    expect(delay.lowerIsBetter).toBe(true);
     expect(delay.percentile!).toBeGreaterThan(50);
   });
 

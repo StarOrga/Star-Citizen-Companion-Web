@@ -15,7 +15,7 @@ describe('CountUp (cx-countup)', () => {
     expect(mid).toBeLessThan(12000);
     now += COUNT_UP_MS;
     expect(c.value('ir', 12000)).toBe(12000);
-    expect(c.idle).toBeTrue();
+    expect(c.idle).toBe(true);
     c.dispose();
   });
 

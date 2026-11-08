@@ -68,9 +68,9 @@ describe('BriefingPlanetComponent — worker path', () => {
     spawned = 0;
     frames = [];
     reduce = false;
-    spyOn(window, 'requestAnimationFrame').and.callFake((cb: FrameRequestCallback) => frames.push(cb));
-    spyOn(window, 'cancelAnimationFrame');
-    spyOn(window, 'matchMedia').and.callFake((q: string) => ({ matches: q.includes('reduced-motion') && reduce, media: q, addEventListener: () => undefined, removeEventListener: () => undefined }) as unknown as MediaQueryList);
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb: FrameRequestCallback) => frames.push(cb));
+    vi.spyOn(window, 'cancelAnimationFrame').mockReturnValue(undefined as never);
+    vi.spyOn(window, 'matchMedia').mockImplementation((q: string) => ({ matches: q.includes('reduced-motion') && reduce, media: q, addEventListener: () => undefined, removeEventListener: () => undefined }) as unknown as MediaQueryList);
     TestBed.configureTestingModule({
       providers: [{ provide: PLANET_LINK, useValue: () => { spawned++; return link; } }],
     });
@@ -82,7 +82,7 @@ describe('BriefingPlanetComponent — worker path', () => {
     const f = await mount();
     expect(spawned).toBe(1);
     expect(link!.canvases).toEqual(Array.from(f.nativeElement.querySelectorAll('canvas')) as [HTMLCanvasElement, HTMLCanvasElement]);
-    expect(planet(f).ready()).toBeTrue();
+    expect(planet(f).ready()).toBe(true);
     expect(f.componentInstance.drawn).toBe(1);
     expect(f.componentInstance.gone).toBe(0);
   });
@@ -92,16 +92,16 @@ describe('BriefingPlanetComponent — worker path', () => {
     runFrames(16);
     const a = link!.views[0];
     expect(a.r).toBe(100);
-    expect(frames.length).withContext('at rest a timer sets the pace, not the monitor').toBe(0);
+    expect(frames.length, 'at rest a timer sets the pace, not the monitor').toBe(0);
     await new Promise((r) => setTimeout(r, 90));
-    expect(frames.length).withContext('the timer asks for the next frame').toBe(1);
+    expect(frames.length, 'the timer asks for the next frame').toBe(1);
     (f.nativeElement.querySelector('div') as HTMLElement).style.transform = 'translateY(40px)';
     runFrames(200);
     const b = link!.views[1];
     expect(b.cy - a.cy).toBe(40);
-    expect(frames.length).withContext('it moved: every frame now').toBe(1);
+    expect(frames.length, 'it moved: every frame now').toBe(1);
     runFrames(216);
-    expect(link!.views.length).withContext('the loop goes on').toBe(3);
+    expect(link!.views.length, 'the loop goes on').toBe(3);
   });
 
   it('a scroll is followed from the next frame, without waiting for the timer', async () => {
@@ -118,13 +118,13 @@ describe('BriefingPlanetComponent — worker path', () => {
     window.dispatchEvent(new Event('blur'));
     expect(link!.suspended).toBe(1);
     await new Promise((r) => setTimeout(r, 90));
-    expect(frames.length).withContext('no timer left running').toBe(0);
+    expect(frames.length, 'no timer left running').toBe(0);
     document.dispatchEvent(new Event('scroll'));
     document.dispatchEvent(new Event('scroll'));
-    expect(frames.length).withContext('one redraw for a burst of scrolls').toBe(1);
+    expect(frames.length, 'one redraw for a burst of scrolls').toBe(1);
     runFrames(200);
     expect(link!.draws.length).toBe(1);
-    expect(link!.views.length).withContext('drawn, not turned').toBe(1);
+    expect(link!.views.length, 'drawn, not turned').toBe(1);
     window.dispatchEvent(new Event('focus'));
     expect(link!.woken).toBe(1);
     runFrames(216);
@@ -142,32 +142,32 @@ describe('BriefingPlanetComponent — worker path', () => {
   it('reduced motion: drawn once, no animation frame, redrawn only on scroll and resize', async () => {
     reduce = true;
     await mount();
-    expect(link!.reduce).toBeTrue();
+    expect(link!.reduce).toBe(true);
     expect(link!.draws.length).toBe(1);
     runFrames(16);
-    expect(link!.views.length).withContext('no animation').toBe(0);
+    expect(link!.views.length, 'no animation').toBe(0);
     document.dispatchEvent(new Event('scroll'));
     expect(link!.draws.length).toBe(2);
     window.dispatchEvent(new Event('resize'));
     expect(link!.draws.length).toBe(3);
     expect(link!.views.length).toBe(0);
     window.dispatchEvent(new Event('blur'));
-    expect(link!.suspended).withContext('nothing runs that could stand').toBe(0);
+    expect(link!.suspended, 'nothing runs that could stand').toBe(0);
     window.dispatchEvent(new Event('focus'));
   });
 
   it('session re-entry: same canvases, same worker, instant, nothing compiled again', async () => {
     const first = await mount();
-    expect(planet(first).instant()).withContext('the first time it slides in').toBeFalse();
+    expect(planet(first).instant(), 'the first time it slides in').toBe(false);
     const held = link!.canvases!;
     first.destroy();
     expect(link!.parked).toBe(1);
     link!.isReady = true;
 
     const again = await mount();
-    expect(spawned).withContext('the worker lives on').toBe(1);
-    expect(planet(again).instant()).toBeTrue();
-    expect(planet(again).ready()).toBeTrue();
+    expect(spawned, 'the worker lives on').toBe(1);
+    expect(planet(again).instant()).toBe(true);
+    expect(planet(again).ready()).toBe(true);
     expect(again.componentInstance.drawn).toBe(1);
     const canvases = Array.from(again.nativeElement.querySelectorAll('canvas')) as HTMLCanvasElement[];
     expect(canvases[0]).toBe(held[0]);
@@ -178,43 +178,43 @@ describe('BriefingPlanetComponent — worker path', () => {
   it('keeps downloading when the page leaves before the planet stood; the next visit picks it up', async () => {
     let answer!: (ok: boolean) => void;
     link!.settled = new Promise((r) => (answer = r));
-    const attach = spyOn(link!, 'attach').and.callThrough();
+    const attach = vi.spyOn(link!, 'attach');
     const first = await mount();
     expect(attach).toHaveBeenCalledTimes(1);
     expect(first.componentInstance.drawn).toBe(0);
     first.destroy();
     answer(true);
     await settle();
-    expect(link!.terminated).toBeFalse();
+    expect(link!.terminated).toBe(false);
 
     const again = await mount();
     expect(attach).toHaveBeenCalledTimes(1);
-    expect(planet(again).ready()).toBeTrue();
+    expect(planet(again).ready()).toBe(true);
   });
 
   it('a lost planet hands over to the CSS one, and a restored one takes it back', async () => {
     const f = await mount();
     link!.onStatus!('unavailable');
-    expect(planet(f).failed()).toBeTrue();
+    expect(planet(f).failed()).toBe(true);
     expect(f.componentInstance.gone).toBe(1);
     link!.onStatus!('restored');
-    expect(planet(f).failed()).toBeFalse();
+    expect(planet(f).failed()).toBe(false);
   });
 
   describe('fallback to the page', () => {
     it('no worker at all: nothing is handed over, and the existing path runs', async () => {
       link = null;
-      const transfer = spyOn(HTMLCanvasElement.prototype, 'transferControlToOffscreen').and.callThrough();
+      const transfer = vi.spyOn(HTMLCanvasElement.prototype, 'transferControlToOffscreen');
       const f = await mount();
       expect(spawned).toBe(1);
-      expect(transfer).withContext('still the page\'s canvas').not.toHaveBeenCalled();
+      expect(transfer, 'still the page\'s canvas').not.toHaveBeenCalled();
       f.destroy();
     });
 
     it('a worker that cannot draw keeps the canvases untouched', async () => {
       link!.capable = Promise.resolve(false);
       link!.settled = Promise.resolve(false);
-      const attach = spyOn(link!, 'attach');
+      const attach = vi.spyOn(link!, 'attach').mockReturnValue(undefined as never);
       const f = await mount();
       expect(attach).not.toHaveBeenCalled();
       f.destroy();
@@ -228,7 +228,7 @@ describe('BriefingPlanetComponent — worker path', () => {
       await settle();
       await settle();
       const after = Array.from(f.nativeElement.querySelectorAll('canvas')) as HTMLCanvasElement[];
-      expect(link!.terminated).toBeTrue();
+      expect(link!.terminated).toBe(true);
       expect(after.length).toBe(2);
       expect(after[0]).not.toBe(before[0] as HTMLCanvasElement);
       expect(after[0].className).toBe('bp-gl');
@@ -243,8 +243,8 @@ describe('BriefingPlanetComponent — worker path', () => {
       link!.alive = false;
       const again = await mount();
       const now = Array.from(again.nativeElement.querySelectorAll('canvas')) as HTMLCanvasElement[];
-      expect(now.includes(held[0])).toBeFalse();
-      expect(link!.terminated).toBeTrue();
+      expect(now.includes(held[0])).toBe(false);
+      expect(link!.terminated).toBe(true);
       again.destroy();
     });
   });

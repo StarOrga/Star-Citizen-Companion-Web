@@ -34,13 +34,13 @@ describe('HqCommunityService', () => {
   it('turns an RPC error into an errors.* key', async () => {
     const svc = setup(() => ({ error: { message: 'boom', code: '500' } }));
     const res = await svc.median('stock', 'x');
-    expect(res.ok).toBeFalse();
+    expect(res.ok).toBe(false);
     if (!res.ok) expect(res.errorKey).toMatch(/^errors\./);
   });
 
   it('is opted out by default and sends nothing', async () => {
     const svc = setup();
-    expect(svc.shareEnabled()).toBeFalse();
+    expect(svc.shareEnabled()).toBe(false);
     const res = await svc.report([{ kind: 'price', class_name: 'a', location: 'b', value: 1 }]);
     expect(res).toEqual({ ok: false, skipped: true });
     expect(calls.length).toBe(0);
@@ -68,22 +68,22 @@ describe('HqCommunityService', () => {
     const svc = setup();
     TestBed.tick();
     svc.setShare(true);
-    expect(svc.shareEnabled()).toBeTrue();
+    expect(svc.shareEnabled()).toBe(true);
     user.set({ id: 'u2' });
     TestBed.tick();
-    expect(svc.shareEnabled()).toBeFalse();
+    expect(svc.shareEnabled()).toBe(false);
     user.set({ id: 'u1' });
     TestBed.tick();
-    expect(svc.shareEnabled()).toBeTrue();
+    expect(svc.shareEnabled()).toBe(true);
     user.set(null);
     TestBed.tick();
-    expect(svc.shareEnabled()).toBeFalse();
+    expect(svc.shareEnabled()).toBe(false);
   });
 
   it('reports an insert failure as an error key', async () => {
     const svc = setup(() => ({ error: { message: 'rate limit', code: 'P0001' } }));
     svc.setShare(true);
     const res = await svc.report([{ kind: 'price', class_name: 'a', location: 'b', value: 1 }]);
-    expect('errorKey' in res).toBeTrue();
+    expect('errorKey' in res).toBe(true);
   });
 });

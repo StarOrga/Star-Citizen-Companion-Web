@@ -85,7 +85,7 @@ describe('HoloLook', () => {
     expect(rgbOf(look.line('focus').uniforms['uAccent'].value)).toEqual([...DRAKE]);
     expect(rgbOf(look.accent)).toEqual([...DRAKE]);
     expect(look.line('hull').blending).toBe(THREE.AdditiveBlending);
-    expect(fill.transparent).toBeFalse();
+    expect(fill.transparent).toBe(false);
   });
 
   it('draws subtler scanlines and sweep than the concept study', () => {
@@ -146,8 +146,8 @@ describe('HoloLook', () => {
     look.dress(mesh, 'hull');
     const edges = edgeChild(mesh)!.geometry;
     const fill = look.fill('hull');
-    spyOn(edges, 'dispose').and.callThrough();
-    spyOn(fill, 'dispose').and.callThrough();
+    vi.spyOn(edges, 'dispose');
+    vi.spyOn(fill, 'dispose');
     look.dispose();
     expect(edges.dispose).toHaveBeenCalled();
     expect(fill.dispose).toHaveBeenCalled();
@@ -166,26 +166,26 @@ describe('HoloLook', () => {
     expect(part.material).toBe(look.fill('focus'));
     expect(look.fill('focus').uniforms['uGlow'].value).toBe(1);
     // Drawn after the glow halo (transparent pass) but still writing depth.
-    expect(look.fill('focus').transparent).toBeTrue();
-    expect(look.fill('focus').depthWrite).toBeTrue();
+    expect(look.fill('focus').transparent).toBe(true);
+    expect(look.fill('focus').depthWrite).toBe(true);
     expect(look.fill('hull').uniforms['uGlow'].value).toBe(0);
     expect(look.focusCount).toBe(1);
     expect(part.renderOrder).toBe(10);
     expect(edgeChild(part)!.renderOrder).toBe(11);
     look.setDim(false);
     look.setFocusPoints([]);
-    expect(look.dimmed).toBeFalse();
+    expect(look.dimmed).toBe(false);
     expect(look.focusCount).toBe(0);
   });
 
   it('x-ray opacity turns the hull transparent and keeps a line floor', () => {
     look = new HoloLook(BASE, BASE, false);
     look.setOpacity('hull', 0.1);
-    expect(look.fill('hull').transparent).toBeTrue();
+    expect(look.fill('hull').transparent).toBe(true);
     expect(look.fill('hull').uniforms['uOpacity'].value).toBe(0.1);
     expect(look.line('hull').uniforms['uOpacity'].value).toBeGreaterThan(0.15);
     look.setOpacity('hull', 1);
-    expect(look.fill('hull').transparent).toBeFalse();
+    expect(look.fill('hull').transparent).toBe(false);
   });
 
   it('fit() scales the glow cloud to the hull', () => {
@@ -196,13 +196,13 @@ describe('HoloLook', () => {
 
   it('reduced motion stops the scan', () => {
     look = new HoloLook(BASE, BASE, true);
-    expect(look.animated).toBeFalse();
+    expect(look.animated).toBe(false);
     expect(look.fill('hull').uniforms['uScan'].value).toBe(0);
     look.tick(12);
     expect(look.fill('hull').uniforms['uTime'].value).toBe(0);
     look.dispose();
     look = new HoloLook(BASE, BASE, false);
-    expect(look.animated).toBeTrue();
+    expect(look.animated).toBe(true);
     expect(look.fill('hull').uniforms['uScan'].value).toBe(1);
     look.tick(3);
     expect(look.fill('hull').uniforms['uTime'].value).toBe(3);
@@ -217,27 +217,27 @@ describe('HoloLook focus tween', () => {
     look.setDim(true);
     // Nothing moved yet, but the pass already flipped (no flip mid-fade).
     expect(look.fill('hull').uniforms['uOpacity'].value).toBe(1);
-    expect(look.fill('hull').transparent).toBeTrue();
-    expect(look.tweening).toBeTrue();
+    expect(look.fill('hull').transparent).toBe(true);
+    expect(look.tweening).toBe(true);
     look.tick(105);
     expect(look.fill('hull').uniforms['uOpacity'].value).toBe(1);
     look.tick(105 + HOLO_TWEEN_S / 2);
     const mid = look.fill('hull').uniforms['uOpacity'].value as number;
     expect(mid).toBeLessThan(1);
     expect(mid).toBeGreaterThan(HOLO_XRAY_HULL_OPACITY);
-    expect(look.tweening).toBeTrue();
+    expect(look.tweening).toBe(true);
     look.tick(105 + HOLO_TWEEN_S + 0.01);
     expect(look.fill('hull').uniforms['uOpacity'].value).toBe(HOLO_XRAY_HULL_OPACITY);
     expect(look.fill('hull').uniforms['uDim'].value).toBe(1);
-    expect(look.tweening).toBeFalse();
+    expect(look.tweening).toBe(false);
     // Back to opaque: stays transparent until the fade-in ends, then flips.
     look.setOpacity('hull', 1);
     look.setDim(false);
     look.tick(200);
     look.tick(200 + HOLO_TWEEN_S / 2);
-    expect(look.fill('hull').transparent).toBeTrue();
+    expect(look.fill('hull').transparent).toBe(true);
     look.tick(201);
-    expect(look.fill('hull').transparent).toBeFalse();
+    expect(look.fill('hull').transparent).toBe(false);
     expect(look.fill('hull').uniforms['uDim'].value).toBe(0);
     look.dispose();
   });
@@ -248,7 +248,7 @@ describe('HoloLook focus tween', () => {
       look.setDim(true);
       expect(look.fill('hull').uniforms['uOpacity'].value).toBe(0.3);
       expect(look.fill('hull').uniforms['uDim'].value).toBe(1);
-      expect(look.tweening).toBeFalse();
+      expect(look.tweening).toBe(false);
       look.dispose();
     }
   });

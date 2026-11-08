@@ -57,9 +57,9 @@ describe('NachschubService undo (AUD-3)', () => {
     pushedAndDropped();
     // The fake backend keeps no package row, so the revive write is answered here (the row exists in production).
     const internals = ns as unknown as { reload: () => Promise<void>; patch: () => Promise<string> };
-    spyOn(internals, 'reload').and.resolveTo();
-    spyOn(internals, 'patch').and.resolveTo('ok');
-    expect((await res.undo!()).ok).toBeTrue();
+    vi.spyOn(internals, 'reload').mockResolvedValue(undefined);
+    vi.spyOn(internals, 'patch').mockResolvedValue('ok');
+    expect((await res.undo!()).ok).toBe(true);
     expect(ns.linesOf('p1').map((l) => [l.name, l.dirty])).toEqual([['Rifle', true], ['Helmet', true]]);
     expect(ns.packages().map((p) => p.id)).toEqual(['p1']);
   });

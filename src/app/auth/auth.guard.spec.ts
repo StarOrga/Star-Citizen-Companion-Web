@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, UrlTree } from '@angular/router';
 import { authGuard } from './auth.guard';
@@ -13,14 +14,14 @@ describe('authGuard', () => {
   let signedIn: boolean;
   let release: () => void;
   let ready: Promise<void>;
-  let auth: { init: jasmine.Spy; whenReady: jasmine.Spy; isAuthenticated: () => boolean };
+  let auth: { init: Mock; whenReady: Mock; isAuthenticated: () => boolean };
 
   beforeEach(() => {
     signedIn = false;
     ready = new Promise<void>((r) => (release = r));
     auth = {
-      init: jasmine.createSpy('init'),
-      whenReady: jasmine.createSpy('whenReady').and.callFake(() => ready),
+      init: vi.fn().mockName('init'),
+      whenReady: vi.fn().mockName('whenReady').mockImplementation(() => ready),
       isAuthenticated: () => signedIn,
     };
     TestBed.configureTestingModule({
@@ -34,14 +35,14 @@ describe('authGuard', () => {
   it('lets a signed-in user through', async () => {
     signedIn = true;
     release();
-    expect(await run()).toBeTrue();
+    expect(await run()).toBe(true);
     expect(auth.init).toHaveBeenCalled();
   });
 
   it('sends a signed-out visitor to /login with the requested route as redirect', async () => {
     release();
     const tree = await run();
-    expect(tree instanceof UrlTree).toBeTrue();
+    expect(tree instanceof UrlTree).toBe(true);
     expect(TestBed.inject(Router).serializeUrl(tree as UrlTree)).toBe('/login?redirect=%2Fcodex%2Fship%2Fx');
   });
 
@@ -58,6 +59,6 @@ describe('authGuard', () => {
     signedIn = true;
     release();
     await pending;
-    expect(settled).toBeTrue();
+    expect(settled).toBe(true);
   });
 });

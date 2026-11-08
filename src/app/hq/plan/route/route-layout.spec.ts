@@ -73,9 +73,9 @@ describe('layoutRoute', () => {
     const l = layoutRoute(STRESS, { hidden: new Set(['mine']) });
     const monox = l.nodes.find((n) => n.name === 'Monox')!;
     expect(monox.badges).toEqual([]);
-    expect(monox.dim).toBeTrue();
+    expect(monox.dim).toBe(true);
     const pyroI = l.nodes.find((n) => n.name === 'Pyro I')!;
-    expect(pyroI.dim).toBeTrue();
+    expect(pyroI.dim).toBe(true);
     expect(l.nodes.find((n) => n.name === 'Area18')!.badges.map((b) => b.kind)).toEqual(['craft', 'transport']);
   });
 

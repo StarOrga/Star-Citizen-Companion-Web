@@ -35,8 +35,8 @@ describe('i18n catalogues (de/en)', () => {
   it('have the same leaf paths', () => {
     const onlyDe = [...deLeaves.keys()].filter((k) => !enLeaves.has(k));
     const onlyEn = [...enLeaves.keys()].filter((k) => !deLeaves.has(k));
-    expect(onlyDe).withContext('keys missing in en.json').toEqual([]);
-    expect(onlyEn).withContext('keys missing in de.json').toEqual([]);
+    expect(onlyDe, 'keys missing in en.json').toEqual([]);
+    expect(onlyEn, 'keys missing in de.json').toEqual([]);
   });
 
   it('carry a non-empty string in every leaf', () => {
@@ -44,7 +44,7 @@ describe('i18n catalogues (de/en)', () => {
       const bad = [...map.entries()]
         .filter(([, v]) => !validLeaf(v))
         .map(([k]) => k);
-      expect(bad).withContext(`empty or non-string leaves in ${lang}.json`).toEqual([]);
+      expect(bad, `empty or non-string leaves in ${lang}.json`).toEqual([]);
     }
   });
 
@@ -52,7 +52,7 @@ describe('i18n catalogues (de/en)', () => {
     for (const [k, v] of deLeaves) {
       if (!Array.isArray(v)) continue;
       const other = enLeaves.get(k);
-      expect(Array.isArray(other) ? other.length : -1).withContext(k).toBe(v.length);
+      expect(Array.isArray(other) ? other.length : -1, k).toBe(v.length);
     }
   });
 });

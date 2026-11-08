@@ -14,7 +14,7 @@ function setup(outcome: RpcOutcome) {
   const realUser = signal<{ id: string } | null>({ id: 'u1' });
   const ready = signal(true);
   let current = outcome;
-  const rpc = jasmine.createSpy('rpc').and.callFake(async () => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async () => {
     if (current === 'throw') throw new TypeError('Failed to fetch');
     return current;
   });
@@ -51,21 +51,21 @@ describe('AccountStatusService', () => {
     const t = setup({ data: [suspendedRow()], error: null });
     await t.svc.ensureLoaded();
     expect(t.rpc).toHaveBeenCalledWith('my_account_status');
-    expect(t.svc.suspended()).toBeTrue();
+    expect(t.svc.suspended()).toBe(true);
     expect(t.svc.suspendedUntil()).toBe('2026-10-05T10:00:00Z');
     expect(t.svc.suspensionReason()).toBe('spam');
     expect(t.svc.suspensionNotice()).toEqual({ reason: 'spam', until: '2026-10-05T10:00:00Z' });
-    expect(t.svc.loaded()).toBeTrue();
-    expect(t.svc.unavailable()).toBeFalse();
+    expect(t.svc.loaded()).toBe(true);
+    expect(t.svc.unavailable()).toBe(false);
     t.stop();
   });
 
   it('an empty result means a clean account', async () => {
     const t = setup({ data: [], error: null });
     await t.svc.ensureLoaded();
-    expect(t.svc.suspended()).toBeFalse();
+    expect(t.svc.suspended()).toBe(false);
     expect(t.svc.suspensionNotice()).toBeNull();
-    expect(t.svc.loaded()).toBeTrue();
+    expect(t.svc.loaded()).toBe(true);
     t.stop();
   });
 
@@ -75,30 +75,30 @@ describe('AccountStatusService', () => {
       error: { message: 'Could not find the function public.my_account_status', code: 'PGRST202' },
     });
     await t.svc.ensureLoaded();
-    expect(t.svc.unavailable()).toBeTrue();
-    expect(t.svc.loaded()).toBeTrue();
-    expect(t.svc.suspended()).toBeFalse();
+    expect(t.svc.unavailable()).toBe(true);
+    expect(t.svc.loaded()).toBe(true);
+    expect(t.svc.suspended()).toBe(false);
     t.stop();
   });
 
   it('a transient read error does not eject: nothing suspended, ensureLoaded() resolves, retry later', async () => {
     const t = setup({ data: null, error: { message: 'JWT expired' } });
     await t.svc.ensureLoaded();
-    expect(t.svc.suspended()).toBeFalse();
-    expect(t.svc.unavailable()).toBeFalse();
+    expect(t.svc.suspended()).toBe(false);
+    expect(t.svc.unavailable()).toBe(false);
     // loaded stays false so the next navigation asks again
-    expect(t.svc.loaded()).toBeFalse();
+    expect(t.svc.loaded()).toBe(false);
     t.set({ data: [suspendedRow()], error: null });
     await t.svc.ensureLoaded();
-    expect(t.svc.suspended()).toBeTrue();
+    expect(t.svc.suspended()).toBe(true);
     t.stop();
   });
 
   it('a thrown fetch (offline) is swallowed and ensureLoaded() still resolves', async () => {
     const t = setup('throw');
-    await expectAsync(t.svc.ensureLoaded()).toBeResolved();
-    expect(t.svc.suspended()).toBeFalse();
-    expect(t.svc.loaded()).toBeFalse();
+    await expect(t.svc.ensureLoaded()).resolves.not.toThrow();
+    expect(t.svc.suspended()).toBe(false);
+    expect(t.svc.loaded()).toBe(false);
     t.stop();
   });
 
@@ -106,8 +106,8 @@ describe('AccountStatusService', () => {
     const t = setup({ data: [suspendedRow()], error: null });
     await t.svc.ensureLoaded();
     t.stop();
-    expect(t.svc.suspended()).toBeFalse();
-    expect(t.svc.loaded()).toBeFalse();
+    expect(t.svc.suspended()).toBe(false);
+    expect(t.svc.loaded()).toBe(false);
     expect(t.svc.suspensionNotice()).not.toBeNull();
     t.svc.clearNotice();
     expect(t.svc.suspensionNotice()).toBeNull();

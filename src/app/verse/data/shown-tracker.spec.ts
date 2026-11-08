@@ -65,18 +65,19 @@ function fakeEnv() {
 describe('trackShown (5 s of page focus)', () => {
   it('commits once after 5 s of focus and detaches its listeners', () => {
     const f = fakeEnv();
-    const commit = jasmine.createSpy('commit');
+    const commit = vi.fn().mockName('commit');
     trackShown(['a', 'b'], commit, f.env);
     f.advance(SHOWN_FOCUS_MS - 1);
     expect(commit).not.toHaveBeenCalled();
     f.advance(1);
-    expect(commit).toHaveBeenCalledOnceWith(['a', 'b']);
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(commit).toHaveBeenCalledWith(['a', 'b']);
     expect(f.listenerCount()).toBe(0);
   });
 
   it('pauses while the tab is blurred or hidden and resumes with the remaining time', () => {
     const f = fakeEnv();
-    const commit = jasmine.createSpy('commit');
+    const commit = vi.fn().mockName('commit');
     trackShown(['a'], commit, f.env);
     f.advance(3000);
     f.blur();
@@ -89,7 +90,7 @@ describe('trackShown (5 s of page focus)', () => {
     expect(commit).toHaveBeenCalledTimes(1);
 
     const g = fakeEnv();
-    const commit2 = jasmine.createSpy('commit2');
+    const commit2 = vi.fn().mockName('commit2');
     g.hide();
     trackShown(['x'], commit2, g.env);
     g.advance(10_000);
@@ -101,7 +102,7 @@ describe('trackShown (5 s of page focus)', () => {
 
   it('commits nothing when cancelled early, and nothing for an empty list', () => {
     const f = fakeEnv();
-    const commit = jasmine.createSpy('commit');
+    const commit = vi.fn().mockName('commit');
     const cancel = trackShown(['a'], commit, f.env);
     f.advance(2000);
     cancel();

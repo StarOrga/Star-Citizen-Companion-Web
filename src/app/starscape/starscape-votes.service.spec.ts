@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from '../auth/auth.service';
@@ -18,8 +19,8 @@ function query(result: unknown): Record<string, unknown> {
 }
 
 interface ClientStub {
-  rpc: jasmine.Spy;
-  from: jasmine.Spy;
+  rpc: Mock;
+  from: Mock;
   insertResult: unknown;
   deleteResult: unknown;
   profileResult: unknown;
@@ -33,8 +34,8 @@ function clientStub(): ClientStub {
     profileResult: { data: null, error: null },
     inserts: [] as unknown[],
   } as ClientStub;
-  stub.rpc = jasmine.createSpy('rpc').and.resolveTo({ data: [], error: null });
-  stub.from = jasmine.createSpy('from').and.callFake((table: string) => {
+  stub.rpc = vi.fn().mockName('rpc').mockResolvedValue({ data: [], error: null });
+  stub.from = vi.fn().mockName('from').mockImplementation((table: string) => {
     if (table === 'profiles') return query(stub.profileResult);
     return {
       insert: (row: unknown) => {
@@ -78,22 +79,22 @@ describe('StarscapeVotesService', () => {
     const svc = make();
     const pending = svc.toggle('img-1');
     // Optimistic: the icon and the count flip on the tap, not a round trip later.
-    expect(svc.hasVoted('img-1')).toBeTrue();
+    expect(svc.hasVoted('img-1')).toBe(true);
     expect(svc.countFor('img-1')).toBe(1);
     await pending;
     expect(client.inserts).toEqual([{ image_id: 'img-1', user_id: 'user-1' }]);
-    expect(svc.hasVoted('img-1')).toBeTrue();
+    expect(svc.hasVoted('img-1')).toBe(true);
   });
 
   it('rolls the optimistic vote back when the write actually fails', async () => {
-    const warn = spyOn(console, 'warn');
+    const warn = vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     const svc = make();
     client.insertResult = { error: { message: 'denied', code: '42501' } };
     await svc.toggle('img-1');
-    expect(svc.hasVoted('img-1')).toBeFalse();
+    expect(svc.hasVoted('img-1')).toBe(false);
     expect(svc.countFor('img-1')).toBe(0);
     // The rollback is silent for the user, not for the console (AUD-255).
-    expect(warn).toHaveBeenCalledWith('[starscape] vote write failed', jasmine.objectContaining({ imageId: 'img-1' }));
+    expect(warn).toHaveBeenCalledWith('[starscape] vote write failed', expect.objectContaining({ imageId: 'img-1' }));
   });
 
   it('treats a duplicate vote as the success it is', async () => {
@@ -102,7 +103,7 @@ describe('StarscapeVotesService', () => {
     // key. That is the state we already painted, so it must not roll back.
     client.insertResult = { error: { message: 'duplicate key', code: '23505' } };
     await svc.toggle('img-1');
-    expect(svc.hasVoted('img-1')).toBeTrue();
+    expect(svc.hasVoted('img-1')).toBe(true);
     expect(svc.countFor('img-1')).toBe(1);
   });
 
@@ -110,21 +111,21 @@ describe('StarscapeVotesService', () => {
     const svc = make();
     await svc.toggle('img-1');
     await svc.toggle('img-1');
-    expect(svc.hasVoted('img-1')).toBeFalse();
+    expect(svc.hasVoted('img-1')).toBe(false);
     expect(svc.countFor('img-1')).toBe(0);
   });
 
   it('does nothing at all for a signed-out visitor', async () => {
     const svc = make(false);
     await svc.toggle('img-1');
-    expect(svc.canVote()).toBeFalse();
+    expect(svc.canVote()).toBe(false);
     expect(client.inserts).toEqual([]);
-    expect(svc.hasVoted('img-1')).toBeFalse();
+    expect(svc.hasVoted('img-1')).toBe(false);
   });
 
   it('reads counts through the aggregate RPC, never the votes table', async () => {
     const svc = make();
-    client.rpc.and.resolveTo({
+    client.rpc.mockResolvedValue({
       data: [{ image_id: 'img-1', votes: 4, voted: true }],
       error: null,
     });
@@ -133,16 +134,16 @@ describe('StarscapeVotesService', () => {
       p_image_ids: ['img-1', 'img-2'],
     });
     expect(svc.countFor('img-1')).toBe(4);
-    expect(svc.hasVoted('img-1')).toBeTrue();
+    expect(svc.hasVoted('img-1')).toBe(true);
     // An image with no votes is simply absent from the result, not zero rows of
     // somebody else's data.
     expect(svc.countFor('img-2')).toBe(0);
-    expect(svc.hasVoted('img-2')).toBeFalse();
+    expect(svc.hasVoted('img-2')).toBe(false);
   });
 
   it('asks the server for the ranking instead of sorting a page client-side', async () => {
     const svc = make();
-    client.rpc.and.resolveTo({
+    client.rpc.mockResolvedValue({
       data: [
         {
           image_id: 'top-1',
@@ -163,13 +164,13 @@ describe('StarscapeVotesService', () => {
     expect(svc.topWallpapers().map((w) => w.imageId)).toEqual(['top-1']);
     // The ranking already carries its counts — no second round trip.
     expect(svc.countFor('top-1')).toBe(9);
-    expect(svc.hasVoted('top-1')).toBeTrue();
+    expect(svc.hasVoted('top-1')).toBe(true);
   });
 
   it('persists the toggle on the profile so the desktop app sees it too', async () => {
     const svc = make();
     await svc.setTopOnly(true);
-    expect(svc.topOnly()).toBeTrue();
+    expect(svc.topOnly()).toBe(true);
     expect(client.rpc).toHaveBeenCalledWith('set_starscape_top_only', { enabled: true });
     // …and it fetched the ranking it just switched to.
     expect(client.rpc).toHaveBeenCalledWith('starscape_top_wallpapers', { p_limit: TOP_LIMIT });
@@ -186,7 +187,7 @@ describe('StarscapeVotesService', () => {
     const fresh = make(false);
     localStorage.setItem('sc.starscape.topOnly', '1');
     await fresh.loadPreference();
-    expect(fresh.topOnly()).toBeTrue();
+    expect(fresh.topOnly()).toBe(true);
   });
 
   it('lets the profile column win over the local copy once signed in', async () => {
@@ -194,6 +195,6 @@ describe('StarscapeVotesService', () => {
     localStorage.setItem('sc.starscape.topOnly', '1');
     client.profileResult = { data: { starscape_top_only: false }, error: null };
     await svc.loadPreference();
-    expect(svc.topOnly()).toBeFalse();
+    expect(svc.topOnly()).toBe(false);
   });
 });

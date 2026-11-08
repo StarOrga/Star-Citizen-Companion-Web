@@ -18,8 +18,8 @@ describe('FusionSearchComponent op-hybrid', () => {
     field.focus();
     field.dispatchEvent(new FocusEvent('focus'));
     fixture.detectChanges();
-    expect(cmp.focused()).toBeTrue();
-    expect(cmp.open()).toBeFalse();
+    expect(cmp.focused()).toBe(true);
+    expect(cmp.open()).toBe(false);
     expect(el.querySelector('.panel')).toBeNull();
     el.remove();
   });
@@ -28,27 +28,27 @@ describe('FusionSearchComponent op-hybrid', () => {
     const { fixture, el, field, cmp } = setup();
     field.click();
     fixture.detectChanges();
-    expect(cmp.open()).withContext('click').toBeTrue();
+    expect(cmp.open(), 'click').toBe(true);
     expect(el.querySelector('.panel')).not.toBeNull();
 
     cmp.close();
     fixture.detectChanges();
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     fixture.detectChanges();
-    expect(cmp.open()).withContext('ArrowDown').toBeTrue();
+    expect(cmp.open(), 'ArrowDown').toBe(true);
 
     cmp.close();
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
     fixture.detectChanges();
-    expect(cmp.open()).withContext('Ctrl+K').toBeTrue();
+    expect(cmp.open(), 'Ctrl+K').toBe(true);
   });
 
   it('without a page search the first typed character opens the panel with results', () => {
     const { el, cmp, type } = setup();
-    expect(cmp.open()).toBeFalse();
+    expect(cmp.open()).toBe(false);
     type('g');
-    expect(cmp.open()).toBeTrue();
+    expect(cmp.open()).toBe(true);
     expect(el.querySelector('.strip')).toBeNull();
   });
 
@@ -59,7 +59,7 @@ describe('FusionSearchComponent op-hybrid', () => {
     groups.set([fxGroup('ship', [], 7), fxGroup('weapon', [], 5)]);
     type('gla');
     expect(applied).toEqual(['gla']);
-    expect(cmp.open()).withContext('panel stays shut').toBeFalse();
+    expect(cmp.open(), 'panel stays shut').toBe(false);
     const strip = el.querySelector('.strip') as HTMLButtonElement;
     expect(strip).not.toBeNull();
     expect(cmp.stripTotal()).toBe(12);
@@ -67,14 +67,14 @@ describe('FusionSearchComponent op-hybrid', () => {
 
     strip.click();
     fixture.detectChanges();
-    expect(cmp.open()).withContext('the strip expands the panel').toBeTrue();
+    expect(cmp.open(), 'the strip expands the panel').toBe(true);
     expect(el.querySelector('.strip')).toBeNull();
 
     cmp.close();
     fixture.detectChanges();
     (el.querySelector('input.input') as HTMLInputElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     fixture.detectChanges();
-    expect(cmp.open()).withContext('↓ expands it too').toBeTrue();
+    expect(cmp.open(), '↓ expands it too').toBe(true);
     off();
   });
 
@@ -84,7 +84,7 @@ describe('FusionSearchComponent op-hybrid', () => {
     fixture.detectChanges();
     field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
-    expect(cmp.open()).toBeFalse();
+    expect(cmp.open()).toBe(false);
   });
 
   it('the placeholder ends in an ellipsis instead of a cut letter, also while focused', () => {
@@ -93,7 +93,7 @@ describe('FusionSearchComponent op-hybrid', () => {
     field.focus();
     fixture.detectChanges();
     const ph = el.querySelector('.ph') as HTMLElement;
-    expect(ph).withContext('drawn placeholder').not.toBeNull();
+    expect(ph, 'drawn placeholder').not.toBeNull();
     expect(ph.getAttribute('aria-hidden')).toBe('true');
     expect(ph.textContent?.trim()).toBe(field.getAttribute('placeholder')!);
     const cs = getComputedStyle(ph);
@@ -101,7 +101,7 @@ describe('FusionSearchComponent op-hybrid', () => {
     expect(cs.whiteSpace).toBe('nowrap');
     expect(cs.overflow).toBe('hidden');
     type('x');
-    expect(el.querySelector('.ph')).withContext('gone once typed').toBeNull();
+    expect(el.querySelector('.ph'), 'gone once typed').toBeNull();
     el.remove();
   });
 });

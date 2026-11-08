@@ -44,7 +44,7 @@ describe('proposeEinsaetze', () => {
   it('puts crafting last, after missions, buying and mining', () => {
     const d = proposeEinsaetze([MEDPEN, BP, ALU, COPPER], { placeOf: shops({ medpen: AREA18 }) });
     expect(d.map((x) => x.role)).toEqual(['mission', 'buy', 'mine', 'craft']);
-    expect(d[d.length - 1].steps[0]).toEqual(jasmine.objectContaining({ kind: 'craft', label: 'Gallant', qty: 2 }));
+    expect(d[d.length - 1].steps[0]).toEqual(expect.objectContaining({ kind: 'craft', label: 'Gallant', qty: 2 }));
   });
 
   it('buys material whose shop is known and mines the rest by default, refining what is mined', () => {
@@ -63,7 +63,7 @@ describe('proposeEinsaetze', () => {
     const d = proposeEinsaetze([MEDPEN, RATTLER, ALU], ctx);
     const buy = d.find((x) => x.role === 'buy')!;
     expect(buy.steps.map((s) => s.location)).toEqual(['Lorville', 'Area18']);
-    expect(buy.steps.every((s) => !!s.location && !!s.system)).toBeTrue();
+    expect(buy.steps.every((s) => !!s.location && !!s.system)).toBe(true);
     expect(buy.steps.map((s) => s.label)).not.toContain('Aluminium');
     expect(unplacedLines([MEDPEN, RATTLER, ALU], ctx).map((l) => l.key)).toEqual(['aluminium']);
   });
@@ -85,7 +85,7 @@ describe('proposeEinsaetze', () => {
     expect(modeOf(craftable, { placeOf })).toBe('buy');
     const crafted = proposeEinsaetze([craftable], { placeOf, mode: new Map([['medpen', 'craft']]) });
     expect(crafted.map((x) => x.role)).toEqual(['craft']);
-    expect(crafted[0].steps[0]).toEqual(jasmine.objectContaining({ kind: 'craft', label: 'Medpen', qty: 12, lineKey: 'medpen' }));
+    expect(crafted[0].steps[0]).toEqual(expect.objectContaining({ kind: 'craft', label: 'Medpen', qty: 12, lineKey: 'medpen' }));
     // A craft choice that is not available (no blueprint) falls back to buying.
     expect(modeOf(MEDPEN, { placeOf, mode: new Map([['medpen', 'craft']]) })).toBe('buy');
     // A craftable line without a merchant is crafted by default and not unplaced.
@@ -158,7 +158,7 @@ describe('split helpers', () => {
 
     it('needs per piece times the quantity, minus what the Inventar holds', () => {
       const c = craftCheck(crafting, RECIPE, have([], { chem: 5 }));
-      expect(c.blueprintOwned).toBeFalse();
+      expect(c.blueprintOwned).toBe(false);
       expect(c.ingredients).toEqual([
         { className: 'chem', name: 'Chemikalie', need: 24, have: 5, missing: 19 },
         { className: 'glass', name: 'Glas', need: 6, have: 0, missing: 6 },
@@ -174,10 +174,10 @@ describe('split helpers', () => {
       ]);
       const d = proposeEinsaetze([crafting, ...derived], { placeOf: () => null, mode: new Map([['medpen', 'craft']]) });
       expect(d.map((x) => x.role)).toEqual(['mission', 'mine', 'craft']);
-      expect(d[0].steps[0]).toEqual(jasmine.objectContaining({ kind: 'mission', label: 'Medpen-Blaupause', missionRef: 'bp_medpen' }));
+      expect(d[0].steps[0]).toEqual(expect.objectContaining({ kind: 'mission', label: 'Medpen-Blaupause', missionRef: 'bp_medpen' }));
       const craft = d[d.length - 1].steps;
       expect(craft.length).toBe(1);
-      expect(craft[0]).toEqual(jasmine.objectContaining({ kind: 'craft', label: 'Medpen', qty: 12, lineKey: 'medpen' }));
+      expect(craft[0]).toEqual(expect.objectContaining({ kind: 'craft', label: 'Medpen', qty: 12, lineKey: 'medpen' }));
     });
 
     it('with the blueprint and all material at hand only the craft step is left', () => {

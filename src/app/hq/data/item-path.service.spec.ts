@@ -66,7 +66,7 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; st
     removeShip: async (id: string) => (ships.update((s) => s.filter((x) => x.id !== id)), true),
   };
   const edge = {
-    addShipCopy: jasmine.createSpy('addShipCopy').and.callFake(async (c: string) => {
+    addShipCopy: vi.fn().mockName('addShipCopy').mockImplementation(async (c: string) => {
       const s = hangar.shipByClassName(c)!;
       patchShip(s.id, { qty: s.qty + 1 });
       return s.qty + 1;
@@ -105,8 +105,8 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; st
   const active = signal<{ id: string }[]>([]);
   const nachschub = {
     active,
-    reconcile: jasmine.createSpy('reconcile').and.resolveTo(undefined),
-    reactivate: jasmine.createSpy('reactivate').and.callFake(async (id: string) => (active.update((a) => [...a, { id }]), { ok: true })),
+    reconcile: vi.fn().mockName('reconcile').mockResolvedValue(undefined),
+    reactivate: vi.fn().mockName('reactivate').mockImplementation(async (id: string) => (active.update((a) => [...a, { id }]), { ok: true })),
   };
   TestBed.configureTestingModule({
     providers: [
@@ -139,7 +139,7 @@ describe('ItemPathService', () => {
     supplies.addLine('Helm', 1, 'helmet_01');
     await svc.addWish('item', 'helmet_01', 'Helm');
     const s = svc.state('item', 'helmet_01', 'Helm')();
-    expect(s.wished).toBeTrue();
+    expect(s.wished).toBe(true);
     expect(s.nachschubQty).toBe(1);
     expect(s.inventarQty).toBe(2);
     expect(s.places).toEqual([{ location: 'Port Olisar', qty: 2 }]);
@@ -157,11 +157,11 @@ describe('ItemPathService', () => {
     supplies.addLine('A', 2, 'a');
     const res = await svc.moveToInventar('item', 'a', 'A', 'Lorville', 2);
     expect(res.key).toBe('itemPath.done.inventar');
-    expect(stock()[0]).toEqual(jasmine.objectContaining({ location: 'Lorville', class_name: 'a', qty: 2 }));
-    expect(lines[0].done).toBeTrue();
+    expect(stock()[0]).toEqual(expect.objectContaining({ location: 'Lorville', class_name: 'a', qty: 2 }));
+    expect(lines[0].done).toBe(true);
     await res.undo!();
     expect(stock().length).toBe(0);
-    expect(lines[0].done).toBeFalse();
+    expect(lines[0].done).toBe(false);
   });
 
   it('A8: the default place is the live location while the game runs, else "Bei mir"', () => {
@@ -190,9 +190,9 @@ describe('ItemPathService', () => {
     const { svc, stock } = setup();
     stock.set([{ location: 'Lorville', name: 'Gold', class_name: 'item:Gold', qty: 3, unit: 'pcs' }]);
     expect(svc.ownedBlueprints().size).toBe(0);
-    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).ok).toBeTrue();
+    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', true)).ok).toBe(true);
     expect([...svc.ownedBlueprints()]).toEqual(['BP_Rifle']);
-    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', false)).ok).toBeTrue();
+    expect((await svc.setBlueprintOwned('BP_Rifle', 'Rifle', false)).ok).toBe(true);
     expect(svc.ownedBlueprints().size).toBe(0);
     expect(stock().map((i) => i.name)).toEqual(['Gold']);
   });
@@ -206,7 +206,7 @@ describe('ItemPathService', () => {
   it('signed out nothing is written', async () => {
     const { svc, rows, ships } = setup({ user: false });
     expect((await svc.addWish('item', 'a', 'A')).key).toBe('itemPath.err.failed');
-    expect((await svc.addToHangar('idris', 'Idris')).ok).toBeFalse();
+    expect((await svc.addToHangar('idris', 'Idris')).ok).toBe(false);
     expect(rows().length + ships().length).toBe(0);
   });
 
@@ -214,12 +214,12 @@ describe('ItemPathService', () => {
     it('a step this kind does not have is refused neutrally; a real failure stays an error', async () => {
       const { svc } = setup({ storeFails: true });
       const refused = await svc.moveToInventar('ship', 'idris', 'Idris', 'Lorville', 1);
-      expect(refused.ok).toBeFalse();
+      expect(refused.ok).toBe(false);
       expect(refused.tone).toBe('info');
-      expect(isPathError(refused)).toBeFalse();
+      expect(isPathError(refused)).toBe(false);
       const failed = await svc.addWish('item', 'a', 'A');
       expect(failed.key).toBe('itemPath.err.failed');
-      expect(isPathError(failed)).toBeTrue();
+      expect(isPathError(failed)).toBe(true);
     });
   });
 
@@ -232,7 +232,7 @@ describe('ItemPathService', () => {
 
       await svc.addToHangar('starlancer', 'Starlancer');
       const res = await svc.addWish('ship', 'starlancer', 'Starlancer');
-      expect(res.ok).toBeTrue();
+      expect(res.ok).toBe(true);
       expect(res.key).toBe('itemPath.done.wishOn');
       expect(ship('starlancer')!.status).toBe('owned');
       expect(rows().map((r) => [r.kind, r.className, r.qty])).toEqual([['ship', 'starlancer', 1]]);
@@ -244,7 +244,7 @@ describe('ItemPathService', () => {
       const { svc, wishlist, rows, ship } = setup();
       await svc.addToHangar('starlancer', 'Starlancer');
       const res = await svc.addWish('ship', 'starlancer', 'Starlancer');
-      expect((await svc.setWishQty('ship', 'starlancer', 'Starlancer', 3)).ok).toBeTrue();
+      expect((await svc.setWishQty('ship', 'starlancer', 'Starlancer', 3)).ok).toBe(true);
       expect(svc.read('ship', 'starlancer').wishQty).toBe(3);
       expect(wishlist.count()).toBe(1);
       await res.undo!();
@@ -287,7 +287,7 @@ describe('ItemPathService', () => {
       expect(res.key).toBe('itemPath.done.ownWish');
       expect([ship('idris')!.status, ship('idris')!.qty]).toEqual(['owned', 1]);
       expect(rows().length).toBe(0);
-      expect(svc.read('ship', 'idris').wished).toBeFalse();
+      expect(svc.read('ship', 'idris').wished).toBe(false);
     });
 
     it('an owned ship gets a second copy through the edge rule, and its wish shrinks by one', async () => {
@@ -296,7 +296,8 @@ describe('ItemPathService', () => {
       await svc.addWish('ship', 'starlancer', 'Starlancer');
       await svc.setWishQty('ship', 'starlancer', 'Starlancer', 2);
       const res = await svc.addToHangar('starlancer', 'Starlancer');
-      expect(edge.addShipCopy).toHaveBeenCalledOnceWith('starlancer');
+      expect(edge.addShipCopy).toHaveBeenCalledTimes(1);
+      expect(edge.addShipCopy).toHaveBeenCalledWith('starlancer');
       expect(ship('starlancer')!.qty).toBe(2);
       expect(res.key).toBe('itemPath.done.ownWishLeft');
       expect(rows()[0].qty).toBe(1);
@@ -319,7 +320,7 @@ describe('ItemPathService', () => {
       await svc.addWish('ship', 'idris', 'Idris');
       await svc.setWishQty('ship', 'idris', 'Idris', 3);
       const res = await svc.addToHangar('idris', 'Idris');
-      expect(res.ok).toBeFalse();
+      expect(res.ok).toBe(false);
       expect([ship('idris')!.status, ship('idris')!.qty]).toEqual(['wishlist', 3]);
     });
   });
@@ -371,9 +372,9 @@ describe('ItemPathService', () => {
       active.set([{ id: 'n1' }]);
       const l = packageLine(lines, 10);
       const res = await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 6);
-      expect(res.ok).toBeTrue();
+      expect(res.ok).toBe(true);
       expect(l.qty).toBe(10);
-      expect(l.done).toBeFalse();
+      expect(l.done).toBe(false);
       expect(nachschub.reconcile).toHaveBeenCalled();
     });
 
@@ -395,9 +396,9 @@ describe('ItemPathService', () => {
       const res = await svc.moveToInventar('item', 'medpen', 'Medpen', 'Lorville', 2);
       l.done = true;
       active.set([]);
-      expect((await res.undo!()).ok).toBeTrue();
+      expect((await res.undo!()).ok).toBe(true);
       expect(nachschub.reactivate).toHaveBeenCalledWith('n1');
-      expect(l.done).toBeFalse();
+      expect(l.done).toBe(false);
     });
 
     it('a line of an archived Nachschub is a loose line: it shrinks as before', async () => {

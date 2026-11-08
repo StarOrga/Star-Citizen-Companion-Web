@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -17,10 +18,10 @@ import { SupabaseClientProvider } from '../core/supabase.client';
  * make the form an oracle over who has applied).
  */
 describe('LoginComponent — landing + apply', () => {
-  let submit: jasmine.Spy;
+  let submit: Mock;
 
   function setup() {
-    submit = jasmine.createSpy('submit').and.resolveTo({ kind: 'ok' });
+    submit = vi.fn().mockName('submit').mockResolvedValue({ kind: 'ok' });
     TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
@@ -61,34 +62,34 @@ describe('LoginComponent — landing + apply', () => {
       handle: 'CitizenKane',
       message: 'hi',
     });
-    expect(comp.applyDone()).toBeTrue();
+    expect(comp.applyDone()).toBe(true);
     expect(fixture.nativeElement.querySelector('.notice.sent')).toBeTruthy();
   });
 
   it('treats a duplicate application as success, not as an error', async () => {
     const fixture = setup();
     const comp = fixture.componentInstance;
-    submit.and.resolveTo({ kind: 'duplicate' });
+    submit.mockResolvedValue({ kind: 'duplicate' });
 
     comp.showApply();
     comp.applyForm.patchValue({ email: 'pilot@example.com' });
     await comp.onApply();
 
-    expect(comp.applyDone()).toBeTrue();
+    expect(comp.applyDone()).toBe(true);
     expect(comp.applyError()).toBeNull();
   });
 
   it('surfaces a real failure instead of pretending it was sent', async () => {
     const fixture = setup();
     const comp = fixture.componentInstance;
-    spyOn(console, 'warn');
-    submit.and.resolveTo({ kind: 'error', error: new TypeError('Failed to fetch') });
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
+    submit.mockResolvedValue({ kind: 'error', error: new TypeError('Failed to fetch') });
 
     comp.showApply();
     comp.applyForm.patchValue({ email: 'pilot@example.com' });
     await comp.onApply();
 
-    expect(comp.applyDone()).toBeFalse();
+    expect(comp.applyDone()).toBe(false);
     // A key, never the raw transport text (ChromeHeadless is online).
     expect(comp.applyError()).toBe('errors.network');
   });
@@ -107,8 +108,8 @@ describe('LoginComponent — landing + apply', () => {
     const comp = fixture.componentInstance;
     comp.form.setValue({ email: 'pilot@example.com', password: 'abc123' });
     fixture.detectChanges();
-    expect(comp.form.valid).toBeTrue();
+    expect(comp.form.valid).toBe(true);
     const submitBtn: HTMLButtonElement = fixture.nativeElement.querySelector('form button[type="submit"]');
-    expect(submitBtn.disabled).toBeFalse();
+    expect(submitBtn.disabled).toBe(false);
   });
 });

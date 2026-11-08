@@ -9,7 +9,7 @@ function lookup(cat: Catalogue, key: string): unknown {
 }
 
 describe('authErrorKey', () => {
-  beforeEach(() => spyOn(console, 'warn'));
+  beforeEach(() => vi.spyOn(console, 'warn').mockReturnValue(undefined as never));
 
   const cases: [string, string][] = [
     ['invalid_credentials', 'auth.errors.invalidCredentials'],
@@ -38,13 +38,14 @@ describe('authErrorKey', () => {
   it('logs the raw error once', () => {
     const err = { code: 'invalid_credentials', message: 'Invalid login credentials' };
     authErrorKey(err, 'sign-in');
-    expect(console.warn).toHaveBeenCalledOnceWith('[auth] sign-in failed', err);
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(console.warn).toHaveBeenCalledWith('[auth] sign-in failed', err);
   });
 
   it('every key exists in de and en', () => {
     for (const key of AUTH_ERROR_KEYS) {
-      expect(typeof lookup(de as Catalogue, key)).withContext(`de ${key}`).toBe('string');
-      expect(typeof lookup(en as Catalogue, key)).withContext(`en ${key}`).toBe('string');
+      expect(typeof lookup(de as Catalogue, key), `de ${key}`).toBe('string');
+      expect(typeof lookup(en as Catalogue, key), `en ${key}`).toBe('string');
     }
   });
 });

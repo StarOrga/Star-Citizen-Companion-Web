@@ -404,15 +404,15 @@ describe('codex-format', () => {
 
   describe('hasQualityRequirement', () => {
     it('is false for a slot that takes any material: 0 (FPS gear), 1 (ship parts), none', () => {
-      expect(hasQualityRequirement(0)).toBeFalse();
-      expect(hasQualityRequirement(1)).toBeFalse();
-      expect(hasQualityRequirement(null)).toBeFalse();
-      expect(hasQualityRequirement(undefined)).toBeFalse();
-      expect(hasQualityRequirement(Number.NaN)).toBeFalse();
+      expect(hasQualityRequirement(0)).toBe(false);
+      expect(hasQualityRequirement(1)).toBe(false);
+      expect(hasQualityRequirement(null)).toBe(false);
+      expect(hasQualityRequirement(undefined)).toBe(false);
+      expect(hasQualityRequirement(Number.NaN)).toBe(false);
     });
     it('is true for a real floor', () => {
-      expect(hasQualityRequirement(500)).toBeTrue();
-      expect(hasQualityRequirement(900)).toBeTrue();
+      expect(hasQualityRequirement(500)).toBe(true);
+      expect(hasQualityRequirement(900)).toBe(true);
     });
   });
 
@@ -615,14 +615,14 @@ describe('codex-format', () => {
         ],
       );
       expect(deltas[0]).toEqual(
-        jasmine.objectContaining({ key: 'Max Shield Health', pct: 20 }),
+        expect.objectContaining({ key: 'Max Shield Health', pct: 20 }),
       );
       expect(deltas[1]).toEqual(
-        jasmine.objectContaining({ key: 'Max Shield Regen', pct: -5 }),
+        expect.objectContaining({ key: 'Max Shield Regen', pct: -5 }),
       );
       // Non-numeric change is kept (pct null) but sorted last.
       expect(deltas[2]).toEqual(
-        jasmine.objectContaining({ key: 'Grade', from: 'B', to: 'A', pct: null }),
+        expect.objectContaining({ key: 'Grade', from: 'B', to: 'A', pct: null }),
       );
     });
     it('skips identical values and stats only one side has', () => {
@@ -650,13 +650,11 @@ describe('codex-format', () => {
       });
       const titles = sections.map((s) => s.title);
       expect(titles[0]).toBe(''); // top-level scalars first
-      expect(sections[0].rows).toContain(jasmine.objectContaining({ key: 'Role', value: 'Fighter' }));
+      expect(sections[0].rows).toContainEqual(expect.objectContaining({ key: 'Role', value: 'Fighter' }));
       expect(titles).toContain('Crew');
       expect(titles).toContain('Stats');
       const stats = sections.find((s) => s.title === 'Stats')!;
-      expect(stats.rows).toContain(
-        jasmine.objectContaining({ key: 'Max Shield Health', value: '2,244', unit: 'HP' }),
-      );
+      expect(stats.rows).toContainEqual(expect.objectContaining({ key: 'Max Shield Health', value: '2,244', unit: 'HP' }));
     });
     it('returns empty for non-object payloads', () => {
       expect(flattenSpec(null)).toEqual([]);
