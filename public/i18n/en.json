@@ -3676,6 +3676,10 @@
       "subtitle": "Claude translation of the game strings: switch, caps, languages, jobs and glossary.",
       "tabs": {
         "overview": "Overview",
+        "cards": "Flashcards",
+        "sources": "Sources",
+        "outreach": "Requests",
+        "alerts": "Alerts",
         "glossary": "Glossary"
       },
       "loading": "Loading …",
@@ -3793,7 +3797,9 @@
         "origins": {
           "cig": "CIG",
           "ai": "AI",
-          "admin": "Admin"
+          "admin": "Admin",
+          "mined": "Learned",
+          "community": "Community"
         },
         "categories": {
           "term": "Term",
@@ -3801,6 +3807,156 @@
           "unit": "Unit",
           "dnt": "Do not translate"
         }
+      },
+      "cards": {
+        "title": "Flashcards",
+        "intro": "Only when the AI is stuck: one question, one answer. The most important cards come first.",
+        "lang": "Language",
+        "goal": "Daily goal: {{done}} of {{goal}} cards",
+        "goalLabel": "Progress towards the daily goal",
+        "streak": "Streak: {{days}} days",
+        "open": "{{count}} open",
+        "skippedBefore": "Skipped",
+        "fresh": "Current patch",
+        "spread": "affects {{count}} strings",
+        "choose": "Which translation is better?",
+        "option": {
+          "a": "Option A",
+          "b": "Option B"
+        },
+        "bothWrong": "Both wrong – own text",
+        "ownText": "Your text (becomes an admin correction)",
+        "note": "Note as a hint for the AI (optional)",
+        "saveRule": "Save as a rule (applies everywhere)",
+        "submit": "Save answer",
+        "skip": "Skip",
+        "kinds": {
+          "meta": "Meta",
+          "wording": "Wording",
+          "style": "Style"
+        },
+        "context": {
+          "title": "Context",
+          "key": "Key",
+          "en": "English original",
+          "where": "Where in the game",
+          "neighbours": "Neighbouring lines",
+          "research": "Research"
+        },
+        "thanks": "Thanks, saved.",
+        "impact": "This answer unified {{count}} strings.",
+        "points": "+{{points}} points",
+        "next": "Next card",
+        "done": "Done",
+        "emptyTitle": "Nothing to decide",
+        "empty": "The AI is coping on its own right now – there are no open cards.",
+        "leaderboard": "Leaderboard",
+        "leaderboardEmpty": "No answers yet – the first card puts you in front.",
+        "boardAnswers": "{{count}} answers",
+        "boardPoints": "{{points}} points"
+      },
+      "sources": {
+        "title": "Sources",
+        "intro": "Community packs the translation starts from. Import only once the licence is clear.",
+        "syncAll": "Sync now",
+        "syncTitle": "Sync all sources?",
+        "syncText": "Checks every active source for changes and re-imports changed ones.",
+        "import": "Import seed",
+        "importTitle": "Import the seed of {{name}}?",
+        "importText": "The {{lang}} pack is checked and taken into the translation base. CIG lines stay untouched.",
+        "importLocked": "Only possible once the licence is clear (licensed or permitted).",
+        "importResult": "Import result",
+        "imported": "{{name}}: {{count}} lines imported.",
+        "synced": "Synced: {{checked}} checked, {{changed}} changed, {{errors}} errors.",
+        "learn": "Learn",
+        "learnTitle": "Start the learning step for {{lang}}?",
+        "learnText": "Derives terms, style and cards for {{lang}} from the existing data. May cost money.",
+        "learnResult": "Learning step result",
+        "draft": "Create request draft",
+        "drafted": "Draft for {{name}} created – see Requests.",
+        "empty": "No sources registered.",
+        "never": "never",
+        "cols": {
+          "lang": "Language",
+          "name": "Source",
+          "license": "Licence",
+          "status": "Status",
+          "coverage": "Coverage",
+          "synced": "Last sync",
+          "folder": "Game folder"
+        },
+        "kinds": {
+          "permissive": "permissive",
+          "nc_sa": "NC-SA",
+          "none": "no licence"
+        },
+        "status": {
+          "licensed": "Licensed",
+          "awaiting_permission": "Awaiting permission",
+          "permitted": "Permitted",
+          "refused": "Refused"
+        }
+      },
+      "outreach": {
+        "title": "Requests to maintainers",
+        "noAutoSend": "Nothing is sent automatically here. A protected admin approves a draft, you copy the text and send it by hand, then mark it as sent.",
+        "intro": "Drafts come from templates per licence kind. They say what we use and how we credit it.",
+        "empty": "No drafts. Create one per source under Sources.",
+        "subject": "Subject",
+        "body": "Text",
+        "messageLang": "Language of the message",
+        "langs": {
+          "de": "German",
+          "en": "English"
+        },
+        "kinds": {
+          "notify": "Information",
+          "permission": "Permission request"
+        },
+        "status": {
+          "draft": "Draft",
+          "approved": "Approved",
+          "sent": "Sent",
+          "answered": "Answered"
+        },
+        "decisions": {
+          "granted": "Granted",
+          "refused": "Refused"
+        },
+        "save": "Save draft",
+        "approve": "Approve",
+        "approveLocked": "Only protected admins may approve requests.",
+        "approveTitle": "Approve the request to {{name}}?",
+        "approveText": "Approving sends nothing. Afterwards the text can be copied and sent by hand.",
+        "approved": "Approved. Nothing was sent.",
+        "copy": "Copy text",
+        "copied": "Text copied to the clipboard.",
+        "markSent": "Mark as sent",
+        "markSentTitle": "Mark as sent?",
+        "markSentText": "You sent the message to {{name}} yourself. This only records it.",
+        "recordAnswer": "Record answer",
+        "answerText": "Maintainer’s answer",
+        "decision": "Decision",
+        "saveAnswer": "Save answer",
+        "answerRecorded": "Answer:",
+        "cancel": "Cancel"
+      },
+      "alerts": {
+        "title": "Alerts",
+        "intro": "CIG changed the original or its own translation of a line that has an admin correction. Check whether it still holds.",
+        "emptyTitle": "No open alerts",
+        "empty": "All admin corrections still match the current original.",
+        "enOld": "English before",
+        "enNew": "English now",
+        "cigOld": "CIG translation before",
+        "cigNew": "CIG translation now",
+        "adminText": "Your correction",
+        "keep": "Keep mine",
+        "adopt": "Adopt CIG",
+        "edit": "Edit",
+        "editLabel": "New text",
+        "saveEdit": "Save text",
+        "resolved": "Alert resolved."
       }
     },
     "searchMisses": {

@@ -13,10 +13,16 @@ import { buildChunks, toChunkItem } from './_chunk.ts';
 import type { Chunk, ChunkItem } from './_chunk.ts';
 import { estimateJob, estimateTokens, usageCostUsd } from './_cost.ts';
 import type { Estimate, Usage } from './_cost.ts';
-import { diffStrings } from './_diff.ts';
+import { diffStrings, sha256Hex } from './_diff.ts';
 import type { DiffCounts, TmEntry } from './_diff.ts';
-import { deriveAiTerms, deriveCigLabels, mergeGlossary, newRows } from './_glossary.ts';
+import { deriveAiTerms, deriveCigLabels, extractJudgeTerms, mergeGlossary, newRows } from './_glossary.ts';
+import { loadNotes } from './_cards.ts';
+import { addJudgeCandidates, resumeLearning, runLearning } from './_learn.ts';
+import type { LearnDb } from './_learn_db.ts';
 import { loadTm, makeOverlay, overlayKey, readLocaleTable, saveTm, workKey } from './_io.ts';
+import type { OverlayMeta } from './_io.ts';
+import { detectOverrideAlerts } from './_alerts.ts';
+import type { AdminTerm, AlertRow } from './_alerts.ts';
 import type { Store } from './_io.ts';
 import { mask, unmask } from './_mask.ts';
 import {
@@ -133,6 +139,12 @@ export interface Deps {
   llm: Llm | null;
   now(): Date;
   log(msg: string, data?: Record<string, unknown>): void;
+  /** Learning step adapter (`makeLearnDb`); absent = no learning, no cards (tests, older wiring). */
+  learn?: LearnDb;
+  /** Overlay sources / attribution / game folder for a published overlay (index.ts wires it); absent = bare overlay. */
+  overlayMeta?: (lang: string, entries: Record<string, { h: string; t: string }>, tm: Record<string, TmEntry>) => Promise<OverlayMeta>;
+  /** Writes override alerts (B4, service-role client in index.ts); absent = no alerts. */
+  alerts?: (lang: string, buildId: string, rows: AlertRow[]) => Promise<void>;
 }
 
 export const BATCH_MAX_REQUESTS = 400;
@@ -157,12 +169,23 @@ export interface Plan {
   forceIds: string[];
   counts: DiffCounts;
   newGlossary: GlossaryRow[];
+  /** Admin card notes for keys of this plan (key → hint). */
+  keyNotes?: Record<string, string>;
 }
 
 export interface PlanResult {
   plan: Plan;
   estimate: Estimate;
   stringCount: number;
+  /** Tables already read for the plan, reused by the B4 alert check (not persisted). */
+  inputs?: {
+    en: Record<string, string>;
+    baseEn: Record<string, string> | null;
+    cig: Record<string, string>;
+    cigFolder: string;
+    tm: Record<string, TmEntry>;
+    glossary: AdminTerm[];
+  };
 }
 
 export async function computePlan(
@@ -192,7 +215,9 @@ export async function computePlan(
 
   const derived = deriveCigLabels(en, cig);
   const glossary = mergeGlossary(dbGlossary, derived);
-  const system = buildSystem(job.lang, glossary);
+  const notes = await loadNotes(store, job.lang);
+  const style = deps.learn ? await deps.learn.getStyle(job.lang).catch(() => null) : null;
+  const system = buildSystem(job.lang, glossary, { style, notes });
 
   const keysByHash: Record<string, string[]> = {};
   const items: ChunkItem[] = diff.todo.map((u) => {
@@ -205,9 +230,25 @@ export async function computePlan(
     restModel: settings.rest_model || undefined,
   });
 
+  // C4: references from the whole TM (admin > cig > community > ai), not only CIG pairs.
   const pairs: CigPair[] = [];
-  for (const k of Object.keys(cig)) if (isCigValid(en[k] ?? '', cig[k]) && en[k]) pairs.push({ key: k, en: en[k], t: cig[k] });
+  const hashOf = new Map<string, string>();
+  for (const k of Object.keys(en)) {
+    const e = en[k];
+    if (!e || e.length > 300) continue;
+    if (isCigValid(e, cig[k])) {
+      pairs.push({ key: k, en: e, t: cig[k], o: 'cig' });
+      continue;
+    }
+    if (!Object.keys(tm).length) continue;
+    let h = hashOf.get(e);
+    if (!h) hashOf.set(e, (h = await sha256Hex(e)));
+    const hit = tm[h];
+    if (hit && hit.o !== 'cig') pairs.push({ key: k, en: e, t: hit.t, o: hit.o });
+  }
   const index = buildFewShotIndex(pairs);
+  const keyNotes: Record<string, string> = {};
+  for (const ks of Object.values(keysByHash)) for (const k of ks) if (notes.byKey[k]) keyNotes[k] = notes.byKey[k];
   const fewShot: Record<string, CigPair[]> = {};
   for (const c of chunks) fewShot[c.id] = pickSimilar(index, c.items, 8);
 
@@ -222,9 +263,12 @@ export async function computePlan(
   const plan: Plan = {
     v: 1, build_id: job.build_id, lang: job.lang, mode: job.mode, system, chunks, fewShot, keysByHash,
     reused: diff.reused, forceIds: forced.map((g) => g.id!).filter(Boolean), counts: diff.counts,
-    newGlossary: newRows(dbGlossary, derived),
+    newGlossary: newRows(dbGlossary, derived), keyNotes,
   };
-  return { plan, estimate, stringCount: diff.todo.reduce((a, u) => a + u.keys.length, 0) };
+  return {
+    plan, estimate, stringCount: diff.todo.reduce((a, u) => a + u.keys.length, 0),
+    inputs: { en, baseEn, cig, cigFolder: language.cig_folder || job.lang, tm, glossary: dbGlossary },
+  };
 }
 
 /** Dry run for the admin `estimate` op: no writes. */
@@ -378,6 +422,22 @@ function glossaryFor(plan: Plan, db: GlossaryRow[]): GlossaryRow[] {
 
 // ── steps ────────────────────────────────────────────────────────────────────
 
+/**
+ * B4: a delta whose English or CIG value changed under an admin correction raises an admin alert
+ * with the diff. Never fails the job — an alert is advice, the translation goes on.
+ */
+async function checkOverrideAlerts(deps: Deps, job: Job, r: PlanResult): Promise<void> {
+  if (!deps.alerts || job.mode !== 'delta' || !job.base_build_id || !r.inputs?.baseEn) return;
+  try {
+    const { en, baseEn, cig, cigFolder, tm, glossary } = r.inputs;
+    const baseCig = await readLocaleTable(deps.store, job.base_build_id, cigFolder);
+    const rows = await detectOverrideAlerts({ baseEn, en, baseCig, cig, tm, adminGlossary: glossary });
+    if (rows.length) await deps.alerts(job.lang, job.build_id, rows);
+  } catch (e) {
+    deps.log('translate override alerts failed', { lang: job.lang, error: String((e as Error)?.message ?? e) });
+  }
+}
+
 async function stepEstimating(deps: Deps, job: Job): Promise<void> {
   const { db, store } = deps;
   const settings = await db.getSettings();
@@ -392,6 +452,7 @@ async function stepEstimating(deps: Deps, job: Job): Promise<void> {
     throw e;
   }
   const { plan, estimate, stringCount } = r;
+  await checkOverrideAlerts(deps, job, r);
   const stats = addStats(job, { counts: plan.counts, estimate, phase: undefined, hold: undefined });
   const base = { string_count: stringCount, estimate_usd: round4(estimate.usd) };
 
@@ -440,7 +501,7 @@ async function submitMain(deps: Deps, job: Job): Promise<void> {
   const plan = await readPlan(deps, job);
   const reqs = plan.chunks.map((c) => ({
     custom_id: c.id,
-    params: requestParams(c.model, c.maxTokens, plan.system, userMessage(c, plan.fewShot[c.id])),
+    params: requestParams(c.model, c.maxTokens, plan.system, userMessage(c, plan.fewShot[c.id], plan.keyNotes ?? {})),
   }));
   await submitGroups(deps, job, 'main', reqs);
 }
@@ -526,16 +587,23 @@ async function readJudge(deps: Deps, job: Job, plan: Plan, res: ResMap, sample: 
   const llm = requireLlm(deps);
   let usd = 0;
   let scores: number[] | null = null;
+  let terms: ReturnType<typeof extractJudgeTerms> = [];
   for (const b of job.batch_ids.filter((x) => x.kind === 'judge')) {
     for await (const r of llm.results(b.id)) {
       if (r.usage) usd += usageCostUsd(r.model ?? JUDGE_MODEL, r.usage);
       if (r.type !== 'succeeded') continue;
       try {
         const o = JSON.parse(r.text ?? '');
-        if (Array.isArray(o?.r) && o.r.length === sample.length) scores = o.r.map((x: { score: number }) => Number(x.score));
+        if (Array.isArray(o?.r) && o.r.length === sample.length) {
+          scores = o.r.map((x: { score: number }) => Number(x.score));
+          // C5: term corrections become glossary candidates (the learning step votes on them).
+          const ens = sample.map((h) => { const it = itemOf(plan, h); return it ? unmask(it.m, it.toks) : ''; });
+          terms = extractJudgeTerms(o.r, ens);
+        }
       } catch { /* judge output unusable: no scores */ }
     }
   }
+  if (terms.length) await addJudgeCandidates(deps.store, job.lang, terms).catch(() => {});
   const out: ResMap = { ...res };
   if (!scores) return { res: out, usd, judge: null };
   scores.forEach((s, i) => {
@@ -612,7 +680,16 @@ async function stepPublishing(deps: Deps, job: Job): Promise<void> {
     if (it) pairs.push({ en: unmask(it.m, it.toks), t: r.t });
   }
   await saveTm(store, job.lang, tmUpdates);
-  const overlay = makeOverlay(job.lang, job.build_id, entries, at);
+  // A6: sources + uniform attribution + game folder; the TM is re-read so this job's entries count.
+  let meta: OverlayMeta = {};
+  if (deps.overlayMeta) {
+    try {
+      meta = await deps.overlayMeta(job.lang, entries, await loadTm(store, job.lang));
+    } catch (e) {
+      deps.log('translate overlay meta failed', { lang: job.lang, error: String((e as Error)?.message ?? e) });
+    }
+  }
+  const overlay = makeOverlay(job.lang, job.build_id, entries, at, meta);
   await store.putJson(overlayKey(job.lang, job.build_id), overlay);
   if (!(await db.hasNewerPublished(job))) await store.putJson(overlayKey(job.lang, 'latest'), overlay);
 
@@ -624,6 +701,12 @@ async function stepPublishing(deps: Deps, job: Job): Promise<void> {
   const cur = await db.cas(job, { status: 'published', stats: addStats(job, { phase: undefined, published_at: at, overlay_count: overlay.count }) });
   if (cur) {
     for (const n of ['plan', 'main-results', 'postedit-plan']) await store.deleteKey(workKey(job.id, n)).catch(() => {});
+    // C0: learn from what was just published. Never fails the (already published) job.
+    if (deps.learn) {
+      await runLearning(deps, job.lang, 'publish').catch((e) =>
+        deps.log('translate learning failed', { lang: job.lang, error: String((e as Error)?.message ?? e) })
+      );
+    }
   }
 }
 
@@ -679,6 +762,17 @@ export async function tick(deps: Deps, budgetMs = 110_000): Promise<TickSummary[
     if (deps.now().getTime() - started > budgetMs) break;
     if (!settings.enabled && (job.status === 'estimating' || job.status === 'queued')) continue;
     out.push({ id: job.id, lang: job.lang, from: job.status, to: await advance(deps, job) });
+  }
+  // Learning batches started on an earlier tick (arbiter, Haiku, align, web) are read here.
+  if (deps.learn && deps.now().getTime() - started <= budgetMs) {
+    try {
+      for (const lang of await deps.learn.listApprovedLangs()) {
+        if (deps.now().getTime() - started > budgetMs) break;
+        await resumeLearning(deps, lang);
+      }
+    } catch (e) {
+      deps.log('translate learning resume failed', { error: String((e as Error)?.message ?? e) });
+    }
   }
   return out;
 }

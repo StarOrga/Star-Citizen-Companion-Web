@@ -55,9 +55,9 @@ export function jobErrorKey(code: string | null | undefined): string | null {
     : 'admin.translations.jobErrors.unknown';
 }
 
-export type GlossaryOrigin = 'cig' | 'ai' | 'admin';
+export type GlossaryOrigin = 'cig' | 'ai' | 'admin' | 'mined' | 'community';
 export type GlossaryCategory = 'term' | 'label' | 'unit' | 'dnt';
-export const GLOSSARY_ORIGINS: readonly GlossaryOrigin[] = ['cig', 'ai', 'admin'];
+export const GLOSSARY_ORIGINS: readonly GlossaryOrigin[] = ['cig', 'ai', 'admin', 'mined', 'community'];
 export const GLOSSARY_CATEGORIES: readonly GlossaryCategory[] = ['term', 'label', 'unit', 'dnt'];
 
 export interface GlossaryFilters {
@@ -110,4 +110,50 @@ export function revertPatch(before: Record<string, unknown> | null): Record<stri
     if (k in before) patch[k] = before[k];
   }
   return Object.keys(patch).length ? patch : null;
+}
+
+/** Cards per day an admin is nudged towards (header progress). */
+export const DAILY_CARD_GOAL = 10;
+
+/** Share of the daily goal reached, clamped to 0..100. */
+export function goalPercent(answeredToday: number, goal: number = DAILY_CARD_GOAL): number {
+  if (!(goal > 0)) return 0;
+  return Math.max(0, Math.min(100, Math.round((answeredToday / goal) * 100)));
+}
+
+/** A source can be imported only once its licence is clear (the orchestrator refuses the rest). */
+export function canImportSource(status: string): boolean {
+  return status === 'licensed' || status === 'permitted';
+}
+
+/** Text coverage (%) stored in a source's `coverage` jsonb, or null when unknown. */
+export function coverageText(coverage: Record<string, unknown> | null | undefined): number | null {
+  const v = coverage?.['text_pct'];
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/** Lines of a card context field (string, list of strings / {key,text} objects, or any JSON) as plain text. */
+export function contextLines(v: unknown): string[] {
+  if (v == null || v === '') return [];
+  if (typeof v === 'string') return [v];
+  if (Array.isArray(v)) return v.flatMap((x) => contextLines(x));
+  if (typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    const text = o['text'] ?? o['en'] ?? o['value'];
+    if (typeof text === 'string') return [typeof o['key'] === 'string' ? `${o['key']}: ${text}` : text];
+    return [JSON.stringify(v)];
+  }
+  return [String(v)];
+}
+
+/** Flat `label: value` pairs of an orchestrator summary object (nested objects as JSON). */
+export function summaryEntries(o: Record<string, unknown> | null | undefined): { k: string; v: string }[] {
+  return Object.entries(o ?? {})
+    .filter(([k]) => k !== 'ok')
+    .map(([k, v]) => ({ k, v: typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v) }));
+}
+
+/** Postgres insufficient-privilege (RPC rights check, e.g. approval by a non-protected admin). */
+export function isRightsError(e: unknown): boolean {
+  return (e as { code?: string } | null)?.code === '42501';
 }

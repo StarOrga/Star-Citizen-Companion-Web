@@ -68,3 +68,69 @@ The estimate stored on the job is a forecast (measured ratios: input ≈ 0.90 to
 the real cost from each batch result's `usage` (cache read 0.1×, 1 h cache write 2×).
 Ledger rows are written before the status moves on, so a crash can only over-count a month, never
 under-count it.
+
+## Community seed ops (concept 2026-11-08)
+
+All with an admin JWT or the service role (`sync_sources` also with the publishable key, for pg_cron):
+
+```
+{"op":"import_seed","source_id":"rjcncpt"}   # pack -> TM (community), coverage, learning, republish latest overlay
+{"op":"sync_sources"}                        # every enabled licensed|permitted source: upstream changed? re-import
+{"op":"learn","lang":"de"}                   # learning backfill (hook; no-op until the learning module is wired)
+{"op":"draft_outreach","source_id":"thord82"}# maintainer message draft (status draft; never sent by code)
+```
+
+- `import_seed` answers `409 translate.source_not_permitted` unless the source is `licensed` or `permitted`
+  and enabled (fr / zh-Hans / es until a permission is recorded), `409 translate.no_live_build` /
+  `translate.english_missing` without a published LIVE English table, `502 translate.source_*` when the
+  upstream fetch fails (`source_fetch_<http status>`, `source_too_large`, `source_asset_missing`,
+  `source_entry_missing`). Re-running it with an unchanged pack changes nothing.
+- Cron `translate-orchestrator-sync-sources` runs `sync_sources` daily at 04:17 UTC
+  (migration `20261108170000`); roll back with `select cron.unschedule('translate-orchestrator-sync-sources')`.
+  The marker per source is stored in `translation_sources.last_seen_commit`; an optional
+  `GITHUB_TOKEN` function secret raises the GitHub API rate limit (60/h unauthenticated is enough for 8 sources).
+- The seed itself is token-free. The arbiter, revision, learning and research steps spend through the
+  normal ledger and caps (arbiter model `translation_settings.arbiter_model`, web research
+  `web_research_cap_usd`, default 5 USD per month).
+- Memory: a pack is ~12 MB; it is decoded once and parsed line by line. The 42kit zip is downloaded whole
+  (cap 120 MB) and only the one entry is inflated; if that ever hits the edge memory limit (546), stage the
+  entry elsewhere or switch the source to the `StarCitizenToolBox` raw file.
+- Outreach: `draft_outreach` creates or refreshes the single open draft of a source. Approval is
+  `approve_translation_outreach` (protected admins only), sending is manual (copy, then
+  `mark_translation_outreach_sent`); recording the answer `granted` sets an `awaiting_permission` source to
+  `permitted`, after which `import_seed` works. Plan and recipient table: [PUBLIC-RELEASE.md](PUBLIC-RELEASE.md).
+
+### Cost of the seed
+
+| Case | Order of magnitude |
+|---|---|
+| `import_seed` / `sync_sources` | 0 USD (no model call) |
+| German with seed: the remaining AI gap (about 6 % uncovered text + ~2 400 placeholder rejects) | about 2–5 USD per language instead of about 40 USD |
+| Arbiter pairwise comparison (Haiku class, batch, both orders) | cents per few thousand conflicts |
+
+## Learning step: work keys and spend
+
+The learning step (`_learn.ts`, `_arbiter.ts`, `_revise.ts`, `_cards.ts`) runs after every publish, after
+every seed import or sync, and on `op: learn`. Its LLM parts (Haiku pre-decision, pairwise arbiter, B1
+term alignment, web research) are Message Batches resumed by later ticks. Progress lives in R2:
+
+| Key | Content |
+|---|---|
+| `translation-work/learn-<lang>/state.json` | phase of the running learning pass |
+| `translation-work/learn-<lang>/arbiter.json` | open pairwise comparisons (both orders) |
+| `translation-work/learn-<lang>/revise.json` | per-release change counter (hysteresis budget) |
+| `translation-work/learn-<lang>/notes.json` | admin card notes fed into prompts |
+| `translation-work/learn-<lang>/decided.json` | hashes an admin decided on a card (never overturned) |
+| `translation-work/learn-<lang>/judge-terms.json` | term corrections from the 5 % judge |
+| `translation-work/learn-spend/<month>.json` | web-research **reservations** only (`web_reserved`), released when the batch is read |
+
+Learning spend is booked in `translation_ledger` as job-less rows (`job_id` null, migration
+`20261108180000`) with `kind` (`learn | arbiter | align | haiku | web`; job rows keep `job`) and `lang`,
+when a batch's results are read. The monthly cap sums every ledger row of the month, all kinds. The
+web-research cap (`web_research_cap_usd`) is the ledger sum of `kind = 'web'` for the current month plus
+the open reservations in `learn-spend/<month>.json`, which stop two languages in one tick from both
+passing the cap.
+
+Wiring (index.ts): `deps.learn = makeLearnDb(admin)`, `deps.overlayMeta` (sources, attribution, game
+folder on every published overlay) and `deps.alerts` (B4 override alerts during delta estimating).
+Without `deps.learn` learning, arbiter and cards are no-ops.
