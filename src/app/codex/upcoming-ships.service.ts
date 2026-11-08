@@ -6,6 +6,7 @@ import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from '../auth/auth.service';
 import { ConsentService } from '../core/consent.service';
+import { readMigrated, removeWithLegacy } from '../core/storage-keys';
 import { SearchWishlistService } from './search/search-wishlist.service';
 import { rsiVariant } from '../news/news-image-variants';
 
@@ -199,8 +200,8 @@ export interface UpcomingDiff {
 }
 
 /** The retired local star list. Its ships move onto the wishlist once, then the key is dropped. */
-const LEGACY_FAVORITES_STORAGE_KEY = 'sc-companion.upcoming.favorites';
-const BASELINE_STORAGE_KEY = 'sc-companion.upcoming.baseline';
+const LEGACY_FAVORITES_STORAGE_KEY = 'verse-companion.upcoming.favorites';
+const BASELINE_STORAGE_KEY = 'verse-companion.upcoming.baseline';
 
 /** Snapshot the feed for the "what did the user already see" baseline. */
 export function snapshotOf(ships: readonly UpcomingShip[]): UpcomingBaseline {
@@ -496,7 +497,7 @@ export class UpcomingShipsService {
     if (typeof localStorage === 'undefined') return;
     let ids: string[] = [];
     try {
-      const raw = localStorage.getItem(LEGACY_FAVORITES_STORAGE_KEY);
+      const raw = readMigrated(LEGACY_FAVORITES_STORAGE_KEY);
       if (!raw) return;
       const arr = JSON.parse(raw);
       ids = Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
@@ -512,14 +513,14 @@ export class UpcomingShipsService {
     );
     // A failed add keeps the key so the next session tries again.
     if (results.every(Boolean)) {
-      try { localStorage.removeItem(LEGACY_FAVORITES_STORAGE_KEY); } catch { /* private mode */ }
+      removeWithLegacy(LEGACY_FAVORITES_STORAGE_KEY);
     }
   }
 
   private loadBaselineFromStorage(): UpcomingBaseline | null {
     if (typeof localStorage === 'undefined') return null;
     try {
-      const raw = localStorage.getItem(BASELINE_STORAGE_KEY);
+      const raw = readMigrated(BASELINE_STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;

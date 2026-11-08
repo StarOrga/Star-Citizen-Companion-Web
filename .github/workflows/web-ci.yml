@@ -146,7 +146,7 @@ jobs:
       - name: Allow Chrome's sandbox
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-      # Serves dist/sc-companion/browser itself (no dev server in CI). No
+      # Serves dist/verse-companion/browser itself (no dev server in CI). No
       # --skip-if-unavailable: a missing browser must turn the job red.
       - name: Mobile gate (public)
         if: env.SC_TEST_EMAIL == ''

@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "sc-companion": {
+    "verse-companion": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -18,7 +18,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/sc-companion",
+            "outputPath": "dist/verse-companion",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -82,10 +82,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "sc-companion:build:production"
+              "buildTarget": "verse-companion:build:production"
             },
             "development": {
-              "buildTarget": "sc-companion:build:development"
+              "buildTarget": "verse-companion:build:development"
             }
           },
           "defaultConfiguration": "development"

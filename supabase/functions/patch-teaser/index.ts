@@ -90,7 +90,7 @@ async function sweep(admin: Admin, serviceKey: string): Promise<Response> {
 
     const list = await fetch(SPECTRUM_LIST_URL, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json', 'x-tavern-id': '1', 'user-agent': 'SC-Companion/0.6 (+patch-teaser)' },
+      headers: { 'content-type': 'application/json', accept: 'application/json', 'x-tavern-id': '1', 'user-agent': 'VerseCompanion/0.6 (+patch-teaser)' },
       body: JSON.stringify({ channel_id: '190048', page: 1, sort: 'newest' }),
       signal: AbortSignal.timeout(20_000),
     });

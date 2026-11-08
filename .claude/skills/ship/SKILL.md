@@ -17,7 +17,7 @@ below is canonical — external docs cite it.)
 1. **Mobile + tablet gate — MANDATORY extra quality gate in Step 2.**
    Any ship whose diff touches `src/**`, `public/**` or `angular.json` must run
    the responsive gate **after** `ship_build` succeeded (it audits the freshly
-   built `dist/sc-companion/browser`):
+   built `dist/verse-companion/browser`):
 
    ```bash
    npm run gate:mobile        # add --json=mobile-gate.json for an artefact

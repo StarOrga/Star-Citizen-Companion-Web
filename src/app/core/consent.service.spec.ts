@@ -71,10 +71,25 @@ describe('ConsentService', () => {
     it('purges preference keys when declined, leaving statistics consent intact', () => {
       const svc = makeService();
       svc.acceptAll();
-      localStorage.setItem('sc-companion.news.favorites', '["a"]');
+      localStorage.setItem('verse-companion.news.favorites', '["a"]');
       svc.setPreferences(false);
-      expect(localStorage.getItem('sc-companion.news.favorites')).toBeNull();
+      expect(localStorage.getItem('verse-companion.news.favorites')).toBeNull();
       expect(svc.statisticsAllowed()).toBe(true);
+    });
+
+    it('purges the pre-rename sc-companion.* twins too', () => {
+      const svc = makeService();
+      svc.acceptAll();
+      const legacy = [
+        'sc-companion.news.channels',
+        'sc-companion.news.favorites',
+        'sc-companion.news.watched',
+        'sc-companion.upcoming.favorites',
+        'sc-companion.upcoming.baseline',
+      ];
+      for (const k of legacy) localStorage.setItem(k, 'x');
+      svc.setPreferences(false);
+      for (const k of legacy) expect(localStorage.getItem(k)).withContext(k).toBeNull();
     });
 
     // The 2026-09-04 rethink stopped writing these four; they were never

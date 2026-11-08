@@ -267,7 +267,7 @@ describe('overlay extension and precedence', () => {
     assert.deepEqual(m.sources.map((s) => s.id), ['rjcncpt', 'scc-ai']);
     assert.equal(m.sources[0].license, 'CC-BY-NC-SA-4.0');
     assert.equal(m.sources[1].license, 'CC-BY-NC-SA-4.0');
-    assert.equal(m.attribution, 'Community-Übersetzung: rjcncpt (CC-BY-NC-SA-4.0) · KI-Ergänzung: SC Companion');
+    assert.equal(m.attribution, 'Community-Übersetzung: rjcncpt (CC-BY-NC-SA-4.0) · KI-Ergänzung: Verse Companion');
     assert.equal(m.game_folder, 'german_(germany)');
     const ru = buildOverlayMeta('ru', { a: { h: 'h1', t: 'x' } }, { h1: { o: 'community', src: 'n1ghter' } }, rows);
     assert.equal(ru.game_folder, 'korean_(south_korea)');

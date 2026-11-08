@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
+import { readMigrated, removeWithLegacy } from '../../core/storage-keys';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { BLUEPRINT_PLACE, NEWS_FAVORITES_STORAGE_KEY, SammlungEntry, bookmarksToCopy } from './sammlung.model';
@@ -109,7 +110,7 @@ export class SammlungService {
     if (!this.auth.user() || typeof localStorage === 'undefined') return 0;
     let raw: string | null = null;
     try {
-      raw = localStorage.getItem(NEWS_FAVORITES_STORAGE_KEY);
+      raw = readMigrated(NEWS_FAVORITES_STORAGE_KEY);
     } catch {
       return 0;
     }
@@ -123,7 +124,7 @@ export class SammlungService {
         if (error) throw error;
         this.news.update((s) => new Set([...s, ...ids]));
       }
-      localStorage.removeItem(NEWS_FAVORITES_STORAGE_KEY);
+      removeWithLegacy(NEWS_FAVORITES_STORAGE_KEY);
       return ids.length;
     } catch (err) {
       logWarn('sammlung', 'news bookmark copy failed', err);

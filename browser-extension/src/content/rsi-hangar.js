@@ -109,7 +109,7 @@
   function showBanner(shipCount, fingerprint, reason) {
     removeBanner();
     host = document.createElement('div');
-    host.id = 'sc-companion-hangar-import';
+    host.id = 'verse-companion-hangar-import';
     const root = host.attachShadow({ mode: 'closed' });
     root.innerHTML = `
       <style>

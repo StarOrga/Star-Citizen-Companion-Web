@@ -1,7 +1,13 @@
 import { DOCUMENT, Injectable, inject, signal } from '@angular/core';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 
-/** The URL the SCC-App registers for itself, see docs/contracts/scc-app-launch.md. */
+/**
+ * The URL the SCC-App registers for itself, see docs/contracts/scc-app-launch.md.
+ *
+ * Deliberately still the pre-rename scheme (Verse Companion rename, stage 2): installed desktop apps
+ * up to v0.104 register only `star-citizen-companion://`. Switch to `verse-companion://open` once the
+ * desktop release that registers both is the oldest supported one.
+ */
 export const SCC_APP_URI = 'star-citizen-companion://open';
 
 /** How long a launch attempt waits for the browser or the app to take the focus. */

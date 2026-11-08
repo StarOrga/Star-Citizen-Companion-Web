@@ -54,7 +54,7 @@ Resolution order, first match wins:
 
 1. `--base-url=…` / `MOBILE_GATE_BASE_URL` / `baseUrl` in the config
 2. a dev server already listening on `http://127.0.0.1:4200`
-3. the production build in `dist/sc-companion/browser`, served by a built-in
+3. the production build in `dist/verse-companion/browser`, served by a built-in
    static server on port 4271 (SPA fallback included)
 
 In the ship pipeline case 3 is the normal one: `ship_build` has already run
