@@ -5874,7 +5874,10 @@
         "message": "„{{name}}“ kommt als Missionsschritt dazu.",
         "none": "Du hast noch keinen geplanten oder laufenden Einsatz.",
         "new": "Neuer Einsatz"
-      }
+      },
+      "add": {"action":"Einsatz hinzufügen","title":"Neuer Einsatz","label":"Name des Einsatzes (höchstens 40 Zeichen)","confirm":"Hinzufügen"},
+      "rename": {"action":"Einsatz „{{name}}“ umbenennen","aria":"Neuer Name des Einsatzes","empty":"Der Name darf nicht leer sein."},
+      "noneYet": {"title":"„{{name}}“ hat noch keine Einsätze","hint":"Schlage in Planen Einsätze aus den Positionen vor oder füge einen hinzu."}
     },
     "activity": {
       "kopfgeld": "Kopfgeld",
@@ -7671,6 +7674,8 @@
     "selected": "gewählt",
     "clear": "Alle abwählen",
     "toNachschub": "In einen Nachschub",
+    "slotsFullHint": "Alle 7 Nachschub-Plätze sind belegt. Die Auswahl kommt in einen bestehenden Nachschub.",
+    "toExisting": "In einen bestehenden Nachschub",
     "kind": {
       "ship": "Schiff",
       "vehicle": "Fahrzeug",

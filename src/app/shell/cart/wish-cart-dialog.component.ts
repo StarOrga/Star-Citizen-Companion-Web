@@ -11,6 +11,7 @@ import { ScEntryDirective } from '../../shared/entry-motion/entry-motion';
 import { PATH_ICONS } from '../../shared/item-path/path-icons';
 import { SilThumbComponent } from '../../shared/sil-thumb/sil-thumb.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { NachschubService } from '../../hq/nachschub/nachschub.service';
 import { NACHSCHUB_ICON_PATHS } from '../../hq/nachschub/step-icons';
 import type { Recommendation } from '../../hq/nachschub/recommend';
 import type { CartItem } from './wish-cart.model';
@@ -139,11 +140,14 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
         <footer class="dlg-foot ce" style="--ce: 6">
           <span class="sel-count" role="status"><b>{{ selectedCount() }}</b> {{ 'cart.selected' | translate }}</span>
           <span class="sp"></span>
+          @if (ns.newBlock()) {
+            <span class="full-hint" role="status">{{ 'cart.slotsFullHint' | translate }}</span>
+          }
           <button type="button" scAction tier="secondary" [disabled]="picks().size === 0" (click)="picks.set(emptyPicks)"><span>{{ 'cart.clear' | translate }}</span></button>
           <a scAction tier="primary" class="go" [class.off]="picks().size === 0" [attr.aria-disabled]="picks().size === 0 ? 'true' : null"
              [routerLink]="['/hq']" [fragment]="'planen'" [queryParams]="pickParams()" (click)="onGo($event)">
             <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of nachschubPath; track $index) { <path [attr.d]="d" /> }</svg>
-            <span>{{ 'cart.toNachschub' | translate }}</span>
+            <span>{{ (ns.newBlock() ? 'cart.toExisting' : 'cart.toNachschub') | translate }}</span>
           </a>
         </footer>
       </section>
@@ -153,6 +157,7 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
     HQ_DIALOG_STYLES,
     `
       :host { display: contents; }
+      .full-hint { color: var(--sc-fg-2); font-size: 0.82rem; max-width: 46ch; }
       .cart { --dlg-w: min(1180px, 100%); --dlg-h: min(860px, 100%); }
       .cart-body { gap: 14px; }
       .groups { flex: none; }
@@ -223,6 +228,8 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
 })
 export class WishCartDialogComponent {
   protected readonly cart = inject(WishCartService);
+  /** `newBlock()` is set while all 7 slots are taken: the selection can then only join an existing Nachschub. */
+  protected readonly ns = inject(NachschubService);
 
   protected readonly wishPath = PATH_ICONS.wish;
   protected readonly nachschubPath = NACHSCHUB_ICON_PATHS;
@@ -239,6 +246,7 @@ export class WishCartDialogComponent {
 
   constructor() {
     this.cart.ensureCatalogue();
+    void this.ns.ensureLoaded();
     // A removed position drops out of the selection.
     effect(() => {
       const have = this.cart.byKey();

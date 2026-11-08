@@ -1,13 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, Injector, afterNextRender, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { toErrorKey } from '../../core/describe-error';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { type Einsatz, HqEinsatzService } from '../data/hq-einsatz.service';
 import { hqPage } from '../hq-routes';
 import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
-import { NACHSCHUB_NAME_MAX, type Nachschub, clampName } from '../nachschub/nachschub.model';
+import { EINSATZ_NAME_MAX, NACHSCHUB_NAME_MAX, type Nachschub, clampName } from '../nachschub/nachschub.model';
 import { NachschubService } from '../nachschub/nachschub.service';
 import { NACHSCHUB_ICON_PATHS, STEP_ICON_PATHS, TRANSPORT_WHEELS } from '../nachschub/step-icons';
 import { HqRouteGraphicComponent, type RouteSharedStop } from './route/route-graphic.component';
@@ -63,10 +65,10 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
         <span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of tray; track p) { <path [attr.d]="p" /> }</svg></span>
         @if (renaming()) {
           <input #nameInput class="rename" type="text" [maxlength]="nameMax" [ngModel]="draft()" (ngModelChange)="draft.set($event)"
-                 [attr.aria-label]="'hq.panel.renameAria' | translate" (keydown.enter)="commitRename()" (keydown.escape)="renaming.set(false)" (blur)="commitRename()" />
+                 [attr.aria-label]="'hq.panel.renameAria' | translate" (keydown.enter)="commitRename(true)" (keydown.escape)="cancelRename()" (blur)="commitRename(false)" />
         } @else {
           <h3 class="name">{{ nachschub().name }}
-            <button type="button" scAction tier="tertiary" class="pen" [attr.aria-label]="'hq.panel.rename' | translate" [scTooltip]="'hq.panel.rename' | translate" scTooltipTier="label" (click)="startRename()">
+            <button #penBtn type="button" scAction tier="tertiary" class="pen" [attr.aria-label]="'hq.panel.rename' | translate" [scTooltip]="'hq.panel.rename' | translate" scTooltipTier="label" (click)="startRename()">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg>
             </button>
           </h3>
@@ -78,6 +80,9 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
         <span class="acts">
           <button type="button" scAction tier="secondary" (click)="edit.emit(1)">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg><span>{{ 'hq.panel.edit' | translate }}</span>
+          </button>
+          <button type="button" scAction tier="secondary" [busy]="adding()" (click)="addEinsatz()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg><span>{{ 'hq.einsatz.add.action' | translate }}</span>
           </button>
           <a scAction tier="primary" [routerLink]="jetzt.commands" [fragment]="jetzt.fragment" (click)="focus.select(nachschub().id)">{{ 'hq.panel.run' | translate }}</a>
           <button type="button" scAction tier="secondary" (click)="emptyIt.emit()">{{ 'hq.panel.empty' | translate }}</button>
@@ -103,13 +108,24 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
                 <article class="ecard" role="listitem" [class.on]="e.id === selectedId()" [class.fin]="e.status === 'done'">
                   <header>
                     <span class="eid">E{{ i + 1 }}</span>
-                    <button type="button" class="pick" [attr.aria-pressed]="e.id === selectedId()" (click)="selectedId.set(e.id)">{{ e.title }}</button>
+                    @if (renamingE() === e.id) {
+                      <input #eInput class="erename" type="text" [maxlength]="einsatzMax" [ngModel]="eDraft()" (ngModelChange)="eDraft.set($event)"
+                             [attr.aria-label]="'hq.einsatz.rename.aria' | translate" [attr.aria-invalid]="eError() ? 'true' : null"
+                             (keydown.enter)="commitEinsatzRename(e.id, true)" (keydown.escape)="cancelEinsatzRename(e.id)" (blur)="commitEinsatzRename(e.id, false)" />
+                    } @else {
+                      <button type="button" class="pick" [attr.aria-pressed]="e.id === selectedId()" (click)="selectedId.set(e.id)">{{ e.title }}</button>
+                      <button type="button" scAction tier="tertiary" class="epen" [attr.data-epen]="e.id" [attr.aria-label]="'hq.einsatz.rename.action' | translate: { name: e.title }"
+                              [scTooltip]="'hq.einsatz.rename.action' | translate: { name: e.title }" scTooltipTier="label" (click)="startEinsatzRename(e)">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M13.5 6.5l4 4" /></svg>
+                      </button>
+                    }
                     <span class="kinds">
                       @for (k of kindsOf(e); track k) {
                         <span class="kic"><svg viewBox="0 0 24 24" aria-hidden="true">@for (p of icons[k]; track p) { <path [attr.d]="p" /> }@if (k === 'transport') { @for (w of wheels; track w.cx) { <circle [attr.cx]="w.cx" [attr.cy]="w.cy" [attr.r]="w.r" /> } }</svg></span>
                       }
                     </span>
                   </header>
+                  @if (renamingE() === e.id && eError(); as err) { <p class="eerr" role="alert">{{ err | translate }}</p> }
                   <p class="meta">
                     {{ 'hq.panel.steps' | translate: { done: doneOf(e), n: e.steps.length } }}
                     @for (s of systems(e); track s) { · {{ s }} }
@@ -163,6 +179,11 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
       .ecard header { display: flex; align-items: center; gap: 8px; }
       .eid { padding: 0 6px; border-radius: 5px; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); font: 700 0.72rem var(--sc-font-display, inherit); }
       .pick { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--sc-fg); font: 600 0.9rem var(--sc-font-body, inherit); text-align: start; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .erename { flex: 1; min-width: 0; min-height: 32px; padding: 0 8px; border: 1px solid var(--sc-accent); border-radius: 8px; background: var(--sc-bg-0); color: var(--sc-fg); font: 600 0.9rem var(--sc-font-body, inherit); }
+      .erename[aria-invalid='true'] { border-color: var(--sc-warning); }
+      .erename:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+      .epen svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .eerr { margin: 2px 0 0; color: var(--sc-warning); font-size: 0.78rem; }
       .pick:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .kinds { display: inline-flex; gap: 3px; }
       .kic { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 5px; background: color-mix(in srgb, var(--sc-accent) 12%, transparent); color: var(--sc-accent); }
@@ -260,16 +281,112 @@ export class HqNachschubPanelComponent {
     this.focus.select(s.nachschubId);
   }
 
+  private readonly injector = inject(Injector);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly confirm = inject(ScConfirmService);
+  private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('nameInput');
+  private readonly penBtn = viewChild<ElementRef<HTMLElement>>('penBtn');
+  private readonly eInput = viewChild<ElementRef<HTMLInputElement>>('eInput');
+
+  protected readonly einsatzMax = EINSATZ_NAME_MAX;
+  /** The Einsatz whose title is being edited in its card, its draft and the error key shown under it. */
+  protected readonly renamingE = signal<string | null>(null);
+  protected readonly eDraft = signal('');
+  protected readonly eError = signal<string | null>(null);
+  protected readonly adding = signal(false);
+
+  /** Run after the next render, when the template has created (or removed) the element. */
+  private afterRender(fn: () => void): void {
+    afterNextRender(fn, { injector: this.injector });
+  }
+
   protected startRename(): void {
     this.draft.set(this.nachschub().name);
     this.renaming.set(true);
-    queueMicrotask(() => document.querySelector<HTMLInputElement>('sc-hq-nachschub-panel .rename')?.focus());
+    this.afterRender(() => {
+      const el = this.nameInput()?.nativeElement;
+      el?.focus();
+      el?.select();
+    });
   }
 
-  protected commitRename(): void {
+  /** Enter / blur saves; only Enter hands the focus back to the pen (a blur means the reader went elsewhere). */
+  protected commitRename(refocus: boolean): void {
     if (!this.renaming()) return;
     this.renaming.set(false);
     const next = clampName(this.draft(), NACHSCHUB_NAME_MAX);
     if (next && next !== this.nachschub().name) void this.svc.rename(this.nachschub().id, next);
+    if (refocus) this.afterRender(() => this.penBtn()?.nativeElement.focus());
+  }
+
+  protected cancelRename(): void {
+    if (!this.renaming()) return;
+    this.renaming.set(false);
+    this.afterRender(() => this.penBtn()?.nativeElement.focus());
+  }
+
+  protected startEinsatzRename(e: Einsatz): void {
+    this.eDraft.set(e.title);
+    this.eError.set(null);
+    this.renamingE.set(e.id);
+    this.afterRender(() => {
+      const el = this.eInput()?.nativeElement;
+      el?.focus();
+      el?.select();
+    });
+  }
+
+  protected commitEinsatzRename(id: string, refocus: boolean): void {
+    if (this.renamingE() !== id) return;
+    if (!this.eDraft().trim()) {
+      // A blank name is not saved: Enter keeps the field open with the hint, leaving it just drops the edit.
+      if (refocus) this.eError.set('hq.einsatz.rename.empty');
+      else this.renamingE.set(null);
+      return;
+    }
+    try {
+      if (!this.einsatzSvc.rename(id, this.eDraft())) throw new Error('einsatz gone');
+    } catch (err) {
+      this.eError.set(toErrorKey('hq', 'renameEinsatz', err));
+      return;
+    }
+    this.renamingE.set(null);
+    this.eError.set(null);
+    if (refocus) this.refocusEpen(id);
+  }
+
+  protected cancelEinsatzRename(id: string): void {
+    if (this.renamingE() !== id) return;
+    this.renamingE.set(null);
+    this.eError.set(null);
+    this.refocusEpen(id);
+  }
+
+  private refocusEpen(id: string): void {
+    this.afterRender(() => this.host.nativeElement.querySelector<HTMLElement>(`[data-epen="${CSS.escape(id)}"]`)?.focus());
+  }
+
+  /** One manual Einsatz for this Nachschub: asks for the title, then adds it with a single generic step of the same name. */
+  protected async addEinsatz(): Promise<void> {
+    if (this.adding()) return;
+    this.adding.set(true);
+    try {
+      const raw = await this.confirm.prompt({
+        titleKey: 'hq.einsatz.add.title',
+        inputLabelKey: 'hq.einsatz.add.label',
+        inputMaxLength: EINSATZ_NAME_MAX,
+        confirmKey: 'hq.einsatz.add.confirm',
+      });
+      const title = clampName(raw ?? '', EINSATZ_NAME_MAX);
+      if (!title) return;
+      const made = this.einsatzSvc.create({
+        title,
+        packageId: this.nachschub().id,
+        steps: [{ kind: 'pickup', label: title, location: null, system: null, className: null, qty: null, supplyId: null, missionRef: null }],
+      });
+      if (made) this.selectedId.set(made.id);
+    } finally {
+      this.adding.set(false);
+    }
   }
 }

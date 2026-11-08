@@ -3,6 +3,7 @@ import { AuthService } from '../../auth/auth.service';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { EINSATZ_NAME_MAX } from '../nachschub/nachschub.model';
 import type { StepKind } from '../../shared/step/sc-step.component';
 import type { HqActivity, HqEinsatzRow, HqEinsatzStepRow } from './hq-db.types';
 import {
@@ -69,6 +70,12 @@ export function einsatzCacheKey(uid: string): string {
   return `${EINSATZ_CACHE_KEY}.${uid}`;
 }
 export const EINSATZ_STEPS_MAX = 40;
+/** Longest title of a loose Einsatz; one that serves a Nachschub is held to {@link EINSATZ_NAME_MAX}. */
+export const EINSATZ_TITLE_MAX = 120;
+
+export function einsatzTitleMax(packageId: string | null | undefined): number {
+  return packageId ? EINSATZ_NAME_MAX : EINSATZ_TITLE_MAX;
+}
 const PUSH_DEBOUNCE_MS = 500;
 const PULL_PAGE = 200;
 const PUSH_BATCH = 50;
@@ -160,7 +167,7 @@ export class HqEinsatzService {
 
   /** Save a new Einsatz (planned). Returns it, or null for an empty title / no steps. */
   create(input: NewEinsatz): Einsatz | null {
-    const title = input.title.trim().slice(0, 120);
+    const title = input.title.trim().slice(0, einsatzTitleMax(input.packageId));
     const steps = input.steps.slice(0, EINSATZ_STEPS_MAX);
     if (!title || steps.length === 0) return null;
     const e: Einsatz = {
@@ -199,9 +206,13 @@ export class HqEinsatzService {
     return this.items().filter((e) => e.packageId === packageId);
   }
 
-  rename(id: string, title: string): void {
-    const t = title.trim().slice(0, 120);
-    if (t) this.patch(id, { title: t });
+  /** Rename an Einsatz (at most 40 characters when it serves a Nachschub). False for an unknown id or a blank title. */
+  rename(id: string, title: string): boolean {
+    const e = this.items().find((x) => x.id === id);
+    const t = title.trim().slice(0, einsatzTitleMax(e?.packageId));
+    if (!e || !t) return false;
+    if (t !== e.title) this.patch(id, { title: t });
+    return true;
   }
 
   setStatus(id: string, status: EinsatzStatus): void {

@@ -131,8 +131,20 @@ export class HqPlanComponent {
     const picks = hqPicksOf(q.get(HQ_PICK_PARAM));
     if (picks.length && !this.flow()) {
       this.flowPicks.set(picks);
-      this.flow.set({ mode: 'new', id: null, step: 1 });
+      this.pendingPick.set(true);
     }
+  });
+  /** The picks wait for the Nachschub list: whether a slot is free decides new vs. add-to-existing. */
+  private readonly pendingPick = signal(false);
+  private readonly openPick = effect(() => {
+    if (!this.pendingPick() || (!this.ns.loaded() && !this.ns.error())) return;
+    untracked(() => {
+      this.pendingPick.set(false);
+      if (this.flow()) return;
+      // All 7 slots taken: a new Nachschub is impossible, so the picks go into an existing one (the shown one, else the first).
+      const target = this.ns.newBlock() ? (this.focus.selected() ?? this.ns.active()[0] ?? null) : null;
+      this.flow.set(target ? { mode: 'edit', id: target.id, step: 1 } : { mode: 'new', id: null, step: 1 });
+    });
   });
 
   /** The flow closed: the picks from the URL are spent, so a reload does not reopen it. */
