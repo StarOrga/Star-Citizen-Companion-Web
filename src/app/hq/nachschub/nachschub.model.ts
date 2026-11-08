@@ -16,6 +16,8 @@ export const EINSATZ_NAME_MAX = 40;
 export const WISH_QTY_MAX = 999;
 
 export type NachschubStatus = 'active' | 'archived';
+/** normal = craft/buy/collect; event = rewards of an event; sightseeing = an event without reward (src/app/hq/events/event-nachschub.ts). */
+export type NachschubType = 'normal' | 'event' | 'sightseeing';
 
 /** A Nachschub as the client holds it (`hq_supply_packages`). */
 export interface Nachschub {
@@ -28,6 +30,10 @@ export interface Nachschub {
   readonly snapshot: Readonly<Record<string, number>>;
   readonly createdAt: string;
   readonly archivedAt: string | null;
+  /** Absent = normal. */
+  readonly type?: NachschubType;
+  /** sc_events.id for type event / sightseeing. */
+  readonly eventId?: string | null;
 }
 
 /** One wishlist position (any kind; `forClassName` groups material under its blueprint). */

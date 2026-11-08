@@ -17,8 +17,8 @@ import { buildRoute } from './map/hq-route';
  * without a known place makes no step (W5.5, `unplacedLines`).
  */
 
-export type EinsatzRole = 'mission' | 'buy' | 'mine' | 'craft';
-export const EINSATZ_ROLES: readonly EinsatzRole[] = ['mission', 'buy', 'mine', 'craft'];
+export type EinsatzRole = 'mission' | 'buy' | 'mine' | 'craft' | 'event';
+export const EINSATZ_ROLES: readonly EinsatzRole[] = ['mission', 'buy', 'mine', 'craft', 'event'];
 
 /** One thing the Nachschub holds, as the proposal reads it. */
 export interface ProposalLine {
