@@ -107,8 +107,8 @@ describe('HangarDashboardComponent role loadouts', () => {
       expect(el.querySelector('.db-tile')).toBeNull();
       const chip = el.querySelector<HTMLAnchorElement>('a.count-chip');
       expect(chip).not.toBeNull();
-      expect(chip!.getAttribute('href')).toContain('list=wish');
-      expect(chip!.getAttribute('href')).toContain('#planen');
+      // The wishlist is the cart now: its own URL (?cart=1), opened over the HQ.
+      expect(chip!.getAttribute('href')).toContain('cart=1');
     });
 
     it('reads no wishlist table and never the old concept-ship table', async () => {

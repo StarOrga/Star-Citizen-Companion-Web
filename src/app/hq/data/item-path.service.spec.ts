@@ -109,9 +109,9 @@ function setup(opts: { user?: boolean; live?: Record<string, unknown> | null; re
 
 describe('ItemPathService', () => {
   it('lists the stops per kind; an announced ship only has the wish', () => {
-    expect(stepsOf('item')).toEqual(['wish', 'nachschub', 'inventar']);
-    expect(stepsOf('blueprint')).toEqual(['wish', 'nachschub', 'inventar']);
-    expect(stepsOf('ship')).toEqual(['wish', 'nachschub', 'hangar']);
+    expect(stepsOf('item')).toEqual(['wish', 'inventar']);
+    expect(stepsOf('blueprint')).toEqual(['wish', 'inventar']);
+    expect(stepsOf('ship')).toEqual(['wish', 'hangar']);
     expect(stepsOf('upcoming')).toEqual(['wish']);
     expect(setup().svc.read('upcoming', 'idris', 'Idris').hint).toBe('notYetInGame');
   });

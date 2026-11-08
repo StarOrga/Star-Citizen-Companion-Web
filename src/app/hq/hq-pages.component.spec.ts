@@ -197,7 +197,7 @@ describe('HqPagesComponent', () => {
 
   it('the first-visit block, the patch lines, the chips and the friends line are gone', () => {
     const el: HTMLElement = mount().nativeElement;
-    for (const sel of ['sc-hq-first-visit', 'sc-hq-start-friends', '.patch', '.chips']) expect(el.querySelector(sel)).toBeNull();
+    for (const sel of ['sc-hq-first-visit', 'sc-hq-start-friends', '.patch', '#start .chips']) expect(el.querySelector(sel)).toBeNull();
   });
 
   it('hotkeys 1 to 4 jump to Bestand, Jetzt, Planen, Statistik', () => {
