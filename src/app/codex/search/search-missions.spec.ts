@@ -44,7 +44,7 @@ describe('missions as a search source', () => {
     expect(g.total).toBe(3);
     for (const row of g.rows) {
       expect(row.cta?.id).toBe('toEinsatz');
-      expect(row.icons).toEqual({ wishlist: false, lager: false, nachschub: false });
+      expect(row.icons).toEqual({ wishlist: false, lager: false });
     }
     expect(r.empty).toBeFalse();
   });

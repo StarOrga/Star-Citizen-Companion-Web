@@ -24,12 +24,14 @@ import { isPlainLeftClick } from '../../core/modified-click.util';
 import {
   ItemPathService,
   PLACE_BLUEPRINTS,
+  isPathError,
   PLACE_WITH_ME,
   ownWordOf,
   type ItemPathState,
   type OwnWord,
   type PathResult,
   type PathStep,
+  type PathTone,
 } from '../../hq/data/item-path.service';
 import { hangarRedirectLink, hqStockLink, type HqPageLink } from '../../hq/hq-routes';
 import { placeLabel } from '../../hq/now/hq-live.util';
@@ -195,7 +197,8 @@ export function nextStepOf(s: ItemPathState): PathStep | null {
 
     <ng-template #pop>
       @if (mode() === 'error') {
-        <div class="rp err" role="alert">{{ errorKey() | translate }}</div>
+        <!-- A refusal (tone info) reads neutral and politely; only a real failure is an alert in the danger tone. -->
+        <div class="rp" [class.err]="errorTone() === 'error'" [attr.role]="errorTone() === 'error' ? 'alert' : 'status'">{{ errorKey() | translate }}</div>
       } @else {
         <div class="rp" role="dialog" tabindex="-1" scDialog scDialogInitialFocus="first" [scDialogReturnFocus]="anchor()"
              [attr.aria-label]="'pathCtl.whereTitle' | translate" (scDialogEscape)="closePop()">
@@ -372,6 +375,7 @@ export class ItemPathComponent implements OnDestroy {
   readonly busy = signal<PathStep | null>(null);
   readonly mode = signal<PopMode | null>(null);
   readonly errorKey = signal('');
+  readonly errorTone = signal<PathTone>('error');
   readonly anchor = signal<HTMLElement | null>(null);
   readonly otherOpen = signal(false);
 
@@ -383,7 +387,7 @@ export class ItemPathComponent implements OnDestroy {
     const o = this.own();
     return !!o && isFilled(this.state(), o);
   });
-  readonly ownQty = computed(() => (this.own() === 'hangar' ? 1 : this.state().inventarQty));
+  readonly ownQty = computed(() => (this.own() === 'hangar' ? Math.max(1, this.state().hangarQty) : this.state().inventarQty));
   readonly ownLink = computed<HqPageLink>(() => {
     const s = this.state();
     if (this.own() === 'hangar') return { commands: s.hangarShipId ? hangarRedirectLink(s.hangarShipId) : hqStockLink({ tab: 'hangar' }).commands, fragment: undefined };
@@ -503,7 +507,7 @@ export class ItemPathComponent implements OnDestroy {
       case 'wish': return this.path.addWish(this.kind(), this.className(), this.name());
       case 'hangar': return this.path.addToHangar(this.className(), this.name());
       case 'inventar': return this.path.moveToInventar(this.kind(), this.className(), this.label, PLACE_BLUEPRINTS, 1);
-      case 'nachschub': return { ok: false, key: 'itemPath.err.unavailable' };
+      case 'nachschub': return { ok: false, key: 'itemPath.err.unavailable', tone: 'info' };
     }
   }
 
@@ -547,7 +551,7 @@ export class ItemPathComponent implements OnDestroy {
 
   private report(res: PathResult, at: HTMLElement | null): void {
     if (!res.ok) {
-      this.showError(res.key, at);
+      this.showError(res.key, at, isPathError(res) ? 'error' : 'info');
       return;
     }
     const undo = res.undo;
@@ -573,10 +577,11 @@ export class ItemPathComponent implements OnDestroy {
     return res.params?.['where'] === PLACE_BLUEPRINTS ? 'itemPath.done.inventarBlueprint' : res.key;
   }
 
-  private showError(key: string, at: HTMLElement | null): void {
+  private showError(key: string, at: HTMLElement | null, tone: PathTone = 'error'): void {
     if (this.destroyed || !at?.isConnected) return;
     this.closePop();
     this.errorKey.set(key);
+    this.errorTone.set(tone);
     this.openPop('error', at);
     this.errorTimer = setTimeout(() => this.closePop(), 4000);
   }

@@ -13,8 +13,8 @@ export const PATH_ICONS = {
   inventar: ['M4 8l8-4 8 4v9l-8 4-8-4z', 'M4 8l8 4 8-4M12 12v9'],
   /** Hangar: a hangar with its door. */
   hangar: ['M3 20V10l9-6 9 6v10', 'M7 20v-7h10v7', 'M7 16h10'],
-  /** Sammlung (blueprints, news, wallpapers): a star. */
-  sammlung: ['M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z'],
+  /** Sammlung (blueprints, news, wallpapers): a stack of layers. The star is retired (only Explorer achievements keep one). */
+  sammlung: ['M12 3.5l9 4.5-9 4.5L3 8z', 'M3 12.5l9 4.5 9-4.5', 'M3 17l9 4.5 9-4.5'],
   /** Vergleichen: a balance scale (concept gegenstand-weg E4, proposed; ⇄ stays for ship switch). */
   compare: ['M12 4v16M8 20h8', 'M5 7h14', 'M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z'],
   /** "Ich habe diese" (owned blueprint): a check in a circle. */

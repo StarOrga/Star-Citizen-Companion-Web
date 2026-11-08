@@ -18,7 +18,7 @@ import {
   MERK_WISH_SHOWN,
   merkTypeOf,
   recentRowsOfType,
-  typeOfKind,
+  wishTypeOf,
   wishRowOfType,
   type MerkRow,
   type MerkType,
@@ -144,9 +144,11 @@ export class MerklisteService {
   readonly wished = computed<MerkRow[]>(() => {
     const type = this.type();
     const rowOf = (i: ReturnType<WishCartService['newest']>[number]): MerkRow | null =>
-      wishRowOfType({ kind: i.kind, className: i.className, name: this.cart.nameOf(i), manufacturer: i.manufacturer, qty: i.qty }, null);
-    const typed = type ? this.cart.newest(MERK_WISH_SHOWN, (i) => typeOfKind(i.kind) === type) : [];
-    const picked = typed.length ? typed : this.cart.newest(MERK_WISH_SHOWN);
+      wishRowOfType({ kind: i.kind, className: i.className, name: this.cart.nameOf(i), manufacturer: i.manufacturer, qty: i.qty, forClassName: i.forClassName }, null);
+    // Filter first, then take three: a position the panel cannot draw must not eat one of the three places.
+    const drawable = (i: ReturnType<WishCartService['newest']>[number]): boolean => rowOf(i) !== null;
+    const typed = type ? this.cart.newest(MERK_WISH_SHOWN, (i) => drawable(i) && wishTypeOf(i) === type) : [];
+    const picked = typed.length ? typed : this.cart.newest(MERK_WISH_SHOWN, drawable);
     return picked.map(rowOf).filter((r): r is MerkRow => !!r);
   });
 

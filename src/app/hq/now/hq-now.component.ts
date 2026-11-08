@@ -69,7 +69,8 @@ const UPCOMING = 4;
           @if (activeEinsatz(); as e) {
             <span class="run-e">E{{ activeIndex() + 1 }} · {{ e.title }} · {{ 'hq.run.stepOf' | translate: { n: shownStep(), total: total() } }}</span>
           }
-          @if (switchable().length > 1) {
+          @if (archivedFocus()) { <span class="run-a" role="note">{{ 'hq.run.archived' | translate }}</span> }
+          @if (switchable().length > (archivedFocus() ? 0 : 1)) {
             <span class="sw">
               <button type="button" scAction tier="secondary" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">{{ 'hq.run.switch' | translate }}</button>
               @if (menuOpen()) {
@@ -259,6 +260,7 @@ const UPCOMING = 4;
       .run-t small { color: var(--sc-fg-2); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
       .run-t b { font: 700 0.95rem var(--sc-font-display, inherit); overflow-wrap: anywhere; }
       .run-e { color: var(--sc-fg-1); font-size: 0.82rem; }
+      .run-a { color: var(--sc-fg-2); font-size: 0.8rem; max-width: 44ch; }
       .sw { position: relative; }
       .menu { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; min-width: 240px; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--sc-border); border-radius: 10px; background: var(--sc-bg-1); box-shadow: 0 12px 32px rgb(0 0 0 / 0.5); }
       .menu li { display: block; padding: 0; border: 0; }
@@ -342,7 +344,9 @@ export class HqNowComponent {
   private readonly pickedEinsatz = signal<string | null>(null);
 
   /** The Nachschub Jetzt serves (the one in focus in Planen). */
-  readonly nachschub = computed(() => this.focus.selected());
+  readonly nachschub = computed(() => this.focus.current());
+  /** The focused Nachschub finished and sits in the archive: Jetzt keeps its route and says so (it does not jump to another one). */
+  readonly archivedFocus = computed(() => this.nachschub()?.status === 'archived');
   /** Its Einsatz bundle; without a Nachschub bundle the current loose Einsatz (planned the older way) still runs here. */
   readonly bundle = computed<Einsatz[]>(() => {
     const n = this.nachschub();

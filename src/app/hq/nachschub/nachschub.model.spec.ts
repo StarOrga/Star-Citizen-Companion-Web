@@ -15,7 +15,6 @@ import {
   nextShipCopies,
   followBlueprintQty,
   freeSlot,
-  fulfilWish,
   isFinished,
   lineStatus,
   newNachschubBlock,
@@ -207,13 +206,6 @@ describe('nachschub.model', () => {
       const r = clearNachschub(lines, wishlist, false);
       expect(r.removeIds).toEqual(['1']);
       expect(r.wishlist).toBe(wishlist);
-    });
-  });
-
-  describe('fulfilWish', () => {
-    it('owning shrinks the wish and the undo value is kept', () => {
-      expect(fulfilWish(3, 1)).toEqual({ qty: 2, previous: 3 });
-      expect(fulfilWish(1, 5)).toEqual({ qty: 0, previous: 1 });
     });
   });
 

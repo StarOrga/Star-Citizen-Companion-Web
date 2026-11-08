@@ -4,19 +4,23 @@ import { humanizeClassName } from '../../codex/codex-format';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqSupplyPackageRow } from '../data/hq-db.types';
 import { newClientId } from '../data/hq-supplies-sync';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { WishlistStore } from '../data/wishlist.store';
-import { HqSuppliesService, SupplyItem } from '../hq-supplies.service';
+import { AddedLine, HqSuppliesService, SupplyItem } from '../hq-supplies.service';
 import { NachschubNamingService } from './nachschub-naming';
+import { stockQtyOf } from './nachschub-stock';
 import {
   EvalLine,
   Evaluation,
   NACHSCHUB_NAME_MAX,
   Nachschub,
   OpenLine,
+  RisePool,
+  WISH_QTY_MAX,
   WishPick,
   WishPosition,
   archive,
@@ -24,7 +28,6 @@ import {
   clearNachschub,
   evaluateNachschub,
   freeSlot,
-  fulfilWish,
   newNachschubBlock,
   positionKey,
   reactivate,
@@ -37,24 +40,59 @@ export interface NachschubResult {
   readonly key: string;
   readonly id?: string;
   readonly params?: Record<string, string | number>;
+  /** A success that comes with a caveat the reader must see (a wish capped at 999, lines that did not fit). */
+  readonly warn?: { readonly key: string; readonly params?: Record<string, string | number> };
   /** Present where the checklist asks for an undo. Resolves to the result of the undo. */
   readonly undo?: () => Promise<NachschubResult>;
 }
 
 const fail = (key: string): NachschubResult => ({ ok: false, key });
+const UNDONE: NachschubResult = { ok: true, key: 'hq.nachschub.done.undone' };
+
+/** What a package write came to: `conflict` = unique violation (the slot was taken elsewhere), `gone` = the row is deleted. */
+type Outcome = 'ok' | 'conflict' | 'gone' | 'failed';
+
+/** One wishlist change that really happened (`delta` is what the position's quantity moved by). */
+interface Shift {
+  readonly p: WishPosition;
+  readonly delta: number;
+}
+
+interface ShiftResult {
+  readonly ok: boolean;
+  /** Wished quantity that did not fit under the 999 cap (merging back to the wishlist). */
+  readonly lost: number;
+  /** The changes made - the exact inverse of these is the undo. */
+  readonly applied: readonly Shift[];
+}
+
+/** A wishlist position that became (or grew) a line. */
+interface AddedPick {
+  readonly p: WishPosition;
+  readonly line: AddedLine;
+}
+
+const capWarn = (lost: number): NachschubResult['warn'] => (lost > 0 ? { key: 'hq.nachschub.wishCapped', params: { count: lost } } : undefined);
+const inverse = (applied: readonly Shift[]): Shift[] => [...applied].reverse().map((a) => ({ p: a.p, delta: -a.delta }));
 
 /**
  * The Nachschub slots (`hq_supply_packages`) and every transition between wishlist, Nachschub and stock
  * (concept 20261107-1410-nachschub-hq). Rules live in `nachschub.model.ts`; this service reads the stores, calls them
  * and persists the outcome. Owner-only RLS, up to 7 active slots (a partial unique index backs that up server-side).
  *
- *   ensureLoaded()                          load the user's Nachschuebe once
+ *   ensureLoaded()                          load the user's Nachschuebe once; reload() refreshes them
  *   createFromWishlist({ picks, name? })    take wishlist positions (full qty by default, split allowed) into a new Nachschub
  *   rename(id, name) / reactivate(id)
  *   empty(id, backToWishlist) / remove(id, backToWishlist)   open lines go back to the wishlist (counted up) or are dropped
  *   reconcile()                             close lines whose stock rose vs the snapshot, archive finished Nachschuebe
  *   evaluation(id)                          status per line / progress of one Nachschub
- *   fulfilWish(kind, className, gained)     owning fulfils the wish; result carries the undo
+ *
+ * Rules every write follows (audit bundle B2):
+ *  - Wishlist changes are DELTAS (take out what moved, add back what returned), never "restore the old full list", so
+ *    an undo only reverts its own change and a wish added meanwhile survives. A failed wishlist write rolls the rest back.
+ *  - A package write sends only the columns that changed and never revives a deleted row; a stale tab learns about it
+ *    ('gone') instead of resurrecting the row. A slot taken elsewhere (unique violation) is retried with the next free one.
+ *  - A baseline is never taken from stock that has not loaded; reconcile waits for it.
  */
 @Injectable({ providedIn: 'root' })
 export class NachschubService {
@@ -65,6 +103,7 @@ export class NachschubService {
   private readonly inventory = inject(HqInventoryService);
   private readonly hangar = inject(HangarService);
   private readonly naming = inject(NachschubNamingService);
+  private readonly searchWish = inject(SearchWishlistService);
 
   readonly packages = signal<readonly Nachschub[]>([]);
   readonly loaded = signal(false);
@@ -80,8 +119,21 @@ export class NachschubService {
   /** i18n key explaining why "Neuer Nachschub" is blocked, else null. */
   readonly newBlock = computed(() => newNachschubBlock(this.packages()));
 
+  /** Status of every active Nachschub, evaluated oldest first with ONE shared rise pool (a stock gain closes one line per class). */
+  private readonly evals = computed(() => {
+    const out = new Map<string, Evaluation>();
+    const pool: RisePool = new Map();
+    const oldestFirst = [...this.active()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    for (const n of oldestFirst) out.set(n.id, evaluateNachschub(this.linesOf(n.id).map(toEvalLine), n.snapshot, (l) => this.ownedOf(l), pool));
+    return out;
+  });
+
   private loadedFor: string | null = null;
   private inFlight: Promise<void> | null = null;
+  private stockOk = false;
+  private stockLoad: Promise<boolean> | null = null;
+  private reconciling = false;
+  private reconcileAgain = false;
 
   ensureLoaded(): Promise<void> {
     const uid = this.auth.user()?.id ?? null;
@@ -95,25 +147,59 @@ export class NachschubService {
     this.loadedFor = uid;
     this.inFlight = (async () => {
       try {
-        const { data, error } = await this.sb.client
-          .from('hq_supply_packages' as never)
-          .select('*')
-          .is('deleted_at', null)
-          .order('created_at', { ascending: true });
-        if (this.loadedFor !== uid) return;
-        if (error) throw error;
-        this.packages.set(((data ?? []) as unknown as HqSupplyPackageRow[]).map(fromRow));
-        this.loaded.set(true);
-        this.error.set(null);
-      } catch (err) {
-        if (this.loadedFor === uid) this.loadedFor = null;
-        logWarn('nachschub', 'load failed', err);
-        this.error.set(toErrorKey('nachschub', 'load', err));
+        if (!(await this.fetchPackages(uid, true)) && this.loadedFor === uid) this.loadedFor = null;
       } finally {
         this.inFlight = null;
       }
     })();
     return this.inFlight;
+  }
+
+  /** Pull the user's Nachschuebe again (another tab or device may have changed them). False when it failed; the list stays as it was. */
+  reload(): Promise<boolean> {
+    const uid = this.auth.user()?.id ?? null;
+    return uid ? this.fetchPackages(uid, false) : Promise.resolve(false);
+  }
+
+  private async fetchPackages(uid: string, reportError: boolean): Promise<boolean> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('hq_supply_packages' as never)
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true });
+      if (this.auth.user()?.id !== uid) return false;
+      if (error) throw error;
+      this.packages.set(((data ?? []) as unknown as HqSupplyPackageRow[]).map(fromRow));
+      this.loaded.set(true);
+      this.error.set(null);
+      return true;
+    } catch (err) {
+      logWarn('nachschub', 'load failed', err);
+      if (reportError) this.error.set(toErrorKey('nachschub', 'load', err));
+      return false;
+    }
+  }
+
+  /**
+   * Inventar and Hangar loaded without an error. A baseline taken from stock that is not there yet would be 0 and
+   * the line would close the moment the stock arrives, so every baseline (and reconcile) waits for this.
+   */
+  ensureStock(): Promise<boolean> {
+    if (this.stockOk) return Promise.resolve(true);
+    this.stockLoad ??= (async () => {
+      try {
+        await Promise.all([this.inventory.load(), this.hangar.loadAll()]);
+        this.stockOk = this.inventory.loaded() && !this.inventory.error() && !this.hangar.error();
+        return this.stockOk;
+      } catch (err) {
+        logWarn('nachschub', 'stock load failed', err);
+        return false;
+      } finally {
+        this.stockLoad = null;
+      }
+    })();
+    return this.stockLoad;
   }
 
   // ------------------------------------------------------------------------------------------------ reading
@@ -139,12 +225,13 @@ export class NachschubService {
 
   /** Status per line, baselines and progress of one Nachschub against the current stock. */
   evaluation(id: string): Evaluation | null {
+    const shared = this.evals().get(id);
+    if (shared) return shared;
     const n = this.packages().find((p) => p.id === id);
-    if (!n) return null;
-    return evaluateNachschub(this.linesOf(id).map(toEvalLine), n.snapshot, (l) => this.ownedOf(l));
+    return n ? evaluateNachschub(this.linesOf(id).map(toEvalLine), n.snapshot, (l) => this.ownedOf(l)) : null;
   }
 
-  /** Inventar quantity of a class over all places, or Hangar copies for a ship line. */
+  /** Inventar quantity of a class over all places (see {@link stockQtyOf}), or Hangar copies for a ship line. */
   ownedOf(l: Pick<EvalLine, 'ship' | 'className'>): number {
     const cls = (l.className ?? '').toLowerCase();
     if (!cls) return 0;
@@ -152,104 +239,129 @@ export class NachschubService {
       const s = this.hangar.ships().find((x) => x.shipClassName.toLowerCase() === cls);
       return s && s.status === 'owned' ? (s.qty ?? 1) : 0;
     }
-    return this.inventory.items().reduce((n, i) => ((i.class_name ?? '').toLowerCase() === cls ? n + Number(i.qty) : n), 0);
+    return stockQtyOf(this.inventory.items(), cls);
   }
 
   // ------------------------------------------------------------------------------------------------ writing
 
   /**
    * "Neuer Nachschub": take wishlist positions into a fresh Nachschub in the lowest free slot. A pick without `qty`
-   * takes the full quantity; a smaller `qty` splits and the rest stays on the wishlist. Undo puts it all back.
+   * takes the full quantity; a smaller `qty` splits and the rest stays on the wishlist. Only positions that really
+   * got a line leave the wishlist; with no line at all nothing is saved. Undo puts back exactly what was taken.
    */
   async createFromWishlist(opts: { picks: readonly WishPick[]; name?: string }): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
     if (!uid) return fail('errors.generic');
     await this.ensureLoaded();
+    await this.reload(); // another tab may have taken a slot or freed one
     const slot = freeSlot(this.packages());
     if (slot === null) return fail('hq.nachschub.slotsFull');
-    const before = this.wishPositions();
-    const { taken, remaining } = takeFromWishlist(before, opts.picks);
+    const { taken } = takeFromWishlist(this.wishPositions(), opts.picks);
     if (!taken.length) return fail('hq.nachschub.nothingPicked');
+    const stock = await this.ensureStock();
 
     const id = newClientId();
     const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
     const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(taken.map((p) => ({ name: label(p), qty: p.qty })))), NACHSCHUB_NAME_MAX);
 
-    const lineIds: string[] = [];
+    const lines: AddedPick[] = [];
     const snapshot: Record<string, number> = {};
+    let skipped = 0;
     for (const p of taken) {
-      const added = this.supplies.addLine(label(p), p.qty, {
-        entityKind: p.kind,
-        className: p.className,
-        forClassName: p.forClassName ?? null,
-        packageId: id,
-        source: 'search',
-      });
-      if (!added) continue;
-      lineIds.push(added.id);
-      snapshot[added.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
+      const added = this.addPick(p, id, label(p));
+      if (!added) {
+        skipped++;
+        continue;
+      }
+      lines.push(added);
+      // No baseline from unloaded stock: a line without one is filled by the first reconcile after the stock loaded.
+      if (stock) snapshot[added.line.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
     }
+    // Nothing fit (the line list is full): no empty Nachschub that would hold a slot for ever.
+    if (!lines.length) return fail('hq.nachschub.linesFull');
+    const lineIds = lines.map((x) => x.line.id);
+
     const now = new Date().toISOString();
-    const pkg: Nachschub = { id, name, status: 'active', slot, snapshot, createdAt: now, archivedAt: null };
-    if (!(await this.save(pkg, uid))) {
-      this.supplies.removeMany(lineIds);
+    const saved = await this.insertNew({ id, name, status: 'active', slot, snapshot, createdAt: now, archivedAt: null }, uid);
+    if (!saved) {
+      this.undoPicks(lines);
       return fail(this.error() ?? 'errors.generic');
     }
-    this.packages.update((ps) => [...ps, pkg]);
-    await this.applyRemaining(before, remaining);
+    const took = await this.shiftWishes(lines.map((x) => ({ p: x.p, delta: -x.p.qty })));
+    if (!took.ok) {
+      this.undoPicks(lines);
+      await this.drop(id, uid);
+      return fail('hq.nachschub.wishlistFailed');
+    }
     return {
       ok: true,
       key: 'hq.nachschub.done.created',
       id,
       params: { name },
+      warn: skipped > 0 ? { key: 'hq.nachschub.partial', params: { count: skipped } } : undefined,
       undo: async () => {
-        for (const l of lineIds) this.supplies.remove(l);
-        await this.drop(id, uid);
-        await this.restoreWishlist(before);
-        return { ok: true, key: 'hq.nachschub.done.undone' };
+        if (!(await this.drop(id, uid))) return fail(this.error() ?? 'errors.generic');
+        this.supplies.removeMany(lineIds);
+        const back = await this.shiftWishes(inverse(took.applied));
+        return back.ok ? { ...UNDONE, warn: capWarn(back.lost) } : fail('hq.nachschub.wishlistFailed');
       },
     };
   }
 
   /**
    * "Bearbeiten" > add: take more wishlist positions into an existing active Nachschub (same rules as
-   * {@link createFromWishlist}). Undo takes them out again and restores the wishlist.
+   * {@link createFromWishlist}). A pick that lands on a line already there raises it and keeps its baseline; undo
+   * lowers it back to its previous quantity and only removes lines this call created.
    */
   async addFromWishlist(id: string, picks: readonly WishPick[]): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
     const n = this.packages().find((p) => p.id === id && p.status === 'active');
     if (!uid || !n) return fail('errors.generic');
-    const before = this.wishPositions();
-    const { taken, remaining } = takeFromWishlist(before, picks);
+    const { taken } = takeFromWishlist(this.wishPositions(), picks);
     if (!taken.length) return fail('hq.nachschub.nothingPicked');
+    const stock = await this.ensureStock();
     const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
-    const lineIds: string[] = [];
+    const lines: AddedPick[] = [];
     const snapshot: Record<string, number> = { ...n.snapshot };
+    let skipped = 0;
+    let newBaselines = false;
     for (const p of taken) {
-      const added = this.supplies.addLine(label(p), p.qty, {
-        entityKind: p.kind,
-        className: p.className,
-        forClassName: p.forClassName ?? null,
-        packageId: id,
-        source: 'search',
-      });
-      if (!added) continue;
-      lineIds.push(added.id);
-      snapshot[added.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
+      const added = this.addPick(p, id, label(p));
+      if (!added) {
+        skipped++;
+        continue;
+      }
+      lines.push(added);
+      // Only a NEW line gets a baseline; a line that was already there keeps its own (its progress stays).
+      if (added.line.prevQty === 0 && stock) {
+        snapshot[added.line.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
+        newBaselines = true;
+      }
     }
-    if (!(await this.replace({ ...n, snapshot }, uid))) {
-      this.supplies.removeMany(lineIds);
-      return fail(this.error() ?? 'errors.generic');
+    if (!lines.length) return fail('hq.nachschub.linesFull');
+    const took = await this.shiftWishes(lines.map((x) => ({ p: x.p, delta: -x.p.qty })));
+    if (!took.ok) {
+      this.undoPicks(lines);
+      return fail('hq.nachschub.wishlistFailed');
     }
-    await this.applyRemaining(before, remaining);
+    if (newBaselines) {
+      if ((await this.patch(id, uid, { snapshot })) !== 'ok') {
+        this.undoPicks(lines);
+        await this.shiftWishes(inverse(took.applied));
+        return fail(this.error() ?? 'errors.generic');
+      }
+      this.packages.update((ps) => ps.map((p) => (p.id === id ? { ...p, snapshot } : p)));
+    }
     return {
       ok: true,
       key: 'hq.nachschub.done.added',
       id,
+      warn: skipped > 0 ? { key: 'hq.nachschub.partial', params: { count: skipped } } : undefined,
       undo: async () => {
-        this.supplies.removeMany(lineIds);
-        await this.restoreWishlist(before);
-        return { ok: true, key: 'hq.nachschub.done.undone' };
+        const back = await this.shiftWishes(inverse(took.applied));
+        if (!back.ok) return fail('hq.nachschub.wishlistFailed');
+        this.undoPicks(lines);
+        return { ...UNDONE, warn: capWarn(back.lost) };
       },
     };
   }
@@ -258,21 +370,22 @@ export class NachschubService {
   async removeLine(lineId: string, backToWishlist: boolean): Promise<NachschubResult> {
     const l = this.supplies.items().find((x) => x.id === lineId);
     if (!l) return fail('errors.generic');
-    const before = this.wishPositions();
-    const out = clearNachschub(
-      l.className ? [{ id: l.id, kind: l.entityKind ?? 'item', className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName, closed: l.done }] : [],
-      before,
-      backToWishlist,
-    );
+    const goes =
+      backToWishlist && !l.done && l.className
+        ? [{ kind: l.entityKind ?? 'item', className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName }]
+        : [];
+    const put = await this.shiftWishes(goes.map((p) => ({ p, delta: +p.qty })));
+    if (!put.ok) return fail('hq.nachschub.wishlistFailed');
     this.supplies.removeMany([l.id]);
-    if (backToWishlist) await this.restoreWishlist(out.wishlist);
     return {
       ok: true,
       key: 'hq.nachschub.done.lineRemoved',
+      warn: capWarn(put.lost),
       undo: async () => {
+        const back = await this.shiftWishes(inverse(put.applied));
+        if (!back.ok) return fail('hq.nachschub.wishlistFailed');
         this.supplies.restore(l.id);
-        if (backToWishlist) await this.restoreWishlist(before);
-        return { ok: true, key: 'hq.nachschub.done.undone' };
+        return UNDONE;
       },
     };
   }
@@ -282,181 +395,321 @@ export class NachschubService {
     const n = this.packages().find((p) => p.id === id);
     const clean = clampName(name, NACHSCHUB_NAME_MAX);
     if (!uid || !n || !clean) return false;
-    return this.replace({ ...n, name: clean }, uid);
+    if ((await this.patch(id, uid, { name: clean })) !== 'ok') return false;
+    this.packages.update((ps) => ps.map((p) => (p.id === id ? { ...p, name: clean } : p)));
+    return true;
   }
 
-  /** Bring an archived Nachschub back when a slot is free. */
+  /** Bring an archived Nachschub back when a slot is free (the slots are read fresh; a slot taken meanwhile is retried). */
   async reactivate(id: string): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
-    const back = reactivate(this.packages(), id);
     if (!uid) return fail('errors.generic');
-    if (!back) return fail('hq.nachschub.slotsFull');
-    return (await this.replace(back, uid)) ? { ok: true, key: 'hq.nachschub.done.reactivated', id } : fail(this.error() ?? 'errors.generic');
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await this.reload();
+      const back = reactivate(this.packages(), id);
+      if (!back) return fail(this.packages().some((p) => p.id === id) ? 'hq.nachschub.slotsFull' : 'hq.nachschub.gone');
+      const out = await this.patch(id, uid, { status: 'active', slot: back.slot, archived_at: null });
+      if (out === 'ok') {
+        this.packages.update((ps) => ps.map((p) => (p.id === id ? back : p)));
+        return { ok: true, key: 'hq.nachschub.done.reactivated', id };
+      }
+      if (out !== 'conflict') return fail(this.error() ?? 'errors.generic');
+    }
+    return fail('hq.nachschub.slotsFull');
   }
 
   /** "Nachschub leeren": open lines leave (back to the wishlist when asked), closed ones stay as history. */
   async empty(id: string, backToWishlist: boolean): Promise<NachschubResult> {
-    const n = this.packages().find((p) => p.id === id);
-    if (!n) return fail('errors.generic');
-    const ev = this.evaluation(id);
-    const lines = this.linesOf(id);
-    const open: OpenLine[] = lines.map((l) => ({
-      id: l.id,
-      kind: l.entityKind ?? 'item',
-      className: l.className ?? '',
-      name: l.name,
-      qty: l.qty,
-      forClassName: l.forClassName,
-      closed: l.done || (ev?.statuses.get(l.id)?.closed ?? false),
-    }));
-    const before = this.wishPositions();
-    const out = clearNachschub(open.filter((l) => l.className), before, backToWishlist);
-    this.supplies.removeMany(out.removeIds);
-    if (backToWishlist) await this.restoreWishlist(out.wishlist);
+    const plan = this.planClear(id, backToWishlist);
+    if (!plan) return fail('errors.generic');
+    const put = await this.shiftWishes(plan.returned.map((p) => ({ p, delta: +p.qty })));
+    if (!put.ok) return fail('hq.nachschub.wishlistFailed');
+    this.supplies.removeMany(plan.removeIds);
     return {
       ok: true,
       key: 'hq.nachschub.done.emptied',
       id,
+      warn: capWarn(put.lost),
       undo: async () => {
-        for (const l of out.removeIds) this.supplies.restore(l);
-        if (backToWishlist) await this.restoreWishlist(before);
-        return { ok: true, key: 'hq.nachschub.done.undone' };
+        const back = await this.shiftWishes(inverse(put.applied));
+        if (!back.ok) return fail('hq.nachschub.wishlistFailed');
+        for (const l of plan.removeIds) this.supplies.restore(l);
+        return UNDONE;
       },
     };
   }
 
-  /** Delete a Nachschub with its open lines; with `backToWishlist` they are counted up on the wishlist first. */
+  /**
+   * Delete a Nachschub with its open lines; with `backToWishlist` they are counted up on the wishlist first. The
+   * wishlist is written first and rolled back when the delete fails, so no empty Nachschub is left behind.
+   */
   async remove(id: string, backToWishlist: boolean): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
-    const n = this.packages().find((p) => p.id === id);
-    if (!uid || !n) return fail('errors.generic');
-    const emptied = await this.empty(id, backToWishlist);
+    const plan = this.planClear(id, backToWishlist);
+    if (!uid || !plan) return fail('errors.generic');
+    const n = plan.n;
+    const put = await this.shiftWishes(plan.returned.map((p) => ({ p, delta: +p.qty })));
+    if (!put.ok) return fail('hq.nachschub.wishlistFailed');
+    if (!(await this.drop(id, uid))) {
+      await this.shiftWishes(inverse(put.applied));
+      return fail(this.error() ?? 'errors.generic');
+    }
     // The closed lines of a deleted Nachschub go too (they belong to it).
-    const rest = this.linesOf(id).map((l) => l.id);
-    this.supplies.removeMany(rest);
-    await this.drop(id, uid);
+    const all = this.linesOf(id).map((l) => l.id);
+    this.supplies.removeMany(all);
     return {
       ok: true,
       key: 'hq.nachschub.done.removed',
       id,
+      warn: capWarn(put.lost),
       undo: async () => {
-        for (const l of rest) this.supplies.restore(l);
-        await emptied.undo?.();
-        await this.save(n, uid);
-        this.packages.update((ps) => [...ps, n]);
-        return { ok: true, key: 'hq.nachschub.done.undone' };
+        // The slot may have been taken meanwhile: the Nachschub comes back in the next free one, or not at all.
+        const back = await this.restorePackage(n, uid);
+        if (!back) return fail(this.error() ?? 'errors.generic');
+        const out = await this.shiftWishes(inverse(put.applied));
+        if (!out.ok) {
+          await this.drop(id, uid);
+          return fail('hq.nachschub.wishlistFailed');
+        }
+        for (const l of all) this.supplies.restore(l);
+        return UNDONE;
       },
     };
   }
 
   /**
-   * One pass over all active Nachschuebe: lines whose stock rose past the snapshot are ticked, baselines are stored,
-   * a Nachschub with every line closed archives itself and frees its slot. Call after inventory / hangar changes.
+   * One pass over all active Nachschuebe: lines whose stock rose past the snapshot are ticked, baselines are stored
+   * (and lowered when the stock fell below them), a Nachschub with every line closed archives itself and frees its slot.
+   * Call after inventory / hangar changes. Waits for the stock to be loaded: a missing baseline (a migrated line) is
+   * filled from the stock as it is at the FIRST pass after load - never from an unloaded stock, and not from the
+   * purchase that happens to trigger a later pass, because the first pass runs when the stock loads.
    */
   async reconcile(): Promise<void> {
     const uid = this.auth.user()?.id;
     if (!uid || !this.loaded()) return;
+    if (this.reconciling) {
+      this.reconcileAgain = true;
+      return;
+    }
+    this.reconciling = true;
+    try {
+      do {
+        this.reconcileAgain = false;
+        if (!(await this.ensureStock())) return;
+        await this.reconcileOnce(uid);
+      } while (this.reconcileAgain);
+    } finally {
+      this.reconciling = false;
+    }
+  }
+
+  private async reconcileOnce(uid: string): Promise<void> {
+    const evals = this.evals();
     for (const n of this.active()) {
-      const ev = this.evaluation(n.id);
+      const ev = evals.get(n.id);
       if (!ev) continue;
       for (const lid of ev.closeIds) this.supplies.setDone(lid, true);
       let next: Nachschub = ev.snapshotChanged ? { ...n, snapshot: ev.snapshot } : n;
       if (ev.finished) next = archive(next, new Date().toISOString());
-      if (next !== n) await this.replace(next, uid);
+      if (next === n) continue;
+      const cols: Record<string, unknown> = {};
+      if (next.snapshot !== n.snapshot) cols['snapshot'] = next.snapshot;
+      if (next.status !== n.status) Object.assign(cols, { status: next.status, slot: next.slot, archived_at: next.archivedAt });
+      if ((await this.patch(n.id, uid, cols)) === 'ok') this.packages.update((ps) => ps.map((p) => (p.id === n.id ? next : p)));
     }
-  }
-
-  /**
-   * Owning fulfils the wish: `gained` copies landed in Inventar / Hangar, so the wished quantity of that class shrinks
-   * (to zero = the wish goes). The result carries the undo.
-   */
-  async fulfilWish(kind: string, className: string, gained: number): Promise<NachschubResult> {
-    const wished = this.wishPositions().find((p) => p.kind === kind && p.className.toLowerCase() === className.toLowerCase() && !p.forClassName);
-    if (!wished) return { ok: true, key: 'hq.nachschub.done.nothingWished' };
-    const r = fulfilWish(wished.qty, gained);
-    await this.setWishQty(wished, r.qty);
-    return {
-      ok: true,
-      key: 'hq.nachschub.done.fulfilled',
-      undo: async () => {
-        await this.setWishQty(wished, r.previous);
-        return { ok: true, key: 'hq.nachschub.done.undone' };
-      },
-    };
   }
 
   // ------------------------------------------------------------------------------------------------ internals
 
-  /** Set a wishlist position to an absolute quantity (0 removes it), whichever store holds it. */
-  private async setWishQty(p: WishPosition, qty: number): Promise<void> {
-    if (p.kind === 'ship') {
-      const s = this.hangar.shipByClassName(p.className);
-      if (qty <= 0) {
-        if (s?.status === 'wishlist') await this.hangar.removeShip(s.id);
-      } else if (s?.status === 'wishlist') {
-        await this.hangar.updateShip(s.id, { qty });
-      } else if (!s) {
-        const added = await this.hangar.addShip(p.className, 'wishlist');
-        if (added && qty > 1) await this.hangar.updateShip(added.id, { qty });
+  /** Put one wishlist position onto a line of the Nachschub `packageId`. */
+  private addPick(p: WishPosition, packageId: string, label: string): AddedPick | null {
+    const line = this.supplies.addLine(label, p.qty, {
+      entityKind: p.kind,
+      className: p.className,
+      forClassName: p.forClassName ?? null,
+      packageId,
+      source: 'search',
+    });
+    return line ? { p, line } : null;
+  }
+
+  /** Revert {@link addPick}s: a line that existed before goes back to its quantity, a line created by them is removed. */
+  private undoPicks(lines: readonly AddedPick[]): void {
+    for (const { line } of [...lines].reverse()) {
+      if (line.prevQty === 0) this.supplies.remove(line.id);
+      else this.supplies.setLine(line.id, line.prevQty, line.prevAmount);
+    }
+  }
+
+  /** Which lines leave a Nachschub and what goes back to the wishlist (nothing is changed yet). */
+  private planClear(id: string, backToWishlist: boolean): { n: Nachschub; removeIds: readonly string[]; returned: readonly WishPosition[] } | null {
+    const n = this.packages().find((p) => p.id === id);
+    if (!n) return null;
+    const ev = this.evaluation(id);
+    const open: OpenLine[] = this.linesOf(id)
+      .filter((l) => l.className)
+      .map((l) => ({
+        id: l.id,
+        kind: l.entityKind ?? 'item',
+        className: l.className ?? '',
+        name: l.name,
+        qty: l.qty,
+        forClassName: l.forClassName,
+        closed: l.done || (ev?.statuses.get(l.id)?.closed ?? false),
+      }));
+    const out = clearNachschub(open, [], false);
+    const gone = new Set(out.removeIds);
+    const returned = backToWishlist
+      ? open.filter((l) => gone.has(l.id)).map((l) => ({ kind: l.kind, className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName }))
+      : [];
+    return { n, removeIds: out.removeIds, returned };
+  }
+
+  private wishQtyOf(p: WishPosition): number {
+    const k = positionKey(p);
+    return this.wishPositions().find((w) => positionKey(w) === k)?.qty ?? 0;
+  }
+
+  /**
+   * Move wishlist positions by a delta each (never to an absolute copy of an older list). Anything above 999 is
+   * reported as `lost`. A failed write puts the already changed positions back and reports `ok: false`.
+   */
+  private async shiftWishes(items: readonly Shift[]): Promise<ShiftResult> {
+    const applied: Shift[] = [];
+    let lost = 0;
+    for (const { p, delta } of items) {
+      const have = this.wishQtyOf(p);
+      const raw = have + delta;
+      const next = Math.min(WISH_QTY_MAX, Math.max(0, raw));
+      if (raw > WISH_QTY_MAX) lost += raw - WISH_QTY_MAX;
+      if (next === have) continue;
+      if (!(await this.setWishQty(p, next))) {
+        for (const a of [...applied].reverse()) await this.setWishQty(a.p, Math.max(0, this.wishQtyOf(a.p) - a.delta));
+        return { ok: false, lost: 0, applied: [] };
       }
-      return;
+      applied.push({ p, delta: next - have });
     }
-    await this.wish.setQty({ kind: p.kind, className: p.className, name: p.name, forClassName: p.forClassName }, qty);
+    return { ok: true, lost, applied };
   }
 
-  /** Make the wishlist show `target`: every position of it gets its quantity, positions not in it go. */
-  private async restoreWishlist(target: readonly WishPosition[]): Promise<void> {
-    const want = new Map(target.map((p) => [positionKey(p), p] as const));
-    const have = this.wishPositions();
-    for (const h of have) if (!want.has(positionKey(h))) await this.setWishQty(h, 0);
-    for (const [, p] of want) {
-      if (have.find((h) => positionKey(h) === positionKey(p))?.qty !== p.qty) await this.setWishQty(p, p.qty);
+  /**
+   * Set a wishlist position to an absolute quantity (0 removes it), whichever store holds it. False when the write
+   * failed.
+   */
+  private async setWishQty(p: WishPosition, qty: number): Promise<boolean> {
+    // Ship wishes live in two places (a not-owned ship's hangar row, an owned ship's extra copies in the store);
+    // SearchWishlistService knows which and 0 removes the wish.
+    if (p.kind === 'ship') return this.searchWish.setQty('ship', p.className, p.name, qty);
+    return this.wish.setQty({ kind: p.kind, className: p.className, name: p.name, forClassName: p.forClassName }, qty);
+  }
+
+  /** Insert a new Nachschub; a slot taken elsewhere (unique violation) is retried with the next free one. */
+  private async insertNew(n: Nachschub, uid: string): Promise<Nachschub | null> {
+    let cur = n;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const out = await this.write(
+        {
+          user_id: uid,
+          id: cur.id,
+          name: cur.name,
+          status: cur.status,
+          slot: cur.slot,
+          snapshot: cur.snapshot,
+          archived_at: cur.archivedAt,
+          deleted_at: null,
+          updated_at: new Date().toISOString(),
+        },
+        'save',
+      );
+      if (out === 'ok') {
+        this.packages.update((ps) => [...ps.filter((p) => p.id !== cur.id), cur]);
+        return cur;
+      }
+      if (out !== 'conflict') return null;
+      await this.reload();
+      const slot = freeSlot(this.packages());
+      if (slot === null) {
+        this.error.set('hq.nachschub.slotsFull');
+        return null;
+      }
+      cur = { ...cur, slot };
     }
+    return null;
   }
 
-  private async applyRemaining(before: readonly WishPosition[], remaining: readonly WishPosition[]): Promise<void> {
-    const left = new Map(remaining.map((p) => [positionKey(p), p.qty] as const));
-    for (const b of before) {
-      const q = left.get(positionKey(b)) ?? 0;
-      if (q !== b.qty) await this.setWishQty(b, q);
+  /** Bring a deleted Nachschub back (undo of "Loeschen"): its old slot if still free, else the next one, else not at all. */
+  private async restorePackage(n: Nachschub, uid: string): Promise<Nachschub | null> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await this.reload();
+      let slot: number | null = null;
+      if (n.status === 'active') {
+        const taken = this.packages().some((p) => p.status === 'active' && p.slot === n.slot);
+        slot = !taken && n.slot !== null ? n.slot : freeSlot(this.packages());
+        if (slot === null) {
+          this.error.set('hq.nachschub.slotsFull');
+          return null;
+        }
+      }
+      const back: Nachschub = { ...n, slot };
+      const out = await this.patch(n.id, uid, { name: back.name, status: back.status, slot: back.slot, snapshot: back.snapshot, archived_at: back.archivedAt }, true);
+      if (out === 'ok') {
+        this.packages.update((ps) => [...ps.filter((p) => p.id !== back.id), back]);
+        return back;
+      }
+      if (out !== 'conflict') return null;
     }
+    return null;
   }
 
-  private async replace(next: Nachschub, uid: string): Promise<boolean> {
-    if (!(await this.save(next, uid))) return false;
-    this.packages.update((ps) => ps.map((p) => (p.id === next.id ? next : p)));
-    return true;
-  }
-
-  private async save(n: Nachschub, uid: string): Promise<boolean> {
+  /**
+   * Update ONLY `cols` of a live row. A row that was deleted on another device is not revived (a stale rename must not
+   * bring a deleted Nachschub back): the call reports 'gone' and the local copy is dropped. `revive` clears the
+   * tombstone on purpose (undo of a delete).
+   */
+  private async patch(id: string, uid: string, cols: Record<string, unknown>, revive = false): Promise<Outcome> {
     try {
-      const { error } = await this.sb.client
+      const now = new Date().toISOString();
+      const base = this.sb.client
         .from('hq_supply_packages' as never)
-        .upsert(
-          {
-            user_id: uid,
-            id: n.id,
-            name: n.name,
-            status: n.status,
-            slot: n.slot,
-            snapshot: n.snapshot,
-            archived_at: n.archivedAt,
-            deleted_at: null,
-            updated_at: new Date().toISOString(),
-          } as never,
-          { onConflict: 'user_id,id' },
-        );
+        .update({ ...cols, ...(revive ? { deleted_at: null } : {}), updated_at: now } as never)
+        .eq('user_id', uid)
+        .eq('id', id);
+      const { data, error } = await (revive ? base : base.is('deleted_at', null)).select('id');
       if (error) throw error;
-      return true;
+      if (!(data as unknown[] | null)?.length) {
+        this.packages.update((ps) => ps.filter((p) => p.id !== id));
+        this.error.set('hq.nachschub.gone');
+        return 'gone';
+      }
+      return 'ok';
     } catch (err) {
-      logWarn('nachschub', 'save failed', err);
-      this.error.set(toErrorKey('nachschub', 'save', err));
-      return false;
+      return this.failed(err, 'save');
     }
   }
 
-  /** Tombstone a Nachschub (the row stays for the purge job and other devices). */
-  private async drop(id: string, uid: string): Promise<void> {
+  private async write(row: Record<string, unknown>, op: string): Promise<Outcome> {
+    try {
+      const { error } = await this.sb.client.from('hq_supply_packages' as never).upsert(row as never, { onConflict: 'user_id,id' });
+      if (error) throw error;
+      return 'ok';
+    } catch (err) {
+      return this.failed(err, op);
+    }
+  }
+
+  private failed(err: unknown, op: string): Outcome {
+    logWarn('nachschub', `${op} failed`, err);
+    const e = (err ?? {}) as { code?: unknown; message?: unknown };
+    const code = typeof e.code === 'string' ? e.code : '';
+    if (code === '23505') return 'conflict';
+    // The server's per-user row cap (hq_enforce_cap): say so instead of a generic failure.
+    const capped = code === '23514' && /row limit/i.test(typeof e.message === 'string' ? e.message : '');
+    this.error.set(capped ? 'hq.nachschub.capReached' : toErrorKey('nachschub', op, err));
+    return 'failed';
+  }
+
+  /** Tombstone a Nachschub (the row stays for the purge job and other devices). False when the write failed. */
+  private async drop(id: string, uid: string): Promise<boolean> {
     try {
       const now = new Date().toISOString();
       const { error } = await this.sb.client
@@ -466,9 +719,11 @@ export class NachschubService {
         .eq('id', id);
       if (error) throw error;
       this.packages.update((ps) => ps.filter((p) => p.id !== id));
+      return true;
     } catch (err) {
       logWarn('nachschub', 'delete failed', err);
       this.error.set(toErrorKey('nachschub', 'delete', err));
+      return false;
     }
   }
 }

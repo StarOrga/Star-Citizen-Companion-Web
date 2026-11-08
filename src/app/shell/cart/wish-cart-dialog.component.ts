@@ -87,7 +87,7 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
                               <button type="button" [disabled]="it.qty <= 1" [attr.aria-label]="'cart.less' | translate" (click)="bump(it, -1)">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="minus[0]" /></svg>
                               </button>
-                              <b>{{ it.qty }}</b>
+                              <b>{{ it.qty }}@if (it.kind === 'material') { <small class="unit"> {{ 'blueprint.detail.unitScu' | translate }}</small> }</b>
                               <button type="button" [disabled]="it.qty >= 999" [attr.aria-label]="'cart.more' | translate" (click)="bump(it, 1)">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="plus[0]" /></svg>
                               </button>
@@ -185,6 +185,7 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
       .step button:disabled { opacity: 0.4; cursor: default; }
       .step button:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
       .step svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+      .step b .unit { font-size: 0.68rem; font-weight: 600; color: var(--sc-fg-2); }
       .step b { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; font-size: 0.85rem; }
       .chk {
         appearance: none; -webkit-appearance: none; width: 20px; height: 20px; flex: none; margin: 0; display: grid; place-content: center; cursor: pointer;

@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -24,7 +24,6 @@ import {
   hqStockTabOf,
   ownShipLink,
 } from '../hq-routes';
-import { HqSuppliesService } from '../hq-supplies.service';
 import { NachschubEdgeService } from '../nachschub/nachschub-edge.service';
 import { BLUEPRINT_PLACE } from '../nachschub/sammlung.model';
 import { SammlungService } from '../nachschub/sammlung.service';
@@ -35,6 +34,7 @@ import { BetaService } from '../../core/beta.service';
 import { STOCK_CATEGORIES, type StockCategory } from './hq-stock-model';
 import { HqStockPopupComponent, StockStart } from './hq-stock-popup.component';
 import { HqStockSharedComponent } from './hq-stock-shared.component';
+import { WISH_CART_ICON, type StockWishTarget, StockWishService } from './hq-stock-wish';
 import { type InvTile, type UsedUp, buildTiles, categoryCounts, filterTiles, pageOf, usedUpRecently } from './hq-stock-tiles';
 
 const TILE_W = 172;
@@ -60,7 +60,7 @@ type Cell =
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
+  imports: [TranslatePipe, DatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
@@ -152,32 +152,38 @@ type Cell =
                 <b class="nm" [scTooltip]="c.tile.name" scTooltipTier="label">{{ c.tile.name }}</b>
                 <span class="qty mono">{{ qtyText(c.tile) }}</span>
                 <small class="where">{{ placeText(c.tile) }}</small>
-                <span class="hint">
-                  @if (hint(c.tile); as h) { <span>{{ h.key | translate: h.params }}</span> }
-                  <button type="button" scAction tier="tertiary" class="nach" [attr.aria-label]="'hq.bestand.catchUpOne' | translate: { name: c.tile.name }"
-                          [scTooltip]="'hq.bestand.catchUpOne' | translate: { name: c.tile.name }" scTooltipTier="label" (click)="wishOne(c.tile)">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.5l2 11h10l2-8H7" /><circle cx="9.5" cy="19" r="1.2" /><circle cx="16.5" cy="19" r="1.2" /></svg>
-                  </button>
-                </span>
+                @if (tileTarget(c.tile); as tg) { <ng-container *ngTemplateOutlet="wishRow; context: { $implicit: tg }" /> }
               </div>
           } @else if (c.kind === 'ship') {
-              <a class="tile item ship" role="listitem" [routerLink]="shipLink(c.ship).commands" [queryParams]="shipLink(c.ship).queryParams" [class.focus]="focusKey() === c.ship.shipClassName.toLowerCase()">
-                <b class="nm">{{ c.ship.customName || shipTitle(c.ship.shipClassName) }}</b>
+              <div class="tile item ship" role="listitem" [class.focus]="focusKey() === c.ship.shipClassName.toLowerCase()">
+                <a class="nm tile-link" [routerLink]="shipLink(c.ship).commands" [queryParams]="shipLink(c.ship).queryParams">{{ c.ship.customName || shipTitle(c.ship.shipClassName) }}</a>
                 <span class="qty mono">×{{ c.ship.qty ?? 1 }}</span>
                 <small class="where">
                   @if (c.ship.origin) { {{ 'hq.bestand.origin.' + c.ship.origin | translate }} }
                   @if (hangar.isFlagship(c.ship.shipClassName)) { · {{ 'hangar.flagship.mark' | translate }} }
                   @if (destroyedAt(c.ship.shipClassName); as at) { · {{ 'hq.stock.destroyed' | translate: { at: (at | date: 'short') } }} }
                 </small>
-              </a>
+                <ng-container *ngTemplateOutlet="wishRow; context: { $implicit: shipTarget(c.ship) }" />
+              </div>
           } @else if (c.kind === 'bp') {
-              <a class="tile item bp" role="listitem" [routerLink]="['/codex/blueprint', c.id]" [class.focus]="focusKey() === c.id.toLowerCase()">
-                <b class="nm">{{ c.name }}</b>
+              <div class="tile item bp" role="listitem" [class.focus]="focusKey() === c.id.toLowerCase()">
+                <a class="nm tile-link" [routerLink]="['/codex/blueprint', c.id]">{{ c.name }}</a>
                 <small class="where">{{ 'hq.bestand.blueprint' | translate }}</small>
-              </a>
+                <ng-container *ngTemplateOutlet="wishRow; context: { $implicit: blueprintTarget(c) }" />
+              </div>
           }
         }
       </div>
+
+      <ng-template #wishRow let-tg>
+        <span class="hint">
+          @if (hint(tg); as h) { <span>{{ h.key | translate: h.params }}</span> }
+          <button type="button" scAction tier="tertiary" class="nach" [attr.aria-label]="'hq.bestand.catchUpOne' | translate: { name: tg.name }"
+                  [scTooltip]="'hq.bestand.catchUpOne' | translate: { name: tg.name }" scTooltipTier="label" (click)="wishTarget(tg)">
+            <svg viewBox="0 0 24 24" aria-hidden="true">@for (d of cartIcon; track $index) { <path [attr.d]="d" /> }</svg>
+          </button>
+        </span>
+      </ng-template>
 
       @if (tab() === 'sammlung') {
         <section class="ruf panel" aria-labelledby="ruf-h" data-ruf>
@@ -262,6 +268,13 @@ type Cell =
       .plus svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
       .add-t { font-size: 0.8rem; color: var(--sc-fg-1); text-align: center; }
       .tile .nm { font-size: 0.9rem; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; padding-right: 3.2ch; }
+      .tile .nm.tile-link { color: inherit; text-decoration: none; }
+      .tile-link::after { content: ''; position: absolute; inset: 0; border-radius: 12px; }
+      .tile-link:focus-visible { outline: none; }
+      .tile-link:focus-visible::after { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .tile:has(.tile-link):hover { border-color: var(--sc-accent); transform: translateY(-1px); }
+      .tile:has(.tile-link) .qty { pointer-events: none; }
+      .hint { position: relative; z-index: 1; }
       .tile .qty { position: absolute; top: 8px; right: 12px; font: 700 1rem var(--sc-font-display, inherit); color: var(--sc-accent); }
       .tile .where { color: var(--sc-fg-2); font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .hint { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 28px; color: var(--sc-fg-2); font-size: 0.74rem; }
@@ -295,7 +308,7 @@ export class HqStockComponent implements OnInit {
   private readonly ownership = inject(HqOwnershipService);
   private readonly shellBeta = inject(BetaService).isEnabled('shell');
   private readonly wish = inject(WishlistStore);
-  private readonly supplies = inject(HqSuppliesService);
+  private readonly stockWish = inject(StockWishService);
   private readonly ns = inject(NachschubService);
   private readonly sammlung = inject(SammlungService);
   private readonly edge = inject(NachschubEdgeService);
@@ -305,6 +318,7 @@ export class HqStockComponent implements OnInit {
 
   protected readonly shipTitle = humanizeClassName;
   protected readonly cats = STOCK_CATEGORIES;
+  protected readonly cartIcon = WISH_CART_ICON;
 
   readonly tab = signal<HqStockTab>('inventar');
   readonly cat = signal<StockCategory | null>(null);
@@ -471,13 +485,9 @@ export class HqStockComponent implements OnInit {
     const name = await this.confirm.prompt({ titleKey: 'hq.bestand.addShip', inputLabelKey: 'hq.bestand.addShipLabel', inputMaxLength: 80 });
     const n = name?.trim();
     if (!n) return;
-    const have = this.hangar.shipByClassName(n);
-    if (have) {
-      await this.hangar.updateShip(have.id, { qty: (have.qty ?? 1) + 1 });
-      return;
-    }
-    const added = await this.hangar.addShip(n, 'owned');
-    this.errorKey.set(added ? null : (this.hangar.error() ?? 'errors.generic'));
+    // One more OWNED copy: a wished row becomes owned (its other wished copies stay wished), never +1 on the wish.
+    const copies = await this.edge.addShipCopy(n);
+    this.errorKey.set(copies ? null : (this.hangar.error() ?? 'errors.generic'));
   }
 
   protected shipLink(s: HangarShip): HqLink {
@@ -504,36 +514,41 @@ export class HqStockComponent implements OnInit {
     return t.places.length > 1 ? `${first} +${t.places.length - 1}` : first;
   }
 
-  /** The quiet hint on a tile: already wished, or already in a Nachschub. */
-  protected hint(t: InvTile): { key: string; params: Record<string, unknown> } | null {
-    const cls = t.className;
-    if (!cls) return null;
-    const kind = t.unit === 'scu' ? 'material' : 'item';
-    const wished = this.wish.totalQty(kind, cls);
-    if (wished > 0) return { key: 'hq.bestand.hintWish', params: { n: wished } };
-    const line = this.supplies.items().find((l) => !l.done && l.packageId && (l.className ?? '').toLowerCase() === cls.toLowerCase());
-    const pkg = line ? this.ns.packages().find((p) => p.id === line.packageId) : null;
-    return pkg ? { key: 'hq.bestand.hintNachschub', params: { name: pkg.name } } : null;
+  /** What an Inventar tile means on the wishlist (Codex kind + class name); null without a class name. */
+  protected tileTarget(t: InvTile): StockWishTarget | null {
+    return this.stockWish.targetOf({ className: t.className, name: t.name, unit: t.unit, cat: t.cat });
   }
 
-  /** "Nachholen": back onto the wishlist, counted up there. */
-  protected async wishOne(t: InvTile): Promise<void> {
-    if (!t.className) return;
-    await this.putOnWishlist({ className: t.className, name: t.name, unit: t.unit }, 1);
+  protected shipTarget(s: HangarShip): StockWishTarget {
+    return this.stockWish.shipTarget(s.shipClassName, s.customName || humanizeClassName(s.shipClassName));
+  }
+
+  protected blueprintTarget(c: { id: string; name: string }): StockWishTarget {
+    return this.stockWish.blueprintTarget(c.id, c.name);
+  }
+
+  /** The quiet hint on a tile: already wished, or already in a Nachschub. */
+  protected hint(t: StockWishTarget): { key: string; params: Record<string, unknown> } | null {
+    return this.stockWish.hint(t);
+  }
+
+  /** "Nachholen" on a tile: one more onto the wishlist, with the way back in the toast. */
+  protected async wishTarget(t: StockWishTarget): Promise<void> {
+    const ok = await this.stockWish.wish(t, 1);
+    this.errorKey.set(ok ? null : 'errors.generic');
   }
 
   protected async catchUp(list: readonly UsedUp[]): Promise<void> {
+    const single = list.length === 1;
+    let failed = false;
     for (const u of list) {
-      if (u.className) await this.putOnWishlist({ className: u.className, name: u.name, unit: u.unit }, u.unit === 'scu' ? Math.max(1, Math.ceil(u.qty)) : Math.max(1, Math.round(u.qty)));
+      const t = this.stockWish.targetOf({ className: u.className, name: u.name, unit: u.unit });
+      if (!t) continue;
+      const qty = u.unit === 'scu' ? Math.max(1, Math.ceil(u.qty)) : Math.max(1, Math.round(u.qty));
+      if (!(await this.stockWish.wish(t, qty, single))) failed = true;
     }
+    this.errorKey.set(failed ? 'errors.generic' : null);
     this.usedOpen.set(false);
-  }
-
-  private async putOnWishlist(i: { className: string; name: string; unit: 'pcs' | 'scu' }, qty: number): Promise<void> {
-    const kind = i.unit === 'scu' ? 'material' : 'item';
-    const have = this.wish.qtyOf(kind, i.className, i.name);
-    const ok = await this.wish.setQty({ kind, className: i.className, name: i.name }, have + qty);
-    this.errorKey.set(ok ? null : 'errors.generic');
   }
 
   protected async resetIngame(): Promise<void> {

@@ -116,7 +116,7 @@ function listKindOf(ctx: SearchContext): PolyHitKind | null {
   return k && KINDS_WITH_COMPARE.has(k) ? k : null;
 }
 
-const NO_ICONS: SearchRowIcons = { wishlist: false, lager: false, nachschub: false };
+const NO_ICONS: SearchRowIcons = { wishlist: false, lager: false };
 
 function cta(id: SearchCtaId, type: 'link' | 'action', target: SearchTarget | null): SearchCta {
   return { id, labelKey: `search.cta.${id}`, type, target };
@@ -277,16 +277,16 @@ export function resolveCta(ctx: SearchContext, row: CtaRow): SearchCta | null {
 
 /**
  * Whether a row carries the path control, and which stops it would have
- * (Wunschliste · Nachschub · Inventar, the flag `lager` is the third one; on a
- * ship it means Hangar). Equipment, ships and blueprints have all three (A9);
+ * (Wunschliste · Inventar, the flag `lager` is the second one; on a
+ * ship it means Hangar). Equipment, ships and blueprints have both (A9);
  * an announced ship only the wish. News, patches, gallery, pages, manufacturers
  * and the reader's own data have none.
  */
 export function resolveIcons(row: Pick<CtaRow, 'type' | 'kind'>): SearchRowIcons {
   if (row.type !== 'hit' || !row.kind) return NO_ICONS;
-  if (row.kind === 'ship') return { wishlist: true, lager: true, nachschub: true };
-  if (row.kind === UPCOMING_HIT_KIND) return { wishlist: true, lager: false, nachschub: false };
-  if (row.kind === 'blueprint') return { wishlist: true, lager: true, nachschub: true };
-  if (EQUIPMENT.has(row.kind)) return { wishlist: true, lager: true, nachschub: true };
+  if (row.kind === 'ship') return { wishlist: true, lager: true };
+  if (row.kind === UPCOMING_HIT_KIND) return { wishlist: true, lager: false };
+  if (row.kind === 'blueprint') return { wishlist: true, lager: true };
+  if (EQUIPMENT.has(row.kind)) return { wishlist: true, lager: true };
   return NO_ICONS;
 }

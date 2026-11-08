@@ -48,7 +48,6 @@ export const SEARCH_ACTION_ICONS = {
   wishlist: PATH_ICONS.wish,
   lager: PATH_ICONS.inventar,
   hangar: PATH_ICONS.hangar,
-  nachschub: PATH_ICONS.nachschub,
-  /** The "Neu in Patch" glyph after a name. */
-  fresh: ['M12 3l2 6.5L20.5 12 14 14.5 12 21l-2-6.5L3.5 12 10 9.5z'],
+  /** The "Neu in Patch" marker after a name: a dot (the star is retired, only Explorer achievements keep one). */
+  fresh: ['M12 6a6 6 0 1 0 0 12a6 6 0 1 0 0-12z'],
 } as const;

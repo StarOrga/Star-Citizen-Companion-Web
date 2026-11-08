@@ -134,6 +134,29 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
     expect(store.remove).toHaveBeenCalledTimes(2);
   });
 
+  it('a wish put on the list again inside the undo window is not deleted by the delayed delete (M9)', async () => {
+    const { fixture, el, store, toast } = setup(rows);
+    el.querySelector<HTMLButtonElement>('.tile .foot .sc-action--danger')!.click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.tile').length).toBe(3);
+    // Wished again from the Codex: the same position, one more of it (the store replaces the row).
+    store.rows.update((rs) => rs.map((r) => (r.className === 'klwe_rifle_energy_01' ? { ...r, qty: r.qty + 1 } : r)));
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.tile').length).toBe(4);
+    toast.flush();
+    await Promise.resolve();
+    expect(store.remove).not.toHaveBeenCalled();
+  });
+
+  it('a material tile names its unit: the amounts are SCU (AUD-11)', () => {
+    const { el } = setup(rows);
+    const tiles = [...el.querySelectorAll('.tile')];
+    const alu = tiles.find((t) => t.textContent?.includes('Aluminium'))!;
+    expect(alu.querySelector('.step b .unit')?.textContent).toContain('blueprint.detail.unitScu');
+    const rifle = tiles.find((t) => t.textContent?.includes('Gallant') && !t.textContent?.includes('Aluminium'))!;
+    expect(rifle.querySelector('.step b .unit')).toBeNull();
+  });
+
   it('the stepper sets the quantity', () => {
     const { fixture, el, store } = setup(rows);
     el.querySelectorAll<HTMLButtonElement>('.tile .step button')[1].click();

@@ -235,11 +235,16 @@ describe('HqNachschubFlowComponent', () => {
   });
   const WISH = [w('item', 'medpen', 12, null, 'Medpen'), w('blueprint', 'gallant', 2, null, 'Gallant'), w('material', 'aluminium', 16, 'gallant', 'Aluminium')];
 
-  function setup(wish: WishPosition[] = WISH, sources = new Map<string, unknown>()) {
+  function setup(wish: WishPosition[] = WISH, sources = new Map<string, unknown>(), drain = false) {
     TestBed.resetTestingModule();
-    const created = jasmine.createSpy('createFromWishlist').and.callFake(async () => ({ ok: true, key: 'hq.nachschub.done.created', id: 'new' }));
+    // The real service empties the wishlist of what it took; `drain` makes the fake do the same (H5).
+    const live = signal<readonly WishPosition[]>(wish);
+    const created = jasmine.createSpy('createFromWishlist').and.callFake(async () => {
+      if (drain) live.set([]);
+      return { ok: true, key: 'hq.nachschub.done.created', id: 'new' };
+    });
     const fake = {
-      wishPositions: () => wish,
+      wishPositions: () => live(),
       packages: signal<Nachschub[]>([]),
       linesOf: () => [],
       createFromWishlist: created,
@@ -328,6 +333,23 @@ describe('HqNachschubFlowComponent', () => {
     expect(einsatz.ofPackage('new').length).toBe(cards.length);
     expect(einsatz.ofPackage('new').at(-1)?.steps[0].kind).toBe('craft');
     expect(done.length).toBe(1);
+  });
+
+  it('H5: the Einsätze are written from the proposal as it was BEFORE the wishlist emptied', async () => {
+    const { f, el, created } = setup(WISH, new Map(), true);
+    const einsatz = TestBed.inject(HqEinsatzService);
+    click(f, el.querySelector('.pick-bar button'));
+    click(f, el.querySelector('.dlg-foot button:last-child'));
+    await whenIdle(f);
+    click(f, el.querySelector('.dlg-foot button:last-child'));
+    await whenIdle(f);
+    const cards = el.querySelectorAll('.ecard').length;
+    expect(cards).toBeGreaterThanOrEqual(2);
+    click(f, el.querySelector('.dlg-foot button:last-child')); // Nachschub anlegen: the wishlist is empty from here on
+    await whenIdle(f);
+    expect(created).toHaveBeenCalledTimes(1);
+    expect(einsatz.ofPackage('new').length).toBe(cards);
+    expect(einsatz.ofPackage('new').every((e) => e.steps.length > 0)).toBeTrue();
   });
 
   async function toStep3(r: ReturnType<typeof setup>) {

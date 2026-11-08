@@ -5513,6 +5513,7 @@
     },
     "run": {
       "aria": "Nachschub that Jetzt runs",
+      "archived": "Finished: this Nachschub sits in the archive, its Einsätze keep running here. Reactivate it under Planen › Archive.",
       "for": "for",
       "stepOf": "Step {{n}} of {{total}}",
       "switch": "Switch Nachschub",
@@ -5582,6 +5583,12 @@
     "nachschub": {
       "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
       "nothingPicked": "Pick at least one item from the wishlist.",
+      "linesFull": "Your Nachschub list is full (100 positions). Remove some positions first, then the wishlist can move in.",
+      "partial": "{{count}} positions stayed behind: your Nachschub list is full.",
+      "wishlistFailed": "The wishlist could not be changed. Nothing was moved.",
+      "wishCapped": "{{count}} units no longer fit on the wishlist (999 per entry at most) and are lost.",
+      "gone": "This Nachschub no longer exists (deleted on another device). The view is refreshing.",
+      "capReached": "You reached the limit of stored Nachschübe. Delete old ones from the archive and it works again.",
       "newName": "New Nachschub",
       "newEinsatz": "New Einsatz",
       "verb": {
@@ -5599,8 +5606,6 @@
         "reactivated": "Nachschub is active again.",
         "emptied": "Nachschub emptied.",
         "removed": "Nachschub deleted.",
-        "nothingWished": "Nothing on the wishlist.",
-        "fulfilled": "Ticked off the wishlist.",
         "added": "Added to the Nachschub.",
         "lineRemoved": "Position removed.",
         "edited": "Nachschub saved."
@@ -5990,8 +5995,7 @@
         "noMatch": "Nothing matches these filters.",
         "empty": "Nothing in your inventory yet.",
         "ships": "Ships at terminal",
-        "nachholen": "Restock",
-        "nachholenAria": "Restock: {{name}}"
+        "onWishlist": "To the wishlist"
       },
       "retry": "Try again",
       "destroyed": "Last destroyed: {{at}}",
@@ -6959,7 +6963,6 @@
       "allInHq": "Open all {{n}} in the HQ",
       "mission": "Missions"
     },
-    "supplyHint": "Search for the item and add it to Supplies with this icon.",
     "own": {
       "ship": "your ship",
       "fitted": "fitted on your ship",
@@ -7526,17 +7529,11 @@
     "done": {
       "wishOn": "\"{{name}}\" is on your wishlist",
       "wishOff": "\"{{name}}\" is off your wishlist",
-      "nachschub": "\"{{name}}\" is in Supplies",
-      "moved": "\"{{name}}\" moved from the wishlist to Supplies",
-      "nachschubMaterial": "\"{{name}}\" is in Supplies, plus {{n}} materials",
-      "movedMaterial": "\"{{name}}\" moved from the wishlist to Supplies, plus {{n}} materials",
-      "nachschubOff": "\"{{name}}\" is out of Supplies",
-      "nachschubOffMaterial": "\"{{name}}\" and {{n}} material are out of Supplies",
-      "qty": "\"{{name}}\": {{qty}} in Supplies",
-      "nachholen": "{{qty}} x \"{{name}}\" back in Supplies",
       "inventar": "\"{{name}}\" now lies in {{where}}",
-      "ticked": "\"{{name}}\" ticked off",
       "hangar": "\"{{name}}\" is in your hangar",
+      "hangarCopy": "You now have {{n}}× \"{{name}}\" in your hangar",
+      "ownWish": "\"{{name}}\" is yours – wish fulfilled",
+      "ownWishLeft": "\"{{name}}\" is yours – {{left}} more on your wishlist",
       "undone": "Undone",
       "inventarOff": "\"{{name}}\" is out of your inventory",
       "inventarWithMe": "\"{{name}}\" is now with you",
@@ -7545,72 +7542,10 @@
     },
     "err": {
       "failed": "That did not work. Try again.",
-      "unavailable": "This step does not exist here.",
-      "listFull": "Supplies is full.",
-      "noLine": "There is no open Supplies line for it.",
-      "alreadyOwned": "The ship is already in your hangar."
+      "unavailable": "This step does not exist here."
     },
     "hint": {
       "notYetInGame": "not in the game yet"
-    },
-    "step": {
-      "wish": "Wishlist",
-      "nachschub": "Supplies",
-      "inventar": "Inventory",
-      "hangar": "Hangar"
-    },
-    "node": {
-      "wish": {
-        "off": "Add to wishlist",
-        "on": "On your wishlist"
-      },
-      "nachschub": {
-        "off": "Add to Supplies",
-        "on": "{{qty}}× in Supplies"
-      },
-      "inventar": {
-        "off": "Add to inventory",
-        "on": "{{qty}}× in inventory"
-      },
-      "hangar": {
-        "off": "Add to hangar",
-        "on": "In your hangar"
-      }
-    },
-    "go": {
-      "wish": "Add to wishlist",
-      "nachschub": "Add to Supplies",
-      "inventar": "Add to inventory",
-      "hangar": "Add to hangar"
-    },
-    "full": {
-      "wish": "Keep it in mind for later.",
-      "wishOn": "on the list",
-      "nachschub": "Get it now. With amount and source.",
-      "nachschubOn": "{{qty}}× open",
-      "inventar": "Got it. With place and amount.",
-      "inventarOn": "{{inv}}× in {{places}} place(s)",
-      "inventarBlueprint": "Collected. Always available.",
-      "hangar": "Got it. Already bought or earned.",
-      "hangarOn": "in your hangar",
-      "change": "Change",
-      "direct": "Go straight here"
-    },
-    "pop": {
-      "less": "Less",
-      "more": "More",
-      "remove": "Remove",
-      "viewWish": "View on the wishlist ›",
-      "viewNachschub": "View in Supplies ›",
-      "toMission": "To the mission ›",
-      "viewInventar": "View in inventory ›",
-      "viewHangar": "View in hangar ›",
-      "whereTitle": "Where is it?",
-      "otherPlace": "Other place …",
-      "otherPlaceholder": "Enter a place",
-      "store": "Put down",
-      "removeHangarTitle": "Remove from hangar?",
-      "removeHangarMessage": "“{{name}}” is deleted along with its variants, their shares with friends and its notes. This cannot be undone."
     }
   },
   "quick": {
