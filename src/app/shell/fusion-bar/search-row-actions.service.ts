@@ -8,7 +8,6 @@ import { ItemPathService, type PathResult } from '../../hq/data/item-path.servic
 import { HqEinsatzService, missionStep } from '../../hq/data/hq-einsatz.service';
 import { HqEinsatzPickService } from '../../hq/plan/hq-einsatz-pick.service';
 import { hqLocker } from '../../hq/hq-routes';
-import { SignInAskService } from '../../shared/item-path/sign-in-ask.service';
 
 /** What an action did: an i18n key for the quiet status line, plus whether it failed. */
 export interface RowActionResult {
@@ -33,36 +32,27 @@ function idOf(row: SearchResultRow): { kind: string; cls: string; name: string |
 
 /**
  * The action CTAs of a search row (concept 2026-11-02, B6–B11). The stops of
- * the path live in `sc-item-path`. Signed out, every action that writes asks
- * for sign-in first. Failures come back as `errors.*` keys.
+ * the path live in `sc-item-path`. Failures come back as `errors.*` keys.
  */
 @Injectable({ providedIn: 'root' })
 export class SearchRowActionsService {
   private readonly router = inject(Router);
-  private readonly signIn = inject(SignInAskService);
   private readonly codex = inject(CodexService);
   private readonly path = inject(ItemPathService);
   private readonly einsaetze = inject(HqEinsatzService);
   private readonly einsatzPick = inject(HqEinsatzPickService);
-
-  /** Signed out: ask, then lead to the sign-in page (back here afterwards). True when signed in. */
-  ensureSignedIn(): Promise<boolean> {
-    return this.signIn.ensure();
-  }
 
   /**
    * An action CTA (target null): add, compare, compareWith, inSet.
    * Link CTAs are anchors and never reach this.
    */
   async cta(cta: SearchCta, row: SearchResultRow, title: string, chips: readonly SearchChip[], flagship: string | null): Promise<RowActionResult | null> {
-    if (cta.needsSignIn && !(await this.ensureSignedIn())) return null;
     if (cta.id === 'toEinsatz') return row.type === 'mission' ? this.toEinsatz(row.className, title) : null;
     const id = idOf(row);
     if (!id) return null;
     try {
       switch (cta.id) {
         case 'add':
-          if (!(await this.ensureSignedIn())) return null;
           return fromPath(await this.path.addToHangar(id.cls, title), 'search.done.hangar', { name: title });
         case 'compare':
         case 'compareWith': {
@@ -90,7 +80,6 @@ export class SearchRowActionsService {
 
   /** "Zum Einsatz": the mission joins a planned / active Einsatz as a step, or starts a new one. */
   private async toEinsatz(className: string, title: string): Promise<RowActionResult | null> {
-    if (!(await this.ensureSignedIn())) return null;
     try {
       const open = this.einsaetze.upcoming();
       const choice = await this.einsatzPick.pick(title, open.map((e) => ({ id: e.id, title: e.title, steps: e.steps.length })));

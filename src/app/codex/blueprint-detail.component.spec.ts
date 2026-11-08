@@ -7,8 +7,7 @@ import { BlueprintDetailComponent } from './blueprint-detail.component';
 import { BlueprintDetail, CodexService } from './codex.service';
 import { CodexBlueprintIngredient } from './codex.types';
 import { ItemPathService } from '../hq/data/item-path.service';
-import { type FakeItemPath, fakeItemPath, fakeSignIn } from '../shared/item-path/item-path.testing';
-import { SignInAskService } from '../shared/item-path/sign-in-ask.service';
+import { type FakeItemPath, fakeItemPath } from '../shared/item-path/item-path.testing';
 import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
 
 const MICROSAT = 'BP_CRAFT_Carryable_2H_FL_MissionItem_Microsatellite_a';
@@ -65,7 +64,6 @@ async function setup(
       provideLocationMocks(),
       { provide: CodexService, useValue: { getBlueprint, ...extra } as Partial<CodexService> },
       { provide: ItemPathService, useValue: fakeItemPath() },
-      { provide: SignInAskService, useValue: fakeSignIn() },
       {
         provide: ActivatedRoute,
         useValue: { paramMap: new BehaviorSubject(convertToParamMap({ className: detail.classNameSlug })) },
@@ -98,12 +96,12 @@ function quantities(fixture: ComponentFixture<BlueprintDetailComponent>, rowSele
 }
 
 describe('BlueprintDetailComponent — path (A9)', () => {
-  it('carries the path control with all three stops: wish, Nachschub, Inventar', async () => {
+  it('carries the path control with its two stops: wish, Inventar', async () => {
     const fixture = await setup(blueprint([ingredient(0, 'Agricium', 0.36)]));
     const el: HTMLElement = fixture.nativeElement;
     const paths = el.querySelectorAll('sc-item-path');
     expect(paths.length).toBe(1);
-    expect(Array.from(paths[0].querySelectorAll('.node')).map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'nachschub', 'inventar']);
+    expect(Array.from(paths[0].querySelectorAll('.node')).map((n) => n.getAttribute('data-step'))).toEqual(['wish', 'inventar']);
     // Not from Planen or a set: the pill, with the next step as its button.
     expect(paths[0].querySelector('.pill .go')).not.toBeNull();
   });
@@ -136,14 +134,11 @@ describe('BlueprintDetailComponent — mission (A9)', () => {
     a.dispatchEvent(ev);
   };
 
-  it('stays plain without data: no block, no anchor, a plain Nachschub step', async () => {
+  it('stays plain without data: no mission block, no anchor', async () => {
     const fixture = await setup(blueprint([ingredient(0, 'Agricium', 0.36)]));
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.missions')).toBeNull();
     expect(pill(fixture)).toBeNull();
-    el.querySelector<HTMLButtonElement>('.node[data-step="nachschub"]')!.click();
-    await tick();
-    expect(pathOf().addToNachschub.calls.mostRecent().args.length).toBe(4);
   });
 
   it('shows the missions as real anchors to their pages', async () => {
@@ -157,45 +152,11 @@ describe('BlueprintDetailComponent — mission (A9)', () => {
     expect(el.querySelector('.mission-more')).not.toBeNull();
   });
 
-  it('a plain click on Zum Einsatz creates the mission step', async () => {
+  it('Zum Einsatz only navigates: a plain click writes nothing (Nachschub is built in the HQ)', async () => {
     const fixture = await setup(withMission());
     click(pill(fixture)!);
     await tick();
-    expect(pathOf().addToNachschub).toHaveBeenCalledTimes(1);
-    const args = pathOf().addToNachschub.calls.mostRecent().args;
-    expect(args[0]).toBe('blueprint');
-    expect(args[1]).toBe(MICROSAT);
-    expect(args[4]).toEqual({ stepKind: 'mission' });
-  });
-
-  it('a modified click only opens the tab, it writes nothing', async () => {
-    const fixture = await setup(withMission());
-    click(pill(fixture)!, { ctrlKey: true });
-    await tick();
     expect(pathOf().addToNachschub).not.toHaveBeenCalled();
-  });
-
-  it('does not add a second line when the step is already there', async () => {
-    const fixture = await setup(withMission());
-    pathOf().current.set({ nachschubQty: 1 });
-    click(pill(fixture)!);
-    await tick();
-    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
-  });
-
-  it('asks nobody signed out: the anchor just navigates', async () => {
-    const fixture = await setup(withMission());
-    pathOf().current.set({ signedIn: false });
-    click(pill(fixture)!);
-    await tick();
-    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
-  });
-
-  it('the path control marks its own Nachschub step as a mission step', async () => {
-    const fixture = await setup(withMission());
-    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.node[data-step="nachschub"]')!.click();
-    await tick();
-    expect(pathOf().addToNachschub.calls.mostRecent().args[4]).toEqual({ stepKind: 'mission' });
   });
 });
 

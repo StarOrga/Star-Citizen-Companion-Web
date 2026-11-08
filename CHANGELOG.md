@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.226.0] - 2026-11-08
+
+### Added
+- HQ Nachschub: up to 7 named Nachschübe with Einsätze and an archive, filled from the wishlist; names suggested automatically
+- Wishlist with quantities, a Warenkorb dialog and „Passt dazu“ suggestions (armor, weapons, ship components, missiles, consumables)
+- Schnellzugriff in the header: recently opened (top 3, up to 7) and the top of the wishlist
+- Bestand tab „Sammlung“: blueprints, collected news and up-voted wallpapers
+- Per-line choice in an Einsatz: buy, craft or gather; lines without a merchant get a Codex link, a place picker or removal
+
+### Changed
+- Codex item detail (weapons, armor, blueprints, missiles) in the holotable style with wishlist and inventory nodes
+- Planen shows only Nachschübe and Einsätze; the old selection/route mode, prices, community opt-in, blueprint progress and shared Einsätze left Planen
+- „Lesezeichen“ is gone: news are collected instead
+
+### Fixed
+- Holotable stat chips are 48 px tap targets on touch devices
+
 ## [0.225.16] - 2026-11-07
 
 ### Fixed

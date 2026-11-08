@@ -55,14 +55,6 @@ describe('AddToSetComponent (L09)', () => {
     expect(el.querySelector('.ats-trigger')!.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('signed out: offers "create a set" as a link to the hangar', async () => {
-    const { fixture, el, loadAll } = await setup({ signedIn: false });
-    await open(fixture);
-    expect(fixture.componentInstance.view()).toBe('signedOut');
-    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/locker');
-    expect(loadAll).not.toHaveBeenCalled();
-  });
-
   it('no set yet: points to the hangar instead of an empty list', async () => {
     const { fixture, el } = await setup({ sets: [] });
     await open(fixture);
@@ -134,7 +126,7 @@ describe('AddToSetComponent (L09)', () => {
   });
 
   it('closes on Escape inside the popover', async () => {
-    const { fixture, el } = await setup({ signedIn: false });
+    const { fixture, el } = await setup({ sets: [] });
     await open(fixture);
     el.querySelector('.ats-pop')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();

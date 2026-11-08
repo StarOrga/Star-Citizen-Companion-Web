@@ -28,7 +28,7 @@ function baseProviders(shell: boolean) {
     { provide: BetaService, useValue: { isEnabled: () => signal(shell) } },
     { provide: AuthService, useValue: { user: signal(null) } },
     { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]), loadAll: () => Promise.resolve() } },
-    { provide: DesktopConnectionService, useValue: { connections: signal([]), refresh: () => Promise.resolve() } },
+    { provide: DesktopConnectionService, useValue: { connections: signal([]), refresh: () => Promise.resolve(), stateFor: () => 'never' } },
   ];
 }
 
@@ -197,7 +197,7 @@ describe('HqPagesComponent', () => {
 
   it('the first-visit block, the patch lines, the chips and the friends line are gone', () => {
     const el: HTMLElement = mount().nativeElement;
-    for (const sel of ['sc-hq-first-visit', 'sc-hq-start-friends', '.patch', '.chips']) expect(el.querySelector(sel)).toBeNull();
+    for (const sel of ['sc-hq-first-visit', 'sc-hq-start-friends', '.patch', '#start .chips']) expect(el.querySelector(sel)).toBeNull();
   });
 
   it('hotkeys 1 to 4 jump to Bestand, Jetzt, Planen, Statistik', () => {

@@ -1,5 +1,6 @@
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ItemPathService } from '../hq/data/item-path.service';
+import { NachschubService } from '../hq/nachschub/nachschub.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -194,6 +195,7 @@ function configureSetup(
       provideNoShipBlueprints(),
       provideRouter([]),
       { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(payload), ...svc } },
       {
@@ -530,6 +532,7 @@ describe('CodexDetailComponent — weapon kind (legacy regions)', () => {
 describe('CodexDetailComponent — armour hero icon (part glyph)', () => {
   it("passes the item's attach type to the hero icon (part glyph, not the generic item box)", async () => {
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, {
+      silhouette: async () => null,
       getDetail: async () => ({
         classNameSlug: 'rsi_legs_01',
         kind: 'item',
@@ -540,10 +543,31 @@ describe('CodexDetailComponent — armour hero icon (part glyph)', () => {
       }),
     });
     const el: HTMLElement = fixture.nativeElement;
-    const icon = el.querySelector('.hero-icon path')!;
+    const icon = el.querySelector('.hero-icon path, sc-codex-item-stage .ico path')!;
     // armorLegs' glyph path (codex-category-icon.component.ts) — distinct from
     // the generic 'item' box, which is what a missing attachType binding renders.
     expect(icon.getAttribute('d')).toContain('M7.5 3.5 H16.5');
+  });
+});
+
+describe('CodexDetailComponent — missile on the item stage', () => {
+  it('renders the holotable item stage with the missile values and rank, not the classic hero', async () => {
+    const fixture = await setup('weapon', [], NOMAD_PAYLOAD, {
+      silhouette: async () => null,
+      getMissileCohort: async () => [],
+      getDetail: async () => ({
+        classNameSlug: 'misl_s02_ir_novp_rattler',
+        kind: 'component',
+        row: { attach_type: 'Missile', size: 2 },
+        payload: {},
+        ports: [],
+        strings: [],
+      }),
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.item-page sc-codex-item-stage')).not.toBeNull();
+    expect(el.querySelector('header.hero')).toBeNull();
+    expect(el.querySelector('.it-pane sc-codex-rank-card')).not.toBeNull();
   });
 });
 
@@ -572,6 +596,9 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
 
   it('prints each material amount in SCU without the float noise', async () => {
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getCraftingRecipe: async () => RECIPE });
+    // The recipe lives behind the "Herstellung" tab of the item page.
+    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.it-tab')[1].click();
+    fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const section = Array.from(el.querySelectorAll('section')).find((s) =>
       s.querySelector('h2')?.textContent?.includes('codex.detail.craftedFrom'),
@@ -593,6 +620,9 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
       ],
     };
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getCraftingRecipe: async () => recipe });
+    // The recipe lives behind the "Herstellung" tab of the item page.
+    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.it-tab')[1].click();
+    fixture.detectChanges();
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('en', { codex: { detail: { minQuality: 'min. quality {{value}}' } } });
     translate.use('en');
@@ -740,6 +770,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
       provideNoShipBlueprints(),
       provideRouter([]),
       { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(NOMAD_PAYLOAD), ...opts.svc } },
       {

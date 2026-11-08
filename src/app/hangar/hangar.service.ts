@@ -13,6 +13,7 @@ import {
   HangarShipConfig,
   HangarShipConfigRow,
   HangarShipRow,
+  HangarShipOrigin,
   HangarShipStatus,
   PeekedSharedLoadout,
   RoleLoadoutItem,
@@ -257,6 +258,8 @@ export class HangarService {
       status: HangarShipStatus;
       selectedSkinId: string | null;
       notes: string | null;
+      qty: number;
+      origin: HangarShipOrigin | null;
     }>,
   ): Promise<boolean> {
     const update: Record<string, unknown> = {};
@@ -264,6 +267,8 @@ export class HangarService {
     if ('status' in patch) update['status'] = patch.status;
     if ('selectedSkinId' in patch) update['selected_skin_id'] = patch.selectedSkinId;
     if ('notes' in patch) update['notes'] = patch.notes;
+    if ('qty' in patch && patch.qty !== undefined) update['qty'] = Math.min(999, Math.max(1, Math.round(patch.qty)));
+    if ('origin' in patch) update['origin'] = patch.origin;
     const { data, error } = await this.sb.client
       .from('hangar_ships')
       .update(update)

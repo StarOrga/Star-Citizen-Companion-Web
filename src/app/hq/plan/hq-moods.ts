@@ -95,3 +95,10 @@ export function parseMoods(raw: unknown): MoodState {
   const side = (v: unknown): MoodSide | null => (v === 'left' || v === 'right' ? v : null);
   return { danger: side(o['danger']), time: side(o['time']), crew: side(o['crew']) };
 }
+
+/**
+ * W5.3: the mood filter (Friedlich/Kampf, Kurz/Lang, Solo/Gruppe) needs the mission activity and crew size of a line,
+ * which only codex data can give. PlanNeed carries neither yet (`activity: null`, `crew: 1`), so every mood would hide
+ * lines it should not. Off until that data exists: the UI offers no moods and no filter applies them.
+ */
+export const MOODS_AVAILABLE = false;

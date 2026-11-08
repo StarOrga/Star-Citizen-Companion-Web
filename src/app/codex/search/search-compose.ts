@@ -135,7 +135,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
         owned: signals.owns(hit.classNameSlug),
         popular: signals.popularity(hit.kind, hit.classNameSlug) > 0,
       },
-      cta: resolveCta(ctx, row, signedIn),
+      cta: resolveCta(ctx, row),
       icons: resolveIcons(row),
     };
   };
@@ -195,7 +195,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
       rows: own.rows.map((r): SearchResultRow => {
         const ref = r.ownKind === 'item' ? null : (r.target.link[r.target.link.length - 1] ?? null);
         const row: CtaRow = { type: 'own', ownKind: r.ownKind, ownRefId: ref, kind: null };
-        return { ...r, cta: resolveCta(ctx, row, signedIn), icons: resolveIcons(row) };
+        return { ...r, cta: resolveCta(ctx, row), icons: resolveIcons(row) };
       }),
       expandable: Math.max(0, own.rows.length - SEARCH_ROWS_SHOWN),
       moreTarget: own.total > SEARCH_ROWS_SHOWN ? ownMoreTarget(own.rows, term) : null,
@@ -222,7 +222,7 @@ export function composeSearchResult(input: ComposeInput): SearchResult {
       id: 'mission', kind: null, reason: null, total: mis.total,
       rows: mis.rows.map((r): SearchResultRow => ({
         ...r,
-        cta: resolveCta(ctx, { type: 'mission', kind: null, classNameSlug: r.className }, signedIn),
+        cta: resolveCta(ctx, { type: 'mission', kind: null, classNameSlug: r.className }),
         icons: { ...NO_ICONS },
       })),
       expandable: Math.max(0, mis.rows.length - SEARCH_ROWS_SHOWN),

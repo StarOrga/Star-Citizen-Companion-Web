@@ -19,7 +19,7 @@ import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { FpsSetPiece, fittingSlots } from './fps-set-fit';
 
 /** What the popover shows — one step of the "add to set" flow at a time. */
-export type AddToSetView = 'signedOut' | 'loading' | 'error' | 'noSet' | 'noFit' | 'pickSet' | 'pickSlot' | 'done';
+export type AddToSetView = 'loading' | 'error' | 'noSet' | 'noFit' | 'pickSet' | 'pickSlot' | 'done';
 
 /**
  * "Zum Set hinzufügen" for the plain FPS archive and an FPS item's detail
@@ -58,10 +58,6 @@ export type AddToSetView = 'signedOut' | 'loading' | 'error' | 'noSet' | 'noFit'
            scDialog [scDialogModal]="false" [scDialogReturnFocus]="trigger"
            (scDialogEscape)="close()">
         @switch (view()) {
-          @case ('signedOut') {
-            <p class="ats-text">{{ 'fps.addToSet.signedOut' | translate }}</p>
-            <a class="ats-link" [routerLink]="lockerLink">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
-          }
           @case ('loading') {
             <p class="ats-text" role="status">{{ 'fps.addToSet.loading' | translate }}</p>
           }
@@ -212,7 +208,6 @@ export class AddToSetComponent {
   readonly itemName = input.required<string>();
 
   readonly open = signal(false);
-  readonly signedIn = signal(false);
   readonly loading = signal(false);
   /** i18n key of a failed set read; never raw text. */
   readonly loadError = signal<string | null>(null);
@@ -238,7 +233,6 @@ export class AddToSetComponent {
   });
 
   readonly view = computed<AddToSetView>(() => {
-    if (!this.signedIn()) return 'signedOut';
     if (this.confirmed()) return 'done';
     if (this.loading()) return 'loading';
     if (this.loadError()) return 'error';
@@ -267,9 +261,6 @@ export class AddToSetComponent {
     this.writeFailed.set(false);
     this.conflict.set(false);
     this.open.set(true);
-    const auth = this.injector.get(AuthService);
-    this.signedIn.set(!!auth.user());
-    if (!this.signedIn()) return;
     await this.loadSets();
   }
 

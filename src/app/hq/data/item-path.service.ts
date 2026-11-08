@@ -32,7 +32,7 @@ import { HqInventoryService } from './hq-inventory.service';
  * WRITE  every action resolves to a PathResult { ok, key, params?, undo? }:
  *   key is an i18n key (itemPath.done.* for a toast, errors.* when ok is false); `undo`
  *   is present where the checklist asks for it (A5 wish -> Nachschub, A6, A7) and returns
- *   another PathResult. Signed out -> { ok:false, key:'itemPath.needSignIn' }, nothing written.
+ *   another PathResult. Without a user (cannot happen behind the login wall) -> { ok:false }, nothing written.
  *     addWish / removeWish
  *     addToNachschub(qty, opts)  a wished item MOVES: the wish goes (A5), undo restores it
  *     setNachschubQty            qty <= 0 removes the line
@@ -80,6 +80,8 @@ export interface ItemPathState {
   kind: string;
   className: string;
   wished: boolean;
+  /** Wished quantity (the cart counter), 0 when not wished. */
+  wishQty: number;
   /** Open lines of the class added up: pieces, or SCU when `nachschubUnit` is 'scu'. */
   nachschubQty: number;
   /** 'scu' when the open lines count an exact SCU amount (a blueprint's material), else null = pieces. */
@@ -96,7 +98,7 @@ export interface ItemPathState {
 
 export interface PathResult {
   ok: boolean;
-  /** i18n key: `itemPath.done.*` (toast text) on success, `itemPath.needSignIn` / `errors.*` on failure. */
+  /** i18n key: `itemPath.done.*` (toast text) on success, `errors.*` on failure. */
   key: string;
   params?: Record<string, string | number>;
   /** Reverts exactly this action; absent where nothing sensible can be undone. */
@@ -153,8 +155,16 @@ const NO_PLACES: readonly PathPlace[] = [];
 /** The stops a kind has. */
 export function stepsOf(kind: string): readonly PathStep[] {
   if (kind === 'upcoming') return ['wish'];
-  if (kind === 'ship') return ['wish', 'nachschub', 'hangar'];
-  return ['wish', 'nachschub', 'inventar'];
+  if (kind === 'ship') return ['wish', 'hangar'];
+  return ['wish', 'inventar'];
+}
+
+/** The word the second node carries: Hangar for ships, Sammlung for blueprints, Inventar for everything else. */
+export type OwnWord = 'inventar' | 'hangar' | 'sammlung';
+export function ownWordOf(kind: string): OwnWord | null {
+  if (kind === 'upcoming') return null;
+  if (kind === 'ship') return 'hangar';
+  return kind === 'blueprint' ? 'sammlung' : 'inventar';
 }
 
 const fail = (key: string): PathResult => ({ ok: false, key });
@@ -263,6 +273,7 @@ export class ItemPathService {
       kind,
       className,
       wished: this.wishlist.has(kind, className, name),
+      wishQty: this.wishlist.qtyOf(kind, className, name),
       nachschubQty,
       nachschubUnit,
       inventarQty: places.reduce((n, p) => n + p.qty, 0),
@@ -278,7 +289,7 @@ export class ItemPathService {
   // ── wish ───────────────────────────────────────────────────────────────────
 
   async addWish(kind: string, className: string, name?: string | null): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     if (this.wishlist.has(kind, className, name)) return { ok: true, key: 'itemPath.done.wishOn', params: { name: name ?? className } };
     try {
       if (!(await this.wishlist.add(kind, className, name))) return fail(wishFailKey(kind, this.hangar.shipByClassName(className)?.status));
@@ -288,8 +299,22 @@ export class ItemPathService {
     return { ok: true, key: 'itemPath.done.wishOn', params: { name: name ?? className }, undo: () => this.removeWish(kind, className, name) };
   }
 
+  /** The cart counter of the detail page: set the wished quantity, 0 or less takes the entry off (with undo). */
+  async setWishQty(kind: string, className: string, name: string | null | undefined, qty: number): Promise<PathResult> {
+    if (!this.auth.user()) return fail('itemPath.err.failed');
+    if (qty <= 0) return this.removeWish(kind, className, name);
+    if (!this.wishlist.has(kind, className, name)) return this.addWish(kind, className, name);
+    try {
+      if (!(await this.wishlist.setQty(kind, className, name, qty))) return fail('itemPath.err.failed');
+    } catch (err) {
+      return fail(toErrorKey('itemPath', 'setWishQty', err));
+    }
+    // A counter step is its own feedback: no toast, nothing to undo.
+    return { ok: true, key: 'itemPath.done.wishQty', params: { name: name ?? className, qty } };
+  }
+
   async removeWish(kind: string, className: string, name?: string | null): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     try {
       if (!(await this.wishlist.remove(kind, className, name))) return fail('itemPath.err.failed');
     } catch (err) {
@@ -305,8 +330,8 @@ export class ItemPathService {
    * A blueprint brings its material along (A9): one extra line per ingredient, undone together.
    */
   async addToNachschub(kind: string, className: string, name: string, qty = 1, opts: NachschubOpts = {}): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
-    if (!stepsOf(kind).includes('nachschub')) return fail('itemPath.err.unavailable');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
+    if (kind === 'upcoming') return fail('itemPath.err.unavailable');
     const materials = kind === 'blueprint' ? await this.materialsOf(className) : [];
     const wasWished = this.wishlist.has(kind, className, name);
     const line = this.supplies.addLine(name, qty, { entityKind: kind, className, stepKind: opts.stepKind ?? null, source: 'search' });
@@ -371,7 +396,7 @@ export class ItemPathService {
 
   /** `qty` is the line's own count: pieces, or portions on an SCU line (its amount follows). */
   setNachschubQty(kind: string, className: string, qty: number): PathResult {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     // A blueprint that goes takes its material along, like "Entfernen".
     if (qty <= 0 && kind === 'blueprint') return this.removeFromNachschub(kind, className);
     const line = this.supplies.openLinesFor(className)[0];
@@ -404,7 +429,7 @@ export class ItemPathService {
    * Undo restores every line exactly as it was.
    */
   removeFromNachschub(kind: string, className: string): PathResult {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     const own = this.supplies.openLinesFor(className);
     const material = kind === 'blueprint' ? this.supplies.openLinesForBlueprint(className).filter((m) => !own.some((o) => o.id === m.id)) : [];
     const lines: SupplyItem[] = [...own, ...material];
@@ -424,8 +449,8 @@ export class ItemPathService {
 
   /** Inventar row "Nachholen" (A7): +qty in Nachschub, the stock stays as it is. */
   nachholen(kind: string, className: string, name: string, qty = 1, unit: 'pcs' | 'scu' = 'pcs'): PathResult {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
-    if (!stepsOf(kind).includes('nachschub')) return fail('itemPath.err.unavailable');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
+    if (kind === 'upcoming') return fail('itemPath.err.unavailable');
     // SCU stock comes back as the same exact amount, never as pieces.
     const exact = unit === 'scu' && qty > 0;
     const line = exact
@@ -451,7 +476,7 @@ export class ItemPathService {
    * stock is written. Blueprints are collected, not counted: one row at PLACE_BLUEPRINTS.
    */
   async moveToInventar(kind: string, className: string, name: string, place: string, qty = 1, opts: MoveOpts = {}): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     if (!stepsOf(kind).includes('inventar')) return fail('itemPath.err.unavailable');
     const where = (kind === 'blueprint' ? PLACE_BLUEPRINTS : place.trim()) || this.currentPlaceDefault();
     const open = this.supplies.openLinesFor(className);
@@ -489,7 +514,7 @@ export class ItemPathService {
 
   /** The stepper of the Inventar popover: stock at one place moves, a Nachschub line stays as it is. */
   async adjustInventar(className: string, name: string, place: string, delta: number): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     const n = Math.abs(Math.round(delta));
     const write = (more: boolean): Promise<boolean> =>
       more ? this.inventory.addStock(place, name, n, 'pcs', className) : this.inventory.removeStock(place, name, n, className);
@@ -508,7 +533,7 @@ export class ItemPathService {
 
   /** "Entfernen": the item leaves every place. */
   async removeFromInventar(kind: string, className: string, name: string): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     const places = this.read(kind, className, name).places;
     try {
       for (const p of places) {
@@ -532,7 +557,7 @@ export class ItemPathService {
 
   /** "Nur abhaken": the line is done, Inventar untouched. */
   tickOnly(className: string, lineId?: string): PathResult {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     const open = this.supplies.openLinesFor(className);
     const line = (lineId ? open.find((l) => l.id === lineId) : undefined) ?? open[0];
     if (!line) return fail('itemPath.err.noLine');
@@ -552,7 +577,7 @@ export class ItemPathService {
 
   /** The ship is in the hangar now. A wished ship flips to owned (one row per class). */
   async addToHangar(className: string, name?: string | null): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     const label = name ?? className;
     const had = this.hangar.shipByClassName(className);
     if (had?.status === 'owned') return { ok: true, key: 'itemPath.done.hangar', params: { name: label } };
@@ -580,7 +605,7 @@ export class ItemPathService {
 
   /** The hangar row goes, and with it what hangs on it. No undo: the caller asks first. */
   async removeFromHangar(className: string, name?: string | null): Promise<PathResult> {
-    if (!this.auth.user()) return fail('itemPath.needSignIn');
+    if (!this.auth.user()) return fail('itemPath.err.failed');
     const ship = this.hangar.shipByClassName(className);
     if (!ship) return fail('itemPath.err.failed');
     try {
