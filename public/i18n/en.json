@@ -6516,6 +6516,8 @@
         }
       },
       "capture": {
+        "subKind": "Sub-kind",
+        "subNone": "Other (no sub-kind)",
         "title": "Add something to your inventory",
         "item": "Item or raw material",
         "itemHint": "e.g. Quantanium",

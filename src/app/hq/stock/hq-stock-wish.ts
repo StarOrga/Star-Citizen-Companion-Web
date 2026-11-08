@@ -5,6 +5,7 @@ import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { WishlistStore } from '../data/wishlist.store';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { NachschubService } from '../nachschub/nachschub.service';
+import { manualSubOf } from '../data/hq-codex-kind';
 import { type StockCategory } from './hq-stock-model';
 import { ingredientTokenOfCrate, parseStockRef } from './hq-stock-ref';
 
@@ -49,7 +50,7 @@ export class StockWishService {
   /** Inventar row or tile → wish target; null without a class name (nothing to key a wish on). */
   targetOf(src: StockWishSource): StockWishTarget | null {
     const ref = parseStockRef(src.className);
-    if (!ref) return null;
+    if (!ref || manualSubOf(src.className)) return null;
     if (ref.kind === 'ship') return { kind: 'ship', className: ref.className, name: src.name };
     if (src.unit === 'scu') {
       // Recipes name the plain material ("Iron"), the stock holds crates of it: wish the material.

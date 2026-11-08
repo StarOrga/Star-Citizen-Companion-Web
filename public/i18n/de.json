@@ -6516,6 +6516,8 @@
         }
       },
       "capture": {
+        "subKind": "Unterart",
+        "subNone": "Sonstiges (ohne Unterart)",
         "title": "Etwas ins Inventar legen",
         "item": "Gegenstand oder Rohstoff",
         "itemHint": "z. B. Quantanium",

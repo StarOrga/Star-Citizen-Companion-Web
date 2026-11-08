@@ -1,5 +1,5 @@
 import { swapArchetype } from '../../codex/swap-table';
-import { ARMOR_SUBS, WEAPON_SUBS, type BestandKind } from '../data/hq-codex-kind';
+import { ARMOR_SUBS, WEAPON_SUBS, manualSubOf, type BestandKind } from '../data/hq-codex-kind';
 import { type QualityAggregate, type QualityRow, aggregateQuality } from '../data/hq-quality';
 import type { HqGatherStop } from '../data/hq-db.types';
 import type { NachschubLineInput } from '../nachschub/nachschub.model';
@@ -45,10 +45,12 @@ export interface DeckCrate extends QualityAggregate {
   readonly sub: string | null;
 }
 
-const bareClass = (classRef: string | null | undefined): string | null => parseStockRef(classRef)?.className ?? null;
+const bareClass = (classRef: string | null | undefined): string | null => (manualSubOf(classRef) ? null : (parseStockRef(classRef)?.className ?? null));
 
 /** Kind and sub-kind of a row: the Codex lane when known (`kinds`, lower-cased class names), else the row heuristic. */
 export function deckKindOf(r: Pick<QualityRow, 'class_name' | 'unit'>, kinds: ReadonlyMap<string, BestandKind>): { kind: StockCategory; sub: string | null } {
+  const manual = manualSubOf(r.class_name);
+  if (manual) return { kind: manual.area, sub: manual.sub };
   const cls = bareClass(r.class_name);
   const k = cls ? kinds.get(cls.toLowerCase()) : undefined;
   if (k?.area === 'weapons') return { kind: 'weapons', sub: k.sub };

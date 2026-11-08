@@ -406,7 +406,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
           <sc-hq-stock-log class="log" [summary]="filterSummary()" [hits]="shownCrates().length" [lines]="logLines()" (wishOne)="wishLog([$event])" (reorder)="wishLog($event)" />
         </div>
       } @else {
-        <div class="grid" role="list" [attr.aria-label]="'hq.bestand.tab.' + tab() | translate">
+        <div class="grid" [class.pads]="tab() === 'hangar'" [class.lockers]="tab() === 'sammlung'" role="list" [attr.aria-label]="'hq.bestand.tab.' + tab() | translate">
           @for (c of pageCells(); track cellKey(c)) {
             @if (c.kind === 'add') {
               <button type="button" class="tile add" role="listitem" [attr.aria-label]="addLabel() | translate" (click)="add()">
@@ -610,6 +610,22 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .tile { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--sc-border); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 5%, var(--sc-bg-1)), var(--sc-bg-1)); color: var(--sc-fg); text-decoration: none; font: inherit; text-align: start; transition: border-color 0.2s, transform 0.2s; }
       .tile.add { align-items: center; justify-content: center; border-style: dashed; border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); cursor: pointer; }
       .tile.add:hover { border-color: var(--sc-accent); transform: translateY(-1px); }
+      /* F2, a3-s9: Hangar reads as ship bays - a landing pad (hatched floor, ring) per ship. */
+      .grid.pads { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); grid-auto-rows: minmax(150px, auto); gap: 14px; }
+      .grid.pads .tile { align-items: center; justify-content: flex-end; text-align: center; padding: 14px 10px 12px; border-radius: 8px;
+        background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--sc-warning) 6%, transparent) 0 8px, transparent 8px 16px), var(--sc-bg-1); }
+      .grid.pads .tile::before { content: ''; position: absolute; left: 14%; right: 14%; top: 22px; height: 62px; border: 1.5px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); border-radius: 50%; pointer-events: none; }
+      .grid.pads .tile .nm { padding-right: 0; font-weight: 600; }
+      .grid.pads .tile .qty { top: 8px; right: 8px; }
+      .grid.pads .tile.add { background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); justify-content: center; }
+      .grid.pads .tile.add::before { display: none; }
+      /* F2, a3-s10: Sammlung reads as an archive - a locker (handle bar, ruled front) per entry. */
+      .grid.lockers { grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: minmax(130px, auto); gap: 10px; }
+      .grid.lockers .tile { justify-content: flex-start; padding: 28px 12px 12px; border-radius: 6px;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--sc-fg-2) 8%, transparent) 1px, transparent 1px) 0 0 / 12px 100%, var(--sc-bg-1); }
+      .grid.lockers .tile::before { content: ''; position: absolute; left: 10px; right: 10px; top: 10px; height: 6px; border-radius: 3px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--sc-fg-2) 40%, transparent) 0 3px, transparent 3px 6px); pointer-events: none; }
+      .grid.lockers .tile.add { background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); }
+      .grid.lockers .tile.add::before { display: none; }
       .plus { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--sc-accent) 60%, transparent); color: var(--sc-accent); }
       .plus svg { width: 22px; height: 22px; stroke-width: 2; }
       .add-t { font-size: 0.8rem; color: var(--sc-fg-1); text-align: center; }

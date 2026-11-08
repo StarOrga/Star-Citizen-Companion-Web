@@ -15,6 +15,7 @@ import { ItemPathComponent } from '../../shared/item-path/item-path.component';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { OverlayFrameComponent } from '../../shared/overlay-frame/overlay-frame.component';
 import { ScSelectComponent, ScSelectOption } from '../../shared/sc-select.component';
+import { ARMOR_SUBS, WEAPON_SUBS, encodeManualSub } from '../data/hq-codex-kind';
 import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService, snapshotAge } from '../data/hq-inventory.service';
@@ -380,6 +381,13 @@ export interface StockStart {
                     {{ 'hq.stock.capture.linked' | translate }}
                   }
                 </p>
+                @if (unknown()) {
+                  <div class="field">
+                    <span class="field-label">{{ 'hq.stock.capture.subKind' | translate }}</span>
+                    <sc-select [options]="manualSubOptions()" [value]="manualSub()" placeholderKey="hq.stock.capture.subNone"
+                               [ariaLabel]="'hq.stock.capture.subKind' | translate" (valueChange)="manualSub.set($event)" />
+                  </div>
+                }
               </div>
               <label class="qty-f">
                 <span>{{ 'hq.stock.capture.qty' | translate }}</span>
@@ -845,6 +853,12 @@ export class HqStockPopupComponent implements OnInit {
     const t = this.itemText().trim();
     return !!t && !this.picked() && this.answeredFor() === t && this.suggestions().length === 0 && !this.searchError();
   });
+  /** Sub-kind of a manual entry without a Codex class (I9): `armor.helmet` / `weapons.sidearm`, null = Sonstiges. */
+  protected readonly manualSub = signal<string | null>(null);
+  protected readonly manualSubOptions = computed<ScSelectOption[]>(() => [
+    ...ARMOR_SUBS.map((s) => ({ value: `armor.${s}`, labelKey: 'hq.bestand.deck.sub.' + s, label: `${this.translate.instant('hq.bestand.deck.kind.armor')} › ${this.translate.instant('hq.bestand.deck.sub.' + s)}` })),
+    ...WEAPON_SUBS.map((s) => ({ value: `weapons.${s}`, labelKey: 'hq.bestand.deck.sub.' + s, label: `${this.translate.instant('hq.bestand.deck.kind.weapons')} › ${this.translate.instant('hq.bestand.deck.sub.' + s)}` })),
+  ]);
   protected qty: number | null = 1;
   location = '';
   private readonly cdr = inject(ChangeDetectorRef);
@@ -935,14 +949,17 @@ export class HqStockPopupComponent implements OnInit {
 
   valid(): boolean {
     const p = this.picked();
-    return !!p && p.title === this.itemText().trim() && !!this.location.trim() && Number(this.qty) > 0;
+    return (!!p ? p.title === this.itemText().trim() : this.unknown()) && !!this.location.trim() && Number(this.qty) > 0;
   }
 
   async add(): Promise<void> {
     const p = this.picked();
-    if (!this.valid() || !p) return;
-    const ok = await this.inv.addManual(this.location, p.title, Number(this.qty), this.unit(), p.key);
+    if (!this.valid()) return;
+    const sub = this.manualSub()?.split('.');
+    const ref = p ? p.key : sub ? encodeManualSub(sub[0] as 'armor' | 'weapons', sub[1]) : null;
+    const ok = await this.inv.addManual(this.location, p ? p.title : this.itemText().trim(), Number(this.qty), this.unit(), ref);
     if (ok) {
+      this.manualSub.set(null);
       this.itemText.set('');
       this.picked.set(null);
       this.suggestions.set([]);

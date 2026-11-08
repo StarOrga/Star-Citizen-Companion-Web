@@ -11,6 +11,24 @@ export const WEAPON_SUBS = ['sidearm', 'primary', 'heavy', 'melee', 'throwable',
 export type WeaponSub = (typeof WEAPON_SUBS)[number];
 
 /** The lane a class belongs to in the Bestand, from the Codex. `other` = not found in the Codex or nothing the lanes name. */
+/**
+ * A manual entry without a Codex class names its lane and sub-kind itself (I9): `class_name` stores
+ * `manual:armor.helmet` / `manual:weapons.sidearm` (no migration; `parseStockRef` reads it as a bare class name).
+ */
+export const MANUAL_SUB_PREFIX = 'manual:';
+
+export function encodeManualSub(area: 'armor' | 'weapons', sub: string): string {
+  return `${MANUAL_SUB_PREFIX}${area}.${sub}`;
+}
+
+/** Lane and sub-kind of a manual class marker; null for anything else (a Codex class, a bare name, none). */
+export function manualSubOf(classRef: string | null | undefined): { area: 'armor' | 'weapons'; sub: string } | null {
+  const m = /^manual:(armor|weapons)\.([a-z]+)$/.exec((classRef ?? '').trim());
+  if (!m) return null;
+  const subs: readonly string[] = m[1] === 'armor' ? ARMOR_SUBS : WEAPON_SUBS;
+  return subs.includes(m[2]) ? { area: m[1] as 'armor' | 'weapons', sub: m[2] } : null;
+}
+
 export type BestandArea = 'weapons' | 'armor' | 'ship' | 'other';
 
 export interface BestandKind {
