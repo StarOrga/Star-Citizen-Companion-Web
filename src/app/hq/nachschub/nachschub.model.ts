@@ -16,6 +16,8 @@ export const EINSATZ_NAME_MAX = 40;
 export const WISH_QTY_MAX = 999;
 
 export type NachschubStatus = 'active' | 'archived';
+/** normal = craft/buy/collect; event = rewards of an event; sightseeing = an event without reward (src/app/hq/events/event-nachschub.ts). */
+export type NachschubType = 'normal' | 'event' | 'sightseeing';
 
 /** A Nachschub as the client holds it (`hq_supply_packages`). */
 export interface Nachschub {
@@ -28,6 +30,10 @@ export interface Nachschub {
   readonly snapshot: Readonly<Record<string, number>>;
   readonly createdAt: string;
   readonly archivedAt: string | null;
+  /** Absent = normal. */
+  readonly type?: NachschubType;
+  /** sc_events.id for type event / sightseeing. */
+  readonly eventId?: string | null;
 }
 
 /** One wishlist position (any kind; `forClassName` groups material under its blueprint). */
@@ -264,6 +270,22 @@ export function clearNachschub(lines: readonly OpenLine[], wish: readonly WishPo
     }
   }
   return { removeIds: open.map((l) => l.id), wishlist: next };
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Owning fulfils the wish (the event claim shrinks the wished reward class with it)
+// ---------------------------------------------------------------------------------------------------------
+
+export interface FulfilResult {
+  /** New wished quantity (0 = the wish is gone). */
+  readonly qty: number;
+  /** Quantity before. */
+  readonly previous: number;
+}
+
+/** `gained` copies landed in Inventar/Hangar: the wished quantity shrinks by them. */
+export function fulfilWish(wishedQty: number, gained: number): FulfilResult {
+  return { qty: Math.max(0, wishedQty - Math.max(0, Math.round(gained))), previous: wishedQty };
 }
 
 // ---------------------------------------------------------------------------------------------------------

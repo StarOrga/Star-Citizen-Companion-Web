@@ -1,0 +1,108 @@
+[
+  {
+    "iteration": 1,
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "q-store",
+        "value": "sheet",
+        "note": "",
+        "deviates": false
+      },
+      {
+        "id": "q-review",
+        "value": "review",
+        "note": "",
+        "deviates": false
+      },
+      {
+        "id": "q-end",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": "",
+        "deviates": false
+      },
+      {
+        "id": "q-entry",
+        "value": [
+          "line"
+        ],
+        "note": "und wie gesagt statt der leiste einfach wenn man auf + nachschub klickt im dialog bzw. auch in der kleinen kachel schon einen teaser4",
+        "deviates": true
+      },
+      {
+        "id": "q-slot",
+        "value": "slot",
+        "note": "",
+        "deviates": false
+      },
+      {
+        "id": "q-detect",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "note": "",
+        "deviates": false
+      },
+      {
+        "id": "q-claim",
+        "value": [
+          "channel",
+          "event",
+          "store"
+        ],
+        "note": "Ja man soll ein evneta uach abbrehcehnn können, bzw. den nachschub ist es ja wie andere auch, nur mit dem unterschiedm, dass das dann hier nicht auf die wunschliste zurückgeht sondern einfach fortschritt gespeichert wird, ggf. durch scc app immer aktuell gehaltne und dann kann man es jederzeit fortsetzen",
+        "deviates": false
+      }
+    ],
+    "annotations": [
+      {
+        "id": "ev-a1",
+        "answer": "sehr gut !"
+      },
+      {
+        "id": "ev-a2",
+        "answer": "Jain, die sollten erscheinen sobald ich auf nachschuhb + drücke, dann sollten sier auch neben der wunschliste zur auswahl stehen, aber nur welche ide ich nicht gefmacht haben, abgeschlossene events sollten dann eher unter statstik auftauchen! \nAber auf jeden fall hier nicht, das nervt nur  ggf. ein + nachschub irgendwie highlighten lassen, ala  event verfügbar. Btw, mach immer nur den nächsten nachschub slot ein plus die reihe sollte immer links nanfangen mit dem ältesten nachschub geplant und wenn eins erledigt wird dann zwischendurch einfach rausfliegen und die anderen aufrücken.\nUnd das eine + sl.ot dann gern inkl. teaser event verfügabr"
+      },
+      {
+        "id": "ev-a3",
+        "answer": "Ja ist auch ok! Aber dann eher belohnung sightseeing, gern das als nachschubtyp einf+hren"
+      },
+      {
+        "id": "ev-a4",
+        "answer": "Ja genau, aber nur wenn es die belohnugn aus diesem event ist, weil ich ja sonst ggf. die maxlift bekommen will, aber hier bekomme ich ja eine pledge oder extra versioN!"
+      },
+      {
+        "id": "ev-a6",
+        "answer": "warum psäter gern mit bauen für scc app! die erkennung gern die gamelogs von gestern analysen"
+      },
+      {
+        "id": "ev-a7",
+        "answer": "ja genau, wobei arena commander gern einfach als extra element ggü. dem gebiet / sternenkarte, weil man ja auch mehrere events gleichzeitig auswählen kann innerhlab eines nachschubs auch wen nnicht empfolen"
+      },
+      {
+        "id": "ev-a8",
+        "answer": "sehr gut"
+      },
+      {
+        "id": "ev-a9",
+        "answer": "Ne, passt, und gern auch scc app befähigen das azusätlzich automatisch hier zu ändern"
+      },
+      {
+        "id": "ev-a10",
+        "answer": "die prüfseite gern nur für admins im admin menü, dort mit historie"
+      }
+    ],
+    "pins": [
+      {
+        "screen": "ev-flow",
+        "target": "span.d1-ev-chip.ok \"✓ Alpha 4.10.2\"",
+        "text": "patch ist eh obligatorisch, hier unnötig, genauso auch spielpaket. Vorausssetzung eher eine abschätuzung was man düafr braucht, z. B. fps fight set oder kampfschiff etc.. oder salvage schiff, dabei \"oder\" und/oder \"und\" anziegen"
+      }
+    ],
+    "outcome": "Implement ordered; brief in briefs/implement.md"
+  }
+]

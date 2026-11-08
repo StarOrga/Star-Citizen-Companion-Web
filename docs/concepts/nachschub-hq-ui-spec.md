@@ -75,3 +75,12 @@ The next concept or implementation for wishlist, Nachschub, Inventar, Hangar, Sa
 - **Entry motion** (`shared/entry-motion/`): `[scEntry]` + global `CINEMATIC ENTRY` block; cinematic on the first open of a page, quick afterwards, none under `prefers-reduced-motion`.
 - **Galerie / News**: both show `sc-sammlung-strip`; the gallery source filter is an `<sc-select>`; `NewsService.toggleFavorite` writes to `SammlungService`.
 - Known gaps: the recommendation catalogue does not cover ships, blueprints, places or magazines; missiles keep the classic hero.
+
+## Events als Nachschub (frontend, 2026-11-08)
+
+- Slot row (`events/event-hq.util.ts` `boardTiles`): oldest planned Nachschub left, finished ones drop out, exactly one "+" that carries the teaser "Event verfügbar" while `EventHqService.hasOpen()`. No events strip on Planen.
+- "Neuer Nachschub" lists open (not done / dismissed) events beside the wishlist; step 3 offers "Event" as a fourth way per line when the wish is exactly a reward of a running event. An event becomes one Einsatz with a single `event` step carrying its area (system / places) and the venues (Arena Commander is a separate chip).
+- Claimed rewards: ships go to the Hangar (origin pledge / ingame, `both` = two copies); everything else to Inventar, location "Event-Belohnungen", origin = channel. Whether a reward is a ship is guessed from the manufacturer prefix and can be flipped in the claim dialog.
+- Abort / emptying an event Nachschub never returns lines to the wishlist; progress stays in `user_event_state`; resume from the Archiv.
+- Admin review page: `/admin/events` (hub tile, admin-only), approve / reject / set by hand via `sc_event_sheet_apply`, history, "Neu auswerten" calls `sc-event-sheet` with `{eventId, force:true}`.
+- Live: `hq_live_state.state.location {system, place}` and `.event.arenaCommander` drive the Jetzt offer bar; `user_event_state` is re-read every 30 s while the app is live (no Realtime channel yet).

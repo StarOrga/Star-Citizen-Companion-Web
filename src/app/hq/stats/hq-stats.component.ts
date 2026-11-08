@@ -1,3 +1,4 @@
+import { EventHqService } from '../events/event-hq.service';
 import { HqLiveService } from '../now/hq-live.service';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -99,6 +100,20 @@ export interface HqTile {
       @if (svc.error()) {
         <p class="note warn" role="status">{{ svc.error()! | translate }}</p>
       }
+    }
+
+    @if (events.doneEvents().length) {
+      <section class="evdone" aria-labelledby="hq-stats-events">
+        <h3 id="hq-stats-events">{{ 'hq.stats.events.title' | translate }} <small>{{ events.doneEvents().length }}</small></h3>
+        <ul>
+          @for (d of events.doneEvents(); track d.state.eventId) {
+            <li>
+              <b>{{ d.event?.name ?? d.state.eventId }}</b>
+              <small>{{ 'hq.stats.events.doneOn' | translate: { date: d.state.updatedAt.slice(0, 10) } }}</small>
+            </li>
+          }
+        </ul>
+      </section>
     }
 
     @if (detail(); as d) {
@@ -208,6 +223,7 @@ export interface HqTile {
         padding: var(--sc-space-4, 16px); display: grid; gap: var(--sc-space-3, 12px);
       }
       .d-head { display: flex; justify-content: space-between; align-items: center; gap: var(--sc-space-3, 12px); }
+      .evdone { margin-top: var(--sc-space-4, 16px); } .evdone h3 { margin: 0 0 var(--sc-space-2, 8px); font: 600 1rem var(--sc-font-display); } .evdone ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); } .evdone li { display: flex; flex-direction: column; padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); border: 1px solid var(--sc-border); border-radius: 10px; background: var(--sc-bg-1); } .evdone small { color: var(--sc-fg-2); }
       .d-head h3 { margin: 0; font: 600 1.2rem / 1.2 var(--sc-font-display); }
       .d-sum { margin: 0; font-variant-numeric: tabular-nums; }
       .d-spark { height: 5rem; }
@@ -240,7 +256,10 @@ export class HqStatsComponent implements OnInit {
   readonly previewTiles = computed<HqTile[]>(() => (this.allEmpty() ? this.buildPreview() : []));
   readonly detail = computed(() => this.tiles().find((t) => t.id === this.detailId()) ?? null);
 
+  protected readonly events = inject(EventHqService);
+
   ngOnInit(): void {
+    this.events.ensure();
     if (this.auth.user()) void this.svc.load();
   }
 

@@ -1,0 +1,22 @@
+{
+  "note": "Past Free Fly 2026-07-29..08-10. Research gives the flyable ships only; rewards stay unknown.",
+  "event": { "id": "ff-2956", "series": "foundation-festival", "name": "Foundation Festival 2956", "start_date": "2026-07-29", "end_date": "2026-08-10", "date_status": "confirmed", "status": "scheduled", "url": "", "source_comm_link_id": null },
+  "sources": [
+    { "kind": "comm-link", "label": "Foundation Festival 2956", "url": "https://robertsspaceindustries.com/en/comm-link/transmission/0-Foundation-Festival", "text": "Foundation Festival, a welcome event for new players, runs July 29 to August 10 with a Free Fly. Flyable ships: Aurora Mk II, Cutter, Golem, Intrepid and Salvation." }
+  ],
+  "llm": { "fields": {
+    "venues": { "value": ["verse"], "confidence": 0.9, "source": "official" },
+    "area": { "value": null, "confidence": 0, "source": "ai" },
+    "tasks": { "value": [ { "id": "fly", "label": "Fly the Free Fly ships: Aurora Mk II, Cutter, Golem, Intrepid, Salvation", "trackId": null } ], "confidence": 0.85, "source": "official" },
+    "progress": { "value": { "model": "none", "tracks": [] }, "confidence": 0.8, "source": "official" },
+    "rewards": { "value": null, "confidence": 0, "source": "ai" },
+    "prerequisites": { "value": null, "confidence": 0, "source": "ai" },
+    "start": { "value": "2026-07-29", "confidence": 0.95, "source": "official" },
+    "end": { "value": "2026-08-10", "confidence": 0.95, "source": "official" }
+  } },
+  "expect": {
+    "public": { "venues": ["verse"], "area": null, "rewards": null, "start": "2026-07-29", "end": "2026-08-10" },
+    "pending": [],
+    "progressModel": "none"
+  }
+}

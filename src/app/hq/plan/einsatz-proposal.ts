@@ -17,8 +17,8 @@ import { buildRoute } from './map/hq-route';
  * without a known place makes no step (W5.5, `unplacedLines`).
  */
 
-export type EinsatzRole = 'mission' | 'buy' | 'mine' | 'craft';
-export const EINSATZ_ROLES: readonly EinsatzRole[] = ['mission', 'buy', 'mine', 'craft'];
+export type EinsatzRole = 'mission' | 'buy' | 'mine' | 'craft' | 'event';
+export const EINSATZ_ROLES: readonly EinsatzRole[] = ['mission', 'buy', 'mine', 'craft', 'event'];
 
 /** One thing the Nachschub holds, as the proposal reads it. */
 export interface ProposalLine {
@@ -34,10 +34,12 @@ export interface ProposalLine {
   readonly forName: string | null;
   /** A blueprint that makes this item is known (Codex recipe lookup); only then can the line be crafted. */
   readonly craftable?: boolean;
+  /** Running events whose reward IS this line (exact class); only then the fourth way "Event" exists. */
+  readonly eventIds?: readonly string[];
 }
 
 /** How a line is met: bought at a merchant, crafted from its blueprint, or gathered (mined) as material. */
-export type LineMode = 'buy' | 'craft' | 'mine';
+export type LineMode = 'buy' | 'craft' | 'mine' | 'event';
 
 /** How a material line is met: `buy` + `mine` = its quantity. */
 export interface LineSplit {
@@ -129,6 +131,7 @@ export function availableModes(l: ProposalLine, hasPlace: boolean): LineMode[] {
   const out: LineMode[] = [];
   if (hasPlace) out.push('buy');
   if (l.craftable) out.push('craft');
+  if (l.eventIds?.length) out.push('event');
   return out;
 }
 

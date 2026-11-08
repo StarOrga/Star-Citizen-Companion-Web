@@ -36,9 +36,9 @@ describe('hq.* wording', () => {
     expect(scope(en as unknown as Tree)).toEqual(scope(de as unknown as Tree));
   });
 
-  it('names the five pages and the seven step verbs', () => {
+  it('names the five pages and the eight step verbs', () => {
     const hq = (de as unknown as { hq: { pages: Tree; step: { kind: Tree } } }).hq;
     expect(Object.keys(hq.pages)).toEqual(jasmine.arrayContaining(['start', 'planen', 'jetzt', 'inventar', 'statistik']));
-    expect(Object.keys(hq.step.kind).sort()).toEqual(['buy', 'craft', 'mine', 'mission', 'pickup', 'refine', 'transport']);
+    expect(Object.keys(hq.step.kind).sort()).toEqual(['buy', 'craft', 'event', 'mine', 'mission', 'pickup', 'refine', 'transport']);
   });
 });

@@ -1,3 +1,4 @@
+import { EventHqService } from './events/event-hq.service';
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, afterNextRender, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
@@ -25,6 +26,7 @@ export const PAGE_BAR_SLACK_PX = 12;
            [attr.aria-label]="'hq.pages.' + p | translate"
            [attr.aria-current]="nav.active() === p ? 'page' : null">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons[p]" /></svg>
+          @if (p === 'planen' && events.hasOpen()) { <i class="evdot" [attr.aria-label]="'hq.events.dot' | translate" role="img"></i> }
           <span>{{ 'hq.pages.' + p | translate }}</span>
         </a>
       }
@@ -32,6 +34,8 @@ export const PAGE_BAR_SLACK_PX = 12;
   `,
   styles: [
     `
+      .evdot { position: absolute; top: 6px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--sc-accent); box-shadow: 0 0 0 2px var(--sc-bg-1); }
+      .tab { position: relative; }
       :host { display: none; }
       @media (max-width: 1023px) {
         :host {
@@ -102,6 +106,7 @@ export const PAGE_BAR_SLACK_PX = 12;
   ],
 })
 export class HqPageBarComponent {
+  protected readonly events = inject(EventHqService);
   protected readonly nav = inject(HqPageNavService);
   protected readonly icons = HQ_PAGE_ICONS;
   readonly hidden = signal(false);

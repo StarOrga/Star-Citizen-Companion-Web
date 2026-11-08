@@ -39,6 +39,13 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = [
     icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
   },
   {
+    id: 'events',
+    link: '/admin/events',
+    titleKey: 'adminHub.tiles.events.title',
+    textKey: 'adminHub.tiles.events.text',
+    icon: 'M12 3l2 6.2 6.2 2.8-6.2 2.8L12 21l-2-6.2L3.8 12 10 9.2z',
+  },
+  {
     id: 'translations',
     link: '/admin/translations',
     titleKey: 'adminHub.tiles.translations.title',
