@@ -5357,6 +5357,7 @@
     },
     "run": {
       "aria": "Nachschub that Jetzt runs",
+      "archived": "Finished: this Nachschub sits in the archive, its Einsätze keep running here. Reactivate it under Planen › Archive.",
       "for": "for",
       "stepOf": "Step {{n}} of {{total}}",
       "switch": "Switch Nachschub",
@@ -5426,6 +5427,12 @@
     "nachschub": {
       "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
       "nothingPicked": "Pick at least one item from the wishlist.",
+      "linesFull": "Your Nachschub list is full (100 positions). Remove some positions first, then the wishlist can move in.",
+      "partial": "{{count}} positions stayed behind: your Nachschub list is full.",
+      "wishlistFailed": "The wishlist could not be changed. Nothing was moved.",
+      "wishCapped": "{{count}} units no longer fit on the wishlist (999 per entry at most) and are lost.",
+      "gone": "This Nachschub no longer exists (deleted on another device). The view is refreshing.",
+      "capReached": "You reached the limit of stored Nachschübe. Delete old ones from the archive and it works again.",
       "newName": "New Nachschub",
       "newEinsatz": "New Einsatz",
       "verb": {

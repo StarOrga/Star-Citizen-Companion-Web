@@ -756,6 +756,8 @@ export class HqNachschubFlowComponent {
     try {
       const picks: WishPick[] = [...this.picks()].map(([key, qty]) => ({ key, qty }));
       const name = clampName(this.name(), NACHSCHUB_NAME_MAX);
+      // The proposal reads the wishlist: taking the picks empties it. Hold the Einsaetze and their lines BEFORE the write.
+      const plan: EinsatzPlan = { drafts: this.drafts(), lines: this.proposalLines(), names: this.names() };
       let result: NachschubResult;
       let id: string | undefined;
       if (this.mode() === 'new') {
@@ -772,7 +774,7 @@ export class HqNachschubFlowComponent {
         this.error.set(result.key);
         return;
       }
-      await this.writeEinsaetze(id);
+      await this.writeEinsaetze(id, plan);
       this.done.emit(result);
     } finally {
       this.busy.set(false);
@@ -780,16 +782,16 @@ export class HqNachschubFlowComponent {
   }
 
   /** Create the proposed Einsaetze for the lines just added, with the supply line each step serves. */
-  private async writeEinsaetze(packageId: string): Promise<void> {
+  private async writeEinsaetze(packageId: string, plan: EinsatzPlan): Promise<void> {
     const lines = this.svc.linesOf(packageId);
     const lineId = (key: string): string | null => {
-      const src = this.proposalLines().find((l) => l.key === key);
+      const src = plan.lines.find((l) => l.key === key);
       if (!src) return null;
       const f = (src.forClassName ?? '').toLowerCase();
       return lines.find((l) => (l.className ?? '').toLowerCase() === (src.className ?? '').toLowerCase() && (l.forClassName ?? '').toLowerCase() === f)?.id ?? null;
     };
-    for (const d of this.drafts()) {
-      const title = clampName(this.names().get(d.role) ?? (await this.naming.einsatzName(d.steps.map((s) => ({ kind: s.kind, label: s.label })))), EINSATZ_NAME_MAX);
+    for (const d of plan.drafts) {
+      const title = clampName(plan.names.get(d.role) ?? (await this.naming.einsatzName(d.steps.map((s) => ({ kind: s.kind, label: s.label })))), EINSATZ_NAME_MAX);
       this.einsatz.create({
         title,
         packageId,
@@ -807,4 +809,11 @@ export class HqNachschubFlowComponent {
       });
     }
   }
+}
+
+/** What the proposal looked like when "Speichern" was pressed (the wishlist it reads shrinks with the write). */
+interface EinsatzPlan {
+  readonly drafts: readonly DraftEinsatz[];
+  readonly lines: readonly ProposalLine[];
+  readonly names: ReadonlyMap<string, string>;
 }
