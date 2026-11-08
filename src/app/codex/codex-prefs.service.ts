@@ -4,6 +4,12 @@ import type { RankScope } from './codex-rank';
 /** localStorage key of the opt-in (`'1'` = non-usable items shown). */
 const SHOW_NON_USABLE_KEY = 'sc.codex.showNonUsable';
 
+/** localStorage key of the non-ship detail view (`'holo'` | `'classic'`; absent = first visit = classic). */
+export const ITEM_VIEW_KEY = 'sc.codex.itemView';
+
+/** The two views of a non-ship detail page (missile, weapon, component, gear). */
+export type ItemView = 'classic' | 'holo';
+
 /** localStorage key of the Holotable's comparison group per ship. */
 export const SHIP_RANK_SCOPE_KEY = 'sc.codex.rankScopeByShip';
 
@@ -36,6 +42,23 @@ export class CodexPrefsService {
 
   /** `false` (default) → non-usable records stay out of tree, lists and search. */
   readonly showNonUsable = this.showNonUsableState.asReadonly();
+
+  private readonly itemViewState = signal<ItemView>(readItemView());
+
+  /**
+   * The view of every non-ship detail page. First visit = 'classic' (the page
+   * as it was on 2026-11-07); the last chosen view is remembered afterwards.
+   */
+  readonly itemView = this.itemViewState.asReadonly();
+
+  setItemView(view: ItemView): void {
+    this.itemViewState.set(view);
+    try {
+      localStorage.setItem(ITEM_VIEW_KEY, view);
+    } catch {
+      /* private mode / quota — the choice still applies for this session */
+    }
+  }
 
   /** Bumped on every write, so a computed that reads a ship's group re-runs. */
   private readonly shipScopeRev = signal(0);
@@ -83,6 +106,15 @@ export class CodexPrefsService {
     } catch {
       /* private mode / quota — the in-memory signal still applies this session */
     }
+  }
+}
+
+function readItemView(): ItemView {
+  if (typeof localStorage === 'undefined') return 'classic';
+  try {
+    return localStorage.getItem(ITEM_VIEW_KEY) === 'holo' ? 'holo' : 'classic';
+  } catch {
+    return 'classic';
   }
 }
 

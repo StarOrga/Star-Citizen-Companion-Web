@@ -300,7 +300,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           <div phAside class="crumb-aside">
             <ng-container [ngTemplateOutlet]="shipAsideData" />
             <!-- The item page carries the path control in its own panel; a second copy up here doubled it (and pushed the page down). -->
-            @if (!itemStage()) { <ng-container [ngTemplateOutlet]="shipAsideSwitch" /> }
+            @if (!itemStage()) { <ng-container [ngTemplateOutlet]="shipAsideSwitch" /> } @else { <ng-container [ngTemplateOutlet]="viewToggle" /> }
           </div>
         }
       </sc-page-header>
@@ -342,7 +342,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         <!-- ── Item page (weapon, component, FPS gear): the stage and the info panel, built like the ship Holotable
              (concept nachschub-hq r4-d1-s9 / s9h). Focus order of the entry (--ce): the stage and the name first, then the
              path control, the tabs, the values. Every block of the classic page is still here, behind three tabs. ── -->
-        <div class="item-page" [scEntry]="'codex-detail'" [class.hq]="fromHq()" [scFeedbackSpot]="'feedbackSpot.headline'">
+        <div class="item-page flow" [scEntry]="'codex-detail'" [class.hq]="fromHq()" [scFeedbackSpot]="'feedbackSpot.headline'">
           <header class="it-title ce" style="--ce: 0">
             <div class="it-name">
               <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
@@ -530,7 +530,9 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             }
 
             <div class="hero-actions">
-              <!-- "Vergleichen" is not on the detail page any more: it lives in the full-site search overview. -->
+              <button type="button" class="pin" [class.pinned]="isPinned()" (click)="togglePin()">
+                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+              </button>
               @if (!shareFab()) {
                 <button type="button" class="pin" (click)="copyShareLink()">
                   {{ 'codex.detail.actionCopyLink' | translate }}
@@ -1023,7 +1025,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     <!-- ── Missile: its own stat groups, then where it ranks among all missiles (item stage only; the classic page renders both above) ── -->
     @if (itemStage() && isMissile() && showTab('werte')) {
       @if (missileStats().length > 0) {
-        <section class="sc-card block" [scFeedbackSpot]="'codex.missile.data.title'">
+        <section class="sc-card block" style="order: 1" [scFeedbackSpot]="'codex.missile.data.title'">
           <h2>{{ 'codex.missile.data.title' | translate }}</h2>
           @for (g of missileStats(); track g.id) {
             <h3 class="sg-head">{{ ('codex.missile.group.' + g.id) | translate }}</h3>
@@ -1196,18 +1198,21 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         @if (detail(); as d) {
           <sc-item-path [kind]="d.kind" [className]="d.classNameSlug" [name]="displayName()" [level]="pathLevel()" />
         }
-        @if (kind() === 'ship') {
+        <ng-container [ngTemplateOutlet]="viewToggle" />
+      </ng-template>
+      <ng-template #viewToggle>
+        @if (detail()) {
           <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
-            <button type="button" class="ht-btn" [class.active]="!holoView()"
+            <button type="button" class="ht-btn" [class.active]="!viewIsHolo()"
                     [scTooltip]="'codex.holo.toggle.classicHint' | translate" scTooltipTier="label"
-                    [attr.aria-pressed]="!holoView()"
-                    (click)="holoView() && toggleHoloView()">
+                    [attr.aria-pressed]="!viewIsHolo()"
+                    (click)="viewIsHolo() && toggleView()">
               {{ 'codex.holo.toggle.classic' | translate }}
             </button>
-            <button type="button" class="ht-btn" [class.active]="holoView()"
+            <button type="button" class="ht-btn" [class.active]="viewIsHolo()"
                     [scTooltip]="'codex.holo.toggle.holoHint' | translate" scTooltipTier="label"
-                    [attr.aria-pressed]="holoView()"
-                    (click)="!holoView() && toggleHoloView()">
+                    [attr.aria-pressed]="viewIsHolo()"
+                    (click)="!viewIsHolo() && toggleView()">
               {{ 'codex.holo.toggle.holo' | translate }}
             </button>
           </div>
@@ -1763,7 +1768,28 @@ export class CodexDetailComponent implements OnInit {
   }
   protected readonly nachschubIcon = NACHSCHUB_ICON_PATHS;
   /** Every kind but ships (which keep their own stage) gets the stage layout; a missile too, with its own values and rank. */
-  protected readonly itemStage = computed(() => !!this.detail() && this.kind() !== 'ship');
+  protected readonly itemStage = computed(() => !!this.detail() && this.kind() !== 'ship' && this.itemHolo());
+  /**
+   * Non-ship pages: Klassisch (the page as of 2026-11-07, the `@else` masthead branch — do not change it) or
+   * Holotisch (the item stage). The first visit is Klassisch; the last choice is remembered (CodexPrefsService).
+   * `?view=holo|classic` wins on load, so a shared link opens in the view it was copied from.
+   */
+  protected readonly itemHolo = signal(inject(CodexPrefsService).itemView() === 'holo');
+  /** The toggle's state for any kind. */
+  protected readonly viewIsHolo = computed(() => (this.kind() === 'ship' ? this.holoView() : this.itemHolo()));
+  protected toggleView(): void {
+    if (this.kind() === 'ship') { this.toggleHoloView(); return; }
+    const next = !this.itemHolo();
+    this.itemHolo.set(next);
+    this.codexPrefs.setItemView(next ? 'holo' : 'classic');
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { view: next ? 'holo' : null }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+  private initItemView(): void {
+    const fromUrl = this.route.snapshot.queryParamMap.get('view');
+    if (fromUrl === 'holo') this.itemHolo.set(true);
+    else if (fromUrl === 'classic') this.itemHolo.set(false);
+    else this.itemHolo.set(this.codexPrefs.itemView() === 'holo');
+  }
   protected readonly itemTab = signal<'werte' | 'herstellung' | 'info'>('werte');
   /** Opened from the HQ (the crumb leads back there): the page quietly says which Nachschub holds the item. */
   protected readonly fromHq = computed(() => (this.navOrigin.previous()?.path ?? '').startsWith('/hq'));
@@ -2575,6 +2601,7 @@ export class CodexDetailComponent implements OnInit {
     const seq = ++this.loadSeq;
     this.requestKind.set(kind);
     if (kind === 'ship') this.initHoloView(className);
+    else this.initItemView();
     // A new ship is a new answer to "is there a model?" — see onArtAvailable.
     this.has3dView.set(false);
     this.heroView3d.set(false);

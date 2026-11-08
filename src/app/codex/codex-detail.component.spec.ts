@@ -551,6 +551,8 @@ describe('CodexDetailComponent — armour hero icon (part glyph)', () => {
 });
 
 describe('CodexDetailComponent — missile on the item stage', () => {
+  beforeEach(() => localStorage.setItem('sc.codex.itemView', 'holo'));
+  afterEach(() => localStorage.removeItem('sc.codex.itemView'));
   it('renders the holotable item stage with the missile values and rank, not the classic hero', async () => {
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, {
       silhouette: async () => null,
@@ -572,6 +574,8 @@ describe('CodexDetailComponent — missile on the item stage', () => {
 });
 
 describe('CodexDetailComponent — crafting recipe (#187)', () => {
+  beforeEach(() => localStorage.setItem('sc.codex.itemView', 'holo'));
+  afterEach(() => localStorage.removeItem('sc.codex.itemView'));
   const BP = 'BP_CRAFT_KLWE_LaserRepeater_S3';
   const ingredient = (ingredientIndex: number, ingredientClassName: string, quantity: number) => ({
     blueprintClassName: BP,
@@ -1529,5 +1533,45 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
       expect(cmp.showModeSwitch()).toBeTrue();
       expect(cmp.crumbs().map((c) => c.link)).toEqual(['/hq', '/hq/hangar']);
     }));
+  });
+});
+
+describe('CodexDetailComponent — non-ship Klassisch / Holotisch', () => {
+  const missile = () => setup('weapon', [], NOMAD_PAYLOAD, {
+    silhouette: async () => null,
+    getMissileCohort: async () => [],
+    getDetail: async () => ({
+      classNameSlug: 'misl_s02_ir_novp_rattler',
+      kind: 'component',
+      row: { attach_type: 'Missile', size: 2 },
+      payload: {},
+      ports: [],
+      strings: [],
+    }),
+  });
+  beforeEach(() => localStorage.removeItem('sc.codex.itemView'));
+  afterEach(() => localStorage.removeItem('sc.codex.itemView'));
+
+  it('opens Klassisch on the first visit and offers the toggle', async () => {
+    const el: HTMLElement = (await missile()).nativeElement;
+    expect(el.querySelector('.item-page')).toBeNull();
+    expect(el.querySelector('header.hero')).not.toBeNull();
+    expect(el.querySelectorAll('.holo-toggle .ht-btn').length).toBe(2);
+  });
+
+  it('switches to Holotisch, remembers it, and the Holotisch panel does not scroll inside', async () => {
+    const fixture = await missile();
+    const el: HTMLElement = fixture.nativeElement;
+    el.querySelectorAll<HTMLButtonElement>('.holo-toggle .ht-btn')[1].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(el.querySelector('.item-page.flow sc-codex-item-stage')).not.toBeNull();
+    expect(localStorage.getItem('sc.codex.itemView')).toBe('holo');
+  });
+
+  it('opens Holotisch afterwards when it was the last choice', async () => {
+    localStorage.setItem('sc.codex.itemView', 'holo');
+    const el: HTMLElement = (await missile()).nativeElement;
+    expect(el.querySelector('.item-page sc-codex-item-stage')).not.toBeNull();
   });
 });
