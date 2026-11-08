@@ -1,0 +1,554 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-viewports="desktop" data-tab-label="Runde 1">
+<style>
+.d1-pl-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #6f8aa0; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b; --card: rgba(8, 20, 30, 0.82);
+  position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 640px; box-sizing: border-box; overflow: hidden; color: var(--fg);
+  font: 13px/1.4 Inter, system-ui, "Segoe UI", sans-serif; text-align: left;
+  background: radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 40%, #03080e 100%); }
+.d1-pl-app *, .d1-pl-app *::before, .d1-pl-app *::after { box-sizing: border-box; }
+.d1-pl-mh { display: flex; align-items: center; justify-content: space-between; flex: none; height: 48px; padding: 0 24px; border-bottom: 1px solid var(--line); }
+.d1-pl-brand { font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.08em; }
+.d1-pl-nav { display: flex; gap: 22px; font: 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.2em; color: var(--fg2); }
+.d1-pl-nav .on { color: var(--fg); border-bottom: 2px solid var(--a); padding-bottom: 6px; }
+.d1-pl-sub { display: flex; gap: 18px; flex: none; height: 36px; align-items: center; padding: 0 24px; color: var(--fg3); font-size: 12px; border-bottom: 1px solid var(--line); }
+.d1-pl-sub .on { color: var(--fg); }
+.d1-pl-page { position: relative; display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; width: 100%; max-width: 1180px; margin: 0 auto; padding: 18px 28px 14px; }
+.d1-pl-head { display: flex; align-items: center; gap: 12px; flex: none; }
+.d1-pl-head h2 { margin: 0 auto 0 0; font: 600 20px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.04em; }
+.d1-pl-seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
+.d1-pl-seg span { padding: 5px 14px; border-radius: 999px; color: var(--fg2); }
+.d1-pl-seg .on { color: var(--fg); background: rgba(82, 193, 230, 0.2); box-shadow: 0 0 0 1px var(--a); }
+.d1-pl-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); background: transparent; font: inherit; }
+.d1-pl-pill b { font-family: ui-monospace, monospace; color: var(--a); }
+.d1-pl-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border: 0; border-radius: 999px; background: var(--a); color: #04121b; font: 600 13px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.d1-pl-btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
+.d1-pl-btn[disabled] { opacity: 0.4; cursor: default; }
+.d1-pl-box { border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 12px 14px; }
+.d1-pl-box h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.d1-pl-muted { color: var(--fg2); }
+.d1-pl-tiny { font-size: 11px; color: var(--fg3); }
+.d1-pl-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.d1-pl-chip { padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg2); font-size: 12px; }
+.d1-pl-chip.on { color: var(--fg); border-color: var(--a); background: rgba(82, 193, 230, 0.14); }
+.d1-pl-ring { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(82, 193, 230, 0.25); border-top-color: var(--a); border-right-color: var(--a); }
+.d1-pl-map { position: relative; flex: 1; min-height: 120px; border: 1px solid var(--line); border-radius: 12px; background: radial-gradient(circle at 50% 50%, rgba(82, 193, 230, 0.1), transparent 60%), #040c13; overflow: hidden; }
+.d1-pl-map::before { content: ""; position: absolute; inset: 14%; border: 1px dashed rgba(159, 179, 200, 0.25); border-radius: 50%; }
+.d1-pl-map::after { content: ""; position: absolute; inset: 32%; border: 1px dashed rgba(159, 179, 200, 0.18); border-radius: 50%; }
+.d1-pl-map i { position: absolute; z-index: 1; width: 10px; height: 10px; border-radius: 50%; background: var(--a); box-shadow: 0 0 10px var(--a); }
+.d1-pl-map .lbl { position: absolute; z-index: 1; left: 12px; top: 10px; font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.14em; color: var(--fg2); }
+.d1-pl-map .ghost { position: absolute; z-index: 1; inset: 0; display: grid; place-items: center; color: var(--fg3); }
+.d1-pl-map .leg { position: absolute; z-index: 1; left: 12px; bottom: 8px; display: flex; gap: 12px; font-size: 11px; color: var(--fg2); }
+.d1-pl-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; min-height: 0; overflow: hidden; }
+.d1-pl-need { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.d1-pl-need.sel { border-color: rgba(82, 193, 230, 0.55); background: rgba(82, 193, 230, 0.07); }
+.d1-pl-need .cb { flex: none; width: 15px; height: 15px; border: 1.5px solid var(--fg2); border-radius: 4px; }
+.d1-pl-need.sel .cb { border-color: var(--a); background: var(--a); }
+.d1-pl-need .nm { flex: 1; min-width: 0; }
+.d1-pl-need .nm small { display: block; color: var(--fg2); font-size: 11px; }
+.d1-pl-need .shop { flex: none; padding: 3px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+.d1-pl-need .shop b { font-family: ui-monospace, monospace; font-weight: 500; }
+.d1-pl-need.warn { border-color: rgba(240, 194, 123, 0.55); }
+.d1-pl-need.warn .shop { color: var(--warn); border-color: rgba(240, 194, 123, 0.5); }
+.d1-pl-more { padding: 4px 10px; color: var(--fg3); font-size: 12px; }
+.d1-pl-fold { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; height: 54px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; gap: 10px;
+  background: linear-gradient(transparent, rgba(3, 8, 14, 0.96) 70%); border-top: 2px dashed var(--warn); color: var(--warn); font-weight: 600; }
+.d1-pl-stack { display: flex; flex-direction: column; gap: 10px; }
+.d1-pl-steps { display: flex; align-items: center; gap: 8px; flex: none; }
+.d1-pl-step { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg3); }
+.d1-pl-step i { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-style: normal; font-size: 11px; }
+.d1-pl-step.done { color: var(--ok); border-color: rgba(95, 214, 152, 0.45); }
+.d1-pl-step.cur { color: var(--fg); border-color: var(--a); background: rgba(82, 193, 230, 0.14); }
+.d1-pl-step.cur i { background: var(--a); color: #04121b; border-color: var(--a); }
+.d1-pl-step small { color: var(--fg2); }
+.d1-pl-sep { width: 18px; height: 1px; background: var(--line); }
+.d1-pl-body { display: flex; gap: 14px; flex: 1; min-height: 0; }
+.d1-pl-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+.d1-pl-col.left { flex: 0 0 46%; }
+.d1-pl-col.right { flex: 1; }
+.d1-pl-q { margin: 0; font: 600 15px/1.3 Inter, system-ui, sans-serif; }
+.d1-pl-next { display: flex; align-items: center; gap: 12px; flex: none; padding: 9px 12px 9px 16px; border: 1px solid rgba(82, 193, 230, 0.45); border-radius: 12px; background: rgba(82, 193, 230, 0.08); }
+.d1-pl-next .say { flex: 1; }
+.d1-pl-next .say b { color: var(--a); }
+.d1-pl-route { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.d1-pl-route li { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--line); }
+.d1-pl-route li em { flex: none; width: 18px; font-style: normal; color: var(--a); font-family: ui-monospace, monospace; }
+.d1-pl-route li span { flex: 1; }
+.d1-pl-route li small { color: var(--fg2); }
+.d1-pl-sum { display: flex; gap: 16px; color: var(--fg2); }
+.d1-pl-sum b { color: var(--fg); font-family: ui-monospace, monospace; font-weight: 500; }
+.d1-pl-fresh { display: flex; flex-direction: column; gap: 8px; }
+.d1-pl-fresh ol { margin: 0; padding-left: 1.3em; color: var(--fg2); display: flex; flex-direction: column; gap: 3px; }
+.d1-pl-input { flex: 1; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--fg); background: rgba(0, 0, 0, 0.25); }
+.d1-pl-acc { display: flex; align-items: center; gap: 10px; flex: none; padding: 9px 14px; border: 1px solid var(--line); border-radius: 12px; color: var(--fg3); }
+.d1-pl-acc.done { color: var(--fg); }
+.d1-pl-acc.done i { color: var(--ok); }
+.d1-pl-acc i { font-style: normal; }
+.d1-pl-acc .grow { flex: 1; }
+.d1-pl-acc-open { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; padding: 10px 14px; border: 1px solid var(--a); border-radius: 12px; background: rgba(82, 193, 230, 0.05); }
+.d1-pl-scrollhint { flex: none; text-align: center; font-size: 11px; color: var(--fg3); }
+</style>
+
+  <section data-design="heute" data-nav-label="Heute: alles gestapelt" data-design-active="true" data-design-motto="So steht Planen heute da" data-design-traits="Filter, Karte und Extras stehen über der Liste|Was/Wie-Schalter statt Schritten|Teilweise gefüllt sind es schon 1,5 Bildschirme" data-design-icon="layers" data-design-color="#9fb3c8">
+    <section id="h-leer" data-nav-label="Leer" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2></div>
+          <div class="d1-pl-box d1-pl-fresh">
+            <h3>Noch nichts zu planen</h3>
+            <p class="d1-pl-muted" style="margin:0">Planen baut deine Route aus deinem Nachschub. Leg zuerst fest, was du brauchst.</p>
+            <ol><li>Such einen Gegenstand und setz ihn auf Nachschub.</li><li>Wähle hier, was davon als Nächstes dran ist.</li><li>Lass dir die Route zeigen und speichere sie als Einsatz.</li></ol>
+            <div class="d1-pl-row"><button class="d1-pl-btn ghost" type="button" data-screen-link="h-teil">Gegenstand suchen</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h-a1" data-anno-side="right" data-anno-target=".d1-pl-fresh" style="--anno-x:60%;--anno-y:38%">
+  <button class="anno-pin" type="button" data-anno-pin="h-a1" aria-expanded="false" aria-controls="anno-bubble-h-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-h-a1" data-anno-bubble="h-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h-a1" aria-expanded="false" aria-controls="anno-bubble-h-a1"><span class="anno-bubble-question">Der leere Zustand passt heute als einziger auf eine Seite. Sobald eine Zeile dazukommt, verschwinden die drei Schritte ganz. Soll die Schrittfolge sichtbar bleiben, auch wenn schon etwas drin ist?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h-a1" data-annotation="h-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h-teil" data-nav-label="Teilweise gefüllt" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><div class="d1-pl-seg"><span class="on">Was brauche ich</span><span>Wie komme ich hin</span></div><span class="d1-pl-pill">Nachschub <b>3</b></span></div>
+          <div class="d1-pl-box">
+            <h3>Auswahl <span class="d1-pl-tiny">· Top 3</span></h3>
+            <div class="d1-pl-row"><span class="d1-pl-ring"></span><span class="d1-pl-ring"></span><span class="d1-pl-chip">Kampf ↔ Friedlich</span><span class="d1-pl-chip">Solo ↔ Gruppe</span><span class="d1-pl-chip">Schnell ↔ Lang</span></div>
+            <div class="d1-pl-row" style="margin-top:6px"><span class="d1-pl-chip on">Kaufen</span><span class="d1-pl-chip">Mission</span><span class="d1-pl-chip">Abbauen</span><span class="d1-pl-chip">Looten</span><span class="d1-pl-chip">Handwerk</span><span class="d1-pl-chip">Ernten</span><span class="d1-pl-chip">Bergen</span></div>
+            <div class="d1-pl-row" style="margin-top:6px"><span class="d1-pl-chip">▸ Stanton</span><span class="d1-pl-chip">▸ Pyro</span></div>
+          </div>
+          <div class="d1-pl-map" style="flex:none;height:300px"><span class="lbl">STANTON</span><i style="left:40%;top:44%"></i><i style="left:62%;top:58%"></i></div>
+          <div class="d1-pl-tiny">Community-Preise teilen · Blueprint-Fortschritt · Warenpreise</div>
+          <div class="d1-pl-fold">Hier endet der Bildschirm · die Bedarfsliste beginnt ≈ 400 px tiefer</div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h-a2" data-anno-side="left" data-anno-target=".d1-pl-fold" style="--anno-x:50%;--anno-y:90%">
+  <button class="anno-pin" type="button" data-anno-pin="h-a2" aria-expanded="false" aria-controls="anno-bubble-h-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-h-a2" data-anno-bubble="h-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h-a2" aria-expanded="false" aria-controls="anno-bubble-h-a2"><span class="anno-bubble-question">Die eigentliche Arbeit, deine Liste, liegt unter Filtern, Karte und drei Extra-Blöcken. Mit drei Zeilen sind das ≈ 1 590 px bei 880 px Platz. Ist das für dich das Kernproblem, oder stört etwas anderes mehr?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h-a2" data-annotation="h-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="h-voll" data-nav-label="Voll" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><div class="d1-pl-seg"><span>Was brauche ich</span><span class="on">Wie komme ich hin</span></div><span class="d1-pl-pill">Nachschub <b>20</b></span></div>
+          <div class="d1-pl-map" style="flex:none;height:300px"><span class="lbl">STANTON · PYRO · NYX</span><i style="left:30%;top:40%"></i><i style="left:52%;top:60%"></i><i style="left:70%;top:36%"></i></div>
+          <div class="d1-pl-tiny">Community-Preise teilen · Blueprint-Fortschritt (4 Karten) · Warenpreise (Tabelle offen)</div>
+          <div class="d1-pl-box"><h3>Route</h3><ol class="d1-pl-route"><li><em>1</em><span>Laser-Repeater S3 ×2</span><small>Area18</small></li><li><em>2</em><span>Quantanium 0,4 SCU</span><small>Aberdeen</small></li></ol></div>
+          <div class="d1-pl-box"><h3>Deine Einsätze <span class="d1-pl-tiny">· 3 gespeichert, je mit Schritten, Freunden und Crew</span></h3></div>
+          <div class="d1-pl-fold">Hier endet der Bildschirm · darunter noch ≈ 3,5 Bildschirme</div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="h-a3" data-anno-side="left" data-anno-target=".d1-pl-box:last-of-type" style="--anno-x:60%;--anno-y:76%">
+  <button class="anno-pin" type="button" data-anno-pin="h-a3" aria-expanded="false" aria-controls="anno-bubble-h-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-h-a3" data-anno-bubble="h-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="h-a3" aria-expanded="false" aria-controls="anno-bubble-h-a3"><span class="anno-bubble-question">Mit drei gespeicherten Einsätzen sagt die Seite nicht, welcher als Nächstes dran ist. Jetzt nimmt dann einfach den ohne Datum zuletzt. Willst du selbst festlegen, welcher Einsatz aktiv ist?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-h-a3" data-annotation="h-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-h-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="wizard" data-nav-label="Assistent, ein Schritt" hidden data-design-motto="Ein Schritt nach dem anderen" data-design-traits="Immer nur ein Schritt sichtbar|Zurück und Weiter wie ein Assistent|Rückkehrer klicken erneut durch" data-design-icon="list" data-design-color="#f0c27b">
+    <section id="a-leer" data-nav-label="Leer" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><span class="d1-pl-pill">Nachschub <b>0</b></span></div>
+          <div class="d1-pl-steps"><span class="d1-pl-step cur"><i>1</i>Bedarf</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>2</i>Quellen</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>3</i>Route</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>4</i>Einsatz</span></div>
+          <div class="d1-pl-box d1-pl-fresh" style="flex:1">
+            <p class="d1-pl-q">Was brauchst du?</p>
+            <p class="d1-pl-muted" style="margin:0">Noch steht nichts auf deinem Nachschub. Such einen Gegenstand, ein Schiffsteil oder ein Material und setz es auf die Liste.</p>
+            <div class="d1-pl-row"><button class="d1-pl-btn" type="button" data-screen-link="a-teil">Gegenstand suchen</button></div>
+          </div>
+          <div class="d1-pl-next"><span class="say d1-pl-muted">Schritt 1 von 4 · Es fehlt noch dein erster Bedarf</span><button class="d1-pl-btn" type="button" disabled>Weiter: Quellen ›</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="a-a1" data-anno-side="bottom" data-anno-target=".d1-pl-steps" style="--anno-x:30%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="a-a1" aria-expanded="false" aria-controls="anno-bubble-a-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-a-a1" data-anno-bubble="a-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="a-a1" aria-expanded="false" aria-controls="anno-bubble-a-a1"><span class="anno-bubble-question">Der Assistent führt am stärksten. Als Rückkehrer klickst du aber bei jedem Besuch wieder durch Bedarf und Quellen. Ist das okay, wenn die Seite auf deinem letzten Schritt öffnet?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-a-a1" data-annotation="a-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-a-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="a-teil" data-nav-label="Teilweise gefüllt" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><span class="d1-pl-pill">Nachschub <b>3</b></span></div>
+          <div class="d1-pl-steps"><span class="d1-pl-step done"><i>✓</i>Bedarf <small>3 gewählt</small></span><span class="d1-pl-sep"></span><span class="d1-pl-step cur"><i>2</i>Quellen</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>3</i>Route</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>4</i>Einsatz</span></div>
+          <div class="d1-pl-box d1-pl-col" style="flex:1">
+            <p class="d1-pl-q">Wo holst du es?</p>
+            <ul class="d1-pl-list">
+              <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Laser-Repeater S3 ×2<small>für Gladius „Rotfuchs“</small></span><span class="shop">Area18 · <b>4 210 aUEC</b> ▾</span></li>
+              <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Quantanium 0,4 SCU<small>Abbauen</small></span><span class="shop">Aberdeen ▾</span></li>
+              <li class="d1-pl-need sel warn"><span class="cb"></span><span class="nm">Pembroke-Helm<small>für Set „Bergung“</small></span><span class="shop">Kein Händler bekannt</span></li>
+            </ul>
+          </div>
+          <div class="d1-pl-next"><span class="say">2 von 3 haben eine Quelle</span><button class="d1-pl-btn ghost" type="button" data-screen-link="a-leer">‹ Zurück</button><button class="d1-pl-btn" type="button" data-screen-link="a-voll">Weiter: Route ›</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="a-a2" data-anno-side="right" data-anno-target=".d1-pl-box" style="--anno-x:76%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="a-a2" aria-expanded="false" aria-controls="anno-bubble-a-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-a-a2" data-anno-bubble="a-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="a-a2" aria-expanded="false" aria-controls="anno-bubble-a-a2"><span class="anno-bubble-question">In Schritt 1 und 2 gibt es keine Karte, sie kommt erst bei der Route. Fehlt dir die Karte, während du Händler auswählst?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-a-a2" data-annotation="a-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-a-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="a-voll" data-nav-label="Voll" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><span class="d1-pl-pill">Nachschub <b>20</b></span></div>
+          <div class="d1-pl-steps"><span class="d1-pl-step done"><i>✓</i>Bedarf <small>14 gewählt</small></span><span class="d1-pl-sep"></span><span class="d1-pl-step done"><i>✓</i>Quellen</span><span class="d1-pl-sep"></span><span class="d1-pl-step cur"><i>3</i>Route</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>4</i>Einsatz</span></div>
+          <div class="d1-pl-body">
+            <div class="d1-pl-col left d1-pl-box">
+              <p class="d1-pl-q">In welcher Reihenfolge?</p>
+              <ol class="d1-pl-route"><li><em>1</em><span>Kaufen: Laser-Repeater S3 ×2</span><small>Area18</small></li><li><em>2</em><span>Kaufen: 4 Medpens</span><small>Area18</small></li><li><em>3</em><span>Abbauen: Quantanium</span><small>Aberdeen</small></li><li><em>4</em><span>Kaufen: Pembroke-Helm</span><small>Levski</small></li><li><em>5</em><span>Mission: Bergungsauftrag</span><small>Pyro I</small></li></ol>
+              <div class="d1-pl-scrollhint">+ 6 weitere Stopps (scrollt in der Liste)</div>
+            </div>
+            <div class="d1-pl-col right"><div class="d1-pl-map"><span class="lbl">STANTON → PYRO</span><i style="left:28%;top:40%"></i><i style="left:46%;top:62%"></i><i style="left:70%;top:34%"></i><span class="leg"><span>◆ Kaufen</span><span>▲ Abbauen</span><span>★ Mission</span></span></div></div>
+          </div>
+          <div class="d1-pl-next"><span class="say d1-pl-sum"><span><b>11</b> Stopps</span><span><b>2</b> Systeme</span><span>≈ <b>184 000</b> aUEC</span></span><button class="d1-pl-btn ghost" type="button" data-screen-link="a-teil">‹ Zurück</button><button class="d1-pl-btn" type="button">Weiter: Einsatz ›</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer></div>
+    </section>
+  </section>
+
+  <section data-design="zweispalten" data-nav-label="Liste und Route nebeneinander" hidden data-design-motto="Liste links, Route rechts, eine Leiste sagt was nun" data-design-traits="Alle vier Schritte als Leiste oben|Route rechnet live neben der Liste|Unten steht immer der eine nächste Schritt" data-design-icon="compass" data-design-color="#52c1e6">
+    <section id="b-leer" data-nav-label="Leer" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><div class="d1-pl-steps"><span class="d1-pl-step cur"><i>1</i>Bedarf</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>2</i>Quellen</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>3</i>Route</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>4</i>Einsatz</span></div><span class="d1-pl-pill">Nachschub <b>0</b></span></div>
+          <div class="d1-pl-body">
+            <div class="d1-pl-col left d1-pl-box d1-pl-fresh">
+              <p class="d1-pl-q">Was brauchst du?</p>
+              <p class="d1-pl-muted" style="margin:0">Planen baut dir aus deinem Nachschub eine Route. So geht's:</p>
+              <ol><li>Bedarf: Gegenstand suchen und auf Nachschub setzen</li><li>Quellen: Händler oder Fundort wählen</li><li>Route: Reihenfolge prüfen</li><li>Einsatz: speichern und in Jetzt starten</li></ol>
+            </div>
+            <div class="d1-pl-col right"><div class="d1-pl-map"><span class="lbl">STANTON</span><span class="ghost">Hier erscheint deine Route</span></div></div>
+          </div>
+          <div class="d1-pl-next"><span class="say"><b>Nächster Schritt:</b> deinen ersten Bedarf eintragen</span><button class="d1-pl-btn" type="button" data-screen-link="b-teil">Gegenstand suchen</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="b-a1" data-anno-side="top" data-anno-target=".d1-pl-next" style="--anno-x:30%;--anno-y:92%">
+  <button class="anno-pin" type="button" data-anno-pin="b-a1" aria-expanded="false" aria-controls="anno-bubble-b-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-b-a1" data-anno-bubble="b-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="b-a1" aria-expanded="false" aria-controls="anno-bubble-b-a1"><span class="anno-bubble-question">Die Leiste unten nennt in jedem Zustand den einen nächsten Schritt, und ihr Knopf ist die einzige Hauptaktion der Seite. Reicht dir das als „durchführen“, oder willst du mehr Text pro Schritt?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-b-a1" data-annotation="b-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-b-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="b-teil" data-nav-label="Teilweise gefüllt" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><div class="d1-pl-steps"><span class="d1-pl-step done"><i>✓</i>Bedarf <small>3</small></span><span class="d1-pl-sep"></span><span class="d1-pl-step cur"><i>2</i>Quellen</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>3</i>Route</span><span class="d1-pl-sep"></span><span class="d1-pl-step"><i>4</i>Einsatz</span></div><span class="d1-pl-pill">Nachschub <b>3</b></span></div>
+          <div class="d1-pl-body">
+            <div class="d1-pl-col left">
+              <p class="d1-pl-q">Wo holst du es?</p>
+              <ul class="d1-pl-list">
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Laser-Repeater S3 ×2<small>für Gladius „Rotfuchs“</small></span><span class="shop">Area18 · <b>4 210 aUEC</b> ▾</span></li>
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Quantanium 0,4 SCU<small>Abbauen</small></span><span class="shop">Aberdeen ▾</span></li>
+                <li class="d1-pl-need sel warn"><span class="cb"></span><span class="nm">Pembroke-Helm<small>Kein Händler bekannt · im Codex ansehen · Ort selbst setzen · aus der Route nehmen</small></span><span class="shop">Quelle fehlt</span></li>
+              </ul>
+            </div>
+            <div class="d1-pl-col right"><div class="d1-pl-map"><span class="lbl">STANTON · 2 Stopps</span><i style="left:38%;top:42%"></i><i style="left:60%;top:60%"></i><span class="leg"><span>◆ Kaufen</span><span>▲ Abbauen</span><span>1 ohne Ort</span></span></div></div>
+          </div>
+          <div class="d1-pl-next"><span class="say"><b>Nächster Schritt:</b> für den Pembroke-Helm eine Quelle setzen, oder ohne ihn weiter</span><button class="d1-pl-btn" type="button" data-screen-link="b-voll">Weiter: Route ›</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="b-a2" data-anno-side="right" data-anno-target=".d1-pl-need.warn" style="--anno-x:40%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="b-a2" aria-expanded="false" aria-controls="anno-bubble-b-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-b-a2" data-anno-bubble="b-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="b-a2" aria-expanded="false" aria-controls="anno-bubble-b-a2"><span class="anno-bubble-question">Eine Zeile ohne Händler ist heute eine Sackgasse und fehlt dann still in der Route. Hier bekommt sie drei Auswege. Fehlt dir einer, oder ist einer zu viel?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-b-a2" data-annotation="b-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-b-a2"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="b-voll" data-nav-label="Voll" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><div class="d1-pl-steps"><span class="d1-pl-step done"><i>✓</i>Bedarf <small>14</small></span><span class="d1-pl-sep"></span><span class="d1-pl-step done"><i>✓</i>Quellen</span><span class="d1-pl-sep"></span><span class="d1-pl-step done"><i>✓</i>Route</span><span class="d1-pl-sep"></span><span class="d1-pl-step cur"><i>4</i>Einsatz</span></div><span class="d1-pl-pill">Nachschub <b>20</b></span></div>
+          <div class="d1-pl-body">
+            <div class="d1-pl-col left">
+              <div class="d1-pl-row"><span class="d1-pl-chip on">Gladius 4/6</span><span class="d1-pl-chip on">Bergung 2/5</span><span class="d1-pl-chip">Cutlass 0/3</span><span class="d1-pl-chip">Filter ▾</span></div>
+              <ul class="d1-pl-list">
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Laser-Repeater S3 ×2</span><span class="shop">Area18 · <b>4 210</b></span></li>
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Medpen ×4</span><span class="shop">Area18 · <b>320</b></span></li>
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Quantanium 0,4 SCU</span><span class="shop">Aberdeen</span></li>
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Pembroke-Helm</span><span class="shop">Levski · <b>11 900</b></span></li>
+                <li class="d1-pl-need"><span class="cb"></span><span class="nm">Schildgenerator S2</span><span class="shop">Lorville · <b>38 400</b></span></li>
+                <li class="d1-pl-need"><span class="cb"></span><span class="nm">Rüstung „Antium“ Beine</span><span class="shop">Orison · <b>7 650</b></span></li>
+              </ul>
+              <div class="d1-pl-scrollhint">+ 14 weitere · die Liste scrollt in sich, die Seite nicht</div>
+            </div>
+            <div class="d1-pl-col right">
+              <div class="d1-pl-map" style="flex:0 0 200px"><span class="lbl">STANTON → PYRO · 11 Stopps</span><i style="left:26%;top:40%"></i><i style="left:44%;top:62%"></i><i style="left:68%;top:34%"></i><span class="leg"><span>◆ Kaufen</span><span>▲ Abbauen</span><span>★ Mission</span></span></div>
+              <ol class="d1-pl-route"><li><em>1</em><span>Area18</span><small>2 Käufe</small></li><li><em>2</em><span>Aberdeen</span><small>Abbauen</small></li><li><em>3</em><span>Levski</span><small>1 Kauf</small></li></ol>
+              <div class="d1-pl-tiny">3 gespeicherte Einsätze ▾ · 1 von Freunden geteilt (in Jetzt)</div>
+            </div>
+          </div>
+          <div class="d1-pl-next"><span class="say d1-pl-sum"><span><b>11</b> Stopps</span><span><b>2</b> Systeme</span><span>≈ <b>184 000</b> aUEC</span></span><span class="d1-pl-input">Einsatz-Name: Gladius aufrüsten</span><button class="d1-pl-btn" type="button">In Jetzt starten</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="b-a3" data-anno-side="top" data-anno-target=".d1-pl-next .d1-pl-btn" style="--anno-x:88%;--anno-y:92%">
+  <button class="anno-pin" type="button" data-anno-pin="b-a3" aria-expanded="false" aria-controls="anno-bubble-b-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-b-a3" data-anno-bubble="b-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="b-a3" aria-expanded="false" aria-controls="anno-bubble-b-a3"><span class="anno-bubble-question">Schritt 4 speichert und startet in einem Klick, danach gleitet die Seite zu Jetzt. Die gespeicherten Einsätze sind nur noch ein aufklappbarer Zähler. Fehlt dir hier etwas?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-b-a3" data-annotation="b-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-b-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+
+  <section data-design="akkordeon" data-nav-label="Schritte klappen zu" hidden data-design-motto="Erledigte Schritte schrumpfen auf eine Zeile" data-design-traits="Eine Spalte, Schritt für Schritt nach unten|Erledigtes bleibt als Zusammenfassung sichtbar|Passt auch aufs Handy" data-design-icon="grid" data-design-color="#5fd698">
+    <section id="c-leer" data-nav-label="Leer" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><span class="d1-pl-pill">Nachschub <b>0</b></span></div>
+          <div class="d1-pl-acc-open d1-pl-fresh">
+            <p class="d1-pl-q">① Was brauchst du?</p>
+            <p class="d1-pl-muted" style="margin:0">Noch steht nichts auf deinem Nachschub. Such einen Gegenstand und setz ihn auf die Liste.</p>
+            <div class="d1-pl-row"><button class="d1-pl-btn" type="button" data-screen-link="c-teil">Gegenstand suchen</button></div>
+          </div>
+          <div class="d1-pl-acc"><i>②</i><span class="grow">Wo holst du es?</span><span class="d1-pl-tiny">noch nicht</span></div>
+          <div class="d1-pl-acc"><i>③</i><span class="grow">In welcher Reihenfolge?</span><span class="d1-pl-tiny">noch nicht</span></div>
+          <div class="d1-pl-acc"><i>④</i><span class="grow">Einsatz speichern und starten</span><span class="d1-pl-tiny">noch nicht</span></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer></div>
+    </section>
+    <section id="c-teil" data-nav-label="Teilweise gefüllt" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><span class="d1-pl-pill">Nachschub <b>3</b></span></div>
+          <div class="d1-pl-acc done"><i>✓</i><span class="grow">Bedarf · 3 gewählt</span><span class="d1-pl-chip">ändern</span></div>
+          <div class="d1-pl-acc-open">
+            <p class="d1-pl-q">② Wo holst du es?</p>
+            <div class="d1-pl-body">
+              <ul class="d1-pl-list d1-pl-col left">
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Laser-Repeater S3 ×2</span><span class="shop">Area18 · <b>4 210</b> ▾</span></li>
+                <li class="d1-pl-need sel"><span class="cb"></span><span class="nm">Quantanium 0,4 SCU</span><span class="shop">Aberdeen ▾</span></li>
+                <li class="d1-pl-need sel warn"><span class="cb"></span><span class="nm">Pembroke-Helm</span><span class="shop">Quelle fehlt</span></li>
+              </ul>
+              <div class="d1-pl-col right"><div class="d1-pl-map"><span class="lbl">STANTON</span><i style="left:40%;top:44%"></i><i style="left:62%;top:58%"></i></div></div>
+            </div>
+            <div class="d1-pl-row" style="justify-content:flex-end"><button class="d1-pl-btn" type="button" data-screen-link="c-voll">Weiter: Route ›</button></div>
+          </div>
+          <div class="d1-pl-acc"><i>③</i><span class="grow">In welcher Reihenfolge?</span><span class="d1-pl-tiny">noch nicht</span></div>
+          <div class="d1-pl-acc"><i>④</i><span class="grow">Einsatz speichern und starten</span><span class="d1-pl-tiny">noch nicht</span></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="c-a1" data-anno-side="right" data-anno-target=".d1-pl-acc.done" style="--anno-x:50%;--anno-y:24%">
+  <button class="anno-pin" type="button" data-anno-pin="c-a1" aria-expanded="false" aria-controls="anno-bubble-c-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-c-a1" data-anno-bubble="c-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="c-a1" aria-expanded="false" aria-controls="anno-bubble-c-a1"><span class="anno-bubble-question">Ein erledigter Schritt wird zu einer Zeile mit „ändern“. Die vier Kopfzeilen kosten ≈ 200 px, bei 768 px Bildschirmhöhe bleibt dem offenen Schritt dann wenig Platz. Ist dir dieser Preis die klare Reihenfolge wert?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-c-a1" data-annotation="c-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-c-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="c-voll" data-nav-label="Voll" data-screen hidden data-screen-fit="full">
+      <div class="d1-pl-app">
+        <header class="d1-pl-mh"><span class="d1-pl-brand">SC Companion</span><nav class="d1-pl-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-pl-sub"><span>Start</span><span>Inventar</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-pl-page">
+          <div class="d1-pl-head"><h2>Planen</h2><span class="d1-pl-pill">Nachschub <b>20</b></span></div>
+          <div class="d1-pl-acc done"><i>✓</i><span class="grow">Bedarf · 14 gewählt aus 3 Sets</span><span class="d1-pl-chip">ändern</span></div>
+          <div class="d1-pl-acc done"><i>✓</i><span class="grow">Quellen · alle 14 haben einen Ort</span><span class="d1-pl-chip">ändern</span></div>
+          <div class="d1-pl-acc-open">
+            <p class="d1-pl-q">③ In welcher Reihenfolge?</p>
+            <div class="d1-pl-body">
+              <ol class="d1-pl-route d1-pl-col left"><li><em>1</em><span>Area18</span><small>2 Käufe</small></li><li><em>2</em><span>Aberdeen</span><small>Abbauen</small></li><li><em>3</em><span>Levski</span><small>1 Kauf</small></li><li><em>4</em><span>Pyro I</span><small>Mission</small></li></ol>
+              <div class="d1-pl-col right"><div class="d1-pl-map"><span class="lbl">STANTON → PYRO</span><i style="left:28%;top:40%"></i><i style="left:46%;top:62%"></i><i style="left:70%;top:34%"></i></div></div>
+            </div>
+            <div class="d1-pl-row" style="justify-content:flex-end"><span class="d1-pl-sum" style="margin-right:auto"><span><b>11</b> Stopps</span><span>≈ <b>184 000</b> aUEC</span></span><button class="d1-pl-btn" type="button">Weiter: Einsatz ›</button></div>
+          </div>
+          <div class="d1-pl-acc"><i>④</i><span class="grow">Einsatz speichern und starten</span><span class="d1-pl-tiny">3 gespeichert</span></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer></div>
+    </section>
+  </section>
+
+  <section data-view="planen-regeln" data-view-kind="analysis" data-analysis="full" data-nav-label="Was bleibt, was geht" hidden>
+    <section id="d1-pl-brief" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Planen läuft mit drei Zeilen auf ≈ 1,8 Bildschirmhöhen, voll auf ≈ 4,5. Die Bedarfsliste beginnt erst unter Filtern, Karte und drei Extra-Blöcken.</p>
+      <p data-briefing-why>Wer etwas holen will, sieht zuerst Ringe, Stimmungen, sieben Chips und einen Ortsbaum. Die Route liegt hinter einem Schalter. Was danach kommt, sagt die Seite nicht.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"4,5 → 1","unit":"Bildschirme","label":"Höhe von Planen im vollen Zustand, heute und als Ziel"}'>4,5 → 1</div>
+      <a data-briefing-topic="d1-pl-t1" data-share="45">Was auf Planen bleibt</a>
+      <a data-briefing-topic="d1-pl-t2" data-share="55">Ablauf und Platz</a>
+      <p data-briefing-duration>≈ 5 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4,5 → 1","unit":"Bildschirme"}'></div></div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Leer","value":340},{"label":"Teilweise (3 Zeilen)","value":1590},{"label":"Voll (20 Zeilen, 3 Einsätze)","value":3900}],"unit":"px","text":"Platz auf 1920×1080: 880 px. Auf 1366×768: 568 px."}'></div><p>Gemessen hat der Designer im Code, nicht im Browser. Die Fragen hier gelten für jede Layout-Variante oben.</p></div>
+      </div>
+    </section>
+    <section id="d1-pl-t1" data-topic data-nav-label="Was auf Planen bleibt">
+      <div data-alevel="2" data-title="Was auf Planen bleibt">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Fragen dazu, was die Seite noch trägt."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Schalter, Stimmungen und Extra-Blöcke kosten Platz, ohne einen Planungsschritt zu bedienen."}'></div><p>Dabei kam ein Fehler heraus: Die Stimmungen „Gruppe“ und „Friedlich“ blenden jede Zeile aus. Grund: Aktivität und Crew sind in hq-plan-needs.ts fest gesetzt (activity null, crew 1).</p></div>
+      </div>
+    <section id="q-switch" data-nav-label="Was/Wie-Schalter" data-decision="q-switch" data-decision-mode="single" data-label="Was/Wie-Schalter" data-rec="steps" data-rec-why="Vier Schritte sagen, wo du stehst und was als Nächstes kommt. Ein Schalter mit zwei Seiten sagt das nicht." data-applies-to="den Kopf von Planen" data-finding="f-q-switch">
+      <p data-applies>Gilt für: den Kopf von Planen</p>
+      <p data-situation>Heute schaltet „Was brauche ich / Wie komme ich hin“ zwischen zwei Seiten um (D30 vom 02.11.). Die Route sieht nur, wer umschaltet.</p>
+      <h3 data-question>Ersetzen die vier Schritte den Was/Wie-Schalter?</h3>
+      <p data-stakes>Ob D30 fällt und die Route nicht mehr hinter einem Schalter liegt.</p>
+      <div data-options>
+        <label data-opt="steps" data-recommended><input type="radio" name="dm-q-switch" value="steps" checked><span data-opt-label>Schalter durch vier Schritte ersetzen</span><span data-opt-consequence>Bedarf · Quellen · Route · Einsatz. D30 wird aufgehoben.</span></label>
+        <label data-opt="keep"><input type="radio" name="dm-q-switch" value="keep"><span data-opt-label>Schalter behalten, Schritte darin</span><span data-opt-consequence>Was = Bedarf und Quellen, Wie = Route und Einsatz. Die Route bleibt hinter dem Schalter.</span></label>
+      </div>
+      <textarea data-comment="q-switch-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Was/Wie-Schalter">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: vier Schritte statt zwei Seiten."}'></div></div>
+        <div data-slot="long"><p>Beide Analysen kamen unabhängig auf dieselben vier Schritte. Der Schalter zeigt nur zwei davon und nennt keinen nächsten.</p></div>
+      </div>
+    </section>
+    <section id="q-moods" data-nav-label="Stimmungen" data-decision="q-moods" data-decision-mode="single" data-label="Stimmungs-Filter" data-rec="hide" data-rec-why="Solange die Daten fehlen, leeren sie die Liste mit einer irreführenden Meldung." data-applies-to="die Stimmungspaare Kampf/Friedlich, Solo/Gruppe, Schnell/Lang" data-finding="f-q-moods">
+      <p data-applies>Gilt für: die Stimmungspaare Kampf/Friedlich, Solo/Gruppe, Schnell/Lang</p>
+      <p data-situation>Ohne Aktivität und Crew pro Zeile filtert „Gruppe“ alles weg. Die Meldung sagt dann „Markiere in Nachschub, was du holen willst“, obwohl etwas markiert ist.</p>
+      <h3 data-question>Was passiert mit den Stimmungs-Filtern?</h3>
+      <p data-stakes>Ob ein Filter, der die Liste leert, auf der Seite bleibt.</p>
+      <div data-options>
+        <label data-opt="hide" data-recommended><input type="radio" name="dm-q-moods" value="hide" checked><span data-opt-label>Ausblenden, bis Codex-Daten da sind</span><span data-opt-consequence>Code bleibt, die Paare erscheinen wieder, sobald Aktivität und Crew befüllt sind.</span></label>
+        <label data-opt="fix"><input type="radio" name="dm-q-moods" value="fix"><span data-opt-label>Daten jetzt anbinden und behalten</span><span data-opt-consequence>Aktivität und Crew aus dem Codex lesen. Mehr Arbeit, die Paare landen im Filter-Menü.</span></label>
+        <label data-opt="drop"><input type="radio" name="dm-q-moods" value="drop"><span data-opt-label>Ganz streichen</span><span data-opt-consequence>Code und Texte fliegen raus, Sets und Schritt-Arten filtern allein.</span></label>
+      </div>
+      <textarea data-comment="q-moods-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Stimmungen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Befund: „Gruppe“ blendet 100 % der Zeilen aus."}'></div></div>
+        <div data-slot="long"><p>In buildPlanNeeds stehen activity: null und crew: 1 fest. Damit fällt jede Zeile bei crew ≥ 2 raus, und „Friedlich“ blendet jede Mission aus.</p></div>
+      </div>
+    </section>
+    <section id="q-blocks" data-nav-label="Extra-Blöcke" data-decision="q-blocks" data-decision-mode="multi" data-label="Blöcke, die Planen verlassen" data-rec="optin blueprint prices shared" data-rec-why="Keiner davon ist ein Planungsschritt, zusammen kosten sie im vollen Zustand ≈ 1 000 px." data-applies-to="die Blöcke unter der Karte und am Ende von Wie" data-finding="f-q-blocks">
+      <p data-applies>Gilt für: die Blöcke unter der Karte und am Ende von Wie</p>
+      <p data-situation>Community-Opt-in, Blueprint-Fortschritt, Warenpreise und geteilte Einsätze stehen heute alle auf Planen.</p>
+      <h3 data-question>Welche Blöcke ziehen von Planen um?</h3>
+      <p data-stakes>Wie viel Platz Liste und Route bekommen.</p>
+      <div data-options>
+        <label data-opt="optin" data-recommended><input type="checkbox" name="dm-q-blocks.optin" value="optin" checked><span data-opt-label>Community-Opt-in in die Einstellungen</span><span data-opt-consequence>Bleibt als eine Hinweiszeile im Händler-Popover.</span></label>
+        <label data-opt="blueprint" data-recommended><input type="checkbox" name="dm-q-blocks.blueprint" value="blueprint" checked><span data-opt-label>Blueprint-Fortschritt als Ring in Bedarf, Karten nach Inventar</span><span data-opt-consequence>Ein Ring wie die Sets, die Kartenansicht wohnt in Inventar.</span></label>
+        <label data-opt="prices" data-recommended><input type="checkbox" name="dm-q-blocks.prices" value="prices" checked><span data-opt-label>Warenpreise in den Codex</span><span data-opt-consequence>Der Preis pro Zeile bleibt im Händler-Picker.</span></label>
+        <label data-opt="shared" data-recommended><input type="checkbox" name="dm-q-blocks.shared" value="shared" checked><span data-opt-label>Geteilte Einsätze und Abhaken nach Jetzt</span><span data-opt-consequence>Planen behält nur die Liste gespeicherter Einsätze.</span></label>
+      </div>
+      <textarea data-comment="q-blocks-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Extra-Blöcke">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"≈ 1 000 px frei im vollen Zustand."}'></div></div>
+        <div data-slot="long"><div data-viz="bars" data-viz-spec='{"items":[{"label":"Warenpreise (Tabelle offen)","value":525},{"label":"Geteilter Einsatz","value":300},{"label":"Blueprint-Fortschritt","value":170},{"label":"Community-Opt-in","value":40}],"unit":"px"}'></div></div>
+      </div>
+    </section>
+    </section>
+    <section id="d1-pl-t2" data-topic data-nav-label="Ablauf und Platz">
+      <div data-alevel="2" data-title="Ablauf und Platz">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Vier Fragen dazu, wie die Seite in einen Bildschirm passt und wohin sie führt."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Eine Seite ohne Scrollen geht nur, wenn lange Listen in sich scrollen und ein Einsatz einen klaren Ausgang hat."}'></div></div>
+      </div>
+    <section id="q-scroll" data-nav-label="Liste scrollt in sich" data-decision="q-scroll" data-decision-mode="yesnoalt" data-label="Innerer Listen-Scroll" data-rec="yes" data-rec-why="20 Zeilen passen nicht auf 880 px. Ohne inneren Scroll bliebe nur ein Blättern oder „mehr zeigen“." data-applies-to="Bedarfsliste und Route bei vielen Zeilen" data-finding="f-q-scroll">
+      <p data-applies>Gilt für: Bedarfsliste und Route bei vielen Zeilen</p>
+      <p data-situation>„Muss auf eine Seite passen“ geht im vollen Zustand nur, wenn die Liste selbst scrollt. Die Seite bleibt stehen, das Mausrad gleitet erst am Listenende zur nächsten HQ-Seite.</p>
+      <h3 data-question>Darf die Liste in sich scrollen, solange die Seite stehen bleibt?</h3>
+      <p data-stakes>Ob „eine Seite“ heißt: die Seite scrollt nicht, oder gar nichts scrollt.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-scroll" value="yes" checked><span data-opt-label>Ja, Liste scrollt in sich</span><span data-opt-consequence>Mindestens 6 Zeilen sichtbar, der Rest im Kasten.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-scroll" value="no"><span data-opt-label>Nein, gar kein Scroll</span><span data-opt-consequence>Lange Listen blättern seitenweise oder zeigen „+14 weitere“ als Popup.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-scroll" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-scroll-alt" placeholder="Was stattdessen?"></label>
+      </div>
+      <textarea data-comment="q-scroll-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Liste scrollt in sich">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"20 Zeilen ≈ 2 000 px, Platz 700 px."}'></div></div>
+        <div data-slot="long"><p>Technisch muss der Kasten das Mausrad vor dem Seiten-Gleiten aus hq-page-scroll.ts bekommen. Das prüft der Bau mit einem Test.</p></div>
+      </div>
+    </section>
+    <section id="q-unplaced" data-nav-label="Zeilen ohne Händler" data-decision="q-unplaced" data-decision-mode="yesnoalt" data-label="Ausweg für Zeilen ohne Händler" data-rec="yes" data-rec-why="Heute ist die Zeile eine Sackgasse und fehlt still in der Route." data-applies-to="jede Bedarfszeile ohne bekannten Händler" data-finding="f-q-unplaced">
+      <p data-applies>Gilt für: jede Bedarfszeile ohne bekannten Händler</p>
+      <p data-situation>Heute steht dort „Kein Händler bekannt: vielleicht nur per Mission oder Handwerk zu bekommen“, ohne Aktion. Die Route lässt die Zeile weg und sagt dann „Noch keine Route“.</p>
+      <h3 data-question>Bekommt eine Zeile ohne Händler drei Auswege?</h3>
+      <p data-stakes>Ob die Führung an einer Zeile ohne Händler stecken bleibt.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-unplaced" value="yes" checked><span data-opt-label>Ja: Codex, Ort selbst setzen, aus Route nehmen</span><span data-opt-consequence>Die Leiste unten nennt die Zeile als nächsten Schritt.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-unplaced" value="no"><span data-opt-label>Nein, Hinweis reicht</span><span data-opt-consequence>Die Route nennt nur „1 ohne Ort“.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-unplaced" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-unplaced-alt" placeholder="Was stattdessen?"></label>
+      </div>
+      <textarea data-comment="q-unplaced-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Zeilen ohne Händler">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Heute: Hinweis ohne Aktion."}'></div></div>
+        <div data-slot="long"><p>„Ort selbst setzen“ braucht ein kleines Feld im Einsatz-Schritt. Codex-Link und „aus Route nehmen“ gibt es schon als Bausteine.</p></div>
+      </div>
+    </section>
+    <section id="q-jetzt" data-nav-label="In Jetzt starten" data-decision="q-jetzt" data-decision-mode="yesnoalt" data-label="Einsatz starten" data-rec="yes" data-rec-why="Heute bleibt jeder Einsatz „geplant“, und Jetzt rät, welcher dran ist." data-applies-to="Schritt 4 Einsatz und die Seite Jetzt" data-finding="f-q-jetzt">
+      <p data-applies>Gilt für: Schritt 4 Einsatz und die Seite Jetzt</p>
+      <p data-situation>Ein gespeicherter Einsatz bleibt heute immer „geplant“. Jetzt nimmt den aktiven, sonst den mit dem frühesten Datum. Einen Knopf, der einen Einsatz aktiv setzt, gibt es nicht.</p>
+      <h3 data-question>Setzt „In Jetzt starten“ den Einsatz aktiv, höchstens einen zugleich?</h3>
+      <p data-stakes>Wohin Planen führt und ob Jetzt den richtigen Einsatz zeigt.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-jetzt" value="yes" checked><span data-opt-label>Ja, aktiv setzen und zu Jetzt gleiten</span><span data-opt-consequence>Ein vorher aktiver Einsatz wird wieder „geplant“.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-jetzt" value="no"><span data-opt-label>Nein, nur speichern</span><span data-opt-consequence>Jetzt wählt weiter selbst nach Datum.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-jetzt" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-jetzt-alt" placeholder="Was stattdessen?"></label>
+      </div>
+      <textarea data-comment="q-jetzt-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="In Jetzt starten">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"setStatus und plannedAt gibt es schon, nur ohne Knopf."}'></div></div>
+        <div data-slot="long"><p>HqEinsatzService hat setStatus. Jetzt wählt in hq-now-path.ts „aktiv, sonst frühestes Datum“. Der Bau ist also vor allem ein Knopf und eine Regel „höchstens einer aktiv“.</p></div>
+      </div>
+    </section>
+    <section id="q-legend" data-nav-label="Kartenlegende" data-decision="q-legend" data-decision-mode="single" data-label="Kartenlegende" data-rec="line" data-rec-why="Eine Zeile mit den Schritt-Arten, die auf der Karte vorkommen, reicht zum Lesen und spart ≈ 60 px." data-applies-to="die Legende der Planen-Karte" data-finding="f-q-legend">
+      <p data-applies>Gilt für: die Legende der Planen-Karte</p>
+      <p data-situation>D29 sagt: Legende immer sichtbar, mit allen sieben Schritt-Arten. Auf der kleineren Karte rechts ist dafür kaum Platz.</p>
+      <h3 data-question>Wie zeigt die Karte ihre Legende?</h3>
+      <p data-stakes>Ob D29 gelockert wird.</p>
+      <div data-options>
+        <label data-opt="line" data-recommended><input type="radio" name="dm-q-legend" value="line" checked><span data-opt-label>Eine Zeile, nur Arten auf der Karte</span><span data-opt-consequence>Immer sichtbar, aber nur 2 bis 4 Einträge.</span></label>
+        <label data-opt="full"><input type="radio" name="dm-q-legend" value="full"><span data-opt-label>Alle sieben Arten wie heute</span><span data-opt-consequence>D29 bleibt, die Karte wird ≈ 60 px kleiner.</span></label>
+        <label data-opt="pop"><input type="radio" name="dm-q-legend" value="pop"><span data-opt-label>Hinter einem Info-Knopf</span><span data-opt-consequence>Spart am meisten Platz, die Legende ist nicht mehr auf einen Blick da.</span></label>
+      </div>
+      <textarea data-comment="q-legend-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Kartenlegende">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: eine Zeile, nur was vorkommt."}'></div></div>
+        <div data-slot="long"><p>Die Formen der Schritt-Arten stehen auch an jeder Routenzeile. Die Legende ist also nicht die einzige Stelle, an der man sie lernt.</p></div>
+      </div>
+    </section>
+    </section>
+  </section>
+</section>
