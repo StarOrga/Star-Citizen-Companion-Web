@@ -1,7 +1,71 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.239.3",
+  "current": "0.239.6",
   "releases": [
+    {
+      "version": "0.239.6",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin hub: tiles in three labelled groups (people & access, operations, content & data) on one even grid, all tiles the same width with no lone tile in a row."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.239.5",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ start: Inventar and Planen tiles share one fixed size, their text links are gone (the tooltip on hover/focus says what opens), and open events are one slim line (count, names, \"+N\")."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.239.4",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ (beta): the old hangar tab page is gone — /hq/hangar now opens HQ Bestand › Hangar."
+            },
+            {
+              "title": "",
+              "text": "Removed the dead app bridges /hangar/import, /starscape, /uploader/auth and /desktop/connect (their callers use the removed host)."
+            },
+            {
+              "title": "",
+              "text": "Browser extension 0.1.5: no more old host, popup opens the hangar again; uploader download link and sitemap point at live pages."
+            },
+            {
+              "title": "",
+              "text": "Starscape 0.11.1: signs in and opens the gallery on the current host again."
+            },
+            {
+              "title": "",
+              "text": "FPS equip: \"Meine Sets\" leads to the sets instead of the hangar."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.239.3",
       "date": "2026-11-08",

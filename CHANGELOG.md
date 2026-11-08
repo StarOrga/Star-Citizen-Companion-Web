@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.239.6] - 2026-11-09
+
+### Changed
+- Admin hub: tiles in three labelled groups (people & access, operations, content & data) on one even grid, all tiles the same width with no lone tile in a row.
+
+## [0.239.5] - 2026-11-08
+
+### Changed
+- HQ start: Inventar and Planen tiles share one fixed size, their text links are gone (the tooltip on hover/focus says what opens), and open events are one slim line (count, names, "+N").
+
 ## [0.239.4] - 2026-11-08
 
 ### Fixed

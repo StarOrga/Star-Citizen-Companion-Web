@@ -61,7 +61,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
   template: `
     <div class="row">
       <div class="tile side edge left" data-tile="bestand" [class.next]="stock() === 'empty'">
-        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'inventar' }" />
+        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'inventar', tip: 'hq.start.bestand.open' }" />
         <span class="side-k"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.inventar" /></svg>{{ 'hq.pages.inventar' | translate }}</span>
         @switch (stock()) {
           @case ('loading') {
@@ -89,7 +89,6 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
             } @else if (inv.error() && !inv.loaded()) {
               <small class="err" role="alert">{{ inv.error()! | translate }}</small>
             }
-            <span class="cta">{{ 'hq.start.bestand.open' | translate }} ›</span>
           }
         }
       </div>
@@ -137,7 +136,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       </div>
 
       <div class="tile side edge right" data-tile="planen">
-        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'planen' }" />
+        <ng-container [ngTemplateOutlet]="stretch" [ngTemplateOutletContext]="{ $implicit: 'planen', tip: 'hq.start.planen.open' }" />
         <span class="side-k"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icons.planen" /></svg>{{ 'hq.pages.planen' | translate }}</span>
         @switch (plan()) {
           @case ('loading') {
@@ -154,24 +153,23 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
               {{ e.title }} ·
               {{ badge(e).multi ? ('hq.einsatz.multi' | translate: { n: badge(e).n }) : ('hq.einsatz.single' | translate) }}
             </small>
-            <span class="cta"><a class="own" [href]="routeHref()" (click)="openRoute($event)">{{ 'hq.start.planen.route' | translate }} ›</a></span>
           }
           @case ('needs') {
             <b>{{ 'hq.start.planen.needs' | translate: { n: supplies.open().length } }}</b>
             <small>{{ 'hq.start.planen.emptyHint' | translate }}</small>
-            <span class="cta">{{ 'hq.start.planen.go' | translate }} ›</span>
           }
           @default {
             <b>{{ 'hq.start.planen.empty' | translate }}</b>
             <small>{{ 'hq.start.planen.emptyHint' | translate }}</small>
-            <span class="cta">{{ 'hq.start.planen.go' | translate }} ›</span>
           }
         }
         @if (events.nearest(); as ne) {
-          <a class="own evmark" [href]="nav.href('planen')" (click)="nav.go($event, 'planen')" data-event-marker>
+          <!-- One compact line inside the tile's own anchor: count, then as many names as fit, "+N". -->
+          <span class="evmark" data-event-marker>
             <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6.2 6.2 2.8-6.2 2.8L12 21l-2-6.2L3.8 12 10 9.2z" /></svg>
-            <span class="evtxt"><b>{{ (events.open().length === 1 ? 'hq.events.markerOne' : 'hq.events.marker') | translate: { n: events.open().length } }}</b><sc-hq-event-names [names]="eventNames()" /></span>
-          </a>
+            <b>{{ (events.open().length === 1 ? 'hq.events.markerOne' : 'hq.events.marker') | translate: { n: events.open().length } }}</b>
+            <sc-hq-event-names [names]="eventNames()" />
+          </span>
         }
       </div>
     </div>
@@ -193,17 +191,20 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       </div>
     }
 
-    <ng-template #stretch let-page>
+    <!-- A side tile's "opens …" words live only in its tooltip and accessible name, never as a visible link line. -->
+    <ng-template #stretch let-page let-tip="tip">
       <a class="stretch" [href]="nav.href(page)" (click)="nav.go($event, page)"
-         [attr.aria-label]="'hq.pages.' + page | translate"
+         [attr.aria-label]="tip ? (tip | translate) : ('hq.pages.' + page | translate)"
          [attr.aria-keyshortcuts]="hotkey(page)"
-         [scTooltip]="'hq.hotkey' | translate: { key: hotkey(page) }" [scTooltipDisabled]="nav.noHover"></a>
+         [scTooltip]="tip ? ('hq.start.tip' | translate: { action: (tip | translate), key: hotkey(page) }) : ('hq.hotkey' | translate: { key: hotkey(page) })"
+         [scTooltipDisabled]="nav.noHover"></a>
     </ng-template>
   `,
   styles: [
     `
       :host { display: block; container-type: inline-size; text-align: center; text-shadow: 0 0 0.3em color-mix(in srgb, var(--sc-bg-0) 45%, transparent); }
-      .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+      /* Bestand and Planen share one track width and one fixed height, whatever they hold. */
+      .row { --hq-side-h: 156px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: center; }
       .tile { position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; }
       /* The launch hint is fixed to the viewport: its tile has to rise above the rail and the cue. */
       .tile:has(.hint) { z-index: 60; }
@@ -220,14 +221,15 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       .warn { color: var(--sc-warning); }
       .err { color: var(--sc-danger); }
 
-      .side { gap: 5px; min-height: 148px; padding: 16px 18px; box-sizing: border-box; text-align: left; }
+      .side { gap: 5px; height: var(--hq-side-h); padding: 16px 18px; box-sizing: border-box; overflow: hidden; text-align: left; }
+      .side > b, .side > small { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .side-k { display: flex; align-items: center; gap: 8px; color: var(--sc-accent); font: 600 0.656rem / 1 var(--sc-font-display); letter-spacing: 0.18em; text-transform: uppercase; }
       .side-k .ico { width: 18px; height: 18px; }
-      .side b { margin-top: 6px; font: 500 1.125rem / 1.25 var(--sc-font-display); color: var(--sc-fg-0); overflow-wrap: anywhere; }
-      .evmark { display: flex; align-items: flex-start; gap: 6px; margin-top: 6px; padding: 6px 8px; border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); border-radius: 8px; background: color-mix(in srgb, var(--sc-accent) 9%, transparent); color: var(--sc-fg-1); font-size: 0.8rem; text-decoration: none; }
-      .evmark .ico { flex: none; width: 16px; height: 16px; fill: none; stroke: var(--sc-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-      .evtxt { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
-      .evmark b { color: var(--sc-accent); }
+      .side > b { margin-top: 6px; font: 500 1.125rem / 1.25 var(--sc-font-display); color: var(--sc-fg-0); overflow-wrap: anywhere; }
+      .evmark { display: flex; align-items: center; gap: 6px; max-width: 100%; margin-top: auto; color: var(--sc-fg-1); font-size: max(0.8125rem, var(--sc-fs-floor)); line-height: 1.3; white-space: nowrap; }
+      .evmark .ico { width: 14px; height: 14px; stroke: var(--sc-accent); }
+      .evmark b { flex: none; font-weight: 500; color: var(--sc-accent); }
+      .evmark sc-hq-event-names { flex: 1 1 auto; }
       .cta { margin-top: auto; padding-top: 8px; color: var(--sc-accent); }
       /* Light edge: no box, a lit top line fading downwards; the text leans to the centre. */
       .edge::before {
@@ -289,8 +291,9 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
         .now.on::before { width: 124px; height: 124px; margin: -62px 0 0 -62px; }
         .now.on::after { width: 88px; height: 88px; margin: -44px 0 0 -44px; }
         .launch, .go { margin-top: 6px; }
-        .side { min-height: 124px; padding: 12px; }
-        .side b { font-size: 0.875rem; }
+        .row { --hq-side-h: 140px; }
+        .side { padding: 12px; }
+        .side > b { font-size: 0.875rem; }
         small { font-size: max(0.75rem, var(--sc-fs-floor)); }
         .edge.left { text-align: left; align-items: flex-start; }
         .edge.left .side-k { flex-direction: row; }
