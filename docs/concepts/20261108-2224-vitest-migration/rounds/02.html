@@ -31,10 +31,10 @@
         <div class="fr-meter-bar" aria-hidden="true"></div>
         <b class="fr-meter-value">46 s</b>
       </div>
-      <div class="fr-meter" data-grade="part" style="--fr-fill: 75%" data-tip="In 4 vollen Läufen meldete eine Datei einmal „No test suite found“ und lief im nächsten Lauf grün. Anforderung: kein Flake (geschätzt).">
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 75%" data-tip="Zwei echte Flakes behoben (i18n-fetch unter Last, Testreihenfolge bei codex-page, danach 6 von 6 grün); offen bleibt ein einmaliges „No test suite found“. Anforderung: kein Flake (geschätzt).">
         <span class="fr-meter-name">🔁 Stabilität</span>
         <div class="fr-meter-bar" aria-hidden="true"></div>
-        <b class="fr-meter-value">3 / 4 Läufe</b>
+        <b class="fr-meter-value">2 behoben, 1 offen</b>
       </div>
     </div>
   </div>
@@ -54,13 +54,15 @@
           data-issue-body="docs/routine/tasks/scc-feedback-headless/SKILL.md (and its live copy in ~/.claude/scheduled-tasks, kept equal by scripts/check-routine-prompts.mjs) still says web-ci runs 'Karma' and tells workers to rerun once on 'a Karma disconnect'. Since the Vitest migration (concept 20261108-2224-vitest-migration) the unit job is Vitest and a Karma disconnect cannot happen. Update the repo copy, then npm run sync:routine-prompts -- --to-live. Left out of the migration PR because it changes the running routine's live prompt."
           data-oq-origin="found"
           data-route-default="issue"
-          data-route-reason="Live-Routine">
+          data-route-reason="Live-Routine"
+          data-routed="implement">
         <span class="oq-label">Routine-Prompt nennt Karma</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Der Feedback-Routine-Prompt spricht noch von Karma und einem Karma-Disconnect.</dd>
           <dt>{{final.fund_where}}</dt><dd><code>docs/routine/tasks/scc-feedback-headless/SKILL.md</code> und die Live-Kopie</dd>
           <dt>{{final.fund_why}}</dt><dd>📌 Issue — die Änderung greift in die laufende Routine ein.</dd>
         </dl>
+        <p class="oq-done">umgesetzt: Prompt nennt jetzt Vitest, Live-Kopie per <code>sync:routine-prompts --to-live</code> abgeglichen.</p>
       </li>
     </ul>
   </details>
@@ -71,6 +73,7 @@
       <li>Commit <code>2465b65c</code> · Treiber <code>scripts/jasmine-to-vitest.mjs</code>, Setup <code>src/app/testing/vitest-setup.ts</code>, <code>viewport.ts</code></li>
       <li>Handarbeit: <code>pending()</code> → <code>context.skip</code> (das Schematic hatte 10 Tests ganz abgeschaltet), kein <code>compileComponents()</code> in fakeAsync, Catch-all-Routen, −0 / toBeCloseTo</li>
       <li>Tests: 547 Dateien, 6489 grün, 1 übersprungen · <code>test:gate</code> 127 grün · Lint 0 Fehler · Typecheck grün</li>
+      <li>Nach QA: i18n-Kataloge per Import statt fetch (6 Specs), holdOnLower-Specs starten in neuem Task; main gemergt, 2 Konflikt-Specs auf Vitest umgestellt</li>
       <li><code>d-guards</code> war unberührt (5 s): gebaut mit der Vorauswahl, keine Änderung gegenüber dem Pilot</li>
       <li>Ausnahme vom Agenten-Pfad: ein Bereich, streng aufeinander aufbauende Schritte, darum inline gebaut; geprüft von einem unabhängigen QA-Agenten</li>
     </ul>
