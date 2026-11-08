@@ -12,6 +12,7 @@ import { flagshipFirst } from '../../hangar/flagship-first';
 import type { HangarShip } from '../../hangar/hangar.types';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
+import { ScPopoverDismissDirective } from '../../shared/popover/sc-popover-dismiss.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { WishlistStore } from '../data/wishlist.store';
@@ -61,7 +62,7 @@ type Cell =
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, ScDatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
+  imports: [ScPopoverDismissDirective, TranslatePipe, DatePipe, ScDatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
@@ -113,7 +114,7 @@ type Cell =
             }
           </div>
           @if (used().length) {
-            <div class="used-wrap">
+            <div class="used-wrap" [scPopoverDismiss]="usedOpen()" (dismissed)="usedOpen.set(false)">
               <button type="button" class="used" [attr.aria-expanded]="usedOpen()" (click)="usedOpen.set(!usedOpen())">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2" /><circle cx="12" cy="12" r="8.5" /></svg>
                 <span class="u-l">{{ 'hq.bestand.used' | translate }}</span>

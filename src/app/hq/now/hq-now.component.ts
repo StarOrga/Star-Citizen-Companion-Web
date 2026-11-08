@@ -15,6 +15,7 @@ import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { ScPopoverDismissDirective } from '../../shared/popover/sc-popover-dismiss.directive';
 import { ScStepComponent } from '../../shared/step/sc-step.component';
 import { type Einsatz, type EinsatzStep, HqEinsatzService } from '../data/hq-einsatz.service';
 import { hqPage } from '../hq-routes';
@@ -48,6 +49,7 @@ const UPCOMING = 4;
   selector: 'sc-hq-now',
   standalone: true,
   imports: [
+    ScPopoverDismissDirective,
     TranslatePipe,
     DatePipe,
     ScDatePipe,
@@ -73,7 +75,7 @@ const UPCOMING = 4;
           }
           @if (archivedFocus()) { <span class="run-a" role="note">{{ 'hq.run.archived' | translate }}</span> }
           @if (switchable().length > (archivedFocus() ? 0 : 1)) {
-            <span class="sw">
+            <span class="sw" [scPopoverDismiss]="menuOpen()" (dismissed)="menuOpen.set(false)">
               <button type="button" scAction tier="secondary" aria-haspopup="menu" [attr.aria-expanded]="menuOpen()" (click)="menuOpen.set(!menuOpen())">{{ 'hq.run.switch' | translate }}</button>
               @if (menuOpen()) {
                 <ul class="menu" role="menu" (keydown.escape)="menuOpen.set(false)">

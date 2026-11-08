@@ -44,7 +44,8 @@
     },
     "dialog": {
       "confirm": "Bestätigen",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "close": "Schließen"
     },
     "undo": "Rückgängig"
   },
