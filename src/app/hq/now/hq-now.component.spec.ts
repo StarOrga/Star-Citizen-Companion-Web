@@ -246,6 +246,18 @@ describe('HqNowComponent', () => {
       expect(el.querySelector('.run-t b')?.textContent).toBe('Medpens');
     });
 
+    it('M10: a focused Nachschub that archives stays in Jetzt, says so, and still shows its Einsätze', () => {
+      const { f, el } = mountRun();
+      const ns = TestBed.inject(NachschubService);
+      ns.packages.update((ps) => ps.map((p) => (p.id === 'n1' ? { ...p, status: 'archived' as const, slot: null, archivedAt: '2026-11-08T10:00:00Z' } : p)));
+      f.detectChanges();
+      expect(el.querySelector('.run-t b')?.textContent).toBe('Rattler-Vorrat');
+      expect(el.querySelector('.run-a')).not.toBeNull();
+      expect(el.querySelector('sc-hq-route-graphic')).not.toBeNull();
+      // The other, still active Nachschub can be switched to.
+      expect(el.querySelector('.sw button')).not.toBeNull();
+    });
+
     it('without any Nachschub it explains itself and leads to Planen', () => {
       const f = mount(fakeLive({}));
       const el = f.nativeElement as HTMLElement;

@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { logWarn } from '../../core/log';
 import { NachschubService } from './nachschub.service';
 
@@ -25,13 +25,28 @@ export class NachschubFocusService {
     return active.find((n) => n.id === this.picked()) ?? active[0] ?? null;
   });
 
+  /** What Jetzt showed while nobody had picked one yet (the first active): it must not jump when that one archives. */
+  private readonly shown = signal<string | null>(null);
+
   /** The pick as Jetzt runs it: active, else archived (kept, see above), else the first active, else null. */
   readonly current = computed(() => {
-    const picked = this.picked();
+    const id = this.picked() ?? this.shown();
     const all = this.nachschub.packages();
-    const pick = picked ? all.find((n) => n.id === picked) : undefined;
+    const pick = id ? all.find((n) => n.id === id) : undefined;
     return pick ?? this.nachschub.active()[0] ?? null;
   });
+
+  constructor() {
+    effect(() => {
+      const first = this.selected()?.id ?? null;
+      const all = this.nachschub.packages();
+      untracked(() => {
+        if (this.picked()) return;
+        const s = this.shown();
+        if (first && (!s || !all.some((n) => n.id === s))) this.shown.set(first);
+      });
+    });
+  }
 
   select(id: string | null): void {
     this.picked.set(id);
