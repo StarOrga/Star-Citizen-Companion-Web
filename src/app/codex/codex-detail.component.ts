@@ -1285,6 +1285,13 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     /* Masthead: hero | Einordnung (MASTER §1/§3) */
     .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
     .m-top.ship-mode, .m-top.missile-mode { grid-template-columns: 1fr 1fr; }
+    /* Classic ship (#321): when the side column (Haben? + Einordnung) runs
+       taller than stage + actions + tool row, the left half used to end in an
+       empty block above the KPI band. Both halves now share the row's height
+       and the stage takes up the slack - its art is absolutely positioned, so
+       a taller card is simply more picture. One column (<=1100px) keeps auto rows. */
+    .m-top.ship-mode { align-items: stretch; }
+    .m-top.ship-mode > .hero-stack > .hero.stage { flex: 1 1 auto; }
 
     /* Loadout | Analyse (MASTER §1/§6/§7) */
     .m-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
