@@ -242,6 +242,20 @@ describe('mapSilhouettes', () => {
     unresolved: ['hardpoint_shield_generator_2'],
   };
 
+  it('sends item inner edges as their own column, not inside meta; ships carry none', () => {
+    const item = {
+      ...shipFile,
+      kind: 'component',
+      className: 'COOL_AEGS_S01_Bracer_SCItem',
+      silhouette: { ...shipFile.silhouette, edges: 'M 1 1 L 9 9', view: 'side' },
+    };
+    const [itemRow, shipRow] = mapSilhouettes([item, shipFile], tag);
+    expect(itemRow.edges).toBe('M 1 1 L 9 9');
+    expect(itemRow.meta['edges']).toBeUndefined();
+    expect(itemRow.meta['view']).toBe('side');
+    expect('edges' in shipRow).toBe(false);
+  });
+
   it('produces a build-tagged codex_silhouettes row with the pinned columns', () => {
     const rows = mapSilhouettes([shipFile], tag);
     expect(rows).toHaveLength(1);
