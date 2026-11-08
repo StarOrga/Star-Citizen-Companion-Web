@@ -1667,7 +1667,12 @@ button {
 }
 .item-page .tt-share:hover { color: var(--sc-fg-0); }
 .item-page .tt-share:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+/* Holotisch: the values panel grows with its content — nothing scrolls inside the small box; the stage stays in view beside it. */
+.item-page.flow .it-grid { height: auto; min-height: 440px; align-items: start; }
+.item-page.flow .it-stage { position: sticky; top: calc(var(--sc-header-h, 64px) + 12px); height: calc(100dvh - var(--it-top, 300px)); min-height: 440px; }
+.item-page.flow .it-panel, .item-page.flow .it-pane { overflow: visible; }
 @media (max-width: 1000px) {
+  .item-page.flow .it-stage { position: static; height: auto; }
   .item-page .it-grid { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; }
   .item-page .it-stage { min-height: 320px; }
   .item-page .it-panel, .item-page .it-pane { overflow: visible; }
