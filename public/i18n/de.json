@@ -6742,7 +6742,7 @@
         "dismissed": "nicht übernommen"
       },
       "admin": {
-        "title": "Vorschläge der Kartographen (nur für Admins)",
+        "title": "Vorschläge der Kartographen",
         "empty": "Keine offenen Vorschläge.",
         "promote": "Anpinnen",
         "dismiss": "Verwerfen",

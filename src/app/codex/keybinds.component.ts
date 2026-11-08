@@ -216,8 +216,8 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
                       [attr.aria-pressed]="assignMode()" (click)="toggleAssignMode()">
                 <span class="toggle-label">{{ (assignMode() ? 'codex.keybinds.assign.exit' : 'codex.keybinds.assign.enter')
                    | translate }}</span>
-                <!-- Red = elevated access, and said in words too (CLAUDE.md). -->
-                <span class="admin-tag">{{ 'nav.adminOnly' | translate }}</span>
+                <!-- Red marks admin-only; the words stay for screen readers only (CLAUDE.md). -->
+                <span class="sc-sr-only">{{ 'nav.adminOnly' | translate }}</span>
               </button>
             }
           </div>

@@ -6742,7 +6742,7 @@
         "dismissed": "not taken"
       },
       "admin": {
-        "title": "Cartographer suggestions (admins only)",
+        "title": "Cartographer suggestions",
         "empty": "No open suggestions.",
         "promote": "Pin",
         "dismiss": "Dismiss",

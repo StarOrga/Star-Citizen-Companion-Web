@@ -183,7 +183,7 @@ export interface HoloPatchComparisonSide {
             </div>
             @if (roles.isCollaborator()) {
               <div class="admin-schema-row" role="note">
-          <span class="admin-flag">{{ 'codex.holo.patch.adminOnly' | translate }}</span>
+          <span class="sc-sr-only">{{ 'codex.holo.patch.adminOnly' | translate }}</span>
           <dl>
             <dt>{{ 'codex.holo.patch.schema.version' | translate }}</dt>
             <dd>{{ selected()?.schemaVersion }}</dd>
@@ -309,8 +309,8 @@ export interface HoloPatchComparisonSide {
     /* --sc-accent-hot: admin/collaborator-only info, marked in words too. */
     .admin-schema-row {
       margin-top: 10px; padding: 8px 10px; border-radius: var(--holo-r);
-      border: 1px solid color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border));
-      background: color-mix(in srgb, var(--sc-accent-hot) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-accent-collab) 45%, var(--sc-border));
+      background: color-mix(in srgb, var(--sc-accent-collab) 8%, transparent);
     }
     .admin-flag { display: block; margin-bottom: 4px; font-family: var(--sc-font-display);
       font-size: max(0.66rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase;
