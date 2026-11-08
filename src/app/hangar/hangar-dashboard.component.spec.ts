@@ -49,12 +49,14 @@ describe('HangarDashboardComponent role loadouts', () => {
       imports: [HangarDashboardComponent],
       providers: [
       provideNoShipBlueprints(),
-        provideRouter([]),
+        // Links the specs click land somewhere: an unmatched route throws after the
+        // test, which Vitest counts as a failed run (Karma only logged it).
+        provideRouter([{ path: '**', children: [] }]),
         provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),
         fake.provider,
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } as unknown as AuthService },
-        { provide: AnalyticsService, useValue: { capture: jasmine.createSpy('capture'), flags: () => ({}) } },
+        { provide: AnalyticsService, useValue: { capture: vi.fn().mockName('capture'), flags: () => ({}) } },
         {
           provide: CodexService,
           useValue: {
@@ -113,7 +115,7 @@ describe('HangarDashboardComponent role loadouts', () => {
 
     it('reads no wishlist table and never the old concept-ship table', async () => {
       const { calls } = await setup();
-      expect(calls.some((c) => c.target === 'hangar_concept_ships')).toBeFalse();
+      expect(calls.some((c) => c.target === 'hangar_concept_ships')).toBe(false);
     });
   });
 
@@ -121,14 +123,15 @@ describe('HangarDashboardComponent role loadouts', () => {
     it('creates the set with the typed name and the chosen role, then clears the field', async () => {
       write = () => ({ data: setRow('set-2', 'Boarding') });
       const { fixture, hangar, calls, el } = await setup();
-      const create = spyOn(hangar, 'createRoleLoadout').and.callThrough();
+      const create = vi.spyOn(hangar, 'createRoleLoadout');
 
       typeInto(nameInput(el), '  Boarding ');
       fixture.detectChanges();
       buttonByKey(el.querySelector('.new-loadout')!, 'hangar.roleLoadouts.create').click();
       await settle(fixture);
 
-      expect(create).toHaveBeenCalledOnceWith('Boarding', 'fps');
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(create).toHaveBeenCalledWith('Boarding', 'fps');
       const insert = calls.find((c) => c.chain.some(([m]) => m === 'insert'))!;
       expect(chainArgs(insert, 'insert')).toEqual([{ user_id: 'u1', name: 'Boarding', role: 'fps', items: [] }]);
       expect(nameInput(el).value).toBe('');
@@ -139,20 +142,21 @@ describe('HangarDashboardComponent role loadouts', () => {
     it('opens the new set, so picking gear for a slot is the next thing on screen (audit L09)', async () => {
       write = () => ({ data: setRow('set-2', 'Boarding') });
       const { fixture, el } = await setup();
-      const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      const nav = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
 
       typeInto(nameInput(el), 'Boarding');
       fixture.detectChanges();
       buttonByKey(el.querySelector('.new-loadout')!, 'hangar.roleLoadouts.create').click();
       await settle(fixture);
 
-      expect(nav).toHaveBeenCalledOnceWith(['/hq/locker', 'set-2']);
+      expect(nav).toHaveBeenCalledTimes(1);
+      expect(nav).toHaveBeenCalledWith(['/hq/locker', 'set-2']);
     });
 
     it('keeps the typed name and shows the error banner when the write fails', async () => {
       write = () => ({ error: forbidden });
       const { fixture, hangar, el } = await setup();
-      const create = spyOn(hangar, 'createRoleLoadout').and.callThrough();
+      const create = vi.spyOn(hangar, 'createRoleLoadout');
 
       typeInto(nameInput(el), 'Boarding');
       fixture.detectChanges();
@@ -169,7 +173,7 @@ describe('HangarDashboardComponent role loadouts', () => {
 
     it('does not call the service for a blank name (button disabled)', async () => {
       const { fixture, hangar, el } = await setup();
-      const create = spyOn(hangar, 'createRoleLoadout').and.callThrough();
+      const create = vi.spyOn(hangar, 'createRoleLoadout');
 
       typeInto(nameInput(el), '   ');
       fixture.detectChanges();
@@ -177,7 +181,7 @@ describe('HangarDashboardComponent role loadouts', () => {
       button.click();
       await settle(fixture);
 
-      expect(button.disabled).toBeTrue();
+      expect(button.disabled).toBe(true);
       expect(create).not.toHaveBeenCalled();
     });
 
@@ -185,7 +189,7 @@ describe('HangarDashboardComponent role loadouts', () => {
     it('offers the role as a themed select, with no native <select> on the page', async () => {
       write = () => ({ data: setRow('set-2', 'Boarding', 'medical') });
       const { fixture, hangar, el } = await setup();
-      const create = spyOn(hangar, 'createRoleLoadout').and.callThrough();
+      const create = vi.spyOn(hangar, 'createRoleLoadout');
 
       expect(el.querySelector('.new-loadout sc-select.role-select')).not.toBeNull();
       expect(el.querySelector('select')).toBeNull();
@@ -205,7 +209,8 @@ describe('HangarDashboardComponent role loadouts', () => {
       buttonByKey(el.querySelector('.new-loadout')!, 'hangar.roleLoadouts.create').click();
       await settle(fixture);
 
-      expect(create).toHaveBeenCalledOnceWith('Boarding', 'medical');
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(create).toHaveBeenCalledWith('Boarding', 'medical');
     });
   });
 
@@ -221,7 +226,7 @@ describe('HangarDashboardComponent role loadouts', () => {
     it('starts with the current name and saves the trimmed draft through updateRoleLoadout', async () => {
       write = () => ({ data: setRow('set-1', 'Recon 2') });
       const { fixture, hangar, calls, el } = await openRename();
-      const update = spyOn(hangar, 'updateRoleLoadout').and.callThrough();
+      const update = vi.spyOn(hangar, 'updateRoleLoadout');
 
       expect(renameInput(el).value).toBe('Recon');
       typeInto(renameInput(el), ' Recon 2 ');
@@ -229,7 +234,8 @@ describe('HangarDashboardComponent role loadouts', () => {
       buttonByKey(el.querySelector('.ld-rename')!, 'hangar.detail.save').click();
       await settle(fixture);
 
-      expect(update).toHaveBeenCalledOnceWith('set-1', { name: 'Recon 2' });
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledWith('set-1', { name: 'Recon 2' });
       const call = calls.find((c) => c.chain.some(([m]) => m === 'update'))!;
       expect(chainArgs(call, 'update')).toEqual([{ name: 'Recon 2' }]);
       expect(el.querySelector('.ld-rename')).toBeNull();
@@ -239,7 +245,7 @@ describe('HangarDashboardComponent role loadouts', () => {
     it('shows the error banner when the rename is refused, and the list keeps the old name', async () => {
       write = () => ({ error: forbidden });
       const { fixture, hangar, el } = await openRename();
-      spyOn(hangar, 'updateRoleLoadout').and.callThrough();
+      vi.spyOn(hangar, 'updateRoleLoadout');
 
       typeInto(renameInput(el), 'Nope');
       fixture.detectChanges();
@@ -252,7 +258,7 @@ describe('HangarDashboardComponent role loadouts', () => {
 
     it('cancel leaves the service untouched', async () => {
       const { fixture, hangar, el } = await openRename();
-      const update = spyOn(hangar, 'updateRoleLoadout').and.callThrough();
+      const update = vi.spyOn(hangar, 'updateRoleLoadout');
 
       buttonByKey(el.querySelector('.ld-rename')!, 'hangar.roleLoadouts.cancel').click();
       fixture.detectChanges();
@@ -270,7 +276,7 @@ describe('HangarDashboardComponent role loadouts', () => {
 
     it('needs the inline confirm step before it deletes', async () => {
       const ctx = await setup();
-      const del = spyOn(ctx.hangar, 'deleteRoleLoadout').and.callThrough();
+      const del = vi.spyOn(ctx.hangar, 'deleteRoleLoadout');
 
       askDelete(ctx);
 
@@ -285,13 +291,14 @@ describe('HangarDashboardComponent role loadouts', () => {
 
     it('deletes through deleteRoleLoadout and drops the card', async () => {
       const ctx = await setup();
-      const del = spyOn(ctx.hangar, 'deleteRoleLoadout').and.callThrough();
+      const del = vi.spyOn(ctx.hangar, 'deleteRoleLoadout');
 
       askDelete(ctx);
       buttonByKey(ctx.el, 'hangar.roleLoadouts.deleteConfirm').click();
       await settle(ctx.fixture);
 
-      expect(del).toHaveBeenCalledOnceWith('set-1');
+      expect(del).toHaveBeenCalledTimes(1);
+      expect(del).toHaveBeenCalledWith('set-1');
       const call = ctx.calls.find((c) => c.chain.some(([m]) => m === 'delete'))!;
       expect(chainArgs(call, 'eq')).toEqual(['id', 'set-1']);
       expect(ctx.el.querySelectorAll('.loadout-card').length).toBe(0);
@@ -301,7 +308,7 @@ describe('HangarDashboardComponent role loadouts', () => {
     it('keeps the card and shows the error banner when the delete fails', async () => {
       write = () => ({ error: forbidden });
       const ctx = await setup();
-      spyOn(ctx.hangar, 'deleteRoleLoadout').and.callThrough();
+      vi.spyOn(ctx.hangar, 'deleteRoleLoadout');
 
       askDelete(ctx);
       buttonByKey(ctx.el, 'hangar.roleLoadouts.deleteConfirm').click();

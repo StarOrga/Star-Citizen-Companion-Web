@@ -18,8 +18,8 @@ describe('channelIconSvg', () => {
     const channels: NewsChannel[] = ['comm-link', 'spectrum', 'status', 'patch', 'youtube'];
     for (const channel of channels) {
       const svg = channelIconSvg(channel);
-      expect(svg).withContext(channel).toContain('<svg');
-      expect(svg).withContext(channel).toContain('aria-hidden="true"');
+      expect(svg, channel).toContain('<svg');
+      expect(svg, channel).toContain('aria-hidden="true"');
     }
   });
 });

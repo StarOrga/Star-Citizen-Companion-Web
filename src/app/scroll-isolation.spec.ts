@@ -24,7 +24,7 @@ describe('spec isolation: page scroll', () => {
   });
 
   afterAll(() => {
-    expect(window.scrollY).withContext('reset by the global afterEach').toBe(0);
+    expect(window.scrollY, 'reset by the global afterEach').toBe(0);
     tall.remove();
   });
 });

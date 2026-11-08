@@ -18,8 +18,8 @@ class FakeUpcoming {
   readonly feed = signal<object | null>({ ships: [] });
   readonly diff = () => ({ added: this.added(), wishedUpdates: this.wishedUpdates() });
   readonly notificationCount = () => this.added().length + this.wishedUpdates().length;
-  readonly refresh = jasmine.createSpy('refresh').and.returnValue(Promise.resolve());
-  readonly acknowledge = jasmine.createSpy('acknowledge');
+  readonly refresh = vi.fn().mockName('refresh').mockResolvedValue(undefined);
+  readonly acknowledge = vi.fn().mockName('acknowledge');
   isWished(id: string): boolean {
     return this.wished().has(id);
   }
@@ -51,8 +51,9 @@ describe('UpcomingShipsNoticeComponent', () => {
   it('loads the feed silently when it has none yet, and not when it has', () => {
     svc.feed.set(null);
     render();
-    expect(svc.refresh).toHaveBeenCalledOnceWith(true);
-    svc.refresh.calls.reset();
+    expect(svc.refresh).toHaveBeenCalledTimes(1);
+    expect(svc.refresh).toHaveBeenCalledWith(true);
+    svc.refresh.mockClear();
     svc.feed.set({ ships: [] });
     render();
     expect(svc.refresh).not.toHaveBeenCalled();

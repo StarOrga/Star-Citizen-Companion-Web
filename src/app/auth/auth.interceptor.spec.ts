@@ -41,20 +41,20 @@ describe('authInterceptor', () => {
   it('sends the session token to an edge function', async () => {
     const req = await send(`${base}/functions/v1/x`, session);
     expect(req.headers.get('Authorization')).toBe('Bearer user-jwt');
-    expect(req.headers.has('apikey')).toBeFalse();
+    expect(req.headers.has('apikey')).toBe(false);
   });
 
   it('sends only the publishable key when signed out', async () => {
     const req = await send(`${base}/functions/v1/x`, null);
     expect(req.headers.get('apikey')).toBe(environment.supabase.publishableKey);
-    expect(req.headers.has('Authorization')).toBeFalse();
+    expect(req.headers.has('Authorization')).toBe(false);
   });
 
   for (const url of [`${base}/rest/v1/x`, 'https://example.test/functions/x', `${base}.evil.test/functions/x`]) {
     it(`adds no header to ${url}`, async () => {
       const req = await send(url, session);
-      expect(req.headers.has('Authorization')).toBeFalse();
-      expect(req.headers.has('apikey')).toBeFalse();
+      expect(req.headers.has('Authorization')).toBe(false);
+      expect(req.headers.has('apikey')).toBe(false);
     });
   }
 });

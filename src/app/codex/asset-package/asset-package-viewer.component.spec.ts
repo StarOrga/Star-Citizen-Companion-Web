@@ -55,20 +55,20 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
   it('starts with interior off and the other groups on', () => {
     const { c } = create();
     expect(c.status()).toBe('loading');
-    expect(c.groupsOn().has('interior')).toBeFalse();
-    expect(c.visibleIds().has('hardpoint_power_plant')).toBeTrue();
+    expect(c.groupsOn().has('interior')).toBe(false);
+    expect(c.visibleIds().has('hardpoint_power_plant')).toBe(true);
   });
 
   it('toggles a group and a single placement (with its children)', () => {
     const { c } = create();
     c.toggleGroup('components');
-    expect(c.visibleIds().has('hardpoint_power_plant')).toBeFalse();
+    expect(c.visibleIds().has('hardpoint_power_plant')).toBe(false);
     c.toggleGroup('components');
     c.togglePlacement('turret');
-    expect(c.visibleIds().has('turret')).toBeFalse();
-    expect(c.visibleIds().has('turret/gun')).toBeFalse();
+    expect(c.visibleIds().has('turret')).toBe(false);
+    expect(c.visibleIds().has('turret/gun')).toBe(false);
     c.togglePlacement('turret');
-    expect(c.visibleIds().has('turret/gun')).toBeTrue();
+    expect(c.visibleIds().has('turret/gun')).toBe(true);
   });
 
   it('hover/focus x-rays onto one placement and reports its raw port; leaving lingers for the label', fakeAsync(() => {
@@ -118,7 +118,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
   it('lists free attachment slots without a link', () => {
     const { c } = create();
     const optic = c.rows().find((r) => r.p.id === 'optic')!;
-    expect(optic.free).toBeTrue();
+    expect(optic.free).toBe(true);
     expect(optic.link).toBeNull();
   });
 
@@ -177,7 +177,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
     project(c, ['empty_gun']);
     c.step(-1);
     const l = c.label()!;
-    expect(l.empty).toBeTrue();
+    expect(l.empty).toBe(true);
     expect(l.row.link).toBeNull();
     expect(c.labelMeta(l)).toBe('hardpoint_weapon_left · S3 · WeaponGun');
   });
@@ -202,7 +202,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
 
   it('Escape clears a pin or hover label, swallows the key only then, and ignores a dialog above', async () => {
     const { fixture, c } = create();
-    const outer = jasmine.createSpy('outer');
+    const outer = vi.fn().mockName('outer');
     document.addEventListener('keydown', outer);
     const press = () => {
       const ev = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
@@ -250,13 +250,13 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       const pp = c.manifest()!.placements[0];
       c.focus(pp);
       expect(c.focusIds()).toEqual([pp.id]);
-      expect(c['seeThrough']()).toBeFalse();
+      expect(c['seeThrough']()).toBe(false);
       c.blur(pp);
       expect(c.focusIds()).toEqual([]);
 
       c.onPick(new MouseEvent('click', { button: 0, cancelable: true }), c.toRowFor(pp));
       expect(c.pinned()).toBe(pp.id);
-      expect(c['seeThrough']()).toBeTrue();
+      expect(c['seeThrough']()).toBe(true);
       expect(seen).toEqual([pp.id]);
       // The pointer goes on to a neighbour: the selection and its see-through stay, both are lit.
       const other = c.manifest()!.placements[1];
@@ -265,7 +265,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       expect(c.focusIds()).toContain(other.id);
       c.blur(other);
       expect(c.pinned()).toBe(pp.id);
-      expect(c.clearSelection()).toBeTrue();
+      expect(c.clearSelection()).toBe(true);
       expect(seen).toEqual([pp.id, null]);
     });
 
@@ -275,7 +275,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       c.status.set('ready');
       fixture.detectChanges();
       await fixture.whenStable();
-      const nav = spyOn(TestBed.inject(Router), 'navigate');
+      const nav = vi.spyOn(TestBed.inject(Router), 'navigate').mockReturnValue(undefined as never);
       const a = (fixture.nativeElement as HTMLElement).querySelector('a.hs') as HTMLAnchorElement;
       expect(a.getAttribute('href')).toBe('/codex/component/POWR_A');
       expect(a.getAttribute('title')).toBeNull();
@@ -290,7 +290,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
 
       const plain = new MouseEvent('click', { button: 0, cancelable: true, bubbles: true });
       a.dispatchEvent(plain);
-      expect(plain.defaultPrevented).toBeTrue();
+      expect(plain.defaultPrevented).toBe(true);
       expect(c.pinned()).toBe('hardpoint_power_plant');
       expect(nav).not.toHaveBeenCalled();
     });
@@ -370,9 +370,9 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       c.status.set('ready');
       fixture.detectChanges();
       await fixture.whenStable();
-      expect(c.quietIds().has('turret')).toBeFalse();
-      expect(c.quietIds().has('turret/gun')).toBeFalse();
-      expect(c.quietIds().has('hardpoint_power_plant')).toBeTrue();
+      expect(c.quietIds().has('turret')).toBe(false);
+      expect(c.quietIds().has('turret/gun')).toBe(false);
+      expect(c.quietIds().has('hardpoint_power_plant')).toBe(true);
       const quiet = (fixture.nativeElement as HTMLElement).querySelector('.hs.q') as HTMLElement;
       expect(quiet).not.toBeNull();
       expect(getComputedStyle(quiet).pointerEvents).toBe('auto');
@@ -411,28 +411,29 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
 
     it('leaves a wheel without Ctrl to the page and hints once; Ctrl + wheel zooms', fakeAsync(() => {
       const { fixture, c } = table();
-      const zoomBy = jasmine.createSpy('zoomBy');
+      const zoomBy = vi.fn().mockName('zoomBy');
       c['scene'] = { zoomBy, dispose: () => undefined, setFocus: () => undefined, setPaused: () => undefined } as never;
       const host: HTMLElement = fixture.nativeElement;
-      const orbit = jasmine.createSpy('orbit');
+      const orbit = vi.fn().mockName('orbit');
       const canvas = host.querySelector('canvas')!;
       canvas.addEventListener('wheel', orbit);
 
       const plain = wheel({});
       canvas.dispatchEvent(plain);
-      expect(plain.defaultPrevented).toBeFalse();
+      expect(plain.defaultPrevented).toBe(false);
       expect(orbit).not.toHaveBeenCalled();
       expect(zoomBy).not.toHaveBeenCalled();
-      expect(c.wheelHint()).toBeTrue();
+      expect(c.wheelHint()).toBe(true);
       tick(5000);
-      expect(c.wheelHint()).toBeFalse();
+      expect(c.wheelHint()).toBe(false);
       canvas.dispatchEvent(wheel({}));
-      expect(c.wheelHint()).toBeFalse();
+      expect(c.wheelHint()).toBe(false);
 
       const ctrl = wheel({ ctrlKey: true });
       canvas.dispatchEvent(ctrl);
-      expect(ctrl.defaultPrevented).toBeTrue();
-      expect(zoomBy).toHaveBeenCalledOnceWith(100);
+      expect(ctrl.defaultPrevented).toBe(true);
+      expect(zoomBy).toHaveBeenCalledTimes(1);
+      expect(zoomBy).toHaveBeenCalledWith(100);
       c['scene'] = null;
     }));
 
@@ -440,15 +441,15 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       const { fixture, c } = create();
       const pp = c.manifest()!.placements[0];
       c.focus(pp);
-      expect(c['seeThrough']()).toBeTrue();
+      expect(c['seeThrough']()).toBe(true);
       c['scene'] = { zoomBy: () => undefined, dispose: () => undefined, setFocus: () => undefined, setPaused: () => undefined } as never;
       const plain = wheel({});
       const canvas = (fixture.nativeElement as HTMLElement).querySelector('canvas')!;
-      const orbit = jasmine.createSpy('orbit');
+      const orbit = vi.fn().mockName('orbit');
       canvas.addEventListener('wheel', orbit);
       canvas.dispatchEvent(plain);
       expect(orbit).toHaveBeenCalled();
-      expect(c.wheelHint()).toBeFalse();
+      expect(c.wheelHint()).toBe(false);
       c['scene'] = null;
     });
   });

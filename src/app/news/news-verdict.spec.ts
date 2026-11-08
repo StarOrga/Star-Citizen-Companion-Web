@@ -89,7 +89,7 @@ describe('Verse News — the build-status card', () => {
 
   beforeAll(async () => {
     const res = await fetch('/i18n/de.json');
-    expect(res.ok).withContext('public/i18n/de.json must be served to Karma').toBeTrue();
+    expect(res.ok, 'public/i18n/de.json must be served to Karma').toBe(true);
     de = await res.json();
   });
 

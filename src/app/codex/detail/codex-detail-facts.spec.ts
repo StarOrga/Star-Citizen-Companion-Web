@@ -118,7 +118,7 @@ describe('codex-detail facts', () => {
       );
       expect(facts.map((f) => f.label)).toEqual(['codex.detail.dimensions', 'codex.detail.quantumRange']);
       expect(facts[1].value).toBe(fmtGm(12_000_000_000));
-      expect(facts[1].accent).toBeTrue();
+      expect(facts[1].accent).toBe(true);
     });
 
     it('words the on-foot weapon type and attach type instead of raw game tokens (audit L25)', () => {
@@ -188,18 +188,18 @@ describe('codex-detail facts', () => {
       expect(chips.map((c) => c.key)).toEqual(['role', 'crew', 'cargo']);
       expect(chips[0].text).toBe('Starter');
       expect(chips[1].text).toBe('codex.detail.chipCrew|{"n":2}');
-      expect(chips[2].accent).toBeTrue();
+      expect(chips[2].accent).toBe(true);
     });
 
     it('asks the capability only when the payload carries no cargo status', () => {
-      const hasCargo = jasmine.createSpy('hasCargo').and.returnValue(true);
+      const hasCargo = vi.fn().mockName('hasCargo').mockReturnValue(true);
       const withStatus = buildHeroChips({ detail: ship({ cargoStatus: 'none' }), localeMap: new Map(), hasCargo }, t);
       expect(hasCargo).not.toHaveBeenCalled();
-      expect(withStatus.find((c) => c.key === 'cargo')?.ghost).toBeTrue();
+      expect(withStatus.find((c) => c.key === 'cargo')?.ghost).toBe(true);
 
       const legacy = buildHeroChips({ detail: ship({}), localeMap: new Map(), hasCargo }, t);
       expect(hasCargo).toHaveBeenCalledTimes(1);
-      expect(legacy.find((c) => c.key === 'cargo')?.gap).toBeTrue();
+      expect(legacy.find((c) => c.key === 'cargo')?.gap).toBe(true);
     });
 
     it('has no chips off a ship', () => {
@@ -297,8 +297,8 @@ describe('codex-detail facts', () => {
         [1, 'codex.detail.stageRemoteTurret'],
         [2, 'codex.detail.stageTractorBeams'],
       ]);
-      expect(isTractorBeamSlot(gun)).toBeFalse();
-      expect(isTractorBeamSlot(tractor)).toBeTrue();
+      expect(isTractorBeamSlot(gun)).toBe(false);
+      expect(isTractorBeamSlot(tractor)).toBe(true);
     });
 
     it('is empty off a ship', () => {

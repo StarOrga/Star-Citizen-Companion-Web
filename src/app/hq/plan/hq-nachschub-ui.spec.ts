@@ -74,7 +74,7 @@ describe('Nachschub board, panel and dialogs', () => {
     expect(slots[2].classList).toContain('free');
     expect(el.querySelectorAll('.slot.free').length).toBe(1);
     // The places after the one plus are quiet outlines, not buttons.
-    expect([...slots].slice(3).every((x) => x.classList.contains('ghost'))).toBeTrue();
+    expect([...slots].slice(3).every((x) => x.classList.contains('ghost'))).toBe(true);
     expect(el.querySelectorAll('.slot.ghost button').length).toBe(0);
     expect(el.querySelector('.board > li:last-child .archive')).not.toBeNull();
     expect(el.querySelector('.teaser')).toBeNull();
@@ -105,7 +105,7 @@ describe('Nachschub board, panel and dialogs', () => {
   it('board: a finished Nachschub reads as done', () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Titan-Erz', 1)]);
-    spyOn(svc, 'evaluation').and.returnValue({ statuses: new Map(), snapshot: {}, snapshotChanged: false, closeIds: [], progress: { done: 5, total: 5 }, finished: true });
+    vi.spyOn(svc, 'evaluation').mockReturnValue({ statuses: new Map(), snapshot: {}, snapshotChanged: false, closeIds: [], progress: { done: 5, total: 5 }, finished: true });
     const f = TestBed.createComponent(HqNachschubBoardComponent);
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
@@ -133,7 +133,7 @@ describe('Nachschub board, panel and dialogs', () => {
     expect(el.querySelector('sc-hq-route-graphic')).not.toBeNull();
     // Jetzt runs the Nachschub picked here by itself, and an emptied Nachschub is a deleted one: neither is a button.
     const acts = [...el.querySelectorAll('.acts [scAction]')].map((b) => b.textContent ?? '');
-    expect(acts.some((t) => t.includes('hq.panel.run') || t.includes('hq.panel.empty') || t.includes('hq.einsatz.add.action'))).toBeFalse();
+    expect(acts.some((t) => t.includes('hq.panel.run') || t.includes('hq.panel.empty') || t.includes('hq.einsatz.add.action'))).toBe(false);
     // "Einsatz hinzufügen" sits inline after the cards, not as a header action.
     expect(el.querySelector('.cards .add-e')).not.toBeNull();
     // Picking the second Einsatz moves the route.
@@ -144,7 +144,7 @@ describe('Nachschub board, panel and dialogs', () => {
   it('panel: renames in place and keeps the name within 28 characters', async () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Rattler-Vorrat', 1)]);
-    const spy = spyOn(svc, 'rename').and.resolveTo(true);
+    const spy = vi.spyOn(svc, 'rename').mockResolvedValue(true);
     const f = TestBed.createComponent(HqNachschubPanelComponent);
     f.componentRef.setInput('nachschub', svc.packages()[0]);
     f.detectChanges();
@@ -157,13 +157,13 @@ describe('Nachschub board, panel and dialogs', () => {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     f.detectChanges();
     expect(spy).toHaveBeenCalled();
-    expect((spy.calls.mostRecent().args[1] as string).length).toBeLessThanOrEqual(28);
+    expect((vi.mocked(spy).mock.lastCall![1] as string).length).toBeLessThanOrEqual(28);
   });
 
   it('panel: the rename field takes the focus when it appears and the pen gets it back afterwards', async () => {
     const svc = setup();
     svc.packages.set([nach('a', 'Rattler-Vorrat', 1)]);
-    spyOn(svc, 'rename').and.resolveTo(true);
+    vi.spyOn(svc, 'rename').mockResolvedValue(true);
     const f = TestBed.createComponent(HqNachschubPanelComponent);
     f.componentRef.setInput('nachschub', svc.packages()[0]);
     f.detectChanges();
@@ -241,20 +241,20 @@ describe('Nachschub board, panel and dialogs', () => {
 
     it('"Einsatz hinzufügen" is guided: what you do, to what, where and how many make one Einsatz with one step', async () => {
       const { f, el, einsatz } = mountPanel();
-      spyOn(TestBed.inject(NachschubNamingService), 'einsatzName').and.resolveTo('Medpens kaufen');
+      vi.spyOn(TestBed.inject(NachschubNamingService), 'einsatzName').mockResolvedValue('Medpens kaufen');
       click(f, el.querySelector('.cards .add-e'));
       const form = el.querySelector('form.addform') as HTMLFormElement;
       expect(form).not.toBeNull();
       const save = form.querySelector('button[type="submit"]') as HTMLButtonElement;
       // Buying needs a thing and a place.
-      expect(save.disabled).toBeTrue();
+      expect(save.disabled).toBe(true);
       type(form.querySelector('.af-input') as HTMLInputElement, 'Medpen');
       f.detectChanges();
-      expect(save.disabled).toBeTrue();
+      expect(save.disabled).toBe(true);
       // A mission may leave the place open.
       const mission = [...form.querySelectorAll('.seg button')].find((b) => b.textContent?.includes('hq.step.kind.mission'))!;
       click(f, mission);
-      expect(save.disabled).toBeFalse();
+      expect(save.disabled).toBe(false);
       const more = form.querySelectorAll('.stepper .step')[1] as HTMLButtonElement;
       click(f, more);
       click(f, save);
@@ -353,7 +353,7 @@ describe('Nachschub board, panel and dialogs', () => {
     const f = TestBed.createComponent(HqNachschubArchiveDialogComponent);
     f.detectChanges();
     const btn = (f.nativeElement as HTMLElement).querySelector('.list button') as HTMLButtonElement;
-    expect(btn.disabled).toBeTrue();
+    expect(btn.disabled).toBe(true);
   });
 });
 
@@ -371,7 +371,7 @@ describe('HqNachschubFlowComponent', () => {
     TestBed.resetTestingModule();
     // The real service empties the wishlist of what it took; `drain` makes the fake do the same (H5).
     const live = signal<readonly WishPosition[]>(wish);
-    const created = jasmine.createSpy('createFromWishlist').and.callFake(async () => {
+    const created = vi.fn().mockName('createFromWishlist').mockImplementation(async () => {
       if (drain) live.set([]);
       return { ok: true, key: 'hq.nachschub.done.created', id: 'new' };
     });
@@ -380,11 +380,11 @@ describe('HqNachschubFlowComponent', () => {
       packages: signal<Nachschub[]>([]),
       linesOf: () => [],
       createFromWishlist: created,
-      rename: jasmine.createSpy('rename').and.resolveTo(true),
-      addFromWishlist: jasmine.createSpy('addFromWishlist'),
-      removeLine: jasmine.createSpy('removeLine'),
+      rename: vi.fn().mockName('rename').mockResolvedValue(true),
+      addFromWishlist: vi.fn().mockName('addFromWishlist'),
+      removeLine: vi.fn().mockName('removeLine'),
     };
-    const startSearch = jasmine.createSpy('startSupplySearch');
+    const startSearch = vi.fn().mockName('startSupplySearch');
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -408,10 +408,10 @@ describe('HqNachschubFlowComponent', () => {
       wishPositions: () => [] as WishPosition[],
       packages: signal<Nachschub[]>([{ ...nach('n1', 'Bestehend', 1), type: 'event', eventId: 'ev0' }]),
       linesOf: () => [{ id: 'line1', className: 'ARGO_KEELBACK' }],
-      createFromWishlist: jasmine.createSpy('createFromWishlist'),
-      rename: jasmine.createSpy('rename').and.resolveTo(true),
-      addFromWishlist: jasmine.createSpy('addFromWishlist').and.resolveTo({ ok: true, key: 'hq.nachschub.done.added', id: 'n1' }),
-      removeLine: jasmine.createSpy('removeLine'),
+      createFromWishlist: vi.fn().mockName('createFromWishlist'),
+      rename: vi.fn().mockName('rename').mockResolvedValue(true),
+      addFromWishlist: vi.fn().mockName('addFromWishlist').mockResolvedValue({ ok: true, key: 'hq.nachschub.done.added', id: 'n1' }),
+      removeLine: vi.fn().mockName('removeLine'),
     };
     const reward = { id: 'r1', name: 'Keelback', className: 'ARGO_KEELBACK', variant: null, channel: 'pledge', timing: { kind: 'immediate', date: null }, trackId: null, tier: null };
     const sheet = normalizeSheet({ schema: 1, fields: { rewards: { value: [reward], confidence: 1, source: 'admin', review: 'approved' } } });
@@ -444,16 +444,16 @@ describe('HqNachschubFlowComponent', () => {
   it('edit: adding an event binds its rewards as lines with their own event step', async () => {
     const { f, fake } = setupEdit();
     const einsatz = TestBed.inject(HqEinsatzService);
-    const create = spyOn(einsatz, 'create').and.returnValue(null);
+    const create = vi.spyOn(einsatz, 'create').mockReturnValue(null);
     const cmp = f.componentInstance as unknown as { eventPicks: { set(v: unknown): void }; name: { set(v: string): void }; save(): Promise<void> };
     cmp.eventPicks.set(new Map([['ev', new Set(['r1'])]]));
     cmp.name.set('Bestehend');
     await cmp.save();
-    const args = fake.addFromWishlist.calls.mostRecent().args as [string, unknown[], { eventId: string; className: string }[]];
+    const args = vi.mocked(fake.addFromWishlist).mock.lastCall! as [string, unknown[], { eventId: string; className: string }[]];
     expect(args[0]).toBe('n1');
     expect(args[1]).toEqual([]);
     expect(args[2].map((r) => [r.eventId, r.className])).toEqual([['ev', 'ARGO_KEELBACK']]);
-    const steps = create.calls.mostRecent().args[0].steps;
+    const steps = vi.mocked(create).mock.lastCall![0].steps;
     expect(steps.map((s) => [s.kind, s.eventId, s.className])).toEqual([['event', 'ev', 'ARGO_KEELBACK']]);
   });
 
@@ -491,12 +491,12 @@ describe('HqNachschubFlowComponent', () => {
     expect(el.querySelector('.tally')?.textContent).toContain('hq.flow.picked');
     expect(el.querySelectorAll('.grp li.on').length).toBe(3);
     // Next stays off until something is picked.
-    expect((el.querySelector('.dlg-foot button:last-child') as HTMLButtonElement).disabled).toBeFalse();
+    expect((el.querySelector('.dlg-foot button:last-child') as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('cannot go on without a pick', () => {
     const { el } = setup();
-    expect((el.querySelector('.dlg-foot button:last-child') as HTMLButtonElement).disabled).toBeTrue();
+    expect((el.querySelector('.dlg-foot button:last-child') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('walks the two steps and creates the Nachschub with its Einsätze, crafting last', async () => {
@@ -527,7 +527,7 @@ describe('HqNachschubFlowComponent', () => {
     click(f, el.querySelector('.dlg-foot button:last-child')); // Nachschub anlegen
     await whenIdle(f);
     expect(created).toHaveBeenCalledTimes(1);
-    const arg = created.calls.mostRecent().args[0] as { picks: { key: string; qty: number }[]; name: string };
+    const arg = vi.mocked(created).mock.lastCall![0] as { picks: { key: string; qty: number }[]; name: string };
     expect(arg.name).toBe('Gallant-Ausrüstung');
     expect(arg.picks.map((p) => p.key).sort()).toEqual(['blueprint:gallant', 'item:medpen', 'material:aluminium@gallant']);
     expect(einsatz.ofPackage('new').length).toBe(cards.length);
@@ -547,7 +547,7 @@ describe('HqNachschubFlowComponent', () => {
     await whenIdle(f);
     expect(created).toHaveBeenCalledTimes(1);
     expect(einsatz.ofPackage('new').length).toBe(cards);
-    expect(einsatz.ofPackage('new').every((e) => e.steps.length > 0)).toBeTrue();
+    expect(einsatz.ofPackage('new').every((e) => e.steps.length > 0)).toBe(true);
   });
 
   async function toStep2(r: ReturnType<typeof setup>) {
@@ -579,7 +579,7 @@ describe('HqNachschubFlowComponent', () => {
     r.f.detectChanges();
     row = itemRow(r.el);
     expect(row.textContent).not.toContain('hq.flow.noMerchant');
-    expect([...r.el.querySelectorAll('.ecard')].some((c) => c.textContent?.includes('area18') || c.textContent?.includes('Area18'))).toBeTrue();
+    expect([...r.el.querySelectorAll('.ecard')].some((c) => c.textContent?.includes('area18') || c.textContent?.includes('Area18'))).toBe(true);
     // Take it out: no buy Einsatz is left for it, and it can come back.
     click(r.f, row.querySelector('button.leave'));
     row = itemRow(r.el);
@@ -627,9 +627,9 @@ describe('HqNachschubFlowComponent', () => {
         wishPositions: () => [],
         packages: signal<Nachschub[]>([nach('p1', 'Gallant-Ausrüstung', 1)]),
         linesOf: () => lines,
-        rename: jasmine.createSpy('rename').and.resolveTo(true),
-        addFromWishlist: jasmine.createSpy('addFromWishlist'),
-        removeLine: jasmine.createSpy('removeLine'),
+        rename: vi.fn().mockName('rename').mockResolvedValue(true),
+        addFromWishlist: vi.fn().mockName('addFromWishlist'),
+        removeLine: vi.fn().mockName('removeLine'),
       };
       TestBed.configureTestingModule({
         providers: [
@@ -667,7 +667,7 @@ describe('HqNachschubFlowComponent', () => {
       await whenIdle(f);
       const made = einsatz.ofPackage('p1');
       expect(made.length).toBe(cards.length);
-      expect(made.flatMap((e) => e.steps).every((s) => s.supplyId === 'l1' || s.supplyId === 'l2' || s.supplyId === null)).toBeTrue();
+      expect(made.flatMap((e) => e.steps).every((s) => s.supplyId === 'l1' || s.supplyId === 'l2' || s.supplyId === null)).toBe(true);
     });
 
     it('proposes nothing new once the Nachschub has Einsätze', async () => {

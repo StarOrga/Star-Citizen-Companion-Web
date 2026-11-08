@@ -180,14 +180,14 @@ describe('ScTooltipDirective', () => {
     expect(btnC().getAttribute('aria-describedby')).toBeTruthy();
     hoverOut(btnC());
     tick(200);
-    expect(btnC().hasAttribute('aria-describedby')).toBeFalse();
+    expect(btnC().hasAttribute('aria-describedby')).toBe(false);
 
     // btnB's aria-label ("Pin to compare") equals its tooltip text exactly —
     // describedby would read the name twice, so it must stay unset.
     hoverIn(btnB());
     tick(500);
     expect(bubble()).not.toBeNull();
-    expect(btnB().hasAttribute('aria-describedby')).toBeFalse();
+    expect(btnB().hasAttribute('aria-describedby')).toBe(false);
   }));
 
   it('never opens from a touch hover — a tap would otherwise show it a moment later', fakeAsync(() => {

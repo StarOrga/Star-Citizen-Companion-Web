@@ -108,7 +108,7 @@ describe('asset-package model', () => {
       kind: 'item', entity_class: 'POWR_A', ship_id: null, manifest_sha256: 'm', root_sha256: 'r',
       interior_sha256: null, part_count: 2, total_bytes: 99, schema_version: 1,
     });
-    expect(row).toEqual(jasmine.objectContaining({ kind: 'item', entityClass: 'POWR_A', manifestSha256: 'm', partCount: 2 }));
+    expect(row).toEqual(expect.objectContaining({ kind: 'item', entityClass: 'POWR_A', manifestSha256: 'm', partCount: 2 }));
     expect(rowFromDb({ kind: 'ship', entity_class: 'X' })).toBeNull();
     expect(rowFromDb({ kind: 'boat', entity_class: 'X', manifest_sha256: 'm' })).toBeNull();
   });
@@ -126,7 +126,7 @@ describe('asset-package model', () => {
     const m = parseManifest(manifestFixture());
     expect(hotspotPlacements(m).map((p) => p.id)).toEqual(['hardpoint_power_plant', 'turret', 'turret/gun']);
     expect(listPlacements(m).map((p) => p.id)).toEqual(['hardpoint_power_plant', 'turret', 'turret/gun', 'optic', 'half']);
-    expect(isFreeSlot(m.placements.find((p) => p.id === 'optic')!)).toBeTrue();
+    expect(isFreeSlot(m.placements.find((p) => p.id === 'optic')!)).toBe(true);
     expect(availableGroups(m)).toEqual(['weapons', 'components', 'interior']);
   });
 
@@ -148,9 +148,9 @@ describe('asset-package model', () => {
     const byId = new Map(m.placements.map((p) => [p.id, p] as const));
     const gun = byId.get('turret/gun')!;
     const all = new Set<PlacementGroup>(['weapons', 'components']);
-    expect(placementVisible(gun, all, new Set(), byId)).toBeTrue();
-    expect(placementVisible(gun, all, new Set(['turret']), byId)).toBeFalse();
-    expect(placementVisible(gun, new Set<PlacementGroup>(['components']), new Set(), byId)).toBeFalse();
+    expect(placementVisible(gun, all, new Set(), byId)).toBe(true);
+    expect(placementVisible(gun, all, new Set(['turret']), byId)).toBe(false);
+    expect(placementVisible(gun, new Set<PlacementGroup>(['components']), new Set(), byId)).toBe(false);
   });
 
   it('focuses the hovered placement with its children, or the active ports by exact name', () => {
@@ -181,7 +181,7 @@ describe('scopedHotspots / placementsForPorts', () => {
     const m = swappableManifest();
     const swappable = scopedHotspots(m, 'swappable');
     expect(swappable.length).toBeGreaterThan(0);
-    expect(swappable.every(isSwappable)).toBeTrue();
+    expect(swappable.every(isSwappable)).toBe(true);
     expect(scopedHotspots(m, 'all').length).toBeGreaterThan(swappable.length);
   });
 

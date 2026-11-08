@@ -5,7 +5,7 @@ describe('codex ship filters', () => {
     const seen = new Map<string, string>();
     for (const role of SHIP_ROLES) {
       for (const career of SHIP_ROLE_CAREERS[role]) {
-        expect(seen.has(career)).withContext(career).toBeFalse();
+        expect(seen.has(career), career).toBe(false);
         seen.set(career, role);
       }
     }
@@ -23,7 +23,7 @@ describe('codex ship filters', () => {
         const r = CREW_BAND_RANGE[b];
         return n >= r.min && (r.max === null || n <= r.max);
       });
-      expect(hits.length).withContext(String(n)).toBe(1);
+      expect(hits.length, String(n)).toBe(1);
     }
     expect(crewBandOf(1)).toBe('solo');
     expect(crewBandOf(3)).toBe('small');

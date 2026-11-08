@@ -8,7 +8,7 @@ describe('search context chips (C1, C2)', () => {
     const [chip] = searchContextOf('/codex/index?kind=weapon').chips;
     expect(chip.source).toBe('route');
     expect(chip.filter.groups).toEqual(['weapon']);
-    expect(chip.switchable).toBeTrue();
+    expect(chip.switchable).toBe(true);
     expect(chip.options!.length).toBeGreaterThan(5);
   });
 

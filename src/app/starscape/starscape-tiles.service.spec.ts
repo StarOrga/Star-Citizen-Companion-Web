@@ -13,10 +13,10 @@ describe('StarscapeTilesService', () => {
 
   it('markDecoded records the id and lifts it out of broken()', () => {
     svc.markBroken('a');
-    expect(svc.broken().has('a')).toBeTrue();
+    expect(svc.broken().has('a')).toBe(true);
     svc.markDecoded('a');
-    expect(svc.decoded().has('a')).toBeTrue();
-    expect(svc.broken().has('a')).toBeFalse();
+    expect(svc.decoded().has('a')).toBe(true);
+    expect(svc.broken().has('a')).toBe(false);
   });
 
   it('a second markDecoded keeps the same set instance (no redundant signal write)', () => {
@@ -29,9 +29,9 @@ describe('StarscapeTilesService', () => {
   it('markBroken never demotes a tile that already painted', () => {
     svc.markDecoded('a');
     svc.markBroken('a');
-    expect(svc.broken().has('a')).toBeFalse();
+    expect(svc.broken().has('a')).toBe(false);
     svc.markBroken('b');
-    expect(svc.broken().has('b')).toBeTrue();
+    expect(svc.broken().has('b')).toBe(true);
   });
 
   it('clearBroken clears the given ids, or every id when omitted', () => {
@@ -65,7 +65,7 @@ describe('StarscapeTilesService', () => {
 
   it('markDecoded without an element records no ratio', () => {
     svc.markDecoded('a', null);
-    expect(svc.decoded().has('a')).toBeTrue();
+    expect(svc.decoded().has('a')).toBe(true);
     expect(svc.ratioOf('a')).toBeNull();
   });
 });

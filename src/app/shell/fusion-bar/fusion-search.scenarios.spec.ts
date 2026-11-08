@@ -25,8 +25,8 @@ describe('FusionSearchComponent search scenarios (B3.3)', () => {
     router.resetConfig([{ path: '**', component: PageStub }]);
     await router.navigateByUrl(url);
     s.fixture.detectChanges();
-    const nav = spyOn(router, 'navigateByUrl').and.resolveTo(true);
-    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+    const nav = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     return { ...s, engine, router, nav, navigate, url };
   }
 
@@ -73,7 +73,7 @@ describe('FusionSearchComponent search scenarios (B3.3)', () => {
         s.field.click();
         s.fixture.detectChanges();
         s.key('Escape');
-        expect(s.cmp.open()).toBeFalse();
+        expect(s.cmp.open()).toBe(false);
         expect(s.navigate).not.toHaveBeenCalled();
         expect(s.router.url).toBe(url);
       });
@@ -83,7 +83,7 @@ describe('FusionSearchComponent search scenarios (B3.3)', () => {
         s.field.click();
         s.fixture.detectChanges();
         document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-        expect(s.cmp.open()).toBeFalse();
+        expect(s.cmp.open()).toBe(false);
         expect(s.navigate).not.toHaveBeenCalled();
         expect(s.router.url).toBe(url);
       });
@@ -94,7 +94,7 @@ describe('FusionSearchComponent search scenarios (B3.3)', () => {
         click(s.el.querySelector('button.clear') as HTMLElement);
         s.fixture.detectChanges();
         expect(s.engine.input()).toBe('');
-        expect(s.cmp.open()).toBeTrue();
+        expect(s.cmp.open()).toBe(true);
         expect(s.navigate).not.toHaveBeenCalled();
         expect(s.router.url).toBe(url);
       });
@@ -109,7 +109,7 @@ describe('FusionSearchComponent search scenarios (B3.3)', () => {
       expect(a.getAttribute('href')).toContain('/codex/ship/');
       click(a);
       s.fixture.detectChanges();
-      expect(s.cmp.open()).toBeFalse();
+      expect(s.cmp.open()).toBe(false);
     });
 
     it('"all in index": a real anchor to the Codex index with the term', async () => {
@@ -125,17 +125,17 @@ describe('FusionSearchComponent search scenarios (B3.3)', () => {
       s.type('zzz');
       s.key('Enter');
       expect(s.navigate).toHaveBeenCalled();
-      expect((s.navigate.calls.mostRecent().args[0] as string[])[0]).toBe('/codex/index');
+      expect((vi.mocked(s.navigate).mock.lastCall![0] as string[])[0]).toBe('/codex/index');
     });
 
     it('new-tab click on a result row is left to the browser: no in-app navigation, panel stays', async () => {
       const s = await setupOn('/verse');
       s.type('aegis re');
       const left = click(s.el.querySelector('.group .row a.hit') as HTMLElement, { ctrlKey: true });
-      expect(left).toBeTrue();
+      expect(left).toBe(true);
       expect(s.navigate).not.toHaveBeenCalled();
       expect(s.nav).not.toHaveBeenCalled();
-      expect(s.cmp.open()).toBeTrue();
+      expect(s.cmp.open()).toBe(true);
     });
   });
 });

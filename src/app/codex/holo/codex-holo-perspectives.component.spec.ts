@@ -172,7 +172,7 @@ describe('CodexHoloPerspectivesComponent row layout (concept holotisch-unten r1)
     expect(el.querySelectorAll('.ptile').length).toBe(4);
     (el.querySelector('.all-expand') as HTMLButtonElement).click();
     f.detectChanges();
-    expect(f.componentInstance.allOpen()).toBeTrue();
+    expect(f.componentInstance.allOpen()).toBe(true);
     expect(el.querySelectorAll('.tile-full').length).toBe(3);
   });
 });

@@ -1,3 +1,4 @@
+import type { Mock, MockedObject } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -9,17 +10,21 @@ import { HandoffService } from './handoff.service';
 const CODE = 'a'.repeat(43);
 
 describe('HandoffComponent', () => {
-  let handoff: jasmine.SpyObj<HandoffService>;
-  let confirm: jasmine.Spy;
+  let handoff: MockedObject<HandoffService>;
+  let confirm: Mock;
   let email: string | undefined;
   let userId = 'other-user';
 
   function create(fragment: string | null) {
-    handoff = jasmine.createSpyObj<HandoffService>('HandoffService', ['peek', 'redeem', 'errorKey']);
-    handoff.peek.and.resolveTo({ account: 'j***@g***.test', userId: 'owner-1', targetPath: '/codex/ship/x' });
-    handoff.redeem.and.resolveTo('/codex');
-    handoff.errorKey.and.resolveTo('handoff.errors.invalidCode');
-    confirm = jasmine.createSpy('confirm').and.resolveTo(true);
+    handoff = {
+      peek: vi.fn().mockName("HandoffService.peek"),
+      redeem: vi.fn().mockName("HandoffService.redeem"),
+      errorKey: vi.fn().mockName("HandoffService.errorKey")
+    } as unknown as MockedObject<HandoffService>;
+    handoff.peek.mockResolvedValue({ account: 'j***@g***.test', userId: 'owner-1', targetPath: '/codex/ship/x' });
+    handoff.redeem.mockResolvedValue('/codex');
+    handoff.errorKey.mockResolvedValue('handoff.errors.invalidCode');
+    confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
     TestBed.configureTestingModule({
       imports: [HandoffComponent],
       providers: [
@@ -37,8 +42,8 @@ realUser: () => (email ? { email, id: userId } : null),
         },
       ],
     });
-    spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    spyOn(history, 'replaceState');
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    vi.spyOn(history, 'replaceState').mockReturnValue(undefined as never);
     const fixture = TestBed.createComponent(HandoffComponent);
     return fixture;
   }
@@ -79,9 +84,9 @@ realUser: () => (email ? { email, id: userId } : null),
     email = 'jx@gmx.test';
     const f = create(`c=${CODE}`);
     await f.componentInstance.ngOnInit();
-    confirm.and.resolveTo(false);
+    confirm.mockResolvedValue(false);
     await f.componentInstance.signIn();
-    expect(f.componentInstance.busy()).toBeFalse();
+    expect(f.componentInstance.busy()).toBe(false);
   });
 
   it('never redeems on load: only peeks, and strips the fragment first', async () => {
@@ -113,7 +118,7 @@ realUser: () => (email ? { email, id: userId } : null),
     email = 'someone.else@example.com';
     const f = create(`c=${CODE}`);
     await f.componentInstance.ngOnInit();
-    confirm.and.resolveTo(false);
+    confirm.mockResolvedValue(false);
     await f.componentInstance.signIn();
     expect(confirm).toHaveBeenCalled();
     expect(handoff.redeem).not.toHaveBeenCalled();
@@ -122,7 +127,7 @@ realUser: () => (email ? { email, id: userId } : null),
   it('shows a translated error when redeem fails', async () => {
     const f = create(`c=${CODE}`);
     await f.componentInstance.ngOnInit();
-    handoff.redeem.and.rejectWith(new Error('x'));
+    handoff.redeem.mockRejectedValue(new Error('x'));
     await f.componentInstance.signIn();
     expect(f.componentInstance.errorKey()).toBe('handoff.errors.invalidCode');
   });

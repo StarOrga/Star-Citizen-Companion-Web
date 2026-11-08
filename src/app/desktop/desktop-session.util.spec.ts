@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { mintDesktopSession } from './desktop-session.util';
 import { READ_TIMEOUT_MS } from '../core/deadline';
@@ -6,13 +7,13 @@ import { READ_TIMEOUT_MS } from '../core/deadline';
 function clientReturning(result: unknown | Error): SupabaseClient {
   const invoke =
     result instanceof Error
-      ? jasmine.createSpy('invoke').and.rejectWith(result)
-      : jasmine.createSpy('invoke').and.resolveTo(result);
+      ? vi.fn().mockName('invoke').mockRejectedValue(result)
+      : vi.fn().mockName('invoke').mockResolvedValue(result);
   return { functions: { invoke } } as unknown as SupabaseClient;
 }
 
 describe('mintDesktopSession', () => {
-  beforeEach(() => spyOn(console, 'warn'));
+  beforeEach(() => vi.spyOn(console, 'warn').mockReturnValue(undefined as never));
 
   it('returns the minted session, with expires_at stringified for the loopback', async () => {
     const client = clientReturning({
@@ -25,7 +26,7 @@ describe('mintDesktopSession', () => {
       error: null,
     });
 
-    await expectAsync(mintDesktopSession(client)).toBeResolvedTo({
+    await expect(mintDesktopSession(client)).resolves.toEqual({
       access_token: 'minted-jwt',
       refresh_token: 'minted-refresh',
       // The apps Number()-parse this out of the form body, so it must be a
@@ -45,7 +46,7 @@ describe('mintDesktopSession', () => {
       error: null,
     });
     await mintDesktopSession(client);
-    const [, options] = (client.functions.invoke as jasmine.Spy).calls.mostRecent().args;
+    const [, options] = vi.mocked((client.functions.invoke as Mock)).mock.lastCall!;
     expect(options.timeout).toBe(READ_TIMEOUT_MS);
   });
 
@@ -55,20 +56,18 @@ describe('mintDesktopSession', () => {
       error: null,
     });
     await mintDesktopSession(client);
-    const [, options] = (client.functions.invoke as jasmine.Spy).calls.mostRecent().args;
+    const [, options] = vi.mocked((client.functions.invoke as Mock)).mock.lastCall!;
     // An email in the body would be a spoofable second identity source.
     expect(options.body).toEqual({});
   });
 
   it('falls back (null) when the function errors, so the hand-off still works', async () => {
     const client = clientReturning({ data: null, error: new Error('boom') });
-    await expectAsync(mintDesktopSession(client)).toBeResolvedTo(null);
+    await expect(mintDesktopSession(client)).resolves.toEqual(null);
   });
 
   it('falls back (null) when the function throws', async () => {
-    await expectAsync(mintDesktopSession(clientReturning(new Error('offline')))).toBeResolvedTo(
-      null,
-    );
+    await expect(mintDesktopSession(clientReturning(new Error('offline')))).resolves.toEqual(null);
   });
 
   it('rejects a half-filled response instead of handing over a dead session', async () => {
@@ -78,10 +77,10 @@ describe('mintDesktopSession', () => {
       data: { access_token: 'only-a-jwt', expires_at: 1 },
       error: null,
     });
-    await expectAsync(mintDesktopSession(noRefresh)).toBeResolvedTo(null);
+    await expect(mintDesktopSession(noRefresh)).resolves.toEqual(null);
 
     const noAccess = clientReturning({ data: { refresh_token: 'r' }, error: null });
-    await expectAsync(mintDesktopSession(noAccess)).toBeResolvedTo(null);
+    await expect(mintDesktopSession(noAccess)).resolves.toEqual(null);
   });
 
   it('tolerates a missing expires_at rather than posting "null"', async () => {
@@ -91,7 +90,7 @@ describe('mintDesktopSession', () => {
     });
     // Empty string → the caller skips the field entirely; "null" would be
     // Number()-parsed to NaN and read as "already expired".
-    await expectAsync(mintDesktopSession(client)).toBeResolvedTo({
+    await expect(mintDesktopSession(client)).resolves.toEqual({
       access_token: 'a',
       refresh_token: 'b',
       expires_at: '',

@@ -972,13 +972,13 @@ describe('CodexHardpointLayoutComponent', () => {
     // The heading and its census stay — only the inventory is folded.
     const fixed = el.querySelector('.mod-sec[data-sec="structure"]') as HTMLDetailsElement;
     expect(fixed.querySelector('.sec-ct')).toBeTruthy();
-    expect(fixed.open).toBeFalse();
+    expect(fixed.open).toBe(false);
     expect(fixed.querySelector('.sec-rows')).toBeNull();
     // Folded away → the preview lives in the summary instead (MASTER §6).
     expect(fixed.querySelector('.fold-preview')).toBeTruthy();
     // A configurable block starts OPEN — its rows are never hidden by default.
     const weapons = el.querySelector('.mod-sec[data-sec="weapons"]') as HTMLDetailsElement;
-    expect(weapons.open).toBeTrue();
+    expect(weapons.open).toBe(true);
     expect(weapons.querySelector('.sec-rows')).toBeTruthy();
 
     // The native <details> toggle event is queued asynchronously by the spec
@@ -995,12 +995,12 @@ describe('CodexHardpointLayoutComponent', () => {
   it('shows the fold preview once a block is manually closed, with no controls in it', () => {
     const el = render([{ section: 'weapons', slots: [PANTHER] }]);
     const weapons = el.querySelector('.mod-sec[data-sec="weapons"]') as HTMLDetailsElement;
-    expect(weapons.open).toBeTrue();
+    expect(weapons.open).toBe(true);
     expect(weapons.querySelector('.fold-preview')).toBeNull();
 
     fixture.componentInstance.toggleFold('weapons');
     fixture.detectChanges();
-    expect(weapons.open).toBeFalse();
+    expect(weapons.open).toBe(false);
     expect(weapons.querySelector('.sec-rows')).toBeNull();
     const preview = weapons.querySelector('.fold-preview') as HTMLElement;
     expect(preview).toBeTruthy();
@@ -1017,7 +1017,7 @@ describe('CodexHardpointLayoutComponent', () => {
 
     fixture.componentInstance.toggleFold('weapons');
     fixture.detectChanges();
-    expect(weapons.open).toBeTrue();
+    expect(weapons.open).toBe(true);
     expect(weapons.querySelector('.fold-preview')).toBeNull();
     expect(weapons.querySelector('.sec-rows')).toBeTruthy();
   });
@@ -1048,14 +1048,14 @@ describe('CodexHardpointLayoutComponent', () => {
     const el = render([...FOUR_BLOCK_SHIP, { section: 'structure', slots: [thruster] }]);
     const all = Array.from(el.querySelectorAll<HTMLDetailsElement>('details.mod-sec, details.mod-sub'));
     expect(all.length).toBeGreaterThan(5);
-    expect(all.every((d) => d.open)).toBeTrue();
+    expect(all.every((d) => d.open)).toBe(true);
     expect(el.querySelector('.mod-sec[data-sec="structure"] .sec-rows')).toBeTruthy();
 
     // Leaving "Alles" restores the default folds (airframe + nested systems).
     fixture.componentRef.setInput('expandAll', false);
     fixture.detectChanges();
-    expect((el.querySelector('.mod-sec[data-sec="structure"]') as HTMLDetailsElement).open).toBeFalse();
-    expect((el.querySelector('.mod-sub[data-sec="coolers"]') as HTMLDetailsElement).open).toBeFalse();
+    expect((el.querySelector('.mod-sec[data-sec="structure"]') as HTMLDetailsElement).open).toBe(false);
+    expect((el.querySelector('.mod-sub[data-sec="coolers"]') as HTMLDetailsElement).open).toBe(false);
   });
 
   it('keeps all five system sections as subgroups inside the merged block', () => {
@@ -1072,7 +1072,7 @@ describe('CodexHardpointLayoutComponent', () => {
   it('a subgroup starts closed — a reactor is one level below the block', () => {
     const el = render(FOUR_BLOCK_SHIP);
     const reactor = el.querySelector('.mod-sub[data-sec="powerPlants"]') as HTMLDetailsElement;
-    expect(reactor.open).toBeFalse();
+    expect(reactor.open).toBe(false);
     // Closed is not hidden: the fold preview still names what is installed.
     expect(reactor.querySelector('.fold-preview')).toBeTruthy();
     fixture.componentInstance.toggleFold('powerPlants');

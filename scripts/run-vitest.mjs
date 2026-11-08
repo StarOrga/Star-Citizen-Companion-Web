@@ -1,11 +1,11 @@
 /**
- * `npm run test:vitest`: the specs already moved to Vitest (angular.json →
- * test-vitest), in a real headless Chromium via Playwright.
+ * `npm test`: every spec under src/ on Vitest (angular.json → test),
+ * in a real headless Chromium via Playwright.
  *
  * The unit-test builder hands CHROME_BIN to Playwright as the executable, so
  * no Playwright browser download is needed: on Linux (CI) the system Google
- * Chrome is used, on a Windows box without Chrome the same Edge fallback as
- * `npm test` applies (scripts/lib/vitest-chrome-bin.mjs). A box with neither
+ * Chrome is used, on a Windows box without Chrome Edge
+ * (scripts/lib/vitest-chrome-bin.mjs). A box with neither
  * falls through to Playwright's own Chromium, if one was installed with
  * `npx playwright install chromium`.
  *
@@ -24,7 +24,7 @@ function main() {
     console.log(`run-vitest: browser ${bin}`);
   }
   const ng = createRequire(import.meta.url).resolve('@angular/cli/bin/ng.js');
-  const child = spawn(process.execPath, [ng, 'run', 'verse-companion:test-vitest', ...process.argv.slice(2)], {
+  const child = spawn(process.execPath, [ng, 'run', 'verse-companion:test', ...process.argv.slice(2)], {
     env,
     stdio: 'inherit',
   });

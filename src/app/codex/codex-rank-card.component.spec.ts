@@ -87,11 +87,11 @@ describe('CodexRankCardComponent', () => {
 
     const behind = el.querySelector<SVGLineElement>('.radar .connector.down');
     const behindCaption = el.querySelector<SVGTextElement>('.radar text.down');
-    expect(behind).withContext('alpha trails the median').toBeTruthy();
-    expect(behindCaption).withContext('alpha caption').toBeTruthy();
+    expect(behind, 'alpha trails the median').toBeTruthy();
+    expect(behindCaption, 'alpha caption').toBeTruthy();
     expect(getComputedStyle(behind!).stroke).toBe(warning);
     expect(getComputedStyle(behindCaption!).fill).toBe(warning);
-    expect(el.querySelector('.radar .connector.up')).withContext('the other axes lead').toBeTruthy();
+    expect(el.querySelector('.radar .connector.up'), 'the other axes lead').toBeTruthy();
     // The old fixed 50 % ring and the unexplained weakest-axis dot are gone.
     expect(el.querySelector('.radar .weak-axis')).toBeNull();
     expect(el.querySelector('.radar .median')).toBeNull();

@@ -52,7 +52,7 @@ function fakeSupabase(session: FakeSession | null) {
         // resolves, deterministically reproducing the real boot race.
         getSession: () => sessionGate.then(() => ({ data: { session: supaSession } })),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe(): void {} } } }),
-        signOut: jasmine.createSpy('authSignOut').and.resolveTo({ error: null }),
+        signOut: vi.fn().mockName('authSignOut').mockResolvedValue({ error: null }),
       },
       from: () => ({
         select: () => ({
@@ -72,8 +72,8 @@ function fakeSupabase(session: FakeSession | null) {
 
 function fakeRouter() {
   return {
-    createUrlTree: jasmine.createSpy('createUrlTree'),
-    navigate: jasmine.createSpy('navigate').and.resolveTo(true),
+    createUrlTree: vi.fn().mockName('createUrlTree'),
+    navigate: vi.fn().mockName('navigate').mockResolvedValue(true),
   };
 }
 
@@ -258,7 +258,7 @@ describe('RoleService failure paths (transient read errors)', () => {
             authChangeCb = cb;
             return { data: { subscription: { unsubscribe(): void {} } } };
           },
-          signOut: jasmine.createSpy('authSignOut').and.resolveTo({ error: null }),
+          signOut: vi.fn().mockName('authSignOut').mockResolvedValue({ error: null }),
         },
         from: () => ({
           select: () => ({

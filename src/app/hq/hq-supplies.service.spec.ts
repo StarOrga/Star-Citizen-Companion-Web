@@ -94,15 +94,15 @@ describe('HqSuppliesService', () => {
   it('adds a line, merges the same open name like a cart', async () => {
     const s = make();
     await s.sync();
-    expect(s.add('  Quantum drive ', 1)).toBeTrue();
-    expect(s.add('quantum DRIVE', 2)).toBeTrue();
+    expect(s.add('  Quantum drive ', 1)).toBe(true);
+    expect(s.add('quantum DRIVE', 2)).toBe(true);
     expect(s.items().length).toBe(1);
     expect(s.items()[0].qty).toBe(3);
   });
 
   it('rejects empty names and clamps quantities', () => {
     const s = make();
-    expect(s.add('   ', 1)).toBeFalse();
+    expect(s.add('   ', 1)).toBe(false);
     s.add('Shield', 5000);
     expect(s.items()[0].qty).toBe(SUPPLY_QTY_MAX);
     s.setQty(s.items()[0].id, -4);
@@ -215,19 +215,19 @@ describe('HqSuppliesService', () => {
     await s.sync();
     rejectIds.add('a');
     s.setQty('a', 5);
-    expect(s.items().find((i) => i.id === 'a')?.dirty).toBeTrue();
+    expect(s.items().find((i) => i.id === 'a')?.dirty).toBe(true);
     await s.sync();
     const a = s.items().find((i) => i.id === 'a')!;
     expect(a.name).toBe('Server wins');
     expect(a.qty).toBe(1);
-    expect(a.dirty).toBeFalse();
+    expect(a.dirty).toBe(false);
   });
 
   it('is not ready before the first pull and ready after', async () => {
     const s = make();
-    expect(s.ready()).toBeFalse();
+    expect(s.ready()).toBe(false);
     await s.sync();
-    expect(s.ready()).toBeTrue();
+    expect(s.ready()).toBe(true);
   });
 
   it('pulls with a keyset on (synced_at, id) and re-reads a few seconds before the watermark', async () => {
@@ -251,14 +251,14 @@ describe('HqSuppliesService', () => {
       const id = s.items()[0].id;
       expect(s.tickByClassName('rep_s3', 1)).toBe(id);
       expect(s.items()[0].qty).toBe(2);
-      expect(s.items()[0].done).toBeFalse();
+      expect(s.items()[0].done).toBe(false);
       s.untick(id, 1);
       expect(s.items()[0].qty).toBe(3);
       expect(s.tickByClassName('REP_S3', 5)).toBe(id);
-      expect(s.items()[0].done).toBeTrue();
+      expect(s.items()[0].done).toBe(true);
       expect(s.items()[0].qty).toBe(3);
       s.untick(id, 5);
-      expect(s.items()[0].done).toBeFalse();
+      expect(s.items()[0].done).toBe(false);
       expect(s.items()[0].qty).toBe(3);
     });
 
@@ -339,7 +339,7 @@ describe('HqSuppliesService', () => {
       s.removeMany(ids);
       await s.sync(); // pushes the tombstones; the clean ones are dropped from the local rows
       expect(s.items()).toEqual([]);
-      expect(server.every((r) => r.deleted_at !== null)).toBeTrue();
+      expect(server.every((r) => r.deleted_at !== null)).toBe(true);
       for (const id of ids) s.restore(id);
       expect(s.items().map((i) => [i.id, i.name, i.qty, i.packageId, i.dirty])).toEqual([
         [ids[0], 'Rifle', 2, 'p1', true],
@@ -359,7 +359,7 @@ describe('HqSuppliesService', () => {
       const sent = chainArgs(fake.calls.find((c) => c.target === 'hq_supplies' && chainArgs(c, 'upsert'))!, 'upsert')![0] as Record<string, unknown>[];
       const shield = sent.find((r) => r['name'] === 'Shield')!;
       const agri = sent.find((r) => r['name'] === 'Agricium')!;
-      expect('amount' in shield || 'unit' in shield || 'for_class_name' in shield).toBeFalse();
+      expect('amount' in shield || 'unit' in shield || 'for_class_name' in shield).toBe(false);
       expect([agri['amount'], agri['unit'], agri['for_class_name']]).toEqual([0.36, 'scu', 'BP_X']);
     });
 

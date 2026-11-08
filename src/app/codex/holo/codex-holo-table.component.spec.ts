@@ -50,7 +50,7 @@ describe('CodexHoloTableComponent', () => {
   describe('phone on its side', () => {
     function withLandscape(matches: boolean): void {
       const real = window.matchMedia.bind(window);
-      spyOn(window, 'matchMedia').and.callFake((q: string) =>
+      vi.spyOn(window, 'matchMedia').mockImplementation((q: string) =>
         q.includes('max-height: 500px') ? ({ matches, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(q));
     }
     const frame = (f: ComponentFixture<CodexHoloTableComponent>) => (f.nativeElement as HTMLElement).querySelector('.silhouette-frame')!;
@@ -278,7 +278,7 @@ describe('CodexHoloTableComponent', () => {
         for (let j = i + 1; j < rects.length; j++) {
           const [a, b] = [rects[i], rects[j]];
           const hit = a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
-          expect(hit).withContext(`label ${i + 1} × ${j + 1}`).toBeFalse();
+          expect(hit, `label ${i + 1} × ${j + 1}`).toBe(false);
         }
       }
       // The dots stay keyboard-silent: the labels are the tab stops.
@@ -356,7 +356,7 @@ describe('CodexHoloTableComponent', () => {
       expect(parallaxOffset(rect, 600, { x: 300, y: 300 })).toEqual({ x: 0, y: 0 });
       expect(parallaxOffset(rect, 600, { x: 500, y: 300 }).x).toBe(1);
       expect(parallaxOffset(rect, 600, { x: 100, y: 300 }).x).toBe(-1);
-      expect(parallaxOffset(rect, 600, { x: 900, y: 300 }).x).withContext('clamped').toBe(1);
+      expect(parallaxOffset(rect, 600, { x: 900, y: 300 }).x, 'clamped').toBe(1);
     });
 
     it('scrolling tilts the vertical axis by a third', () => {
@@ -368,9 +368,13 @@ describe('CodexHoloTableComponent', () => {
     it('a pointer move sets --px/--py on the frame; reduced motion never does', () => {
       const frames = installFrameClock();
       const fixture = setup({ phase: 'done' });
+      // A stage-sized host: on a desktop-wide window the frame takes its height
+      // from the stage, and a bare fixture host has none.
+      (fixture.nativeElement as HTMLElement).style.cssText = 'display:flex;flex-direction:column;position:relative;width:600px;height:600px;';
       TestBed.inject(ApplicationRef).tick();
       const frame = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.silhouette-frame')!;
       const r = frame.getBoundingClientRect();
+      expect(r.height, 'the frame has a size to point at').toBeGreaterThan(0);
       frame.dispatchEvent(new PointerEvent('pointermove', { clientX: r.right - 1, clientY: r.top + r.height / 2, pointerType: 'mouse' }));
       frames.runFrame();
       expect(Number(frame.style.getPropertyValue('--px'))).toBeGreaterThan(0.9);

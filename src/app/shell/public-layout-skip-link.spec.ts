@@ -36,18 +36,18 @@ describe('PublicLayoutComponent skip link', () => {
     const first = (fixture.nativeElement as HTMLElement).querySelector(FOCUSABLE) as HTMLElement | null;
 
     expect(first).toBeTruthy();
-    expect(first!.matches('a.sc-skip-link[href="#sc-main"]')).toBeTrue();
+    expect(first!.matches('a.sc-skip-link[href="#sc-main"]')).toBe(true);
   });
 
   it('moves focus to the main landmark on a plain click', () => {
     const fixture = setup();
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.isConnected).withContext('TestBed attaches the fixture to the document').toBeTrue();
+    expect(root.isConnected, 'TestBed attaches the fixture to the document').toBe(true);
     const link = root.querySelector('a.sc-skip-link') as HTMLAnchorElement;
     const ev = new MouseEvent('click', { button: 0, bubbles: true, cancelable: true });
     link.dispatchEvent(ev);
 
-    expect(ev.defaultPrevented).withContext('the URL must not gain #sc-main').toBeTrue();
+    expect(ev.defaultPrevented, 'the URL must not gain #sc-main').toBe(true);
     expect(document.activeElement?.id).toBe('sc-main');
   });
 
@@ -55,6 +55,6 @@ describe('PublicLayoutComponent skip link', () => {
     const ev = new MouseEvent('click', { button: 0, ctrlKey: true, cancelable: true });
     skipToMain(ev);
 
-    expect(ev.defaultPrevented).toBeFalse();
+    expect(ev.defaultPrevented).toBe(false);
   });
 });

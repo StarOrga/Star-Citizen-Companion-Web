@@ -23,7 +23,9 @@ async function setup(opts: {
   setSlotCalls = [];
   setSlotResult = { id: 'set-1', items: [] as RoleLoadoutItem[] } as HangarRoleLoadout;
   gate = null;
-  await TestBed.configureTestingModule({
+  // No compileComponents(): the components are AOT-compiled, and its native
+  // promise would escape fakeAsync (Angular code runs untransformed under Vitest).
+  TestBed.configureTestingModule({
     imports: [CodexSetGearComponent],
     providers: [
       provideRouter([]),
@@ -41,7 +43,7 @@ async function setup(opts: {
         } as Partial<HangarService>,
       },
     ],
-  }).compileComponents();
+  });
   const fixture = TestBed.createComponent(CodexSetGearComponent);
   fixture.componentRef.setInput('setId', 'set-1');
   fixture.componentRef.setInput('role', opts.role);

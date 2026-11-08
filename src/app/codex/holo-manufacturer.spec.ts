@@ -35,10 +35,8 @@ describe('holo-manufacturer', () => {
 
   it('keeps every accent readable as a glow on the dark stage', () => {
     for (const [code, c] of Object.entries(MANUFACTURER_ACCENTS)) {
-      expect(relativeLuminance(manufacturerAccent(`${code}_X`, APP)))
-        .withContext(code)
-        .toBeGreaterThanOrEqual(MIN_ACCENT_LUMINANCE - 0.005);
-      expect(c.every((v) => v >= 0 && v <= 255)).withContext(code).toBeTrue();
+      expect(relativeLuminance(manufacturerAccent(`${code}_X`, APP)), code).toBeGreaterThanOrEqual(MIN_ACCENT_LUMINANCE - 0.005);
+      expect(c.every((v) => v >= 0 && v <= 255), code).toBe(true);
     }
   });
 

@@ -75,7 +75,7 @@ describe('buildShieldPreview — the concept’s Nomad shield module', () => {
 
   it('aggregates the pool', () => {
     expect(preview.aggregate).toEqual(
-      jasmine.objectContaining({ labelKey: 'codex.module.badge.pool', figure: 6480 }),
+      expect.objectContaining({ labelKey: 'codex.module.badge.pool', figure: 6480 }),
     );
   });
 
@@ -96,19 +96,19 @@ describe('isPassiveShield', () => {
       count: 1,
       payload: { entityKind: 'component', kind: 'Shield', className: 'X', stats: {} },
     };
-    expect(isPassiveShield(noData)).toBeFalse();
-    expect(isPassiveShield(shieldOcc(1, 100, 0))).toBeTrue();
-    expect(isPassiveShield(shieldOcc(1, 100, 2))).toBeFalse();
+    expect(isPassiveShield(noData)).toBe(false);
+    expect(isPassiveShield(shieldOcc(1, 100, 0))).toBe(true);
+    expect(isPassiveShield(shieldOcc(1, 100, 2))).toBe(false);
   });
 
   it('trusts the hardpoint when its port is flagged hidden from the pilot (4263fed1)', () => {
     // `invisible` on the item port is the one port-level signal the game
     // files carry for a generator the pilot never sees; it beats a resource
     // block that says "draws power".
-    expect(isPassiveShield({ ...shieldOcc(1, 100, 2), passive: true })).toBeTrue();
+    expect(isPassiveShield({ ...shieldOcc(1, 100, 2), passive: true })).toBe(true);
     // …and an explicit `false` changes nothing: the resource rule decides.
-    expect(isPassiveShield({ ...shieldOcc(1, 100, 0), passive: false })).toBeTrue();
-    expect(isPassiveShield({ ...shieldOcc(1, 100, 2), passive: false })).toBeFalse();
+    expect(isPassiveShield({ ...shieldOcc(1, 100, 0), passive: false })).toBe(true);
+    expect(isPassiveShield({ ...shieldOcc(1, 100, 2), passive: false })).toBe(false);
   });
 });
 
@@ -175,7 +175,7 @@ describe('buildFoldPreview dispatch', () => {
     const preview = buildFoldPreview('powerPlants', [reactor]);
     expect(preview.chips[0].figure).toBe(14);
     expect(preview.aggregate).toEqual(
-      jasmine.objectContaining({ labelKey: 'codex.module.peek.budget', figure: 14 }),
+      expect.objectContaining({ labelKey: 'codex.module.peek.budget', figure: 14 }),
     );
   });
 

@@ -1,15 +1,16 @@
+import type { Mock } from 'vitest';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { UNDO_TOAST_MS, UndoToastService } from './undo-toast.service';
 
 describe('UndoToastService', () => {
   let svc: UndoToastService;
-  let commit: jasmine.Spy;
-  let onUndo: jasmine.Spy;
+  let commit: Mock;
+  let onUndo: Mock;
 
   beforeEach(() => {
     svc = TestBed.inject(UndoToastService);
-    commit = jasmine.createSpy('commit');
-    onUndo = jasmine.createSpy('onUndo');
+    commit = vi.fn().mockName('commit');
+    onUndo = vi.fn().mockName('onUndo');
   });
 
   const offer = (c = commit, u = onUndo) => svc.offer({ messageKey: 'k', commit: c, onUndo: u });
@@ -34,7 +35,7 @@ describe('UndoToastService', () => {
   }));
 
   it('a newer offer commits the pending one first', fakeAsync(() => {
-    const second = jasmine.createSpy('second');
+    const second = vi.fn().mockName('second');
     offer();
     offer(second);
     expect(commit).toHaveBeenCalledTimes(1);
@@ -61,11 +62,11 @@ describe('UndoToastService', () => {
     svc.hold('focus', true);
     svc.hold('hover', true);
     svc.hold('hover', false);
-    expect(svc.held()).toBeTrue();
+    expect(svc.held()).toBe(true);
     tick(UNDO_TOAST_MS * 2);
     expect(commit).not.toHaveBeenCalled();
     svc.hold('focus', false);
-    expect(svc.held()).toBeFalse();
+    expect(svc.held()).toBe(false);
     tick(UNDO_TOAST_MS);
     expect(commit).toHaveBeenCalledTimes(1);
   }));

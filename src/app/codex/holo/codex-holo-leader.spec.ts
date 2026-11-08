@@ -31,14 +31,12 @@ function expectCleanLayout(lay: LeaderLayout, frame: LeaderFrame, n: number): vo
   for (let i = 0; i < lay.labels.length; i++) {
     const r = lay.labels[i].rect;
     for (let j = i + 1; j < lay.labels.length; j++) {
-      expect(overlaps(r, lay.labels[j].rect))
-        .withContext(`${lay.labels[i].portName} × ${lay.labels[j].portName}`)
-        .toBeFalse();
+      expect(overlaps(r, lay.labels[j].rect), `${lay.labels[i].portName} × ${lay.labels[j].portName}`).toBe(false);
     }
-    expect(overlaps(r, lay.body)).withContext(`${lay.labels[i].portName} × hull outline`).toBeFalse();
+    expect(overlaps(r, lay.body), `${lay.labels[i].portName} × hull outline`).toBe(false);
     for (const l of lay.labels) {
       const inside = l.dot.x >= r.x && l.dot.x <= r.x + r.w && l.dot.y >= r.y && l.dot.y <= r.y + r.h;
-      expect(inside).withContext(`dot ${l.portName} under label ${lay.labels[i].portName}`).toBeFalse();
+      expect(inside, `dot ${l.portName} under label ${lay.labels[i].portName}`).toBe(false);
     }
     expect(r.x).toBeGreaterThanOrEqual(0);
     expect(r.y).toBeGreaterThanOrEqual(0);
@@ -75,9 +73,9 @@ describe('layoutLeaderLabels', () => {
       const p = pins.find((q) => q.portName === l.portName)!;
       expect(l.dot.x).toBeCloseTo(lay.hull.x + (p.x / 100) * lay.hull.w, 0);
       expect(l.dot.y).toBeCloseTo(lay.hull.y + (p.y / 100) * lay.hull.h, 0);
-      expect(l.path.startsWith(`M${l.dot.x} ${l.dot.y}`)).toBeTrue();
+      expect(l.path.startsWith(`M${l.dot.x} ${l.dot.y}`)).toBe(true);
       const edge = l.side === 'left' ? l.rect.x + l.rect.w : l.rect.x;
-      expect(l.path.endsWith(`L${edge} ${l.rect.y + l.rect.h / 2}`)).toBeTrue();
+      expect(l.path.endsWith(`L${edge} ${l.rect.y + l.rect.h / 2}`)).toBe(true);
     }
   });
 
@@ -112,7 +110,7 @@ describe('layoutLeaderLabels', () => {
     const coarse = layoutLeaderLabels(leaderPins(NOMAD_ANCHORS).slice(0, 8), { ...withHull(FRAME_1440, NOMAD_ANCHORS), coarse: true })!;
     expect(coarse.slotsPerColumn).toBeLessThan(fine.slotsPerColumn);
     expectCleanLayout(coarse, FRAME_1440, 8);
-    expect(coarse.labels.every((l) => l.rect.h === 48)).toBeTrue();
+    expect(coarse.labels.every((l) => l.rect.h === 48)).toBe(true);
   });
 
   it('returns null for no pins and for an unmeasured frame', () => {

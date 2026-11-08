@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
@@ -32,42 +33,38 @@ describe('CodexLoadoutDraftStore', () => {
   let store: CodexLoadoutDraftStore;
   let queryParams: Record<string, string>;
   let hangar: {
-    shipByClassName: jasmine.Spy;
-    addShip: jasmine.Spy;
-    listConfigs: jasmine.Spy;
-    createConfig: jasmine.Spy;
-    activateConfig: jasmine.Spy;
-    updateConfig: jasmine.Spy;
-    forkFollowedLoadout: jasmine.Spy;
+    shipByClassName: Mock;
+    addShip: Mock;
+    listConfigs: Mock;
+    createConfig: Mock;
+    activateConfig: Mock;
+    updateConfig: Mock;
+    forkFollowedLoadout: Mock;
   };
-  let ensureEditable: jasmine.Spy;
-  let svc: { build: ReturnType<typeof signal>; getEntityPayloads: jasmine.Spy; resolveEntities: jasmine.Spy; getAmmoPayloads: jasmine.Spy };
-  let onSaved: jasmine.Spy;
+  let ensureEditable: Mock;
+  let svc: { build: ReturnType<typeof signal>; getEntityPayloads: Mock; resolveEntities: Mock; getAmmoPayloads: Mock };
+  let onSaved: Mock;
 
   beforeEach(() => {
     localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY);
     queryParams = {};
     hangar = {
-      shipByClassName: jasmine.createSpy('shipByClassName').and.returnValue({ id: 's1' }),
-      addShip: jasmine.createSpy('addShip').and.resolveTo(null),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
-      createConfig: jasmine.createSpy('createConfig').and.resolveTo({ id: 'c1', loadout: [], isActive: false }),
-      activateConfig: jasmine.createSpy('activateConfig').and.resolveTo(true),
-      updateConfig: jasmine
-        .createSpy('updateConfig')
-        .and.callFake(async (id: string, patch: { loadout: unknown }) => ({ id, loadout: patch.loadout })),
-      forkFollowedLoadout: jasmine.createSpy('forkFollowedLoadout').and.resolveTo(null),
+      shipByClassName: vi.fn().mockName('shipByClassName').mockReturnValue({ id: 's1' }),
+      addShip: vi.fn().mockName('addShip').mockResolvedValue(null),
+      listConfigs: vi.fn().mockName('listConfigs').mockResolvedValue([]),
+      createConfig: vi.fn().mockName('createConfig').mockResolvedValue({ id: 'c1', loadout: [], isActive: false }),
+      activateConfig: vi.fn().mockName('activateConfig').mockResolvedValue(true),
+      updateConfig: vi.fn().mockName('updateConfig').mockImplementation(async (id: string, patch: { loadout: unknown }) => ({ id, loadout: patch.loadout })),
+      forkFollowedLoadout: vi.fn().mockName('forkFollowedLoadout').mockResolvedValue(null),
     };
-    ensureEditable = jasmine.createSpy('ensureEditable').and.resolveTo('own');
+    ensureEditable = vi.fn().mockName('ensureEditable').mockResolvedValue('own');
     svc = {
       build: signal({ id: 'B1' }),
-      getEntityPayloads: jasmine.createSpy('getEntityPayloads').and.resolveTo(new Map()),
-      resolveEntities: jasmine
-        .createSpy('resolveEntities')
-        .and.callFake(async (names: string[]) => new Map(names.map((n) => [n, entity(n)]))),
-      getAmmoPayloads: jasmine.createSpy('getAmmoPayloads').and.resolveTo(new Map()),
+      getEntityPayloads: vi.fn().mockName('getEntityPayloads').mockResolvedValue(new Map()),
+      resolveEntities: vi.fn().mockName('resolveEntities').mockImplementation(async (names: string[]) => new Map(names.map((n) => [n, entity(n)]))),
+      getAmmoPayloads: vi.fn().mockName('getAmmoPayloads').mockResolvedValue(new Map()),
     };
-    onSaved = jasmine.createSpy('onSaved');
+    onSaved = vi.fn().mockName('onSaved');
 
     TestBed.configureTestingModule({
       providers: [
@@ -88,7 +85,7 @@ describe('CodexLoadoutDraftStore', () => {
       ],
     });
     // The mirror writes the URL; keep the Karma page where it is.
-    spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     store = TestBed.inject(CodexLoadoutDraftStore);
     const stock: LoadoutItem = {
       port: PORT,
@@ -122,17 +119,17 @@ describe('CodexLoadoutDraftStore', () => {
     store.applySwap(pick('BEHR_LaserCannon_S3'));
     expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
     expect(store.draftChangedCount()).toBe(1);
-    expect(store.isDraftClassPending('BEHR_LaserCannon_S3')).toBeTrue();
+    expect(store.isDraftClassPending('BEHR_LaserCannon_S3')).toBe(true);
     expect(svc.getEntityPayloads).toHaveBeenCalledWith(['BEHR_LaserCannon_S3']);
     await new Promise((r) => setTimeout(r));
-    expect(store.isDraftClassPending('BEHR_LaserCannon_S3')).toBeFalse();
-    expect(store.draftResolved().has('BEHR_LaserCannon_S3')).toBeTrue();
+    expect(store.isDraftClassPending('BEHR_LaserCannon_S3')).toBe(false);
+    expect(store.draftResolved().has('BEHR_LaserCannon_S3')).toBe(true);
   });
 
   it('reverts a path', () => {
     store.applySwap(pick('BEHR_LaserCannon_S3'));
     store.onRevertPaths([PORT]);
-    expect(store.draft().has(PORT)).toBeFalse();
+    expect(store.draft().has(PORT)).toBe(false);
     expect(store.draftChangedCount()).toBe(0);
   });
 
@@ -167,16 +164,18 @@ describe('CodexLoadoutDraftStore', () => {
   });
 
   it('a save in personal mode writes into THAT variant and hands the result back', async () => {
-    hangar.listConfigs.and.resolveTo([{ id: 'c1', loadout: [], isActive: true }]);
+    hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [], isActive: true }]);
     store.applyStoredLoadout([], { configId: 'c1' });
     store.applySwap(pick('BEHR_LaserCannon_S3'));
     await store.saveLoadoutDraft();
     expect(hangar.createConfig).not.toHaveBeenCalled();
-    expect(hangar.updateConfig).toHaveBeenCalledOnceWith('c1', jasmine.anything());
-    expect(onSaved).toHaveBeenCalledOnceWith(jasmine.objectContaining({ id: 'c1' }));
+    expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
+    expect(hangar.updateConfig).toHaveBeenCalledWith('c1', expect.anything());
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }));
     expect(store.saveError()).toBeNull();
-    expect(store.saving()).toBeFalse();
-    expect(store.savedPaths().has(PORT)).toBeTrue();
+    expect(store.saving()).toBe(false);
+    expect(store.savedPaths().has(PORT)).toBe(true);
   });
 
   it('adoptToHq creates a NEW variant carrying the draft and never edits an existing one', async () => {
@@ -184,17 +183,18 @@ describe('CodexLoadoutDraftStore', () => {
     const created = await store.adoptToHq();
     expect(created?.id).toBe('c1');
     expect(hangar.createConfig).toHaveBeenCalledTimes(1);
-    const [shipId, , , loadout] = hangar.createConfig.calls.mostRecent().args as [string, string, string, { portName: string }[]];
+    const [shipId, , , loadout] = vi.mocked(hangar.createConfig).mock.lastCall! as [string, string, string, { portName: string }[]];
     expect(shipId).toBe('s1');
     expect(loadout.map((e) => e.portName)).toContain(PORT);
     expect(hangar.updateConfig).not.toHaveBeenCalled();
-    expect(onSaved).toHaveBeenCalledOnceWith(jasmine.objectContaining({ id: 'c1' }));
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }));
   });
 
   it('writes nothing when the fork guard is declined', async () => {
-    hangar.listConfigs.and.resolveTo([{ id: 'c1', loadout: [], isActive: true }]);
+    hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [], isActive: true }]);
     store.applyStoredLoadout([], { configId: 'c1' });
-    ensureEditable.and.resolveTo('cancelled');
+    ensureEditable.mockResolvedValue('cancelled');
     store.applySwap(pick('BEHR_LaserCannon_S3'));
     await store.saveLoadoutDraft();
     expect(hangar.updateConfig).not.toHaveBeenCalled();
@@ -207,8 +207,8 @@ describe('CodexLoadoutDraftStore', () => {
   const SHARED = { token: 'tok', ownerName: 'Kestrel', configName: 'Brawler' };
 
   it('a shared link becomes a READ-ONLY draft: no swap, revert or save, nothing mirrored', async () => {
-    const navigate = TestBed.inject(Router).navigate as jasmine.Spy;
-    navigate.calls.reset();
+    const navigate = TestBed.inject(Router).navigate as Mock;
+    navigate.mockClear();
     store.applyStoredLoadout(
       [
         { portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' },
@@ -218,7 +218,7 @@ describe('CodexLoadoutDraftStore', () => {
       ],
       { readOnly: SHARED },
     );
-    expect(store.readOnly()).toBeTrue();
+    expect(store.readOnly()).toBe(true);
     expect(store.readOnlySource()).toEqual(SHARED);
     expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
     expect(store.draft().size).toBe(2); // hardpoint_other has no stock → it differs
@@ -230,37 +230,37 @@ describe('CodexLoadoutDraftStore', () => {
     store.applySwap(pick('OTHER_GUN'));
     expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
     store.onRevertPaths([PORT]);
-    expect(store.draft().has(PORT)).toBeTrue();
+    expect(store.draft().has(PORT)).toBe(true);
     expect(await store.saveLoadoutDraft()).toBeNull();
     expect(hangar.updateConfig).not.toHaveBeenCalled();
 
     store.reset();
-    expect(store.readOnly()).toBeFalse();
+    expect(store.readOnly()).toBe(false);
   });
 
   it('an own config (?config=) becomes the draft, counts as saved, and a save writes to THAT config', async () => {
     store.applyStoredLoadout([{ portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' }], { configId: 'adopted' });
-    expect(store.readOnly()).toBeFalse();
+    expect(store.readOnly()).toBe(false);
     expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
-    expect(store.savedPaths().has(PORT)).toBeTrue();
-    hangar.listConfigs.and.resolveTo([
+    expect(store.savedPaths().has(PORT)).toBe(true);
+    hangar.listConfigs.mockResolvedValue([
       { id: 'active-one', loadout: [], isActive: true },
       { id: 'adopted', loadout: [], isActive: false },
     ]);
     store.applySwap(pick('OTHER_GUN'));
     const saved = await store.saveLoadoutDraft();
-    expect(hangar.updateConfig).toHaveBeenCalledWith('adopted', jasmine.anything());
+    expect(hangar.updateConfig).toHaveBeenCalledWith('adopted', expect.anything());
     expect(saved?.id).toBe('adopted');
   });
 
   it('saveLoadoutDraft resolves the written config, or null when nothing was written', async () => {
     expect(await store.saveLoadoutDraft()).toBeNull(); // nothing to save
-    hangar.listConfigs.and.resolveTo([{ id: 'c1', loadout: [], isActive: true }]);
+    hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [], isActive: true }]);
     store.applyStoredLoadout([], { configId: 'c1' });
     store.applySwap(pick('BEHR_LaserCannon_S3'));
-    ensureEditable.and.resolveTo('cancelled');
+    ensureEditable.mockResolvedValue('cancelled');
     expect(await store.saveLoadoutDraft()).toBeNull();
-    ensureEditable.and.resolveTo('own');
+    ensureEditable.mockResolvedValue('own');
     expect((await store.saveLoadoutDraft())?.id).toBe('c1');
   });
 });

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { throwError } from 'rxjs';
@@ -9,8 +10,8 @@ const POLL_MS = 5 * 60 * 1000;
 
 describe('NewsService polling', () => {
   let service: NewsService;
-  let refresh: jasmine.Spy;
-  let visibility: jasmine.Spy;
+  let refresh: Mock;
+  let visibility: Mock;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -20,8 +21,8 @@ describe('NewsService polling', () => {
       ],
     });
     service = TestBed.inject(NewsService);
-    refresh = spyOn(service, 'refresh').and.returnValue(Promise.resolve());
-    visibility = spyOnProperty(document, 'visibilityState', 'get').and.returnValue('visible');
+    refresh = vi.spyOn(service, 'refresh').mockResolvedValue(undefined);
+    visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   });
 
   it('refreshes silently once per five-minute interval', fakeAsync(() => {
@@ -45,7 +46,7 @@ describe('NewsService polling', () => {
   }));
 
   it('skips the tick while the tab is hidden', fakeAsync(() => {
-    visibility.and.returnValue('hidden');
+    visibility.mockReturnValue('hidden');
     service.startPolling();
     tick(POLL_MS);
     expect(refresh).not.toHaveBeenCalled();
@@ -55,12 +56,13 @@ describe('NewsService polling', () => {
 
   it('refreshes when the tab becomes visible again, not when it hides', fakeAsync(() => {
     service.startPolling();
-    visibility.and.returnValue('hidden');
+    visibility.mockReturnValue('hidden');
     document.dispatchEvent(new Event('visibilitychange'));
     expect(refresh).not.toHaveBeenCalled();
-    visibility.and.returnValue('visible');
+    visibility.mockReturnValue('visible');
     document.dispatchEvent(new Event('visibilitychange'));
-    expect(refresh).toHaveBeenCalledOnceWith(true);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledWith(true);
     service.stopPolling();
     discardPeriodicTasks();
   }));
@@ -84,9 +86,9 @@ describe('NewsService feed error', () => {
       ],
     });
     const service = TestBed.inject(NewsService);
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     await service.refresh();
     expect(service.error()).toMatch(/^errors\./);
-    expect(service.loading()).toBeFalse();
+    expect(service.loading()).toBe(false);
   });
 });

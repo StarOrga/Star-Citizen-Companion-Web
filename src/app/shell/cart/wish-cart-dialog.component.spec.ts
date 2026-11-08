@@ -27,9 +27,9 @@ function setup(rows: WishRow[], catalogue: { armor?: CodexListRow[]; weapon?: Co
   const store = {
     rows: signal<readonly WishRow[]>(rows),
     ensureLoaded: () => Promise.resolve(),
-    setQty: jasmine.createSpy('setQty').and.resolveTo(true),
-    remove: jasmine.createSpy('remove').and.resolveTo(true),
-    add: jasmine.createSpy('add').and.resolveTo(true),
+    setQty: vi.fn().mockName('setQty').mockResolvedValue(true),
+    remove: vi.fn().mockName('remove').mockResolvedValue(true),
+    add: vi.fn().mockName('add').mockResolvedValue(true),
   };
   TestBed.configureTestingModule({
     providers: [
@@ -85,7 +85,7 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
   it('a click on the picture or the name ticks the position instead of leaving the cart', () => {
     const { fixture, el } = setup(rows);
     const cart = TestBed.inject(WishCartService);
-    const close = spyOn(cart, 'close').and.callThrough();
+    const close = vi.spyOn(cart, 'close');
     el.querySelector<HTMLElement>('.tile .pickarea .nm')!.click();
     fixture.detectChanges();
     expect(el.querySelectorAll('.tile.sel').length).toBe(1);
@@ -97,7 +97,7 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
 
   it('a click beside the cart keeps it open (the selection would be lost)', () => {
     const { el } = setup(rows);
-    const close = spyOn(TestBed.inject(WishCartService), 'close');
+    const close = vi.spyOn(TestBed.inject(WishCartService), 'close').mockReturnValue(undefined as never);
     el.querySelector<HTMLElement>('.scrim')!.click();
     expect(close).not.toHaveBeenCalled();
   });
@@ -140,7 +140,7 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
     expect(go.getAttribute('aria-disabled')).toBe('true');
     const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
     go.dispatchEvent(ev);
-    expect(ev.defaultPrevented).toBeTrue();
+    expect(ev.defaultPrevented).toBe(true);
   });
 
   it('the red trash removes at once and offers an undo, no question; undo brings it back and writes nothing', () => {
@@ -195,7 +195,7 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
     const { fixture, el, store } = setup(rows);
     el.querySelectorAll<HTMLButtonElement>('.tile .step button')[1].click();
     fixture.detectChanges();
-    expect(store.setQty).toHaveBeenCalledWith(jasmine.objectContaining({ className: 'klwe_rifle_energy_01' }), 3);
+    expect(store.setQty).toHaveBeenCalledWith(expect.objectContaining({ className: 'klwe_rifle_energy_01' }), 3);
   });
 
   it('shows the empty state without a retry', () => {
@@ -243,7 +243,7 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
       await new Promise((r) => setTimeout(r));
       t.fixture.detectChanges();
       t.el.querySelector<HTMLButtonElement>('.sug .sug-act button')!.click();
-      expect(t.store.add).toHaveBeenCalledWith(jasmine.objectContaining({ kind: 'item' }));
+      expect(t.store.add).toHaveBeenCalledWith(expect.objectContaining({ kind: 'item' }));
     });
   });
 });

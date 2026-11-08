@@ -340,7 +340,7 @@ describe('CodexService.listKeybinds', () => {
   it('throws the query error instead of rendering a truncated list', async () => {
     const svc = makeKeybindService([], { ranges: [] }, { message: 'boom' });
 
-    await expectAsync(svc.listKeybinds()).toBeRejectedWithError('boom');
+    await expect(svc.listKeybinds()).rejects.toThrowError('boom');
   });
 });
 
@@ -503,11 +503,11 @@ describe('CodexService archive readers and the build lookup', () => {
     const calls: Calls = { builds: 0, filters: [] };
     const svc = make(calls, true);
 
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     // The reader gets the ORIGINAL failure to classify; the service flag holds a key.
-    await expectAsync(svc.listByKind('item')).toBeRejectedWithError('network down');
+    await expect(svc.listByKind('item')).rejects.toThrowError('network down');
     expect(svc.buildError()).toBe('errors.generic');
-    await expectAsync(svc.listByKind('item')).toBeResolved();
+    await expect(svc.listByKind('item')).resolves.not.toThrow();
     expect(calls.builds).toBe(2);
   });
 
@@ -531,7 +531,7 @@ describe('CodexService archive readers and the build lookup', () => {
     const svc = make(calls);
     const res = await svc.listByKind('item', { search: '\u00df \u0440\u0443\u0441' });
     expect(res).toEqual({ rows: [], count: 0 });
-    expect(calls.filters.some((f) => f.startsWith('codex_items:'))).toBeFalse();
+    expect(calls.filters.some((f) => f.startsWith('codex_items:'))).toBe(false);
   });
 
   it('never sends or() grammar characters from the term', async () => {
@@ -558,7 +558,7 @@ describe('CodexService archive readers and the build lookup', () => {
 
     expect(browse).toContain('codex_ships:or:name_localized.is.null,name_localized.not.like.!*');
     expect(browse).toContain('codex_ships:not:class_name.ilike.SalvageableDebris*');
-    expect(raw.some((f) => f.includes('not.like.!*') || f.includes('SalvageableDebris'))).toBeFalse();
+    expect(raw.some((f) => f.includes('not.like.!*') || f.includes('SalvageableDebris'))).toBe(false);
   });
 });
 
@@ -723,7 +723,7 @@ describe('CodexService.listFpsCatalog and countSearchMatches', () => {
     const cap = fresh();
     const svc = make(fpsRows(3), cap, { failReads: 1 });
 
-    await expectAsync(svc.listFpsCatalog('weapon')).toBeRejectedWithError('flaky');
+    await expect(svc.listFpsCatalog('weapon')).rejects.toThrowError('flaky');
     expect((await svc.listFpsCatalog('weapon')).length).toBe(3);
     expect(cap.ranges.length).toBe(2);
   });
@@ -739,7 +739,7 @@ describe('CodexService.listFpsCatalog and countSearchMatches', () => {
 
     cap.filters.length = 0;
     await svc.listFpsCatalog('armor', true);
-    expect(cap.filters.some((f) => f.includes('is_variant') || f.includes('not.like.!*'))).toBeFalse();
+    expect(cap.filters.some((f) => f.includes('is_variant') || f.includes('not.like.!*'))).toBe(false);
   });
 
   it('counts other categories under the same default filters as their lists', async () => {
@@ -1004,7 +1004,7 @@ describe('forEachLimited', () => {
   });
 
   it('settles at once for no items', async () => {
-    const task = jasmine.createSpy('task');
+    const task = vi.fn().mockName('task');
     await forEachLimited([], 3, task);
     expect(task).not.toHaveBeenCalled();
   });
@@ -1147,17 +1147,17 @@ describe('CodexService.getDetail', () => {
 
   it('throws when the ports read fails, instead of rendering "no ports" (AUD-110)', async () => {
     const svc = make('codex_item_ports');
-    await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeRejected();
+    await expect(svc.getDetail('ship', 'AEGS_Gladius')).rejects.toThrow();
   });
 
   it('throws when the strings read fails', async () => {
     const svc = make('codex_entity_strings');
-    await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeRejected();
+    await expect(svc.getDetail('ship', 'AEGS_Gladius')).rejects.toThrow();
   });
 
   it('reads the strings view while the strings RPC is not deployed yet', async () => {
     const svc = make(null, true);
-    await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeResolved();
+    await expect(svc.getDetail('ship', 'AEGS_Gladius')).resolves.not.toThrow();
   });
 });
 
@@ -1216,17 +1216,17 @@ describe('CodexService.revalidateLiveBuild', () => {
   }
 
   beforeEach(() => {
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date(T0));
-    spyOn(console, 'warn');
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(T0));
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
   });
   afterEach(() => {
-    jasmine.clock().uninstall();
+    vi.useRealTimers();
     TestBed.resetTestingModule();
   });
 
   function later(ms = GAP): void {
-    jasmine.clock().mockDate(new Date(Date.now() + ms));
+    vi.setSystemTime(new Date(Date.now() + ms));
   }
 
   it('does nothing when the LIVE build is unchanged', async () => {
@@ -1250,7 +1250,7 @@ describe('CodexService.revalidateLiveBuild', () => {
     expect(svc.liveBuild()?.id).toBe('b2');
     expect(svc.buildRefresh()).toBe(1);
     expect(svc.liveMovedNotice()).toBe('4.3.1');
-    expect(svc.viewingPastPatch()).toBeFalse();
+    expect(svc.viewingPastPatch()).toBe(false);
   });
 
   it('keeps a reader on an older patch that still exists', async () => {
@@ -1262,7 +1262,7 @@ describe('CodexService.revalidateLiveBuild', () => {
     await svc.revalidateLiveBuild();
     expect(svc.build()?.id).toBe('b0');
     expect(svc.liveBuild()?.id).toBe('b2');
-    expect(svc.viewingPastPatch()).toBeTrue();
+    expect(svc.viewingPastPatch()).toBe(true);
     expect(svc.buildRefresh()).toBe(0);
     expect(svc.liveMovedNotice()).toBeNull();
   });
@@ -1337,7 +1337,7 @@ describe('CodexService.armorRating', () => {
     return { svc: TestBed.inject(CodexService), rpcCalls: () => calls, rpcLog };
   }
 
-  beforeEach(() => spyOn(console, 'warn'));
+  beforeEach(() => vi.spyOn(console, 'warn').mockReturnValue(undefined as never));
   afterEach(() => TestBed.resetTestingModule());
 
   it('answers an empty name list with no rows, without a read', async () => {
@@ -1410,7 +1410,7 @@ describe('CodexService.armorRating', () => {
     (TestBed.inject(SupabaseClientProvider).client as unknown as { rpc: () => never }).rpc = () => {
       throw boom;
     };
-    await expectAsync(svc.armorRating(['A'])).toBeResolvedTo({ failed: true, error: boom });
+    await expect(svc.armorRating(['A'])).resolves.toEqual({ failed: true, error: boom });
   });
 
   it('does not retry a non-transient RPC error', async () => {
@@ -1451,7 +1451,7 @@ describe('CodexService.searchAll', () => {
         { provide: SupabaseClientProvider, useValue: { client: { from: () => ({}) } } },
         {
           provide: UpcomingShipsService,
-          useValue: { searchShips: jasmine.createSpy('searchShips').and.resolveTo([]), ...upcoming },
+          useValue: { searchShips: vi.fn().mockName('searchShips').mockResolvedValue([]), ...upcoming },
         },
       ],
     });
@@ -1462,14 +1462,14 @@ describe('CodexService.searchAll', () => {
 
   it('answers a blank term with nothing and asks no source', async () => {
     const svc = make();
-    const list = spyOn(svc, 'listByKind');
+    const list = vi.spyOn(svc, 'listByKind').mockReturnValue(undefined as never);
     expect((await svc.searchAll('   ')).hits).toEqual([]);
     expect(list).not.toHaveBeenCalled();
   });
 
   it('over-fetches perKind × 4 rows from every kind with the trimmed term', async () => {
     const svc = make();
-    const list = spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+    const list = vi.spyOn(svc, 'listByKind').mockResolvedValue({ rows: [], count: 0 });
 
     await svc.searchAll('  gladius ', 5);
 
@@ -1486,7 +1486,7 @@ describe('CodexService.searchAll', () => {
     try {
       TestBed.resetTestingModule();
       const svc = make();
-      const list = spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+      const list = vi.spyOn(svc, 'listByKind').mockResolvedValue({ rows: [], count: 0 });
       await svc.searchAll('door', 5);
       expect(list).toHaveBeenCalledWith('item', { search: 'door', limit: 20 });
     } finally {
@@ -1496,7 +1496,7 @@ describe('CodexService.searchAll', () => {
 
   it('ranks, dedupes and truncates per kind — the best match survives the alphabetical over-fetch', async () => {
     const svc = make();
-    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+    vi.spyOn(svc, 'listByKind').mockImplementation(async (kind: CodexKind) => {
       if (kind !== 'weapon') return { rows: [], count: 0 };
       return {
         rows: [
@@ -1519,7 +1519,7 @@ describe('CodexService.searchAll', () => {
 
   it('reports per kind how many rows it read and how many cards the dedupe left', async () => {
     const svc = make();
-    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+    vi.spyOn(svc, 'listByKind').mockImplementation(async (kind: CodexKind) => {
       if (kind !== 'item') return { rows: [], count: 0 };
       return {
         rows: [
@@ -1541,7 +1541,7 @@ describe('CodexService.searchAll', () => {
 
   it('skips a kind whose read fails instead of failing the whole search', async () => {
     const svc = make();
-    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+    vi.spyOn(svc, 'listByKind').mockImplementation(async (kind: CodexKind) => {
       if (kind === 'ship') throw new Error('timeout');
       if (kind === 'blueprint') return { rows: [listRow('BP_Gladius', 'Gladius Blueprint')], count: 1 };
       return { rows: [], count: 0 };
@@ -1555,20 +1555,20 @@ describe('CodexService.searchAll', () => {
   it('names the kinds it could not search, so the UI can say the result is partial', async () => {
     const svc = make();
     const timeout = new Error('canceling statement due to statement timeout');
-    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+    vi.spyOn(svc, 'listByKind').mockImplementation(async (kind: CodexKind) => {
       if (kind === 'ship' || kind === 'item') throw timeout;
       return { rows: [], count: 0 };
     });
 
     const res = await svc.searchAll('gladius');
 
-    expect(res.failed).toEqual(jasmine.arrayWithExactContents(['ship', 'item']));
+    expect([...(res.failed ?? [])].sort()).toEqual(['item', 'ship']);
     expect(res.failure).toBe(timeout);
   });
 
   it('reports nothing failed when every source answered', async () => {
     const svc = make();
-    spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+    vi.spyOn(svc, 'listByKind').mockResolvedValue({ rows: [], count: 0 });
 
     const res = await svc.searchAll('gladius');
 
@@ -1577,19 +1577,19 @@ describe('CodexService.searchAll', () => {
 
   it('rejects when every source failed — an outage is an error, not "no results"', async () => {
     const svc = make({
-      searchShips: jasmine.createSpy('searchShips').and.rejectWith(new TypeError('Failed to fetch')),
+      searchShips: vi.fn().mockName('searchShips').mockRejectedValue(new TypeError('Failed to fetch')),
     } as Partial<UpcomingShipsService>);
-    spyOn(svc, 'listByKind').and.rejectWith(new TypeError('Failed to fetch'));
+    vi.spyOn(svc, 'listByKind').mockRejectedValue(new TypeError('Failed to fetch'));
 
-    await expectAsync(svc.searchAll('gladius')).toBeRejectedWithError(TypeError);
+    await expect(svc.searchAll('gladius')).rejects.toThrowError(TypeError);
   });
 
   it('adds announced ships from the upcoming feed as an extra source, tagged upcoming', async () => {
-    const searchShips = jasmine.createSpy('searchShips').and.resolveTo([
+    const searchShips = vi.fn().mockName('searchShips').mockResolvedValue([
       { id: 'rsi-arrastra', name: 'Arrastra', manufacturer: 'Argo Astronautics', manufacturerCode: 'ARGO' },
     ]);
     const svc = make({ searchShips } as Partial<UpcomingShipsService>);
-    spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+    vi.spyOn(svc, 'listByKind').mockResolvedValue({ rows: [], count: 0 });
 
     const { hits } = await svc.searchAll('arrastra', 3);
 
@@ -1602,11 +1602,10 @@ describe('CodexService.searchAll', () => {
 
   it('keeps the archive hits when the upcoming feed rejects', async () => {
     const svc = make({
-      searchShips: jasmine.createSpy('searchShips').and.rejectWith(new Error('proxy down')),
+      searchShips: vi.fn().mockName('searchShips').mockRejectedValue(new Error('proxy down')),
     } as Partial<UpcomingShipsService>);
-    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) =>
-      kind === 'ship' ? { rows: [listRow('AEGS_Gladius', 'Gladius')], count: 1 } : { rows: [], count: 0 },
-    );
+    vi.spyOn(svc, 'listByKind').mockImplementation(async (kind: CodexKind) =>
+      kind === 'ship' ? { rows: [listRow('AEGS_Gladius', 'Gladius')], count: 1 } : { rows: [], count: 0 });
 
     const { hits } = await svc.searchAll('gladius');
 
@@ -1614,16 +1613,15 @@ describe('CodexService.searchAll', () => {
   });
 
   it('reports the per-kind totals the index will show, beyond the per-kind cap', async () => {
-    const searchShips = jasmine.createSpy('searchShips').and.resolveTo([
+    const searchShips = vi.fn().mockName('searchShips').mockResolvedValue([
       { id: 'a', name: 'Gladius II', manufacturer: null, manufacturerCode: null },
       { id: 'b', name: 'Gladius III', manufacturer: null, manufacturerCode: null },
     ]);
     const svc = make({ searchShips } as Partial<UpcomingShipsService>);
-    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) =>
+    vi.spyOn(svc, 'listByKind').mockImplementation(async (kind: CodexKind) =>
       kind === 'component'
         ? { rows: [listRow('A', 'Gladius A'), listRow('B', 'Gladius B')], count: 37 }
-        : { rows: [], count: 0 },
-    );
+        : { rows: [], count: 0 });
 
     const { hits, totals } = await svc.searchAll('gladius', 1);
 

@@ -58,6 +58,6 @@ describe('subVersionRows', () => {
 
   it('keeps every wave open on a line still in testing', () => {
     const rows = subVersionRows(card([entry(1, '4.11.0', 'ptu', false, '2026-10-01T00:00:00Z'), entry(2, '4.11.0', 'evocati', false, '2026-09-20T00:00:00Z')], null), null);
-    expect(rows.every((r) => !r.older)).toBeTrue();
+    expect(rows.every((r) => !r.older)).toBe(true);
   });
 });

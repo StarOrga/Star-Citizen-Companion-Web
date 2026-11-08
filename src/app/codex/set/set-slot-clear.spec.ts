@@ -54,7 +54,7 @@ describe('SetSlotClearer', () => {
   it('offers undo for the set the piece was cleared from', async () => {
     const host = TestBed.createComponent(HostComponent).componentInstance;
     await clearHelmet(host);
-    expect(host.clearer.undoable()).toEqual(jasmine.objectContaining({ setId: 'set-a', slot: 'Helmet' }));
+    expect(host.clearer.undoable()).toEqual(expect.objectContaining({ setId: 'set-a', slot: 'Helmet' }));
 
     await host.clearer.undo();
     expect(writes[1]).toEqual({ id: 'set-a', slot: 'Helmet', piece: { className: 'helm_a', kind: 'item' } });

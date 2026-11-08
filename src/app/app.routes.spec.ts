@@ -34,9 +34,9 @@ describe('codex/fps equip flow (concept 2026-10-29, b3)', () => {
   it('matches the equip route only with equipInto in the url', () => {
     const router = TestBed.inject(Router);
     const nav = (url: string) => ({ extractedUrl: router.parseUrl(url) });
-    spyOn(router, 'currentNavigation').and.returnValues(nav('/codex/fps?equipInto=s1&equipSlot=primary') as never, nav('/codex/fps?cat=armor') as never);
-    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBeTrue();
-    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBeFalse();
+    vi.spyOn(router, 'currentNavigation').mockReturnValueOnce(nav('/codex/fps?equipInto=s1&equipSlot=primary') as never).mockReturnValueOnce(nav('/codex/fps?cat=armor') as never);
+    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBe(true);
+    expect(TestBed.runInInjectionContext(() => fpsEquipMode())).toBe(false);
   });
 });
 
@@ -91,7 +91,7 @@ describe('apps hub routes (concept 2026-10-30)', () => {
     const friends = shellOf()?.children?.find((c) => c.path === 'friends');
     expect(friends?.redirectTo).toBe('social');
     expect(paths()).toContain('invite/:token');
-    expect(shellOf()?.children?.some((c) => c.path === 'invite/:token')).toBeFalse();
+    expect(shellOf()?.children?.some((c) => c.path === 'invite/:token')).toBe(false);
   });
 });
 
@@ -120,7 +120,7 @@ describe('string redirects keep the query (AUD-144)', () => {
   it('finds both redirect entries, each a relative string', () => {
     for (const r of [rootRedirect, wildcard]) {
       expect(r).toBeDefined();
-      expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBeTrue();
+      expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBe(true);
     }
   });
 

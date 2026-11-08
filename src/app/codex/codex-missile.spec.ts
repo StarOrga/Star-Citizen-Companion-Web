@@ -30,9 +30,9 @@ const COHORT: MissileRecord[] = [
 describe('codex-missile', () => {
   describe('record reading', () => {
     it('recognises a missile by its attach type only', () => {
-      expect(isMissileRow({ attach_type: 'Missile' })).toBeTrue();
-      expect(isMissileRow({ attach_type: 'MissileLauncher' })).toBeFalse();
-      expect(isMissileRow(null)).toBeFalse();
+      expect(isMissileRow({ attach_type: 'Missile' })).toBe(true);
+      expect(isMissileRow({ attach_type: 'MissileLauncher' })).toBe(false);
+      expect(isMissileRow(null)).toBe(false);
     });
 
     it('reads the tracking signal from the class name, or says it does not know', () => {
@@ -128,13 +128,13 @@ describe('codex-missile', () => {
     it('offers a group of one as disabled and falls back to everything', () => {
       const torp = armed('torp', 9, { size: 9, category: 'torpedo' });
       const r = rankMissile(torp, [...field, torp], 'sizeClass')!;
-      expect(r.scopeAvailable.sizeClass).toBeFalse();
+      expect(r.scopeAvailable.sizeClass).toBe(false);
       expect(r.scope).toBe('all');
     });
 
     it('marks the value below the group as weak, so the bar paints the warning colour', () => {
       const r = rankMissile(field[0], field, 'career')!;
-      expect(r.axes.find((a) => a.key === 'damage')!.weak).toBeTrue();
+      expect(r.axes.find((a) => a.key === 'damage')!.weak).toBe(true);
     });
   });
 
@@ -190,12 +190,12 @@ describe('codex-missile', () => {
       const armed = missile({ className: 'x', metrics: { damage: 100, speed: 400, lockTime: 2 } });
       const groups = missileStatGroups(armed);
       expect(groups.map((g) => g.id)).toEqual(['warhead', 'flight', 'guidance', 'build']);
-      expect(groups[1].rows[0]).toEqual(jasmine.objectContaining({ key: 'speed', value: 400, unit: 'm/s' }));
-      expect(hasCombatMetrics(armed)).toBeTrue();
+      expect(groups[1].rows[0]).toEqual(expect.objectContaining({ key: 'speed', value: 400, unit: 'm/s' }));
+      expect(hasCombatMetrics(armed)).toBe(true);
     });
 
     it('says combat numbers are missing while they are', () => {
-      expect(hasCombatMetrics(COHORT[0])).toBeFalse();
+      expect(hasCombatMetrics(COHORT[0])).toBe(false);
     });
   });
 });

@@ -122,14 +122,14 @@ describe('Verse News — harmonised controls', () => {
 
   it('renders the six source chips as toggle buttons', () => {
     expect(chips().length).toBe(6);
-    expect(chips().every((c) => c.tagName === 'BUTTON' && c.hasAttribute('aria-pressed'))).toBeTrue();
-    expect(el('.stream-head h2')).withContext('feed has no own heading').toBeNull();
+    expect(chips().every((c) => c.tagName === 'BUTTON' && c.hasAttribute('aria-pressed'))).toBe(true);
+    expect(el('.stream-head h2'), 'feed has no own heading').toBeNull();
   });
 
   it('states its numbers without brackets', () => {
     const nums = all('.stream-head .chip .chip-num').map((n) => n.textContent!.trim());
     expect(nums.length).toBe(6);
-    for (const n of nums) expect(n).withContext(n).toMatch(/^\d+$/);
+    for (const n of nums) expect(n, n).toMatch(/^\d+$/);
   });
 
   it('keeps the hero out of the feed and shows the newest item as an h2', () => {
@@ -148,13 +148,13 @@ describe('Verse News — harmonised controls', () => {
     fixture.detectChanges();
     expect(all('.cards .card').length).toBe(0);
     expect(el('.sc-card.empty')).not.toBeNull();
-    expect(el('.stage')).withContext('hero is untouched by the filter').not.toBeNull();
+    expect(el('.stage'), 'hero is untouched by the filter').not.toBeNull();
   });
 
   it('switches on the saved slice', () => {
     chips()[SAVED].click();
     fixture.detectChanges();
-    expect(svc.favoritesOnly()).toBeTrue();
+    expect(svc.favoritesOnly()).toBe(true);
     expect(chips()[SAVED].getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -175,8 +175,7 @@ describe('Verse News — harmonised controls', () => {
     svc.toggleFavorite(staged.id);
     fixture.detectChanges();
     expect(svc.favoriteCount()).toBe(1);
-    expect(svc.streamCount()).withContext('the unfiltered half is unchanged')
-      .toBe(feed().news.length - 1);
+    expect(svc.streamCount(), 'the unfiltered half is unchanged').toBe(feed().news.length - 1);
   });
 
   it('opens the staged article under the saved half, marked as the one on the stage', () => {
@@ -187,10 +186,9 @@ describe('Verse News — harmonised controls', () => {
 
     expect(svc.stream().map((n) => n.id)).toEqual([staged.id]);
     const cards = all('.cards .card');
-    expect(cards.length).withContext('the saved hero is reachable as a tile').toBe(1);
-    expect(cards[0].querySelector('.stage-tag'))
-      .withContext('the tile says why it repeats the hero').not.toBeNull();
-    expect(el('.sc-card.empty')).withContext('no empty state next to "Gemerkt 1"').toBeNull();
+    expect(cards.length, 'the saved hero is reachable as a tile').toBe(1);
+    expect(cards[0].querySelector('.stage-tag'), 'the tile says why it repeats the hero').not.toBeNull();
+    expect(el('.sc-card.empty'), 'no empty state next to "Gemerkt 1"').toBeNull();
   });
 
   it('never promises more saved items than the saved list renders', () => {
@@ -214,7 +212,7 @@ describe('Verse News — harmonised controls', () => {
     fixture.detectChanges();
     expect(svc.favoriteCount()).toBe(0);
     // Emptying the saved half strands nobody: the service falls back to "all".
-    expect(svc.favoritesOnly()).toBeFalse();
+    expect(svc.favoritesOnly()).toBe(false);
   });
 
   it('only tags the tile that mirrors the stage', () => {
@@ -236,7 +234,7 @@ describe('Verse News — harmonised controls', () => {
 
   it('draws the same star everywhere, as markup rather than a text character', () => {
     const glyphs = all('.act.fav .ic').map((n) => n.innerHTML);
-    expect(glyphs.length).withContext('stage + tiles').toBeGreaterThan(1);
+    expect(glyphs.length, 'stage + tiles').toBeGreaterThan(1);
     for (const g of glyphs) expect(g).toContain('<svg');
     // The bare ★/☆ characters the page used to print are gone from the controls.
     for (const btn of all('.act.fav')) expect(btn.textContent).not.toContain('☆');
@@ -244,7 +242,7 @@ describe('Verse News — harmonised controls', () => {
 
   it('gives every surface the same share control', () => {
     const share = all('.act.share');
-    expect(share.length).withContext('stage + every tile').toBeGreaterThan(1);
+    expect(share.length, 'stage + every tile').toBeGreaterThan(1);
     for (const btn of share) expect(btn.querySelector('.ic svg')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('⤴');
   });
@@ -258,14 +256,14 @@ describe('Verse News — harmonised controls', () => {
       fixture.componentInstance.openDetail(feed().news[1]);
       fixture.detectChanges();
       panel = document.querySelector('.nd-panel') as HTMLElement;
-      expect(panel).withContext('overlay panel').not.toBeNull();
+      expect(panel, 'overlay panel').not.toBeNull();
     });
 
     it('closes through a back link in the same idiom as the patch board, not a ✕ disc', () => {
       const back = panel.querySelector<HTMLElement>('.nd-head .nd-back');
-      expect(back).withContext('back control').not.toBeNull();
+      expect(back, 'back control').not.toBeNull();
       expect(back!.textContent).toContain('←');
-      expect(panel.querySelector('.nd-close')).withContext('old ✕ button').toBeNull();
+      expect(panel.querySelector('.nd-close'), 'old ✕ button').toBeNull();
 
       back!.click();
       fixture.detectChanges();
@@ -275,29 +273,27 @@ describe('Verse News — harmonised controls', () => {
 
     it('fits inside the viewport', () => {
       const r = panel.getBoundingClientRect();
-      expect(r.height).withContext('panel laid out').toBeGreaterThan(0);
-      expect(r.top).withContext('top edge on screen').toBeGreaterThanOrEqual(-1);
-      expect(r.bottom).withContext('bottom edge on screen')
-        .toBeLessThanOrEqual(window.innerHeight + 1);
+      expect(r.height, 'panel laid out').toBeGreaterThan(0);
+      expect(r.top, 'top edge on screen').toBeGreaterThanOrEqual(-1);
+      expect(r.bottom, 'bottom edge on screen').toBeLessThanOrEqual(window.innerHeight + 1);
       expect(r.right).toBeLessThanOrEqual(window.innerWidth + 1);
     });
 
     it('shows the actions without a scroll — that was the whole complaint', () => {
       const actions = panel.querySelector<HTMLElement>('.nd-actions')!;
       const r = actions.getBoundingClientRect();
-      expect(r.height).withContext('actions laid out').toBeGreaterThan(0);
+      expect(r.height, 'actions laid out').toBeGreaterThan(0);
       expect(r.bottom).toBeLessThanOrEqual(window.innerHeight + 1);
 
       const body = panel.querySelector<HTMLElement>('.nd-body')!;
-      expect(body.scrollHeight - body.clientHeight)
-        .withContext('no hidden overflow in the text column').toBeLessThanOrEqual(1);
+      expect(body.scrollHeight - body.clientHeight, 'no hidden overflow in the text column').toBeLessThanOrEqual(1);
     });
 
     it('carries the same two controls as the rest of the page', () => {
       const labels = Array.from(panel.querySelectorAll('.nd-actions .sc-btn'));
       expect(labels.length).toBe(3);
       for (const btn of labels.slice(0, 2)) {
-        expect(btn.querySelector('.ic svg')).withContext(btn.textContent!).not.toBeNull();
+        expect(btn.querySelector('.ic svg'), btn.textContent!).not.toBeNull();
       }
     });
   });

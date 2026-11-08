@@ -40,16 +40,16 @@ describe('Verse planet — worker link', () => {
     void l.settled.then((v) => got.push(v));
     tick(PLANET_WORKER_DEADLINE_MS);
     expect(got).toEqual([false, false]);
-    expect(w.terminated).toBeTrue();
-    expect(l.alive).toBeFalse();
+    expect(w.terminated).toBe(true);
+    expect(l.alive).toBe(false);
   }));
 
   it('a slow first WebGL context is not a dead worker', fakeAsync(() => {
     const w = new FakeWorker(), l = link(w);
     w.say({ t: 'alive' });
     tick(PLANET_WORKER_DEADLINE_MS * 3);
-    expect(w.terminated).toBeFalse();
-    expect(l.alive).toBeTrue();
+    expect(w.terminated).toBe(false);
+    expect(l.alive).toBe(true);
   }));
 
   it('a script error (dead chunk answering HTML, CSP) leaves the planet to the page', fakeAsync(() => {
@@ -59,7 +59,7 @@ describe('Verse planet — worker link', () => {
     w.onerror?.({ preventDefault: () => undefined, message: 'x' } as ErrorEvent);
     tick(1000);
     expect(got).toEqual([false]);
-    expect(w.terminated).toBeTrue();
+    expect(w.terminated).toBe(true);
   }));
 
   it('a worker that cannot draw is told to go before anything is handed over', fakeAsync(() => {
@@ -71,7 +71,7 @@ describe('Verse planet — worker link', () => {
     tick(1000);
     expect(got).toEqual([false]);
     expect(l.canvases).toBeNull();
-    expect(w.terminated).toBeTrue();
+    expect(w.terminated).toBe(true);
   }));
 
   it('hands both canvases over as transferables and keeps them for the next visit', fakeAsync(() => {
@@ -81,7 +81,7 @@ describe('Verse planet — worker link', () => {
     const a = document.createElement('canvas'), b = document.createElement('canvas');
     l.attach(a, b, [0.1, 0.2, 0.3], true);
     const m = w.sent.find((x) => x.t === 'attach') as Extract<PlanetCommand, { t: 'attach' }>;
-    expect(m.reduce).toBeTrue();
+    expect(m.reduce).toBe(true);
     expect(w.transfers[w.sent.indexOf(m)]).toEqual([m.gl, m.trains]);
     expect(l.canvases).toEqual([a, b]);
   }));
@@ -114,10 +114,10 @@ describe('Verse planet — worker link', () => {
     w.say({ t: 'capable', ok: true });
     w.say({ t: 'ready' });
     tick();
-    expect(l.isReady).toBeTrue();
+    expect(l.isReady).toBe(true);
     w.onerror?.({ preventDefault: () => undefined, message: 'crash' } as ErrorEvent);
     expect(seen).toEqual(['unavailable']);
-    expect(l.alive).toBeFalse();
+    expect(l.alive).toBe(false);
     tick(1000);
   }));
 
@@ -125,9 +125,9 @@ describe('Verse planet — worker link', () => {
     const w = new FakeWorker(), l = link(w);
     w.say({ t: 'alive' });
     w.say({ t: 'status', status: 'unavailable' });
-    expect(l.alive).toBeFalse();
+    expect(l.alive).toBe(false);
     w.say({ t: 'status', status: 'restored' });
-    expect(l.alive).toBeTrue();
+    expect(l.alive).toBe(true);
     tick(1000);
   }));
 });

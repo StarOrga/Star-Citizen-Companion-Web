@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
@@ -13,9 +14,9 @@ import { AnalyticsService } from '../core/analytics.service';
 describe('HangarImportComponent', () => {
   let fixture: ComponentFixture<HangarImportComponent>;
   let ships: ReturnType<typeof signal<{ shipClassName: string }[]>>;
-  let codex: { getShipsByClassNames: jasmine.Spy; listByKind: jasmine.Spy };
-  let hangar: { ships: unknown; addShip: jasmine.Spy; updateShip: jasmine.Spy };
-  let analytics: { capture: jasmine.Spy };
+  let codex: { getShipsByClassNames: Mock; listByKind: Mock };
+  let hangar: { ships: unknown; addShip: Mock; updateShip: Mock };
+  let analytics: { capture: Mock };
 
   function row(slug: string, name: string): CodexListRow {
     return { classNameSlug: slug, nameLocalized: name } as CodexListRow;
@@ -24,15 +25,15 @@ describe('HangarImportComponent', () => {
   function setup(): void {
     ships = signal<{ shipClassName: string }[]>([]);
     codex = {
-      getShipsByClassNames: jasmine.createSpy('exact').and.resolveTo(new Map()),
-      listByKind: jasmine.createSpy('fuzzy').and.resolveTo({ rows: [], count: 0 }),
+      getShipsByClassNames: vi.fn().mockName('exact').mockResolvedValue(new Map()),
+      listByKind: vi.fn().mockName('fuzzy').mockResolvedValue({ rows: [], count: 0 }),
     };
     hangar = {
       ships,
-      addShip: jasmine.createSpy('addShip').and.callFake(async (slug: string) => ({ id: 'id-' + slug })),
-      updateShip: jasmine.createSpy('updateShip').and.resolveTo(true),
+      addShip: vi.fn().mockName('addShip').mockImplementation(async (slug: string) => ({ id: 'id-' + slug })),
+      updateShip: vi.fn().mockName('updateShip').mockResolvedValue(true),
     };
-    analytics = { capture: jasmine.createSpy('capture') };
+    analytics = { capture: vi.fn().mockName('capture') };
     TestBed.configureTestingModule({
       imports: [HangarImportComponent],
       providers: [
@@ -73,7 +74,7 @@ describe('HangarImportComponent', () => {
   describe('loadRows', () => {
     it('badges an exact ship_code match', async () => {
       setup();
-      codex.getShipsByClassNames.and.resolveTo(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
+      codex.getShipsByClassNames.mockResolvedValue(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
       await fixture.componentInstance.loadRows([{ name: 'Carrack', ship_code: 'ANVL_Carrack' }]);
       fixture.detectChanges();
 
@@ -83,7 +84,7 @@ describe('HangarImportComponent', () => {
 
     it('falls back to a name search and badges it fuzzy', async () => {
       setup();
-      codex.listByKind.and.resolveTo({ rows: [row('ANVL_Carrack', 'Carrack')], count: 1 });
+      codex.listByKind.mockResolvedValue({ rows: [row('ANVL_Carrack', 'Carrack')], count: 1 });
       await fixture.componentInstance.loadRows([{ name: 'Carak' }]);
       fixture.detectChanges();
 
@@ -94,12 +95,12 @@ describe('HangarImportComponent', () => {
     it('badges a ship already in the hangar and disables its checkbox', async () => {
       setup();
       ships.set([{ shipClassName: 'ANVL_Carrack' }]);
-      codex.getShipsByClassNames.and.resolveTo(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
+      codex.getShipsByClassNames.mockResolvedValue(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
       await fixture.componentInstance.loadRows([{ name: 'Carrack', ship_code: 'ANVL_Carrack' }]);
       fixture.detectChanges();
 
       expect(badges()).toEqual(['hangar.add.already']);
-      expect((fixture.nativeElement.querySelector('.row input[type="checkbox"]') as HTMLInputElement).disabled).toBeTrue();
+      expect((fixture.nativeElement.querySelector('.row input[type="checkbox"]') as HTMLInputElement).disabled).toBe(true);
     });
 
     it('badges an unmatched row as no match', async () => {
@@ -133,10 +134,10 @@ describe('HangarImportComponent', () => {
   describe('runImport', () => {
     it('adds the ship, then sets the nickname as customName', async () => {
       setup();
-      codex.getShipsByClassNames.and.resolveTo(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
+      codex.getShipsByClassNames.mockResolvedValue(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
       const order: string[] = [];
-      hangar.addShip.and.callFake(async (slug: string) => (order.push('add'), { id: 'id-' + slug }));
-      hangar.updateShip.and.callFake(async () => (order.push('update'), true));
+      hangar.addShip.mockImplementation(async (slug: string) => (order.push('add'), { id: 'id-' + slug }));
+      hangar.updateShip.mockImplementation(async () => (order.push('update'), true));
       let imported = -1;
       fixture.componentInstance.imported.subscribe((n) => (imported = n));
       await fixture.componentInstance.loadRows([{ name: 'Carrack', ship_name: 'Big Bertha', ship_code: 'ANVL_Carrack' }]);
@@ -155,7 +156,7 @@ describe('HangarImportComponent', () => {
 
     it('does not set a customName when the nickname equals the type name', async () => {
       setup();
-      codex.getShipsByClassNames.and.resolveTo(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
+      codex.getShipsByClassNames.mockResolvedValue(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
       await fixture.componentInstance.loadRows([{ name: 'Carrack', ship_name: 'carrack', ship_code: 'ANVL_Carrack' }]);
       await fixture.componentInstance.runImport();
       expect(hangar.addShip).toHaveBeenCalled();
@@ -164,8 +165,8 @@ describe('HangarImportComponent', () => {
 
     it('counts only successful writes and leaves failed rows selected', async () => {
       setup();
-      codex.getShipsByClassNames.and.resolveTo(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
-      hangar.addShip.and.resolveTo(null);
+      codex.getShipsByClassNames.mockResolvedValue(new Map([['ANVL_Carrack', row('ANVL_Carrack', 'Carrack')]]));
+      hangar.addShip.mockResolvedValue(null);
       let imported = -1;
       fixture.componentInstance.imported.subscribe((n) => (imported = n));
       await fixture.componentInstance.loadRows([{ name: 'Carrack', ship_code: 'ANVL_Carrack' }]);

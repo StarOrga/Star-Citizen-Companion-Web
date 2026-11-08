@@ -69,8 +69,8 @@ describe('applyBoardDelta', () => {
       prev,
       delta({ full: true, topics: [topic('c', T(9))], topic_ids: ['c'] }),
     );
-    expect(r.changed).toBeTrue();
-    expect(r.consistent).toBeTrue();
+    expect(r.changed).toBe(true);
+    expect(r.consistent).toBe(true);
     expect(r.state.topics.map((t) => t.id)).toEqual(['c']);
     expect(r.state.threads.size).toBe(0);
     expect(r.state.authorMessages).toEqual([]);
@@ -87,7 +87,7 @@ describe('applyBoardDelta', () => {
         author_messages: [amsg('x1', 'a', T(5))],
       }),
     );
-    expect(r.changed).toBeFalse();
+    expect(r.changed).toBe(false);
     expect(r.state).toBe(prev);
   });
 
@@ -98,8 +98,8 @@ describe('applyBoardDelta', () => {
       prev,
       quiet({ topics: [topic('c', T(0)), changedA], topic_ids: ['a', 'b', 'c'] }),
     );
-    expect(r.changed).toBeTrue();
-    expect(r.consistent).toBeTrue();
+    expect(r.changed).toBe(true);
+    expect(r.consistent).toBe(true);
     expect(r.state.topics.map((t) => t.id)).toEqual(['c', 'a', 'b']);
     expect(r.state.topics[1].status).toBe('in_progress');
     // The previous state is never mutated.
@@ -112,8 +112,8 @@ describe('applyBoardDelta', () => {
       prev,
       quiet({ messages: [msg('m0', 'a', T(2)), msg('m9', 'b', T(25))], message_count: 4 }),
     );
-    expect(r.changed).toBeTrue();
-    expect(r.consistent).toBeTrue();
+    expect(r.changed).toBe(true);
+    expect(r.consistent).toBe(true);
     expect(r.state.threads.get('a')!.map((m) => m.id)).toEqual(['m0', 'm1']);
     expect(r.state.threads.get('b')!.map((m) => m.id)).toEqual(['m2', 'm9']);
     expect(prev.threads.get('a')!.map((m) => m.id)).toEqual(['m1']);
@@ -124,36 +124,36 @@ describe('applyBoardDelta', () => {
   it('adds a new author message to the flat list', () => {
     const prev = baseState();
     const r = applyBoardDelta(prev, quiet({ author_messages: [amsg('x2', 'b', T(26))], author_message_count: 2 }));
-    expect(r.changed).toBeTrue();
+    expect(r.changed).toBe(true);
     expect(r.state.authorMessages.map((a) => a.id)).toEqual(['x1', 'x2']);
   });
 
   it('removes a topic missing from topic_ids together with its thread and author messages', () => {
     const prev = baseState();
     const r = applyBoardDelta(prev, delta({ topic_ids: ['b'], message_count: 1, author_message_count: 0 }));
-    expect(r.changed).toBeTrue();
-    expect(r.consistent).toBeTrue();
+    expect(r.changed).toBe(true);
+    expect(r.consistent).toBe(true);
     expect(r.state.topics.map((t) => t.id)).toEqual(['b']);
-    expect(r.state.threads.has('a')).toBeFalse();
+    expect(r.state.threads.has('a')).toBe(false);
     expect(r.state.authorMessages).toEqual([]);
   });
 
   it('reports inconsistent when a count no longer adds up (a deleted reply)', () => {
     const prev = baseState();
-    expect(applyBoardDelta(prev, quiet({ message_count: 1 })).consistent).toBeFalse();
-    expect(applyBoardDelta(prev, quiet({ author_message_count: 0 })).consistent).toBeFalse();
+    expect(applyBoardDelta(prev, quiet({ message_count: 1 })).consistent).toBe(false);
+    expect(applyBoardDelta(prev, quiet({ author_message_count: 0 })).consistent).toBe(false);
   });
 
   it('reports inconsistent when a live topic id is unknown (a missed topic)', () => {
     const prev = baseState();
-    expect(applyBoardDelta(prev, quiet({ topic_ids: ['a', 'b', 'z'] })).consistent).toBeFalse();
+    expect(applyBoardDelta(prev, quiet({ topic_ids: ['a', 'b', 'z'] })).consistent).toBe(false);
   });
 
   it('an empty delta changes nothing and keeps the references', () => {
     const prev = baseState();
     const r = applyBoardDelta(prev, quiet());
-    expect(r.changed).toBeFalse();
-    expect(r.consistent).toBeTrue();
+    expect(r.changed).toBe(false);
+    expect(r.consistent).toBe(true);
     expect(r.state).toBe(prev);
     expect(r.state.topics).toBe(prev.topics);
     expect(r.state.threads).toBe(prev.threads);
@@ -170,7 +170,7 @@ describe('applyBoardDelta', () => {
         author_messages: [amsg('x1', 'a', T(5))],
       }),
     );
-    expect(r.changed).toBeFalse();
+    expect(r.changed).toBe(false);
     expect(r.state).toBe(prev);
     expect(r.state.topics).toBe(prev.topics);
     expect(r.state.threads).toBe(prev.threads);

@@ -49,8 +49,8 @@ describe('composeSearchResult', () => {
     const r = composeSearchResult({ ...base, term: 'stalker ii', groups: [ships, weapons], context: searchContextOf('/codex/index?kind=weapon'), chips: kindChip });
     expect(r.groups.map((g) => g.id)).toEqual(['weapon']);
     expect(r.outside).not.toBeNull();
-    expect(r.outside!.outside).toBeTrue();
-    expect(r.outside!.rows.every((x) => x.type === 'hit' && x.outside)).toBeTrue();
+    expect(r.outside!.outside).toBe(true);
+    expect(r.outside!.rows.every((x) => x.type === 'hit' && x.outside)).toBe(true);
     expect(r.outside!.reason?.key).toBe('search.why.outside');
     expect(r.outside!.reason?.params?.['chip']).toBe('search.chip.kind');
   });
@@ -88,7 +88,7 @@ describe('composeSearchResult', () => {
 
   it('signed out: no own rows can exist, the own group is absent', () => {
     const r = composeSearchResult({ ...base, signedIn: false, groups: [ships], context: searchContextOf('/hq'), chips: [], own: null });
-    expect(r.groups.some((g) => g.id === 'own')).toBeFalse();
+    expect(r.groups.some((g) => g.id === 'own')).toBe(false);
   });
 
   it('ownership, recent opens and popularity only break ties among equal name scores (C9)', () => {
@@ -153,7 +153,7 @@ describe('composeSearchResult', () => {
 
   it('reports empty and carries didYouMean', () => {
     const r = composeSearchResult({ ...base, groups: [], context: searchContextOf('/codex'), chips: [], didYouMean: ['Gladius'] });
-    expect(r.empty).toBeTrue();
+    expect(r.empty).toBe(true);
     expect(r.didYouMean).toEqual(['Gladius']);
   });
 });
@@ -163,7 +163,7 @@ describe('fitVerdict', () => {
   it('fits, wrong size, wrong type, unknown', () => {
     expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 3 }, ports).verdict).toBe('fits');
     const size = fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 6 }, ports);
-    expect(size).toEqual(jasmine.objectContaining({ verdict: 'noFit', reasonKey: 'search.fit.noSize' }));
+    expect(size).toEqual(expect.objectContaining({ verdict: 'noFit', reasonKey: 'search.fit.noSize' }));
     expect(fitVerdict({ kind: 'component', attachType: 'Shield', size: 2 }, ports).reasonKey).toBe('search.fit.noType');
     expect(fitVerdict({ kind: 'ship', attachType: null, size: null }, ports).verdict).toBe('unknown');
     expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 3 }, null).verdict).toBe('unknown');
@@ -184,7 +184,7 @@ describe('searchOwn (A2, C11, C12)', () => {
 
   it('finds a ship by its own name; the ship type leads, the own name follows (B2)', () => {
     const r = searchOwn('nachtfalke', src, { nameOf });
-    expect(r.rows[0]).toEqual(jasmine.objectContaining({ ownKind: 'ship', title: 'Aegis Gladius', ownName: 'Nachtfalke' }));
+    expect(r.rows[0]).toEqual(expect.objectContaining({ ownKind: 'ship', title: 'Aegis Gladius', ownName: 'Nachtfalke' }));
     expect(r.rows[0].target.link).toEqual(['/codex/ship', 'AEGS_Gladius']);
   });
 
@@ -199,7 +199,7 @@ describe('searchOwn (A2, C11, C12)', () => {
     expect(searchOwn('cutlass', src, { nameOf }).total).toBe(0);
     expect(searchOwn('olisar', src, { nameOf }).total).toBe(0); // location is not searched, only names
     const it = searchOwn('livery', src, { nameOf }).rows[0];
-    expect(it).toEqual(jasmine.objectContaining({ ownKind: 'item', qty: 2, subtitle: 'Port Olisar' }));
+    expect(it).toEqual(expect.objectContaining({ ownKind: 'item', qty: 2, subtitle: 'Port Olisar' }));
   });
 
   it('caps the rows but keeps the total', () => {
@@ -273,12 +273,12 @@ describe('nested ports (B5)', () => {
 
   it('a wrong size at the deepest level is a real no-fit with the sub-port range', () => {
     const v = fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 6 }, ports);
-    expect(v).toEqual(jasmine.objectContaining({ verdict: 'noFit', reasonKey: 'search.fit.noSize', reasonParams: { size: 6, min: 3, max: 3 } }));
+    expect(v).toEqual(expect.objectContaining({ verdict: 'noFit', reasonKey: 'search.fit.noSize', reasonParams: { size: 6, min: 3, max: 3 } }));
   });
 
   it('a mount whose sub-ports are unknown is ?, never a false warning', () => {
     const blind = buildFitPorts(top, loadout, () => undefined);
-    expect(blind[0].opaque).toBeTrue();
+    expect(blind[0].opaque).toBe(true);
     expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 3 }, blind).verdict).toBe('unknown');
     expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 6 }, blind).verdict).toBe('unknown');
   });
@@ -315,7 +315,7 @@ describe('turret shells without own ports (Idris, B5)', () => {
 
   it('a hit without attach type says so in its own words', () => {
     const v = fitVerdict({ kind: 'weapon', attachType: null, size: 4 }, ports);
-    expect(v).toEqual(jasmine.objectContaining({ verdict: 'unknown', reasonKey: 'search.fit.unknownItem' }));
+    expect(v).toEqual(expect.objectContaining({ verdict: 'unknown', reasonKey: 'search.fit.unknownItem' }));
     expect(fitVerdict({ kind: 'weapon', attachType: 'WeaponGun', size: 4 }, []).reasonKey).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
@@ -31,7 +32,7 @@ describe('HqOwnershipService', () => {
   let ships: ReturnType<typeof signal<HangarShip[]>>;
   let sets: ReturnType<typeof signal<HangarRoleLoadout[]>>;
   let configs: HangarShipConfig[];
-  let hangar: { ships: typeof ships; roleLoadouts: typeof sets; loadAll: jasmine.Spy; listAllConfigs: jasmine.Spy };
+  let hangar: { ships: typeof ships; roleLoadouts: typeof sets; loadAll: Mock; listAllConfigs: Mock };
 
   function make(): HqOwnershipService {
     user = signal<{ id: string } | null>({ id: 'u1' });
@@ -41,11 +42,11 @@ describe('HqOwnershipService', () => {
     hangar = {
       ships,
       roleLoadouts: sets,
-      loadAll: jasmine.createSpy('loadAll').and.callFake(async () => {
+      loadAll: vi.fn().mockName('loadAll').mockImplementation(async () => {
         ships.set([ship('h1', 'AEGS_Gladius', 'Blade'), ship('h2', 'RSI_Aurora_MR')]);
         sets.set([set('s1', 'Assault', ['BEHR_Rifle_01', 'BEHR_Rifle_01', null]), set('s2', 'Medic', ['behr_rifle_01'])]);
       }),
-      listAllConfigs: jasmine.createSpy('listAllConfigs').and.callFake(async () => configs),
+      listAllConfigs: vi.fn().mockName('listAllConfigs').mockImplementation(async () => configs),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -66,14 +67,14 @@ describe('HqOwnershipService', () => {
     ];
     await svc.ensureLoaded();
 
-    expect(svc.loaded()).toBeTrue();
-    expect(svc.ownsShip('aegs_gladius')).toBeTrue();
-    expect(svc.ownsShip('ANVL_Arrow')).toBeFalse();
-    expect(svc.ownsShip(null)).toBeFalse();
+    expect(svc.loaded()).toBe(true);
+    expect(svc.ownsShip('aegs_gladius')).toBe(true);
+    expect(svc.ownsShip('ANVL_Arrow')).toBe(false);
+    expect(svc.ownsShip(null)).toBe(false);
 
     const gladius = svc.lookup('AEGS_Gladius')!;
     expect(gladius.configs.map((c) => c.id)).toEqual(['c2', 'c1']); // active first
-    expect(gladius.configs[0].active).toBeTrue();
+    expect(gladius.configs[0].active).toBe(true);
 
     const cannon = svc.lookup('behr_lasercannon_s3')!;
     expect(cannon.ship).toBeNull();
@@ -91,7 +92,7 @@ describe('HqOwnershipService', () => {
     expect(svc.configById('c2')?.name).toBe('PvP');
     expect(svc.configById('nope')).toBeNull();
     expect(svc.configsForShip('h1').map((c) => c.id)).toEqual(['c2', 'c1']);
-    expect(svc.shipClassNames().has('rsi_aurora_mr')).toBeTrue();
+    expect(svc.shipClassNames().has('rsi_aurora_mr')).toBe(true);
   });
 
   it('is idempotent and shares one in-flight load', async () => {
@@ -137,17 +138,17 @@ describe('HqOwnershipService', () => {
     user.set({ id: 'u2' });
     expect(svc.configs()).toEqual([]);
     user.set(null);
-    hangar.listAllConfigs.calls.reset();
+    hangar.listAllConfigs.mockClear();
     await svc.ensureLoaded();
     expect(hangar.listAllConfigs).not.toHaveBeenCalled();
   });
 
   it('records a translated error key and never throws', async () => {
     const svc = make();
-    hangar.listAllConfigs.and.rejectWith(new Error('boom'));
-    await expectAsync(svc.ensureLoaded()).toBeResolved();
+    hangar.listAllConfigs.mockRejectedValue(new Error('boom'));
+    await expect(svc.ensureLoaded()).resolves.not.toThrow();
     expect(svc.error()).toMatch(/^errors\./);
-    expect(svc.loaded()).toBeFalse();
+    expect(svc.loaded()).toBe(false);
   });
 
   it('route helpers build the contract links', () => {

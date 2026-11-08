@@ -43,7 +43,7 @@ function fakeSupabase(role: 'admin' | 'collaborator' | 'viewer', approved: boole
       auth: {
         getSession: async () => ({ data: { session } }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe(): void {} } } }),
-        signOut: jasmine.createSpy('authSignOut').and.resolveTo({ error: null }),
+        signOut: vi.fn().mockName('authSignOut').mockResolvedValue({ error: null }),
       },
       from: () => ({
         select: () => ({
@@ -59,10 +59,8 @@ function fakeSupabase(role: 'admin' | 'collaborator' | 'viewer', approved: boole
 
 function fakeRouter() {
   return {
-    createUrlTree: jasmine
-      .createSpy('createUrlTree')
-      .and.callFake((commands: unknown[]) => ({ __commands: commands }) as unknown as UrlTree),
-    navigate: jasmine.createSpy('navigate').and.resolveTo(true),
+    createUrlTree: vi.fn().mockName('createUrlTree').mockImplementation((commands: unknown[]) => ({ __commands: commands }) as unknown as UrlTree),
+    navigate: vi.fn().mockName('navigate').mockResolvedValue(true),
   };
 }
 

@@ -20,10 +20,10 @@ const ev = (type: string, minutesAgo: number, data: Record<string, unknown> = {}
 
 describe('live ticker rules', () => {
   it('shows only on HQ pages other than Start and only once the app was ever connected', () => {
-    expect(tickerVisible('inventar', true)).toBeTrue();
-    expect(tickerVisible('start', true)).toBeFalse();
-    expect(tickerVisible(null, true)).toBeFalse();
-    expect(tickerVisible('planen', false)).toBeFalse();
+    expect(tickerVisible('inventar', true)).toBe(true);
+    expect(tickerVisible('start', true)).toBe(false);
+    expect(tickerVisible(null, true)).toBe(false);
+    expect(tickerVisible('planen', false)).toBe(false);
   });
 
   it('picks the last event that is relevant for the page, else the newest of any type', () => {

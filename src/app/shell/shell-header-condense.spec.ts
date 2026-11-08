@@ -16,6 +16,7 @@ import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
 import { ShellComponent, isAdminNavRoute } from './shell.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
+import { useViewport } from '../testing/viewport';
 
 @Component({ selector: 'sc-quick-search', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class QuickSearchStub {}
@@ -42,10 +43,12 @@ function click(el: HTMLElement, init: MouseEventInit = {}): void {
  * The header stays one row on a desktop window: between the phone layout and
  * ~1180px the two admin entries fold into a red "Admin" menu. These pin the
  * menu's contract — real anchors, red with the "admin only" words, the
- * menu-button keyboard model and focus return — and, where the Karma window
- * falls into that range, that the CSS really swaps the inline entries for it.
+ * menu-button keyboard model and focus return — and that the CSS really swaps
+ * the inline entries for it. The window is pinned inside that range.
  */
 describe('ShellComponent condensed header', () => {
+  useViewport(1000);
+
   let fixture: ComponentFixture<ShellComponent>;
   let el: HTMLElement;
 
@@ -54,7 +57,9 @@ describe('ShellComponent condensed header', () => {
       imports: [ShellComponent],
       providers: [
         provideTranslateService(),
-        provideRouter([]),
+        // Links the specs click land somewhere: an unmatched route throws after the
+        // test, which Vitest counts as a failed run (Karma only logged it).
+        provideRouter([{ path: '**', children: [] }]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request: () => true } },
         {
@@ -106,8 +111,8 @@ describe('ShellComponent condensed header', () => {
 
     expect(button().getAttribute('aria-expanded')).toBe('true');
     expect(items().map((a) => a.getAttribute('href'))).toEqual(['/admin', '/admin/telemetry', '/admin/translations']);
-    expect(items().every((a) => a.classList.contains('elevated') && a.getAttribute('role') === 'menuitem')).toBeTrue();
-    expect(items().every((a) => a.querySelector('.sc-sr-only')?.textContent?.trim() === 'nav.adminOnly')).toBeTrue();
+    expect(items().every((a) => a.classList.contains('elevated') && a.getAttribute('role') === 'menuitem')).toBe(true);
+    expect(items().every((a) => a.querySelector('.sc-sr-only')?.textContent?.trim() === 'nav.adminOnly')).toBe(true);
     const hot = getComputedStyle(document.documentElement).getPropertyValue('--sc-accent-hot').trim();
     if (hot) {
       const probe = document.createElement('span');
@@ -145,11 +150,11 @@ describe('ShellComponent condensed header', () => {
     fixture.detectChanges();
     click(items()[1], { ctrlKey: true });
     fixture.detectChanges();
-    expect(fixture.componentInstance.adminMenuOpen()).toBeTrue();
+    expect(fixture.componentInstance.adminMenuOpen()).toBe(true);
 
     click(items()[1]);
     fixture.detectChanges();
-    expect(fixture.componentInstance.adminMenuOpen()).toBeFalse();
+    expect(fixture.componentInstance.adminMenuOpen()).toBe(false);
   });
 
   it('opening one header menu closes the other', () => {
@@ -158,19 +163,19 @@ describe('ShellComponent condensed header', () => {
     fixture.detectChanges();
     el.querySelector<HTMLButtonElement>('.avatar-btn')!.click();
     fixture.detectChanges();
-    expect(fixture.componentInstance.adminMenuOpen()).toBeFalse();
-    expect(fixture.componentInstance.menuOpen()).toBeTrue();
+    expect(fixture.componentInstance.adminMenuOpen()).toBe(false);
+    expect(fixture.componentInstance.menuOpen()).toBe(true);
   });
 
-  it('between the phone layout and 1180px the inline admin entries give way to the menu', () => {
+  it('between the phone layout and 1180px the inline admin entries give way to the menu', ({ skip }) => {
     setup(true);
     if (!matchMedia('(min-width: 721px) and (max-width: 1179px)').matches) {
-      pending('the Karma window is outside the folded range');
+      skip('the window is outside the folded range');
       return;
     }
     const inline = Array.from(el.querySelectorAll<HTMLElement>('nav.nav > a.admin-inline'));
     expect(inline.length).toBe(3);
-    expect(inline.every((a) => getComputedStyle(a).display === 'none')).toBeTrue();
+    expect(inline.every((a) => getComputedStyle(a).display === 'none')).toBe(true);
     expect(getComputedStyle(el.querySelector('.admin-more')!).display).not.toBe('none');
     expect(getComputedStyle(el.querySelector('.topbar')!).flexWrap).toBe(
       matchMedia('(max-width: 819px)').matches ? 'wrap' : 'nowrap',
@@ -178,9 +183,9 @@ describe('ShellComponent condensed header', () => {
   });
 
   it('marks the menu active on the admin routes it holds, not on the account menu\'s tokens page', () => {
-    expect(isAdminNavRoute('/admin')).toBeTrue();
-    expect(isAdminNavRoute('/admin/telemetry?range=7d')).toBeTrue();
-    expect(isAdminNavRoute('/admin/api-tokens')).toBeFalse();
-    expect(isAdminNavRoute('/codex')).toBeFalse();
+    expect(isAdminNavRoute('/admin')).toBe(true);
+    expect(isAdminNavRoute('/admin/telemetry?range=7d')).toBe(true);
+    expect(isAdminNavRoute('/admin/api-tokens')).toBe(false);
+    expect(isAdminNavRoute('/codex')).toBe(false);
   });
 });

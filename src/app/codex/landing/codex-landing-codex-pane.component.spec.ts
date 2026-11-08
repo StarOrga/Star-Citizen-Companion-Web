@@ -91,7 +91,7 @@ describe('Codex landing pane', () => {
     const turn = new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true });
     list.dispatchEvent(turn);
     fixture.detectChanges();
-    expect(turn.defaultPrevented).toBeTrue();
+    expect(turn.defaultPrevented).toBe(true);
     expect(rowsShown()[0]).toBe('Entry 3');
     list.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
     fixture.detectChanges();
@@ -106,7 +106,7 @@ describe('Codex landing pane', () => {
     mount([{ category: 'tool', entries: entries(3) }], 'tool', item('tool', 'E1'));
     const still = new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true });
     host.querySelector('.new')!.dispatchEvent(still);
-    expect(still.defaultPrevented).withContext('the page keeps the turn').toBeFalse();
+    expect(still.defaultPrevented, 'the page keeps the turn').toBe(false);
   });
 
   it('title, tabs and foot hold their place from an empty middle to a full wheel, and everything fits at 1280x720', () => {
@@ -114,10 +114,10 @@ describe('Codex landing pane', () => {
     mount([{ category: 'tool', entries: entries(20) }], 'tool', item('tool', 'E10'));
     const full = { ph: y('.ph'), tabs: y('.tabs'), all: y('a.all'), keys: y('a.keys') };
     const body = host.querySelector<HTMLElement>('.body')!;
-    expect(body.scrollHeight).withContext('no hidden overflow with a full wheel').toBeLessThanOrEqual(body.clientHeight);
+    expect(body.scrollHeight, 'no hidden overflow with a full wheel').toBeLessThanOrEqual(body.clientHeight);
     expect(rowsShown().length).toBe(WHEEL_ROWS);
     const lastRow = host.querySelectorAll('.new li')[WHEEL_ROWS - 1].getBoundingClientRect();
-    expect(lastRow.bottom).withContext('the last row stands above the foot').toBeLessThanOrEqual(host.querySelector('.foot')!.getBoundingClientRect().top + 1);
+    expect(lastRow.bottom, 'the last row stands above the foot').toBeLessThanOrEqual(host.querySelector('.foot')!.getBoundingClientRect().top + 1);
     host.remove();
     TestBed.resetTestingModule();
 

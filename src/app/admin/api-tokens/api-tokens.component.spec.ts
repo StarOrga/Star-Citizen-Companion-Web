@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
@@ -18,11 +19,11 @@ const ROW_B: ApiTokenRow = { ...ROW_A, id: 'tok-b', name: 'Dashboard', prefix: '
 
 describe('ApiTokensComponent', () => {
   let svc: {
-    list: jasmine.Spy;
-    create: jasmine.Spy;
-    revoke: jasmine.Spy;
+    list: Mock;
+    create: Mock;
+    revoke: Mock;
   };
-  let confirm: jasmine.Spy;
+  let confirm: Mock;
   let frames: FrameClock;
 
   async function mount(rows: ApiTokenRow[] = [ROW_A, ROW_B]) {
@@ -32,11 +33,11 @@ describe('ApiTokensComponent', () => {
     // into the 5 s timeout — so the spec plays the frame clock itself.
     frames = installFrameClock();
     svc = {
-      list: jasmine.createSpy('list').and.resolveTo(rows),
-      create: jasmine.createSpy('create'),
-      revoke: jasmine.createSpy('revoke').and.resolveTo(undefined),
+      list: vi.fn().mockName('list').mockResolvedValue(rows),
+      create: vi.fn().mockName('create'),
+      revoke: vi.fn().mockName('revoke').mockResolvedValue(undefined),
     };
-    confirm = jasmine.createSpy('confirm').and.resolveTo(true);
+    confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
     await TestBed.configureTestingModule({
       imports: [ApiTokensComponent],
       providers: [
@@ -81,7 +82,7 @@ describe('ApiTokensComponent', () => {
 
   it('shows the error key and no empty state when loading fails', async () => {
     const f = await mount();
-    svc.list.and.rejectWith(Object.assign(new Error('list_failed'), { status: 500 }));
+    svc.list.mockRejectedValue(Object.assign(new Error('list_failed'), { status: 500 }));
     await f.componentInstance.refresh();
     await settle(f);
     expect(q(f, '.err')?.textContent).toContain('errors.server');
@@ -91,8 +92,8 @@ describe('ApiTokensComponent', () => {
   it('create shows the plaintext token exactly once', async () => {
     const f = await mount([ROW_A]);
     const created: CreatedToken = { plaintext: 'scc_secret_plaintext', token: ROW_B };
-    svc.create.and.resolveTo(created);
-    svc.list.and.resolveTo([ROW_A, ROW_B]);
+    svc.create.mockResolvedValue(created);
+    svc.list.mockResolvedValue([ROW_A, ROW_B]);
 
     (q(f, '.head-actions button') as HTMLButtonElement).click();
     await settle(f);
@@ -104,7 +105,8 @@ describe('ApiTokensComponent', () => {
     (q(f, '.dialog form') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }));
     await settle(f);
 
-    expect(svc.create).toHaveBeenCalledOnceWith('Bot', ['news:read']);
+    expect(svc.create).toHaveBeenCalledTimes(1);
+    expect(svc.create).toHaveBeenCalledWith('Bot', ['news:read']);
     expect(q(f, '.reveal-token')?.textContent).toContain('scc_secret_plaintext');
     expect(qa(f, 'tbody tr').length).toBe(2);
     expect((f.nativeElement as HTMLElement).textContent!.split('scc_secret_plaintext').length - 1).toBe(1);
@@ -117,7 +119,7 @@ describe('ApiTokensComponent', () => {
 
   it('keeps the create dialog open and shows the error key when creating fails', async () => {
     const f = await mount([]);
-    svc.create.and.rejectWith(Object.assign(new Error('forbidden'), { status: 403, code: 'forbidden' }));
+    svc.create.mockRejectedValue(Object.assign(new Error('forbidden'), { status: 403, code: 'forbidden' }));
     (q(f, '.head-actions button') as HTMLButtonElement).click();
     await settle(f);
     const name = q(f, '.dialog input[type="text"]') as HTMLInputElement;
@@ -136,7 +138,7 @@ describe('ApiTokensComponent', () => {
     (q(f, '.head-actions button') as HTMLButtonElement).click();
     await settle(f);
     const submit = q(f, '.dialog button[type="submit"]') as HTMLButtonElement;
-    expect(submit.disabled).toBeTrue();
+    expect(submit.disabled).toBe(true);
     await f.componentInstance.onCreateSubmit(new Event('submit', { cancelable: true }));
     expect(svc.create).not.toHaveBeenCalled();
   });
@@ -146,17 +148,18 @@ describe('ApiTokensComponent', () => {
     (q(f, 'tbody tr .danger') as HTMLButtonElement).click();
     await settle(f);
     expect(confirm).toHaveBeenCalledTimes(1);
-    expect(confirm.calls.mostRecent().args[0]).toEqual(
-      jasmine.objectContaining({ params: { name: 'CI pipeline' }, tone: 'danger' }),
+    expect(vi.mocked(confirm).mock.lastCall![0]).toEqual(
+      expect.objectContaining({ params: { name: 'CI pipeline' }, tone: 'danger' }),
     );
-    expect(svc.revoke).toHaveBeenCalledOnceWith('tok-a');
+    expect(svc.revoke).toHaveBeenCalledTimes(1);
+    expect(svc.revoke).toHaveBeenCalledWith('tok-a');
     expect(q(f, '.flash.success')).not.toBeNull();
     expect(svc.list).toHaveBeenCalledTimes(2);
   });
 
   it('does not revoke when the confirm is declined', async () => {
     const f = await mount();
-    confirm.and.resolveTo(false);
+    confirm.mockResolvedValue(false);
     (q(f, 'tbody tr .danger') as HTMLButtonElement).click();
     await settle(f);
     expect(confirm).toHaveBeenCalledTimes(1);
@@ -166,7 +169,7 @@ describe('ApiTokensComponent', () => {
 
   it('shows an error flash when the revoke fails', async () => {
     const f = await mount();
-    svc.revoke.and.rejectWith(Object.assign(new Error('revoke_failed'), { status: 500 }));
+    svc.revoke.mockRejectedValue(Object.assign(new Error('revoke_failed'), { status: 500 }));
     (q(f, 'tbody tr .danger') as HTMLButtonElement).click();
     await settle(f);
     expect(q(f, '.flash.error')?.textContent).toContain('admin.tokens.revokeError');

@@ -48,15 +48,15 @@ describe('HqOverviewComponent', () => {
         return picked.length ? picked : ships().slice(0, 3);
       }),
       recentSets: computed(() => sets().slice(0, 3)),
-      loadAll: jasmine.createSpy('loadAll').and.resolveTo(),
-      markShipPicked: jasmine.createSpy('markShipPicked').and.callFake((cn: string) => order.set([cn])),
-      markSetPicked: jasmine.createSpy('markSetPicked'),
+      loadAll: vi.fn().mockName('loadAll').mockResolvedValue(undefined),
+      markShipPicked: vi.fn().mockName('markShipPicked').mockImplementation((cn: string) => order.set([cn])),
+      markSetPicked: vi.fn().mockName('markSetPicked'),
       isFlagship: () => false,
     };
     const ownership = {
       error: signal<string | null>(null),
-      ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(),
-      invalidate: jasmine.createSpy('invalidate'),
+      ensureLoaded: vi.fn().mockName('ensureLoaded').mockResolvedValue(undefined),
+      invalidate: vi.fn().mockName('invalidate'),
       configsForShip: (id: string) => (opts.configs ?? []).filter((c) => c.hangarShipId === id),
     };
     TestBed.configureTestingModule({

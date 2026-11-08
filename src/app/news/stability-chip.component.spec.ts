@@ -85,18 +85,18 @@ describe('StabilityChipComponent', () => {
 
   it('provisional: dashed and without indicator; finished: plain without indicator', () => {
     const early = render(data({ early: true })).querySelector('.chip')!;
-    expect(early.classList.contains('early')).toBeTrue();
+    expect(early.classList.contains('early')).toBe(true);
     expect(early.querySelector('.ind')).toBeNull();
     const done = render(data({ finished: true })).querySelector('.chip')!;
-    expect(done.classList.contains('finished')).toBeTrue();
-    expect(done.classList.contains('early')).toBeFalse();
+    expect(done.classList.contains('finished')).toBe(true);
+    expect(done.classList.contains('early')).toBe(false);
     expect(done.querySelector('.ind')).toBeNull();
     expect(done.textContent).toContain('59 %');
   });
 
   it('too little data: grey, no percent, no indicator', () => {
     const chip = render(data({ percent: null })).querySelector('.chip')!;
-    expect(chip.classList.contains('nodata')).toBeTrue();
+    expect(chip.classList.contains('nodata')).toBe(true);
     expect(chip.textContent!.trim()).toBe('Not enough data');
     expect(chip.querySelector('.ind, .pct')).toBeNull();
   });

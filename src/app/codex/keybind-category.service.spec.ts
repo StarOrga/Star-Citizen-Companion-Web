@@ -85,7 +85,7 @@ describe('KeybindCategoryService', () => {
       [1000, 1999],
     ]);
     expect(svc.assignedCount()).toBe(1005);
-    expect(svc.loaded()).toBeTrue();
+    expect(svc.loaded()).toBe(true);
     expect(svc.error()).toBeNull();
     expect(svc.get('map', 'a3').scope).toBe('verse');
     expect(svc.get('map', 'missing')).toEqual(EMPTY_ASSIGNMENT);
@@ -103,7 +103,7 @@ describe('KeybindCategoryService', () => {
     pages = [{ data: null, error: { message: 'boom' } }];
     await svc.load();
     expect(svc.error()).toMatch(/^errors\./);
-    expect(svc.loaded()).toBeFalse();
+    expect(svc.loaded()).toBe(false);
   });
 
   it('apply() with an assignment upserts rows and mirrors them locally', async () => {
@@ -115,17 +115,17 @@ describe('KeybindCategoryService', () => {
       ],
       assigned,
     );
-    expect(ok).toBeTrue();
+    expect(ok).toBe(true);
     const up = calls.find((c) => c.method === 'upsert');
     expect(up).toBeTruthy();
     const sent = up!.args[0] as Record<string, unknown>[];
     expect(sent.length).toBe(2);
     expect(sent[0]).toEqual(
-      jasmine.objectContaining({ actionmap: 'm', action_name: 'x', scope: 'verse', updated_by: 'admin1' }),
+      expect.objectContaining({ actionmap: 'm', action_name: 'x', scope: 'verse', updated_by: 'admin1' }),
     );
     expect(up!.args[1]).toEqual({ onConflict: 'actionmap,action_name' });
-    expect(svc.byAction().has(keybindKey('m', 'x'))).toBeTrue();
-    expect(svc.saving()).toBeFalse();
+    expect(svc.byAction().has(keybindKey('m', 'x'))).toBe(true);
+    expect(svc.saving()).toBe(false);
   });
 
   it('apply() with an all-null assignment deletes per actionmap and drops the local entries', async () => {
@@ -140,8 +140,8 @@ describe('KeybindCategoryService', () => {
       ],
       EMPTY_ASSIGNMENT,
     );
-    expect(ok).toBeTrue();
-    expect(calls.some((c) => c.method === 'upsert')).toBeFalse();
+    expect(ok).toBe(true);
+    expect(calls.some((c) => c.method === 'upsert')).toBe(false);
     expect(calls.filter((c) => c.method === 'delete').length).toBe(2);
     expect(calls.filter((c) => c.method === 'in').map((c) => c.args)).toEqual([
       ['action_name', ['x', 'y']],
@@ -153,15 +153,15 @@ describe('KeybindCategoryService', () => {
   it('apply() failure returns false with an errors.* key and does not touch local state', async () => {
     const svc = setup();
     writeError = { message: 'rls' };
-    expect(await svc.apply([{ actionmap: 'm', actionName: 'x' }], assigned)).toBeFalse();
+    expect(await svc.apply([{ actionmap: 'm', actionName: 'x' }], assigned)).toBe(false);
     expect(svc.error()).toMatch(/^errors\./);
     expect(svc.assignedCount()).toBe(0);
-    expect(svc.saving()).toBeFalse();
+    expect(svc.saving()).toBe(false);
   });
 
   it('apply() with no targets is a no-op success', async () => {
     const svc = setup();
-    expect(await svc.apply([], assigned)).toBeTrue();
+    expect(await svc.apply([], assigned)).toBe(true);
     expect(calls.length).toBe(0);
   });
 });

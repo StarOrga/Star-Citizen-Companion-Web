@@ -29,18 +29,18 @@ describe('body engine', () => {
   it('gives the prominences unrelated clocks, so the storms never fall into a beat', () => {
     const periods = PROMINENCES.map((p) => p[1]);
     expect(new Set(periods).size).toBe(periods.length);
-    expect(PROMINENCES.some((p) => p[4] === 1)).toBeTrue();
+    expect(PROMINENCES.some((p) => p[4] === 1)).toBe(true);
   });
 
-  it('compiles both shaders in this browser', () => {
+  it('compiles both shaders in this browser', ({ skip }) => {
     const gl = document.createElement('canvas').getContext('webgl');
-    if (!gl) return pending('no WebGL in this browser');
+    if (!gl) return skip('no WebGL in this browser');
     const deriv = !!gl.getExtension('OES_standard_derivatives');
     for (const src of [PLANET_FS(deriv), SUN_FS]) {
       const s = gl.createShader(gl.FRAGMENT_SHADER)!;
       gl.shaderSource(s, src);
       gl.compileShader(s);
-      expect(gl.getShaderParameter(s, gl.COMPILE_STATUS)).withContext(gl.getShaderInfoLog(s) ?? '').toBeTrue();
+      expect(gl.getShaderParameter(s, gl.COMPILE_STATUS), gl.getShaderInfoLog(s) ?? '').toBe(true);
     }
   });
 });

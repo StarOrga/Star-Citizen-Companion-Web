@@ -10,7 +10,7 @@ mechanism is flexible** - nothing is locked to today's events. Every value may b
 `supabase/functions/_shared/event-sheet.ts` - pure TypeScript with no imports, usable by the Deno edge functions
 (`import ... from '../_shared/event-sheet.ts'`), by `node --test` and by the web client, which re-exports it from
 `src/app/hq/events/event-sheet.ts`. Do not copy the types; import them. Tests:
-`supabase/functions/_shared/event-sheet.test.mjs` (node) and `src/app/hq/events/event-sheet.spec.ts` (Karma).
+`supabase/functions/_shared/event-sheet.test.mjs` (node) and `src/app/hq/events/event-sheet.spec.ts` (Vitest).
 
 ## Shape
 

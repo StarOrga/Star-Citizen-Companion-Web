@@ -41,9 +41,9 @@ describe('ExtensionInstallComponent', () => {
     const external = Array.from(f.nativeElement.querySelectorAll('a[href^="http"]')) as HTMLAnchorElement[];
     expect(external.length).toBeGreaterThan(2);
     for (const a of external) {
-      expect(a.target).withContext(a.href).toBe('_blank');
-      expect(a.rel).withContext(a.href).toContain('noopener');
-      expect(a.rel).withContext(a.href).toContain('noreferrer');
+      expect(a.target, a.href).toBe('_blank');
+      expect(a.rel, a.href).toContain('noopener');
+      expect(a.rel, a.href).toContain('noreferrer');
     }
   });
 

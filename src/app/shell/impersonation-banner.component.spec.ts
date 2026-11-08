@@ -64,7 +64,7 @@ describe('ImpersonationBannerComponent', () => {
     const imp = TestBed.inject(ImpersonationService);
     imp.setActualRole('admin', true);
     fixture.detectChanges();
-    const exitSpy = spyOn(imp, 'exit');
+    const exitSpy = vi.spyOn(imp, 'exit').mockReturnValue(undefined as never);
 
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector('.imp-banner__exit');
     expect(btn).toBeTruthy();

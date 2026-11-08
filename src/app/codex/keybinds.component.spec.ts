@@ -24,11 +24,8 @@ function fakeCats(seed: Record<string, Partial<KeybindAssignment>> = {}) {
     loaded: signal(true).asReadonly(),
     saving: signal(false),
     error: signal<string | null>(null),
-    load: jasmine.createSpy('load').and.resolveTo(undefined),
-    apply: jasmine
-      .createSpy('apply')
-      .and.callFake(
-        async (targets: { actionmap: string; actionName: string }[], a: KeybindAssignment) => {
+    load: vi.fn().mockName('load').mockResolvedValue(undefined),
+    apply: vi.fn().mockName('apply').mockImplementation(async (targets: { actionmap: string; actionName: string }[], a: KeybindAssignment) => {
           const next = new Map(byAction());
           for (const t of targets) {
             const key = keybindKey(t.actionmap, t.actionName);
@@ -37,8 +34,7 @@ function fakeCats(seed: Record<string, Partial<KeybindAssignment>> = {}) {
           }
           byAction.set(next);
           return true;
-        },
-      ),
+        }),
   };
 }
 
@@ -139,17 +135,14 @@ describe('KeybindsComponent', () => {
       build: signal({ patchVersion: '4.2', buildNumber: '9000000' }) as never,
       stale: signal(false) as never,
       latestLivePatch: signal(null) as never,
-      loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
+      loadCurrentBuild: vi.fn().mockName('loadCurrentBuild').mockResolvedValue(null),
       listKeybinds: opts.failList
-        ? jasmine.createSpy('listKeybinds').and.rejectWith(new Error('network down'))
-        : jasmine.createSpy('listKeybinds').and.resolveTo(opts.binds),
-      resolveLocaleKeys: jasmine
-        .createSpy('resolveLocaleKeys')
-        .and.callFake((_keys: string[], lang: string) =>
+        ? vi.fn().mockName('listKeybinds').mockRejectedValue(new Error('network down'))
+        : vi.fn().mockName('listKeybinds').mockResolvedValue(opts.binds),
+      resolveLocaleKeys: vi.fn().mockName('resolveLocaleKeys').mockImplementation((_keys: string[], lang: string) =>
           Promise.resolve(
             lang === 'en' ? (opts.labelsEn ?? opts.labels ?? empty) : (opts.labels ?? empty),
-          ),
-        ),
+          )),
     };
 
     await TestBed.configureTestingModule({
@@ -364,7 +357,7 @@ describe('KeybindsComponent', () => {
 
     // Preselected: the user's own language, exactly as the admin asked.
     expect(cmp.nameLang()).toBe('ui');
-    expect(cmp.langSwitchVisible()).toBeTrue();
+    expect(cmp.langSwitchVisible()).toBe(true);
     expect(cmp.groups()[0].category).toBe('Flug – Bewegung');
     expect(cmp.groups()[0].rows.map((r) => r.label)).toEqual(['Seitwärts hoch', 'Seitwärts runter']);
 
@@ -398,8 +391,8 @@ describe('KeybindsComponent', () => {
   it('hides the switch when the app already runs in the game language', async () => {
     const fixture = await setup({ binds: SAMPLE, labels: LABELS, lang: 'en' });
     // Both halves would read "EN" — there is nothing to choose.
-    expect(fixture.componentInstance.langSwitchVisible()).toBeFalse();
-    expect(fixture.componentInstance.englishNames()).toBeTrue();
+    expect(fixture.componentInstance.langSwitchVisible()).toBe(false);
+    expect(fixture.componentInstance.englishNames()).toBe(true);
     expect(fixture.nativeElement.querySelector('.seg.lang')).toBeNull();
   });
 
@@ -464,7 +457,7 @@ describe('KeybindsComponent', () => {
     expect(fixture.nativeElement.querySelector('.assign-toggle')).toBeNull();
     // Even if the flag were flipped, `editing()` gates on the role.
     fixture.componentInstance.assignMode.set(true);
-    expect(fixture.componentInstance.editing()).toBeFalse();
+    expect(fixture.componentInstance.editing()).toBe(false);
   });
 
   it('opens the assignment bar for an admin', async () => {
@@ -472,7 +465,7 @@ describe('KeybindsComponent', () => {
     expect(fixture.nativeElement.querySelector('.assign-toggle')).not.toBeNull();
     fixture.componentInstance.toggleAssignMode();
     fixture.detectChanges();
-    expect(fixture.componentInstance.editing()).toBeTrue();
+    expect(fixture.componentInstance.editing()).toBe(true);
     expect(fixture.nativeElement.querySelector('.assign-bar')).not.toBeNull();
   });
 
@@ -490,7 +483,7 @@ describe('KeybindsComponent', () => {
     ) as NodeListOf<HTMLButtonElement>;
     expect(combos.length).toBe(5);
     // L2/L3 stay disabled until their parent narrows them.
-    expect(combos[1].disabled).toBeTrue();
+    expect(combos[1].disabled).toBe(true);
   });
 
   it('cascades the pickers and forgets a child its new parent forbids', async () => {
@@ -516,7 +509,7 @@ describe('KeybindsComponent', () => {
     // Selection resets after a successful write, and the rows now carry chips.
     expect(cmp.selectedCount()).toBe(0);
     const rows = cmp.groups()[0].rows;
-    expect(rows.every((r) => r.assigned)).toBeTrue();
+    expect(rows.every((r) => r.assigned)).toBe(true);
     expect(rows[0].chips.map((c) => c.key))
       .toEqual(['codex.keybinds.taxonomy.actionGroup.flight_control']);
     expect(cmp.assignedTotal()).toBe(2);
@@ -589,7 +582,7 @@ describe('KeybindsComponent', () => {
     expect(exit).not.toBeNull();
     exit.click();
     fixture.detectChanges();
-    expect(fixture.componentInstance.editing()).toBeFalse();
+    expect(fixture.componentInstance.editing()).toBe(false);
     expect(fixture.nativeElement.querySelector('.assign-bar')).toBeNull();
   });
 
@@ -681,8 +674,8 @@ describe('KeybindsComponent', () => {
       // it references --sc-imp-banner-h rather than a bare offset; the assign
       // bar rides inside it, so no guessed controls height is involved.
       expect(getComputedStyle(pin).top).toBe('40px');
-      expect(pin.contains(pin.querySelector('.kb-controls'))).toBeTrue();
-      expect(pin.contains(assignBar)).toBeTrue();
+      expect(pin.contains(pin.querySelector('.kb-controls'))).toBe(true);
+      expect(pin.contains(assignBar)).toBe(true);
     } finally {
       document.documentElement.style.removeProperty('--sc-imp-banner-h');
     }
@@ -711,7 +704,7 @@ describe('KeybindsComponent', () => {
       toggles.forEach((b) => {
         expect(b.tagName).toBe('BUTTON');
         expect(b.getAttribute('type')).toBe('button');
-        expect(b.hasAttribute('aria-expanded')).toBeTrue();
+        expect(b.hasAttribute('aria-expanded')).toBe(true);
       });
       expect(toggles[0].getAttribute('aria-expanded')).toBe('true');
       expect(toggles[1].getAttribute('aria-expanded')).toBe('false');

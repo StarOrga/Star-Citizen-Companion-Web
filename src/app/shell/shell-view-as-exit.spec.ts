@@ -62,7 +62,7 @@ describe('ShellComponent — no standalone header exit-preview control (Defect A
             targets: signal([]),
             enterFailed: signal(false),
             clearEnterFailed: () => {},
-            exit: jasmine.createSpy('exit'),
+            exit: vi.fn().mockName('exit'),
           },
         },
       ],

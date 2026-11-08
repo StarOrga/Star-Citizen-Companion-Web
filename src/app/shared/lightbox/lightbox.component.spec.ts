@@ -29,7 +29,7 @@ describe('LightboxComponent', () => {
   };
 
   it('ArrowRight / ArrowLeft navigate to the neighbours and replace the history entry', () => {
-    const nav = spyOn(router, 'navigate').and.resolveTo(true);
+    const nav = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     press('ArrowRight');
     expect(nav).toHaveBeenCalledWith(['/verse/gallery', 'c'], { replaceUrl: true });
     press('ArrowLeft');
@@ -37,7 +37,7 @@ describe('LightboxComponent', () => {
   });
 
   it('ignores arrows with a modifier and in text fields', () => {
-    const nav = spyOn(router, 'navigate').and.resolveTo(true);
+    const nav = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', ctrlKey: true }));
     const input = document.createElement('input');
     document.body.appendChild(input);

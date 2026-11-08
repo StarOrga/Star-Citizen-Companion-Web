@@ -132,7 +132,7 @@ describe('groupSkinRows', () => {
       row({ classNameSlug: 'rrs_melee_01_orange01', nameLocalized: 'TBF-4 "Sunspike" Combat Knife' }),
     ]);
     expect(out.length).toBe(2);
-    expect(out.every((r) => r.skinVariants.length === 0)).toBeTrue();
+    expect(out.every((r) => r.skinVariants.length === 0)).toBe(true);
   });
 
   it('refuses to guess when two records carry the base name', () => {

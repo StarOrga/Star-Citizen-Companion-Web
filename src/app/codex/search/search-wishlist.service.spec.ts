@@ -43,36 +43,36 @@ describe('SearchWishlistService (A4 regression: announced ships)', () => {
   it('lights up a wished announced ship, matched by name although the search hit carries the feed id', () => {
     const { svc, rows } = setup();
     rows.set([{ kind: 'upcoming', className: 'idris', name: 'Idris', manufacturer: null, rsiUrl: null, notes: null, qty: 1, forClassName: '', createdAt: '' }]);
-    expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBeTrue();
-    expect(svc.has('upcoming', 'feed-id-78', 'Polaris')).toBeFalse();
+    expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBe(true);
+    expect(svc.has('upcoming', 'feed-id-78', 'Polaris')).toBe(false);
   });
 
   it('the toggle reports the truth: on, then off, and the key follows', async () => {
     const { svc } = setup();
-    expect(await svc.toggle('upcoming', 'feed-id-77', 'Idris')).toBeTrue();
-    expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBeTrue();
-    expect(await svc.toggle('upcoming', 'feed-id-77', 'Idris')).toBeTrue();
-    expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBeFalse();
+    expect(await svc.toggle('upcoming', 'feed-id-77', 'Idris')).toBe(true);
+    expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBe(true);
+    expect(await svc.toggle('upcoming', 'feed-id-77', 'Idris')).toBe(true);
+    expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBe(false);
   });
 
   it('a ship already owned can be wished again: the wish is a list row, the owned hangar row stays (AUD-1)', async () => {
     const { svc, ships, rows } = setup();
     ships.set([{ shipClassName: 'avenger', status: 'owned', id: 's1' }]);
-    expect(await svc.toggle('ship', 'avenger', 'Avenger')).toBeTrue();
-    expect(svc.has('ship', 'avenger')).toBeTrue();
+    expect(await svc.toggle('ship', 'avenger', 'Avenger')).toBe(true);
+    expect(svc.has('ship', 'avenger')).toBe(true);
     expect(rows().map((r) => [r.kind, r.className])).toEqual([['ship', 'avenger']]);
-    expect(await svc.setQty('ship', 'avenger', 'Avenger', 2)).toBeTrue();
+    expect(await svc.setQty('ship', 'avenger', 'Avenger', 2)).toBe(true);
     expect(svc.qtyOf('ship', 'avenger')).toBe(2);
     expect(svc.count()).toBe(1);
-    expect(await svc.toggle('ship', 'avenger')).toBeTrue();
-    expect(svc.has('ship', 'avenger')).toBeFalse();
+    expect(await svc.toggle('ship', 'avenger')).toBe(true);
+    expect(svc.has('ship', 'avenger')).toBe(false);
     expect(ships().length).toBe(1);
   });
 
   it('live ships on the hangar wishlist count', () => {
     const { svc, ships } = setup();
     ships.set([{ shipClassName: 'avenger', status: 'wishlist', id: 's1' }]);
-    expect(svc.has('ship', 'Avenger')).toBeTrue();
+    expect(svc.has('ship', 'Avenger')).toBe(true);
   });
 });
 
@@ -80,27 +80,27 @@ describe('search words for own data (A10)', () => {
   it('"gemerkt aegis" becomes a wished filter and searches "aegis"', () => {
     const p = parseQuery('gemerkt aegis');
     expect(p.rest).toBe('aegis');
-    expect(p.chips[0].filter.wished).toBeTrue();
+    expect(p.chips[0].filter.wished).toBe(true);
   });
 
   it('"fehlt mir" before a word is the Nachschub filter; "lager" the inventory filter', () => {
-    expect(parseQuery('fehlt mir laser').chips[0].filter.needed).toBeTrue();
+    expect(parseQuery('fehlt mir laser').chips[0].filter.needed).toBe(true);
     expect(parseQuery('fehlt mir laser').rest).toBe('laser');
-    expect(parseQuery('lager s3 laser').chips.some((c) => c.filter.ownKinds?.[0] === 'item')).toBeTrue();
+    expect(parseQuery('lager s3 laser').chips.some((c) => c.filter.ownKinds?.[0] === 'item')).toBe(true);
   });
 
   it('A10: every own word alone is a chip with an empty term, so it lists exactly its set', () => {
     for (const [text, key] of [['gemerkt', 'wished'], ['wunschliste', 'wished'], ['fehlt mir', 'needed'], ['needed', 'needed'], ['lager', 'ownOnly'], ['inventar', 'ownOnly']] as const) {
       const p = parseQuery(text);
-      expect(p.rest).withContext(text).toBe('');
-      expect(p.chips.length).withContext(text).toBe(1);
-      expect((p.chips[0].filter as Record<string, unknown>)[key]).withContext(text).toBeTruthy();
+      expect(p.rest, text).toBe('');
+      expect(p.chips.length, text).toBe(1);
+      expect((p.chips[0].filter as Record<string, unknown>)[key], text).toBeTruthy();
     }
   });
 
   it('A10: "im inventar" is one phrase, and only the stock word means "my data only"', () => {
     expect(parseQuery('im inventar rakete').rest).toBe('rakete');
-    expect(parseQuery('im inventar rakete').chips[0].filter.ownOnly).toBeTrue();
+    expect(parseQuery('im inventar rakete').chips[0].filter.ownOnly).toBe(true);
     expect(parseQuery('gemerkt aegis').chips[0].filter.ownOnly).toBeUndefined();
   });
 

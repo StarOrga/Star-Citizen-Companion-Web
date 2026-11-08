@@ -16,7 +16,7 @@ describe('safeRedirectTarget', () => {
 
   it('rejects protocol-relative, backslash, absolute and script targets', () => {
     for (const raw of ['//evil.example', '/\\evil.example', 'https://evil.example', 'javascript:alert(1)', 'news']) {
-      expect(safeRedirectTarget(raw)).withContext(raw).toBe('/verse/news');
+      expect(safeRedirectTarget(raw), raw).toBe('/verse/news');
     }
   });
 

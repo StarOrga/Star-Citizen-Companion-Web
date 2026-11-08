@@ -64,7 +64,8 @@ describe('computePowerSheet — armor signal factor', () => {
     const occ = [...bare, armor('ARMR_ANVL_Centurion', { signalInfrared: 0.4, signalElectromagnetic: 0.3, signalCrossSection: 0.5 })];
     const sheet = computePowerSheet({ occupants: occ, shipStats: NOMAD_SHIP_STATS });
     expect(sheet.facts.find((f) => f.key === 'ir')!.value).toBeCloseTo(irBare * 0.4, 0);
-    expect(sheet.facts.find((f) => f.key === 'em')!.value).toBeCloseTo(emBare * 0.3, 0);
+    // Within half a unit, ends included: Jasmine's toBeCloseTo(x, 0) took 0.5, Vitest's stops below it.
+    expect(Math.abs(sheet.facts.find((f) => f.key === 'em')!.value! - emBare * 0.3)).toBeLessThanOrEqual(0.5);
     expect(sheet.facts.find((f) => f.key === 'crossSection')!.value).toBeCloseTo(csBare * 0.5, 0);
     expect(sheet.armorSignal).toEqual({ ir: 0.4, em: 0.3, crossSection: 0.5 });
   });

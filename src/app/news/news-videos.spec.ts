@@ -118,7 +118,7 @@ describe('NewsService — videos are stream items (2026-08-20 rethink)', () => {
     const svc = makeService();
     svc.feed.set(sampleFeed());
     const staged = svc.stage()!.id;
-    expect(svc.stream().some((n) => n.id === staged)).toBeFalse();
+    expect(svc.stream().some((n) => n.id === staged)).toBe(false);
   });
 
   it('keeps a video eligible for the stage', () => {

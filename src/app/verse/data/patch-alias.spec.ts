@@ -13,7 +13,7 @@ describe('patch alias', () => {
     expect(formerPatchName('4.10')).toBeNull();
   });
   it('matches the same patch under both names', () => {
-    expect(samePatch('4.11', '5.0')).toBeTrue();
-    expect(samePatch('4.10', '5.0')).toBeFalse();
+    expect(samePatch('4.11', '5.0')).toBe(true);
+    expect(samePatch('4.10', '5.0')).toBe(false);
   });
 });

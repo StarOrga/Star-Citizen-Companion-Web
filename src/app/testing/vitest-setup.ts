@@ -1,18 +1,26 @@
 /**
- * Setup for the specs that run under Vitest (`npm run test:vitest`); runs in
- * the browser before every spec file, after the builder's own TestBed setup
- * (which already loaded `zone.js/testing`).
+ * Setup for every spec (`npm test`, Vitest in a real Chromium); runs in the
+ * browser before each spec file, after the builder's own TestBed setup (which
+ * already loaded `zone.js/testing`).
  *
  * 1. Zone's Vitest patch. `fakeAsync` / `tick` / `flush` need every spec to
- *    run inside a ProxyZone. Under Karma, `zone.js/testing` patches Jasmine's
- *    `it`; Vitest's globals are only wrapped by this separate plugin, which
- *    the builder does not load. Without it every `fakeAsync` spec fails with
- *    "Expected to be running in 'ProxyZone'".
+ *    run inside a ProxyZone. `zone.js/testing` only patches Jasmine / Mocha /
+ *    Jest; Vitest's globals are wrapped by this separate plugin, which the
+ *    builder does not load. Without it every `fakeAsync` spec fails with
+ *    "Expected to be running in 'ProxyZone'" (21 of 21 in the pilot).
  *
- * 2. The new-tab guard of `new-tab-guard.spec.ts`, in Vitest's terms: a link
- *    click that would open a REAL tab or window and that nobody prevented
- *    fails the spec that made it. (See that file for why: a hidden test page
- *    renders no more frames.)
+ * 2. No spec may open a real browser tab. Navigations are real anchors in this
+ *    app (CLAUDE.md), so plenty of specs check that a Ctrl/⌘/Shift/middle
+ *    click falls through to the browser — and if the spec then lets the
+ *    browser act on it, an actual tab opens. Under Karma that tab came to the
+ *    front, the test page went hidden and rendered no frames for the rest of
+ *    the run, and frame-driven specs elsewhere timed out (2026-09-25, #660).
+ *    Under Playwright the page stays visible, but a stray tab is still a spec
+ *    bug: a link click that would open a tab or window and that nobody
+ *    prevented fails the spec that made it, by name. The fix is on the spec's
+ *    side — swallow the default action once the code under test has had its
+ *    say, e.g. with a `preventDefault()` listener on `window` (see the
+ *    HangarPicker spec).
  */
 import 'zone.js/plugins/vitest-patch';
 

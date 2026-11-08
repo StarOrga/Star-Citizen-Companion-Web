@@ -21,7 +21,7 @@ describe('codex-board-suit helpers', () => {
   it('convexHull drops interior points and keeps the corners', () => {
     const hull = convexHull([...square, { x: 0.5, y: 0.5 }, { x: 0.2, y: 0.8 }]);
     expect(hull.length).toBe(4);
-    for (const c of square) expect(hull).toContain(jasmine.objectContaining(c));
+    for (const c of square) expect(hull).toContainEqual(expect.objectContaining(c));
   });
 
   it('convexHull returns fewer than three points unchanged', () => {
@@ -30,9 +30,9 @@ describe('codex-board-suit helpers', () => {
   });
 
   it('pointInPolygon tells inside from outside', () => {
-    expect(pointInPolygon({ x: 0.5, y: 0.5 }, square)).toBeTrue();
-    expect(pointInPolygon({ x: 1.5, y: 0.5 }, square)).toBeFalse();
-    expect(pointInPolygon({ x: 0.5, y: -0.1 }, square)).toBeFalse();
+    expect(pointInPolygon({ x: 0.5, y: 0.5 }, square)).toBe(true);
+    expect(pointInPolygon({ x: 1.5, y: 0.5 }, square)).toBe(false);
+    expect(pointInPolygon({ x: 0.5, y: -0.1 }, square)).toBe(false);
   });
 
   it('places every fallback anchor inside the figure box, left of its right twin', () => {
@@ -61,9 +61,9 @@ describe('codex-board-suit helpers', () => {
       const m = n as THREE.Mesh;
       if (m.isMesh) geometries.push(m.geometry);
     });
-    const disposed = geometries.map((g) => spyOn(g, 'dispose').and.callThrough());
+    const disposed = geometries.map((g) => vi.spyOn(g, 'dispose'));
     const materials = [...SUIT_PARTS.map((p) => suit.armour[p]), suit.joint, suit.glass].map((m) =>
-      spyOn(m, 'dispose').and.callThrough(),
+      vi.spyOn(m, 'dispose'),
     );
 
     suit.dispose();

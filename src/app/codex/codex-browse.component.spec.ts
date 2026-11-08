@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { CodexBuildDiffService } from './codex-build-diff.service';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
@@ -126,18 +127,16 @@ describe('CodexBrowseComponent', () => {
   ): Promise<{
     fixture: ComponentFixture<CodexBrowseComponent>;
     cmp: CodexBrowseComponent;
-    listByKind: jasmine.Spy;
-    silhouettes: jasmine.Spy;
-    uex: { shipOffers: jasmine.Spy; whereToBuyEntity: jasmine.Spy };
+    listByKind: Mock;
+    silhouettes: Mock;
+    uex: { shipOffers: Mock; whereToBuyEntity: Mock };
   }> {
     const uex = {
-      shipOffers: jasmine.createSpy('shipOffers').and.resolveTo(opts.offers ?? []),
-      whereToBuyEntity: jasmine.createSpy('whereToBuyEntity').and.resolveTo(opts.offers ?? []),
+      shipOffers: vi.fn().mockName('shipOffers').mockResolvedValue(opts.offers ?? []),
+      whereToBuyEntity: vi.fn().mockName('whereToBuyEntity').mockResolvedValue(opts.offers ?? []),
     };
-    const listByKind = jasmine
-      .createSpy('listByKind')
-      .and.resolveTo({ rows: opts.rows ?? [], count: (opts.rows ?? []).length });
-    const silhouettes = jasmine.createSpy('silhouettes').and.resolveTo(opts.silhouettes ?? new Map());
+    const listByKind = vi.fn().mockName('listByKind').mockResolvedValue({ rows: opts.rows ?? [], count: (opts.rows ?? []).length });
+    const silhouettes = vi.fn().mockName('silhouettes').mockResolvedValue(opts.silhouettes ?? new Map());
     const codex: Partial<CodexService> = {
       build: signal({ id: 'b1', patchVersion: '4.3.2', entityCounts: { ships: 10, weapons: 20, components: 5, items: 30 } }) as never,
       stale: signal(false) as never,
@@ -150,18 +149,18 @@ describe('CodexBrowseComponent', () => {
       compareCount: signal(0) as never,
       compareRejectedKind: signal(null) as never,
       viewingPastPatch: signal(false) as never,
-      loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
+      loadCurrentBuild: vi.fn().mockName('loadCurrentBuild').mockResolvedValue(null),
       listByKind,
       silhouettes,
-      countItemsByAttachType: jasmine.createSpy('countItemsByAttachType').and.resolveTo(opts.armorCounts ?? new Map()),
-      blueprintCategories: jasmine.createSpy('blueprintCategories').and.resolveTo([]),
+      countItemsByAttachType: vi.fn().mockName('countItemsByAttachType').mockResolvedValue(opts.armorCounts ?? new Map()),
+      blueprintCategories: vi.fn().mockName('blueprintCategories').mockResolvedValue([]),
       isPinned: () => false,
       previewUrl: () => null,
-      weaponFacets: jasmine.createSpy('weaponFacets').and.resolveTo(opts.weaponFacets ?? []),
-      countSearchMatches: jasmine.createSpy('countSearchMatches').and.resolveTo(opts.crossCounts ?? new Map()),
-      facetValues: jasmine.createSpy('facetValues').and.callFake(async (kind: string) =>
+      weaponFacets: vi.fn().mockName('weaponFacets').mockResolvedValue(opts.weaponFacets ?? []),
+      countSearchMatches: vi.fn().mockName('countSearchMatches').mockResolvedValue(opts.crossCounts ?? new Map()),
+      facetValues: vi.fn().mockName('facetValues').mockImplementation(async (kind: string) =>
         kind === 'ship' ? { manufacturers: [{ code: 'AEGS', name: { de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '' } }], sizes: [], grades: [], componentKinds: [] } : null),
-      countByKind: jasmine.createSpy('countByKind').and.callFake(async (kind: string, f: { attachTypeIn?: string[]; attachTypeNotIn?: string[]; classNameMatch?: string; classNameNotMatch?: string; componentKind?: string }) => {
+      countByKind: vi.fn().mockName('countByKind').mockImplementation(async (kind: string, f: { attachTypeIn?: string[]; attachTypeNotIn?: string[]; classNameMatch?: string; classNameNotMatch?: string; componentKind?: string }) => {
         if (kind === 'ammunition') return f.classNameMatch ? 70 : 170;
         if (kind === 'component') return f.componentKind === 'Shield' ? 67 : 0;
         if (f.attachTypeNotIn) return 9000;
@@ -169,13 +168,13 @@ describe('CodexBrowseComponent', () => {
         if (f.attachTypeIn?.includes('Food')) return f.attachTypeIn.length > 3 ? 5000 : 280;
         return 0;
       }),
-      suggestNames: jasmine.createSpy('suggestNames').and.resolveTo([]),
+      suggestNames: vi.fn().mockName('suggestNames').mockResolvedValue([]),
     };
     const hangar: Partial<HangarService> = {
       roleLoadouts: signal([]),
       listAllConfigs: async () => [],
       ships: signal([]) as never,
-      loadAll: jasmine.createSpy('loadAll').and.resolveTo(undefined),
+      loadAll: vi.fn().mockName('loadAll').mockResolvedValue(undefined),
     };
     await TestBed.configureTestingModule({
       imports: [CodexBrowseComponent],
@@ -208,8 +207,8 @@ describe('CodexBrowseComponent', () => {
             concept: signal([]),
             flightReadyMissing: signal([]),
             query: signal(''),
-            ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
-            refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
+            ensureLoaded: vi.fn().mockName('ensureLoaded').mockResolvedValue(undefined),
+            refresh: vi.fn().mockName('refresh').mockResolvedValue(undefined),
             isWished: () => false,
             artFor: () => [] as string[],
             searchLoadedShips: () => [],
@@ -229,33 +228,33 @@ describe('CodexBrowseComponent', () => {
   it('?fresh=1 lists only what is new or updated in the last patch, and the switch lifts it', async () => {
     const { fixture, cmp, listByKind } = await setup({ query: { kind: 'component', fresh: '1' }, diff: { added: ['A', 'B'], changed: ['B', 'C'] } });
     await fixture.whenStable();
-    expect(cmp.patchFresh()).toBeTrue();
-    expect(listByKind.calls.mostRecent().args[1].classNameIn).toEqual(['A', 'B', 'C']);
+    expect(cmp.patchFresh()).toBe(true);
+    expect(vi.mocked(listByKind).mock.lastCall![1].classNameIn).toEqual(['A', 'B', 'C']);
     cmp.setPatchFresh(false);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(listByKind.calls.mostRecent().args[1].classNameIn).toBeUndefined();
+    expect(vi.mocked(listByKind).mock.lastCall![1].classNameIn).toBeUndefined();
   });
 
   it('reads the legacy weaponClass param as the weapon super group', async () => {
     const { cmp, listByKind } = await setup({ query: { kind: 'weapon', weaponClass: 'Ship' } });
     expect(cmp.weaponGroup()).toBe('ship');
-    expect(listByKind.calls.mostRecent().args[0]).toBe('weapon');
-    expect(listByKind.calls.mostRecent().args[1].weaponClass).toBe('Ship');
+    expect(vi.mocked(listByKind).mock.lastCall![0]).toBe('weapon');
+    expect(vi.mocked(listByKind).mock.lastCall![1].weaponClass).toBe('Ship');
   });
 
   it('infers the super group of a legacy wsg-only link (wsg=utility)', async () => {
     const { cmp, listByKind } = await setup({ query: { kind: 'weapon', wsg: 'utility' } });
     expect(cmp.weaponGroup()).toBe('ship');
     expect(cmp.weaponSubGroup()).toBe('utility');
-    expect(listByKind.calls.mostRecent().args[1].attachTypeIn).toEqual(['TractorBeam', 'TowingBeam', 'SalvageHead']);
+    expect(vi.mocked(listByKind).mock.lastCall![1].attachTypeIn).toEqual(['TractorBeam', 'TowingBeam', 'SalvageHead']);
   });
 
   it('opens armour as items scoped to the slot attach type', async () => {
     const { cmp, listByKind } = await setup({ query: { kind: 'armor', slot: 'helmet' } });
     expect(cmp.category()).toBe('armor');
     expect(cmp.kind()).toBe('item');
-    const [kind, filters] = listByKind.calls.mostRecent().args;
+    const [kind, filters] = vi.mocked(listByKind).mock.lastCall!;
     expect(kind).toBe('item');
     expect(filters.attachType).toBe('Char_Armor_Helmet');
   });
@@ -271,18 +270,18 @@ describe('CodexBrowseComponent', () => {
     const tree = cmp.areaTree();
     const ship = tree.find((n) => n.id === 'ship')!;
     expect(ship.count).toBe(10);
-    expect(ship.open).toBeTrue();
-    expect(ship.current).toBeFalse();
+    expect(ship.open).toBe(true);
+    expect(ship.current).toBe(false);
     const shipWeapons = ship.children.find((n) => n.id === 'ship-weapons')!;
     expect(shipWeapons.count).toBe(3);
-    expect(shipWeapons.current).toBeTrue();
+    expect(shipWeapons.current).toBe(true);
     expect(shipWeapons.children.find((n) => n.id === 'ship-gun')?.count).toBe(2);
     expect(shipWeapons.children.find((n) => n.id === 'ship-utility')?.count).toBe(1);
     expect(ship.children.map((n) => n.id)).toEqual(['ship-weapons', 'ship-missiles', 'ship-modules', 'ship-ammo']);
     const weapon = tree.find((n) => n.id === 'weapon')!;
     expect(weapon.target).toEqual({ category: 'weapon', wg: 'fps' });
-    expect(weapon.children.every((n) => n.target.wg === 'fps')).toBeTrue();
-    expect(weapon.open).toBeFalse();
+    expect(weapon.children.every((n) => n.target.wg === 'fps')).toBe(true);
+    expect(weapon.open).toBe(false);
     expect(tree.find((n) => n.id === 'armor')?.count).toBe(7);
   });
 
@@ -290,11 +289,11 @@ describe('CodexBrowseComponent', () => {
     const { cmp, fixture, listByKind } = await setup({ query: { kind: 'item' } });
     await fixture.whenStable();
     const item = cmp.areaTree().find((n) => n.id === 'item')!;
-    expect(item.current).toBeTrue();
+    expect(item.current).toBe(true);
     expect(item.count).toBe(5000);
-    expect(item.children.some((n) => n.id === 'ig-food')).toBeTrue();
-    expect(item.children.some((n) => n.id === 'ig-nonUsable')).toBeFalse();
-    const filters = listByKind.calls.mostRecent().args[1];
+    expect(item.children.some((n) => n.id === 'ig-food')).toBe(true);
+    expect(item.children.some((n) => n.id === 'ig-nonUsable')).toBe(false);
+    const filters = vi.mocked(listByKind).mock.lastCall![1];
     expect(filters.attachTypeIn).toContain('Food');
     expect(filters.attachTypeIn).not.toContain('Door');
     expect(filters.attachTypeIn).not.toContain('Missile');
@@ -303,15 +302,15 @@ describe('CodexBrowseComponent', () => {
   it('package C: munition is on-foot, ship ammunition sits under Schiffe', async () => {
     const { cmp, listByKind, fixture } = await setup({ query: { kind: 'ammunition', ag: 'vehicle' } });
     await fixture.whenStable();
-    expect(listByKind.calls.mostRecent().args[1].classNameMatch).toBe('_S[0-9]+_');
+    expect(vi.mocked(listByKind).mock.lastCall![1].classNameMatch).toBe('_S[0-9]+_');
     const tree = cmp.areaTree();
-    expect(tree.find((n) => n.id === 'ship')!.children.find((n) => n.id === 'ship-ammo')?.current).toBeTrue();
-    expect(tree.find((n) => n.id === 'ammunition')?.current).toBeFalse();
+    expect(tree.find((n) => n.id === 'ship')!.children.find((n) => n.id === 'ship-ammo')?.current).toBe(true);
+    expect(tree.find((n) => n.id === 'ammunition')?.current).toBe(false);
     cmp.applyArea(tree.find((n) => n.id === 'ammunition')!.target);
     fixture.detectChanges();
     await fixture.whenStable();
     expect(cmp.ammoGroup()).toBe('fps');
-    expect(listByKind.calls.mostRecent().args[1].classNameNotMatch).toBe('_S[0-9]+_');
+    expect(vi.mocked(listByKind).mock.lastCall![1].classNameNotMatch).toBe('_S[0-9]+_');
   });
 
   it('package C: components, manufacturers and blueprints open their sub areas', async () => {
@@ -320,15 +319,15 @@ describe('CodexBrowseComponent', () => {
     const tree = cmp.areaTree();
     const comp = tree.find((n) => n.id === 'component')!;
     expect(comp.children.map((n) => n.id)).toEqual(['ck-Shield']);
-    expect(comp.children[0].current).toBeTrue();
-    expect(listByKind.calls.mostRecent().args[1].componentKind).toBe('Shield');
+    expect(comp.children[0].current).toBe(true);
+    expect(vi.mocked(listByKind).mock.lastCall![1].componentKind).toBe('Shield');
     const makers = tree.find((n) => n.id === 'manufacturer')!;
     expect(makers.children.map((n) => n.label)).toEqual(['Aegis Dynamics']);
     cmp.applyArea(makers.children[0].target);
     fixture.detectChanges();
     await fixture.whenStable();
     expect(cmp.category()).toBe('manufacturer');
-    expect(listByKind.calls.mostRecent().args[1].manufacturer).toBe('AEGS');
+    expect(vi.mocked(listByKind).mock.lastCall![1].manufacturer).toBe('AEGS');
     const bp = cmp.areaTree().find((n) => n.id === 'blueprint')!;
     expect(bp.children.map((n) => n.id)).toEqual(['bg-fps', 'bg-vehicle']);
   });
@@ -344,7 +343,7 @@ describe('CodexBrowseComponent', () => {
     const { cmp, listByKind } = await setup({ query: { kind: 'ship', role: 'industrial', crew: 'medium' } });
     expect(cmp.shipRole()).toBe('industrial');
     expect(cmp.crewBand()).toBe('medium');
-    const [kind, filters] = listByKind.calls.mostRecent().args;
+    const [kind, filters] = vi.mocked(listByKind).mock.lastCall!;
     expect(kind).toBe('ship');
     expect(filters.careerIn).toEqual(['@vehicle_focus_resources']);
     expect(filters.crewMin).toBe(4);
@@ -354,7 +353,7 @@ describe('CodexBrowseComponent', () => {
   it('package B: an open crew band has no upper bound; an unknown role is ignored', async () => {
     const { cmp, listByKind } = await setup({ query: { kind: 'ship', role: 'pirate', crew: 'large' } });
     expect(cmp.shipRole()).toBe('');
-    const filters = listByKind.calls.mostRecent().args[1];
+    const filters = vi.mocked(listByKind).mock.lastCall![1];
     expect(filters.careerIn).toBeUndefined();
     expect(filters.crewMin).toBe(9);
     expect(filters.crewMax).toBeUndefined();
@@ -367,7 +366,7 @@ describe('CodexBrowseComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(cmp.shipRole()).toBe('');
-    expect(listByKind.calls.mostRecent().args[1].careerIn).toBeUndefined();
+    expect(vi.mocked(listByKind).mock.lastCall![1].careerIn).toBeUndefined();
     expect(fixture.nativeElement.querySelector('.filterbar .chip')).toBeNull();
   });
 
@@ -468,7 +467,7 @@ describe('CodexBrowseComponent', () => {
     expect(weapon.cmp.weaponSubGroup()).toBe('utility');
     weapon.cmp.barFacets().find((f) => f.id === 'weaponGroup')!.set('fps');
     expect(weapon.cmp.weaponGroup()).toBe('fps');
-    expect(weapon.cmp.weaponSubGroup()).withContext('a new super group drops the old sub group').toBe('');
+    expect(weapon.cmp.weaponSubGroup(), 'a new super group drops the old sub group').toBe('');
     TestBed.resetTestingModule();
 
     const armor = await setup({ query: { kind: 'armor' }, shell: true });
@@ -487,14 +486,14 @@ describe('CodexBrowseComponent', () => {
     expect(tog().getAttribute('aria-expanded')).toBe('true');
     expect(tog().getAttribute('aria-label')).toBeTruthy();
     expect(makerLinks().length).toBe(1);
-    const calls = listByKind.calls.count();
+    const calls = vi.mocked(listByKind).mock.calls.length;
 
     tog().click();
     fixture.detectChanges();
     expect(tog().getAttribute('aria-expanded')).toBe('false');
     expect(makerLinks().length).toBe(0);
     expect(cmp.category()).toBe('manufacturer');
-    expect(listByKind.calls.count()).toBe(calls);
+    expect(vi.mocked(listByKind).mock.calls.length).toBe(calls);
 
     tog().click();
     fixture.detectChanges();
@@ -509,14 +508,14 @@ describe('CodexBrowseComponent', () => {
     const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
     link().dispatchEvent(plain);
     fixture.detectChanges();
-    expect(plain.defaultPrevented).toBeTrue();
+    expect(plain.defaultPrevented).toBe(true);
     expect(cmp.category()).toBe('manufacturer');
-    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBe(false);
     const node = cmp.areaTree().find((n) => n.id === 'manufacturer')!;
     const ctrl = new MouseEvent('click', { cancelable: true, button: 0, ctrlKey: true });
     cmp.onAreaClick(ctrl, node);
-    expect(ctrl.defaultPrevented).toBeFalse();
-    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+    expect(ctrl.defaultPrevented).toBe(false);
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBe(false);
   });
 
   it('#315: a second plain click on an opened group link folds it again, and a third opens it, all in the same area', async () => {
@@ -532,22 +531,22 @@ describe('CodexBrowseComponent', () => {
       return ev;
     };
     // 1st click: switch to the manufacturers and open them.
-    expect(makers().open).toBeFalse();
+    expect(makers().open).toBe(false);
     click();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(cmp.category()).toBe('manufacturer');
-    expect(makers().open).toBeTrue();
-    const calls = listByKind.calls.count();
+    expect(makers().open).toBe(true);
+    const calls = vi.mocked(listByKind).mock.calls.length;
     // 2nd click: folds in place.
-    expect(click().defaultPrevented).toBeTrue();
-    expect(makers().open).toBeFalse();
+    expect(click().defaultPrevented).toBe(true);
+    expect(makers().open).toBe(false);
     expect(cmp.category()).toBe('manufacturer');
     // 3rd click: opens again, still the same area and no new list load.
     click();
-    expect(makers().open).toBeTrue();
+    expect(makers().open).toBe(true);
     expect(cmp.category()).toBe('manufacturer');
-    expect(listByKind.calls.count()).toBe(calls);
+    expect(vi.mocked(listByKind).mock.calls.length).toBe(calls);
   });
 
   it('#315: from a maker, a click on the open "Hersteller" group folds it instead of leaving the maker', async () => {
@@ -556,38 +555,38 @@ describe('CodexBrowseComponent', () => {
     cmp.applyArea({ category: 'manufacturer', mfr: 'AEGS' });
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(makers().open).toBeTrue();
-    expect(makers().current).toBeFalse();
+    expect(makers().open).toBe(true);
+    expect(makers().current).toBe(false);
     const ev = new MouseEvent('click', { cancelable: true, button: 0 });
     cmp.onAreaClick(ev, makers());
     fixture.detectChanges();
-    expect(ev.defaultPrevented).toBeTrue();
-    expect(makers().open).toBeFalse();
+    expect(ev.defaultPrevented).toBe(true);
+    expect(makers().open).toBe(false);
     expect(cmp.manufacturer()).toBe('AEGS');
   });
 
   it('#315: a closed group opens by hand, and a new area starts from its own open path again', async () => {
     const { fixture, cmp } = await setup({ query: { kind: 'manufacturer' } });
     const ship = () => cmp.areaTree().find((n) => n.id === 'ship')!;
-    expect(ship().open).toBeFalse();
+    expect(ship().open).toBe(false);
     cmp.toggleNode(ship());
     cmp.toggleNode(cmp.areaTree().find((n) => n.id === 'manufacturer')!);
-    expect(ship().open).toBeTrue();
-    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+    expect(ship().open).toBe(true);
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBe(false);
     cmp.applyArea({ category: 'component' });
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(ship().open).toBeFalse();
-    expect(cmp.areaTree().find((n) => n.id === 'component')!.open).toBeTrue();
-    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
+    expect(ship().open).toBe(false);
+    expect(cmp.areaTree().find((n) => n.id === 'component')!.open).toBe(true);
+    expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBe(false);
   });
 
   it('renders the tree entries as real links', async () => {
     const { fixture } = await setup({ query: { kind: 'ship' } });
     const links = Array.from(fixture.nativeElement.querySelectorAll('.side a.node')) as HTMLAnchorElement[];
     expect(links.length).toBeGreaterThan(3);
-    expect(links.every((a) => !!a.getAttribute('href'))).toBeTrue();
-    expect(links.some((a) => a.getAttribute('href')!.includes('kind=armor'))).toBeTrue();
+    expect(links.every((a) => !!a.getAttribute('href'))).toBe(true);
+    expect(links.some((a) => a.getAttribute('href')!.includes('kind=armor'))).toBe(true);
   });
 
   it('never renders a raw class chip, a size bar or an untranslated sub type', async () => {
@@ -616,7 +615,7 @@ describe('CodexBrowseComponent', () => {
     });
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(silhouettes).toHaveBeenCalledWith('weapon', jasmine.arrayContaining(['A_Gun', 'B_Gun']));
+    expect(silhouettes).toHaveBeenCalledWith('weapon', expect.arrayContaining(['A_Gun', 'B_Gun']));
     const rows = Array.from(fixture.nativeElement.querySelectorAll('.rows li.row')) as HTMLElement[];
     expect(rows[0].querySelector('.sil:not(.icon) svg path')?.getAttribute('d')).toBe('M0 0L10 0L10 10Z');
     expect(rows[1].querySelector('.sil:not(.icon)')).toBeNull();
@@ -625,7 +624,7 @@ describe('CodexBrowseComponent', () => {
 
   it('shows a translated error with retry on a failed load, never the empty state', async () => {
     const { fixture, cmp, listByKind } = await setup({ query: { kind: 'ship' } });
-    listByKind.and.rejectWith(new TypeError('Failed to fetch'));
+    listByKind.mockRejectedValue(new TypeError('Failed to fetch'));
     cmp.reload();
     await fixture.whenStable();
     fixture.detectChanges();

@@ -6,11 +6,11 @@ interface RpcResult { error?: { message: string } | null }
 
 /** `client` and `realClient` are DISTINCT spies: the service must only touch realClient. */
 function setup(results: Record<string, RpcResult> = {}) {
-  const realRpc = jasmine.createSpy('realClient.rpc').and.callFake(async (fn: string) => ({
+  const realRpc = vi.fn().mockName('realClient.rpc').mockImplementation(async (fn: string) => ({
     data: null,
     error: results[fn]?.error ?? null,
   }));
-  const rpc = jasmine.createSpy('client.rpc').and.resolveTo({ data: null, error: null });
+  const rpc = vi.fn().mockName('client.rpc').mockResolvedValue({ data: null, error: null });
   TestBed.configureTestingModule({
     providers: [
       {
@@ -25,13 +25,13 @@ function setup(results: Record<string, RpcResult> = {}) {
 describe('ModerationService', () => {
   it('warn calls warn_user with the trimmed message', async () => {
     const { svc, realRpc } = setup();
-    expect(await svc.warn('u1', '  be nice ')).toBeTrue();
+    expect(await svc.warn('u1', '  be nice ')).toBe(true);
     expect(realRpc).toHaveBeenCalledWith('warn_user', { target: 'u1', message: 'be nice' });
   });
 
   it('suspend passes reason and days, null days = indefinite', async () => {
     const { svc, realRpc } = setup();
-    expect(await svc.suspend('u1', ' spam ', 7)).toBeTrue();
+    expect(await svc.suspend('u1', ' spam ', 7)).toBe(true);
     expect(realRpc).toHaveBeenCalledWith('suspend_user', { target: 'u1', reason: 'spam', days: 7 });
     await svc.suspend('u1', 'spam', null);
     expect(realRpc).toHaveBeenCalledWith('suspend_user', { target: 'u1', reason: 'spam', days: null });
@@ -39,7 +39,7 @@ describe('ModerationService', () => {
 
   it('unsuspend sends the trimmed note, null when blank', async () => {
     const { svc, realRpc } = setup();
-    expect(await svc.unsuspend('u1', ' ok now ')).toBeTrue();
+    expect(await svc.unsuspend('u1', ' ok now ')).toBe(true);
     expect(realRpc).toHaveBeenCalledWith('unsuspend_user', { target: 'u1', note: 'ok now' });
     await svc.unsuspend('u1');
     expect(realRpc).toHaveBeenCalledWith('unsuspend_user', { target: 'u1', note: null });
@@ -47,7 +47,7 @@ describe('ModerationService', () => {
 
   it('resolveReports passes the dismiss flag', async () => {
     const { svc, realRpc } = setup();
-    expect(await svc.resolveReports('u1', true)).toBeTrue();
+    expect(await svc.resolveReports('u1', true)).toBe(true);
     expect(realRpc).toHaveBeenCalledWith('resolve_reports_for_user', { target: 'u1', dismiss: true });
     await svc.resolveReports('u1', false);
     expect(realRpc).toHaveBeenCalledWith('resolve_reports_for_user', { target: 'u1', dismiss: false });
@@ -72,9 +72,9 @@ describe('ModerationService', () => {
   for (const f of failing) {
     it(f.name + ' failure resolves false with a moderation error key', async () => {
       const { svc } = setup({ [f.fn]: { error: { message: 'target_protected' } } });
-      expect(await f.call(svc)).toBeFalse();
+      expect(await f.call(svc)).toBe(false);
       expect(svc.error()).toBe('admin.moderation.error.protected');
-      expect(svc.busy()).toBeFalse();
+      expect(svc.busy()).toBe(false);
     });
   }
 
@@ -84,7 +84,7 @@ describe('ModerationService', () => {
     await svc.warn('u1', 'm');
     expect(svc.error()).toBe('admin.moderation.error.generic');
     delete results['warn_user'];
-    expect(await svc.warn('u1', 'm')).toBeTrue();
+    expect(await svc.warn('u1', 'm')).toBe(true);
     expect(svc.error()).toBeNull();
   });
 });

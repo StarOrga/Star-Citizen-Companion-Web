@@ -170,11 +170,9 @@ describe('Codex detail blocks at a 375px viewport', () => {
     fixture.detectChanges();
 
     const head = frame.querySelector('.sec-head') as HTMLElement;
-    expect(head).withContext('the section head renders').not.toBeNull();
-    expect(head.querySelectorAll('.sec-btn').length)
-      .withContext('the split toggle is on this head')
-      .toBe(1);
-    expect(head.querySelector('.caret')).withContext('the fold caret is on this head').not.toBeNull();
+    expect(head, 'the section head renders').not.toBeNull();
+    expect(head.querySelectorAll('.sec-btn').length, 'the split toggle is on this head').toBe(1);
+    expect(head.querySelector('.caret'), 'the fold caret is on this head').not.toBeNull();
     expect(frame.scrollWidth).toBeLessThanOrEqual(PHONE_PX);
   });
 
@@ -190,7 +188,7 @@ describe('Codex detail blocks at a 375px viewport', () => {
     // The panel ships open (`useCollapse` starts at true), so the table is on
     // screen straight away — the state the page is read in.
     const table = frame.querySelector('table.analysis-table') as HTMLElement;
-    expect(table).withContext('the table renders with the panel open').not.toBeNull();
+    expect(table, 'the table renders with the panel open').not.toBeNull();
     // Whatever is still too wide scrolls inside its own wrapper, never the page.
     expect((table.parentElement as HTMLElement).classList).toContain('table-wrap');
     expect(frame.scrollWidth).toBeLessThanOrEqual(PHONE_PX);

@@ -44,9 +44,9 @@ describe('ChannelBuildVotesService', () => {
   afterEach(() => TestBed.resetTestingModule());
 
   it('Evocati is never votable', () => {
-    expect(isVotableChannel('ptu')).toBeTrue();
-    expect(isVotableChannel('hotfix')).toBeTrue();
-    expect(isVotableChannel('evocati')).toBeFalse();
+    expect(isVotableChannel('ptu')).toBe(true);
+    expect(isVotableChannel('hotfix')).toBe(true);
+    expect(isVotableChannel('evocati')).toBe(false);
     expect(toChannelBuildVotes({ ...PTU, channel: 'evocati' }, NOW)).toBeNull();
   });
 
@@ -86,10 +86,10 @@ describe('ChannelBuildVotesService', () => {
   it('blind per build: without an own vote until revealed', async () => {
     const { service } = setup();
     await service.load();
-    expect(service.blind('ptu', '4.10.3')).toBeFalse();
-    expect(service.blind('hotfix', '4.3.2')).toBeTrue();
+    expect(service.blind('ptu', '4.10.3')).toBe(false);
+    expect(service.blind('hotfix', '4.3.2')).toBe(true);
     service.reveal('hotfix', '4.3.2');
-    expect(service.blind('hotfix', '4.3.2')).toBeFalse();
+    expect(service.blind('hotfix', '4.3.2')).toBe(false);
   });
 
   it('castVote upserts on the build key', async () => {

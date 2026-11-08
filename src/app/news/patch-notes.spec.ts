@@ -305,7 +305,7 @@ describe('NewsService — patch notes live in their own section, not in the time
     // release note.
     const surfaced = [svc.stage(), ...svc.stream()].filter((n) => !!n);
     expect(surfaced.map((n) => n!.id)).toEqual(['c1']);
-    expect(surfaced.some((n) => n!.channel === 'patch')).toBeFalse();
+    expect(surfaced.some((n) => n!.channel === 'patch')).toBe(false);
   });
 
   it('counts them for the board, so the coverage stays visible', () => {
@@ -354,14 +354,14 @@ describe('groupWaves — one announcement, many build waves (2026-08-20 rethink)
       entry('c', '4.10', 'ptu'),
     ]);
     expect(waves.length).toBe(1);
-    expect(waves[0].folded).toBeTrue();
+    expect(waves[0].folded).toBe(true);
     expect(waves[0].entries.length).toBe(3);
   });
 
   it('leaves a short run unfolded — two rows are cheaper than a disclosure', () => {
     const waves = groupWaves([entry('a', '4.10', 'ptu'), entry('b', '4.10', 'ptu')]);
     expect(waves.length).toBe(1);
-    expect(waves[0].folded).toBeFalse();
+    expect(waves[0].folded).toBe(false);
   });
 
   it('never folds across a facet or a version boundary', () => {

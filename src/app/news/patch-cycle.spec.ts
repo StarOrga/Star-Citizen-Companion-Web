@@ -38,10 +38,10 @@ describe('buildPatchCycle — real and usual measure the same stretch from the s
     expect(main.realPct).toBe(cycle.points.find((p) => p.key === 'now')!.pct);
     expect(main.usualPct).toBe(cycle.points.find((p) => p.key === 'usual')!.pct);
     expect(main.realDays).toBe(9); // 27 Aug 00:00 → 4 Sep 12:00, rounded
-    expect(main.finished).toBeFalse();
+    expect(main.finished).toBe(false);
     expect(main.deltaDays).toBeLessThan(0); // well inside the usual cycle
     expect(cycle.daysToNext).toBeGreaterThan(0);
-    expect(cycle.points.some((p) => p.key === 'nextLive')).toBeFalse();
+    expect(cycle.points.some((p) => p.key === 'nextLive')).toBe(false);
   });
 
   it('lays the test phase out retrospectively against the median lead time', () => {
@@ -49,7 +49,7 @@ describe('buildPatchCycle — real and usual measure the same stretch from the s
     const lead = cycle.lead!;
     expect(lead.realDays).toBe(24); // 3 Aug → 27 Aug
     expect(lead.samples).toBe(3);
-    expect(lead.finished).toBeTrue();
+    expect(lead.finished).toBe(true);
     expect(lead.fromPct).toBe(cycle.points.find((p) => p.key === 'firstTest')!.pct);
     expect(lead.realPct).toBe(cycle.points.find((p) => p.key === 'live')!.pct);
     expect(lead.deltaDays).toBe(24 - Math.round(lead.medianDays));
@@ -79,14 +79,14 @@ describe('buildPatchCycle — real and usual measure the same stretch from the s
   it('a superseded line is a finished stretch that ends on its actual successor', () => {
     const cycle = buildPatchCycle(stackCardFor('4.9', groups, null)!, groups, NOW)!;
     const main = cycle.main!;
-    expect(main.finished).toBeTrue();
+    expect(main.finished).toBe(true);
     expect(main.realDays).toBe(49); // 9 Jul → 27 Aug
     const next = cycle.points.find((p) => p.key === 'nextLive')!;
     expect(next.version).toBe('4.10');
     expect(main.realPct).toBe(next.pct);
     expect(cycle.daysToNext).toBeNull();
-    expect(cycle.points.some((p) => p.key === 'now')).toBeFalse();
-    expect(cycle.points.some((p) => p.key === 'usual')).toBeFalse();
+    expect(cycle.points.some((p) => p.key === 'now')).toBe(false);
+    expect(cycle.points.some((p) => p.key === 'usual')).toBe(false);
   });
 
   it('a line still in testing anchors on its first test build against the lead-time median', () => {

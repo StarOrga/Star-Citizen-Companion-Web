@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { SammlungService } from '../hq/nachschub/sammlung.service';
 import { ApplicationRef, signal } from '@angular/core';
@@ -37,12 +38,12 @@ function serviceStub(wallpapers: Wallpaper[]) {
     hasMore: signal(false),
     desktopRelease: signal(null),
     ringReleases: signal([]),
-    loadRingReleases: jasmine.createSpy('loadRingReleases').and.resolveTo(undefined),
-    loadDesktopRelease: jasmine.createSpy('loadDesktopRelease').and.resolveTo(undefined),
-    load: jasmine.createSpy('load').and.resolveTo(undefined),
-    setFilter: jasmine.createSpy('setFilter').and.resolveTo(undefined),
-    loadOne: jasmine.createSpy('loadOne').and.resolveTo(null),
-    loadMany: jasmine.createSpy('loadMany').and.resolveTo([]),
+    loadRingReleases: vi.fn().mockName('loadRingReleases').mockResolvedValue(undefined),
+    loadDesktopRelease: vi.fn().mockName('loadDesktopRelease').mockResolvedValue(undefined),
+    load: vi.fn().mockName('load').mockResolvedValue(undefined),
+    setFilter: vi.fn().mockName('setFilter').mockResolvedValue(undefined),
+    loadOne: vi.fn().mockName('loadOne').mockResolvedValue(null),
+    loadMany: vi.fn().mockName('loadMany').mockResolvedValue([]),
   };
 }
 
@@ -57,11 +58,11 @@ function votesStub(opts: { canVote?: boolean; counts?: Record<string, number>; m
     topLoading: signal(false),
     topLimit: 7,
     canVote: signal(opts.canVote ?? true),
-    syncCounts: jasmine.createSpy('syncCounts').and.resolveTo(undefined),
-    toggle: jasmine.createSpy('toggle').and.resolveTo(undefined),
-    loadTop: jasmine.createSpy('loadTop').and.resolveTo(undefined),
-    loadPreference: jasmine.createSpy('loadPreference').and.resolveTo(undefined),
-    setTopOnly: jasmine.createSpy('setTopOnly').and.resolveTo(undefined),
+    syncCounts: vi.fn().mockName('syncCounts').mockResolvedValue(undefined),
+    toggle: vi.fn().mockName('toggle').mockResolvedValue(undefined),
+    loadTop: vi.fn().mockName('loadTop').mockResolvedValue(undefined),
+    loadPreference: vi.fn().mockName('loadPreference').mockResolvedValue(undefined),
+    setTopOnly: vi.fn().mockName('setTopOnly').mockResolvedValue(undefined),
   };
 }
 
@@ -170,7 +171,7 @@ describe('StarscapeComponent', () => {
   it('reopens a shared wallpaper from ?image=', fakeAsync(() => {
     const other = wallpaper('deep42');
     const svc = serviceStub([first]);
-    svc.loadOne.and.resolveTo(other);
+    svc.loadOne.mockResolvedValue(other);
     const f = setup(svc, { image: 'deep42' });
     tick();
     f.detectChanges();
@@ -181,7 +182,7 @@ describe('StarscapeComponent', () => {
 
   it('hands the wallpaper to the native share sheet when one exists', async () => {
     const f = setup();
-    const share = jasmine.createSpy('share').and.resolveTo(undefined);
+    const share = vi.fn().mockName('share').mockResolvedValue(undefined);
     stubNavigator('share', share);
     await f.componentInstance.share(first);
     expect(share).toHaveBeenCalledWith({
@@ -196,7 +197,7 @@ describe('StarscapeComponent', () => {
   it('falls back to the clipboard with a localized confirmation', async () => {
     const f = setup();
     stubNavigator('share', undefined);
-    const writeText = jasmine.createSpy('writeText').and.resolveTo(undefined);
+    const writeText = vi.fn().mockName('writeText').mockResolvedValue(undefined);
     stubNavigator('clipboard', { writeText });
     await f.componentInstance.share(first);
     expect(writeText).toHaveBeenCalledWith(`${location.origin}/verse/gallery?image=abc123`);
@@ -270,8 +271,8 @@ describe('StarscapeComponent', () => {
     f.detectChanges();
 
     // The tile is an anchor to the CDN original — a retry must not navigate.
-    expect(ev.defaultPrevented).toBeTrue();
-    expect(c.broken().has('abc123')).toBeFalse();
+    expect(ev.defaultPrevented).toBe(true);
+    expect(c.broken().has('abc123')).toBe(false);
     // A changed url is what makes the browser re-run its selection; a fragment
     // does that without altering the request the CDN actually receives.
     expect(c.lowResFor(first.previewUrl, first.imageId)).not.toBe(before);
@@ -284,16 +285,16 @@ describe('StarscapeComponent', () => {
     const c = f.componentInstance;
     c.onLoad('abc123');
     c.onBroken('abc123');
-    expect(c.broken().has('abc123')).toBeFalse();
+    expect(c.broken().has('abc123')).toBe(false);
     f.destroy();
   });
 
   it('says the pictures are not arriving once the rows have waited long enough', fakeAsync(() => {
     const f = setup();
-    expect(f.componentInstance.imagesStalled()).toBeFalse();
+    expect(f.componentInstance.imagesStalled()).toBe(false);
     tick(21000);
     f.detectChanges();
-    expect(f.componentInstance.imagesStalled()).toBeTrue();
+    expect(f.componentInstance.imagesStalled()).toBe(true);
     expect(f.nativeElement.querySelector('.stalled')).not.toBeNull();
     f.destroy();
   }));
@@ -303,7 +304,7 @@ describe('StarscapeComponent', () => {
     f.componentInstance.onLoad('abc123');
     tick(21000);
     f.detectChanges();
-    expect(f.componentInstance.imagesStalled()).toBeFalse();
+    expect(f.componentInstance.imagesStalled()).toBe(false);
     expect(f.nativeElement.querySelector('.stalled')).toBeNull();
     f.destroy();
   }));
@@ -325,7 +326,7 @@ describe('StarscapeComponent', () => {
     // settles here; a tick runs the directive's afterNextRender directly.
     TestBed.inject(ApplicationRef).tick();
     const box = f.nativeElement.querySelector('sc-lightbox [role="dialog"]') as HTMLElement;
-    expect(document.activeElement).withContext('container focus, so the name is read first').toBe(box);
+    expect(document.activeElement, 'container focus, so the name is read first').toBe(box);
     expect(box.getAttribute('aria-label')).toBeTruthy();
 
     f.componentInstance.close();
@@ -354,7 +355,7 @@ describe('StarscapeComponent', () => {
     const ev = new MouseEvent('click', { cancelable: true, bubbles: true });
     button.dispatchEvent(ev);
     expect(votes.toggle).toHaveBeenCalledWith('abc123');
-    expect(ev.defaultPrevented).toBeTrue();
+    expect(ev.defaultPrevented).toBe(true);
     f.destroy();
   });
 
@@ -362,7 +363,7 @@ describe('StarscapeComponent', () => {
     const votes = votesStub({ canVote: false, counts: { abc123: 3 } });
     const f = setup(serviceStub([first]), {}, votes);
     const button = f.nativeElement.querySelector('sc-vote-button .vote') as HTMLButtonElement;
-    expect(button.disabled).toBeTrue();
+    expect(button.disabled).toBe(true);
     expect(button.getAttribute('aria-label')).toContain('starscape.vote.signedOut');
     expect(button.textContent).toContain('3');
     f.destroy();
@@ -408,7 +409,7 @@ describe('StarscapeComponent', () => {
     // the wrapper: a disabled button (signed out, busy) gets no pointer events.
     const wrap = f.debugElement.query(By.css('sc-vote-button .vote-wrap'));
     expect(wrap.injector.get(ScTooltipDirective).scTooltip()).toBe(label);
-    expect(button.hasAttribute('title')).toBeFalse();
+    expect(button.hasAttribute('title')).toBe(false);
     f.destroy();
   });
 
@@ -509,10 +510,10 @@ describe('StarscapeComponent', () => {
   });
 
   it('auto-loads the next page when the scroll marker comes into view, once at a time', () => {
-    const observers: { cb: IntersectionObserverCallback; disconnect: jasmine.Spy }[] = [];
+    const observers: { cb: IntersectionObserverCallback; disconnect: Mock }[] = [];
     const Original = window.IntersectionObserver;
     (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = class {
-      disconnect = jasmine.createSpy('disconnect');
+      disconnect = vi.fn().mockName('disconnect');
       constructor(public cb: IntersectionObserverCallback) {
         observers.push(this);
       }
@@ -531,7 +532,7 @@ describe('StarscapeComponent', () => {
           [{ isIntersecting: true } as IntersectionObserverEntry],
           {} as IntersectionObserver,
         );
-      svc.load.calls.reset();
+      svc.load.mockClear();
       fire();
       expect(svc.load).toHaveBeenCalledTimes(1);
       // While a page is in flight, further hits are ignored.
@@ -546,7 +547,7 @@ describe('StarscapeComponent', () => {
       // The button stays as the fallback.
       expect(f.nativeElement.querySelector('button.more')).not.toBeNull();
       f.destroy();
-      expect(observers.every((o) => o.disconnect.calls.count() > 0)).toBeTrue();
+      expect(observers.every((o) => vi.mocked(o.disconnect).mock.calls.length > 0)).toBe(true);
     } finally {
       window.IntersectionObserver = Original;
     }

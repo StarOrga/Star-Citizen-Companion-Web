@@ -23,7 +23,7 @@ describe('RoadmapService — outline queue', () => {
     decodeURIComponent(req.request.urlWithParams.split('notes=')[1]).split(',');
 
   beforeEach(() => {
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     svc = TestBed.inject(RoadmapService);
     http = TestBed.inject(HttpTestingController);
@@ -39,9 +39,9 @@ describe('RoadmapService — outline queue', () => {
 
     const first = noteRequests();
     expect(first.length).toBe(2);
-    expect(first.every((r) => slugsOf(r).length <= 5)).toBeTrue();
+    expect(first.every((r) => slugsOf(r).length <= 5)).toBe(true);
     // Everything asked for is pending at enqueue time, queued or not.
-    expect(slugs.every((s) => svc.isPending(s))).toBeTrue();
+    expect(slugs.every((s) => svc.isPending(s))).toBe(true);
 
     first[0].flush({ roadmap: null, outlines: slugsOf(first[0]).map(outline) });
     await settle();
@@ -64,9 +64,9 @@ describe('RoadmapService — outline queue', () => {
     req.flush({ roadmap: null, outlines: [outline('here')] });
     await settle();
 
-    expect(svc.isMissing('gone')).toBeTrue();
-    expect(svc.isMissing('here')).toBeFalse();
-    expect(svc.hasOutline('here')).toBeTrue();
+    expect(svc.isMissing('gone')).toBe(true);
+    expect(svc.isMissing('here')).toBe(false);
+    expect(svc.hasOutline('here')).toBe(true);
     expect(svc.outlineFor('here')?.bulletCount).toBe(1);
 
     // Known-missing and loaded slugs are not asked for again.
@@ -78,8 +78,8 @@ describe('RoadmapService — outline queue', () => {
     svc.requestOutlines(['a']);
     noteRequests()[0].flush({ roadmap: null, outlines: [] });
     await settle();
-    expect(svc.isMissing('a')).toBeTrue();
-    expect(svc.pending().has('a')).toBeFalse();
+    expect(svc.isMissing('a')).toBe(true);
+    expect(svc.pending().has('a')).toBe(false);
   });
 
   it('de-duplicates in-flight and repeated slugs and ignores empty ones', () => {
@@ -98,11 +98,11 @@ describe('RoadmapService — outline queue', () => {
     const p1 = svc.loadRoadmap();
     const p2 = svc.loadRoadmap();
     const req = http.expectOne((r) => r.url.includes('rsi-roadmap') && !r.url.includes('notes='));
-    expect(svc.loading()).toBeTrue();
+    expect(svc.loading()).toBe(true);
     req.flush({ roadmap, outlines: [] });
     await Promise.all([p1, p2]);
 
-    expect(svc.loading()).toBeFalse();
+    expect(svc.loading()).toBe(false);
     expect(svc.roadmap()).not.toBeNull();
     await svc.loadRoadmap();
     http.expectNone((r) => r.url.includes('rsi-roadmap'));
@@ -112,9 +112,9 @@ describe('RoadmapService — outline queue', () => {
     const p = svc.loadRoadmap();
     http.expectOne((r) => r.url.includes('rsi-roadmap')).error(new ProgressEvent('error'), { status: 0 });
     await p;
-    expect(svc.unavailable()).toBeTrue();
+    expect(svc.unavailable()).toBe(true);
     expect(svc.roadmap()).toBeNull();
-    expect(svc.loading()).toBeFalse();
+    expect(svc.loading()).toBe(false);
   });
 });
 
@@ -126,7 +126,7 @@ describe('threadSlugOf', () => {
 
   it('handles a trailing slash, a query string, a fragment and a following path segment', () => {
     for (const tail of ['/', '?page=2', '#reply', '/123']) {
-      expect(threadSlugOf(`https://x.test/forum/1/thread/patch-4-9${tail}`)).withContext(tail).toBe('patch-4-9');
+      expect(threadSlugOf(`https://x.test/forum/1/thread/patch-4-9${tail}`), tail).toBe('patch-4-9');
     }
   });
 

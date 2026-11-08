@@ -92,7 +92,7 @@ describe('SilhouetteCoverageComponent', () => {
     const d = fixture.componentInstance.data()!;
     expect(d.unexplained).toBe(23);
     expect(d.reasons).toEqual({ no_mesh: 0, convert_failed: 0, empty: 0 });
-    expect(d.missing.every((m) => m.reason === null)).toBeTrue();
+    expect(d.missing.every((m) => m.reason === null)).toBe(true);
   });
 
   it('hides the missing list when every hull has a silhouette', async () => {

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexHoloPatchComponent } from './codex-holo-patch.component';
@@ -28,13 +29,13 @@ function listed(builds: CodexBuild[]): Promise<{ builds: CodexBuild[]; failed: b
 
 describe('CodexHoloPatchComponent', () => {
   let fixture: ComponentFixture<CodexHoloPatchComponent>;
-  let buildsForChannel: jasmine.Spy;
-  let shipDetailForBuild: jasmine.Spy;
+  let buildsForChannel: Mock;
+  let shipDetailForBuild: Mock;
   let isCollaborator: () => boolean;
 
   function setup(collaborator: boolean): void {
-    buildsForChannel = jasmine.createSpy('buildsForChannel');
-    shipDetailForBuild = jasmine.createSpy('shipDetailForBuild');
+    buildsForChannel = vi.fn().mockName('buildsForChannel');
+    shipDetailForBuild = vi.fn().mockName('shipDetailForBuild');
     isCollaborator = () => collaborator;
     TestBed.configureTestingModule({
       imports: [CodexHoloPatchComponent],
@@ -67,7 +68,7 @@ describe('CodexHoloPatchComponent', () => {
 
   it('marks a never-finalised build (zero entity count) as disabled in the picker', async () => {
     setup(false);
-    buildsForChannel.and.returnValue(listed([
+    buildsForChannel.mockReturnValue(listed([
       build({ id: 'finalised', patchVersion: '4.10', entityCounts: { ship: 5 } }),
       build({ id: 'draft', patchVersion: '4.11', entityCounts: {}, schemaVersion: 0 }),
     ]));
@@ -77,14 +78,14 @@ describe('CodexHoloPatchComponent', () => {
     fixture.detectChanges();
     const rows = fixture.nativeElement.querySelectorAll('.build-row');
     expect(rows.length).toBe(2);
-    expect((rows[0] as HTMLButtonElement).disabled).toBeFalse();
-    expect((rows[1] as HTMLButtonElement).disabled).toBeTrue();
+    expect((rows[0] as HTMLButtonElement).disabled).toBe(false);
+    expect((rows[1] as HTMLButtonElement).disabled).toBe(true);
     expect(rows[1].querySelector('.row-flag')).toBeTruthy();
   });
 
   it('lists the build on the table as current (never comparable) and tells same-named builds apart', async () => {
     setup(false);
-    buildsForChannel.and.returnValue(listed([
+    buildsForChannel.mockReturnValue(listed([
       build({ id: 'active', patchVersion: '4.9' }),
       build({ id: 'x1', patchVersion: '4.x', buildNumber: 'live-a' }),
       build({ id: 'x2', patchVersion: '4.x', buildNumber: 'live-b' }),
@@ -94,9 +95,9 @@ describe('CodexHoloPatchComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const rows = Array.from(fixture.nativeElement.querySelectorAll('.build-row')) as HTMLButtonElement[];
-    expect(rows[0].disabled).toBeTrue();
+    expect(rows[0].disabled).toBe(true);
     expect(rows[0].querySelector('.row-flag.cur')!.textContent).toContain('codex.holo.patch.current');
-    expect(rows[1].disabled).toBeFalse();
+    expect(rows[1].disabled).toBe(false);
     expect(rows[1].querySelector('.row-build')!.textContent).toContain('live-a');
     expect(rows[2].querySelector('.row-build')!.textContent).toContain('live-b');
     expect(rows[0].querySelector('.row-build')).toBeNull();
@@ -104,15 +105,15 @@ describe('CodexHoloPatchComponent', () => {
 
   it('hides the admin schema row for a plain viewer and shows it, labelled, for a collaborator', async () => {
     setup(false);
-    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
-    shipDetailForBuild.and.returnValue(Promise.resolve({
+    buildsForChannel.mockReturnValue(listed([build({ id: 'finalised' })]));
+    shipDetailForBuild.mockResolvedValue({
       classNameSlug: 'AEGS_Gladius',
       kind: 'ship',
       row: {},
       payload: {},
       ports: [],
       strings: [],
-    }));
+    });
     fixture.nativeElement.querySelector('.patch-trigger').click();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -126,15 +127,15 @@ describe('CodexHoloPatchComponent', () => {
 
   it('emits unresolved:true for a port that only exists on the active side', async () => {
     setup(true);
-    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
-    shipDetailForBuild.and.returnValue(Promise.resolve({
+    buildsForChannel.mockReturnValue(listed([build({ id: 'finalised' })]));
+    shipDetailForBuild.mockResolvedValue({
       classNameSlug: 'AEGS_Gladius',
       kind: 'ship',
       row: {},
       payload: {},
       ports: [],
       strings: [],
-    }));
+    });
     fixture.componentRef.setInput('resolveComparisonSide', () => ({
       kpiSheet: { alpha: 20 },
       occupants: {}, // the picked build has NO WeaponPort1 at all
@@ -152,7 +153,7 @@ describe('CodexHoloPatchComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const last = pins[pins.length - 1] as Record<string, { unresolved: boolean }>;
-    expect(last['WeaponPort1'].unresolved).toBeTrue();
+    expect(last['WeaponPort1'].unresolved).toBe(true);
 
     // admin row appears for a collaborator once a build is picked
     expect(fixture.nativeElement.querySelector('.admin-schema-row')).toBeTruthy();
@@ -161,7 +162,7 @@ describe('CodexHoloPatchComponent', () => {
 
   it('tells a failed build list apart from "no other patches" and retries it (AUD-056)', async () => {
     setup(false);
-    buildsForChannel.and.returnValue(Promise.resolve({ builds: [], failed: true }));
+    buildsForChannel.mockResolvedValue({ builds: [], failed: true });
     fixture.nativeElement.querySelector('.patch-trigger').click();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -170,7 +171,7 @@ describe('CodexHoloPatchComponent', () => {
     expect(pop.textContent).toContain('codex.error.title');
     expect(pop.textContent).not.toContain('codex.holo.patch.empty');
 
-    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
+    buildsForChannel.mockReturnValue(listed([build({ id: 'finalised' })]));
     (pop.querySelector('.pop-err button') as HTMLButtonElement).click();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -180,10 +181,10 @@ describe('CodexHoloPatchComponent', () => {
   });
 
   it('a throwing comparison sets compareError instead of an unhandled rejection', async () => {
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     setup(false);
-    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
-    shipDetailForBuild.and.returnValue(Promise.resolve({ classNameSlug: 'AEGS_Gladius', kind: 'ship', row: {}, payload: {}, ports: [], strings: [] }));
+    buildsForChannel.mockReturnValue(listed([build({ id: 'finalised' })]));
+    shipDetailForBuild.mockResolvedValue({ classNameSlug: 'AEGS_Gladius', kind: 'ship', row: {}, payload: {}, ports: [], strings: [] });
     fixture.componentRef.setInput('resolveComparisonSide', () => {
       throw new TypeError('Failed to fetch');
     });
@@ -191,7 +192,7 @@ describe('CodexHoloPatchComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    await expectAsync(fixture.componentInstance.pick(build({ id: 'finalised' }))).toBeResolved();
+    await expect(fixture.componentInstance.pick(build({ id: 'finalised' }))).resolves.not.toThrow();
     fixture.detectChanges();
     expect(fixture.componentInstance.compareError()).toBe('errors.network');
     expect(fixture.nativeElement.querySelector('.delta-state.err')?.textContent).toContain('errors.network');

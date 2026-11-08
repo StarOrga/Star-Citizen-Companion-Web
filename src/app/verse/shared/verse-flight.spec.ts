@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -37,7 +38,7 @@ describe('verse-world', () => {
 describe('VerseFlight', () => {
   let finish: () => void;
   let seen: { name: string; dir: string | undefined }[];
-  let start: jasmine.Spy;
+  let start: Mock;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -51,7 +52,7 @@ describe('VerseFlight', () => {
     });
     seen = [];
     // The browser part: capture what the old page carries, run the update, finish on demand.
-    start = spyOn(document, 'startViewTransition').and.callFake(((cb: () => Promise<void>) => {
+    start = vi.spyOn(document, 'startViewTransition').mockImplementation(((cb: () => Promise<void>) => {
       const src = document.querySelector<HTMLElement>('.src');
       seen.push({ name: src?.style.getPropertyValue('view-transition-name') ?? '', dir: document.documentElement.dataset['verseFlight'] });
       const done = Promise.resolve().then(() => cb());

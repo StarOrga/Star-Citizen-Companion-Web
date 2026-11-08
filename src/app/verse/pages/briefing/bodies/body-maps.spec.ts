@@ -16,13 +16,13 @@ describe('Verse bodies — baked maps', () => {
     expect([...widths].sort((a, b) => a - b)).toEqual(manifest.widths as (512 | 1024)[]);
     for (const spec of Object.values(PLANETS)) {
       for (const layer of Object.values(spec.layers)) {
-        for (const w of widths) expect(files[bodyMapFile(layer, w)]).withContext(`${layer} at ${w}`).toBeDefined();
+        for (const w of widths) expect(files[bodyMapFile(layer, w)], `${layer} at ${w}`).toBeDefined();
       }
     }
   });
 
   it('lives under the service worker\'s planet group', () => {
-    expect(BODY_MAP_DIR.startsWith('planet/')).toBeTrue();
+    expect(BODY_MAP_DIR.startsWith('planet/')).toBe(true);
   });
 
   it('was rastered on a GPU: that is the picture browsers with one always showed', () => {

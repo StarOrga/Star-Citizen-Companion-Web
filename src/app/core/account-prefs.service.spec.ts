@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
@@ -12,13 +13,13 @@ import { SupabaseClientProvider } from './supabase.client';
  */
 describe('AccountPrefsService', () => {
   let user: ReturnType<typeof signal<{ id: string } | null>>;
-  let rpc: jasmine.Spy;
+  let rpc: Mock;
   let stored: Record<string, unknown> | null;
 
   function setup(initial: { id: string } | null) {
     user = signal<{ id: string } | null>(initial);
     stored = { 'codex.rankScope': 'career' };
-    rpc = jasmine.createSpy('rpc').and.resolveTo({ data: null, error: null });
+    rpc = vi.fn().mockName('rpc').mockResolvedValue({ data: null, error: null });
     const query = {
       select: () => query,
       eq: () => query,
@@ -56,7 +57,8 @@ describe('AccountPrefsService', () => {
     await settle();
     svc.set('codex.rankScope', 'role');
     expect(svc.prefs()?.['codex.rankScope']).toBe('role');
-    expect(rpc).toHaveBeenCalledOnceWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: 'role' });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: 'role' });
   });
 
   it('writes nothing when the account already holds that value', async () => {
@@ -66,13 +68,15 @@ describe('AccountPrefsService', () => {
     svc.set('absent.key', null);
     expect(rpc).not.toHaveBeenCalled();
     svc.set('codex.rankScope', null);
-    expect(rpc).toHaveBeenCalledOnceWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: null });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: null });
   });
 
   it('still writes while the map has not loaded yet', async () => {
     const svc = setup({ id: 'u1' });
     svc.set('codex.rankScope', 'career');
-    expect(rpc).toHaveBeenCalledOnceWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: 'career' });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('set_ui_pref', { pref_key: 'codex.rankScope', pref_value: 'career' });
   });
 
   it('writes nothing while signed out', async () => {

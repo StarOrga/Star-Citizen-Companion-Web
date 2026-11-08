@@ -7,7 +7,7 @@ interface RpcResult { data?: unknown; error?: { message: string } | null }
 
 /** Scriptable RPC fake: per-function result, everything else answers "ok, no data". */
 function setup(results: Record<string, RpcResult> = {}) {
-  const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string) => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string) => {
     const r = results[fn] ?? {};
     return { data: r.data ?? null, error: r.error ?? null };
   });
@@ -41,14 +41,14 @@ describe('FriendsService', () => {
     expect(svc.graph().outgoing.length).toBe(1);
     expect(svc.graph().blocked.length).toBe(1);
     expect(svc.error()).toBeNull();
-    expect(svc.loading()).toBeFalse();
+    expect(svc.loading()).toBe(false);
   });
 
   it('load() failure sets an i18n key, never the raw message', async () => {
     const { svc } = setup({ list_my_friend_edges: { error: { message: 'account_suspended' } } });
     await svc.load();
     expect(svc.error()).toBe('friends.error.accountSuspended');
-    expect(svc.loading()).toBeFalse();
+    expect(svc.loading()).toBe(false);
   });
 
   it('load() maps an unknown error to the generic key', async () => {
@@ -89,7 +89,7 @@ describe('FriendsService', () => {
     expect(await svc.sendRequest('u9')).toBeNull();
     expect(svc.error()).toBe('friends.error.blocked');
     expect(rpc).not.toHaveBeenCalledWith('list_my_friend_edges');
-    expect(svc.busy()).toBeFalse();
+    expect(svc.busy()).toBe(false);
   });
 
   const mutations: {
@@ -109,14 +109,14 @@ describe('FriendsService', () => {
   for (const m of mutations) {
     it(m.name + ' calls ' + m.fn + ' and reloads the graph', async () => {
       const { svc, rpc } = setup();
-      expect(await m.call(svc)).toBeTrue();
+      expect(await m.call(svc)).toBe(true);
       expect(rpc).toHaveBeenCalledWith(m.fn, m.args);
-      expect(rpc.calls.mostRecent().args[0]).toBe('list_my_friend_edges');
+      expect(vi.mocked(rpc).mock.lastCall![0]).toBe('list_my_friend_edges');
     });
 
     it(m.name + ' failure resolves false with an error key and no reload', async () => {
       const { svc, rpc } = setup({ [m.fn]: { error: { message: 'request_expired' } } });
-      expect(await m.call(svc)).toBeFalse();
+      expect(await m.call(svc)).toBe(false);
       expect(svc.error()).toBe('friends.error.requestExpired');
       expect(rpc).toHaveBeenCalledTimes(1);
     });

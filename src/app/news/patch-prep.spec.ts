@@ -28,7 +28,7 @@ describe('extractPrep — "wie bereite ich mich vor" from the note itself', () =
     expect(prep.items.map((i) => i.label)).toEqual(['Long Term Persistence', 'Starting aUEC']);
     expect(prep.items[0].tone).toBe('kept');
     expect(prep.items[1].tone).toBe('neutral');
-    expect(prep.wipe).toBeFalse();
+    expect(prep.wipe).toBe(false);
   });
 
   it('collects known issues and testing focus, capped', () => {
@@ -52,7 +52,7 @@ describe('extractPrep — "wie bereite ich mich vor" from the note itself', () =
       node('bullet', 'Starting aUEC: 20,000'),
     ]);
     const prep = extractPrep(wipe)!;
-    expect(prep.wipe).toBeTrue();
+    expect(prep.wipe).toBe(true);
     expect(prep.items.map((i) => i.tone)).toEqual(['wiped', 'wiped', 'neutral']);
   });
 
@@ -63,7 +63,7 @@ describe('extractPrep — "wie bereite ich mich vor" from the note itself', () =
 
   it('stops at the next heading so feature bullets never become facts', () => {
     const prep = extractPrep(LIVE)!;
-    expect(prep.items.some((i) => /orison/i.test(i.label))).toBeFalse();
+    expect(prep.items.some((i) => /orison/i.test(i.label))).toBe(false);
   });
 });
 

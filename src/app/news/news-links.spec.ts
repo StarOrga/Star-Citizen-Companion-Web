@@ -94,7 +94,7 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
 
   it('renders the stage headline as an <a> pointing at the source', () => {
     const link = el<HTMLAnchorElement>('.stage .stage-link');
-    expect(link).withContext('stage link').not.toBeNull();
+    expect(link, 'stage link').not.toBeNull();
     expect(link!.tagName).toBe('A');
     expect(link!.getAttribute('href')).toBe(STAGE_URL);
     expect(link!.getAttribute('target')).toBe('_blank');
@@ -103,7 +103,7 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
 
   it('renders the stream tile headline as an <a> pointing at the source', () => {
     const link = el<HTMLAnchorElement>('.card .card-link');
-    expect(link).withContext('stream tile link').not.toBeNull();
+    expect(link, 'stream tile link').not.toBeNull();
     expect(link!.getAttribute('href')).toBe(CARD_URL);
     expect(link!.getAttribute('target')).toBe('_blank');
     expect(link!.getAttribute('rel')).toBe('noopener noreferrer');
@@ -130,7 +130,7 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     const c = fixture.componentInstance;
     const ev = new MouseEvent('click', { button: 0, cancelable: true });
     c.onItemClick(ev, feed().news[0]);
-    expect(ev.defaultPrevented).withContext('plain click is handled in-app').toBeTrue();
+    expect(ev.defaultPrevented, 'plain click is handled in-app').toBe(true);
     expect(c.selected()).not.toBeNull();
     c.closeDetail();
   });
@@ -140,8 +140,8 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     for (const init of [{ ctrlKey: true }, { metaKey: true }, { button: 1 }]) {
       const ev = new MouseEvent('click', { button: 0, cancelable: true, ...init });
       c.onItemClick(ev, feed().news[0]);
-      expect(ev.defaultPrevented).withContext(JSON.stringify(init)).toBeFalse();
-      expect(c.selected()).withContext('no overlay for a new-tab click').toBeNull();
+      expect(ev.defaultPrevented, JSON.stringify(init)).toBe(false);
+      expect(c.selected(), 'no overlay for a new-tab click').toBeNull();
     }
   });
 
@@ -150,7 +150,7 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
   function hit(target: HTMLElement): Element | null {
     target.scrollIntoView({ block: 'center' });
     const r = target.getBoundingClientRect();
-    expect(r.width * r.height).withContext('probe laid out').toBeGreaterThan(0);
+    expect(r.width * r.height, 'probe laid out').toBeGreaterThan(0);
     return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
   }
 
@@ -163,20 +163,20 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     const fav = el<HTMLElement>('.card .act.fav')!;
     const thumb = el<HTMLElement>('.card .thumb-wrap')!;
 
-    expect(card.contains(hit(thumb))).withContext('artwork inside the card').toBeTrue();
+    expect(card.contains(hit(thumb)), 'artwork inside the card').toBe(true);
     // Containment, not identity: the overlay is a real child element (so the
     // mobile gate can measure the true hit area), and hit-testing therefore
     // resolves to the overlay rather than to the anchor itself. Either way the
     // point belongs to the stretched link — which is what this asserts.
-    expect(link.contains(hit(thumb))).withContext('artwork hits the stretched link').toBeTrue();
-    expect(fav.contains(hit(fav))).withContext('fav button stays its own target').toBeTrue();
+    expect(link.contains(hit(thumb)), 'artwork hits the stretched link').toBe(true);
+    expect(fav.contains(hit(fav)), 'fav button stays its own target').toBe(true);
   });
 
   it('gives the stage CTA a real href instead of a decorated span', () => {
     // It used to be a <span> with `pointer-events: none`, which is why it looked
     // like the page's primary control and behaved like part of the background.
     const cta = el<HTMLAnchorElement>('.stage .cta');
-    expect(cta).withContext('stage CTA').not.toBeNull();
+    expect(cta, 'stage CTA').not.toBeNull();
     expect(cta!.tagName).toBe('A');
     expect(cta!.getAttribute('href')).toBe(STAGE_URL);
     expect(cta!.getAttribute('target')).toBe('_blank');
@@ -193,8 +193,8 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
   it('makes every control in the stage action row hit itself, not the layer behind it', () => {
     for (const sel of ['.stage .cta', '.stage .act.fav', '.stage .act.share']) {
       const control = el<HTMLElement>(sel)!;
-      expect(control).withContext(sel).not.toBeNull();
-      expect(control.contains(hit(control))).withContext(`${sel} takes its own hit`).toBeTrue();
+      expect(control, sel).not.toBeNull();
+      expect(control.contains(hit(control)), `${sel} takes its own hit`).toBe(true);
     }
   });
 
@@ -211,9 +211,9 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     const a = cta.getBoundingClientRect();
     const b = fav.getBoundingClientRect();
     const gapX = (a.right + b.left) / 2;
-    expect(b.left - a.right).withContext('there is a real gap').toBeGreaterThan(2);
+    expect(b.left - a.right, 'there is a real gap').toBeGreaterThan(2);
 
     const target = document.elementFromPoint(gapX, a.top + a.height / 2);
-    expect(link.contains(target)).withContext('gap belongs to the stage link').toBeTrue();
+    expect(link.contains(target), 'gap belongs to the stage link').toBe(true);
   });
 });

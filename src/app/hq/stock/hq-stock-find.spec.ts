@@ -24,7 +24,7 @@ describe('findStock', () => {
     expect(rest.length).toBe(0);
     expect(g.name).toBe('Gold');
     expect(g.total).toBe(85);
-    expect(g.hits.some((h) => h.qty === 3)).toBeFalse();
+    expect(g.hits.some((h) => h.qty === 3)).toBe(false);
   });
 
   it('keeps different items apart on a partial term', () => {
@@ -47,13 +47,13 @@ describe('findStock', () => {
   it('highlights one place when it holds the amount alone', () => {
     const [g] = findStock(rows, q({ want: 30 }));
     expect(g.stops).toBe(1);
-    expect(g.covered).toBeTrue();
+    expect(g.covered).toBe(true);
     expect(g.hits.find((h) => h.take > 0)?.location).toBe('Lorville');
   });
 
   it('combines places when none holds it alone', () => {
     const [g] = findStock(rows, q({ want: 75 }));
-    expect(g.covered).toBeTrue();
+    expect(g.covered).toBe(true);
     expect(g.hits.filter((h) => h.take > 0).map((h) => [h.location, h.take])).toEqual([
       ['Area18', 20],
       ['New Babbage', 10],
@@ -63,7 +63,7 @@ describe('findStock', () => {
 
   it('says so when all places together stay short', () => {
     const [g] = findStock(rows, q({ want: 500 }));
-    expect(g.covered).toBeFalse();
+    expect(g.covered).toBe(false);
     expect(g.stops).toBe(4);
   });
 
@@ -81,7 +81,7 @@ describe('findStock', () => {
 describe('placeOfName', () => {
   it('reads the planet from a game id', () => {
     expect(placeOfName('Stanton4_NewBabbage')).toEqual(
-      jasmine.objectContaining({ system: 'Stanton', planet: 'microTech', location: 'New Babbage' }),
+      expect.objectContaining({ system: 'Stanton', planet: 'microTech', location: 'New Babbage' }),
     );
   });
 

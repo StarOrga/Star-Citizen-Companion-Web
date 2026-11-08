@@ -125,7 +125,7 @@ describe('FeedbackDashboardComponent (feedback a33ba528)', () => {
     const fixture = render([]);
     const details = (fixture.nativeElement as HTMLElement).querySelector('details.flow');
     expect(details).not.toBeNull();
-    expect((details as HTMLDetailsElement).open).toBeFalse();
+    expect((details as HTMLDetailsElement).open).toBe(false);
     // …but still rendered, so it stays readable and findable in the page.
     expect(details?.querySelector('.stages')).not.toBeNull();
   });
@@ -151,7 +151,7 @@ describe('FeedbackDashboardComponent (feedback a33ba528)', () => {
     for (const cat of [de, en]) {
       const dash = block(cat, 'dashboard');
       for (const key of dashKeys) {
-        expect(typeof dash[key]).withContext(`adminFeedback.dashboard.${key}`).toBe('string');
+        expect(typeof dash[key], `adminFeedback.dashboard.${key}`).toBe('string');
       }
       expect(typeof block(cat, 'stream')['progressHint']).toBe('string');
     }
@@ -161,7 +161,7 @@ describe('FeedbackDashboardComponent (feedback a33ba528)', () => {
     const fixture = render([row('a', 'shipped', at(0), { shipped_at: at(0, 10) })]);
     const el = fixture.nativeElement as HTMLElement;
     const firstWeek = el.querySelector('.wk')!;
-    expect(firstWeek.hasAttribute('title')).toBeFalse();
+    expect(firstWeek.hasAttribute('title')).toBe(false);
     const cmp = fixture.componentInstance;
     const label = el.querySelector('.spark')!.getAttribute('aria-label') ?? '';
     expect(label).toContain(cmp.weekTitle(cmp.weeks()[0]));

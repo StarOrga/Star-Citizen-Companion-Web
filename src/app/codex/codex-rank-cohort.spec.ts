@@ -15,11 +15,11 @@ function service(): CodexService {
     providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client: {} } }],
   });
   const svc = TestBed.inject(CodexService);
-  spyOn(svc, 'loadCurrentBuild').and.resolveTo(BUILD as never);
-  spyOn(svc as unknown as { allShipRows: () => Promise<unknown[]> }, 'allShipRows').and.resolveTo([
+  vi.spyOn(svc, 'loadCurrentBuild').mockResolvedValue(BUILD as never);
+  vi.spyOn(svc as unknown as { allShipRows: () => Promise<unknown[]> }, 'allShipRows').mockResolvedValue([
     { classNameSlug: 'AEGS_Gladius', nameLocalized: 'Gladius', role: null, payload: { defaultLoadout: [{ itemPortName: 'gun', entityClassName: 'GUN' }] } },
   ]);
-  spyOn(svc, 'getAmmoPayloads').and.resolveTo(new Map());
+  vi.spyOn(svc, 'getAmmoPayloads').mockResolvedValue(new Map());
   return svc;
 }
 
@@ -34,7 +34,7 @@ describe('CodexService.getRankCohort — incomplete reads', () => {
   it('retries a failed payload chunk once and caches the complete cohort', async () => {
     const svc = service();
     let call = 0;
-    const payloads = spyOn(svc, 'getEntityPayloads').and.callFake(async (_names: string[], report?: FetchReport) => {
+    const payloads = vi.spyOn(svc, 'getEntityPayloads').mockImplementation(async (_names: string[], report?: FetchReport) => {
       call++;
       if (call === 1 && report) report.failed++;
       return new Map([['GUN', { kind: 'weapon' as const, payload: {} }]]);
@@ -47,11 +47,11 @@ describe('CodexService.getRankCohort — incomplete reads', () => {
 
   it('still incomplete after the retry: throws and caches NOTHING', async () => {
     const svc = service();
-    spyOn(svc, 'getEntityPayloads').and.callFake(async (_names: string[], report?: FetchReport) => {
+    vi.spyOn(svc, 'getEntityPayloads').mockImplementation(async (_names: string[], report?: FetchReport) => {
       if (report) report.failed++;
       return new Map();
     });
-    await expectAsync(svc.getRankCohort()).toBeRejected();
+    await expect(svc.getRankCohort()).rejects.toThrow();
     expect(readCohortCache(key)).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Location, ViewportScroller } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { ApplicationRef, Component } from '@angular/core';
@@ -38,30 +39,34 @@ describe('keepsScroll', () => {
   });
 
   it('keeps the page scroll when an overlay opens, closes or swaps over the same page', () => {
-    expect(keepsScroll(st(false), st(true))).toBeTrue();
-    expect(keepsScroll(st(true), st(false))).toBeTrue();
-    expect(keepsScroll(st(true), st(true))).toBeTrue();
+    expect(keepsScroll(st(false), st(true))).toBe(true);
+    expect(keepsScroll(st(true), st(false))).toBe(true);
+    expect(keepsScroll(st(true), st(true))).toBe(true);
   });
 
   it('scrolls for every other navigation', () => {
-    expect(keepsScroll(null, st(true))).toBeFalse();
-    expect(keepsScroll(st(false), st(false))).toBeFalse();
-    expect(keepsScroll(st(true), st(false, '{}', { path: 'other' }))).toBeFalse();
-    expect(keepsScroll(st(false, '{"id":"1"}'), st(true, '{"id":"2"}'))).toBeFalse();
+    expect(keepsScroll(null, st(true))).toBe(false);
+    expect(keepsScroll(st(false), st(false))).toBe(false);
+    expect(keepsScroll(st(true), st(false, '{}', { path: 'other' }))).toBe(false);
+    expect(keepsScroll(st(false, '{"id":"1"}'), st(true, '{"id":"2"}'))).toBe(false);
   });
 });
 
 describe('OverlayRouteScrollService (feedback #245)', () => {
   let router: Router;
   let location: Location;
-  let toTop: jasmine.Spy;
+  let toTop: Mock;
   let host: HTMLElement;
 
   beforeEach(() => {
-    const scroller = jasmine.createSpyObj<ViewportScroller>('ViewportScroller', [
-      'scrollToPosition', 'getScrollPosition', 'scrollToAnchor', 'setHistoryScrollRestoration', 'setOffset',
-    ]);
-    scroller.getScrollPosition.and.returnValue([0, 1800]);
+    const scroller = {
+      scrollToPosition: vi.fn().mockName("ViewportScroller.scrollToPosition"),
+      getScrollPosition: vi.fn().mockName("ViewportScroller.getScrollPosition"),
+      scrollToAnchor: vi.fn().mockName("ViewportScroller.scrollToAnchor"),
+      setHistoryScrollRestoration: vi.fn().mockName("ViewportScroller.setHistoryScrollRestoration"),
+      setOffset: vi.fn().mockName("ViewportScroller.setOffset")
+    };
+    scroller.getScrollPosition.mockReturnValue([0, 1800]);
     TestBed.configureTestingModule({
       providers: [
         provideRouter(ROUTES, withInMemoryScrolling({ scrollPositionRestoration: 'disabled', anchorScrolling: 'enabled' })),
@@ -88,7 +93,7 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
 
   it('opening and closing the overlay (link, Esc, close button) leaves the board where it was', async () => {
     await go('/board');
-    toTop.calls.reset();
+    toTop.mockClear();
     await go('/board/4.10');
     await go('/board?q=ship');
     expect(toTop).not.toHaveBeenCalled();
@@ -97,7 +102,7 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
   it('browser back out of the overlay leaves the board where it was', async () => {
     await go('/board');
     await go('/board/4.10');
-    toTop.calls.reset();
+    toTop.mockClear();
     location.back();
     await settle();
     expect(location.path()).toBe('/board');
@@ -106,10 +111,10 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
 
   it('any other navigation still lands at the top', async () => {
     await go('/board/4.10');
-    toTop.calls.reset();
+    toTop.mockClear();
     await go('/other');
     expect(toTop).toHaveBeenCalledWith([0, 0]);
-    toTop.calls.reset();
+    toTop.mockClear();
     location.back();
     await settle();
     expect(toTop).toHaveBeenCalledWith([0, 0], { behavior: 'instant' });
@@ -117,7 +122,7 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
 
   it('an anchor link stays with the router', async () => {
     await go('/other');
-    toTop.calls.reset();
+    toTop.mockClear();
     await go('/item/1#specs');
     expect(toTop).not.toHaveBeenCalled();
   });
@@ -126,6 +131,6 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
 describe('VERSE_ROUTES', () => {
   it('marks the patch dossier as a routed overlay', () => {
     const patches = VERSE_ROUTES.find((r) => r.path === 'patches');
-    expect(patches?.children?.[0].data?.[OVERLAY_ROUTE_DATA]).toBeTrue();
+    expect(patches?.children?.[0].data?.[OVERLAY_ROUTE_DATA]).toBe(true);
   });
 });

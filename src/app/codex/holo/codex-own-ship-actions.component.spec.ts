@@ -15,15 +15,26 @@ const SHIP: HangarShip = {
 
 describe('CodexOwnShipActionsComponent', () => {
   function setup(confirmAnswer: boolean) {
-    const hangar = jasmine.createSpyObj('HangarService', ['updateShip', 'pinShip', 'removeShip'], { error: signal(null), ships: signal([SHIP]) });
-    hangar.removeShip.and.resolveTo(true);
-    hangar.pinShip.and.resolveTo(true);
-    hangar.updateShip.and.resolveTo(true);
-    const confirm = jasmine.createSpyObj('ScConfirmService', ['confirm', 'prompt']);
-    confirm.confirm.and.resolveTo(confirmAnswer);
-    confirm.prompt.and.resolveTo('Mein Gladius');
-    const ownership = jasmine.createSpyObj('HqOwnershipService', ['configsForShip', 'invalidate']);
-    ownership.configsForShip.and.returnValue([{ id: 'c1' }, { id: 'c2' }]);
+    const hangar = {
+      updateShip: vi.fn().mockName("HangarService.updateShip"),
+      pinShip: vi.fn().mockName("HangarService.pinShip"),
+      removeShip: vi.fn().mockName("HangarService.removeShip"),
+      error: signal(null), ships: signal([SHIP])
+    };
+    hangar.removeShip.mockResolvedValue(true);
+    hangar.pinShip.mockResolvedValue(true);
+    hangar.updateShip.mockResolvedValue(true);
+    const confirm = {
+      confirm: vi.fn().mockName("ScConfirmService.confirm"),
+      prompt: vi.fn().mockName("ScConfirmService.prompt")
+    };
+    confirm.confirm.mockResolvedValue(confirmAnswer);
+    confirm.prompt.mockResolvedValue('Mein Gladius');
+    const ownership = {
+      configsForShip: vi.fn().mockName("HqOwnershipService.configsForShip"),
+      invalidate: vi.fn().mockName("HqOwnershipService.invalidate")
+    };
+    ownership.configsForShip.mockReturnValue([{ id: 'c1' }, { id: 'c2' }]);
     TestBed.configureTestingModule({
       imports: [CodexOwnShipActionsComponent],
       providers: [
@@ -34,7 +45,7 @@ describe('CodexOwnShipActionsComponent', () => {
       ],
     });
     const router = TestBed.inject(Router);
-    const nav = spyOn(router, 'navigate').and.resolveTo(true);
+    const nav = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     const fixture = TestBed.createComponent(CodexOwnShipActionsComponent);
     fixture.componentRef.setInput('ship', SHIP);
     fixture.detectChanges();
@@ -50,8 +61,8 @@ describe('CodexOwnShipActionsComponent', () => {
     const { fixture } = setup(true);
     for (const c of ['own-rename', 'own-note', 'own-pin', 'own-remove']) {
       const b = fixture.nativeElement.querySelector(`button.${c}`) as HTMLElement | null;
-      expect(b).withContext(c).not.toBeNull();
-      expect(b!.getAttribute('aria-label')).withContext(c).toBeTruthy();
+      expect(b, c).not.toBeNull();
+      expect(b!.getAttribute('aria-label'), c).toBeTruthy();
     }
   });
 
@@ -59,7 +70,7 @@ describe('CodexOwnShipActionsComponent', () => {
     const { fixture, hangar, confirm, nav } = setup(true);
     click(fixture, 'own-remove');
     await fixture.whenStable();
-    expect(confirm.confirm).toHaveBeenCalledWith(jasmine.objectContaining({ tone: 'danger' }));
+    expect(confirm.confirm).toHaveBeenCalledWith(expect.objectContaining({ tone: 'danger' }));
     expect(hangar.removeShip).toHaveBeenCalledWith('sh1');
     expect(nav).toHaveBeenCalledWith(['/hq/hangar']);
   });

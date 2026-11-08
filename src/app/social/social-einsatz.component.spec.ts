@@ -24,7 +24,7 @@ const crew = (over: Partial<EinsatzCrew> = {}): EinsatzCrew => ({
 });
 
 function setup(handlers: Record<string, Handler>, items: { id: string; title: string; status: string }[]) {
-  const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string, args?: Record<string, unknown>) => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string, args?: Record<string, unknown>) => {
     const h = handlers[fn];
     return { data: h ? h(args) : null, error: null };
   });
@@ -146,7 +146,7 @@ describe('SocialEinsatzComponent', () => {
       await fixture.whenStable();
     }
     expect(rpc).toHaveBeenCalledWith('share_einsatz_with_group', { p_einsatz: 'e1', p_group: 'g1' });
-    expect(rpc).not.toHaveBeenCalledWith('share_einsatz', jasmine.anything());
+    expect(rpc).not.toHaveBeenCalledWith('share_einsatz', expect.anything());
   });
 
   it('offers the audience switch when both friends and groups exist, defaulting to a friend', async () => {

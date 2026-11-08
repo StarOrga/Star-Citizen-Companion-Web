@@ -27,7 +27,7 @@ describe('TranslationsService', () => {
 
   it('throws a read error instead of returning an empty list', async () => {
     const svc = setup(() => ({ error: { message: 'boom' } }));
-    await expectAsync(svc.listLanguages()).toBeRejected();
+    await expect(svc.listLanguages()).rejects.toThrow();
   });
 
   it('queries the glossary with search, filters and range', async () => {
@@ -52,13 +52,13 @@ describe('TranslationsService', () => {
     await svc.revert({ id: 1, glossary_id: 'g1', before: { target_term: 'Alt', locked: true, lang: 'de' }, after: null, at: '' });
     const upd = chainArgs(calls[0], 'update')![0] as Record<string, unknown>;
     expect(upd['target_term']).toBe('Alt');
-    expect(upd['locked']).toBeTrue();
-    expect('lang' in upd).toBeFalse();
+    expect(upd['locked']).toBe(true);
+    expect('lang' in upd).toBe(false);
   });
 
   it('turns an {error} answer of the orchestrator into a coded Error', async () => {
     const svc = setup(() => ({ data: { error: 'translate.no_api_key' } }));
-    await expectAsync(svc.approve('j1')).toBeRejectedWith(jasmine.objectContaining({ code: 'translate.no_api_key' }));
+    await expect(svc.approve('j1')).rejects.toEqual(expect.objectContaining({ code: 'translate.no_api_key' }));
     expect(calls[0].op).toBe('invoke');
     expect(calls[0].target).toBe('translate-orchestrator');
   });

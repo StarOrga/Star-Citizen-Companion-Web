@@ -110,7 +110,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
 
   beforeAll(async () => {
     const res = await fetch('/i18n/de.json');
-    expect(res.ok).withContext('public/i18n must be served to Karma').toBeTrue();
+    expect(res.ok, 'public/i18n must be served to Karma').toBe(true);
     de = await res.json();
   });
 
@@ -189,7 +189,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
   function expectedWhen(news: VerseNewsItem[]): string {
     const est = computeNextPatch(notesOf(news))!;
     const d = nextPatchDistance(daysUntilNextPatch(est, NOW));
-    expect(d.unit).withContext('the fixtures sit in the weeks bucket').toBe('weeks');
+    expect(d.unit, 'the fixtures sit in the weeks bucket').toBe('weeks');
     return 'in ~' + d.n + ' Wochen';
   }
 
@@ -198,8 +198,8 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
     const panel = monitorPanel(POINT_RELEASE_IN_PTU);
     const card = await verdictCard(POINT_RELEASE_IN_PTU);
 
-    expect(panel.when).withContext('monitor panel').toBe(when);
-    expect(card.line).withContext('build-stand card').toContain(when);
+    expect(panel.when, 'monitor panel').toBe(when);
+    expect(card.line, 'build-stand card').toContain(when);
     // The regression itself: 4.10.1's PTU thread must not date the MAIN patch.
     expect(card.line).not.toMatch(/in \d+ Tagen/);
   });
@@ -209,8 +209,8 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
     const panel = monitorPanel(MAIN_LINE_IN_PTU);
     const card = await verdictCard(MAIN_LINE_IN_PTU);
 
-    expect(panel.when).withContext('monitor panel').toBe(when);
-    expect(card.line).withContext('build-stand card').toContain(when);
+    expect(panel.when, 'monitor panel').toBe(when);
+    expect(card.line, 'build-stand card').toContain(when);
   });
 
   it('names the measurement it used instead of always saying "Kadenz"', async () => {
@@ -232,9 +232,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
       const anchored = [stack.next, stack.live].find((c) => c?.line === est.anchorLine)!;
       const cycle = buildPatchCycle(anchored, groups, NOW)!;
       // The rail's goal marker is the headline date — not a second estimate.
-      expect(cycle.points.find((p) => p.key === 'usual')!.at)
-        .withContext('anchored on ' + est.anchorLine)
-        .toBe(est.at);
+      expect(cycle.points.find((p) => p.key === 'usual')!.at, 'anchored on ' + est.anchorLine).toBe(est.at);
       expect(cycle.daysToNext).toBe(daysUntilNextPatch(est, NOW));
     }
   });

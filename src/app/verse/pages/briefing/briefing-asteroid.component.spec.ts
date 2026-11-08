@@ -5,9 +5,9 @@ describe('briefing asteroid', () => {
   const stage = { top: 100, height: 600 } as DOMRect;
 
   it('hits only the sky patch left of the hero', () => {
-    expect(inAsteroidZone(240, 100 + 600 * 0.25, 1300, stage)).toBeTrue();
-    expect(inAsteroidZone(650, 100 + 600 * 0.25, 1300, stage)).toBeFalse();
-    expect(inAsteroidZone(240, 100 + 600 * 0.6, 1300, stage)).toBeFalse();
+    expect(inAsteroidZone(240, 100 + 600 * 0.25, 1300, stage)).toBe(true);
+    expect(inAsteroidZone(650, 100 + 600 * 0.25, 1300, stage)).toBe(false);
+    expect(inAsteroidZone(240, 100 + 600 * 0.6, 1300, stage)).toBe(false);
   });
 
   it('starts and ends off screen and passes just above the rim at the centre', () => {
@@ -36,7 +36,7 @@ describe('briefing asteroid', () => {
     const frame = document.createElement('main');
     frame.tabIndex = -1;
     const el = frame.appendChild(document.createElement('div'));
-    spyOn(el, 'getBoundingClientRect').and.returnValue({ top: 0, height: window.innerHeight } as DOMRect);
+    vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({ top: 0, height: window.innerHeight } as DOMRect);
     const tap = (t: number): void =>
       egg.tap({ button: 0, timeStamp: t, clientX: window.innerWidth * 0.18, clientY: window.innerHeight * 0.25, target: el } as unknown as PointerEvent, el);
     tap(1000);

@@ -43,7 +43,7 @@ describe('CodexSetMissionBarComponent', () => {
     fixture.componentInstance.lensChange.subscribe((id) => emitted.push(id));
     const stealthIndex = SET_LENSES.findIndex((l) => l.id === 'stealth');
     const stealthChip = chips()[stealthIndex];
-    expect(stealthChip.disabled).toBeTrue();
+    expect(stealthChip.disabled).toBe(true);
     stealthChip.click();
     expect(emitted).toEqual([]);
 

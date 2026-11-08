@@ -194,7 +194,7 @@ describe('ship blueprint components', () => {
       expect(plan.getAttribute('role')).toBe('img');
       expect(plan.querySelectorAll('g.mk').length).toBe(3);
       expect(plan.querySelector('g.mk.g-weapons')!.getAttribute('transform')).toBe('translate(100 30)');
-      expect(el.querySelectorAll('svg').length).withContext('one drawing per view').toBe(1);
+      expect(el.querySelectorAll('svg').length, 'one drawing per view').toBe(1);
       expect(el.querySelector('.dim')!.textContent).toContain('codex.shipBlueprint.schema.extent');
     });
 
@@ -254,7 +254,7 @@ describe('ship blueprint components', () => {
       const list = el.querySelector<HTMLElement>('.hp-list')!;
       expect(list.classList).toContain('sr-list');
       expect(list.getBoundingClientRect().height).toBeLessThanOrEqual(1);
-      expect(Array.from(list.querySelectorAll('button')).every((b) => b.getAttribute('tabindex') === '-1')).toBeTrue();
+      expect(Array.from(list.querySelectorAll('button')).every((b) => b.getAttribute('tabindex') === '-1')).toBe(true);
     });
 
     it('draws a callout only for the picked part (r1-callout)', async () => {

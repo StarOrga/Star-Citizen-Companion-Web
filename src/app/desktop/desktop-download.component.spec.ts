@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -18,14 +19,12 @@ describe('DesktopDownloadComponent', () => {
     },
   });
 
-  let forChannel: jasmine.Spy;
+  let forChannel: Mock;
   const role = signal<'viewer' | 'collaborator' | 'admin' | null>('viewer');
 
   function setup(r: 'viewer' | 'collaborator' | 'admin' = 'viewer') {
     role.set(r);
-    forChannel = jasmine
-      .createSpy('forChannel')
-      .and.callFake((ch: string) => Promise.resolve({ release: release(`2.0.0-${ch}`), error: null }));
+    forChannel = vi.fn().mockName('forChannel').mockImplementation((ch: string) => Promise.resolve({ release: release(`2.0.0-${ch}`), error: null }));
     const canInstall = signal(true);
     TestBed.configureTestingModule({
       imports: [DesktopDownloadComponent],
@@ -68,7 +67,7 @@ describe('DesktopDownloadComponent', () => {
   it('a viewer never asks for anything but stable', async () => {
     const f = setup('viewer');
     await f.whenStable();
-    expect(forChannel.calls.allArgs()).toEqual([['stable']]);
+    expect(vi.mocked(forChannel).mock.calls).toEqual([['stable']]);
   });
 
   it('the admin promote row reads its own source ring and follows a switch', async () => {

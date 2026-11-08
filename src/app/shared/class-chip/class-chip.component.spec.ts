@@ -20,7 +20,7 @@ describe('ClassChipComponent', () => {
   });
 
   it('copies the class name and confirms it', async () => {
-    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
     const btn: HTMLButtonElement = fixture.nativeElement.querySelector('button.chip');
@@ -37,7 +37,7 @@ describe('ClassChipComponent', () => {
   });
 
   it('stays quiet when the clipboard is denied', async () => {
-    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denied'));
     const fixture = TestBed.createComponent(HostComponent);
     fixture.detectChanges();
     const chip = fixture.debugElement.query(By.directive(ClassChipComponent)).componentInstance as ClassChipComponent;

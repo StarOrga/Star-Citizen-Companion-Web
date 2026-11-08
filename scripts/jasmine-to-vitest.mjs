@@ -94,6 +94,8 @@ const STATEMENT = [
  * reference, and only the types could tell.
  */
 function containEqual(node) {
+  // An earlier transformer may already have turned the call into something else.
+  if (!node || Array.isArray(node) || !ts.isCallExpression(node)) return node;
   if (!ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== 'toContain') return node;
   if (node.arguments.length !== 1 || !isValueShaped(node.arguments[0])) return node;
   if (!isExpectChain(node.expression.expression)) return node;

@@ -58,12 +58,12 @@ describe('FeedbackMotionService', () => {
       done = true;
     });
     const [fold] = row.getAnimations();
-    expect(fold?.effect?.getTiming().duration).withContext('the row folds, it does not snap').toBe(LEAVE_MS);
+    expect(fold?.effect?.getTiming().duration, 'the row folds, it does not snap').toBe(LEAVE_MS);
     // Held still, so nothing but `finish()` can end it while the spec looks
     // for an early resolve.
     fold.pause();
     await new Promise((r) => setTimeout(r));
-    expect(done).withContext('waits for the fold').toBeFalse();
+    expect(done, 'waits for the fold').toBe(false);
 
     fold.finish();
     await folding;
@@ -83,8 +83,8 @@ describe('FeedbackMotionService', () => {
       done = true;
     });
     await Promise.resolve();
-    expect(done).withContext('before any timer or frame could fire').toBeTrue();
-    expect(row.getAnimations()).withContext('nothing is animated').toEqual([]);
+    expect(done, 'before any timer or frame could fire').toBe(true);
+    expect(row.getAnimations(), 'nothing is animated').toEqual([]);
     expect(row.style.visibility).toBe('hidden');
   });
 
@@ -95,7 +95,7 @@ describe('FeedbackMotionService', () => {
     const folding = svc.collapse(row);
     for (const fold of row.getAnimations()) fold.finish();
     await folding;
-    expect(row.getBoundingClientRect().height).withContext('folded first').toBeLessThan(1);
+    expect(row.getBoundingClientRect().height, 'folded first').toBeLessThan(1);
     svc.restore(row);
     expect(row.getBoundingClientRect().height).toBe(heightBefore);
     expect(row.style.pointerEvents).toBe('');
@@ -104,8 +104,8 @@ describe('FeedbackMotionService', () => {
 
   it('is a no-op for nothing and for a detached node', async () => {
     const svc = service(false);
-    await expectAsync(svc.collapse(null)).toBeResolved();
-    await expectAsync(svc.collapse(document.createElement('div'))).toBeResolved();
+    await expect(svc.collapse(null)).resolves.not.toThrow();
+    await expect(svc.collapse(document.createElement('div'))).resolves.not.toThrow();
     expect(() => svc.restore(null)).not.toThrow();
     expect(() => svc.reveal(null)).not.toThrow();
   });

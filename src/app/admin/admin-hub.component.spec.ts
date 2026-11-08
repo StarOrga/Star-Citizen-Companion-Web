@@ -43,7 +43,7 @@ describe('AdminHubComponent stage slot (beta shell)', () => {
     const el = render(true);
     const h1 = el.querySelector('h1')!;
     const slot = el.querySelector('[data-stage-slot]')!;
-    expect(slot).withContext('slot rendered with the shell β on').not.toBeNull();
+    expect(slot, 'slot rendered with the shell β on').not.toBeNull();
     expect(h1.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

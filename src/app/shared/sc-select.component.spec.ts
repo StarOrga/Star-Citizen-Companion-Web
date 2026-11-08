@@ -168,7 +168,7 @@ describe('ScSelectComponent', () => {
     fixture.detectChanges();
 
     expect(el('.panel')).toBeNull();
-    expect(trigger().disabled).toBeTrue();
+    expect(trigger().disabled).toBe(true);
   });
 });
 
@@ -345,7 +345,7 @@ describe('ScSelectComponent — disabled options', () => {
     trigger().click();
     fixture.detectChanges();
     expect(opts()[0].getAttribute('aria-disabled')).toBe('true');
-    expect(opts()[1].hasAttribute('aria-disabled')).toBeFalse();
+    expect(opts()[1].hasAttribute('aria-disabled')).toBe(false);
   });
 
   it('ignores a click on the disabled row', () => {

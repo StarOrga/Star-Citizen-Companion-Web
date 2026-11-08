@@ -94,32 +94,7 @@ jobs:
         run: npm run test:assets-worker
 
   unit:
-    name: unit tests (Karma)
-    needs: changes
-    if: needs.changes.outputs.web == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      # Ubuntu 24.04 restricts unprivileged user namespaces via AppArmor, and
-      # Chrome's sandbox then refuses to start ("No usable sandbox").
-      - name: Allow Chrome's sandbox
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-
-      - name: Karma (ChromeHeadless)
-        run: npm test
-
-  unit-vitest:
-    name: unit tests (Vitest, migrated folders)
+    name: unit tests (Vitest)
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
@@ -141,7 +116,7 @@ jobs:
       # Playwright drives the runner image's own Google Chrome (run-vitest sets
       # CHROME_BIN, the unit-test builder hands it on): no browser download.
       - name: Vitest (headless Chromium via Playwright)
-        run: npm run test:vitest
+        run: npm test
 
       - name: Upload failure screenshots
         if: failure()

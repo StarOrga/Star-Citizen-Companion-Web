@@ -34,11 +34,11 @@ export interface FrameClock {
 export function installFrameClock(): FrameClock {
   const queue = new Map<number, FrameRequestCallback>();
   let lastId = 0;
-  spyOn(window, 'requestAnimationFrame').and.callFake((callback: FrameRequestCallback) => {
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback: FrameRequestCallback) => {
     queue.set(++lastId, callback);
     return lastId;
   });
-  spyOn(window, 'cancelAnimationFrame').and.callFake((id: number) => {
+  vi.spyOn(window, 'cancelAnimationFrame').mockImplementation((id: number) => {
     queue.delete(id);
   });
   return {
@@ -69,7 +69,7 @@ export interface ResizeDriver {
 export function installResizeDriver(): ResizeDriver {
   const observers: DrivenResizeObserver[] = [];
   // A `function`, not an arrow: the spy is called with `new`.
-  spyOn(window, 'ResizeObserver').and.callFake(function (callback: ResizeObserverCallback) {
+  vi.spyOn(window, 'ResizeObserver').mockImplementation(function (callback: ResizeObserverCallback) {
     const observer = new DrivenResizeObserver(callback);
     observers.push(observer);
     return observer;

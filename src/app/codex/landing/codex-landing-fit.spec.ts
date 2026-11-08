@@ -76,14 +76,14 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
           for (const t of tabs) {
             const r = t.getBoundingClientRect();
             tops.add(Math.round(r.top));
-            expect(r.left).withContext(`${cat} tab left`).toBeGreaterThanOrEqual(bar.left - 0.5);
-            expect(r.right).withContext(`${cat} tab right`).toBeLessThanOrEqual(bar.right + 0.5);
+            expect(r.left, `${cat} tab left`).toBeGreaterThanOrEqual(bar.left - 0.5);
+            expect(r.right, `${cat} tab right`).toBeLessThanOrEqual(bar.right + 0.5);
           }
-          if (oneRow) expect(tops.size).withContext(`${lang} ${cat} at ${width}px rows`).toBe(1);
+          if (oneRow) expect(tops.size, `${lang} ${cat} at ${width}px rows`).toBe(1);
           const nm = host.querySelector<HTMLElement>('.tab.on .nm')!;
-          expect(nm.scrollWidth).withContext(`${lang} ${cat} name`).toBeLessThanOrEqual(nm.clientWidth + 1);
+          expect(nm.scrollWidth, `${lang} ${cat} name`).toBeLessThanOrEqual(nm.clientWidth + 1);
           const body = host.querySelector<HTMLElement>('.body')!;
-          expect(body.scrollWidth).withContext('no sideways scroll').toBeLessThanOrEqual(body.clientWidth + 1);
+          expect(body.scrollWidth, 'no sideways scroll').toBeLessThanOrEqual(body.clientWidth + 1);
           measured.push(`${cat}: rows=${tops.size} bar=${Math.round(bar.width)} name=${Math.round(nm.scrollWidth)}/${Math.round(nm.clientWidth)}`);
           fixture.nativeElement.remove();
         }

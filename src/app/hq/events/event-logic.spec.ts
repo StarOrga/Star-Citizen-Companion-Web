@@ -81,13 +81,13 @@ describe('user state and progress', () => {
 describe('isInEventArea', () => {
   const area = { kind: 'places', systems: ['stanton'], places: ['lorville'] };
   it('matches places, systems and Arena Commander as a separate venue', () => {
-    expect(isInEventArea(['verse'], area, { system: 'Stanton', place: 'Lorville' })).toBeTrue();
-    expect(isInEventArea(['verse'], area, { system: 'Stanton', place: 'Area 18' })).toBeFalse();
-    expect(isInEventArea(['verse'], { kind: 'system', systems: ['stanton'], places: [] }, { system: 'Stanton' })).toBeTrue();
-    expect(isInEventArea(['verse', 'arena-commander'], null, { arenaCommander: true })).toBeTrue();
-    expect(isInEventArea(['verse'], area, { arenaCommander: true })).toBeFalse();
-    expect(isInEventArea(null, { kind: 'none', systems: [], places: [] }, { system: 'Stanton' })).toBeFalse();
-    expect(isInEventArea(null, { kind: 'something-new', systems: [], places: [] }, { system: 'Stanton' })).toBeFalse();
+    expect(isInEventArea(['verse'], area, { system: 'Stanton', place: 'Lorville' })).toBe(true);
+    expect(isInEventArea(['verse'], area, { system: 'Stanton', place: 'Area 18' })).toBe(false);
+    expect(isInEventArea(['verse'], { kind: 'system', systems: ['stanton'], places: [] }, { system: 'Stanton' })).toBe(true);
+    expect(isInEventArea(['verse', 'arena-commander'], null, { arenaCommander: true })).toBe(true);
+    expect(isInEventArea(['verse'], area, { arenaCommander: true })).toBe(false);
+    expect(isInEventArea(null, { kind: 'none', systems: [], places: [] }, { system: 'Stanton' })).toBe(false);
+    expect(isInEventArea(null, { kind: 'something-new', systems: [], places: [] }, { system: 'Stanton' })).toBe(false);
   });
 });
 
@@ -97,19 +97,19 @@ describe('estimated row end closes a long-past event', () => {
 
   it('keeps the event open on the patch estimate within the grace window', () => {
     const end = { at: '2026-11-27', basis: 'estimate' as const, estimatedRowEnd: '2026-11-03' };
-    expect(isEventOver(end, rowEnd + 5 * day)).toBeFalse();
+    expect(isEventOver(end, rowEnd + 5 * day)).toBe(false);
   });
 
   it('closes it once the estimated row end is more than the grace window in the past', () => {
     const end = { at: '2026-11-27', basis: 'estimate' as const, estimatedRowEnd: '2026-09-23' };
-    expect(isEventOver(end, Date.parse('2026-09-23T23:59:59Z') + (ESTIMATED_END_GRACE_DAYS + 1) * day)).toBeTrue();
+    expect(isEventOver(end, Date.parse('2026-09-23T23:59:59Z') + (ESTIMATED_END_GRACE_DAYS + 1) * day)).toBe(true);
   });
 
   it('an unknown end with a long-past estimated row end is over too', () => {
-    expect(isEventOver({ at: null, basis: 'unknown', estimatedRowEnd: '2026-09-23' }, Date.parse('2026-11-08T12:00:00Z'))).toBeTrue();
+    expect(isEventOver({ at: null, basis: 'unknown', estimatedRowEnd: '2026-09-23' }, Date.parse('2026-11-08T12:00:00Z'))).toBe(true);
   });
 
   it('an estimate without a row end never closes by itself', () => {
-    expect(isEventOver({ at: '2026-01-01', basis: 'estimate' }, Date.parse('2026-11-08T12:00:00Z'))).toBeFalse();
+    expect(isEventOver({ at: '2026-01-01', basis: 'estimate' }, Date.parse('2026-11-08T12:00:00Z'))).toBe(false);
   });
 });

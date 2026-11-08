@@ -58,7 +58,7 @@ describe('VerseStatusChipComponent — Companion app download', () => {
   it('offers the installer as a real anchor at the never-stale alias URL', () => {
     setup(true);
     const link = openPanel().querySelector('a.app-dl') as HTMLAnchorElement | null;
-    expect(link).withContext('download entry rendered').not.toBeNull();
+    expect(link, 'download entry rendered').not.toBeNull();
     expect(link!.getAttribute('href')).toBe(
       'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/scc-app-latest/SCC-Standalone-Setup.exe',
     );
@@ -93,7 +93,7 @@ describe('VerseStatusChipComponent — Companion app download', () => {
   it('says nothing about a desktop installer on a device that cannot install one', () => {
     setup(false);
     const root = openPanel();
-    expect(root.querySelector('.vs-panel')).withContext('panel still opens').not.toBeNull();
+    expect(root.querySelector('.vs-panel'), 'panel still opens').not.toBeNull();
     expect(root.querySelector('a.app-dl')).toBeNull();
   });
 });

@@ -28,7 +28,7 @@ describe('mirrorQueryParams', () => {
 
   it('rewrites its own keys, drops the null ones and keeps the rest (equipInto)', async () => {
     const { router, location, route } = await at('/codex/fps?cat=weapon&q=old&equipInto=s1');
-    const navigate = spyOn(router, 'navigateByUrl').and.callThrough();
+    const navigate = vi.spyOn(router, 'navigateByUrl');
 
     mirrorQueryParams(router, route, location, { cat: 'armor', q: null, slot: 'Helmet' });
 
@@ -69,8 +69,8 @@ describe('mirrorQueryParams', () => {
 
   it('pushes a new history entry when asked (a committed search, L33), replaces otherwise', async () => {
     const { router, location, route } = await at('/codex/fps?q=gladius');
-    const go = spyOn(location, 'go').and.callThrough();
-    const replace = spyOn(location, 'replaceState').and.callThrough();
+    const go = vi.spyOn(location, 'go');
+    const replace = vi.spyOn(location, 'replaceState');
 
     mirrorQueryParams(router, route, location, { q: 'c' }, true);
     mirrorQueryParams(router, route, location, { q: 'cutlass' });

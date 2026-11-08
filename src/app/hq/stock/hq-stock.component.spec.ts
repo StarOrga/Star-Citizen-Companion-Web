@@ -45,22 +45,22 @@ describe('HqStockComponent', () => {
       locations: signal([]),
       items: signal([...base, ...many]),
       shipStorage: signal([]),
-      load: jasmine.createSpy('load').and.resolveTo(),
-      addManual: jasmine.createSpy('addManual').and.resolveTo(true),
+      load: vi.fn().mockName('load').mockResolvedValue(undefined),
+      addManual: vi.fn().mockName('addManual').mockResolvedValue(true),
     };
     const wish = {
       totalQty: (k: string, c: string) => (c === 'ksar_rifle_p4ar' || (k === 'blueprint' && c === 'gallant_bp') ? 2 : 0),
       qtyOf: () => 1,
-      setQty: jasmine.createSpy('setQty').and.resolveTo(true),
-      remove: jasmine.createSpy('remove').and.resolveTo(true),
+      setQty: vi.fn().mockName('setQty').mockResolvedValue(true),
+      remove: vi.fn().mockName('remove').mockResolvedValue(true),
       ensureLoaded: () => Promise.resolve(),
       error: signal<string | null>(null),
     };
     const shipWishes = {
       qtyOf: (k: string, c: string) => (k === 'ship' && c === 'AEGS_Gladius' ? 3 : 0),
-      setQty: jasmine.createSpy('shipSetQty').and.resolveTo(true),
-      add: jasmine.createSpy('shipAdd').and.resolveTo(true),
-      remove: jasmine.createSpy('shipRemove').and.resolveTo(true),
+      setQty: vi.fn().mockName('shipSetQty').mockResolvedValue(true),
+      add: vi.fn().mockName('shipAdd').mockResolvedValue(true),
+      remove: vi.fn().mockName('shipRemove').mockResolvedValue(true),
     };
     const ships = [
       { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Pfeil', status: 'owned', pinnedRank: 1, qty: 2, origin: 'pledge' },
@@ -83,7 +83,7 @@ describe('HqStockComponent', () => {
         { provide: HqSuppliesService, useValue: { items: signal([]) } },
         { provide: NachschubService, useValue: { packages: signal([]), ensureLoaded: () => Promise.resolve() } },
         { provide: SammlungService, useValue: { blueprints: signal([{ kind: 'blueprint', id: 'gallant_bp', name: 'Gallant' }]), load: () => Promise.resolve() } },
-        { provide: NachschubEdgeService, useValue: { resetIngameStock: jasmine.createSpy('reset').and.resolveTo(true), lastError: null } },
+        { provide: NachschubEdgeService, useValue: { resetIngameStock: vi.fn().mockName('reset').mockResolvedValue(true), lastError: null } },
         { provide: HqLiveService, useValue: { state: signal(null), events: signal(opts.events ?? []) } },
       ],
     });
@@ -106,7 +106,7 @@ describe('HqStockComponent', () => {
     expect(tiles.length).toBe(4);
     expect(tiles[1].querySelector('.nm')?.textContent).toBe('Medpen');
     expect(tiles[1].querySelector('.qty')?.textContent).toBe('×7');
-    expect(tiles.some((t) => t.textContent?.includes('Gallant'))).toBeFalse();
+    expect(tiles.some((t) => t.textContent?.includes('Gallant'))).toBe(false);
   });
 
   it('names the three tabs with their counts', () => {
@@ -131,7 +131,7 @@ describe('HqStockComponent', () => {
     await new Promise((r) => setTimeout(r, 0));
     const toast = TestBed.inject(UndoToastService);
     expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
-    wish.setQty.calls.reset();
+    wish.setQty.mockClear();
     // The write landed (1 + 1) and someone wished 3 more meanwhile: undo takes off only its own one.
     wish.qtyOf = () => 5;
     toast.undo();
@@ -140,7 +140,7 @@ describe('HqStockComponent', () => {
 
   it('a failed wishlist write shows the error and no success toast', async () => {
     const { fixture, wish, el } = mount();
-    wish.setQty.and.resolveTo(false);
+    wish.setQty.mockResolvedValue(false);
     const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
     click(fixture, p4ar.querySelector('.nach'));
     await fixture.whenStable();
@@ -226,7 +226,7 @@ describe('HqStockComponent', () => {
     const pg = el.querySelector('.pager .pg');
     expect(pg).not.toBeNull();
     const next = el.querySelector('.pager button:last-child') as HTMLButtonElement;
-    expect(next.disabled).toBeFalse();
+    expect(next.disabled).toBe(false);
     const first = el.querySelectorAll('.grid .tile').length;
     click(fixture, next);
     expect(el.querySelectorAll('.grid .tile').length).toBeGreaterThan(0);
@@ -247,7 +247,7 @@ describe('HqStockComponent', () => {
     click(fixture, el.querySelectorAll('.tabs .tab')[1]);
     const ships = [...el.querySelectorAll('.grid .tile.ship')];
     expect(ships.length).toBe(2);
-    expect(ships.every((s) => s.querySelector('a.tile-link')?.getAttribute('href')?.includes('/codex/ship/'))).toBeTrue();
+    expect(ships.every((s) => s.querySelector('a.tile-link')?.getAttribute('href')?.includes('/codex/ship/'))).toBe(true);
     // The flagship stands first; the pledged Gladius carries its origin.
     expect(ships.find((t) => t.textContent?.includes('Pfeil'))?.textContent).toContain('hq.bestand.origin.pledge');
   });

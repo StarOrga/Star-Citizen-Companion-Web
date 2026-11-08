@@ -41,9 +41,9 @@ describe('event-hq.util', () => {
   });
 
   it('F10: ship class names are recognised by manufacturer prefix', () => {
-    expect(looksLikeShip('ARGO_KEELBACK')).toBeTrue();
-    expect(looksLikeShip('behr_rifle_ballistic_01')).toBeFalse();
-    expect(looksLikeShip(null)).toBeFalse();
+    expect(looksLikeShip('ARGO_KEELBACK')).toBe(true);
+    expect(looksLikeShip('behr_rifle_ballistic_01')).toBe(false);
+    expect(looksLikeShip(null)).toBe(false);
   });
 
   it('F13: AND / OR tree, lone gear becomes a one-item group', () => {
@@ -74,7 +74,7 @@ describe('event-hq.util', () => {
     const drafts = eventDrafts([{ event: a, rewards: [{ name: 'Keelback', qty: 1, className: 'ARGO_KEELBACK' }] }, { event: b, rewards: [{ name: 'Rifle', qty: 1, className: 'behr_rifle_01' }] }]);
     const steps = drafts.flatMap((d) => eventSteps(d, (c) => 'line-' + c));
     expect(steps.map((s) => [s.eventId, s.supplyId])).toEqual([['a', 'line-ARGO_KEELBACK'], ['b', 'line-behr_rifle_01']]);
-    expect(steps[1].area).toEqual(jasmine.objectContaining({ systems: ['pyro'] }));
+    expect(steps[1].area).toEqual(expect.objectContaining({ systems: ['pyro'] }));
     expect(eventBinding([])).toBeNull();
   });
 
@@ -88,7 +88,7 @@ describe('event-hq.util', () => {
     const elsewhere = readPlaceReport({ location: { system: 'Stanton', place: 'Lorville' } });
     expect(eventOffer([n], [e], elsewhere, true, at.key, null)).toBeNull();
     const ac = readPlaceReport({ location: { system: 'Stanton', place: 'Lorville' }, event: { arenaCommander: true } });
-    expect(eventOffer([n], [e], ac, true, at.key, null)?.arenaCommander).toBeTrue();
+    expect(eventOffer([n], [e], ac, true, at.key, null)?.arenaCommander).toBe(true);
     expect(eventOffer([n], [e], at, true, null, 'n')).toBeNull();
   });
 });

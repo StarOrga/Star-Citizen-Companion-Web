@@ -71,7 +71,7 @@ describe('FusionBarComponent', () => {
     fixture.detectChanges();
     const kinds = Array.from(el.querySelectorAll('.fpanel .kindrow a.kind')) as HTMLAnchorElement[];
     expect(kinds.length).toBe(7);
-    expect(kinds.every((a) => !!a.getAttribute('href'))).toBeTrue();
+    expect(kinds.every((a) => !!a.getAttribute('href'))).toBe(true);
     const active = kinds.filter((a) => a.classList.contains('active'));
     expect(active.length).toBe(1);
     expect(active[0].getAttribute('href')).toContain('kind=weapon');
@@ -85,12 +85,12 @@ describe('FusionBarComponent', () => {
 
     fixture.componentInstance.phone.set(false);
     fixture.detectChanges();
-    expect(el.querySelector('.fbtn')).withContext('desktop: the kind switch opens the panel').toBeNull();
+    expect(el.querySelector('.fbtn'), 'desktop: the kind switch opens the panel').toBeNull();
 
     fixture.componentInstance.phone.set(true);
     fixture.detectChanges();
     const btn = el.querySelector('.fbtn') as HTMLButtonElement;
-    expect(btn).withContext('phone: the kind switch is hidden').not.toBeNull();
+    expect(btn, 'phone: the kind switch is hidden').not.toBeNull();
     btn.click();
     fixture.detectChanges();
     expect(btn.getAttribute('aria-expanded')).toBe('true');
@@ -173,8 +173,8 @@ describe('FusionBarComponent', () => {
     expect(el.getAttribute('data-mode')).toBe('stage');
     expect(el.querySelector('sc-fusion-search')).not.toBeNull();
     // Logo slot and plate stay mounted while staged (collapsed and inert), so docking can grow them.
-    expect(el.querySelector('.blogo')?.hasAttribute('inert')).toBeTrue();
-    expect(el.querySelector('.plate')?.hasAttribute('inert')).toBeTrue();
+    expect(el.querySelector('.blogo')?.hasAttribute('inert')).toBe(true);
+    expect(el.querySelector('.plate')?.hasAttribute('inert')).toBe(true);
     expect(chrome.stageSearch()).toBe('stage');
 
     bar.onScroll(DOCK_SCROLL_PX / 2);
@@ -182,7 +182,7 @@ describe('FusionBarComponent', () => {
     expect(el.getAttribute('data-mode')).toBe('docked');
     expect(el.classList).toContain('condensing');
     expect(chrome.dockProgress).toBeCloseTo(0.5, 5);
-    expect(chrome.dockFull()).withContext('not landed yet').toBeFalse();
+    expect(chrome.dockFull(), 'not landed yet').toBe(false);
     expect(el.querySelector('.account')?.classList).toContain('pending');
 
     bar.onScroll(DOCK_SCROLL_PX + 40);
@@ -193,7 +193,7 @@ describe('FusionBarComponent', () => {
     expect(el.querySelector('.plate .trail')?.textContent).toContain('nav.verse');
     expect(chrome.stageSearch()).toBe('docked');
     expect(chrome.dockProgress).toBe(1);
-    expect(chrome.dockFull()).toBeTrue();
+    expect(chrome.dockFull()).toBe(true);
     expect(el.classList).toContain('settled');
     expect(el.querySelector('.account')?.classList).not.toContain('pending');
 
@@ -201,7 +201,7 @@ describe('FusionBarComponent', () => {
     bar.onScroll(DOCK_SCROLL_PX / 4);
     fixture.detectChanges();
     expect(chrome.dockProgress).toBeCloseTo(0.25, 5);
-    expect(chrome.dockFull()).toBeFalse();
+    expect(chrome.dockFull()).toBe(false);
     expect(el.getAttribute('data-mode')).toBe('docked');
     bar.onScroll(0);
     fixture.detectChanges();
@@ -218,12 +218,12 @@ describe('FusionBarComponent', () => {
     const release = chrome.pinBar();
     fixture.detectChanges();
     for (let y = 0; y <= 2000; y += 100) bar.onScroll(y);
-    expect(bar.hidden()).toBeFalse();
+    expect(bar.hidden()).toBe(false);
     release();
     release(); // idempotent: a second call never drops someone else's pin
-    expect(chrome.barPinned()).toBeFalse();
+    expect(chrome.barPinned()).toBe(false);
     for (let y = 2000; y <= 4000; y += 100) bar.onScroll(y);
-    expect(bar.hidden()).toBeTrue();
+    expect(bar.hidden()).toBe(true);
   });
 
   it('folds the trail by width: the whole path while it fits, first · … · last as soon as it does not', async () => {
@@ -246,7 +246,7 @@ describe('FusionBarComponent', () => {
     });
     await settle();
     expect(parts()).toEqual(['nav.codex', 'Schiffe', 'Andromeda']);
-    expect(fixture.componentInstance.trailFolded()).toBeFalse();
+    expect(fixture.componentInstance.trailFolded()).toBe(false);
     off();
     // Same count, a title too long for the plate: the middle folds, first and last stay.
     const off2 = chrome.publishCrumbs({}, {
@@ -256,10 +256,10 @@ describe('FusionBarComponent', () => {
     await settle();
     const w = (sel: string) => Math.round(el.querySelector(sel)?.getBoundingClientRect().width ?? -1);
     const dims = `nav ${w('.plate .trail')} · whole path ${w('.trail-measure')} · cap ${w('.cap')} · plate ${w('.plate')}`;
-    expect(parts()[0]).withContext(dims).toBe('nav.codex');
-    expect(parts()[1]).withContext(dims).toContain('…');
+    expect(parts()[0], dims).toBe('nav.codex');
+    expect(parts()[1], dims).toContain('…');
     expect(parts()[2]).toBe('RSI Constellation Andromeda Best In Show Edition 2956');
-    expect(fixture.componentInstance.trailFolded()).toBeTrue();
+    expect(fixture.componentInstance.trailFolded()).toBe(true);
     // The full path stays in the tooltip source and the screen-reader text.
     expect(el.querySelector('.plate .trail .fold .sr-only')?.textContent).toContain('Schiffe');
     off2();
@@ -288,7 +288,7 @@ describe('FusionBarComponent', () => {
     layout.set('cinematic');
     const fixture = await setup('/verse');
     const bar = fixture.componentInstance;
-    const spy = jasmine.createSpy('autofocus').and.returnValue(true);
+    const spy = vi.fn().mockName('autofocus').mockReturnValue(true);
     (bar as unknown as { searchCmp: () => unknown }).searchCmp = () => ({ autofocus: spy });
     expect(bar.mode()).toBe('stage');
     bar.autofocusSearch();
@@ -298,16 +298,16 @@ describe('FusionBarComponent', () => {
     layout.set('content');
     const sub = await setup('/verse/news');
     const subBar = sub.componentInstance;
-    const spy2 = jasmine.createSpy('autofocus').and.returnValue(true);
+    const spy2 = vi.fn().mockName('autofocus').mockReturnValue(true);
     (subBar as unknown as { searchCmp: () => unknown }).searchCmp = () => ({ autofocus: spy2 });
     const fine = matchMedia('(pointer: fine)').matches && !matchMedia('(pointer: coarse)').matches;
     subBar.autofocusSearch();
     if (fine) {
       expect(spy2).toHaveBeenCalled();
-      expect(subBar.autofocused()).toBeTrue();
+      expect(subBar.autofocused()).toBe(true);
       // The first key inside the bar ends the autofocus state (the bar may stay while in use).
       subBar.onBarInteract();
-      expect(subBar.autofocused()).toBeFalse();
+      expect(subBar.autofocused()).toBe(false);
     } else {
       expect(spy2).not.toHaveBeenCalled();
     }

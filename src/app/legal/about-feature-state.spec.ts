@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -10,7 +11,7 @@ describe('About — "Neu im Verse" card states', () => {
   let notes: ReturnType<typeof signal<ReleaseNotes | null>>;
   let loading: ReturnType<typeof signal<boolean>>;
   let error: ReturnType<typeof signal<string | null>>;
-  let load: jasmine.Spy;
+  let load: Mock;
 
   function render(): HTMLElement {
     TestBed.configureTestingModule({
@@ -31,7 +32,7 @@ describe('About — "Neu im Verse" card states', () => {
     notes = signal<ReleaseNotes | null>(null);
     loading = signal(false);
     error = signal<string | null>(null);
-    load = jasmine.createSpy('load').and.resolveTo(null);
+    load = vi.fn().mockName('load').mockResolvedValue(null);
   });
 
   it('shows a busy placeholder while the release notes load', () => {
@@ -46,7 +47,7 @@ describe('About — "Neu im Verse" card states', () => {
     const el = render();
     const alert = el.querySelector('[role="alert"]') as HTMLElement;
     expect(alert.textContent).toContain('errors.network');
-    load.calls.reset();
+    load.mockClear();
     (alert.querySelector('button') as HTMLButtonElement).click();
     expect(load).toHaveBeenCalledTimes(1);
   });

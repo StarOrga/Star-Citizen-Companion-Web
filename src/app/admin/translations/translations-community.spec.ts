@@ -34,7 +34,7 @@ const card = (id: string, extra: Record<string, unknown> = {}) => ({
 
 function setup(answer: Answer, userId = 'me') {
   const fake = fakeSupabase({ answer });
-  const confirm = jasmine.createSpy('confirm').and.resolveTo(true);
+  const confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
   TestBed.configureTestingModule({
     providers: [
       fake.provider,
@@ -57,10 +57,10 @@ async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges()
 const q = <T extends Element>(el: HTMLElement, sel: string) => el.querySelector<T>(sel);
 describe('logic helpers of the community tabs', () => {
   it('allows import only for licensed and permitted sources', () => {
-    expect(canImportSource('licensed')).toBeTrue();
-    expect(canImportSource('permitted')).toBeTrue();
-    expect(canImportSource('awaiting_permission')).toBeFalse();
-    expect(canImportSource('refused')).toBeFalse();
+    expect(canImportSource('licensed')).toBe(true);
+    expect(canImportSource('permitted')).toBe(true);
+    expect(canImportSource('awaiting_permission')).toBe(false);
+    expect(canImportSource('refused')).toBe(false);
   });
 
   it('clamps the goal progress and flattens card context', () => {
@@ -106,7 +106,7 @@ describe('TranslationCardsComponent', () => {
     await settle(fixture);
     const cmp = fixture.componentInstance;
 
-    expect(cmp.canSubmit()).toBeFalse();
+    expect(cmp.canSubmit()).toBe(false);
     cmp.choose('a');
     cmp.note.set('  Hinweis ');
     cmp.saveRule.set(true);
@@ -130,13 +130,13 @@ describe('TranslationCardsComponent', () => {
     const cmp = fixture.componentInstance;
 
     cmp.choose('own');
-    expect(cmp.canSubmit()).toBeFalse();
+    expect(cmp.canSubmit()).toBe(false);
     cmp.ownText.set('  Schiffsrumpf ');
-    expect(cmp.canSubmit()).toBeTrue();
+    expect(cmp.canSubmit()).toBe(true);
     await cmp.submit();
 
     const call = fake.calls.find((c) => c.target === 'answer_translation_card')!;
-    expect(call.args).toEqual(jasmine.objectContaining({ p_answer: 'own', p_own_text: 'Schiffsrumpf', p_save_as_rule: false }));
+    expect(call.args).toEqual(expect.objectContaining({ p_answer: 'own', p_own_text: 'Schiffsrumpf', p_save_as_rule: false }));
     expect(cmp.queue().length).toBe(0);
   });
 
@@ -146,7 +146,7 @@ describe('TranslationCardsComponent', () => {
     fixture.detectChanges();
     await settle(fixture);
     await fixture.componentInstance.skip();
-    expect(fake.calls.some((c) => c.target === 'skip_translation_card')).toBeTrue();
+    expect(fake.calls.some((c) => c.target === 'skip_translation_card')).toBe(true);
     expect(fixture.componentInstance.queue().map((x) => x.id)).toEqual(['c2', 'c1']);
   });
 
@@ -198,12 +198,12 @@ describe('TranslationSourcesComponent', () => {
     const rows = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('table.src tbody tr'));
     expect(rows.length).toBe(2);
     const importBtn = (r: Element) => r.querySelector<HTMLButtonElement>('.tip-wrap button')!;
-    expect(importBtn(rows[0]).disabled).toBeFalse();
-    expect(importBtn(rows[1]).disabled).toBeTrue();
+    expect(importBtn(rows[0]).disabled).toBe(false);
+    expect(importBtn(rows[1]).disabled).toBe(true);
 
     const cmp = fixture.componentInstance;
     await cmp.importSeed(cmp.sources()[1]);
-    expect(fake.calls.some((c) => c.op === 'invoke')).toBeFalse();
+    expect(fake.calls.some((c) => c.op === 'invoke')).toBe(false);
 
     await cmp.importSeed(cmp.sources()[0]);
     expect(confirm).toHaveBeenCalled();
@@ -270,9 +270,9 @@ describe('TranslationOutreachComponent', () => {
     const fixture = TestBed.createComponent(TranslationOutreachComponent);
     fixture.detectChanges();
     await settle(fixture);
-    expect(fixture.componentInstance.approveLocked()).toBeTrue();
+    expect(fixture.componentInstance.approveLocked()).toBe(true);
     const approve = q<HTMLButtonElement>(fixture.nativeElement, '[data-test=draft] .tip-wrap button')!;
-    expect(approve.disabled).toBeTrue();
+    expect(approve.disabled).toBe(true);
   });
 
   it('approves for a protected admin and keeps the button usable', async () => {
@@ -282,7 +282,7 @@ describe('TranslationOutreachComponent', () => {
     fixture.detectChanges();
     await settle(fixture);
     const btn = q<HTMLButtonElement>(fixture.nativeElement, '[data-test=draft] .tip-wrap button')!;
-    expect(btn.disabled).toBeFalse();
+    expect(btn.disabled).toBe(false);
     await fixture.componentInstance.approve(fixture.componentInstance.items()[0]);
     expect(fake.calls.find((c) => c.target === 'approve_translation_outreach')!.args).toEqual({ p_id: 'o1' });
     expect(fixture.componentInstance.items()[0].status).toBe('approved');
@@ -293,9 +293,9 @@ describe('TranslationOutreachComponent', () => {
     const fixture = TestBed.createComponent(TranslationOutreachComponent);
     fixture.detectChanges();
     await settle(fixture);
-    expect(fixture.componentInstance.approveLocked()).toBeFalse();
+    expect(fixture.componentInstance.approveLocked()).toBe(false);
     await fixture.componentInstance.approve(fixture.componentInstance.items()[0]);
-    expect(fixture.componentInstance.approveLocked()).toBeTrue();
+    expect(fixture.componentInstance.approveLocked()).toBe(true);
     expect(fixture.componentInstance.flash()).toEqual({ key: 'admin.translations.outreach.approveLocked', err: true });
     expect(fixture.componentInstance.items()[0].status).toBe('draft');
   });
@@ -315,7 +315,7 @@ describe('TranslationOutreachComponent', () => {
     const o = cmp.items()[0];
 
     cmp.patch(o, { subject: 'Neu' });
-    expect(cmp.dirty(o)).toBeTrue();
+    expect(cmp.dirty(o)).toBe(true);
     await cmp.save(o);
     const upd = fake.calls.find((c) => c.target === 'translation_outreach' && c.chain.some(([m]) => m === 'update'))!;
     expect(upd.chain.find(([m]) => m === 'update')![1][0]).toEqual({ subject: 'Neu', body: 'Hallo', message_lang: 'de' });

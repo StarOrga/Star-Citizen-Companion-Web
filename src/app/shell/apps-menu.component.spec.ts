@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { computed, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -20,12 +21,12 @@ describe('AppsMenuComponent', () => {
   let fixture: ComponentFixture<AppsMenuComponent>;
   const canInstall = signal(true);
   const role = signal<string>('viewer');
-  let ringsFor: jasmine.Spy;
+  let ringsFor: Mock;
 
   const setup = (r: string) => {
     role.set(r);
     canInstall.set(true);
-    ringsFor = jasmine.createSpy('ringsFor').and.callFake(async (app: string, rings: readonly string[]) => ({
+    ringsFor = vi.fn().mockName('ringsFor').mockImplementation(async (app: string, rings: readonly string[]) => ({
       releases: rings.map((ring) => ({
         ring,
         version: app === 'starscape' ? '1.2.0' : '0.41.0',
@@ -46,11 +47,9 @@ describe('AppsMenuComponent', () => {
         { provide: DesktopReleaseService, useValue: { ringsFor } },
       ],
     });
-    spyOn(window, 'fetch').and.resolveTo(
-      new Response(
+    vi.spyOn(window, 'fetch').mockResolvedValue(new Response(
         JSON.stringify({ version: 'v0.100.0', sizeBytes: 100 * 1024 * 1024 }),
-      ),
-    );
+      ));
     fixture = TestBed.createComponent(AppsMenuComponent);
     fixture.detectChanges();
   };
@@ -78,7 +77,7 @@ describe('AppsMenuComponent', () => {
       await openMenu();
       const entries = Array.from(el().querySelectorAll<HTMLAnchorElement>('.pop a.entry'));
       expect(entries.length).toBe(2);
-      expect(entries.some((a) => a.classList.contains('elevated'))).toBeFalse();
+      expect(entries.some((a) => a.classList.contains('elevated'))).toBe(false);
       expect(entries[1].getAttribute('href')).toBe('https://example.test/starscape-stable.exe');
       expect(entries[1].textContent).toContain('v1.2.0 · 5.0 MB');
       expect(ringsFor).toHaveBeenCalledTimes(1);

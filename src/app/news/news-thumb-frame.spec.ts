@@ -175,31 +175,31 @@ describe('detectFramePads', () => {
 describe('isPixelReadable', () => {
   it('accepts the news-image cache bucket that serves most thumbnails', () => {
     const host = new URL(environment.supabase.url).hostname;
-    expect(isPixelReadable(`https://${host}/storage/v1/object/public/news-images/a/cover.jpg`)).toBeTrue();
+    expect(isPixelReadable(`https://${host}/storage/v1/object/public/news-images/a/cover.jpg`)).toBe(true);
   });
 
   it('accepts the assets Worker that serves the cache from R2', () => {
     const base = environment.assets?.r2BaseUrl ?? '';
     expect(base).not.toBe('');
-    expect(isPixelReadable(`${base}/news-images/a/w800.jpg`)).toBeTrue();
+    expect(isPixelReadable(`${base}/news-images/a/w800.jpg`)).toBe(true);
   });
 
   it('accepts the RSI media CDN', () => {
-    expect(isPixelReadable('https://media.robertsspaceindustries.com/4p0b1xnv3vte5/post.jpg')).toBeTrue();
+    expect(isPixelReadable('https://media.robertsspaceindustries.com/4p0b1xnv3vte5/post.jpg')).toBe(true);
   });
 
   it('accepts the Spectrum upload host the launcher screenshots come from', () => {
-    expect(isPixelReadable('https://theverse.robertsspaceindustries.com/4ugbc7rewokpz/tavern_upload_large.jpg')).toBeTrue();
+    expect(isPixelReadable('https://theverse.robertsspaceindustries.com/4ugbc7rewokpz/tavern_upload_large.jpg')).toBe(true);
   });
 
   it('refuses the apex proxy, which answers without an ACAO header', () => {
     // Requesting CORS there fails the load and costs a second round trip, so the
     // trim is not worth it — those tiles keep a tainted canvas and no zoom.
-    expect(isPixelReadable('https://robertsspaceindustries.com/i/abc123/hero.jpg')).toBeFalse();
+    expect(isPixelReadable('https://robertsspaceindustries.com/i/abc123/hero.jpg')).toBe(false);
   });
 
   it('refuses anything else, including a malformed url', () => {
-    expect(isPixelReadable('https://i.ytimg.com/vi/abc/hqdefault.jpg')).toBeFalse();
-    expect(isPixelReadable('not a url')).toBeFalse();
+    expect(isPixelReadable('https://i.ytimg.com/vi/abc/hqdefault.jpg')).toBe(false);
+    expect(isPixelReadable('not a url')).toBe(false);
   });
 });

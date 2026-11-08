@@ -94,15 +94,15 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     document.addEventListener('keydown', qs);
     try {
       const ev = press('v');
-      expect(ev.defaultPrevented).toBeTrue();
-      expect(typeToSearch).toBeFalse();
+      expect(ev.defaultPrevented).toBe(true);
+      expect(typeToSearch).toBe(false);
       expect(c.viewMode()).toBe('3d');
       press('v');
       expect(c.viewMode()).toBe('holo'); // no schema for this hull
       // Any other letter still starts the Codex search.
       const g = press('g');
-      expect(g.defaultPrevented).toBeFalse();
-      expect(typeToSearch).toBeTrue();
+      expect(g.defaultPrevented).toBe(false);
+      expect(typeToSearch).toBe(true);
     } finally {
       document.removeEventListener('keydown', qs);
     }
@@ -123,7 +123,7 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
 
   it('L copies the page address and confirms with a toast; a refused copy says so', async () => {
     fixture = await setup();
-    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     press('l');
     // Not whenStable(): that would also wait out the toast's hide timer.
     await new Promise((r) => setTimeout(r));
@@ -132,7 +132,7 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     expect(fixture.componentInstance.copyToast()).toBe('ok');
     expect(fixture.nativeElement.querySelector('.copy-toast')).toBeTruthy();
 
-    write.and.rejectWith(new DOMException('denied', 'NotAllowedError'));
+    write.mockRejectedValue(new DOMException('denied', 'NotAllowedError'));
     press('l');
     await new Promise((r) => setTimeout(r));
     fixture.detectChanges();
@@ -149,7 +149,7 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     document.body.appendChild(input);
     input.focus();
     const ev = press('v', input);
-    expect(ev.defaultPrevented).toBeFalse();
+    expect(ev.defaultPrevented).toBe(false);
     expect(c.viewMode()).toBe('holo');
   });
 
@@ -167,7 +167,7 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
 
   it('digits keep selecting pins — no letter key collides with them', async () => {
     fixture = await setup();
-    const inspect = spyOn(fixture.componentInstance, 'inspectPin');
+    const inspect = vi.spyOn(fixture.componentInstance, 'inspectPin').mockReturnValue(undefined as never);
     press('1');
     // No pins on this hull: the digit is simply not a holodeck letter.
     expect(inspect).not.toHaveBeenCalled();
@@ -210,8 +210,8 @@ describe('CodexHoloStageComponent shared-link banner (#646)', () => {
     fixture.componentInstance.exitShared.subscribe(() => (exited = true));
     (el.querySelector('.sb-adopt') as HTMLButtonElement).click();
     (el.querySelector('.sb-exit') as HTMLButtonElement).click();
-    expect(adopted).toBeTrue();
-    expect(exited).toBeTrue();
+    expect(adopted).toBe(true);
+    expect(exited).toBe(true);
   });
 
   it('a failed read shows an error with retry, never the ready banner', async () => {
@@ -224,7 +224,7 @@ describe('CodexHoloStageComponent shared-link banner (#646)', () => {
     let retried = false;
     fixture.componentInstance.retryShared.subscribe(() => (retried = true));
     (el.querySelector('.sb-retry') as HTMLButtonElement).click();
-    expect(retried).toBeTrue();
+    expect(retried).toBe(true);
   });
 });
 
@@ -256,7 +256,7 @@ describe('CodexHoloStageComponent Einordnung states', () => {
     let retried = false;
     fixture.componentInstance.retryRank.subscribe(() => (retried = true));
     (el.querySelector('.rank-retry') as HTMLButtonElement).click();
-    expect(retried).toBeTrue();
+    expect(retried).toBe(true);
   });
 
   it('a cohort without values is an empty state, not an error', async () => {

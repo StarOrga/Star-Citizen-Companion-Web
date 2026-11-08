@@ -24,10 +24,10 @@ const stats = (over: Partial<SocialStats> = {}): SocialStats => ({
 
 describe('social.types', () => {
   it('isValidInviteToken accepts the minted shape and rejects a mangled URL', () => {
-    expect(isValidInviteToken('a'.repeat(64))).toBeTrue();
-    expect(isValidInviteToken('  ' + 'F'.repeat(32) + ' ')).toBeTrue();
-    expect(isValidInviteToken('short')).toBeFalse();
-    expect(isValidInviteToken('g'.repeat(64))).toBeFalse();
+    expect(isValidInviteToken('a'.repeat(64))).toBe(true);
+    expect(isValidInviteToken('  ' + 'F'.repeat(32) + ' ')).toBe(true);
+    expect(isValidInviteToken('short')).toBe(false);
+    expect(isValidInviteToken('g'.repeat(64))).toBe(false);
   });
 
   it('inviteLinkFor builds an absolute URL outside /social', () => {
@@ -40,10 +40,10 @@ describe('social.types', () => {
   });
 
   it('isValidGroupName trims and enforces 1 to 60', () => {
-    expect(isValidGroupName(' Wings ')).toBeTrue();
-    expect(isValidGroupName('   ')).toBeFalse();
-    expect(isValidGroupName('x'.repeat(60))).toBeTrue();
-    expect(isValidGroupName('x'.repeat(61))).toBeFalse();
+    expect(isValidGroupName(' Wings ')).toBe(true);
+    expect(isValidGroupName('   ')).toBe(false);
+    expect(isValidGroupName('x'.repeat(60))).toBe(true);
+    expect(isValidGroupName('x'.repeat(61))).toBe(false);
   });
 
   describe('effectiveVisibility', () => {
@@ -64,8 +64,8 @@ describe('social.types', () => {
   });
 
   it('isEmptyOverride is true only when every facet inherits', () => {
-    expect(isEmptyOverride({ hangar: null, flagship: null, presence: null, stats: null })).toBeTrue();
-    expect(isEmptyOverride({ hangar: false, flagship: null, presence: null, stats: null })).toBeFalse();
+    expect(isEmptyOverride({ hangar: null, flagship: null, presence: null, stats: null })).toBe(true);
+    expect(isEmptyOverride({ hangar: false, flagship: null, presence: null, stats: null })).toBe(false);
   });
 
   describe('compareRows', () => {
@@ -88,7 +88,7 @@ describe('social.types', () => {
 
     it('has no friend value and no standing when the friend hides the stats', () => {
       const rows = compareRows(stats(), null);
-      expect(rows.every((r) => r.friend === null && r.standing === null)).toBeTrue();
+      expect(rows.every((r) => r.friend === null && r.standing === null)).toBe(true);
     });
   });
 

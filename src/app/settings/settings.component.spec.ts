@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { Location } from '@angular/common';
@@ -47,16 +48,16 @@ describe('SettingsComponent layout', () => {
 
   interface ConfigureOpts {
     isAdmin?: boolean;
-    invoke?: jasmine.Spy;
-    confirm?: jasmine.Spy;
+    invoke?: Mock;
+    confirm?: Mock;
   }
 
   function configure(
     user: User | null = makeUser(),
     {
       isAdmin = true,
-      invoke = jasmine.createSpy('invoke').and.resolveTo({ data: {}, error: null }),
-      confirm = jasmine.createSpy('confirm').and.resolveTo(true),
+      invoke = vi.fn().mockName('invoke').mockResolvedValue({ data: {}, error: null }),
+      confirm = vi.fn().mockName('confirm').mockResolvedValue(true),
     }: ConfigureOpts = {},
   ) {
     TestBed.configureTestingModule({
@@ -185,7 +186,7 @@ describe('SettingsComponent layout', () => {
     expect(selects.length).toBe(2);
     expect(
       overlaps(selects[0].getBoundingClientRect(), selects[1].getBoundingClientRect()),
-    ).toBeFalse();
+    ).toBe(false);
   });
 
   it('never lets the language and region selects overlap on a desktop width', () => {
@@ -195,7 +196,7 @@ describe('SettingsComponent layout', () => {
     );
     expect(
       overlaps(selects[0].getBoundingClientRect(), selects[1].getBoundingClientRect()),
-    ).toBeFalse();
+    ).toBe(false);
   });
 
   it('keeps both selects inside their card at a phone width', () => {
@@ -216,7 +217,7 @@ describe('SettingsComponent layout', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('select')).toBeNull();
     const locale = TestBed.inject(LocaleService);
-    const setLanguage = spyOn(locale, 'setLanguage');
+    const setLanguage = vi.spyOn(locale, 'setLanguage').mockReturnValue(undefined as never);
 
     const trigger = el.querySelectorAll<HTMLButtonElement>('.locale-field sc-select .trigger')[0];
     trigger.click();
@@ -242,7 +243,7 @@ describe('SettingsComponent layout', () => {
     const rowText = Array.from(el.querySelectorAll('.account .row')).map(
       (r) => r.textContent ?? '',
     );
-    expect(rowText.some((t) => t.includes('11111111-2222'))).toBeFalse();
+    expect(rowText.some((t) => t.includes('11111111-2222'))).toBe(false);
 
     const idLine = el.querySelector('.id-line');
     expect(idLine).toBeTruthy();
@@ -281,11 +282,11 @@ describe('SettingsComponent layout', () => {
       // Real anchors: middle click / Ctrl+click must stay a browser feature.
       expect(link.tagName).toBe('A');
       const href = link.getAttribute('href')!;
-      expect(href.endsWith(`#${groups[i].anchor}`)).toBeTrue();
+      expect(href.endsWith(`#${groups[i].anchor}`)).toBe(true);
       // A BARE "#anchor" is the bug from feedback af058ca4 round 3: it resolves
       // against <base href="/">, i.e. against the start page, not against
       // /settings. The href must always carry a path.
-      expect(href.startsWith('#')).toBeFalse();
+      expect(href.startsWith('#')).toBe(false);
       // …and the target has to exist, or the rail is a set of dead links.
       expect(el.querySelector(`#${groups[i].anchor}`)).toBeTruthy();
     });
@@ -306,12 +307,12 @@ describe('SettingsComponent layout', () => {
     const component = harness.routeDebugElement!.componentInstance as SettingsComponent;
     const link = el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link')[3];
     const target = el.querySelector<HTMLElement>('#settings-danger')!;
-    const scrollIntoView = spyOn(target, 'scrollIntoView');
+    const scrollIntoView = vi.spyOn(target, 'scrollIntoView').mockReturnValue(undefined as never);
 
-    expect(clickLink(link)).toBeTrue(); // the component owns this click…
+    expect(clickLink(link)).toBe(true); // the component owns this click…
     // …and moves the page itself instead of letting the browser jump.
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
-    const behaviour = scrollIntoView.calls.mostRecent().args[0] as ScrollIntoViewOptions;
+    const behaviour = vi.mocked(scrollIntoView).mock.lastCall![0] as ScrollIntoViewOptions;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     expect(behaviour.behavior).toBe(reduced ? 'auto' : 'smooth');
     expect(behaviour.block).toBe('start');
@@ -321,7 +322,7 @@ describe('SettingsComponent layout', () => {
     harness.detectChanges();
     expect(component.activeGroup()).toBe('danger');
     const path = TestBed.inject(Location).path(true);
-    expect(path.startsWith('/settings')).toBeTrue();
+    expect(path.startsWith('/settings')).toBe(true);
     expect(path).toContain('#settings-danger');
   });
 
@@ -329,12 +330,12 @@ describe('SettingsComponent layout', () => {
     const { el } = await setupRouted();
     const link = el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link')[2];
     const target = el.querySelector<HTMLElement>('#settings-privacy')!;
-    const scrollIntoView = spyOn(target, 'scrollIntoView');
+    const scrollIntoView = vi.spyOn(target, 'scrollIntoView').mockReturnValue(undefined as never);
 
-    expect(clickLink(link, { ctrlKey: true })).toBeFalse();
-    expect(clickLink(link, { metaKey: true })).toBeFalse();
-    expect(clickLink(link, { shiftKey: true })).toBeFalse();
-    expect(clickLink(link, { button: 1 })).toBeFalse();
+    expect(clickLink(link, { ctrlKey: true })).toBe(false);
+    expect(clickLink(link, { metaKey: true })).toBe(false);
+    expect(clickLink(link, { shiftKey: true })).toBe(false);
+    expect(clickLink(link, { button: 1 })).toBe(false);
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
@@ -379,7 +380,7 @@ describe('SettingsComponent layout', () => {
     fixture.componentInstance.activeGroup.set('privacy');
     fixture.detectChanges();
     const active = el.querySelector<HTMLAnchorElement>('.toc-link.active')!;
-    expect(active.getAttribute('href')!.endsWith('#settings-privacy')).toBeTrue();
+    expect(active.getAttribute('href')!.endsWith('#settings-privacy')).toBe(true);
     expect(active.getAttribute('aria-current')).toBe('true');
   });
 
@@ -449,8 +450,8 @@ describe('SettingsComponent layout', () => {
     });
 
     it('does nothing for a viewer even if deleteAccount() is called', async () => {
-      const invoke = jasmine.createSpy('invoke');
-      const confirm = jasmine.createSpy('confirm').and.resolveTo(true);
+      const invoke = vi.fn().mockName('invoke');
+      const confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
       const fixture = setup(makeUser(), '1100px', { isAdmin: false, invoke, confirm });
       await fixture.componentInstance.deleteAccount();
       expect(confirm).not.toHaveBeenCalled();
@@ -458,19 +459,19 @@ describe('SettingsComponent layout', () => {
     });
 
     it('asks an admin in the app dialog and stops on cancel', async () => {
-      const invoke = jasmine.createSpy('invoke');
-      const confirm = jasmine.createSpy('confirm').and.resolveTo(false);
+      const invoke = vi.fn().mockName('invoke');
+      const confirm = vi.fn().mockName('confirm').mockResolvedValue(false);
       const fixture = setup(makeUser(), '1100px', { invoke, confirm });
       zone(fixture).querySelector<HTMLButtonElement>('.danger-btn')!.click();
       await fixture.whenStable();
       expect(confirm).toHaveBeenCalledWith(
-        jasmine.objectContaining({ titleKey: 'settings.danger.title', tone: 'danger' }),
+        expect.objectContaining({ titleKey: 'settings.danger.title', tone: 'danger' }),
       );
       expect(invoke).not.toHaveBeenCalled();
     });
 
     it('translates a 403 from delete-user instead of showing the raw code', async () => {
-      const invoke = jasmine.createSpy('invoke').and.resolveTo({
+      const invoke = vi.fn().mockName('invoke').mockResolvedValue({
         data: null,
         error: { context: new Response(JSON.stringify({ error: 'forbidden', message: 'Nur Admins' }), { status: 403 }) },
       });
@@ -482,7 +483,7 @@ describe('SettingsComponent layout', () => {
     });
 
     it('falls back to the generic sentence for an unknown code', async () => {
-      const invoke = jasmine.createSpy('invoke').and.resolveTo({ data: { error: 'delete_failed' }, error: null });
+      const invoke = vi.fn().mockName('invoke').mockResolvedValue({ data: { error: 'delete_failed' }, error: null });
       const fixture = setup(makeUser(), '1100px', { invoke });
       await fixture.componentInstance.deleteAccount();
       fixture.detectChanges();

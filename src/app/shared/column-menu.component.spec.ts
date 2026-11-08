@@ -72,14 +72,14 @@ describe('ScColumnMenuComponent', () => {
   }
 
   it('emits headClick on a plain click of the label (sorts, or flips)', () => {
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     component.headClick.subscribe(spy);
     labelButton().click();
     expect(spy).toHaveBeenCalledWith(false);
   });
 
   it('emits headClick(true) on a Ctrl-click of the label (E-main-gap #41 secondary-sort shortcut)', () => {
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     component.headClick.subscribe(spy);
     labelButton().dispatchEvent(new MouseEvent('click', { ctrlKey: true, bubbles: true }));
     expect(spy).toHaveBeenCalledWith(true);
@@ -107,7 +107,7 @@ describe('ScColumnMenuComponent', () => {
     fixture.detectChanges();
     const btn = panel()!.querySelector('.cm-secondary') as HTMLElement;
     expect(btn.textContent?.trim()).toBe('Als zweite Sortierung');
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     component.secondarySortToggle.subscribe(spy);
     btn.click();
     expect(spy).toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe('ScColumnMenuComponent', () => {
 
   it('opens the popover and emits a sort pick', () => {
     openPanel();
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     component.sortPick.subscribe(spy);
     const buttons = Array.from(panel()!.querySelectorAll('.cm-sortbtn')) as HTMLElement[];
     buttons[0].click();
@@ -142,7 +142,7 @@ describe('ScColumnMenuComponent', () => {
 
   it('emits a numeric range on the from/to inputs', () => {
     openPanel();
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     component.rangeChange.subscribe(spy);
     const [from, to] = Array.from(panel()!.querySelectorAll('.cm-range input')) as HTMLInputElement[];
     from.value = '10';
@@ -161,7 +161,7 @@ describe('ScColumnMenuComponent', () => {
     ]);
     fixture.detectChanges();
     openPanel();
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     component.facetToggle.subscribe(spy);
     const boxes = Array.from(panel()!.querySelectorAll('.cm-facet input')) as HTMLInputElement[];
     expect(boxes.length).toBe(2);
@@ -172,12 +172,12 @@ describe('ScColumnMenuComponent', () => {
   it('emits clearFilter and closes the popover', () => {
     openPanel();
     const det = fixture.debugElement.query(By.css('details')).nativeElement as HTMLDetailsElement;
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     component.clearFilter.subscribe(spy);
     (panel()!.querySelector('.cm-clear') as HTMLElement).click();
     fixture.detectChanges();
     expect(spy).toHaveBeenCalled();
-    expect(det.open).toBeFalse();
+    expect(det.open).toBe(false);
     expect(panel()).toBeNull();
   });
 
@@ -186,7 +186,7 @@ describe('ScColumnMenuComponent', () => {
     const det = fixture.debugElement.query(By.css('details')).nativeElement as HTMLDetailsElement;
     panel()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
-    expect(det.open).toBeFalse();
+    expect(det.open).toBe(false);
     expect(panel()).toBeNull();
   });
 

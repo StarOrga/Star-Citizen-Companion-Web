@@ -41,16 +41,14 @@ describe('sc-news-thumb — channel pill', () => {
     fixture.detectChanges();
 
     const pill = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.ch-pill');
-    expect(pill).withContext('pill rendered').not.toBeNull();
+    expect(pill, 'pill rendered').not.toBeNull();
 
     const neutral = resolved('--sc-fg-1');
     expect(neutral).not.toBe(resolved('--sc-danger'));
     expect(getComputedStyle(pill!).color).toBe(neutral);
     expect(getComputedStyle(pill!).color).not.toBe(resolved('--sc-danger'));
 
-    expect(pill!.querySelector('svg path[fill="#FF0000"]'))
-      .withContext('YouTube brand red preserved')
-      .not.toBeNull();
+    expect(pill!.querySelector('svg path[fill="#FF0000"]'), 'YouTube brand red preserved').not.toBeNull();
   });
 
   it('renders the YouTube icon at the 20px brand minimum, untinted', () => {
@@ -59,16 +57,16 @@ describe('sc-news-thumb — channel pill', () => {
     fixture.detectChanges();
 
     const svg = (fixture.nativeElement as HTMLElement).querySelector<SVGSVGElement>('.ch-pill .ch-icon svg');
-    expect(svg).withContext('icon rendered').not.toBeNull();
+    expect(svg, 'icon rendered').not.toBeNull();
     const box = svg!.getBoundingClientRect();
-    expect(box.width).withContext('icon width').toBeGreaterThanOrEqual(20);
-    expect(box.height).withContext('icon height').toBeGreaterThanOrEqual(20);
+    expect(box.width, 'icon width').toBeGreaterThanOrEqual(20);
+    expect(box.height, 'icon height').toBeGreaterThanOrEqual(20);
 
     // No filter or fade on the icon or anything between it and the pill.
     for (let node: Element | null = svg; node && !node.classList.contains('ch-pill'); node = node.parentElement) {
       const style = getComputedStyle(node);
-      expect(style.filter).withContext('filter').toBe('none');
-      expect(style.opacity).withContext('opacity').toBe('1');
+      expect(style.filter, 'filter').toBe('none');
+      expect(style.opacity, 'opacity').toBe('1');
     }
   });
 });

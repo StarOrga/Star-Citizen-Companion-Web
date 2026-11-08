@@ -9,9 +9,9 @@ const name = (key: string) => ({ de: 'x', en: 'x', key });
 
 describe('codex-countermeasure (#242)', () => {
   it('spots a launcher by its subType', () => {
-    expect(isCountermeasureLauncher({ subType: 'CountermeasureLauncher' })).toBeTrue();
-    expect(isCountermeasureLauncher({ subType: 'Gun' })).toBeFalse();
-    expect(isCountermeasureLauncher(null)).toBeFalse();
+    expect(isCountermeasureLauncher({ subType: 'CountermeasureLauncher' })).toBe(true);
+    expect(isCountermeasureLauncher({ subType: 'Gun' })).toBe(false);
+    expect(isCountermeasureLauncher(null)).toBe(false);
   });
 
   it('tells decoy from noise by the round type, then by the class name', () => {

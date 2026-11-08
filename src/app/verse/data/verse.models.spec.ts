@@ -106,9 +106,9 @@ describe('verse.models', () => {
     expect(e?.patches[0].stars).toEqual(['comet']);
     expect(e?.patches[0].constellation?.kind).toBe('ground');
     expect(e?.patches[0].constellation?.points).toEqual([[0.1, 0.2]]);
-    expect(e?.patches[0].unlocks.logEntry).toBeTrue();
+    expect(e?.patches[0].unlocks.logEntry).toBe(true);
     expect(e?.streak.best).toBe(3);
-    expect(e?.rewards.nebula).toBeTrue();
+    expect(e?.rewards.nebula).toBe(true);
     expect(mapExplorer(null)).toBeNull();
   });
 

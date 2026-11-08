@@ -100,7 +100,7 @@ describe('topicTitle', () => {
   it('caps overlong titles with an ellipsis', () => {
     const title = topicTitle('x'.repeat(200), 20);
     expect(title.length).toBeLessThanOrEqual(20);
-    expect(title.endsWith('…')).toBeTrue();
+    expect(title.endsWith('…')).toBe(true);
   });
 });
 
@@ -132,8 +132,8 @@ describe('displayTitle', () => {
     });
     const title = displayTitle(r, 20);
     expect(title.length).toBeLessThanOrEqual(20);
-    expect(title.endsWith('…')).toBeTrue();
-    expect(title.startsWith('*')).toBeFalse();
+    expect(title.endsWith('…')).toBe(true);
+    expect(title.startsWith('*')).toBe(false);
   });
 });
 
@@ -173,12 +173,12 @@ describe('isAwaitingAdmin', () => {
   const r = row('a', 'needs_input', '2026-07-01T10:00:00Z');
 
   it('is true when the routine asked last', () => {
-    expect(isAwaitingAdmin(r, [msg('m1', 'a', true, '2026-07-01T11:00:00Z')])).toBeTrue();
+    expect(isAwaitingAdmin(r, [msg('m1', 'a', true, '2026-07-01T11:00:00Z')])).toBe(true);
   });
 
   it('is true when nobody replied yet', () => {
-    expect(isAwaitingAdmin(r, [])).toBeTrue();
-    expect(isAwaitingAdmin(r, undefined)).toBeTrue();
+    expect(isAwaitingAdmin(r, [])).toBe(true);
+    expect(isAwaitingAdmin(r, undefined)).toBe(true);
   });
 
   it('is false once a human answered last', () => {
@@ -186,11 +186,11 @@ describe('isAwaitingAdmin', () => {
       msg('m1', 'a', true, '2026-07-01T11:00:00Z'),
       msg('m2', 'a', false, '2026-07-01T12:00:00Z'),
     ];
-    expect(isAwaitingAdmin(r, replies)).toBeFalse();
+    expect(isAwaitingAdmin(r, replies)).toBe(false);
   });
 
   it('only ever applies to needs_input topics', () => {
-    expect(isAwaitingAdmin(row('b', 'open', '2026-07-01T10:00:00Z'), [])).toBeFalse();
+    expect(isAwaitingAdmin(row('b', 'open', '2026-07-01T10:00:00Z'), [])).toBe(false);
   });
 });
 
@@ -285,13 +285,13 @@ describe('bucketLabelStatus', () => {
 describe('isArchived', () => {
   it('is true for every terminal status', () => {
     for (const s of ['shipped', 'issue_created', 'rejected', 'declined'] as const) {
-      expect(isArchived(row('t', s, '2026-07-01T10:00:00Z'))).toBeTrue();
+      expect(isArchived(row('t', s, '2026-07-01T10:00:00Z'))).toBe(true);
     }
   });
 
   it('is false for the statuses the routine still works', () => {
     for (const s of ['open', 'in_progress', 'needs_input', 'needs_input_author'] as const) {
-      expect(isArchived(row('a', s, '2026-07-01T10:00:00Z'))).toBeFalse();
+      expect(isArchived(row('a', s, '2026-07-01T10:00:00Z'))).toBe(false);
     }
   });
 
@@ -299,15 +299,15 @@ describe('isArchived', () => {
     const shipped = row('s', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: '2026-07-01T12:00:00Z' });
     const humanAfter = [msg('m1', 's', false, '2026-07-01T13:00:00Z')];
     // Without the thread it still reads as archived (back-compat for callers that don't track replies).
-    expect(isArchived(shipped)).toBeTrue();
+    expect(isArchived(shipped)).toBe(true);
     // With the thread, the continuation pulls it back onto the active board.
-    expect(isArchived(shipped, humanAfter)).toBeFalse();
+    expect(isArchived(shipped, humanAfter)).toBe(false);
   });
 
   it('keeps issue_created / rejected archived even with a fresh human reply', () => {
     for (const s of ['issue_created', 'rejected'] as const) {
       const term = row('t', s, '2026-07-01T10:00:00Z', { shipped_at: '2026-07-01T12:00:00Z' });
-      expect(isArchived(term, [msg('m1', 't', false, '2026-07-01T13:00:00Z')])).toBeTrue();
+      expect(isArchived(term, [msg('m1', 't', false, '2026-07-01T13:00:00Z')])).toBe(true);
     }
   });
 });
@@ -317,15 +317,15 @@ describe('isContinuedAfterShip', () => {
   const shipped = () => row('s', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: shippedAt });
 
   it('is true when the newest reply is the admin and it lands after shipped_at', () => {
-    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', false, '2026-07-01T13:00:00Z')])).toBeTrue();
+    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', false, '2026-07-01T13:00:00Z')])).toBe(true);
   });
 
   it('is false when the newest post-ship reply is the routine (its own review reply)', () => {
-    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', true, '2026-07-01T13:00:00Z')])).toBeFalse();
+    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', true, '2026-07-01T13:00:00Z')])).toBe(false);
   });
 
   it('is false when the human reply predates the ship (an older thread message)', () => {
-    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', false, '2026-07-01T11:00:00Z')])).toBeFalse();
+    expect(isContinuedAfterShip(shipped(), [msg('m1', 's', false, '2026-07-01T11:00:00Z')])).toBe(false);
   });
 
   it('only looks at the newest reply — a later routine reply closes the loop again', () => {
@@ -333,19 +333,19 @@ describe('isContinuedAfterShip', () => {
       msg('m1', 's', false, '2026-07-01T13:00:00Z'), // admin reopened
       msg('m2', 's', true, '2026-07-01T14:00:00Z'), // routine re-shipped + review reply
     ];
-    expect(isContinuedAfterShip(shipped(), replies)).toBeFalse();
+    expect(isContinuedAfterShip(shipped(), replies)).toBe(false);
   });
 
   it('is false for a non-shipped status and for an empty/absent thread', () => {
-    expect(isContinuedAfterShip(row('o', 'open', '2026-07-01T10:00:00Z'), [msg('m1', 'o', false, '2026-07-01T13:00:00Z')])).toBeFalse();
-    expect(isContinuedAfterShip(shipped(), [])).toBeFalse();
-    expect(isContinuedAfterShip(shipped())).toBeFalse();
+    expect(isContinuedAfterShip(row('o', 'open', '2026-07-01T10:00:00Z'), [msg('m1', 'o', false, '2026-07-01T13:00:00Z')])).toBe(false);
+    expect(isContinuedAfterShip(shipped(), [])).toBe(false);
+    expect(isContinuedAfterShip(shipped())).toBe(false);
   });
 
   it('falls back to processed_at then created_at when shipped_at is absent', () => {
     const noShipTs = row('s', 'shipped', '2026-07-01T10:00:00Z', { processed_at: '2026-07-01T12:00:00Z' });
-    expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T13:00:00Z')])).toBeTrue();
-    expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T11:00:00Z')])).toBeFalse();
+    expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T13:00:00Z')])).toBe(true);
+    expect(isContinuedAfterShip(noShipTs, [msg('m1', 's', false, '2026-07-01T11:00:00Z')])).toBe(false);
   });
 });
 
@@ -354,19 +354,19 @@ describe('isUserSubmitted / awaitsTriage', () => {
 
   it('treats every legacy row (no source column yet) as admin-authored', () => {
     const legacy = row('l', 'open', at);
-    expect(isUserSubmitted(legacy)).toBeFalse();
-    expect(awaitsTriage(legacy)).toBeFalse();
+    expect(isUserSubmitted(legacy)).toBe(false);
+    expect(awaitsTriage(legacy)).toBe(false);
   });
 
   it('gates a fresh user topic until an admin releases it to the routine', () => {
     const fresh = row('u', 'open', at, { source: 'user', triaged: false });
-    expect(isUserSubmitted(fresh)).toBeTrue();
-    expect(awaitsTriage(fresh)).toBeTrue();
-    expect(awaitsTriage({ ...fresh, triaged: true })).toBeFalse();
+    expect(isUserSubmitted(fresh)).toBe(true);
+    expect(awaitsTriage(fresh)).toBe(true);
+    expect(awaitsTriage({ ...fresh, triaged: true })).toBe(false);
   });
 
   it('never gates an admin topic, whatever triaged says', () => {
-    expect(awaitsTriage(row('a', 'open', at, { source: 'admin', triaged: false }))).toBeFalse();
+    expect(awaitsTriage(row('a', 'open', at, { source: 'admin', triaged: false }))).toBe(false);
   });
 });
 
@@ -584,10 +584,10 @@ describe('workflow scope (feedback abfa97c6)', () => {
   });
 
   it('recognises ownership only for a matching author id', () => {
-    expect(isOwnTopic(mine1, 'me')).toBeTrue();
-    expect(isOwnTopic(theirs, 'me')).toBeFalse();
-    expect(isOwnTopic(orphan, 'me')).toBeFalse();
-    expect(isOwnTopic(mine1, null)).toBeFalse();
+    expect(isOwnTopic(mine1, 'me')).toBe(true);
+    expect(isOwnTopic(theirs, 'me')).toBe(false);
+    expect(isOwnTopic(orphan, 'me')).toBe(false);
+    expect(isOwnTopic(mine1, null)).toBe(false);
   });
 });
 
@@ -817,8 +817,8 @@ describe('searchFeedback', () => {
   it('matches a term that only ever appears in a thread reply', () => {
     const hits = searchFeedback(rows, threads, 'Regression');
     expect(hits.map((h) => h.row.id)).toEqual(['thread']);
-    expect(hits[0].inThread).toBeTrue();
-    expect(hits[0].inBody).toBeFalse();
+    expect(hits[0].inThread).toBe(true);
+    expect(hits[0].inBody).toBe(false);
   });
 
   it('ranks exact body > prefix body > thread-only', () => {
@@ -872,7 +872,7 @@ describe('searchFeedback by topic number (feedback 21587480)', () => {
   it('accepts the "#42" reference form — the hash folds away in normalization', () => {
     const hits = searchFeedback(rows, noThreads, '#42');
     expect(hits[0].row.id).toBe('numbered');
-    expect(hits[0].inNumber).toBeTrue();
+    expect(hits[0].inNumber).toBe(true);
   });
 
   it('ranks the numbered topic above one that merely mentions the digits', () => {
@@ -900,8 +900,8 @@ describe('searchFeedback by topic number (feedback 21587480)', () => {
 
   it('keeps the number out of inBody / inThread', () => {
     const hit = searchFeedback(rows, noThreads, '#42')[0];
-    expect(hit.inBody).toBeFalse();
-    expect(hit.inThread).toBeFalse();
+    expect(hit.inBody).toBe(false);
+    expect(hit.inThread).toBe(false);
   });
 });
 
@@ -951,23 +951,23 @@ describe('neededInput', () => {
   const shipped = '2026-07-10T10:00:00Z';
 
   it('is true while the topic is parked as a Rückfrage', () => {
-    expect(neededInput(row('a', 'needs_input', '2026-07-01T10:00:00Z'), [])).toBeTrue();
+    expect(neededInput(row('a', 'needs_input', '2026-07-01T10:00:00Z'), [])).toBe(true);
   });
 
   it('is true for a system message posted before the ship', () => {
     const r = row('b', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: shipped });
-    expect(neededInput(r, [msg('m1', 'b', true, '2026-07-05T10:00:00Z')])).toBeTrue();
+    expect(neededInput(r, [msg('m1', 'b', true, '2026-07-05T10:00:00Z')])).toBe(true);
   });
 
   it('ignores the post-ship review reply', () => {
     const r = row('c', 'shipped', '2026-07-01T10:00:00Z', { shipped_at: shipped });
-    expect(neededInput(r, [msg('m1', 'c', true, '2026-07-10T10:00:05Z')])).toBeFalse();
+    expect(neededInput(r, [msg('m1', 'c', true, '2026-07-10T10:00:05Z')])).toBe(false);
   });
 
   it('ignores human replies entirely', () => {
     const r = row('d', 'open', '2026-07-01T10:00:00Z');
-    expect(neededInput(r, [msg('m1', 'd', false, '2026-07-02T10:00:00Z')])).toBeFalse();
-    expect(neededInput(r, undefined)).toBeFalse();
+    expect(neededInput(r, [msg('m1', 'd', false, '2026-07-02T10:00:00Z')])).toBe(false);
+    expect(neededInput(r, undefined)).toBe(false);
   });
 });
 
@@ -1037,8 +1037,8 @@ describe('weeklySeries', () => {
     const weeks = weeklySeries(rows, 4, now);
     expect(weeks.length).toBe(4);
     expect(weeks.map((w) => w.count)).toEqual([0, 0, 1, 2]);
-    expect(weeks[3].current).toBeTrue();
-    expect(weeks[0].current).toBeFalse();
+    expect(weeks[3].current).toBe(true);
+    expect(weeks[0].current).toBe(false);
   });
 
   it('starts every bucket on a Monday', () => {
@@ -1222,9 +1222,9 @@ describe('review gate', () => {
 
   it('holds a fresh ship in the gate instead of archiving it', () => {
     const m = shipped();
-    expect(awaitsReview(m)).toBeTrue();
+    expect(awaitsReview(m)).toBe(true);
     expect(feedbackBucket(m)).toBe('review');
-    expect(isArchived(m)).toBeFalse();
+    expect(isArchived(m)).toBe(false);
   });
 
   it('holds an issue hand-off in the same gate', () => {
@@ -1233,23 +1233,23 @@ describe('review gate', () => {
       reviewed_at: null,
     });
     expect(feedbackBucket(m)).toBe('review');
-    expect(isArchived(m)).toBeFalse();
+    expect(isArchived(m)).toBe(false);
   });
 
   it('archives the topic once an admin signed it off', () => {
     const m = shipped({ reviewed_at: '2026-07-22T09:00:00Z' });
-    expect(awaitsReview(m)).toBeFalse();
+    expect(awaitsReview(m)).toBe(false);
     expect(feedbackBucket(m)).toBe('shipped');
-    expect(isArchived(m)).toBeTrue();
+    expect(isArchived(m)).toBe(true);
   });
 
   it('never gates the admin\'s own decisions — declined and legacy rejected', () => {
     const declined = row('d', 'declined', '2026-07-20T10:00:00Z', { reviewed_at: null });
     const rejected = row('r', 'rejected', '2026-07-20T10:00:00Z', { reviewed_at: null });
-    expect(awaitsReview(declined)).toBeFalse();
-    expect(awaitsReview(rejected)).toBeFalse();
-    expect(isArchived(declined)).toBeTrue();
-    expect(isArchived(rejected)).toBeTrue();
+    expect(awaitsReview(declined)).toBe(false);
+    expect(awaitsReview(rejected)).toBe(false);
+    expect(isArchived(declined)).toBe(true);
+    expect(isArchived(rejected)).toBe(true);
   });
 
   it('lets a post-ship continuation win over the gate — it is already back in the loop', () => {
@@ -1257,14 +1257,14 @@ describe('review gate', () => {
     const replies = new Map<string, FeedbackMessage[]>([
       ['s', [msg('h1', 's', false, '2026-07-22T10:00:00Z')]],
     ]);
-    expect(awaitsReview(m, replies.get('s'))).toBeFalse();
+    expect(awaitsReview(m, replies.get('s'))).toBe(false);
     expect(feedbackBucket(m, replies.get('s'))).toBe('todo');
   });
 
   it('treats an absent column as signed off, so fixtures and projections keep working', () => {
     const legacy = row('s', 'shipped', '2026-07-20T10:00:00Z');
     expect(legacy.reviewed_at).toBeUndefined();
-    expect(awaitsReview(legacy)).toBeFalse();
+    expect(awaitsReview(legacy)).toBe(false);
     expect(feedbackBucket(legacy)).toBe('shipped');
   });
 
@@ -1297,11 +1297,9 @@ describe('issue requests', () => {
   });
 
   it('recognises the order by its marker, and only on a human message', () => {
-    expect(isIssueRequest(order('m1', '2026-09-01T10:00:00Z'))).toBeTrue();
-    expect(isIssueRequest(msg('m2', 'f1', false, '2026-09-01T10:00:00Z'))).toBeFalse();
-    expect(
-      isIssueRequest({ ...order('m3', '2026-09-01T10:00:00Z'), is_system: true }),
-    ).withContext('the routine never orders itself around').toBeFalse();
+    expect(isIssueRequest(order('m1', '2026-09-01T10:00:00Z'))).toBe(true);
+    expect(isIssueRequest(msg('m2', 'f1', false, '2026-09-01T10:00:00Z'))).toBe(false);
+    expect(isIssueRequest({ ...order('m3', '2026-09-01T10:00:00Z'), is_system: true }), 'the routine never orders itself around').toBe(false);
   });
 
   it('stays open — and undoable — while the topic is still a plain ToDo', () => {
@@ -1327,7 +1325,7 @@ describe('issue requests', () => {
   it('does not change the topic bucket — it is still work in the queue', () => {
     const todo = row('f1', 'open', '2026-09-01T09:00:00Z');
     expect(feedbackBucket(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBe('todo');
-    expect(isArchived(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBeFalse();
+    expect(isArchived(todo, [order('m1', '2026-09-01T10:00:00Z')])).toBe(false);
   });
 });
 
@@ -1450,8 +1448,8 @@ describe('flightPosition (place on the path)', () => {
       expect(flightPosition(row('a', status, T0)).branch).toBeNull();
     }
     // …but the queue is told apart from a topic the routine holds right now.
-    expect(flightPosition(row('a', 'open', T0)).queued).toBeTrue();
-    expect(flightPosition(row('a', 'in_progress', T0)).queued).toBeFalse();
+    expect(flightPosition(row('a', 'open', T0)).queued).toBe(true);
+    expect(flightPosition(row('a', 'in_progress', T0)).queued).toBe(false);
     expect(stationLabelKey(flightPosition(row('a', 'open', T0)))).toBe('adminFeedback.station.queued');
     expect(stationLabelKey(flightPosition(row('a', 'in_progress', T0)))).toBe('adminFeedback.station.work');
   });
@@ -1479,10 +1477,10 @@ describe('flightPosition (place on the path)', () => {
   it('an answered Rückfrage is queued AND marked answered', () => {
     const r = row('a', 'needs_input', T0);
     const pos = flightPosition(r, [msg('m1', 'a', true, T1), msg('m2', 'a', false, T2)]);
-    expect(pos.queued).toBeTrue();
-    expect(pos.answered).toBeTrue();
+    expect(pos.queued).toBe(true);
+    expect(pos.answered).toBe(true);
     expect(stationLabelKey(pos)).toBe('adminFeedback.station.answered');
-    expect(flightPosition(row('b', 'open', T0)).answered).toBeFalse();
+    expect(flightPosition(row('b', 'open', T0)).answered).toBe(false);
   });
 
   it('a post-ship continuation loops back into "work"', () => {
@@ -1627,13 +1625,13 @@ describe('deliveredByDay (the Geliefert feed)', () => {
   });
 
   it('isDelivered: an outcome, signed off or not — never an open topic or a continuation', () => {
-    expect(isDelivered(row('a', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: null }))).toBeTrue();
-    expect(isDelivered(row('b', 'issue_created', day('01', '08'), { reviewed_at: null }))).toBeTrue();
-    expect(isDelivered(row('c', 'declined', day('01', '08')))).toBeTrue();
-    expect(isDelivered(row('d', 'open', day('01', '08')))).toBeFalse();
-    expect(isDelivered(row('e', 'needs_input', day('01', '08')))).toBeFalse();
+    expect(isDelivered(row('a', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: null }))).toBe(true);
+    expect(isDelivered(row('b', 'issue_created', day('01', '08'), { reviewed_at: null }))).toBe(true);
+    expect(isDelivered(row('c', 'declined', day('01', '08')))).toBe(true);
+    expect(isDelivered(row('d', 'open', day('01', '08')))).toBe(false);
+    expect(isDelivered(row('e', 'needs_input', day('01', '08')))).toBe(false);
     const cont = row('f', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: day('01', '10') });
-    expect(isDelivered(cont, [msg('m', 'f', false, day('02', '09'))])).toBeFalse();
+    expect(isDelivered(cont, [msg('m', 'f', false, day('02', '09'))])).toBe(false);
   });
 
   it('a post-ship continuation is not delivered any more', () => {
@@ -1652,9 +1650,9 @@ describe('deliveredByDay (the Geliefert feed)', () => {
 
   it('isNewSince marks only what finished after the last look — and nothing on a first visit', () => {
     const r = row('a', 'shipped', day('01', '08'), { shipped_at: day('02', '08'), reviewed_at: day('02', '09') });
-    expect(isNewSince(r, Date.parse(day('01', '12')))).toBeTrue();
-    expect(isNewSince(r, Date.parse(day('02', '12')))).toBeFalse();
-    expect(isNewSince(r, 0)).toBeFalse();
+    expect(isNewSince(r, Date.parse(day('01', '12')))).toBe(true);
+    expect(isNewSince(r, Date.parse(day('02', '12')))).toBe(false);
+    expect(isNewSince(r, 0)).toBe(false);
   });
 });
 
@@ -1688,22 +1686,22 @@ describe('parseAnswerOptions ([[A|B]] convention)', () => {
 
 describe('isLongMessage (fold sent messages > 3 lines)', () => {
   it('short messages stay open', () => {
-    expect(isLongMessage('Eine Zeile.')).toBeFalse();
-    expect(isLongMessage('Eins\nZwei\nDrei')).toBeFalse();
-    expect(isLongMessage('')).toBeFalse();
+    expect(isLongMessage('Eine Zeile.')).toBe(false);
+    expect(isLongMessage('Eins\nZwei\nDrei')).toBe(false);
+    expect(isLongMessage('')).toBe(false);
   });
 
   it('four explicit lines fold', () => {
-    expect(isLongMessage('Eins\nZwei\nDrei\nVier')).toBeTrue();
+    expect(isLongMessage('Eins\nZwei\nDrei\nVier')).toBe(true);
   });
 
   it('one long paragraph folds by wrapped width', () => {
-    expect(isLongMessage('x'.repeat(300))).toBeTrue();
-    expect(isLongMessage('x'.repeat(140))).toBeFalse();
+    expect(isLongMessage('x'.repeat(300))).toBe(true);
+    expect(isLongMessage('x'.repeat(140))).toBe(false);
   });
 
   it('images do not count as lines', () => {
-    expect(isLongMessage('Text\n![a](u1)\n![b](u2)\n![c](u3)\n![d](u4)')).toBeFalse();
+    expect(isLongMessage('Text\n![a](u1)\n![b](u2)\n![c](u3)\n![d](u4)')).toBe(false);
   });
 });
 
@@ -1722,7 +1720,7 @@ describe('complex flag (feedback 423e5130)', () => {
 
   it('is absent by default and carries the admin opt-in when set', () => {
     expect(plain.complex).toBeUndefined();
-    expect(flagged.complex).toBeTrue();
+    expect(flagged.complex).toBe(true);
   });
 
   it('changes nothing about where a topic sits', () => {

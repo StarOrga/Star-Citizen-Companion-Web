@@ -91,7 +91,7 @@ describe('FeedbackAttachmentsComponent', () => {
     await setup();
     const row = thumbs();
     expect(row.length).toBe(2);
-    expect(row.every((b) => b.type === 'button')).toBeTrue();
+    expect(row.every((b) => b.type === 'button')).toBe(true);
     expect(row[0].getAttribute('aria-label')).toBe('Enlarge image: first shot');
     // A nameless image still gets a label instead of an empty button.
     expect(row[1].getAttribute('aria-label')).toBe('Enlarge image');
@@ -227,10 +227,8 @@ describe('FeedbackAttachmentsComponent', () => {
       const children = Array.from(row.children) as HTMLElement[];
       // Two chips, then the tile — one line, one control.
       expect(children.length).toBe(3);
-      expect(children[2].classList.contains('att-add')).toBeTrue();
-      expect(children[2].classList.contains('att-thumb'))
-        .withContext('the tile is the same box as a thumbnail')
-        .toBeTrue();
+      expect(children[2].classList.contains('att-add')).toBe(true);
+      expect(children[2].classList.contains('att-thumb'), 'the tile is the same box as a thumbnail').toBe(true);
     });
 
     /**
@@ -252,11 +250,11 @@ describe('FeedbackAttachmentsComponent', () => {
     it('halves every chip in the row when it is dense — thumbnails and tiles alike', async () => {
       await setup(IMAGES, true, { addTile: true, captureTile: true, dense: true });
       const half = thumbs()[0].getBoundingClientRect().width;
-      expect(half).withContext('half of the thread size').toBe(FULL / 2);
+      expect(half, 'half of the thread size').toBe(FULL / 2);
       for (const tile of ['.att-add', '.att-capture']) {
         const box = (fixture.nativeElement.querySelector(tile) as HTMLElement).getBoundingClientRect();
-        expect(box.width).withContext(tile + ' comes down with them').toBe(half);
-        expect(box.height).withContext(tile + ' stays square').toBe(half);
+        expect(box.width, tile + ' comes down with them').toBe(half);
+        expect(box.height, tile + ' stays square').toBe(half);
       }
     });
 
@@ -295,7 +293,7 @@ describe('FeedbackAttachmentsComponent', () => {
     it('refuses a second capture while one is still running', async () => {
       await setup([], false, { captureTile: true, capturing: true });
       const tile = fixture.nativeElement.querySelector('.att-capture') as HTMLButtonElement;
-      expect(tile.disabled).toBeTrue();
+      expect(tile.disabled).toBe(true);
       expect(tile.querySelector('.spin')).not.toBeNull();
     });
   });
@@ -363,7 +361,7 @@ describe('FeedbackAttachmentsComponent', () => {
 
       cmp.startAnnotate();
       fixture.detectChanges();
-      expect(cmp.annotating()).toBeTrue();
+      expect(cmp.annotating()).toBe(true);
       expect(lightbox()?.querySelector('canvas.lb-draw')).not.toBeNull();
       expect(lightbox()?.querySelector('.lb-tools')).not.toBeNull();
       // Paging is suspended: an arrow key while drawing must not swap the image.
@@ -375,7 +373,7 @@ describe('FeedbackAttachmentsComponent', () => {
       thumbs()[0].click();
       fixture.detectChanges();
       cmp.startAnnotate();
-      expect(cmp.annotating()).toBeFalse();
+      expect(cmp.annotating()).toBe(false);
     });
 
     it('backs out of mark-up on ESC before it closes the lightbox', async () => {
@@ -387,8 +385,8 @@ describe('FeedbackAttachmentsComponent', () => {
 
       document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       fixture.detectChanges();
-      expect(cmp.annotating()).withContext('first ESC leaves mark-up').toBeFalse();
-      expect(lightbox()).withContext('and keeps the image open').not.toBeNull();
+      expect(cmp.annotating(), 'first ESC leaves mark-up').toBe(false);
+      expect(lightbox(), 'and keeps the image open').not.toBeNull();
 
       document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       fixture.detectChanges();
@@ -420,7 +418,7 @@ describe('FeedbackAttachmentsComponent', () => {
       expect(cmp.shapes().length).toBe(1);
       cmp.cancelAnnotate();
       expect(cmp.shapes().length).toBe(0);
-      expect(cmp.annotating()).toBeFalse();
+      expect(cmp.annotating()).toBe(false);
     });
 
     it('emits the flattened image for the row position it belongs to', async () => {
@@ -444,9 +442,9 @@ describe('FeedbackAttachmentsComponent', () => {
 
       expect(results.length).toBe(1);
       expect(results[0].index).toBe(0);
-      expect(results[0].dataUrl.startsWith('data:image/jpeg')).toBeTrue();
+      expect(results[0].dataUrl.startsWith('data:image/jpeg')).toBe(true);
       // Saving closes the enlarged view — the chip in the row is the result now.
-      expect(cmp.annotating()).toBeFalse();
+      expect(cmp.annotating()).toBe(false);
     });
 
     it('says so instead of silently keeping the original when the export fails', async () => {

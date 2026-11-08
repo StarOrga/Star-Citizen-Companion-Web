@@ -84,7 +84,7 @@ describe('HandoffService', () => {
   it('create() failure sets error status and rethrows', async () => {
     createAnswer = () => ({ error: new Error('boom') });
     const svc = setup();
-    await expectAsync(svc.create('/')).toBeRejected();
+    await expect(svc.create('/')).rejects.toThrow();
     expect(svc.status()).toBe('error');
   });
 
@@ -154,13 +154,13 @@ describe('HandoffService', () => {
   it('revoke() throws when the server changed nothing', async () => {
     revokeAnswer = { data: { revoked: false, outcome: 'none' } };
     const svc = setup();
-    await expectAsync(svc.revoke('row-7')).toBeRejected();
+    await expect(svc.revoke('row-7')).rejects.toThrow();
   });
 
   it('listConnected() returns own attached, unrevoked rows', async () => {
     const svc = setup();
     const list = await svc.listConnected();
-    expect(fake.calls[0].chain.some(([m, a]) => m === 'eq' && a[0] === 'session_attached' && a[1] === true)).toBeTrue();
+    expect(fake.calls[0].chain.some(([m, a]) => m === 'eq' && a[0] === 'session_attached' && a[1] === true)).toBe(true);
     expect(list).toEqual([{ id: 'row-9', device: 'iOS - Safari', connectedAt: Date.parse('2026-10-26T10:00:00Z') }]);
   });
 
@@ -172,7 +172,7 @@ describe('HandoffService', () => {
 
   it('redeem() sets the session and returns a sanitised target', async () => {
     const svc = setup();
-    const setSession = jasmine.createSpy('setSession').and.resolveTo({ error: null });
+    const setSession = vi.fn().mockName('setSession').mockResolvedValue({ error: null });
     (fake.client.auth as unknown as { setSession: unknown }).setSession = setSession;
     const target = await svc.redeem('CODE');
     expect(setSession).toHaveBeenCalledWith({ access_token: 'a', refresh_token: 'r' });

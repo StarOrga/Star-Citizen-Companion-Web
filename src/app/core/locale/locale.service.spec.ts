@@ -23,7 +23,7 @@ describe('LocaleService', () => {
     svc.setBrowserSignals({ languages: ['en-US'] });
     expect(svc.languageSetting()).toBe('auto');
     expect(svc.regionSetting()).toBe('auto');
-    expect(svc.languageIsAuto()).toBeTrue();
+    expect(svc.languageIsAuto()).toBe(true);
     expect(svc.language()).toBe('en');
     expect(svc.region()).toBe('US');
   });

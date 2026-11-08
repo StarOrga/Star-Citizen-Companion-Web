@@ -13,15 +13,15 @@ function rendererNamed(name: string | null, withDebugInfo = true): THREE.WebGLRe
 
 describe('isSoftwareRenderer', () => {
   it('flags CPU WebGL, where the animated loop would freeze the page', () => {
-    expect(isSoftwareRenderer(rendererNamed('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)'))).toBeTrue();
-    expect(isSoftwareRenderer(rendererNamed('llvmpipe (LLVM 15.0.7, 256 bits)'))).toBeTrue();
-    expect(isSoftwareRenderer(rendererNamed('ANGLE (Microsoft, Microsoft Basic Render Driver Direct3D11)'))).toBeTrue();
+    expect(isSoftwareRenderer(rendererNamed('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)'))).toBe(true);
+    expect(isSoftwareRenderer(rendererNamed('llvmpipe (LLVM 15.0.7, 256 bits)'))).toBe(true);
+    expect(isSoftwareRenderer(rendererNamed('ANGLE (Microsoft, Microsoft Basic Render Driver Direct3D11)'))).toBe(true);
   });
 
   it('keeps real GPUs animated, and falls back to the plain renderer name', () => {
-    expect(isSoftwareRenderer(rendererNamed('ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Direct3D11 vs_5_0 ps_5_0)'))).toBeFalse();
-    expect(isSoftwareRenderer(rendererNamed('Apple GPU', false))).toBeFalse();
-    expect(isSoftwareRenderer(rendererNamed(null))).toBeFalse();
+    expect(isSoftwareRenderer(rendererNamed('ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Direct3D11 vs_5_0 ps_5_0)'))).toBe(false);
+    expect(isSoftwareRenderer(rendererNamed('Apple GPU', false))).toBe(false);
+    expect(isSoftwareRenderer(rendererNamed(null))).toBe(false);
   });
 });
 

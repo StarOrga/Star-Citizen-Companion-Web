@@ -59,14 +59,14 @@ class FakeStore {
 describe('HqLiveService', () => {
   let store: FakeStore;
   const targets = {
-    tickByClassName: jasmine.createSpy('tick').and.returnValue('sup1'),
-    untick: jasmine.createSpy('untick'),
-    markStepDone: jasmine.createSpy('mark').and.returnValue({ einsatzId: 'e1', ord: 2 }),
-    unmarkStep: jasmine.createSpy('unmark'),
-    restoreSnapshot: jasmine.createSpy('restore').and.resolveTo(true),
-    collectBlueprint: jasmine.createSpy('collect').and.resolveTo({ className: 'bp_p4ar', name: 'P4-AR Rifle' }),
-    uncollectBlueprint: jasmine.createSpy('uncollect').and.resolveTo(true),
-    pull: jasmine.createSpy('pull').and.resolveTo(),
+    tickByClassName: vi.fn().mockName('tick').mockReturnValue('sup1'),
+    untick: vi.fn().mockName('untick'),
+    markStepDone: vi.fn().mockName('mark').mockReturnValue({ einsatzId: 'e1', ord: 2 }),
+    unmarkStep: vi.fn().mockName('unmark'),
+    restoreSnapshot: vi.fn().mockName('restore').mockResolvedValue(true),
+    collectBlueprint: vi.fn().mockName('collect').mockResolvedValue({ className: 'bp_p4ar', name: 'P4-AR Rifle' }),
+    uncollectBlueprint: vi.fn().mockName('uncollect').mockResolvedValue(true),
+    pull: vi.fn().mockName('pull').mockResolvedValue(undefined),
     ready: undefined as unknown as WritableSignal<boolean>,
   };
   const reports: unknown[] = [];
@@ -88,7 +88,7 @@ describe('HqLiveService', () => {
     store = new FakeStore();
     targets.ready = signal(true);
     reports.length = 0;
-    (['tickByClassName', 'untick', 'markStepDone', 'unmarkStep', 'restoreSnapshot', 'collectBlueprint', 'uncollectBlueprint', 'pull'] as const).forEach((k) => targets[k].calls.reset());
+    (['tickByClassName', 'untick', 'markStepDone', 'unmarkStep', 'restoreSnapshot', 'collectBlueprint', 'uncollectBlueprint', 'pull'] as const).forEach((k) => targets[k].mockClear());
   });
 
   it('ticks a supply for a buy purchase and records exactly what it did', fakeAsync(() => {
@@ -135,7 +135,7 @@ describe('HqLiveService', () => {
     void s.undo('a');
     flushMicrotasks();
     expect(targets.untick).toHaveBeenCalledWith('sup1', 3);
-    expect(s.events()[0].undone).toBeTrue();
+    expect(s.events()[0].undone).toBe(true);
     expect(store.patches.at(-1)).toEqual({ id: 'a', patch: { undone: true } });
     store.rows = [ev('s', 'refinery.complete')];
     void s.refresh();
@@ -160,7 +160,7 @@ describe('HqLiveService', () => {
     expect(store.patches.find((p) => p.id === 'b' && (p.patch['applied'] as { kind?: string })?.kind === 'blueprint')?.patch['applied']).toEqual({
       kind: 'blueprint', className: 'bp_p4ar', name: 'P4-AR Rifle', einsatzId: 'e1', ord: 2,
     });
-    expect(s.undoable(s.events()[0])).toBeTrue();
+    expect(s.undoable(s.events()[0])).toBe(true);
     void s.undo('b');
     for (let i = 0; i < 4; i++) flushMicrotasks();
     expect(targets.uncollectBlueprint).toHaveBeenCalledWith('bp_p4ar', 'P4-AR Rifle');
@@ -171,24 +171,24 @@ describe('HqLiveService', () => {
     store.rows = [ev('b', 'blueprint.received', { name: 'P4-AR Rifle' })];
     const s = make();
     settle();
-    targets.uncollectBlueprint.and.resolveTo(false);
+    targets.uncollectBlueprint.mockResolvedValue(false);
     void s.undo('b');
     for (let i = 0; i < 4; i++) flushMicrotasks();
     expect(store.patches.at(-1)).toEqual({ id: 'b', patch: { undone: false } });
     expect(targets.unmarkStep).not.toHaveBeenCalled();
-    expect(s.events()[0].undone).toBeFalse();
+    expect(s.events()[0].undone).toBe(false);
     expect(s.error()).toBeTruthy();
-    targets.uncollectBlueprint.and.resolveTo(true);
+    targets.uncollectBlueprint.mockResolvedValue(true);
   }));
 
   it('a blueprint the Sammlung has already (or no blueprint at all) changes nothing', fakeAsync(() => {
-    targets.collectBlueprint.and.resolveTo(null);
+    targets.collectBlueprint.mockResolvedValue(null);
     store.rows = [ev('b', 'blueprint.received', { name: 'Unbekannt' })];
     make();
     settle();
     expect(targets.markStepDone).not.toHaveBeenCalled();
     expect(store.patches.find((p) => p.id === 'b' && 'applied' in p.patch && (p.patch['applied'] as { kind?: string }).kind !== 'pending')?.patch['applied']).toEqual({ kind: 'none' });
-    targets.collectBlueprint.and.resolveTo({ className: 'bp_p4ar', name: 'P4-AR Rifle' });
+    targets.collectBlueprint.mockResolvedValue({ className: 'bp_p4ar', name: 'P4-AR Rifle' });
   }));
 
   it('finds a blueprint by its display name, then by the base name without "(…)" when that is unique', async () => {
@@ -235,7 +235,7 @@ describe('HqLiveService', () => {
     void s.undo('a');
     settle();
     expect(targets.untick).not.toHaveBeenCalled();
-    expect(s.events()[0].undone).toBeTrue();
+    expect(s.events()[0].undone).toBe(true);
     TestBed.resetTestingModule();
   }));
 
@@ -247,7 +247,7 @@ describe('HqLiveService', () => {
     void s.undo('a');
     settle();
     expect(targets.untick).not.toHaveBeenCalled();
-    expect(s.events()[0].undone).toBeFalse();
+    expect(s.events()[0].undone).toBe(false);
     expect(s.error()).toMatch(/^errors\./);
     TestBed.resetTestingModule();
   }));
@@ -257,24 +257,24 @@ describe('HqLiveService', () => {
     store.rows = [ev('snap', 'inventory.snapshot', {}, { applied: { replaced: true, previous } })];
     const s = make();
     settle();
-    expect(s.undoable(s.events()[0])).toBeTrue();
+    expect(s.undoable(s.events()[0])).toBe(true);
     void s.undo('snap');
     settle();
     expect(targets.restoreSnapshot).toHaveBeenCalledWith(previous);
-    expect(s.events()[0].undone).toBeTrue();
+    expect(s.events()[0].undone).toBe(true);
     TestBed.resetTestingModule();
   }));
 
   it('hands the undo claim back when the snapshot restore fails', fakeAsync(() => {
-    targets.restoreSnapshot.and.resolveTo(false);
+    targets.restoreSnapshot.mockResolvedValue(false);
     store.rows = [ev('snap', 'inventory.snapshot', {}, { applied: { replaced: true, previous: { location: 'X' } } })];
     const s = make();
     settle();
     void s.undo('snap');
     settle();
     expect(store.patches.at(-1)).toEqual({ id: 'snap', patch: { undone: false } });
-    expect(s.events()[0].undone).toBeFalse();
-    targets.restoreSnapshot.and.resolveTo(true);
+    expect(s.events()[0].undone).toBe(false);
+    targets.restoreSnapshot.mockResolvedValue(true);
     TestBed.resetTestingModule();
   }));
 
@@ -286,8 +286,8 @@ describe('HqLiveService', () => {
     ];
     make();
     settle();
-    expect(reports).toContain(jasmine.arrayWithExactContents([{ kind: 'price', class_name: 'ITEM_X', location: 'Lorville', value: 100 }]));
-    expect(reports).toContain(jasmine.arrayWithExactContents([{ kind: 'price', class_name: 'ITEM_Y', location: 'Area18', value: 90 }]));
+    expect(reports).toContainEqual([{ kind: 'price', class_name: 'ITEM_X', location: 'Lorville', value: 100 }]);
+    expect(reports).toContainEqual([{ kind: 'price', class_name: 'ITEM_Y', location: 'Area18', value: 90 }]);
     expect(reports.length).toBe(2);
     TestBed.resetTestingModule();
   }));
@@ -322,11 +322,11 @@ describe('HqLiveService', () => {
     void s.loadMore();
     flushMicrotasks();
     expect(s.events().length).toBe(100 + LIVE_PAGE_SIZE);
-    expect(s.hasMore()).toBeTrue();
+    expect(s.hasMore()).toBe(true);
     void s.loadMore();
     flushMicrotasks();
     expect(s.events().length).toBe(135);
-    expect(s.hasMore()).toBeFalse();
+    expect(s.hasMore()).toBe(false);
     TestBed.resetTestingModule();
   }));
 });

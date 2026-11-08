@@ -23,7 +23,7 @@ const view = (over: Partial<SharedLoadoutView> = {}): SharedLoadoutView => ({
 });
 
 async function mount(token: string, result: SharedLoadoutView | null) {
-  const getShared = jasmine.createSpy('getShared').and.resolveTo(result);
+  const getShared = vi.fn().mockName('getShared').mockResolvedValue(result);
   TestBed.configureTestingModule({
     imports: [SharedLoadoutComponent],
     providers: [

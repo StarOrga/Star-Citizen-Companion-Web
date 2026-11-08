@@ -19,9 +19,7 @@ describe('publicOnlyGuard', () => {
   }
 
   function configure(isAuthenticated: boolean) {
-    const parseUrl = jasmine
-      .createSpy('parseUrl')
-      .and.callFake((url: string) => ({ __url: url }) as unknown as UrlTree);
+    const parseUrl = vi.fn().mockName('parseUrl').mockImplementation((url: string) => ({ __url: url }) as unknown as UrlTree);
     TestBed.configureTestingModule({
       providers: [
         {

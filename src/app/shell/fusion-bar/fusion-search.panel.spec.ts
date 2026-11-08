@@ -53,8 +53,8 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     expect(row.querySelector('.sep')).not.toBeNull();
     const path = row.querySelector('sc-item-path')!;
     expect([...path.querySelectorAll<HTMLElement>('.node')].map((n) => n.dataset['step'])).toEqual(['wish', 'hangar']);
-    expect(path.querySelector('.pill')).withContext('a plain search row is the tertiary level').toBeNull();
-    expect(el.querySelector('.qi')).withContext('the old quick icons (pin star, new tab, copy) are gone').toBeNull();
+    expect(path.querySelector('.pill'), 'a plain search row is the tertiary level').toBeNull();
+    expect(el.querySelector('.qi'), 'the old quick icons (pin star, new tab, copy) are gone').toBeNull();
   });
 
   it('a press on a path node writes and does not open the row', async () => {
@@ -65,8 +65,8 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     const before = cmp.open();
     (el.querySelector('.row .node') as HTMLButtonElement).click();
     await new Promise((r) => setTimeout(r));
-    expect(path.addWish).toHaveBeenCalledWith('ship', jasmine.any(String), 'Aegis Reclaimer');
-    expect(engine.calls.noteOpened).withContext('no navigation').toBe(0);
+    expect(path.addWish).toHaveBeenCalledWith('ship', expect.any(String), 'Aegis Reclaimer');
+    expect(engine.calls.noteOpened, 'no navigation').toBe(0);
     expect(cmp.open()).toBe(before);
   });
 
@@ -102,7 +102,7 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     const shipTile = [...el.querySelectorAll<HTMLElement>('.group')].find((g) => g.textContent!.includes('codex.kinds.ship'))!;
     (shipTile.querySelector('.expand') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(el.querySelector('.summary')).withContext('summary line on top').not.toBeNull();
+    expect(el.querySelector('.summary'), 'summary line on top').not.toBeNull();
     expect(el.querySelector('button.why.collapse')!.textContent).toContain('search.group.collapse');
     expect(cmp.expanded()).toBe('ship');
     expect(cmp.viewGroups().length).toBe(1);
@@ -114,7 +114,7 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
 
     key('ArrowDown');
     key('ArrowRight');
-    expect(cmp.expanded()).withContext('→ on a row of an expandable group').toBe('ship');
+    expect(cmp.expanded(), '→ on a row of an expandable group').toBe('ship');
   });
 
   it('the dashed outside group shows a fast-exact hit outside the chip filter (A10)', () => {
@@ -142,16 +142,16 @@ describe('FusionSearchComponent panel (concept 2026-11-02)', () => {
     const engine = fakeEngine({ groups: [ships] });
     const { el, type, key, cmp, fixture } = setupFusionSearch(engine);
     type('aegis');
-    expect(cmp.open()).toBeTrue();
+    expect(cmp.open()).toBe(true);
     key('Escape');
-    expect(cmp.open()).toBeFalse();
+    expect(cmp.open()).toBe(false);
     expect(engine.input()).toBe('aegis');
     cmp.openPanel();
     fixture.detectChanges();
     (el.querySelector('.close.clear') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(engine.input()).toBe('');
-    expect(cmp.open()).withContext('clearing does not close').toBeTrue();
+    expect(cmp.open(), 'clearing does not close').toBe(true);
   });
 
   it('the empty field offers recent searches and the rotating hint, no "Bereiche" and no "Hier" (A6, A7)', () => {
@@ -224,17 +224,17 @@ describe('FusionSearchChipComponent (C4)', () => {
     await Promise.resolve();
     const menu = el.querySelector('.menu') as HTMLElement;
     expect(menu).not.toBeNull();
-    expect(el.querySelector('input.mini')).withContext('11 sizes > 7').not.toBeNull();
+    expect(el.querySelector('input.mini'), '11 sizes > 7').not.toBeNull();
     const opts = [...el.querySelectorAll<HTMLButtonElement>('.opt')];
     expect(opts.length).toBe(11);
     expect(opts.find((o) => o.textContent!.includes('9'))!.classList).toContain('on');
     const zero = opts[6];
     expect(zero.classList).toContain('zero');
-    expect(zero.disabled).toBeFalse();
+    expect(zero.disabled).toBe(false);
     zero.click();
     f.detectChanges();
     expect(picked).toEqual([chip.options![6].value]);
-    expect(el.querySelector('.menu')).withContext('closes after a pick').toBeNull();
+    expect(el.querySelector('.menu'), 'closes after a pick').toBeNull();
     // Same colour as the chip: the menu reads the chip's own background variable.
     expect(getComputedStyle(el.querySelector('.chip')!).getPropertyValue('--chip-bg')).toBeTruthy();
   });
@@ -249,7 +249,7 @@ describe('FusionSearchChipComponent (C4)', () => {
 
 describe('FusionSearchHintComponent (A7)', () => {
   it('rotates every ~6 s, pauses on hover, puts its example into the field on click', () => {
-    jasmine.clock().install();
+    vi.useFakeTimers();
     try {
       TestBed.configureTestingModule({ imports: [FusionSearchHintComponent], providers: [provideTranslateService()] });
       const f = TestBed.createComponent(FusionSearchHintComponent);
@@ -257,16 +257,16 @@ describe('FusionSearchHintComponent (A7)', () => {
       f.detectChanges();
       const cmp = f.componentInstance;
       const first = cmp.index();
-      jasmine.clock().tick(HINT_ROTATE_MS + 10);
+      vi.advanceTimersByTime(HINT_ROTATE_MS + 10);
       expect(cmp.index()).toBe((first + 1) % 3);
       cmp.paused.set(true);
-      jasmine.clock().tick(HINT_ROTATE_MS * 2);
-      expect(cmp.index()).withContext('paused').toBe((first + 1) % 3);
+      vi.advanceTimersByTime(HINT_ROTATE_MS * 2);
+      expect(cmp.index(), 'paused').toBe((first + 1) % 3);
       cmp.paused.set(false);
       const focus = TestBed.inject(WindowFocusService);
       focus.focused.set(false);
-      jasmine.clock().tick(HINT_ROTATE_MS * 2);
-      expect(cmp.index()).withContext('no window focus').toBe((first + 1) % 3);
+      vi.advanceTimersByTime(HINT_ROTATE_MS * 2);
+      expect(cmp.index(), 'no window focus').toBe((first + 1) % 3);
       focus.focused.set(true);
       while (!cmp.current()?.q) cmp.next();
       f.detectChanges();
@@ -274,10 +274,10 @@ describe('FusionSearchHintComponent (A7)', () => {
       cmp.pick.subscribe((q) => picked.push(q));
       (f.nativeElement.querySelector('button.line') as HTMLButtonElement).click();
       expect(picked).toEqual([cmp.current()!.q!]);
-      expect((f.nativeElement as HTMLElement).querySelectorAll('.line').length).withContext('one line').toBe(1);
+      expect((f.nativeElement as HTMLElement).querySelectorAll('.line').length, 'one line').toBe(1);
       f.destroy();
     } finally {
-      jasmine.clock().uninstall();
+      vi.useRealTimers();
     }
   });
 });
@@ -299,13 +299,13 @@ describe('Esc with a mouse-opened chip menu', () => {
     expect(el.querySelector('.menu')).not.toBeNull();
     esc(toggle);
     f.detectChanges();
-    expect(el.querySelector('.menu')).withContext('Esc on the toggle').toBeNull();
+    expect(el.querySelector('.menu'), 'Esc on the toggle').toBeNull();
     toggle.click();
     f.detectChanges();
     await Promise.resolve();
     esc(document.body);
     f.detectChanges();
-    expect(el.querySelector('.menu')).withContext('Esc with focus elsewhere').toBeNull();
+    expect(el.querySelector('.menu'), 'Esc with focus elsewhere').toBeNull();
   });
 
   it('the first Esc closes only the menu; the next closes the panel and keeps the text', async () => {
@@ -313,17 +313,17 @@ describe('Esc with a mouse-opened chip menu', () => {
     const { el, type, cmp, fixture } = setupFusionSearch(engine);
     type('aegis');
     const toggle = el.querySelector('sc-fusion-search-chip button.lbl') as HTMLButtonElement;
-    expect(toggle).withContext('a switchable chip').not.toBeNull();
+    expect(toggle, 'a switchable chip').not.toBeNull();
     toggle.click();
     fixture.detectChanges();
     await Promise.resolve();
     esc(toggle);
     fixture.detectChanges();
     expect(el.querySelector('.menu')).toBeNull();
-    expect(cmp.open()).withContext('the panel survives the first Esc').toBeTrue();
+    expect(cmp.open(), 'the panel survives the first Esc').toBe(true);
     esc(toggle);
     fixture.detectChanges();
-    expect(cmp.open()).toBeFalse();
+    expect(cmp.open()).toBe(false);
     expect(engine.input()).toBe('aegis');
   });
 });

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Type, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -16,16 +17,16 @@ const SHIP = { id: 'sh1', shipClassName: 'AEGS_Avenger_Stalker', customName: 'Sc
 
 describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C7)', () => {
   let path: FakeItemPath;
-  let confirm: jasmine.Spy;
-  let prompt: jasmine.Spy;
-  let marks: { list: ReturnType<typeof signal<HqItemMark[]>>; setNote: jasmine.Spy; setPinned: jasmine.Spy };
+  let confirm: Mock;
+  let prompt: Mock;
+  let marks: { list: ReturnType<typeof signal<HqItemMark[]>>; setNote: Mock; setPinned: Mock };
 
   function setup<T>(type: Type<T>, inputs: Record<string, unknown>): ComponentFixture<T> {
     path = fakeItemPath();
-    confirm = jasmine.createSpy('confirm').and.resolveTo(true);
-    prompt = jasmine.createSpy('prompt').and.resolveTo(null);
+    confirm = vi.fn().mockName('confirm').mockResolvedValue(true);
+    prompt = vi.fn().mockName('prompt').mockResolvedValue(null);
     const list = signal<HqItemMark[]>([]);
-    marks = { list, setNote: jasmine.createSpy('setNote').and.resolveTo(true), setPinned: jasmine.createSpy('setPinned').and.resolveTo(true) };
+    marks = { list, setNote: vi.fn().mockName('setNote').mockResolvedValue(true), setPinned: vi.fn().mockName('setPinned').mockResolvedValue(true) };
     TestBed.configureTestingModule({
       imports: [type],
       providers: [
@@ -44,7 +45,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
             setPinned: (...a: unknown[]) => marks.setPinned(...a),
           },
         },
-        { provide: HangarService, useValue: { error: signal(null), ships: signal([SHIP]), updateShip: jasmine.createSpy(), pinShip: jasmine.createSpy(), removeShip: jasmine.createSpy() } },
+        { provide: HangarService, useValue: { error: signal(null), ships: signal([SHIP]), updateShip: vi.fn(), pinShip: vi.fn(), removeShip: vi.fn() } },
         { provide: HqOwnershipService, useValue: { configsForShip: () => [], invalidate: () => undefined } },
       ],
     });
@@ -96,7 +97,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       expect(el.querySelector('.oc-hq')?.textContent).toContain('codex.ownCard.inNachschub');
       expect(el.querySelector<HTMLAnchorElement>('a.oc-link')!.getAttribute('href')).toContain('/hq');
       expect(el.querySelector('sc-codex-mode-switch')).toBeNull();
-      expect(f.componentInstance.owned()).toBeTrue();
+      expect(f.componentInstance.owned()).toBe(true);
     });
 
     it('no Nachschub hint when the ship sits in none', () => {
@@ -116,7 +117,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       expect(path.adjustInventar).toHaveBeenCalledWith('KLWE_Laser_S3', 'M6A', 'Area 18', 1);
       el.querySelector<HTMLButtonElement>('.oc-remove')!.click();
       await flush();
-      expect(confirm).toHaveBeenCalledWith(jasmine.objectContaining({ tone: 'danger' }));
+      expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ tone: 'danger' }));
       expect(path.removeFromInventar).toHaveBeenCalledWith('weapon', 'KLWE_Laser_S3', 'M6A');
       el.querySelector<HTMLButtonElement>('.oc-again')!.click();
       await flush();
@@ -136,7 +137,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       expect(el.querySelector('.oc-remove')?.getAttribute('aria-label')).toBe('codex.ownCard.removeSammlung');
       el.querySelector<HTMLButtonElement>('.oc-remove')!.click();
       await flush();
-      expect(confirm).toHaveBeenCalledWith(jasmine.objectContaining({ titleKey: 'codex.ownCard.removeSammlungTitle', tone: 'danger' }));
+      expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ titleKey: 'codex.ownCard.removeSammlungTitle', tone: 'danger' }));
       expect(path.setBlueprintOwned).toHaveBeenCalledWith('BP_KLWE_Laser_S3', 'M6A Blueprint', false);
       expect(path.removeFromInventar).not.toHaveBeenCalled();
     });
@@ -147,7 +148,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       f.detectChanges();
       const el = f.nativeElement as HTMLElement;
       expect(el.querySelector('.oc-note-text')).toBeNull();
-      prompt.and.resolveTo('  for the Cutlass ');
+      prompt.mockResolvedValue('  for the Cutlass ');
       el.querySelector<HTMLButtonElement>('.oc-note')!.click();
       await flush();
       expect(marks.setNote).toHaveBeenCalledWith('KLWE_Laser_S3', '  for the Cutlass ');
@@ -176,7 +177,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
 
     it('a failed write shows its translated key, never raw text', async () => {
       const f = setup(CodexOwnCardComponent, { kind: 'ship', className: 'X' });
-      path.addWish.and.resolveTo({ ok: false, key: 'errors.network' });
+      path.addWish.mockResolvedValue({ ok: false, key: 'errors.network' });
       (f.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.oc-wish')!.click();
       await flush();
       f.detectChanges();
@@ -207,7 +208,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
   describe('head segment', () => {
     it('not owned: a quiet button that asks the page to show the card', () => {
       const f = setup(CodexOwnSegmentComponent, { kind: 'ship', className: 'X' });
-      const jumped = jasmine.createSpy('jump');
+      const jumped = vi.fn().mockName('jump');
       f.componentInstance.jump.subscribe(jumped);
       const btn = (f.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('button.quiet')!;
       expect(btn.textContent).toContain('codex.head.notOwn.hangar');

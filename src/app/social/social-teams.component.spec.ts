@@ -18,12 +18,12 @@ const members: TeamMember[] = [
 ];
 
 function setup(handlers: Record<string, Handler>, confirm = true) {
-  const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string, args?: Record<string, unknown>) => {
+  const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string, args?: Record<string, unknown>) => {
     const h = handlers[fn];
     return { data: h ? h(args) : null, error: null };
   });
   const client = { rpc };
-  const confirmSpy = jasmine.createSpy('confirm').and.resolveTo(confirm);
+  const confirmSpy = vi.fn().mockName('confirm').mockResolvedValue(confirm);
   TestBed.configureTestingModule({
     providers: [
       provideTranslateService({}),
@@ -58,7 +58,7 @@ describe('SocialTeamsComponent', () => {
   });
 
   it('shows a load error with retry instead of the empty state', async () => {
-    const rpc = jasmine.createSpy('rpc').and.resolveTo({ data: null, error: { message: 'boom' } });
+    const rpc = vi.fn().mockName('rpc').mockResolvedValue({ data: null, error: { message: 'boom' } });
     TestBed.configureTestingModule({
       providers: [
         provideTranslateService({}),
@@ -112,12 +112,12 @@ describe('SocialTeamsComponent', () => {
     const { fixture, el } = await mount();
     button(el, 'social.teams.leave')?.click();
     await settle(fixture);
-    expect(confirmSpy).toHaveBeenCalledWith(jasmine.objectContaining({ tone: 'danger' }));
-    expect(rpc).not.toHaveBeenCalledWith('leave_group', jasmine.anything());
+    expect(confirmSpy).toHaveBeenCalledWith(expect.objectContaining({ tone: 'danger' }));
+    expect(rpc).not.toHaveBeenCalledWith('leave_group', expect.anything());
   });
 
   it('leaves after the confirm and shows the last-owner refusal', async () => {
-    const rpc = jasmine.createSpy('rpc').and.callFake(async (fn: string) =>
+    const rpc = vi.fn().mockName('rpc').mockImplementation(async (fn: string) =>
       fn === 'leave_group' ? { data: null, error: { message: 'last_owner' } } : { data: fn === 'list_my_groups' ? [team()] : null, error: null });
     TestBed.configureTestingModule({
       providers: [
@@ -156,7 +156,7 @@ describe('SocialTeamsComponent', () => {
     const { fixture, el } = await mount();
     button(el, 'social.teams.delete')?.click();
     await settle(fixture);
-    expect(confirmSpy).toHaveBeenCalledWith(jasmine.objectContaining({ tone: 'danger' }));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.objectContaining({ tone: 'danger' }));
     expect(rpc).toHaveBeenCalledWith('delete_group', { p_group: 'g1' });
   });
 

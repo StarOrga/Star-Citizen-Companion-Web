@@ -44,7 +44,7 @@ describe('hq-stock-model', () => {
     const firstRow = byName[xHead + 1];
     expect(firstRow.kind === 'row' ? firstRow.row.location : null).toBe('A');
     const qty = stockLines(rows, 'qty');
-    expect(qty.every((l) => l.kind === 'row')).toBeTrue();
+    expect(qty.every((l) => l.kind === 'row')).toBe(true);
     const q0 = qty[0];
     expect(q0.kind === 'row' ? q0.row.qty : null).toBe(5);
   });

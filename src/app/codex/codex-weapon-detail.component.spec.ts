@@ -68,7 +68,7 @@ describe('CodexWeaponDetailComponent', () => {
     const damageCard = cards.find((c) => c.querySelector('h4')?.textContent?.includes('codex.weaponDetail.card.damageChannels'));
     expect(damageCard).toBeTruthy();
     const rows = Array.from(damageCard!.querySelectorAll('.row .v')) as HTMLElement[];
-    expect(rows.some((r) => !r.classList.contains('gapv') && r.textContent?.trim() === '42')).toBeTrue();
+    expect(rows.some((r) => !r.classList.contains('gapv') && r.textContent?.trim() === '42')).toBe(true);
   });
 
   it('marks the closing "missing" card gold-dashed and every row a gap', () => {
@@ -76,11 +76,11 @@ describe('CodexWeaponDetailComponent', () => {
     fixture.detectChanges();
     const cards = Array.from(fixture.nativeElement.querySelectorAll('.val-card')) as HTMLElement[];
     const missing = cards[cards.length - 1];
-    expect(missing.classList.contains('miss')).toBeTrue();
+    expect(missing.classList.contains('miss')).toBe(true);
     const spread = Array.from(missing.querySelectorAll('.row')).find((r) =>
       r.querySelector('.k')?.textContent?.includes('codex.weaponDetail.row.spread'),
     );
-    expect(spread!.querySelector('.v')!.classList.contains('gapv')).toBeTrue();
+    expect(spread!.querySelector('.v')!.classList.contains('gapv')).toBe(true);
   });
 
   it('names the energy-weapon magazine gap specially instead of a plain dash', () => {
@@ -102,14 +102,14 @@ describe('CodexWeaponDetailComponent', () => {
     const hpRow = Array.from(durability!.querySelectorAll('.row')).find((r) =>
       r.querySelector('.k')?.textContent?.includes('codex.weaponDetail.row.hp'),
     );
-    expect(hpRow!.querySelector('.v')!.classList.contains('gapv')).toBeFalse();
+    expect(hpRow!.querySelector('.v')!.classList.contains('gapv')).toBe(false);
     expect(hpRow!.querySelector('.v')!.textContent?.trim()).toBe('1,500');
   });
 
   it('closes on Escape', () => {
     fixture.componentRef.setInput('entry', entry());
     fixture.detectChanges();
-    const spy = jasmine.createSpy();
+    const spy = vi.fn();
     fixture.componentInstance.closed.subscribe(spy);
     (fixture.nativeElement as HTMLElement)
       .querySelector('.wd-panel')!

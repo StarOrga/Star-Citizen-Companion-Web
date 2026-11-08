@@ -46,7 +46,7 @@ describe('CodexBoardFigureComponent', () => {
     const el: HTMLElement = (await setup(['helmet', 'legs'])).nativeElement;
     const on = Array.from(el.querySelectorAll('svg.board-doll .pd-part.on'));
     expect(on.length).toBe(2);
-    expect(on.every((g) => g.getAttribute('fill') === 'url(#pd-plate-on)')).toBeTrue();
+    expect(on.every((g) => g.getAttribute('fill') === 'url(#pd-plate-on)')).toBe(true);
     expect(el.querySelector('svg.board-doll .visor')?.getAttribute('fill')).toBe(
       'url(#pd-visor-on)',
     );
@@ -104,40 +104,40 @@ describe('CodexBoardFigureComponent — WebGL context loss', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('falls back to the drawn suit when the context is lost', async () => {
+  it('falls back to the drawn suit when the context is lost', async ({ skip }) => {
     const fixture = await setup(['helmet']);
     if (!(await booted(fixture))) {
-      pending('no WebGL engine in this browser');
+      skip('no WebGL engine in this browser');
       return;
     }
     const lost = lose(fixture);
-    expect(lost.defaultPrevented).toBeTrue();
-    expect(fixture.componentInstance.ready()).toBeFalse();
+    expect(lost.defaultPrevented).toBe(true);
+    expect(fixture.componentInstance.ready()).toBe(false);
     expect(canvasOf(fixture).classList).not.toContain('on');
     expect((fixture.nativeElement as HTMLElement).querySelector('svg.board-doll')).not.toBeNull();
   });
 
-  it('boots the 3D figure again once the context is restored', async () => {
+  it('boots the 3D figure again once the context is restored', async ({ skip }) => {
     const fixture = await setup([]);
     if (!(await booted(fixture))) {
-      pending('no WebGL engine in this browser');
+      skip('no WebGL engine in this browser');
       return;
     }
     lose(fixture);
-    const boot = spyOn<any>(fixture.componentInstance, 'boot').and.resolveTo(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const boot = vi.spyOn(fixture.componentInstance as unknown as { boot(): Promise<void> }, 'boot').mockResolvedValue(undefined);
     canvasOf(fixture).dispatchEvent(new Event('webglcontextrestored'));
     expect(boot).toHaveBeenCalledTimes(1);
   });
 
-  it('does not boot again when the figure was destroyed after the loss', async () => {
+  it('does not boot again when the figure was destroyed after the loss', async ({ skip }) => {
     const fixture = await setup([]);
     if (!(await booted(fixture))) {
-      pending('no WebGL engine in this browser');
+      skip('no WebGL engine in this browser');
       return;
     }
     const canvas = canvasOf(fixture);
     lose(fixture);
-    const boot = spyOn<any>(fixture.componentInstance, 'boot').and.resolveTo(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const boot = vi.spyOn(fixture.componentInstance as unknown as { boot(): Promise<void> }, 'boot').mockResolvedValue(undefined);
     fixture.destroy();
     canvas.dispatchEvent(new Event('webglcontextrestored'));
     expect(boot).not.toHaveBeenCalled();
@@ -171,7 +171,7 @@ describe('CodexBoardFigureComponent — set page API', () => {
     const el: HTMLElement = fixture.nativeElement;
     const zones = Array.from(el.querySelectorAll<SVGGElement>('svg.board-zones g.zone'));
     expect(zones.map((z) => z.getAttribute('data-part')).sort()).toEqual([...SUIT_PARTS].sort());
-    expect(zones.every((z) => z.querySelectorAll('polygon').length > 0)).toBeTrue();
+    expect(zones.every((z) => z.querySelectorAll('polygon').length > 0)).toBe(true);
     expect(el.querySelector('svg.board-zones')?.getAttribute('aria-hidden')).toBe('true');
 
     const seen: (string | null)[] = [];
@@ -187,10 +187,10 @@ describe('CodexBoardFigureComponent — set page API', () => {
     const cmp = fixture.componentInstance;
     const inBox = (p: { x: number; y: number }): boolean => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1;
     for (const part of SUIT_PARTS) {
-      expect(inBox(cmp.partAnchors()[part])).withContext(part).toBeTrue();
+      expect(inBox(cmp.partAnchors()[part]), part).toBe(true);
       const { left, right } = cmp.partAnchorsBySide()[part];
-      expect(inBox(left) && inBox(right)).withContext(part).toBeTrue();
-      expect(left.x).withContext(part).toBeLessThan(right.x);
+      expect(inBox(left) && inBox(right), part).toBe(true);
+      expect(left.x, part).toBeLessThan(right.x);
     }
     fixture.componentRef.setInput('anchorSide', { helmet: 'right' });
     expect(cmp.partAnchors().helmet).toEqual(cmp.partAnchorsBySide().helmet.right);
@@ -220,7 +220,7 @@ describe('CodexBoardFigureComponent — set page API', () => {
         const hits = zones.filter((z) => z.polygons.some((poly) => pointInPolygon(anchors[part][side], poly)));
         // Zones are stacked back to front; the last hit is what the pointer —
         // and the eye — lands on.
-        expect(hits.at(-1)?.part).withContext(`${part} ${side} ${SUIT_ANCHORS_3D[part][side]}`).toBe(part);
+        expect(hits.at(-1)?.part, `${part} ${side} ${SUIT_ANCHORS_3D[part][side]}`).toBe(part);
       }
     }
     suit.dispose();
@@ -242,7 +242,7 @@ describe('buildHardsuit', () => {
     // Six groups, none of them empty — an unequipped position is still a body
     // part, which is the whole reason the empty state stopped being a black box.
     expect(suit.root.children.length).toBe(SUIT_PARTS.length);
-    expect(suit.root.children.every((g) => g.children.length > 0)).toBeTrue();
+    expect(suit.root.children.every((g) => g.children.length > 0)).toBe(true);
     suit.dispose();
   });
 

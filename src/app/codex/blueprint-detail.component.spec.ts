@@ -380,9 +380,7 @@ describe('BlueprintDetailComponent — hero and output', () => {
 
   it('names and links the crafted item once the catalog resolves it', async () => {
     const out = 'Carryable_2H_FL_MissionItem_Microsatellite_a';
-    const resolveEntities = jasmine.createSpy('resolveEntities').and.resolveTo(
-      new Map([[out, { kind: 'item', className: out, nameLocalized: 'Microsatellite', manufacturerCode: null, size: null, grade: null }]]),
-    );
+    const resolveEntities = vi.fn().mockName('resolveEntities').mockResolvedValue(new Map([[out, { kind: 'item', className: out, nameLocalized: 'Microsatellite', manufacturerCode: null, size: null, grade: null }]]));
     const detail = blueprint([ingredient(0, 'Aluminum', 1)]);
     const fixture = await setup(detail, undefined, async () => detail, { resolveEntities } as Partial<CodexService>);
     await settle(fixture);
@@ -393,7 +391,7 @@ describe('BlueprintDetailComponent — hero and output', () => {
   });
 
   it('keeps a plain, humanized output line when the lookup fails', async () => {
-    const resolveEntities = jasmine.createSpy('resolveEntities').and.rejectWith(new Error('timeout'));
+    const resolveEntities = vi.fn().mockName('resolveEntities').mockRejectedValue(new Error('timeout'));
     const detail = blueprint([ingredient(0, 'Aluminum', 1)]);
     const fixture = await setup(detail, undefined, async () => detail, { resolveEntities } as Partial<CodexService>);
     await settle(fixture);
@@ -407,8 +405,8 @@ describe('BlueprintDetailComponent — hero and output', () => {
 describe('BlueprintDetailComponent — Material ×N', () => {
   function wishStore(setQty: (e: { className: string }) => Promise<boolean>, qtyOf: (kind: string, cls: string) => number = () => 0) {
     const store = {
-      qtyOf: jasmine.createSpy('qtyOf').and.callFake(qtyOf),
-      setQty: jasmine.createSpy('setQty').and.callFake((e: { className: string }) => setQty(e)),
+      qtyOf: vi.fn().mockName('qtyOf').mockImplementation(qtyOf),
+      setQty: vi.fn().mockName('setQty').mockImplementation((e: { className: string }) => setQty(e)),
     };
     TestBed.configureTestingModule({ providers: [{ provide: WishlistStore, useValue: store }] });
     return store;
@@ -437,7 +435,7 @@ describe('BlueprintDetailComponent — Material ×N', () => {
     expect(TestBed.inject(UndoToastService).current()).toBeNull();
     expect(el.querySelector('.wish-err')?.textContent).toContain('errors.generic');
     // The blueprint itself landed and went back to its former quantity.
-    expect(store.setQty).toHaveBeenCalledWith(jasmine.objectContaining({ kind: 'blueprint' }), 0);
+    expect(store.setQty).toHaveBeenCalledWith(expect.objectContaining({ kind: 'blueprint' }), 0);
   });
 
   it('is one multiplier: the blueprint is the group quantity, material is set from the total (AUD-11)', async () => {
@@ -447,7 +445,7 @@ describe('BlueprintDetailComponent — Material ×N', () => {
       async () => true,
       (kind, cls) => wished.get(`${kind}:${cls}`) ?? 0,
     );
-    store.setQty.and.callFake(async (e: { kind: string; className: string }, qty: number) => {
+    store.setQty.mockImplementation(async (e: { kind: string; className: string }, qty: number) => {
       wished.set(`${e.kind}:${e.className}`, qty);
       return true;
     });

@@ -109,7 +109,7 @@ describe('CodexHoloStripComponent', () => {
     const fixture = await setup();
     const el: HTMLElement = fixture.nativeElement;
     const km = el.querySelector('.sig .fact .v')!.textContent!.trim();
-    expect(/^\d+(\.\d)?km$/.test(km.replace(/\s/g, ''))).toBeTrue();
+    expect(/^\d+(\.\d)?km$/.test(km.replace(/\s/g, ''))).toBe(true);
     // The exact value rides on the app's tooltip, not a CSS hover box.
     const factDe = fixture.debugElement.query(By.css('.sig .fact[tabindex]'));
     const tip = factDe.injector.get(ScTooltipDirective).scTooltip()!;
@@ -179,7 +179,7 @@ describe('CodexHoloStripComponent', () => {
     try {
       const fixture = await setup();
       const km = (fixture.nativeElement as HTMLElement).querySelector('.sig .fact .v')!.textContent!.replace(/\s/g, '');
-      expect(/^\d+,\dkm$/.test(km)).toBeTrue();
+      expect(/^\d+,\dkm$/.test(km)).toBe(true);
     } finally {
       setNumberLocale('en');
     }
@@ -237,7 +237,7 @@ describe('CodexHoloStripComponent', () => {
       const rows = Array.from(el.querySelectorAll<HTMLButtonElement>('.mission-pop .mp'));
       expect(rows.length).toBe(3);
       expect(rows[1].getAttribute('aria-checked')).toBe('true');
-      expect(rows[2].disabled).toBeTrue();
+      expect(rows[2].disabled).toBe(true);
       rows[0].click();
       fixture.detectChanges();
       expect(picked).toEqual(['all']);

@@ -63,8 +63,8 @@ describe('admin-error-keys', () => {
       'adminFeedback.threadsStale',
     ];
     for (const key of keys) {
-      expect(typeof lookup(de, key)).withContext(`de: ${key}`).toBe('string');
-      expect(typeof lookup(en, key)).withContext(`en: ${key}`).toBe('string');
+      expect(typeof lookup(de, key), `de: ${key}`).toBe('string');
+      expect(typeof lookup(en, key), `en: ${key}`).toBe('string');
     }
   });
 });

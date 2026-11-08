@@ -135,35 +135,35 @@ describe('nachschub.model', () => {
 
     it('does not close without a baseline and asks for one', () => {
       const s = lineStatus(line, {}, 7);
-      expect(s.closed).toBeFalse();
+      expect(s.closed).toBe(false);
       expect(s.baseline).toBeNull();
       expect(withBaseline({}, 'l1', 7)).toEqual({ l1: 7 });
     });
 
     it('does not close on time alone, nor on a partial rise', () => {
-      expect(lineStatus(line, { l1: 5 }, 5).closed).toBeFalse();
+      expect(lineStatus(line, { l1: 5 }, 5).closed).toBe(false);
       const part = lineStatus(line, { l1: 5 }, 6);
-      expect(part.closed).toBeFalse();
+      expect(part.closed).toBe(false);
       expect(part.rise).toBe(1);
     });
 
     it('closes when the inventory rose by the need (manual or SCC-App, both raise the stock)', () => {
       const s = lineStatus(line, { l1: 5 }, 7);
-      expect(s.closed).toBeTrue();
+      expect(s.closed).toBe(true);
       expect(s.by).toBe('inventory');
     });
 
     it('a manual tick closes regardless', () => {
-      expect(lineStatus({ ...line, ticked: true }, { l1: 5 }, 5)).toEqual(jasmine.objectContaining({ closed: true, by: 'tick' }));
+      expect(lineStatus({ ...line, ticked: true }, { l1: 5 }, 5)).toEqual(expect.objectContaining({ closed: true, by: 'tick' }));
     });
 
     it('a fall of the stock never closes and never goes negative', () => {
-      expect(lineStatus(line, { l1: 5 }, 1)).toEqual(jasmine.objectContaining({ closed: false, rise: 0 }));
+      expect(lineStatus(line, { l1: 5 }, 1)).toEqual(expect.objectContaining({ closed: false, rise: 0 }));
     });
 
     it('works for exact SCU amounts and for a ship line counted in the Hangar', () => {
-      expect(lineStatus({ id: 'm', need: 0.36, ticked: false }, { m: 1 }, 1.36).closed).toBeTrue();
-      expect(lineStatus({ id: 's', need: 1, ticked: false }, { s: 0 }, 1).closed).toBeTrue();
+      expect(lineStatus({ id: 'm', need: 0.36, ticked: false }, { m: 1 }, 1.36).closed).toBe(true);
+      expect(lineStatus({ id: 's', need: 1, ticked: false }, { s: 0 }, 1).closed).toBe(true);
     });
 
     it('keeps an existing baseline', () => {
@@ -173,16 +173,16 @@ describe('nachschub.model', () => {
 
   describe('finish and auto-archive', () => {
     it('is finished only with lines and all closed', () => {
-      expect(isFinished([])).toBeFalse();
-      expect(isFinished([{ closed: true }, { closed: false }])).toBeFalse();
-      expect(isFinished([{ closed: true }, { closed: true }])).toBeTrue();
+      expect(isFinished([])).toBe(false);
+      expect(isFinished([{ closed: true }, { closed: false }])).toBe(false);
+      expect(isFinished([{ closed: true }, { closed: true }])).toBe(true);
       expect(nachschubProgress([{ closed: true }, { closed: false }])).toEqual({ done: 1, total: 2 });
     });
 
     it('archives finished active Nachschuebe on their own and frees the slots', () => {
       const all = [nach('a', 1), nach('b', 2)];
       const next = autoArchive(all, new Set(['a']), '2026-11-08T00:00:00Z');
-      expect(next[0]).toEqual(jasmine.objectContaining({ status: 'archived', slot: null }));
+      expect(next[0]).toEqual(expect.objectContaining({ status: 'archived', slot: null }));
       expect(next[1]).toBe(all[1]);
       expect(freeSlot(next)).toBe(1);
     });
@@ -198,7 +198,7 @@ describe('nachschub.model', () => {
       const r = clearNachschub(lines, [w('rattler', 1)], true);
       expect(r.removeIds).toEqual(['1']);
       expect(r.wishlist.find((x) => x.className === 'rattler')?.qty).toBe(5);
-      expect(r.wishlist.some((x) => x.className === 'medpen')).toBeFalse();
+      expect(r.wishlist.some((x) => x.className === 'medpen')).toBe(false);
     });
 
     it('drops them entirely without the checkbox', () => {
@@ -233,8 +233,8 @@ describe('nachschub.model', () => {
       const stock: Record<string, number> = { rattler: 5, vanguard: 0 };
       const e = evaluateNachschub(lines, {}, (l) => stock[l.className!]);
       expect(e.snapshot).toEqual({ a: 5, b: 0 });
-      expect(e.snapshotChanged).toBeTrue();
-      expect(e.finished).toBeFalse();
+      expect(e.snapshotChanged).toBe(true);
+      expect(e.finished).toBe(false);
       expect(e.closeIds).toEqual([]);
     });
 
@@ -242,14 +242,14 @@ describe('nachschub.model', () => {
       const e1 = evaluateNachschub(lines, { a: 5, b: 0 }, (l) => (l.id === 'a' ? 7 : 0));
       expect(e1.closeIds).toEqual(['a']);
       expect(e1.progress).toEqual({ done: 1, total: 2 });
-      expect(e1.finished).toBeFalse();
-      expect(e1.snapshotChanged).toBeFalse();
+      expect(e1.finished).toBe(false);
+      expect(e1.snapshotChanged).toBe(false);
       const e2 = evaluateNachschub(lines, { a: 5, b: 0 }, (l) => (l.id === 'a' ? 7 : 1));
-      expect(e2.finished).toBeTrue();
+      expect(e2.finished).toBe(true);
     });
 
     it('an empty Nachschub is never finished', () => {
-      expect(evaluateNachschub([], {}, () => 0).finished).toBeFalse();
+      expect(evaluateNachschub([], {}, () => 0).finished).toBe(false);
     });
   });
 

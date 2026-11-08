@@ -28,11 +28,11 @@ describe('codex patch timeline', () => {
     const entries = buildPatchTimeline([build('4.2'), build('4.1')], ['4.3', '4.2']);
 
     const byPatch = new Map(entries.map((e) => [e.patchVersion, e]));
-    expect(byPatch.get('4.2')?.hasData).toBeTrue();
+    expect(byPatch.get('4.2')?.hasData).toBe(true);
     expect(byPatch.get('4.2')?.build?.id).toBe('build-4.2');
-    expect(byPatch.get('4.1')?.hasData).toBeTrue();
+    expect(byPatch.get('4.1')?.hasData).toBe(true);
     // Uploaded, but never turned into a catalog build → listed, not switchable.
-    expect(byPatch.get('4.3')?.hasData).toBeFalse();
+    expect(byPatch.get('4.3')?.hasData).toBe(false);
     expect(byPatch.get('4.3')?.build).toBeNull();
     expect(byPatch.get('4.3')?.recordCount).toBeNull();
   });
@@ -83,11 +83,11 @@ describe('codex patch timeline', () => {
 
     expect(entries.map((e) => e.patchVersion)).toEqual(['4.11', '4.10', '4.9']);
     // Shipped by RSI, never uploaded → visible, but not switchable.
-    expect(entries[0].hasData).toBeFalse();
+    expect(entries[0].hasData).toBe(false);
     expect(entries[0].build).toBeNull();
     // `4.10` is the same patch as our build `4.10` — merged, not doubled. And
     // older published lines are not our archive's business.
-    expect(entries[1].hasData).toBeTrue();
+    expect(entries[1].hasData).toBe(true);
   });
 
   it('treats a published point release as the line we already hold (4.10 === 4.10.0)', () => {

@@ -30,7 +30,7 @@ describe('AuthService.whenReady', () => {
     return TestBed.inject(AuthService);
   }
 
-  beforeEach(() => spyOn(console, 'warn'));
+  beforeEach(() => vi.spyOn(console, 'warn').mockReturnValue(undefined as never));
   afterEach(() => TestBed.resetTestingModule());
 
   it('resolves once getSession resolves, with the session applied', async () => {
@@ -38,16 +38,16 @@ describe('AuthService.whenReady', () => {
     const auth = setup(() => Promise.resolve({ data: { session } }));
     auth.init();
     await auth.whenReady();
-    expect(auth.ready()).toBeTrue();
-    expect(auth.isAuthenticated()).toBeTrue();
+    expect(auth.ready()).toBe(true);
+    expect(auth.isAuthenticated()).toBe(true);
   });
 
   it('resolves when getSession rejects — the visit counts as signed out', async () => {
     const auth = setup(() => Promise.reject(new Error('storage broken')));
     auth.init();
     await auth.whenReady();
-    expect(auth.ready()).toBeTrue();
-    expect(auth.isAuthenticated()).toBeFalse();
+    expect(auth.ready()).toBe(true);
+    expect(auth.isAuthenticated()).toBe(false);
   });
 
   it('resolves after the upper bound when getSession hangs', fakeAsync(() => {
@@ -57,13 +57,13 @@ describe('AuthService.whenReady', () => {
     void auth.whenReady().then(() => (settled = true));
     tick(AUTH_READY_TIMEOUT_MS - 1);
     flushMicrotasks();
-    expect(settled).toBeFalse();
-    expect(auth.ready()).toBeFalse();
+    expect(settled).toBe(false);
+    expect(auth.ready()).toBe(false);
     tick(1);
     flushMicrotasks();
-    expect(settled).toBeTrue();
-    expect(auth.ready()).toBeTrue();
-    expect(auth.isAuthenticated()).toBeFalse();
+    expect(settled).toBe(true);
+    expect(auth.ready()).toBe(true);
+    expect(auth.isAuthenticated()).toBe(false);
   }));
 
   it('does not wait again once ready', async () => {

@@ -36,7 +36,7 @@ describe('PublicLayoutComponent home link', () => {
     const fixture = setup();
     const home = fixture.nativeElement.querySelector('.public-topbar a.home') as HTMLAnchorElement | null;
 
-    expect(home).withContext('home control must be an <a>, not a div/button').toBeTruthy();
+    expect(home, 'home control must be an <a>, not a div/button').toBeTruthy();
     expect(home!.getAttribute('href')).toBe('/');
   });
 
@@ -46,9 +46,7 @@ describe('PublicLayoutComponent home link', () => {
     const home = shell.querySelector('a.home')!;
     const content = shell.querySelector('.content')!;
 
-    expect(home.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .withContext('the way out must be reachable without scrolling')
-      .toBeTruthy();
+    expect(home.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING, 'the way out must be reachable without scrolling').toBeTruthy();
   });
 
   it('gives the link a localized label', () => {

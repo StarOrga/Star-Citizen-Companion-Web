@@ -14,12 +14,12 @@ describe('CodexShipLinkFormComponent', () => {
       saved: signal(false),
       myPledgeLink: signal<string | null>(null),
       globalPledgeLink: signal<string | null>(null),
-      onInput: jasmine.createSpy('onInput'),
-      save: jasmine.createSpy('save').and.resolveTo(undefined),
-      remove: jasmine.createSpy('remove'),
-      toggle: jasmine.createSpy('toggle'),
-      promote: jasmine.createSpy('promote'),
-      unpromote: jasmine.createSpy('unpromote'),
+      onInput: vi.fn().mockName('onInput'),
+      save: vi.fn().mockName('save').mockResolvedValue(undefined),
+      remove: vi.fn().mockName('remove'),
+      toggle: vi.fn().mockName('toggle'),
+      promote: vi.fn().mockName('promote'),
+      unpromote: vi.fn().mockName('unpromote'),
     };
   }
 
@@ -54,7 +54,7 @@ describe('CodexShipLinkFormComponent', () => {
     const submit = new Event('submit', { cancelable: true });
     (el.querySelector('form') as HTMLFormElement).dispatchEvent(submit);
     expect(store.save).toHaveBeenCalledTimes(1);
-    expect(submit.defaultPrevented).toBeTrue();
+    expect(submit.defaultPrevented).toBe(true);
   });
 
   it('cancel toggles the form shut; remove appears only with an own link', async () => {
@@ -84,7 +84,7 @@ describe('CodexShipLinkFormComponent', () => {
     store.saving.set(true);
     fixture.detectChanges();
     expect(el.querySelector('.sl-ok[role="status"]')).not.toBeNull();
-    expect((el.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBeTrue();
+    expect((el.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('shows the publish block to an admin only, unpublish only when a global link exists', async () => {

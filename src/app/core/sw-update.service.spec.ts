@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { SwUpdate, UnrecoverableStateEvent, VersionReadyEvent } from '@angular/service-worker';
@@ -17,10 +18,10 @@ describe('SwUpdateService', () => {
     isEnabled: boolean;
     versionUpdates: Subject<VersionReadyEvent>;
     unrecoverable: Subject<UnrecoverableStateEvent>;
-    checkForUpdate: jasmine.Spy;
-    activateUpdate: jasmine.Spy;
+    checkForUpdate: Mock;
+    activateUpdate: Mock;
   };
-  let reload: jasmine.Spy;
+  let reload: Mock;
   let sessionStore: Map<string, string>;
   let service: SwUpdateService;
   let fireInput: (type: string) => void;
@@ -44,10 +45,10 @@ describe('SwUpdateService', () => {
       isEnabled: true,
       versionUpdates,
       unrecoverable,
-      checkForUpdate: jasmine.createSpy('checkForUpdate').and.resolveTo(true),
-      activateUpdate: jasmine.createSpy('activateUpdate').and.resolveTo(true),
+      checkForUpdate: vi.fn().mockName('checkForUpdate').mockResolvedValue(true),
+      activateUpdate: vi.fn().mockName('activateUpdate').mockResolvedValue(true),
     };
-    reload = jasmine.createSpy('reload');
+    reload = vi.fn().mockName('reload');
     sessionStore = new Map<string, string>();
     const inputListeners = new Map<string, () => void>();
     fireInput = (type) => inputListeners.get(type)?.();
@@ -79,7 +80,7 @@ describe('SwUpdateService', () => {
     expect(swUpdate.activateUpdate).toHaveBeenCalledTimes(1);
     expect(reload).toHaveBeenCalledTimes(1);
     // No prompt on a fresh open — the user just gets the newest site.
-    expect(service.updateReady()).toBeFalse();
+    expect(service.updateReady()).toBe(false);
     expect(sessionStore.get('sc.sw.autoReloaded')).toBe('1');
   });
 
@@ -92,7 +93,7 @@ describe('SwUpdateService', () => {
 
     expect(reload).not.toHaveBeenCalled();
     expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
-    expect(service.updateReady()).toBeTrue();
+    expect(service.updateReady()).toBe(true);
   });
 
   for (const type of ['pointerdown', 'keydown', 'wheel']) {
@@ -104,7 +105,7 @@ describe('SwUpdateService', () => {
 
       expect(reload).not.toHaveBeenCalled();
       expect(swUpdate.activateUpdate).not.toHaveBeenCalled();
-      expect(service.updateReady()).toBeTrue();
+      expect(service.updateReady()).toBe(true);
     });
   }
 
@@ -120,7 +121,7 @@ describe('SwUpdateService', () => {
     await flush();
 
     expect(reload).toHaveBeenCalledTimes(1);
-    expect(service.updateReady()).toBeTrue();
+    expect(service.updateReady()).toBe(true);
   });
 
   it('reloads once when the worker reports an unrecoverable state, then stops', () => {
@@ -139,6 +140,6 @@ describe('SwUpdateService', () => {
     versionUpdates.next(versionReady());
 
     expect(swUpdate.checkForUpdate).not.toHaveBeenCalled();
-    expect(service.updateReady()).toBeFalse();
+    expect(service.updateReady()).toBe(false);
   });
 });

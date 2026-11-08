@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -25,14 +26,14 @@ function makeRoute(token: string): Partial<ActivatedRoute> {
 
 describe('HangarSharedLoadoutComponent', () => {
   let fixture: ComponentFixture<HangarSharedLoadoutComponent>;
-  let peekSharedLoadout: jasmine.Spy;
-  let adoptSharedLoadout: jasmine.Spy;
-  let adoptAndOpen: jasmine.Spy;
+  let peekSharedLoadout: Mock;
+  let adoptSharedLoadout: Mock;
+  let adoptAndOpen: Mock;
 
   function setup(token: string, isAuthenticated: boolean): void {
-    peekSharedLoadout = jasmine.createSpy('peekSharedLoadout');
-    adoptSharedLoadout = jasmine.createSpy('adoptSharedLoadout');
-    adoptAndOpen = jasmine.createSpy('adoptAndOpen').and.resolveTo(true);
+    peekSharedLoadout = vi.fn().mockName('peekSharedLoadout');
+    adoptSharedLoadout = vi.fn().mockName('adoptSharedLoadout');
+    adoptAndOpen = vi.fn().mockName('adoptAndOpen').mockResolvedValue(true);
     TestBed.configureTestingModule({
       imports: [HangarSharedLoadoutComponent],
       providers: [
@@ -49,7 +50,7 @@ describe('HangarSharedLoadoutComponent', () => {
 
   it('shows the peek card, no adopt button, and a login CTA for an anonymous visitor', async () => {
     setup('tok123', false);
-    peekSharedLoadout.and.returnValue(Promise.resolve(PEEK));
+    peekSharedLoadout.mockResolvedValue(PEEK);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -60,7 +61,7 @@ describe('HangarSharedLoadoutComponent', () => {
 
   it('shows an adopt button for a signed-in visitor', async () => {
     setup('tok123', true);
-    peekSharedLoadout.and.returnValue(Promise.resolve(PEEK));
+    peekSharedLoadout.mockResolvedValue(PEEK);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -69,7 +70,7 @@ describe('HangarSharedLoadoutComponent', () => {
 
   it('renders the unavailable state for a revoked/expired/unknown token (peek returns null)', async () => {
     setup('deadtoken', false);
-    peekSharedLoadout.and.returnValue(Promise.resolve(null));
+    peekSharedLoadout.mockResolvedValue(null);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -79,7 +80,7 @@ describe('HangarSharedLoadoutComponent', () => {
 
   it('links the loadout to the Holotable as a real anchor — signed out too (#646)', async () => {
     setup('tok123', false);
-    peekSharedLoadout.and.returnValue(Promise.resolve(PEEK));
+    peekSharedLoadout.mockResolvedValue(PEEK);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -93,14 +94,14 @@ describe('HangarSharedLoadoutComponent', () => {
 
   it('adopt hands over to the adopter (adopt → reload hangar → open ?config=)', async () => {
     setup('tok123', true);
-    peekSharedLoadout.and.returnValue(Promise.resolve(PEEK));
+    peekSharedLoadout.mockResolvedValue(PEEK);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('button.adopt') as HTMLButtonElement).click();
     await fixture.whenStable();
     expect(adoptAndOpen).toHaveBeenCalledWith('tok123', 'AEGS_Gladius');
-    adoptAndOpen.and.resolveTo(false);
+    adoptAndOpen.mockResolvedValue(false);
     (fixture.nativeElement.querySelector('button.adopt') as HTMLButtonElement).click();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -108,15 +109,15 @@ describe('HangarSharedLoadoutComponent', () => {
   });
 
   it('a failed read is an error state with retry, not "unavailable"', async () => {
-    spyOn(console, 'warn');
+    vi.spyOn(console, 'warn').mockReturnValue(undefined as never);
     setup('tok123', false);
-    peekSharedLoadout.and.returnValue(Promise.reject({ message: 'Failed to fetch' }));
+    peekSharedLoadout.mockRejectedValue({ message: 'Failed to fetch' });
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('[role="alert"] .state__title')?.textContent).toContain('hangar.shared.loadError');
-    peekSharedLoadout.and.returnValue(Promise.resolve(PEEK));
+    peekSharedLoadout.mockResolvedValue(PEEK);
     (el.querySelector('button.retry') as HTMLButtonElement).click();
     await fixture.whenStable();
     fixture.detectChanges();

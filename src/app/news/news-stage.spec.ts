@@ -82,7 +82,7 @@ describe('pickStage — the entry can never be empty (2026-08-20 rethink)', () =
       thumbnail: undefined,
       images: ['https://example.test/a.jpg'],
     });
-    expect(stageEligible(only)).toBeTrue();
+    expect(stageEligible(only)).toBe(true);
     expect(pickStage([only], NOW)?.id).toBe('gallery');
   });
 

@@ -144,7 +144,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
 
   beforeAll(async () => {
     const res = await fetch('/i18n/de.json');
-    expect(res.ok).withContext('public/i18n/de.json must be served to Karma').toBeTrue();
+    expect(res.ok, 'public/i18n/de.json must be served to Karma').toBe(true);
     de = await res.json();
   });
 
@@ -186,7 +186,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(rows().map((r) => r.dataset['status'])).toEqual(['next', 'live', 'superseded']);
     expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.12', 'Alpha 4.10', 'Alpha 4.9']);
     const fold = (root().querySelector('.fold-btn') as HTMLButtonElement | null);
-    expect(fold).withContext('older lines are folded, not listed').not.toBeNull();
+    expect(fold, 'older lines are folded, not listed').not.toBeNull();
     expect(fold!.textContent).toContain('4.8');
     expect(fold!.textContent).toContain('4.7');
     // No chip filters beside the search — the stack is the selection.
@@ -196,16 +196,15 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('says the status as a word, LIVE as the hero row, and every card is a real link into its dossier', async () => {
     await render(FEED, ROADMAP);
     const live = rows()[1];
-    expect(live.classList.contains('hero')).toBeTrue();
+    expect(live.classList.contains('hero')).toBe(true);
     expect(live.querySelector('.status')?.textContent).toContain('Live');
     expect(rows()[0].querySelector('.status')?.textContent).toContain('Nächster');
     expect(rows()[2].querySelector('.status')?.textContent).toContain('Abgelöst');
     for (const row of rows()) {
       const a = (row.querySelector('a.card-link') as HTMLAnchorElement | null);
-      expect(a).withContext('a card is an anchor').not.toBeNull();
+      expect(a, 'a card is an anchor').not.toBeNull();
       expect(a!.getAttribute('href')).toMatch(/^\/verse\/patches\/4\.\d+$/);
-      expect(a!.getAttribute('aria-label'))
-        .withContext('a stretched link has no text of its own').toContain('Alpha');
+      expect(a!.getAttribute('aria-label'), 'a stretched link has no text of its own').toContain('Alpha');
     }
     // The live card carries its hotfix count; the next card its roadmap teaser.
     expect(live.textContent).toContain('1 Hotfix');
@@ -231,7 +230,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(root().querySelector('.sc-card.err')?.textContent).toContain('Der Server ist gerade nicht erreichbar');
     const retry = root().querySelector<HTMLButtonElement>('.sc-card.err button.retry');
     expect(retry).not.toBeNull();
-    const refresh = spyOn(svc, 'refresh').and.resolveTo();
+    const refresh = vi.spyOn(svc, 'refresh').mockResolvedValue(undefined);
     retry!.click();
     expect(refresh).toHaveBeenCalled();
   });
@@ -239,10 +238,9 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('no longer counts the notes on the overview card', async () => {
     await render(FEED, ROADMAP);
     for (const row of rows()) {
-      expect(row.textContent).withContext(row.querySelector('.ver')?.textContent ?? '').not.toMatch(/\d+\s+Notes/);
+      expect(row.textContent, row.querySelector('.ver')?.textContent ?? '').not.toMatch(/\d+\s+Notes/);
     }
-    expect(root().querySelector('.stack .counts, .stack .ct'))
-      .withContext('the cell went with it — an empty column is still a column').toBeNull();
+    expect(root().querySelector('.stack .counts, .stack .ct'), 'the cell went with it — an empty column is still a column').toBeNull();
   });
 
   /**
@@ -254,11 +252,9 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('says the roadmap count nowhere on the card, and lists no item names on the strip', async () => {
     await render(FEED, ROADMAP_MANY);
     const next = rows()[0];
-    expect(next.textContent)
-      .withContext('the count was struck through in both places it appeared').not.toContain('Roadmap-Einträge');
+    expect(next.textContent, 'the count was struck through in both places it appeared').not.toContain('Roadmap-Einträge');
     const strip = next.querySelector('.teaser') as HTMLElement;
-    expect(strip.textContent?.replace(/[…\s]/g, ''))
-      .withContext('the strip is pictures and an ellipsis, not a name list').toBe('');
+    expect(strip.textContent?.replace(/[…\s]/g, ''), 'the strip is pictures and an ellipsis, not a name list').toBe('');
   });
 
   /**
@@ -274,12 +270,12 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     fixture.detectChanges();
 
     const icons = () => Array.from(rows()[0].querySelectorAll('.teaser .tz:not(.rest)')) as HTMLAnchorElement[];
-    expect(icons().length).withContext('four per line, plus three beside the "…"').toBe(7);
+    expect(icons().length, 'four per line, plus three beside the "…"').toBe(7);
     const rest = rows()[0].querySelector('.teaser .rest') as HTMLAnchorElement;
-    expect(rest).withContext('and says there is more').not.toBeNull();
+    expect(rest, 'and says there is more').not.toBeNull();
     expect(rest.textContent?.trim()).toBe('…');
     expect(rest.getAttribute('aria-label')).toContain('3 weitere');
-    expect(rest.getAttribute('href')).withContext('the "…" leads to the first item it hid').toBe('/verse/patches/4.12?focus=r8');
+    expect(rest.getAttribute('href'), 'the "…" leads to the first item it hid').toBe('/verse/patches/4.12?focus=r8');
 
     // Narrower card, fewer icons — nothing hardcoded, nothing lost.
     board.onTeaserBox('4.12', { width: 160, item: 84, gap: 6, rest: 34, rows: 2 });
@@ -312,7 +308,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   async function renderMeasured(): Promise<void> {
     const resize = installResizeDriver();
     await render(FEED, ROADMAP_MANY);
-    expect(resize.observed()).withContext('the strip watches its own box').toContain(rows()[0].querySelector('.teaser')!);
+    expect(resize.observed(), 'the strip watches its own box').toContain(rows()[0].querySelector('.teaser')!);
     resize.notify();
     fixture.detectChanges();
   }
@@ -321,14 +317,13 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     await renderMeasured();
     const strip = () => rows()[0].querySelector('.teaser') as HTMLElement;
     const icons = Array.from(strip().querySelectorAll('.tz:not(.rest)')) as HTMLElement[];
-    expect(icons.length)
-      .withContext('the strip measured itself and grew past the unmeasured fallback of three').toBeGreaterThan(3);
+    expect(icons.length, 'the strip measured itself and grew past the unmeasured fallback of three').toBeGreaterThan(3);
     // Whatever the viewport, the strip stays inside its TWO clipped lines and
     // its content never spills out of the card — the invariant that has to
     // hold on the phone branch Karma renders in AND on the desktop one it
     // does not. 2 × 52 + 6 is the phone cap; the desktop one is 2 × 60 + 6.
-    expect(strip().scrollWidth).withContext('the strip does not overflow itself').toBeLessThanOrEqual(strip().clientWidth + 1);
-    expect(strip().scrollHeight).withContext('and never wraps onto a third line').toBeLessThanOrEqual(strip().clientHeight + 1);
+    expect(strip().scrollWidth, 'the strip does not overflow itself').toBeLessThanOrEqual(strip().clientWidth + 1);
+    expect(strip().scrollHeight, 'and never wraps onto a third line').toBeLessThanOrEqual(strip().clientHeight + 1);
     expect(Math.round(strip().getBoundingClientRect().height)).toBeLessThanOrEqual(126);
   });
 
@@ -342,20 +337,17 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     await renderMeasured();
     const strip = () => rows()[0].querySelector('.teaser') as HTMLElement;
     const icon = (strip().querySelector('.tz:not(.rest)') as HTMLElement).getBoundingClientRect();
-    expect(Math.round(icon.width)).withContext('42/48 px in round 1').toBeGreaterThanOrEqual(84);
-    expect(Math.round(icon.height)).withContext('26/30 px in round 1').toBeGreaterThanOrEqual(52);
-    expect(Math.min(icon.width, icon.height))
-      .withContext('a touch target you can actually hit').toBeGreaterThanOrEqual(48);
+    expect(Math.round(icon.width), '42/48 px in round 1').toBeGreaterThanOrEqual(84);
+    expect(Math.round(icon.height), '26/30 px in round 1').toBeGreaterThanOrEqual(52);
+    expect(Math.min(icon.width, icon.height), 'a touch target you can actually hit').toBeGreaterThanOrEqual(48);
 
     // Ten items at this width do not fit on one line any more, so the wrap is
     // the thing being tested — and the card, whose height is FIXED, has to
     // have room for it. A clipped second row would still satisfy every count.
     const stripBox = strip().getBoundingClientRect();
-    expect(stripBox.height).withContext('the strip wrapped onto a second row').toBeGreaterThan(icon.height + 1);
+    expect(stripBox.height, 'the strip wrapped onto a second row').toBeGreaterThan(icon.height + 1);
     const card = rows()[0].querySelector('.card')!.getBoundingClientRect();
-    expect(Math.round(stripBox.bottom))
-      .withContext(`strip bottom ${stripBox.bottom} vs card bottom ${card.bottom}`)
-      .toBeLessThanOrEqual(Math.round(card.bottom));
+    expect(Math.round(stripBox.bottom), `strip bottom ${stripBox.bottom} vs card bottom ${card.bottom}`).toBeLessThanOrEqual(Math.round(card.bottom));
   });
 
   it('unfolds the older lines on demand', async () => {
@@ -383,7 +375,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('search returns the matching CONTENT, grouped by patch, and hides the stack', async () => {
     await render(FEED, ROADMAP);
     search('quantum');
-    expect(root().querySelector('.stack')).withContext('the stack is not the answer to a query').toBeNull();
+    expect(root().querySelector('.stack'), 'the stack is not the answer to a query').toBeNull();
     expect(groups().length).toBe(1);
     expect(groups()[0].querySelector('.gver')?.textContent?.trim()).toBe('Alpha 4.10');
     // The bullet itself, not "1 Stichpunkte".
@@ -407,15 +399,15 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(root().querySelector('sc-patch-monitor')).not.toBeNull();
     search('quantum');
     expect(root().querySelector('sc-patch-monitor')).toBeNull();
-    expect(root().querySelector('sc-stability-history')).withContext('the column chart is gone for good').toBeNull();
+    expect(root().querySelector('sc-stability-history'), 'the column chart is gone for good').toBeNull();
   });
 
   it('British spelling finds American text', async () => {
     await render(FEED, ROADMAP);
     search('armor');
-    expect(groups().length).withContext('the control: RSI\'s own spelling').toBe(1);
+    expect(groups().length, 'the control: RSI\'s own spelling').toBe(1);
     search('armour');
-    expect(groups().length).withContext('the same card, typed the British way').toBe(1);
+    expect(groups().length, 'the same card, typed the British way').toBe(1);
     expect(groups()[0].querySelector('.hit[data-kind="roadmap"] .t')?.textContent)
       .toContain('Super Heavy Combat Armor');
   });
@@ -428,14 +420,14 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('every card lines up: same status width and same version x', async () => {
     await render(FEED, ROADMAP);
     const widths = rows().map((r) => Math.round(r.querySelector('.status')!.getBoundingClientRect().width));
-    expect(new Set(widths).size).withContext(`status widths: ${widths}`).toBe(1);
+    expect(new Set(widths).size, `status widths: ${widths}`).toBe(1);
 
     const lefts = rows().map((r) => Math.round(r.querySelector('.ver')!.getBoundingClientRect().left));
-    expect(new Set(lefts).size).withContext(`version x: ${lefts}`).toBe(1);
+    expect(new Set(lefts).size, `version x: ${lefts}`).toBe(1);
 
     // Cards are content-sized now (the next card holds the monitor, the sub-versions nest inside).
     for (const c of rows().map((r) => r.querySelector('.card') as HTMLElement)) {
-      expect(c.scrollHeight).withContext(`${c.textContent?.slice(0, 24)} is clipped`).toBeLessThanOrEqual(c.clientHeight + 1);
+      expect(c.scrollHeight, `${c.textContent?.slice(0, 24)} is clipped`).toBeLessThanOrEqual(c.clientHeight + 1);
     }
   });
 
@@ -443,11 +435,11 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     await render(FEED, ROADMAP);
     const [next, live, superseded] = rows();
     const chip = (r: HTMLElement) => r.querySelector('.ch .stb a.chip');
-    expect(chip(next)).withContext('4.12 has not shipped').toBeNull();
-    expect(chip(live)?.getAttribute('data-word')).withContext('56 % is wackelig').toBe('wackelig');
+    expect(chip(next), '4.12 has not shipped').toBeNull();
+    expect(chip(live)?.getAttribute('data-word'), '56 % is wackelig').toBe('wackelig');
     expect(chip(live)?.textContent?.replace(/\s/g, '')).toContain('56%');
     expect(chip(live)?.getAttribute('href')).toBe('/verse/patches/4.10#stabilitaet');
-    expect(chip(superseded)?.classList.contains('finished')).withContext('a finished line is a plain chip').toBeTrue();
+    expect(chip(superseded)?.classList.contains('finished'), 'a finished line is a plain chip').toBe(true);
     expect(chip(superseded)?.querySelector('.ind')).toBeNull();
   });
 
@@ -461,7 +453,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('answers "when is the next patch" ABOVE search and stack, as a monitoring panel', async () => {
     await render(FEED, ROADMAP);
     const panel = root().querySelector('sc-patch-monitor .mon') as HTMLElement | null;
-    expect(panel).withContext('the panel is on the board, not only in the dossier').not.toBeNull();
+    expect(panel, 'the panel is on the board, not only in the dossier').not.toBeNull();
 
     // Position: the panel sits INSIDE the next-patch card, above the sub-versions.
     expect(panel!.closest('.card')?.closest('.node')?.getAttribute('data-status')).toBe('next');
@@ -472,27 +464,24 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     const tiles = Array.from(panel!.querySelectorAll('.tile')) as HTMLElement[];
     expect(tiles.length).toBe(3);
     expect(tiles[0].textContent).toContain('Alpha 4.10');
-    expect(tiles[0].querySelector('.side')?.textContent)
-      .withContext('hotfixes ride along with the live patch, not a readout of their own').toContain('Hotfix');
-    expect(tiles[2].textContent).withContext('the cell at the rail\'s end names the next line').toContain('Alpha 4.12');
-    expect(panel!.querySelector('.answer b')?.textContent?.trim()).withContext('the estimated date').toBeTruthy();
+    expect(tiles[0].querySelector('.side')?.textContent, 'hotfixes ride along with the live patch, not a readout of their own').toContain('Hotfix');
+    expect(tiles[2].textContent, 'the cell at the rail\'s end names the next line').toContain('Alpha 4.12');
+    expect(panel!.querySelector('.answer b')?.textContent?.trim(), 'the estimated date').toBeTruthy();
 
     // The cell widths come from the rail — the legend sits under what it explains.
-    expect((panel!.querySelector('.tiles') as HTMLElement).style.getPropertyValue('--tile-cols'))
-      .withContext('cell boundaries follow the rail geometry').toContain('fr');
-    expect(panel!.querySelectorAll('.months .mo').length)
-      .withContext('a coarse month scale under the rail').toBeGreaterThan(0);
+    expect((panel!.querySelector('.tiles') as HTMLElement).style.getPropertyValue('--tile-cols'), 'cell boundaries follow the rail geometry').toContain('fr');
+    expect(panel!.querySelectorAll('.months .mo').length, 'a coarse month scale under the rail').toBeGreaterThan(0);
   });
 
   it('keeps the caveats and the colour key behind the (i)', async () => {
     await render(FEED, ROADMAP);
     const note = root().querySelector('sc-patch-monitor .pop') as HTMLElement;
-    expect(note.hidden).withContext('the explanation is folded away by default').toBeTrue();
+    expect(note.hidden, 'the explanation is folded away by default').toBe(true);
     expect(note.textContent).toContain('Median-Schätzungen');
 
     (root().querySelector('sc-patch-monitor button.dot') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(note.hidden).toBeFalse();
+    expect(note.hidden).toBe(false);
   });
 
   it('still stacks without a roadmap: live and superseded, no next card', async () => {
@@ -503,9 +492,9 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     await render(FEED, ROADMAP);
     fixture.componentRef.setInput('embedded', true);
     fixture.detectChanges();
-    expect(root().querySelector('#patch-board-search')).withContext('subheader owns search').toBeNull();
+    expect(root().querySelector('#patch-board-search'), 'subheader owns search').toBeNull();
     fixture.componentRef.setInput('barSearch', false);
     fixture.detectChanges();
-    expect(root().querySelector('#patch-board-search')).withContext('no subheader → own field').not.toBeNull();
+    expect(root().querySelector('#patch-board-search'), 'no subheader → own field').not.toBeNull();
   });
 });

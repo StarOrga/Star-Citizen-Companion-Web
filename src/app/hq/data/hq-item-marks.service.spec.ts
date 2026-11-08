@@ -42,22 +42,22 @@ describe('HqItemMarksService', () => {
     await s.ensureLoaded();
     expect(fake.calls.filter((c) => c.target === 'hq_item_marks').length).toBe(1);
     expect(s.noteOf('A')).toBe('keep');
-    expect(s.isPinned('A')).toBeTrue();
-    expect(s.isPinned('B')).toBeFalse();
+    expect(s.isPinned('A')).toBe(true);
+    expect(s.isPinned('B')).toBe(false);
   });
 
   it('saves a trimmed note per item and keeps an existing pin', async () => {
     const s = make();
-    expect(await s.setPinned('A', true)).toBeTrue();
-    expect(await s.setNote('A', '  for the Cutlass  ')).toBeTrue();
-    expect(rows).toEqual([jasmine.objectContaining({ class_name: 'A', note: 'for the Cutlass', pinned_rank: 1 })]);
+    expect(await s.setPinned('A', true)).toBe(true);
+    expect(await s.setNote('A', '  for the Cutlass  ')).toBe(true);
+    expect(rows).toEqual([expect.objectContaining({ class_name: 'A', note: 'for the Cutlass', pinned_rank: 1 })]);
     expect(rows.length).toBe(1);
     expect(s.noteOf('A')).toBe('for the Cutlass');
   });
 
   it('refuses a note over 500 characters without a write', async () => {
     const s = make();
-    expect(await s.setNote('A', 'x'.repeat(501))).toBeFalse();
+    expect(await s.setNote('A', 'x'.repeat(501))).toBe(false);
     expect(fake.calls.length).toBe(0);
   });
 
@@ -72,24 +72,24 @@ describe('HqItemMarksService', () => {
   it('a blank note on an unpinned item deletes the row', async () => {
     const s = make();
     await s.setNote('A', 'x');
-    expect(await s.setNote('A', '   ')).toBeTrue();
+    expect(await s.setNote('A', '   ')).toBe(true);
     expect(s.markOf('A')).toBeNull();
-    expect(fake.calls.at(-1)!.chain.some(([m]) => m === 'delete')).toBeTrue();
+    expect(fake.calls.at(-1)!.chain.some(([m]) => m === 'delete')).toBe(true);
   });
 
   it('a failed write reports a translated key and leaves the state alone', async () => {
     const s = make();
     failWrites = true;
-    expect(await s.setPinned('A', true)).toBeFalse();
+    expect(await s.setPinned('A', true)).toBe(false);
     expect(s.error()).toMatch(/^errors\./);
-    expect(s.isPinned('A')).toBeFalse();
+    expect(s.isPinned('A')).toBe(false);
   });
 
   it('signed out: nothing is read or written', async () => {
     const s = make();
     user.set(null);
     await s.ensureLoaded();
-    expect(await s.setNote('A', 'x')).toBeFalse();
+    expect(await s.setNote('A', 'x')).toBe(false);
     expect(fake.calls.length).toBe(0);
   });
 });

@@ -32,16 +32,16 @@ describe('isGameLive', () => {
   });
 
   it('is true for a fresh life sign of a running game', () => {
-    expect(isGameLive(state(true, 1000), [], now)).toBeTrue();
-    expect(isGameLive(state(true, LIVE_PRESENCE_MAX_AGE_MS), [], now)).toBeTrue();
+    expect(isGameLive(state(true, 1000), [], now)).toBe(true);
+    expect(isGameLive(state(true, LIVE_PRESENCE_MAX_AGE_MS), [], now)).toBe(true);
   });
 
   it('is false for a stale sign, a stopped game, a missing sign or no state', () => {
-    expect(isGameLive(state(true, LIVE_PRESENCE_MAX_AGE_MS + 1), [], now)).toBeFalse();
-    expect(isGameLive(state(false, 1000), [], now)).toBeFalse();
-    expect(isGameLive({ location: 'x' }, [], now)).toBeFalse();
-    expect(isGameLive({ presence: { gameRunning: true, at: 'nonsense' } }, [], now)).toBeFalse();
-    expect(isGameLive(null, [], now)).toBeFalse();
+    expect(isGameLive(state(true, LIVE_PRESENCE_MAX_AGE_MS + 1), [], now)).toBe(false);
+    expect(isGameLive(state(false, 1000), [], now)).toBe(false);
+    expect(isGameLive({ location: 'x' }, [], now)).toBe(false);
+    expect(isGameLive({ presence: { gameRunning: true, at: 'nonsense' } }, [], now)).toBe(false);
+    expect(isGameLive(null, [], now)).toBe(false);
   });
 
   const ago = (ms: number): string => new Date(now - ms).toISOString();
@@ -51,19 +51,19 @@ describe('isGameLive', () => {
       { type: 'session.quit', at: ago(500) },
       { type: 'session.joined', at: ago(60_000) },
     ];
-    expect(sessionEndedSince(events, now - 1000)).toBeTrue();
-    expect(isGameLive(state(true, 1000), events, now)).toBeFalse();
+    expect(sessionEndedSince(events, now - 1000)).toBe(true);
+    expect(isGameLive(state(true, 1000), events, now)).toBe(false);
   });
 
   it('is true for a running session whose join event was never uploaded', () => {
     // The app attached to the log after the join: only the previous session's end is in the feed.
     const events = [{ type: 'qt.arrived', at: ago(5000) }, { type: 'session.quit', at: ago(86_400_000) }];
-    expect(isGameLive(state(true, 1000), events, now)).toBeTrue();
+    expect(isGameLive(state(true, 1000), events, now)).toBe(true);
   });
 
   it('is true after a joined session and on a new life sign after a quit', () => {
-    expect(isGameLive(state(true, 1000), [{ type: 'session.joined', at: ago(500) }], now)).toBeTrue();
-    expect(isGameLive(state(true, 1000), [{ type: 'session.quit', at: ago(2000) }], now)).toBeTrue();
+    expect(isGameLive(state(true, 1000), [{ type: 'session.joined', at: ago(500) }], now)).toBe(true);
+    expect(isGameLive(state(true, 1000), [{ type: 'session.quit', at: ago(2000) }], now)).toBe(true);
   });
 
   it('is false while disconnected in this session, true again after the rejoin', () => {
@@ -72,16 +72,16 @@ describe('isGameLive', () => {
       sessionStartedAt: ago(600_000),
       lastDisconnect: { is30k: true, at: ago(60_000) },
     };
-    expect(disconnectedInSession(inSession)).toBeTrue();
-    expect(isGameLive(inSession, [], now)).toBeFalse();
+    expect(disconnectedInSession(inSession)).toBe(true);
+    expect(isGameLive(inSession, [], now)).toBe(false);
     const rejoined = { ...inSession, lastDisconnect: { ...inSession.lastDisconnect, recapConsumed: true } };
-    expect(isGameLive(rejoined, [], now)).toBeTrue();
+    expect(isGameLive(rejoined, [], now)).toBe(true);
   });
 
   it('ignores a disconnect of an earlier session and a state without a session start', () => {
     const lastDisconnect = { at: ago(900_000) };
-    expect(isGameLive({ ...state(true, 1000), sessionStartedAt: ago(600_000), lastDisconnect }, [], now)).toBeTrue();
-    expect(isGameLive({ ...state(true, 1000), lastDisconnect }, [], now)).toBeTrue();
+    expect(isGameLive({ ...state(true, 1000), sessionStartedAt: ago(600_000), lastDisconnect }, [], now)).toBe(true);
+    expect(isGameLive({ ...state(true, 1000), lastDisconnect }, [], now)).toBe(true);
   });
 });
 

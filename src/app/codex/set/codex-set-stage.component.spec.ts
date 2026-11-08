@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -123,7 +124,7 @@ describe('CodexSetStageComponent', () => {
     };
     for (const slot of ['helmet', 'core', 'arms', 'legs', 'undersuit', 'backpack']) {
       const lbl = tile(slot).querySelector<HTMLElement>('.lbl');
-      expect(lbl).withContext(slot).not.toBeNull();
+      expect(lbl, slot).not.toBeNull();
       expect(lbl!.classList).not.toContain('sr');
       if (keys[slot]) expect(lbl!.textContent?.trim()).toBe(keys[slot]);
       else expect(lbl!.textContent?.trim()).toBeTruthy();
@@ -246,7 +247,7 @@ describe('CodexSetStageComponent', () => {
   });
 
   it('hops into the arsenal on a plain left click only, leaving every other click to the anchor', () => {
-    const hop = spyOn(TestBed.inject(SetArsenalTransition), 'hop').and.resolveTo(true);
+    const hop = vi.spyOn(TestBed.inject(SetArsenalTransition), 'hop').mockResolvedValue(true);
     const helmet = tile('helmet');
     const t = stage().tiles().find((x) => x.slot === 'helmet')!;
 
@@ -254,13 +255,13 @@ describe('CodexSetStageComponent', () => {
     const modified = new MouseEvent('click', { button: 0, ctrlKey: true, cancelable: true });
     stage().onTileClick(modified, t, helmet);
     expect(hop).not.toHaveBeenCalled();
-    expect(modified.defaultPrevented).toBeFalse();
+    expect(modified.defaultPrevented).toBe(false);
 
     const plain = new MouseEvent('click', { button: 0, cancelable: true });
     stage().onTileClick(plain, t, helmet);
-    expect(plain.defaultPrevented).toBeTrue();
+    expect(plain.defaultPrevented).toBe(true);
     expect(hop).toHaveBeenCalledTimes(1);
-    const [tree, landing, source] = hop.calls.mostRecent().args;
+    const [tree, landing, source] = vi.mocked(hop).mock.lastCall!;
     // The hop goes exactly where the href points.
     expect(TestBed.inject(Router).serializeUrl(tree)).toBe(helmet.getAttribute('href')!);
     expect(landing).toEqual({ slot: 'helmet', direction: 'toArsenal' });
@@ -301,7 +302,7 @@ describe('CodexSetStageComponent language and eyebrow (REQ-15, REQ-19)', () => {
   let fixture: ComponentFixture<LocalizedHostComponent>;
   let el: HTMLElement;
   let t: TranslateService;
-  let instant: jasmine.Spy;
+  let instant: Mock;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -314,7 +315,7 @@ describe('CodexSetStageComponent language and eyebrow (REQ-15, REQ-19)', () => {
       ],
     }).compileComponents();
     t = TestBed.inject(TranslateService);
-    instant = spyOn(t, 'instant').and.callThrough();
+    instant = vi.spyOn(t, 'instant');
     fixture = TestBed.createComponent(LocalizedHostComponent);
     fixture.detectChanges();
     await fixture.whenStable();

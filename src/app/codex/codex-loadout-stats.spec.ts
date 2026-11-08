@@ -163,16 +163,16 @@ describe('codex-loadout-stats — computeKpiDelta (03-rules §3.5)', () => {
   it('flags mass DOWN as the good direction (03-rules: mass down=better)', () => {
     const lighter = computeKpiDelta('mass', 1000, 900);
     expect(lighter!.direction).toBe('down');
-    expect(lighter!.good).toBeTrue();
+    expect(lighter!.good).toBe(true);
 
     const heavier = computeKpiDelta('mass', 1000, 1100);
     expect(heavier!.direction).toBe('up');
-    expect(heavier!.good).toBeFalse();
+    expect(heavier!.good).toBe(false);
   });
 
   it('flags shieldHp UP as good (the default direction)', () => {
     const stronger = computeKpiDelta('shieldHp', 1000, 1100);
-    expect(stronger!.good).toBeTrue();
+    expect(stronger!.good).toBe(true);
   });
 });
 
@@ -209,8 +209,8 @@ describe('codex-loadout-stats — buildKpiCells', () => {
     const cells = buildKpiCells(missionById('combat'), sheet(), sheet({ alpha: 100 }));
     expect(cells.length).toBe(6);
     expect(cells[0].key).toBe('alpha');
-    expect(cells[0].accent).toBeTrue();
-    expect(cells.slice(1).every((c) => !c.accent)).toBeTrue();
+    expect(cells[0].accent).toBe(true);
+    expect(cells.slice(1).every((c) => !c.accent)).toBe(true);
   });
 
   it('names the gap key when a mission KPI has no value', () => {
@@ -224,7 +224,7 @@ describe('codex-loadout-stats — buildKpiCells', () => {
     const cells = buildKpiCells(missionById('combat'), sheet({ shieldHp: 1000 }), sheet({ shieldHp: 1200 }));
     const shieldCell = cells.find((c) => c.key === 'shieldHp')!;
     expect(shieldCell.delta?.direction).toBe('up');
-    expect(shieldCell.delta?.good).toBeTrue();
+    expect(shieldCell.delta?.good).toBe(true);
   });
 });
 
@@ -249,13 +249,13 @@ describe('codex-loadout-stats — buildOffensivePanel', () => {
       gun({ className: 'A', speed: 1000, lifetime: 1 }), // 1000
       gun({ className: 'B', speed: 1000, lifetime: 1.1 }), // 1100 = 110%
     ]);
-    expect(justUnder.mixedRangeWarning).toBeFalse();
+    expect(justUnder.mixedRangeWarning).toBe(false);
 
     const over = buildOffensivePanel([
       gun({ className: 'A', speed: 1000, lifetime: 1 }), // 1000
       gun({ className: 'B', speed: 1000, lifetime: 1.2 }), // 1200 = 120%
     ]);
-    expect(over.mixedRangeWarning).toBeTrue();
+    expect(over.mixedRangeWarning).toBe(true);
   });
 
   it('takes the MINIMUM projectile speed across guns', () => {
@@ -296,13 +296,13 @@ describe('codex-loadout-stats — buildDefensivePanel', () => {
       [shield({ className: 'A_Shield_S1' }), shield({ className: 'B_Shield_S1' })],
       null,
     );
-    expect(mixed.mixedGeneratorNote).toBeTrue();
+    expect(mixed.mixedGeneratorNote).toBe(true);
 
     const uniform = buildDefensivePanel(
       [shield({ className: 'A_Shield_S1' }), shield({ className: 'A_Shield_S1' })],
       null,
     );
-    expect(uniform.mixedGeneratorNote).toBeFalse();
+    expect(uniform.mixedGeneratorNote).toBe(false);
   });
 
   it('never computes hull HP or effective HP — always a named gap', () => {

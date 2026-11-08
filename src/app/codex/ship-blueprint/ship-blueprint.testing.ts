@@ -44,14 +44,11 @@ export function fakeShipBlueprints() {
   const index = signal<ReadonlyMap<string, BlueprintUrls>>(new Map());
   const drawings: Record<BlueprintLod, ShipBlueprint> = { full: blueprintFixture('full'), icon: blueprintFixture('icon') };
   return {
-    load: jasmine.createSpy('load').and.resolveTo(undefined),
+    load: vi.fn().mockName('load').mockResolvedValue(undefined),
     ready: () => true,
     urls: (shipId: string | null | undefined) => (shipId ? (index().get(shipId.toLowerCase()) ?? null) : null),
-    drawing: jasmine
-      .createSpy('drawing')
-      .and.callFake((shipId: string, lod: BlueprintLod) =>
-        Promise.resolve(index().get(shipId?.toLowerCase()) ? drawings[lod] : null),
-      ),
+    drawing: vi.fn().mockName('drawing').mockImplementation((shipId: string, lod: BlueprintLod) =>
+        Promise.resolve(index().get(shipId?.toLowerCase()) ? drawings[lod] : null)),
     set(shipId: string): void {
       const next = new Map(index());
       next.set(shipId.toLowerCase(), { full: `https://r2.test/${shipId}.full.svg`, icon: `https://r2.test/${shipId}.icon.svg` });

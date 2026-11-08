@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AssetPackageService } from './asset-package.service';
@@ -11,11 +12,11 @@ function supabaseStub(result: { data: unknown[] | null; error: unknown }) {
     in: (col: string, v: unknown) => (calls.push({ col, v }), q),
     limit: () => Promise.resolve(result),
   };
-  return { calls, provider: { client: { from: jasmine.createSpy('from').and.returnValue(q) } } };
+  return { calls, provider: { client: { from: vi.fn().mockName('from').mockReturnValue(q) } } };
 }
 
 describe('AssetPackageService', () => {
-  let fetchSpy: jasmine.Spy;
+  let fetchSpy: Mock;
 
   function setup(result: { data: unknown[] | null; error: unknown }) {
     localStorage.removeItem('sc.assetPackages.devBase');
@@ -25,7 +26,7 @@ describe('AssetPackageService', () => {
   }
 
   beforeEach(() => {
-    fetchSpy = spyOn(window, 'fetch');
+    fetchSpy = vi.spyOn(window, 'fetch').mockReturnValue(undefined as never);
   });
 
   it('returns the row of the first matching kind, null when none', async () => {
@@ -38,32 +39,29 @@ describe('AssetPackageService', () => {
     });
     const row = await svc.findRow(['fps_weapon', 'item'], 'GUN_A');
     expect(row?.manifestSha256).toBe('mf');
-    expect(sb.calls).toContain({ col: 'entity_class', v: 'GUN_A' });
+    expect(sb.calls).toContainEqual({ col: 'entity_class', v: 'GUN_A' });
     expect(await svc.findRow(['ship'], 'NOPE')).toBeNull();
   });
 
   it('throws a query error and does not cache it', async () => {
     const { svc } = setup({ data: null, error: { message: 'boom', code: '500' } });
-    await expectAsync(svc.findRow(['ship'], 'AEGS_Gladius')).toBeRejected();
+    await expect(svc.findRow(['ship'], 'AEGS_Gladius')).rejects.toThrow();
   });
 
   it('fetches + validates a manifest once per sha', async () => {
     const { svc } = setup({ data: [], error: null });
-    fetchSpy.and.callFake(() => Promise.resolve(new Response(JSON.stringify(manifestFixture()))));
+    fetchSpy.mockImplementation(() => Promise.resolve(new Response(JSON.stringify(manifestFixture()))));
     const a = await svc.manifest('abc');
     const b = await svc.manifest('abc');
     expect(a).toBe(b);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(String(fetchSpy.calls.argsFor(0)[0])).toMatch(/_manifests\/abc\.json$/);
+    expect(String(vi.mocked(fetchSpy).mock.calls[0][0])).toMatch(/_manifests\/abc\.json$/);
   });
 
   it('rejects on HTTP failure and retries on the next call', async () => {
     const { svc } = setup({ data: [], error: null });
-    fetchSpy.and.returnValues(
-      Promise.resolve(new Response('nope', { status: 503 })),
-      Promise.resolve(new Response(new ArrayBuffer(4))),
-    );
-    await expectAsync(svc.glb('https://r2.test/_parts/x.glb')).toBeRejected();
+    fetchSpy.mockReturnValueOnce(Promise.resolve(new Response('nope', { status: 503 }))).mockReturnValueOnce(Promise.resolve(new Response(new ArrayBuffer(4))));
+    await expect(svc.glb('https://r2.test/_parts/x.glb')).rejects.toThrow();
     await new Promise((r) => setTimeout(r));
     const buf = await svc.glb('https://r2.test/_parts/x.glb');
     expect(buf.byteLength).toBe(4);
@@ -71,7 +69,7 @@ describe('AssetPackageService', () => {
 
   it('shares one download per GLB url', async () => {
     const { svc } = setup({ data: [], error: null });
-    fetchSpy.and.callFake(() => Promise.resolve(new Response(new ArrayBuffer(8))));
+    fetchSpy.mockImplementation(() => Promise.resolve(new Response(new ArrayBuffer(8))));
     await Promise.all([svc.glb('u/_parts/s.glb'), svc.glb('u/_parts/s.glb')]);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
@@ -81,26 +79,25 @@ describe('AssetPackageService', () => {
 
     it('caches row, manifest, root and part bytes, once per ship', async () => {
       const { svc } = setup({ data: [rowOf('m1')], error: null });
-      fetchSpy.and.callFake((url: string) =>
-        Promise.resolve(url.includes('_manifests/') ? new Response(JSON.stringify(manifestFixture())) : new Response(new ArrayBuffer(8))),
-      );
-      expect(await svc.preloadShip('AEGS_Gladius')).toBeTrue();
-      const calls = fetchSpy.calls.count();
+      fetchSpy.mockImplementation((url: string) =>
+        Promise.resolve(url.includes('_manifests/') ? new Response(JSON.stringify(manifestFixture())) : new Response(new ArrayBuffer(8))));
+      expect(await svc.preloadShip('AEGS_Gladius')).toBe(true);
+      const calls = vi.mocked(fetchSpy).mock.calls.length;
       expect(calls).toBeGreaterThan(2);
-      expect(await svc.preloadShip('AEGS_Gladius')).toBeTrue();
-      expect(fetchSpy.calls.count()).toBe(calls);
+      expect(await svc.preloadShip('AEGS_Gladius')).toBe(true);
+      expect(vi.mocked(fetchSpy).mock.calls.length).toBe(calls);
       // The viewer's own load is now a cache hit.
-      const urls = fetchSpy.calls.allArgs().map((a) => String(a[0])).filter((u) => u.endsWith('.glb'));
+      const urls = vi.mocked(fetchSpy).mock.calls.map((a) => String(a[0])).filter((u) => u.endsWith('.glb'));
       await svc.glb(urls[0]);
-      expect(fetchSpy.calls.count()).toBe(calls);
+      expect(vi.mocked(fetchSpy).mock.calls.length).toBe(calls);
     });
 
     it('is false without a package and false (not thrown) on failure', async () => {
       const none = setup({ data: [], error: null });
-      expect(await none.svc.preloadShip('NOPE')).toBeFalse();
+      expect(await none.svc.preloadShip('NOPE')).toBe(false);
       TestBed.resetTestingModule();
       const bad = setup({ data: null, error: { message: 'boom' } });
-      expect(await bad.svc.preloadShip('AEGS_Gladius')).toBeFalse();
+      expect(await bad.svc.preloadShip('AEGS_Gladius')).toBe(false);
     });
   });
 });

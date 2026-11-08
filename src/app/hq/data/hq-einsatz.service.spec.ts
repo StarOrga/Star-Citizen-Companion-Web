@@ -103,12 +103,12 @@ describe('HqEinsatzService', () => {
     const loose = s.create({ title: 'Loose', steps })!;
     const pkg = s.create({ title: 'In a Nachschub', packageId: 'p1', steps })!;
     const long = 'x'.repeat(90);
-    expect(s.rename(pkg.id, `  ${long}  `)).toBeTrue();
+    expect(s.rename(pkg.id, `  ${long}  `)).toBe(true);
     expect(s.items().find((e) => e.id === pkg.id)!.title.length).toBe(40);
-    expect(s.rename(loose.id, long)).toBeTrue();
+    expect(s.rename(loose.id, long)).toBe(true);
     expect(s.items().find((e) => e.id === loose.id)!.title.length).toBe(90);
-    expect(s.rename(pkg.id, '   ')).toBeFalse();
-    expect(s.rename('nope', 'Name')).toBeFalse();
+    expect(s.rename(pkg.id, '   ')).toBe(false);
+    expect(s.rename('nope', 'Name')).toBe(false);
     expect(s.create({ title: long, packageId: 'p1', steps })!.title.length).toBe(40);
   });
 
@@ -133,7 +133,7 @@ describe('HqEinsatzService', () => {
     expect(rpc.length).toBe(1);
     expect(rpc[0].target).toBe('hq_replace_einsatz_steps');
     expect((rpc[0].args as { p_steps: unknown[] }).p_steps.length).toBe(3);
-    expect(fake.calls.some((c) => c.target === 'hq_einsatz_steps' && (chainArgs(c, 'upsert') || chainArgs(c, 'delete')))).toBeFalse();
+    expect(fake.calls.some((c) => c.target === 'hq_einsatz_steps' && (chainArgs(c, 'upsert') || chainArgs(c, 'delete')))).toBe(false);
   });
 
   it('does not rewrite the steps of an Einsatz the server rejected as stale, and keeps the server version', async () => {
@@ -145,9 +145,9 @@ describe('HqEinsatzService', () => {
     ];
     rejectIds.add(e.id);
     await s.sync();
-    expect(fake.calls.some((c) => c.op === 'rpc')).toBeFalse();
+    expect(fake.calls.some((c) => c.op === 'rpc')).toBe(false);
     expect(s.items()[0].title).toBe('Server wins');
-    expect(s.items()[0].dirty).toBeFalse();
+    expect(s.items()[0].dirty).toBe(false);
   });
 
   it('pulls steps in chunks of 50 ids with explicit pages, and reads every row', async () => {
@@ -168,8 +168,8 @@ describe('HqEinsatzService', () => {
     expect(chainArgs(stepCalls[0], 'range')).toEqual([0, 999]);
     expect(chainArgs(stepCalls[1], 'range')).toEqual([1000, 1999]);
     expect(s.items().length).toBe(60);
-    expect(s.items().every((e) => e.steps.length === 40)).toBeTrue();
-    expect(s.ready()).toBeTrue();
+    expect(s.items().every((e) => e.steps.length === 40)).toBe(true);
+    expect(s.ready()).toBe(true);
   });
 
   it('never merges a truncated step list: a short page makes the pull fail instead', async () => {
@@ -184,7 +184,7 @@ describe('HqEinsatzService', () => {
     await s.sync();
     expect(s.items()).toEqual([]);
     expect(s.syncError()).not.toBeNull();
-    expect(s.ready()).toBeFalse();
+    expect(s.ready()).toBe(false);
   });
 
   it('caches per user and drops the cache after a final push on sign-out', async () => {
@@ -207,11 +207,11 @@ describe('HqEinsatzService', () => {
     it('appends a mission step after the highest ord, open, and marks the Einsatz dirty', () => {
       const s = make();
       const e = s.create({ title: 'Pembroke run', steps })!;
-      expect(s.addStep(e.id, missionStep('CTR_Bounty_01', 'Bounty: Vanduul'))).toBeTrue();
+      expect(s.addStep(e.id, missionStep('CTR_Bounty_01', 'Bounty: Vanduul'))).toBe(true);
       const after = s.items().find((x) => x.id === e.id)!;
       expect(after.steps.length).toBe(4);
-      expect(after.steps[3]).toEqual(jasmine.objectContaining({ ord: 3, kind: 'mission', missionRef: 'CTR_Bounty_01', label: 'Bounty: Vanduul', state: 'todo' }));
-      expect(after.dirty).toBeTrue();
+      expect(after.steps[3]).toEqual(expect.objectContaining({ ord: 3, kind: 'mission', missionRef: 'CTR_Bounty_01', label: 'Bounty: Vanduul', state: 'todo' }));
+      expect(after.dirty).toBe(true);
     });
     it('reopens a finished Einsatz as active', () => {
       const s = make();
@@ -223,10 +223,10 @@ describe('HqEinsatzService', () => {
     });
     it('refuses an unknown Einsatz and a full one', () => {
       const s = make();
-      expect(s.addStep('nope', missionStep('CTR_X', 'X'))).toBeFalse();
+      expect(s.addStep('nope', missionStep('CTR_X', 'X'))).toBe(false);
       const many = Array.from({ length: EINSATZ_STEPS_MAX }, (_, i) => ({ ...steps[0], label: `s${i}` }));
       const full = s.create({ title: 'Full', steps: many })!;
-      expect(s.addStep(full.id, missionStep('CTR_X', 'X'))).toBeFalse();
+      expect(s.addStep(full.id, missionStep('CTR_X', 'X'))).toBe(false);
     });
     it('missionStep falls back to the class name for an empty title', () => {
       expect(missionStep('CTR_Y', '  ').label).toBe('CTR_Y');
