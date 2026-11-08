@@ -11,16 +11,17 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { environment } from '../../environments/environment';
 import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
+import { logWarn } from '../core/log';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { DesktopProduct, ringsForRole } from '../desktop/desktop-access';
 import { DesktopReleaseService, RingRelease } from '../desktop/desktop-release.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 
-/** The scc-app-latest alias release: its body names the version, its asset carries the size. */
-const SCC_RELEASE_API =
-  'https://api.github.com/repos/StarOrga/Star-Citizen-Companion-Binaries/releases/tags/scc-app-latest';
+/** Edge proxy for the scc-app-latest alias release: {version, sizeBytes}, nulls when unknown. */
+const SCC_RELEASE_META = `${environment.supabase.url}/functions/v1/scc-release-meta`;
 
 const STARSCAPE_FALLBACK_URL =
   'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-latest/starscape-wallpaper.exe';
@@ -247,17 +248,17 @@ export class AppsMenuComponent {
     this.loadedReleases.set({ starscape: s.releases, uploader: u.releases });
   }
 
-  /** The alias body reads "... (currently `v0.100.0`)"; the .exe asset carries the size. */
+  /** Version + size come from the scc-release-meta edge proxy (cached there, no GitHub call from the browser). */
   private async loadScc(): Promise<void> {
     try {
-      const res = await fetch(SCC_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' } });
+      const res = await fetch(SCC_RELEASE_META, { headers: { Accept: 'application/json' } });
       if (!res.ok) return;
-      const j = (await res.json()) as { body?: string; assets?: { name: string; size: number }[] };
-      const version = /currently\s+`(v\d+\.\d+\.\d+[^`]*)`/.exec(j.body ?? '')?.[1] ?? null;
-      const sizeBytes = j.assets?.find((a) => a.name.endsWith('.exe'))?.size ?? null;
+      const j = (await res.json()) as { version?: string | null; sizeBytes?: number | null };
+      const version = typeof j.version === 'string' ? j.version : null;
+      const sizeBytes = typeof j.sizeBytes === 'number' ? j.sizeBytes : null;
       if (version || sizeBytes) this.sccRelease.set({ version, sizeBytes });
-    } catch {
-      /* offline or rate-limited: the row keeps its bare platform line */
+    } catch (err) {
+      logWarn('apps-menu', 'scc release meta unavailable', err);
     }
   }
 

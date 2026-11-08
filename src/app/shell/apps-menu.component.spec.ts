@@ -48,10 +48,7 @@ describe('AppsMenuComponent', () => {
     });
     spyOn(window, 'fetch').and.resolveTo(
       new Response(
-        JSON.stringify({
-          body: 'Always the newest app (currently `v0.100.0`).',
-          assets: [{ name: 'SCC-Standalone-Setup.exe', size: 100 * 1024 * 1024 }],
-        }),
+        JSON.stringify({ version: 'v0.100.0', sizeBytes: 100 * 1024 * 1024 }),
       ),
     );
     fixture = TestBed.createComponent(AppsMenuComponent);

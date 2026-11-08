@@ -135,6 +135,11 @@ verify_jwt = false
 # revert this without also reworking the auth logic in the function body.
 verify_jwt = false
 
+[functions.scc-release-meta]
+# JWT verification OFF — public read-only proxy for the SCC App alias release
+# (version + size), called anonymously by the Apps menu. No secrets in the response.
+verify_jwt = false
+
 [functions.api]
 # JWT verification OFF — the /v1 API uses our own Bearer tokens (`scc_live_*`)
 # OR session JWT (validated inside the tokens-mgmt handlers). /openapi.json
