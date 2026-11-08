@@ -1,7 +1,53 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.232.6",
+  "current": "0.233.0",
   "releases": [
+    {
+      "version": "0.233.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse Companion rename, stage 2: saved browser state (hangar recents, upcoming-ship favorites and baseline, news bookmarks) moves from sc-companion.* to verse-companion.* keys on first read, nothing is lost; the cookie-consent decline clears both names."
+            },
+            {
+              "title": "",
+              "text": "The browser-extension handover uses verse-companion-* message ids. The web still talks to extensions up to 0.1.3 and accepts both ids."
+            },
+            {
+              "title": "",
+              "text": "Edge functions identify themselves as VerseCompanion/x in their User-Agent."
+            },
+            {
+              "title": "",
+              "text": "The package and build output are now named verse-companion (dist/verse-companion/browser)."
+            },
+            {
+              "title": "",
+              "text": "Translator outreach mails and the AI translation credit say Verse Companion."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The social preview image (OG) carries the official Fan Kit \"Made by the Community\" logo."
+            },
+            {
+              "title": "",
+              "text": "Browser extension 0.1.4: accepts both bridge ids and sends the new one."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.232.6",
       "date": "2026-11-08",
