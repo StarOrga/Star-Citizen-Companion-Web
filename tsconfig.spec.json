@@ -8,6 +8,10 @@
     "src/**/*.spec.ts",
     "src/**/*.d.ts"
   ],
+  "exclude": [
+    "src/app/testing/vitest-setup.ts",
+    "src/app/feedback/**/*.spec.ts"
+  ],
   "angularCompilerOptions": {
     "extendedDiagnostics": {
       "checks": {

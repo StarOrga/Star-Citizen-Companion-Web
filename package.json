@@ -20,6 +20,7 @@
     "postbuild": "node scripts/stamp-index-version.mjs && node scripts/check-index-csp.mjs && node scripts/stamp-ngsw-worker.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "node scripts/run-karma.mjs",
+    "test:vitest": "node scripts/run-vitest.mjs",
     "typecheck": "npx tsc --noEmit -p tsconfig.app.json",
     "verify:ship-live": "node scripts/verify-ship-live.mjs",
     "verify:routine-prompts": "node scripts/check-routine-prompts.mjs",

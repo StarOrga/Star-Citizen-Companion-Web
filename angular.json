@@ -111,7 +111,30 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "exclude": [
+              "app/feedback/**/*.spec.ts"
+            ]
+          }
+        },
+        "test-vitest": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "runner": "vitest",
+            "buildTarget": "verse-companion:build:development",
+            "tsConfig": "tsconfig.vitest.json",
+            "runnerConfig": "vitest-base.config.mts",
+            "browsers": [
+              "chromiumHeadless"
+            ],
+            "browserViewport": "749x600",
+            "include": [
+              "app/feedback/**/*.spec.ts"
+            ],
+            "setupFiles": [
+              "src/app/testing/vitest-setup.ts"
+            ],
+            "watch": false
           }
         },
         "lint": {

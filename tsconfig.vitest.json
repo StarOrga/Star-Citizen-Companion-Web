@@ -1,0 +1,24 @@
+/* Specs that already run under Vitest (`npm run test:vitest`). The migrated
+   folders are listed four times (angular.json test-vitest include, test
+   exclude, this file, tsconfig.spec.json exclude);
+   scripts/check-vitest-scope.mjs keeps them in step. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/vitest",
+    "types": ["vitest/globals", "@vitest/browser/matchers"]
+  },
+  "include": [
+    "src/**/*.d.ts",
+    "src/app/testing/vitest-setup.ts",
+    "src/app/feedback/**/*.spec.ts"
+  ],
+  "angularCompilerOptions": {
+    "extendedDiagnostics": {
+      "checks": {
+        "nullishCoalescingNotNullable": "suppress",
+        "optionalChainNotNullable": "suppress"
+      }
+    }
+  }
+}

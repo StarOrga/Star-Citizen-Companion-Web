@@ -1,19 +1,13 @@
 import type { PendingImage } from '../admin/feedback/feedback-composer.component';
-import {
-  ATTACHMENT_TYPE_BLOCKED,
-  assertAttachmentsAllowed,
-  buildFeedbackBody,
-  feedbackImagePath,
-  uploadFeedbackImages,
-} from './feedback-images.util';
+import { ATTACHMENT_TYPE_BLOCKED, assertAttachmentsAllowed, buildFeedbackBody, feedbackImagePath, uploadFeedbackImages, } from './feedback-images.util';
 
 const IMG: PendingImage = { id: '1', name: 'shot.jpg', dataUrl: 'data:image/jpeg;base64,AA' };
 const LEGACY: PendingImage = { id: '2', name: 'old.jpg', dataUrl: 'data:image/jpeg;base64,AA' };
 const LOG: PendingImage = {
-  id: '3',
-  name: 'crash.log',
-  dataUrl: '',
-  mime: 'text/plain',
+    id: '3',
+    name: 'crash.log',
+    dataUrl: '',
+    mime: 'text/plain',
 };
 
 /**
@@ -26,108 +20,102 @@ const LOG: PendingImage = {
  * policy (migration 20260904040000) cannot be exercised from a unit test.
  */
 describe('feedback attachment rules', () => {
-  describe('assertAttachmentsAllowed', () => {
-    it('lets images through for everyone', () => {
-      expect(() => assertAttachmentsAllowed([IMG, LEGACY], false)).not.toThrow();
+    describe('assertAttachmentsAllowed', () => {
+        it('lets images through for everyone', () => {
+            expect(() => assertAttachmentsAllowed([IMG, LEGACY], false)).not.toThrow();
+        });
+
+        it('treats an attachment without a MIME as the image it used to be', () => {
+            // Every draft written before non-image attachments existed looks like
+            // this; refusing those would break restoring an old draft.
+            expect(() => assertAttachmentsAllowed([LEGACY], false)).not.toThrow();
+        });
+
+        it('refuses a non-image when files are not allowed', () => {
+            expect(() => assertAttachmentsAllowed([IMG, LOG], false)).toThrowError(ATTACHMENT_TYPE_BLOCKED);
+        });
+
+        it('allows a non-image for an admin composer', () => {
+            expect(() => assertAttachmentsAllowed([IMG, LOG], true)).not.toThrow();
+        });
+
+        it('accepts an empty attachment list either way', () => {
+            expect(() => assertAttachmentsAllowed([], false)).not.toThrow();
+        });
     });
 
-    it('treats an attachment without a MIME as the image it used to be', () => {
-      // Every draft written before non-image attachments existed looks like
-      // this; refusing those would break restoring an old draft.
-      expect(() => assertAttachmentsAllowed([LEGACY], false)).not.toThrow();
+    describe('buildFeedbackBody', () => {
+        it('appends an image as markdown image syntax, so it is lifted into the chip row', () => {
+            const body = buildFeedbackBody('Look here', [IMG], ['https://db.test/a.jpg']);
+            expect(body).toBe('Look here\n\n![shot.jpg](https://db.test/a.jpg)');
+        });
+
+        it('appends a non-image as a plain link, because there is no thumbnail behind it', () => {
+            const body = buildFeedbackBody('Log attached', [LOG], ['https://db.test/c.log']);
+            expect(body).toBe('Log attached\n\n[crash.log](https://db.test/c.log)');
+        });
+
+        it('keeps images and files apart within one message', () => {
+            const body = buildFeedbackBody('', [IMG, LOG], ['https://db.test/a.jpg', 'https://db.test/c.log']);
+            expect(body).toContain('![shot.jpg](https://db.test/a.jpg)');
+            expect(body).toContain('[crash.log](https://db.test/c.log)');
+            expect(body).not.toContain('![crash.log]');
+        });
+
+        it('drops the empty half when there is text but nothing attached', () => {
+            expect(buildFeedbackBody('just text', [], [])).toBe('just text');
+        });
     });
 
-    it('refuses a non-image when files are not allowed', () => {
-      expect(() => assertAttachmentsAllowed([IMG, LOG], false)).toThrowError(
-        ATTACHMENT_TYPE_BLOCKED,
-      );
-    });
+    describe('feedbackImagePath', () => {
+        it('reads the object path back out of one of our public URLs', () => {
+            expect(feedbackImagePath('https://db.test/storage/v1/object/public/feedback-images/uid/a.jpg')).toBe('uid/a.jpg');
+        });
 
-    it('allows a non-image for an admin composer', () => {
-      expect(() => assertAttachmentsAllowed([IMG, LOG], true)).not.toThrow();
+        it('returns null for a URL that is not ours to delete', () => {
+            expect(feedbackImagePath('https://example.test/somewhere/else.jpg')).toBeNull();
+        });
     });
-
-    it('accepts an empty attachment list either way', () => {
-      expect(() => assertAttachmentsAllowed([], false)).not.toThrow();
-    });
-  });
-
-  describe('buildFeedbackBody', () => {
-    it('appends an image as markdown image syntax, so it is lifted into the chip row', () => {
-      const body = buildFeedbackBody('Look here', [IMG], ['https://db.test/a.jpg']);
-      expect(body).toBe('Look here\n\n![shot.jpg](https://db.test/a.jpg)');
-    });
-
-    it('appends a non-image as a plain link, because there is no thumbnail behind it', () => {
-      const body = buildFeedbackBody('Log attached', [LOG], ['https://db.test/c.log']);
-      expect(body).toBe('Log attached\n\n[crash.log](https://db.test/c.log)');
-    });
-
-    it('keeps images and files apart within one message', () => {
-      const body = buildFeedbackBody('', [IMG, LOG], ['https://db.test/a.jpg', 'https://db.test/c.log']);
-      expect(body).toContain('![shot.jpg](https://db.test/a.jpg)');
-      expect(body).toContain('[crash.log](https://db.test/c.log)');
-      expect(body).not.toContain('![crash.log]');
-    });
-
-    it('drops the empty half when there is text but nothing attached', () => {
-      expect(buildFeedbackBody('just text', [], [])).toBe('just text');
-    });
-  });
-
-  describe('feedbackImagePath', () => {
-    it('reads the object path back out of one of our public URLs', () => {
-      expect(
-        feedbackImagePath('https://db.test/storage/v1/object/public/feedback-images/uid/a.jpg'),
-      ).toBe('uid/a.jpg');
-    });
-
-    it('returns null for a URL that is not ours to delete', () => {
-      expect(feedbackImagePath('https://example.test/somewhere/else.jpg')).toBeNull();
-    });
-  });
 });
 
 /** D16 step 10: the role gate is enforced in the upload itself, before any request. */
 describe('uploadFeedbackImages role gate', () => {
-  function fakeClient() {
-    const upload = jasmine.createSpy('upload').and.resolveTo({ error: null });
-    const getPublicUrl = jasmine.createSpy('getPublicUrl').and.callFake((path: string) => ({
-      data: { publicUrl: 'https://db.test/storage/v1/object/public/feedback-images/' + path },
-    }));
-    const from = jasmine.createSpy('from').and.returnValue({ upload, getPublicUrl });
-    const client = { storage: { from } } as unknown as Parameters<typeof uploadFeedbackImages>[0];
-    return { client, upload, from };
-  }
-  const FILE_LOG: PendingImage = { ...LOG, file: new File(['boom'], 'crash.log', { type: 'text/plain' }) };
+    function fakeClient() {
+        const upload = vi.fn().mockName('upload').mockResolvedValue({ error: null });
+        const getPublicUrl = vi.fn().mockName('getPublicUrl').mockImplementation((path: string) => ({
+            data: { publicUrl: 'https://db.test/storage/v1/object/public/feedback-images/' + path },
+        }));
+        const from = vi.fn().mockName('from').mockReturnValue({ upload, getPublicUrl });
+        const client = { storage: { from } } as unknown as Parameters<typeof uploadFeedbackImages>[0];
+        return { client, upload, from };
+    }
+    const FILE_LOG: PendingImage = { ...LOG, file: new File(['boom'], 'crash.log', { type: 'text/plain' }) };
 
-  it('rejects a non-image for a viewer without touching storage', async () => {
-    const { client, upload, from } = fakeClient();
-    await expectAsync(uploadFeedbackImages(client, 'uid-1', [IMG, FILE_LOG], false)).toBeRejectedWithError(
-      ATTACHMENT_TYPE_BLOCKED,
-    );
-    expect(from).not.toHaveBeenCalled();
-    expect(upload).not.toHaveBeenCalled();
-  });
+    it('rejects a non-image for a viewer without touching storage', async () => {
+        const { client, upload, from } = fakeClient();
+        await expect(uploadFeedbackImages(client, 'uid-1', [IMG, FILE_LOG], false)).rejects.toThrowError(ATTACHMENT_TYPE_BLOCKED);
+        expect(from).not.toHaveBeenCalled();
+        expect(upload).not.toHaveBeenCalled();
+    });
 
-  it('uploads a non-image for the admin composer, keeping its extension', async () => {
-    const { client, upload } = fakeClient();
-    const urls = await uploadFeedbackImages(client, 'uid-1', [FILE_LOG], true);
-    expect(upload).toHaveBeenCalledTimes(1);
-    const path = upload.calls.mostRecent().args[0] as string;
-    expect(path.startsWith('uid-1/')).toBeTrue();
-    expect(path.endsWith('.log')).toBeTrue();
-    expect(urls.length).toBe(1);
-    expect(urls[0]).toContain('/object/public/feedback-images/uid-1/');
-  });
+    it('uploads a non-image for the admin composer, keeping its extension', async () => {
+        const { client, upload } = fakeClient();
+        const urls = await uploadFeedbackImages(client, 'uid-1', [FILE_LOG], true);
+        expect(upload).toHaveBeenCalledTimes(1);
+        const path = vi.mocked(upload).mock.lastCall![0] as string;
+        expect(path.startsWith('uid-1/')).toBe(true);
+        expect(path.endsWith('.log')).toBe(true);
+        expect(urls.length).toBe(1);
+        expect(urls[0]).toContain('/object/public/feedback-images/uid-1/');
+    });
 
-  it('uploads plain images for a viewer under the uid folder', async () => {
-    const { client, upload } = fakeClient();
-    const urls = await uploadFeedbackImages(client, 'uid-1', [{ ...IMG, dataUrl: 'data:image/png;base64,AA==' }], false);
-    expect(upload).toHaveBeenCalledTimes(1);
-    const path = upload.calls.mostRecent().args[0] as string;
-    expect(path.startsWith('uid-1/')).toBeTrue();
-    expect(path.endsWith('.png')).toBeTrue();
-    expect(urls.length).toBe(1);
-  });
+    it('uploads plain images for a viewer under the uid folder', async () => {
+        const { client, upload } = fakeClient();
+        const urls = await uploadFeedbackImages(client, 'uid-1', [{ ...IMG, dataUrl: 'data:image/png;base64,AA==' }], false);
+        expect(upload).toHaveBeenCalledTimes(1);
+        const path = vi.mocked(upload).mock.lastCall![0] as string;
+        expect(path.startsWith('uid-1/')).toBe(true);
+        expect(path.endsWith('.png')).toBe(true);
+        expect(urls.length).toBe(1);
+    });
 });
