@@ -7036,17 +7036,17 @@
     "platform": "Windows · immer die neueste Version",
     "scc": {
       "name": "Companion-App",
-      "desc": "Die Companion-App für deinen Desktop."
+      "desc": "Dein Begleiter neben dem Spiel: Live-Infos, Overlays und Tastenbelegung, ohne Alt-Tab."
     },
     "starscape": {
       "name": "Starscape",
-      "desc": "Wechselt dein Wallpaper durch die Starscape-Galerie."
+      "desc": "Dein Desktop wird zum Fenster ins Verse — jeden Tag ein neues Bild aus der Galerie."
     },
     "uploader": {
       "name": "Data Uploader",
-      "tag": "Nur für Collaborators",
-      "desc": "Liest deinen Star-Citizen-Install aus und lädt die Codex-Daten hoch."
-    }
+      "desc": "Liest dein Star Citizen aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen."
+    },
+    "footer": "Hier lädst du die stabile Version. Beta und Alpha wählst du nach dem Login in der App — welche Kanäle du siehst, hängt von deiner Rolle ab."
   },
   "appNotice": {
     "aria": "App-Hinweis",
