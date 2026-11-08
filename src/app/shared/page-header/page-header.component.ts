@@ -51,7 +51,11 @@ import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service'
         <div class="ph-title">
           @if (eyebrow(); as e) { <p class="eyebrow">{{ e }}</p> }
           @if (title(); as t) {
-            <h1>{{ t }}<ng-content select="[phTitle]" /></h1>
+            @if (level() === 2) {
+              <h2 class="ph-h">{{ t }}<ng-content select="[phTitle]" /></h2>
+            } @else {
+              <h1 class="ph-h">{{ t }}<ng-content select="[phTitle]" /></h1>
+            }
           }
           @if (subtitle(); as s) { <p class="sub">{{ s }}</p> }
         </div>
@@ -85,7 +89,9 @@ import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service'
       margin: 0; color: var(--sc-accent); font-family: var(--sc-font-display);
       font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase;
     }
-    h1 { margin: 0; }
+    .ph-h { margin: 0; }
+    /* Level 2 keeps the h1 look: only the outline changes, never the page. */
+    h2.ph-h { font-size: 2em; overflow-wrap: break-word; }
     .sub { margin: 2px 0 0; color: var(--sc-fg-2); max-width: var(--sc-measure); }
     .ph-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .ph-actions:empty { display: none; }
@@ -107,6 +113,8 @@ export class PageHeaderComponent {
   readonly crumbs = input<readonly PageCrumb[]>([]);
   readonly eyebrow = input<string | null | undefined>(null);
   readonly title = input<string | null | undefined>(null);
+  /** 2 when the header sits in the lower half of a page that already has its <h1> ("Mehr in Codex"): same look, one <h1> per page. */
+  readonly level = input<1 | 2>(1);
   readonly subtitle = input<string | null | undefined>(null);
   /**
    * The name later pages show in a crumb back to this one — defaults to

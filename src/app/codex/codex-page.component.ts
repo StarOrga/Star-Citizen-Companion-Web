@@ -4,7 +4,7 @@ import { Location } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { CodexLandingComponent } from './codex-landing.component';
 import { CodexBrowseComponent } from './codex-browse.component';
-import { PageGlide, wirePageGlide } from '../shared/page-glide';
+import { PageGlide, wirePageGlide, lowerStart } from '../shared/page-glide';
 
 /** The two URLs of the Codex page: `/codex` (the landing on top) and `/codex/index` (the overview, "Mehr in Codex"). */
 export type CodexPart = 'top' | 'more';
@@ -40,7 +40,7 @@ export function codexPartUrl(part: CodexPart, search: string): string {
       </button>
     </div>
     <section #more id="codex-more" class="more sc-below-stage" [attr.aria-label]="'codex.page.moreAria' | translate">
-      <sc-codex-browse />
+      <sc-codex-browse [headingLevel]="2" />
     </section>
   `,
   styles: [
@@ -82,12 +82,43 @@ export class CodexPageComponent {
     afterNextRender(() => {
       const g = wirePageGlide(() => this.lower().nativeElement, this.zone, (st) => {
         this.part.set(st);
+        // While a deep link is still settling, the landing's state must not rewrite /codex/index to /codex.
+        if (this.settling && st !== 'docked') return;
         this.syncUrl(st);
       });
       this.glide = g;
       destroy.onDestroy(() => g.destroy());
-      if (this.opened === 'more') g.jumpToLower();
+      if (this.opened === 'more') this.settleOnLower(g, destroy);
     });
+  }
+
+  /** True while a deep link to the overview waits for the page to grow tall enough to land on it. */
+  private settling = false;
+
+  /**
+   * A deep link (/codex/index) lands on the overview. The lower part has no height on the first
+   * render (data and the landing stage load after it), so one jump lands short: re-jump on every
+   * layout growth until the scroll really stands on the overview, and stop for good as soon as the
+   * reader scrolls, presses a key or 10 s pass.
+   */
+  private settleOnLower(g: PageGlide, destroy: DestroyRef): void {
+    this.settling = true;
+    const el = this.lower().nativeElement;
+    const landed = (): boolean => Math.abs(window.scrollY - lowerStart(el)) <= 2;
+    const stop = (): void => {
+      if (!this.settling) return;
+      this.settling = false;
+      ro.disconnect();
+      clearTimeout(timer);
+      for (const t of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) window.removeEventListener(t, stop, true);
+      this.syncUrl(landed() ? 'docked' : this.part() === 'fly' ? 'top' : this.part());
+    };
+    const ro = new ResizeObserver(() => { if (this.settling) g.jumpToLower(); });
+    ro.observe(document.body);
+    const timer = setTimeout(stop, 10_000);
+    for (const t of ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const) window.addEventListener(t, stop, { capture: true, passive: true });
+    destroy.onDestroy(stop);
+    g.jumpToLower();
   }
 
   /** "Mehr in Codex": all the way down to the overview. */

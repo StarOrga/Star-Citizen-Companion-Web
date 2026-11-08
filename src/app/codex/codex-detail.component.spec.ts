@@ -1565,13 +1565,16 @@ describe('CodexDetailComponent — non-ship Klassisch / Holotisch', () => {
     const el: HTMLElement = (await missile()).nativeElement;
     expect(el.querySelector('.item-page')).toBeNull();
     expect(el.querySelector('header.hero')).not.toBeNull();
-    expect(el.querySelectorAll('.holo-toggle .ht-btn').length).toBe(2);
+    // The switch lives in the corner (view toggle FAB): the page registers it for non-ships too.
+    const v = TestBed.inject(PageCornerService).view();
+    expect(v).not.toBeNull();
+    expect(v!.holo()).toBeFalse();
   });
 
   it('switches to Holotisch, remembers it, and the Holotisch panel does not scroll inside', async () => {
     const fixture = await missile();
     const el: HTMLElement = fixture.nativeElement;
-    el.querySelectorAll<HTMLButtonElement>('.holo-toggle .ht-btn')[1].click();
+    TestBed.inject(PageCornerService).view()!.toggle();
     fixture.detectChanges();
     await fixture.whenStable();
     expect(el.querySelector('.item-page.flow sc-codex-item-stage')).not.toBeNull();

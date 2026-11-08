@@ -7133,7 +7133,7 @@
       "breadcrumbAria": "Apps",
       "uploader": {
         "name": "Data Uploader",
-        "desc": "Reads your Star Citizen install and uploads the data to the Codex. Collaborators only."
+        "desc": "Reads your Star Citizen install and uploads the data to the Codex."
       },
       "starscape": {
         "name": "Starscape",
