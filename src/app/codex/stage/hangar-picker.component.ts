@@ -10,7 +10,7 @@ import {
   viewChildren,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { hqHangar, hqLocker, hqSet } from '../../hq/hq-routes';
+import { hqHangar, hqSet, hqStockLink } from '../../hq/hq-routes';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { BetaService } from '../../core/beta.service';
@@ -61,7 +61,7 @@ const COLLAPSE_DELAY_MS = 150;
       (keydown.escape)="onEscape()"
     >
       <a
-        [routerLink]="kind() === 'ship' ? hangarLink : lockerLink"
+        [routerLink]="kind() === 'ship' ? hangarLink : setLink.commands" [fragment]="kind() === 'ship' ? undefined : setLink.fragment" [queryParams]="kind() === 'ship' ? undefined : setLink.queryParams"
         class="picker-btn"
         [attr.aria-expanded]="expanded()"
         [attr.aria-label]="(kind() === 'ship' ? 'codex.hangarPicker.hangar' : 'codex.hangarPicker.sets') | translate"
@@ -251,7 +251,8 @@ export class HangarPickerComponent {
   }
 
   readonly hangarLink = hqHangar;
-  readonly lockerLink = hqLocker;
+  /** "Set anlegen" leads to the sets filter of the Bestand's Inventar (S2). */
+  readonly setLink = hqStockLink({ tab: 'inventar', cat: 'sets' });
 
   onFocus(): void {
     this.clearTimers();

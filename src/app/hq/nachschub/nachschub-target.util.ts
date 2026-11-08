@@ -23,3 +23,14 @@ export function routeOrdered(lines: readonly NachschubLineInput[]): NachschubLin
 export function moveLineStop(lines: readonly NachschubLineInput[], line: number, from: number, to: number): NachschubLineInput[] {
   return lines.map((l, i) => (i === line && l.stops ? { ...l, stops: moveStop(l.stops, from, to) } : l));
 }
+
+/**
+ * Which stop of a gather line a finished (or un-finished) Einsatz step stands for: the first open stop at that place
+ * when ticking, the last ticked one when taking the tick back. Null when the place is not a stop (nothing to sync).
+ */
+export function gatherStopIndex(stops: readonly { location: string; done: boolean }[], location: string | null, done: boolean): number | null {
+  if (!location) return null;
+  const key = location.toLowerCase();
+  const idx = stops.map((s, i) => ({ s, i })).filter(({ s }) => s.location.toLowerCase() === key && s.done === !done);
+  return idx.length ? (done ? idx[0].i : idx[idx.length - 1].i) : null;
+}

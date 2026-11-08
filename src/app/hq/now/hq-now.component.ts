@@ -21,6 +21,8 @@ import { type Einsatz, type EinsatzStep, HqEinsatzService } from '../data/hq-ein
 import { hqPage } from '../hq-routes';
 import { NachschubFocusService } from '../nachschub/nachschub-focus.service';
 import { NachschubService } from '../nachschub/nachschub.service';
+import { gatherStopIndex } from '../nachschub/nachschub-target.util';
+import { HqSuppliesService } from '../hq-supplies.service';
 import { NACHSCHUB_ICON_PATHS } from '../nachschub/step-icons';
 import { routeFilterKey } from '../plan/route/route-filter.store';
 import { HqRouteGraphicComponent, type RouteSharedStop } from '../plan/route/route-graphic.component';
@@ -350,6 +352,7 @@ export class HqNowComponent {
   private readonly focus = inject(NachschubFocusService);
   private readonly ns = inject(NachschubService);
   private readonly einsatzSvc = inject(HqEinsatzService);
+  private readonly supplies = inject(HqSuppliesService);
 
   readonly tray = NACHSCHUB_ICON_PATHS;
   readonly planen = hqPage('planen');
@@ -436,12 +439,25 @@ export class HqNowComponent {
   /** "Schritt erledigt": ticks the step (the SCC-App ticks the same steps by itself, both land in the same state). */
   finish(ord: number): void {
     const e = this.activeEinsatz();
-    if (e) this.einsatzSvc.toggleStep(e.id, ord);
+    if (!e) return;
+    this.syncGather(e, ord, true);
+    this.einsatzSvc.toggleStep(e.id, ord);
   }
 
   undoLast(ord: number): void {
     const e = this.activeEinsatz();
-    if (e) this.einsatzSvc.unmarkStep(e.id, ord);
+    if (!e) return;
+    this.syncGather(e, ord, false);
+    this.einsatzSvc.unmarkStep(e.id, ord);
+  }
+
+  /** A pickup step of a gather line ticks (or un-ticks) that stop on the line, so Planen shows the same progress. */
+  private syncGather(e: Einsatz, ord: number, done: boolean): void {
+    const st = e.steps.find((x) => x.ord === ord);
+    if (!st?.supplyId || st.kind !== 'pickup' || (st.state === 'done') === done) return;
+    const line = this.supplies.items().find((i) => i.id === st.supplyId);
+    const idx = line?.gather ? gatherStopIndex(line.gather, st.location, done) : null;
+    if (line && idx !== null) this.supplies.tickGatherStop(line.id, idx, done);
   }
 
 

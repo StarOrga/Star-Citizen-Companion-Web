@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { hqLocker, hqSet } from '../../hq/hq-routes';
+import { hqSet, hqStockLink } from '../../hq/hq-routes';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
@@ -67,11 +67,11 @@ export type AddToSetView = 'loading' | 'error' | 'noSet' | 'noFit' | 'pickSet' |
           }
           @case ('noSet') {
             <p class="ats-text">{{ 'fps.addToSet.noSet' | translate }}</p>
-            <a class="ats-link" [routerLink]="lockerLink">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
+            <a class="ats-link" [routerLink]="setLink.commands" [fragment]="setLink.fragment" [queryParams]="setLink.queryParams">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
           }
           @case ('noFit') {
             <p class="ats-text">{{ 'fps.addToSet.noFit' | translate }}</p>
-            <a class="ats-link" [routerLink]="lockerLink">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
+            <a class="ats-link" [routerLink]="setLink.commands" [fragment]="setLink.fragment" [queryParams]="setLink.queryParams">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
           }
           @case ('pickSet') {
             <p class="ats-head">{{ 'fps.addToSet.pickSet' | translate }}</p>
@@ -187,7 +187,8 @@ export type AddToSetView = 'loading' | 'error' | 'noSet' | 'noFit' | 'pickSet' |
   `],
 })
 export class AddToSetComponent {
-  readonly lockerLink = hqLocker;
+  /** "Set anlegen" leads to the sets filter of the Bestand's Inventar (S2). */
+  readonly setLink = hqStockLink({ tab: 'inventar', cat: 'sets' });
 
   setRoute(id: string): string[] {
     return hqSet(id);
