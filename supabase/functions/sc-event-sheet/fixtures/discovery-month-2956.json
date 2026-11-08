@@ -1,0 +1,50 @@
+{
+  "note": "Running event (Alpha 4.10.2). Source text paraphrases research facts (docs/concepts/hq-events-research.md 1a); thresholds are community-sourced, the end date is disputed.",
+  "event": { "id": "dm-2956", "series": "discovery-month", "name": "RSI Discovery Month", "start_date": "2026-10-09", "end_date": "2026-10-31", "date_status": "estimated", "status": "scheduled", "url": "https://robertsspaceindustries.com/en/comm-link/transmission/21350-FAQ-RSI-Discovery-Month", "source_comm_link_id": 21334 },
+  "sources": [
+    { "kind": "comm-link", "label": "Alpha 4.10.2 - RSI Discovery Month (comm-link 21334)", "url": "https://robertsspaceindustries.com/en/comm-link/transmission/21334-Alpha-4102-RSI-Discovery-Month", "text": "RSI Discovery Month brings a new event to Stanton. Take contracts from the mobiGlas Contract Manager: ship and FPS combat, hauling, recovery, salvage and resource gathering. Missions award points to a career track (Defense, Transport, Collection) and to Your Total, visible in the mobiGlas Journal. Rewards include ship paints, flight blades, components, armor and weapons. Accounts with an active Constellation Mk IV pledge at the start of the event receive the retirement paint, attributed again a few days after the event closes." },
+    { "kind": "wiki", "label": "RSI Discovery Month (community wiki)", "url": "https://starcitizen.tools/RSI_Discovery_Month", "text": "Event locations are around Hurston, ArcCorp and microTech and their moons. Each of the three tracks has tiers at 2,000 / 4,000 / 6,500 / 10,000 points; the Total track has tiers at 4,500 / 9,900 / 24,000 / 30,000. Track tier 4: MaxLift-II Keelback tractor beam (Transport), P8-SC Echo SMG (Defense). Total tier 4: Constellation Mk IV Starwalker paint. Several guides disagree on the end: the CIG account said all month, other sites say October 20." }
+  ],
+  "llm": { "fields": {
+    "venues": { "value": ["Verse"], "confidence": 0.95, "source": "official" },
+    "area": { "value": { "kind": "System", "systems": ["Stanton"], "places": ["Hurston", "ArcCorp", "microTech"] }, "confidence": 0.85, "source": "wiki" },
+    "tasks": { "value": [
+      { "id": "contracts", "label": "Complete Discovery Month contracts from the Contract Manager (combat, hauling, salvage, recovery, gathering)", "trackId": null }
+    ], "confidence": 0.9, "source": "official" },
+    "progress": { "value": { "model": "Tiers", "tracks": [
+      { "id": "defense", "label": "Defense", "unit": "points", "tiers": [ { "at": 10000, "label": "Tier 4", "rewardIds": ["p8-sc-echo"] }, { "at": 2000, "label": "Tier 1", "rewardIds": [] }, { "at": 4000, "label": "Tier 2", "rewardIds": [] }, { "at": 6500, "label": "Tier 3", "rewardIds": [] } ] },
+      { "id": "transport", "label": "Transport", "unit": "points", "tiers": [ { "at": 2000, "label": "Tier 1", "rewardIds": [] }, { "at": 4000, "label": "Tier 2", "rewardIds": [] }, { "at": 6500, "label": "Tier 3", "rewardIds": [] }, { "at": 10000, "label": "Tier 4", "rewardIds": ["keelback-maxlift"] } ] },
+      { "id": "collection", "label": "Collection", "unit": "points", "tiers": [ { "at": 2000, "label": "Tier 1", "rewardIds": [] }, { "at": 4000, "label": "Tier 2", "rewardIds": [] }, { "at": 6500, "label": "Tier 3", "rewardIds": [] }, { "at": 10000, "label": "Tier 4", "rewardIds": [] } ] },
+      { "id": "total", "label": "Your Total", "unit": "points", "tiers": [ { "at": 4500, "label": "Tier 1", "rewardIds": [] }, { "at": 9900, "label": "Tier 2", "rewardIds": [] }, { "at": 24000, "label": "Tier 3", "rewardIds": [] }, { "at": 30000, "label": "Tier 4", "rewardIds": ["starwalker-paint"] } ] }
+    ] }, "confidence": 0.82, "source": "wiki" },
+    "rewards": { "value": [
+      { "id": "keelback-maxlift", "name": "MaxLift-II Keelback tractor beam", "className": null, "variant": "Keelback", "channel": "ingame", "timing": { "kind": "immediate" }, "trackId": "transport", "tier": 4 },
+      { "id": "p8-sc-echo", "name": "P8-SC Echo SMG", "className": null, "variant": "Echo", "channel": "ingame", "timing": { "kind": "immediate" }, "trackId": "defense", "tier": 4 },
+      { "id": "starwalker-paint", "name": "Constellation Mk IV Starwalker paint", "className": null, "variant": null, "channel": "ingame", "timing": { "kind": "immediate" }, "trackId": "total", "tier": 4 },
+      { "id": "mk4-retirement-paint", "name": "Constellation Mk IV retirement paint", "className": null, "variant": null, "channel": "pledge", "timing": { "kind": "after-end" }, "trackId": null, "tier": null }
+    ], "confidence": 0.85, "source": "official" },
+    "prerequisites": { "value": { "op": "and", "items": [
+      { "gear": "Alpha 4.10.2", "label": "Patch" },
+      { "gear": "game package" },
+      { "op": "or", "items": [ { "gear": "combat-ship", "label": "Combat ship" }, { "gear": "fps-combat-set", "label": "FPS combat set" }, { "gear": "cargo-ship" }, { "gear": "salvage-ship" } ] }
+    ] }, "confidence": 0.7, "source": "ai" },
+    "start": { "value": "2026-10-09", "confidence": 0.97, "source": "official" },
+    "end": { "value": "2026-10-20", "confidence": 0.3, "source": "wiki" }
+  } },
+  "expect": {
+    "public": {
+      "venues": ["verse"],
+      "area": { "kind": "system", "systems": ["stanton"], "places": ["hurston", "arccorp", "microtech"] },
+      "start": "2026-10-09",
+      "end": null,
+      "prerequisites": null
+    },
+    "pending": ["end", "prerequisites"],
+    "draftEnd": "2026-10-20",
+    "prereqGear": ["combat-ship", "fps-combat-set", "cargo-ship", "salvage-ship"],
+    "progressModel": "tiers",
+    "trackThresholds": { "defense": [2000, 4000, 6500, 10000], "transport": [2000, 4000, 6500, 10000], "collection": [2000, 4000, 6500, 10000], "total": [4500, 9900, 24000, 30000] },
+    "channels": { "keelback-maxlift": "ingame", "mk4-retirement-paint": "pledge" },
+    "timing": { "mk4-retirement-paint": "after-end" }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "note": "Next big event 2026-11-13..27. Free Fly, no reward: the show-floor place comes from secondary sites only, so it stays pending.",
+  "event": { "id": "iae-2956", "series": "iae", "name": "Intergalactic Aerospace Expo 2956", "start_date": "2026-11-13", "end_date": "2026-11-27", "date_status": "confirmed", "status": "scheduled", "url": "", "source_comm_link_id": null },
+  "sources": [
+    { "kind": "comm-link", "label": "IAE 2956 Free Fly and manufacturer schedule", "url": "https://robertsspaceindustries.com/en/comm-link/transmission/21431-IAE-2956", "text": "Intergalactic Aerospace Expo 2956 runs November 13 16:00 UTC to November 27 20:00 UTC. Manufacturer days run November 13-22, Best in Show is November 22, and every IAE vehicle is free to fly November 23-27. The show floor is in New Babbage (per secondary reports)." }
+  ],
+  "llm": { "fields": {
+    "venues": { "value": ["verse"], "confidence": 0.9, "source": "official" },
+    "area": { "value": { "kind": "places", "systems": ["stanton"], "places": ["new-babbage"] }, "confidence": 0.7, "source": "wiki" },
+    "tasks": { "value": [ { "id": "visit", "label": "Visit the show floor and try the exhibited ships", "trackId": null } ], "confidence": 0.8, "source": "official" },
+    "progress": { "value": { "model": "none", "tracks": [] }, "confidence": 0.9, "source": "official" },
+    "rewards": { "value": [], "confidence": 0.82, "source": "official" },
+    "prerequisites": { "value": null, "confidence": 0, "source": "ai" },
+    "start": { "value": "2026-11-13T16:00:00Z", "confidence": 0.92, "source": "official" },
+    "end": { "value": "2026-11-27T20:00:00Z", "confidence": 0.92, "source": "official" }
+  } },
+  "expect": {
+    "public": { "venues": ["verse"], "rewards": [], "start": "2026-11-13T16:00:00Z", "end": "2026-11-27T20:00:00Z", "area": null },
+    "pending": ["area"],
+    "progressModel": "none"
+  }
+}

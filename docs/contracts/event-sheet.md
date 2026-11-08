@@ -64,3 +64,21 @@ mechanism is flexible** - nothing is locked to today's events. Every value may b
 `resolveEventEnd`: official end (sheet `end`, else `sc_events.end_date` when `date_status='confirmed'`) > estimated next
 patch (caller passes `computeNextPatch(...).atIso`) labelled as an estimate > unknown. An extension just changes the
 official end. An estimate never closes an event or archives its Nachschub; only an official end in the past does.
+
+## Extraction (C2/C3) - edge function `sc-event-sheet`
+
+`supabase/functions/sc-event-sheet/` (pure logic in `_extract.ts`, handler in `index.ts`, recorded events in
+`fixtures/`, tests `extract.test.mjs`). pg_cron `sc-event-sheet` (every 6 h at :37) posts `{}`; the function picks the
+events that need a pass: new related comm-link, running event once a day (20 h), upcoming event (<= 21 days) every 3
+days, one last pass up to 3 days after the end; at most 3 LLM calls per run, none when the source text is unchanged
+(hash kept in the history row's `actor_id = sc-event-sheet:<hash>`). `POST {eventId, force?}` re-extracts one event
+(service-role key or admin only).
+
+Sources: Comm-Link Wiki API (source post, titles naming the event near its dates, mention excerpts), community wiki
+extract, RSI page meta tags (RSI serves nothing else to a plain fetch; failed sources are skipped). The model
+(`claude-sonnet-5-5`, secret `ANTHROPIC_API_KEY`, override `SC_EVENT_SHEET_MODEL`) answers through a forced tool call
+with the sheet shape. Then: review forced to `auto` -> `validateSheet` -> sanity checks (end before start, dates far from a
+confirmed calendar row, no named source: confidence drops) -> `gateSheet` (< 0.8 = `pending`) -> `mergeSheets` with the stored
+draft (admin `approved`/`edited` fields stay; a `rejected` reading stays rejected while repeated; an unknown reading never wipes a
+known value; a weak new reading never displaces a released value) -> `sc_event_sheet_apply(..., 'ai', 'sc-event-sheet:<hash>')`,
+i.e. every run writes a history row. Pending fields are unknown publicly and show in the admin draft.

@@ -1,0 +1,30 @@
+{
+  "note": "Past website advent calendar 2025-12-10..22 plus PU gift boxes. Hangar gifts are pledge-channel, immediate; box payout is in-game.",
+  "event": { "id": "lum-2955", "series": "luminalia", "name": "Luminalia 2955", "start_date": "2025-12-10", "end_date": "2025-12-22", "date_status": "confirmed", "status": "scheduled", "url": "", "source_comm_link_id": 20916 },
+  "sources": [
+    { "kind": "comm-link", "label": "Luminalia 2955 (comm-link 20916)", "url": "https://robertsspaceindustries.com/comm-link/transmission/20916-Luminalia-2955", "text": "13 Days of Luminalia: unlock one gift per day on the website at 16:00 UTC, December 10 to 22. Gifts are added to your hangar; an RSI account is all you need. In the Persistent Universe, deliver Luminalia gift boxes; each box pays 500 aUEC." }
+  ],
+  "llm": { "fields": {
+    "venues": { "value": ["Website", "Verse"], "confidence": 0.9, "source": "official" },
+    "area": { "value": null, "confidence": 0, "source": "ai" },
+    "tasks": { "value": [
+      { "id": "unlock", "label": "Unlock the daily gift on the website at 16:00 UTC", "trackId": "calendar" },
+      { "id": "boxes", "label": "Deliver Luminalia gift boxes in the Persistent Universe", "trackId": null }
+    ], "confidence": 0.9, "source": "official" },
+    "progress": { "value": { "model": "daily", "tracks": [ { "id": "calendar", "label": "13 Days of Luminalia", "unit": "days", "tiers": [ { "at": 1, "label": "Day 1", "rewardIds": ["daily-gift"] } ] } ] }, "confidence": 0.88, "source": "official" },
+    "rewards": { "value": [
+      { "id": "daily-gift", "name": "Daily Luminalia hangar gift", "className": null, "variant": null, "channel": "pledge", "timing": { "kind": "immediate" }, "trackId": "calendar", "tier": 1 },
+      { "id": "box-payout", "name": "500 aUEC per gift box", "className": null, "variant": null, "channel": "ingame", "timing": { "kind": "immediate" }, "trackId": null, "tier": null }
+    ], "confidence": 0.88, "source": "official" },
+    "prerequisites": { "value": { "gear": "RSI account", "label": "Account" }, "confidence": 0.9, "source": "official" },
+    "start": { "value": "2025-12-10", "confidence": 0.95, "source": "official" },
+    "end": { "value": "2025-12-22", "confidence": 0.95, "source": "official" }
+  } },
+  "expect": {
+    "public": { "venues": ["website", "verse"], "area": null, "prerequisites": null, "start": "2025-12-10", "end": "2025-12-22" },
+    "pending": [],
+    "progressModel": "daily",
+    "channels": { "daily-gift": "pledge", "box-payout": "ingame" },
+    "timing": { "daily-gift": "immediate" }
+  }
+}

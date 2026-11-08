@@ -231,3 +231,10 @@ verify_jwt = false
 [functions.patch-teaser]
 # Service-role only (own Bearer check in index.ts), so the platform JWT gate stays off.
 verify_jwt = false
+
+[functions.sc-event-sheet]
+# JWT verification OFF: pg_cron (sc-event-sheet job, 20261108150000_sc_event_sheet_cron.sql) calls it with the
+# publishable key, like sc-events-sync. The automatic mode is throttled (one run per 10 min) and capped (3 LLM calls);
+# a targeted re-extract ({eventId}) checks the caller itself (service-role key or signed-in admin). The sheet is only
+# written through the service_role/admin RPC sc_event_sheet_apply.
+verify_jwt = false
