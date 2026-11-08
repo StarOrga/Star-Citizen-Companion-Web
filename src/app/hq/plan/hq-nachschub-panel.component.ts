@@ -110,7 +110,7 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
                     <span class="eid">E{{ i + 1 }}</span>
                     @if (renamingE() === e.id) {
                       <input #eInput class="erename" type="text" [maxlength]="einsatzMax" [ngModel]="eDraft()" (ngModelChange)="eDraft.set($event)"
-                             [attr.aria-label]="'hq.einsatz.rename.aria' | translate" [attr.aria-invalid]="eError() ? 'true' : null"
+                             [attr.aria-label]="'hq.einsatz.rename.aria' | translate" [attr.aria-invalid]="eError() ? 'true' : null" [attr.aria-describedby]="eError() ? 'eerr-' + e.id : null"
                              (keydown.enter)="commitEinsatzRename(e.id, true)" (keydown.escape)="cancelEinsatzRename(e.id)" (blur)="commitEinsatzRename(e.id, false)" />
                     } @else {
                       <button type="button" class="pick" [attr.aria-pressed]="e.id === selectedId()" (click)="selectedId.set(e.id)">{{ e.title }}</button>
@@ -125,7 +125,7 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
                       }
                     </span>
                   </header>
-                  @if (renamingE() === e.id && eError(); as err) { <p class="eerr" role="alert">{{ err | translate }}</p> }
+                  @if (renamingE() === e.id && eError(); as err) { <p class="eerr" role="alert" [id]="'eerr-' + e.id">{{ err | translate }}</p> }
                   <p class="meta">
                     {{ 'hq.panel.steps' | translate: { done: doneOf(e), n: e.steps.length } }}
                     @for (s of systems(e); track s) { · {{ s }} }
@@ -179,11 +179,12 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
       .ecard header { display: flex; align-items: center; gap: 8px; }
       .eid { padding: 0 6px; border-radius: 5px; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-accent); font: 700 0.72rem var(--sc-font-display, inherit); }
       .pick { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--sc-fg); font: 600 0.9rem var(--sc-font-body, inherit); text-align: start; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .erename { flex: 1; min-width: 0; min-height: 32px; padding: 0 8px; border: 1px solid var(--sc-accent); border-radius: 8px; background: var(--sc-bg-0); color: var(--sc-fg); font: 600 0.9rem var(--sc-font-body, inherit); }
+      .erename { flex: 1; min-width: 0; min-height: 36px; padding: 0 8px; border: 1px solid var(--sc-accent); border-radius: 8px; background: var(--sc-bg-0); color: var(--sc-fg); font: 600 0.9rem var(--sc-font-body, inherit); }
       .erename[aria-invalid='true'] { border-color: var(--sc-warning); }
+      .erename:hover { border-color: var(--sc-accent-hover, var(--sc-accent)); }
       .erename:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
       .epen svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-      .eerr { margin: 2px 0 0; color: var(--sc-warning); font-size: 0.78rem; }
+      .eerr { margin: 2px 0 0; color: var(--sc-warning); font-size: max(0.78rem, var(--sc-fs-floor, 0.75rem)); }
       .pick:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .kinds { display: inline-flex; gap: 3px; }
       .kic { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 5px; background: color-mix(in srgb, var(--sc-accent) 12%, transparent); color: var(--sc-accent); }

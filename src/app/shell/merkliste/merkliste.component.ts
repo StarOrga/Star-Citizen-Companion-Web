@@ -134,6 +134,7 @@ const FRAME_ICON = ['M4 6.5h16V20H4z', 'M9.5 6.5v6.5l2.5-2 2.5 2V6.5'] as const;
       .all:hover, .more:hover { text-decoration: underline; }
       .all:focus-visible, .more:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .need-consent a { color: var(--sc-accent); }
+      .need-consent a:hover { text-decoration: underline; }
       .need-consent a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
       .empty { margin: 4px 4px 8px; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor, 0.75rem)); }
       /* Phone: a sheet above the feedback launcher's lane, never cut by the mobile URL bar. */

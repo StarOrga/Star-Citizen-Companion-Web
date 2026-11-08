@@ -157,7 +157,8 @@ const CLOSE = ['M6 6l12 12M18 6L6 18'] as const;
     HQ_DIALOG_STYLES,
     `
       :host { display: contents; }
-      .full-hint { color: var(--sc-fg-2); font-size: 0.82rem; max-width: 46ch; }
+      .dlg-foot { flex-wrap: wrap; }
+      .full-hint { color: var(--sc-fg-2); font-size: max(0.82rem, var(--sc-fs-floor, 0.75rem)); max-width: 46ch; flex: 1 1 18ch; }
       .cart { --dlg-w: min(1180px, 100%); --dlg-h: min(860px, 100%); }
       .cart-body { gap: 14px; }
       .groups { flex: none; }
