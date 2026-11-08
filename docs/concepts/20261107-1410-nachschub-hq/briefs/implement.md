@@ -246,3 +246,11 @@ Budget mode: **sparsam** — one Sonnet agent at a time, wave after wave, each w
 
 ### Out of scope / follow-ups
 - Ruf data source from the SCC-App (user: „ggf. checken ob die scc app es liefern kann und ship dort die änderung“) — separate task in the desktop app.
+
+## Resume state (2026-11-08, paused for the weekly budget reset + plugin restart)
+- Waves 1–3 committed and pushed on `claude/nachschub-hq-concept-9ffa89` (last `8e236ac7` + main merges). Full Karma suite green: `TOTAL: 6216 SUCCESS` (orchestrator run, 2026-11-08). typecheck, lint (0 errors), build green per agent reports.
+- Open (wave 4, QA): signed-in visual check of every redesigned page against `rounds/04.html` at 1920×1080 and 1440×900 (no page scroll), mobile gate with `--auth`. Needs a session that loads the Playwright test account (`.claude/deep-knowledge/test-account.md`). The `--it-top: 300px` offset in `src/styles.scss` is an unmeasured guess — check first.
+- Known gaps: missiles keep the old detail hero; „Passt dazu“ covers FPS armor/weapons only (ships, blueprints, places, magazines not yet); unused `itemPath.*` / `hq.supplies.*` i18n keys; no tooltip for truncated cart tile names; three wave-1 services without own specs.
+- Not deployed: migrations `20261107190000_wishlist_qty.sql`, `20261107190100_hq_supply_packages.sql`, `20261107190200_user_news_collected.sql` and edge function `nachschub-names` — deploy with the ship (then `notify pgrst, 'reload schema'`).
+- Then: the concept's final report (auto-concept implement → final-report round) and the ship.
+- Follow-up outside scope: Ruf (reputation) data from the SCC-App.
