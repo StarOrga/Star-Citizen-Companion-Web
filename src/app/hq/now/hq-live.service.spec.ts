@@ -167,6 +167,20 @@ describe('HqLiveService', () => {
     expect(targets.unmarkStep).toHaveBeenCalledWith('e1', 2);
   }));
 
+  it('hands the undo claim back when the blueprint cannot be taken out of the Sammlung', fakeAsync(() => {
+    store.rows = [ev('b', 'blueprint.received', { name: 'P4-AR Rifle' })];
+    const s = make();
+    settle();
+    targets.uncollectBlueprint.and.resolveTo(false);
+    void s.undo('b');
+    for (let i = 0; i < 4; i++) flushMicrotasks();
+    expect(store.patches.at(-1)).toEqual({ id: 'b', patch: { undone: false } });
+    expect(targets.unmarkStep).not.toHaveBeenCalled();
+    expect(s.events()[0].undone).toBeFalse();
+    expect(s.error()).toBeTruthy();
+    targets.uncollectBlueprint.and.resolveTo(true);
+  }));
+
   it('a blueprint the Sammlung has already (or no blueprint at all) changes nothing', fakeAsync(() => {
     targets.collectBlueprint.and.resolveTo(null);
     store.rows = [ev('b', 'blueprint.received', { name: 'Unbekannt' })];

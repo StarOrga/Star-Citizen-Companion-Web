@@ -353,20 +353,22 @@ export class HqLiveService {
       return;
     }
     if (this.uid !== uid) return;
-    if (kind === 'snapshot') {
-      // The restore is itself a server write: when it fails, hand the claim back so the user can retry.
-      const ok = (await this.targets.restoreSnapshot?.(a?.['previous'])) ?? false;
-      if (!ok) {
-        try {
-          await this.store.patch(uid, eventId, { undone: false });
-        } catch (err) {
-          logWarn('hq-live', 'undo release failed', err);
-        }
-        this.error.set(toErrorKey('hq-live', 'undo', new Error('snapshot restore failed')));
-        return;
+    // A revert that is itself a server write (snapshot restore, blueprint removal): when it fails, hand the claim back
+    // so the user can retry.
+    const release = async (what: string): Promise<void> => {
+      try {
+        await this.store.patch(uid, eventId, { undone: false });
+      } catch (err) {
+        logWarn('hq-live', 'undo release failed', err);
       }
+      this.error.set(toErrorKey('hq-live', 'undo', new Error(`${what} failed`)));
+    };
+    if (kind === 'snapshot') {
+      const ok = (await this.targets.restoreSnapshot?.(a?.['previous'])) ?? false;
+      if (!ok) return release('snapshot restore');
     } else if (kind === 'blueprint') {
-      await this.targets.uncollectBlueprint?.(String(a?.['className'] ?? ''), String(a?.['name'] ?? ''));
+      const ok = (await this.targets.uncollectBlueprint?.(String(a?.['className'] ?? ''), String(a?.['name'] ?? ''))) ?? false;
+      if (!ok) return release('blueprint removal');
       if (a?.['einsatzId']) this.targets.unmarkStep(String(a['einsatzId']), Number(a['ord']));
     } else if (kind === 'supply') this.targets.untick(String(a?.['id']), Number(a?.['qty']));
     else if (kind === 'step') this.targets.unmarkStep(String(a?.['einsatzId']), Number(a?.['ord']));
