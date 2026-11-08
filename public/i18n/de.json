@@ -5742,6 +5742,55 @@
       "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
       "nothingPicked": "Wähle mindestens einen Gegenstand von der Wunschliste.",
       "newName": "Neuer Nachschub",
+      "sellGoalInvalid": "Gib ein Ziel von mindestens 1 aUEC ein.",
+      "target": {
+        "title": "Aus dem Bestand planen",
+        "intent": {
+          "pickup": "Abholen",
+          "sell": "Verkaufen",
+          "buy": "Kaufen"
+        },
+        "lead": "{{n}} Gegenstand/Gegenstände aus deinem Bestand",
+        "where": "Wohin",
+        "new": "Neuer Nachschub",
+        "newSell": "Neuer Nachschub: Geld verdienen",
+        "append": "An „{{name}}“ anhängen",
+        "goal": "Ziel in aUEC",
+        "goalPlaceholder": "z. B. 1.500.000",
+        "create": "Nachschub anlegen",
+        "add": "Hinzufügen",
+        "sellName": "Geld verdienen",
+        "scu": "SCU",
+        "pcs": "Stk.",
+        "route": "Route über {{n}} Orte, die meisten zuerst",
+        "up": "{{place}} nach oben",
+        "down": "{{place}} nach unten",
+        "einsatzOne": "{{name}} abholen",
+        "einsatzMany": "Abholen"
+      },
+      "sellForm": {
+        "kindAria": "Wofür ist der Nachschub?",
+        "wish": "Von der Wunschliste",
+        "sell": "Geld verdienen",
+        "goal": "Ziel in aUEC",
+        "goalPlaceholder": "z. B. 1.500.000",
+        "pickHint": "Wähle aus deinem Bestand, was du verkaufst. Weitere Dinge kannst du später im Bestand mit „Verkaufen“ anhängen.",
+        "empty": "Dein Bestand ist leer. Leg den Nachschub jetzt an und häng später Dinge im Bestand mit „Verkaufen“ an.",
+        "pick": "{{name}} aus {{place}} verkaufen"
+      },
+      "sell": {
+        "title": "Geld verdienen",
+        "progress": "{{earned}} von {{goal}} aUEC",
+        "reached": "Ziel erreicht",
+        "earned": "Bisher verdient (aUEC)",
+        "save": "Speichern",
+        "lines": "Zu verkaufen"
+      },
+      "gather": {
+        "title": "Abholrouten",
+        "route": "{{done}} von {{n}} Halten",
+        "tick": "{{place}} abgeholt"
+      },
       "newEinsatz": "Neuer Einsatz",
       "verb": {
         "buy": "Kaufen:",

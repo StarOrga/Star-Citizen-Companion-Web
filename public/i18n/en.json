@@ -5742,6 +5742,55 @@
       "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
       "nothingPicked": "Pick at least one item from the wishlist.",
       "newName": "New Nachschub",
+      "sellGoalInvalid": "Enter a goal of at least 1 aUEC.",
+      "target": {
+        "title": "Plan from stock",
+        "intent": {
+          "pickup": "Pick up",
+          "sell": "Sell",
+          "buy": "Buy"
+        },
+        "lead": "{{n}} item(s) from your stock",
+        "where": "Where to",
+        "new": "New Nachschub",
+        "newSell": "New Nachschub: make money",
+        "append": "Add to \"{{name}}\"",
+        "goal": "Goal in aUEC",
+        "goalPlaceholder": "e.g. 1,500,000",
+        "create": "Create Nachschub",
+        "add": "Add",
+        "sellName": "Make money",
+        "scu": "SCU",
+        "pcs": "pcs",
+        "route": "Route over {{n}} places, most first",
+        "up": "Move {{place}} up",
+        "down": "Move {{place}} down",
+        "einsatzOne": "Pick up {{name}}",
+        "einsatzMany": "Pick up"
+      },
+      "sellForm": {
+        "kindAria": "What is the Nachschub for?",
+        "wish": "From the wishlist",
+        "sell": "Make money",
+        "goal": "Goal in aUEC",
+        "goalPlaceholder": "e.g. 1,500,000",
+        "pickHint": "Choose what you sell from your stock. You can add more from the stock later.",
+        "empty": "Your stock is empty. Create the Nachschub now and add items from the stock with \"Sell\".",
+        "pick": "Sell {{name}} from {{place}}"
+      },
+      "sell": {
+        "title": "Make money",
+        "progress": "{{earned}} of {{goal}} aUEC",
+        "reached": "Goal reached",
+        "earned": "Earned so far (aUEC)",
+        "save": "Save",
+        "lines": "To sell"
+      },
+      "gather": {
+        "title": "Pick-up routes",
+        "route": "{{done}} of {{n}} stops",
+        "tick": "{{place}} picked up"
+      },
       "newEinsatz": "New Einsatz",
       "verb": {
         "buy": "Buy:",
