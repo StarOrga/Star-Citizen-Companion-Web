@@ -9,6 +9,7 @@ import {
   matchDeclineReason,
   bucketLabelStatus,
   awaitsReview,
+  awaitsDeploy,
   computePace,
   computeStats,
   feedbackBucket,
@@ -1747,5 +1748,14 @@ describe('complex flag (feedback 423e5130)', () => {
   it('is not searchable text — it is an instruction, not content', () => {
     expect(searchFeedback([flagged], new Map(), 'complex').length).toBe(0);
     expect(displayTitle(flagged)).toBe(displayTitle(plain));
+  });
+});
+
+describe('awaitsDeploy', () => {
+  it('is true only for a shipped topic whose live_at is reported and empty', () => {
+    expect(awaitsDeploy({ status: 'shipped', live_at: null })).toBeTrue();
+    expect(awaitsDeploy({ status: 'shipped', live_at: '2026-11-08T22:00:00Z' })).toBeFalse();
+    expect(awaitsDeploy({ status: 'shipped' })).toBeFalse(); // backend without the column claims no lag
+    expect(awaitsDeploy({ status: 'in_progress', live_at: null })).toBeFalse();
   });
 });
