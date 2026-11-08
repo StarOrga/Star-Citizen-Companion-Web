@@ -7175,6 +7175,11 @@
     "eyebrow": "Admin",
     "title": "Kommandozentrale",
     "subtitle": "Alle Admin-Werkzeuge an einem Ort.",
+    "groups": {
+      "people": "Personen & Zugang",
+      "operations": "Betrieb",
+      "content": "Inhalte & Daten"
+    },
     "tiles": {
       "users": {
         "title": "Benutzer",

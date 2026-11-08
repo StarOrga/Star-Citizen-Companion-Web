@@ -7175,6 +7175,11 @@
     "eyebrow": "Admin",
     "title": "Command centre",
     "subtitle": "Every admin tool in one place.",
+    "groups": {
+      "people": "People & access",
+      "operations": "Operations",
+      "content": "Content & data"
+    },
     "tiles": {
       "users": {
         "title": "Users",

@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.239.5",
+  "current": "0.239.6",
   "releases": [
+    {
+      "version": "0.239.6",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin hub: tiles in three labelled groups (people & access, operations, content & data) on one even grid, all tiles the same width with no lone tile in a row."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.239.5",
       "date": "2026-11-08",
