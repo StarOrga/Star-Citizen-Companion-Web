@@ -5,6 +5,10 @@
 //   POST { op: 'approve' | 'cancel', job_id }        admin
 //   POST { op: 'estimate', build_id, lang, mode? }   admin dry run, no writes
 //   POST { op: 'start_full', build_id, lang }        admin, always parks in awaiting_approval
+//   POST { op: 'import_seed', source_id }            admin, community pack -> TM (licensed|permitted only)
+//   POST { op: 'sync_sources' }                      daily pg_cron (publishable key) or admin
+//   POST { op: 'learn', lang }                       admin, learning backfill (hook)
+//   POST { op: 'draft_outreach', source_id }         admin, maintainer message DRAFT (never sent)
 //
 // AUTH (verify_jwt = false in config.toml; checked here):
 //   * service-role key       -> every op
@@ -12,6 +16,8 @@
 //                               a tick only advances existing jobs and spends nothing unless
 //                               settings.enabled and a job is queued/approved. Concurrent ticks
 //                               are harmless: every transition is a compare-and-set.
+//   * the anon/publishable key -> also `sync_sources` (daily cron): it only re-imports enabled
+//                               licensed|permitted sources whose upstream changed.
 //   * a user JWT whose profiles.role = 'admin' -> every op
 // The Anthropic key is TRANSLATE_ANTHROPIC_API_KEY only; absent -> jobs fail with
 // `translate.no_api_key`. It is never the sc-events-sync key.
@@ -24,6 +30,8 @@ import { makeDb } from './_db.ts';
 import { approve, cancel, dryRun, startFull, tick, TranslateError } from './_machine.ts';
 import type { Deps } from './_machine.ts';
 import type { Store } from './_io.ts';
+import { learningHooks } from './_hooks.ts';
+import { draftOutreach, importSeed, syncSources } from './_sources.ts';
 
 function logWarn(msg: string, data?: Record<string, unknown>): void {
   console.warn(`translate-orchestrator: ${msg}`, data ? JSON.stringify(data) : '');
@@ -31,6 +39,8 @@ function logWarn(msg: string, data?: Record<string, unknown>): void {
 function logError(msg: string, data?: Record<string, unknown>): void {
   console.error(`translate-orchestrator: ${msg}`, data ? JSON.stringify(data) : '');
 }
+
+const SOURCE_ID_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -73,7 +83,7 @@ Deno.serve(async (req) => {
   // tick is the pg_cron entry point. The cron job sends the public sb_publishable_* key, which
   // the runtime's SUPABASE_ANON_KEY may not equal (it can still hold the legacy JWT). Both are
   // public, and tick only advances jobs already inside the caps, so either one is enough.
-  else if (op === 'tick' && token && ((anonKey && token === anonKey) || token.startsWith('sb_publishable_'))) allowed = true;
+  else if ((op === 'tick' || op === 'sync_sources') && token && ((anonKey && token === anonKey) || token.startsWith('sb_publishable_'))) allowed = true;
   else if (token) {
     const { data: { user } } = await admin.auth.getUser(token);
     if (user) {
@@ -135,6 +145,26 @@ Deno.serve(async (req) => {
           base = BUILD_ID_RE.test(String(body.base_build_id ?? '')) ? String(body.base_build_id) : null;
         }
         return json({ ok: true, estimate: await dryRun(deps, build_id, lang, mode, base) });
+      }
+      case 'import_seed': {
+        const sourceId = String(body.source_id ?? '');
+        if (!SOURCE_ID_RE.test(sourceId)) return json({ error: 'bad_params' }, 400);
+        return json({ ok: true, ...(await importSeed(deps, admin, sourceId, { ghToken: Deno.env.get('GITHUB_TOKEN') ?? undefined })) });
+      }
+      case 'sync_sources': {
+        const work = syncSources(deps, admin, { ghToken: Deno.env.get('GITHUB_TOKEN') ?? undefined });
+        (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil?.(work.catch(() => {}));
+        return json({ ok: true, ...(await work) });
+      }
+      case 'learn': {
+        const lang = String(body.lang ?? '');
+        if (!LANG_RE.test(lang)) return json({ error: 'bad_params' }, 400);
+        return json({ ok: true, lang, result: await learningHooks.runLearning(deps, lang, 'backfill') });
+      }
+      case 'draft_outreach': {
+        const sourceId = String(body.source_id ?? '');
+        if (!SOURCE_ID_RE.test(sourceId)) return json({ error: 'bad_params' }, 400);
+        return json({ ok: true, outreach: await draftOutreach(admin, sourceId) });
       }
       default:
         return json({ error: 'unknown_op' }, 400);
