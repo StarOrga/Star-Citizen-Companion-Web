@@ -2621,6 +2621,45 @@
       "showInHq": "Show in HQ",
       "noteTitle": "Note on this item",
       "wishAgain": "Wish for another"
+    },
+    "itemRank": {
+      "nAll": "{{n}} parts of this kind",
+      "nType": "{{n}} parts of the same type",
+      "nSize": "{{n}} parts of size {{k}}",
+      "verdict": "{{pct}} % — {{band}} against {{n}} parts.",
+      "percentileTooltip": "The value says where this part sits in the comparison field. 50 % is the exact middle. For delays and signatures a smaller value ranks higher.",
+      "radarAria": "Radar chart of the percentiles of {{name}} against {{n}} parts",
+      "legendCompare": "Median {{group}} · {{n}} parts",
+      "legendAbove": "above median",
+      "legendBelow": "below median",
+      "compareInfo": "Each axis runs from 0 (centre) to the best value among the chosen parts (rim). Blue is this part, the dashed line the group's median.",
+      "note": "Compares only what the game data holds for this part.",
+      "gapTooFew": "Too few parts differ in the values compared here to rank this one.",
+      "gapNoCohort": "The comparison group could not be loaded.",
+      "scope": {
+        "all": "All",
+        "size": "Size",
+        "type": "Type"
+      },
+      "scopeOff": "Too few parts to compare with in this group.",
+      "axis": {
+        "dps": "DPS",
+        "alpha": "ALPHA",
+        "fireRate": "FIRE RATE",
+        "projectileSpeed": "PROJECTILE SPEED",
+        "shieldHp": "SHIELD HP",
+        "shieldRegen": "REGEN",
+        "damagedDelay": "DELAY AFTER HIT",
+        "downedDelay": "DELAY AFTER DOWN",
+        "powerOutput": "OUTPUT",
+        "coolingRate": "COOLING RATE",
+        "health": "HP",
+        "emSignature": "EM",
+        "irSignature": "IR",
+        "driveSpeed": "SPEED",
+        "jumpRange": "RANGE",
+        "spoolTime": "SPOOL TIME"
+      }
     }
   },
   "blueprint": {

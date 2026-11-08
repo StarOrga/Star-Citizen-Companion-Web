@@ -196,6 +196,7 @@ import { groupOccupants } from './codex-fold-preview';
 import type { PowerSheet } from './codex-power';
 import { CodexEnergyDockComponent } from './codex-energy-dock.component';
 import { CodexRankCardComponent } from './codex-rank-card.component';
+import { type ItemRankRecord, defaultItemScope, itemRankKindOf, itemRankRecordOf, rankItem } from './codex-item-rank';
 import { CodexDetailClassicComponent, type CodexClassicCtx } from './detail/codex-detail-classic.component';
 import {
   RankProfileId,
@@ -955,6 +956,22 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         (scopeChange)="missileScopeChoice.set($event)" />
     }
 
+    <!-- ── Weapons and components (Holotisch only): where this record ranks among its peers, with the graphs the
+         missile has. Values the payload lacks are not drawn (codex-item-rank.ts). ── -->
+    @if (itemStage() && itemRankKind() && showTab('werte')) {
+      <sc-codex-rank-card
+        [shipName]="displayName()"
+        [sizeClass]="itemRankRecord()?.size ?? null"
+        [result]="itemRank()"
+        [loading]="itemRankLoading()"
+        [profiles]="[]"
+        [scopes]="itemRankScopes"
+        [copy]="itemRankCopy"
+        [gapKey]="itemRankGapKey()"
+        [scope]="itemRankScope()"
+        (scopeChange)="itemScopeChoice.set($event)" />
+    }
+
     <!-- ── Ammunition: damage + ballistics ───────────────────── -->
     @if (showTab('werte') && damage().length > 0) {
       <section class="sc-card block">
@@ -1691,6 +1708,8 @@ export class CodexDetailComponent implements OnInit {
     if (this.kind() === 'ship') { this.toggleHoloView(); return; }
     const next = !this.itemHolo();
     this.itemHolo.set(next);
+    // The graphs belong to the Holotisch only: the peers are read when it is first opened.
+    if (next && this.itemRankKind() && !this.itemRankCohort() && !this.itemRankLoading()) void this.loadItemRankCohort(this.loadSeq);
     this.codexPrefs.setItemView(next ? 'holo' : 'classic');
     void this.router.navigate([], { relativeTo: this.route, queryParams: { view: next ? 'holo' : null }, queryParamsHandling: 'merge', replaceUrl: true });
   }
@@ -2317,6 +2336,72 @@ export class CodexDetailComponent implements OnInit {
     return this.missileCohort() ? 'codex.missile.rank.gapTooFew' : 'codex.missile.rank.gapNoCohort';
   });
 
+  // ── Weapon / component Einordnung (Holotisch rail graphs): the same card as the missile's, other peers ──
+  /** Which comparison this record has a graph for; null = none (ships, ammunition, gear, other components). */
+  readonly itemRankKind = computed(() => {
+    const d = this.detail();
+    return d && d.kind !== 'ship' && !this.isMissile() ? itemRankKindOf(d.kind, d.payload) : null;
+  });
+  readonly itemRankCohort = signal<ItemRankRecord[] | null>(null);
+  readonly itemRankLoading = signal(false);
+  readonly itemScopeChoice = signal<RankScope | null>(null);
+  readonly itemRankScopes: readonly RankCardScope[] = [
+    { id: 'all', labelKey: 'codex.itemRank.scope.all', reasonKey: '' },
+    { id: 'sizeClass', labelKey: 'codex.itemRank.scope.size', reasonKey: 'codex.itemRank.scopeOff' },
+    { id: 'career', labelKey: 'codex.itemRank.scope.type', reasonKey: 'codex.itemRank.scopeOff' },
+  ];
+  readonly itemRankCopy: RankCardCopy = {
+    cohort: {
+      all: 'codex.itemRank.nAll',
+      career: 'codex.itemRank.nType',
+      sizeClass: 'codex.itemRank.nSize',
+      role: 'codex.itemRank.nAll',
+    },
+    verdict: 'codex.itemRank.verdict',
+    percentileTooltip: 'codex.itemRank.percentileTooltip',
+    radarAria: 'codex.itemRank.radarAria',
+    legendCompare: 'codex.itemRank.legendCompare',
+    legendBetter: 'codex.itemRank.legendAbove',
+    legendWorse: 'codex.itemRank.legendBelow',
+    compareInfo: 'codex.itemRank.compareInfo',
+    note: 'codex.itemRank.note',
+  };
+  /** This record, from the cohort when it is in there. */
+  readonly itemRankRecord = computed<ItemRankRecord | null>(() => {
+    const d = this.detail();
+    if (!d || !this.itemRankKind()) return null;
+    const known = this.itemRankCohort()?.find((m) => m.className === d.classNameSlug);
+    return known ?? itemRankRecordOf(d.kind, { ...d.row, class_name: d.classNameSlug }, d.payload);
+  });
+  readonly itemRankScope = computed<RankScope>(() => {
+    const target = this.itemRankRecord();
+    return this.itemScopeChoice() ?? (target ? defaultItemScope(target, this.itemRankCohort() ?? []) : 'all');
+  });
+  readonly itemRank = computed(() => {
+    const target = this.itemRankRecord();
+    const cohort = this.itemRankCohort();
+    return target && cohort ? rankItem(target, cohort, this.itemRankScope()) : null;
+  });
+  readonly itemRankGapKey = computed(() =>
+    this.itemRankCohort() ? 'codex.itemRank.gapTooFew' : 'codex.itemRank.gapNoCohort',
+  );
+
+  private async loadItemRankCohort(seq: number): Promise<void> {
+    const kind = this.itemRankKind();
+    if (!kind) return;
+    this.itemScopeChoice.set(null);
+    this.itemRankLoading.set(true);
+    try {
+      const cohort = await this.svc.getItemRankCohort(kind);
+      if (seq === this.loadSeq) this.itemRankCohort.set(cohort);
+    } catch (err) {
+      logWarn('codex-detail', 'item rank cohort failed', err);
+      if (seq === this.loadSeq) this.itemRankCohort.set(null);
+    } finally {
+      if (seq === this.loadSeq) this.itemRankLoading.set(false);
+    }
+  }
+
   private async loadMissileCohort(seq: number): Promise<void> {
     this.missileScopeChoice.set(null);
     this.missileCohortLoading.set(true);
@@ -2618,6 +2703,8 @@ export class CodexDetailComponent implements OnInit {
           this.itemPackage.set(null);
         }
         if (this.isMissile()) void this.loadMissileCohort(seq);
+        this.itemRankCohort.set(null);
+        if (this.itemRankKind() && this.itemHolo()) void this.loadItemRankCohort(seq);
         // Ships are not craftable either, so skip the forward lookup as well.
         if (kind !== 'ship') void this.loadRecipe(d.classNameSlug, seq);
         // HQ ownership backs the mode switch and the signposts on every kind.

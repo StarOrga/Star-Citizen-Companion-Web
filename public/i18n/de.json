@@ -2621,6 +2621,45 @@
       "showInHq": "Im HQ zeigen",
       "noteTitle": "Notiz zu diesem Gegenstand",
       "wishAgain": "Noch eins wünschen"
+    },
+    "itemRank": {
+      "nAll": "{{n}} Teile dieser Art",
+      "nType": "{{n}} Teile vom gleichen Typ",
+      "nSize": "{{n}} Teile der Größe {{k}}",
+      "verdict": "{{pct}} % — {{band}} gegenüber {{n}} Teilen.",
+      "percentileTooltip": "Der Wert sagt, wo dieses Teil im Vergleichsfeld steht. 50 % ist genau die Mitte. Bei Verzögerungen und Signaturen steht ein kleinerer Wert weiter oben.",
+      "radarAria": "Netzdiagramm der Perzentile von {{name}} gegenüber {{n}} Teilen",
+      "legendCompare": "Median {{group}} · {{n}} Teile",
+      "legendAbove": "über Median",
+      "legendBelow": "unter Median",
+      "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum besten Wert der gewählten Vergleichsteile (Rand). Blau ist dieses Teil, die gestrichelte Linie der Median der Gruppe.",
+      "note": "Verglichen wird nur, was die Spieldaten für dieses Teil enthalten.",
+      "gapTooFew": "Zu wenige Teile unterscheiden sich in den Werten, die hier verglichen werden, um dieses einzuordnen.",
+      "gapNoCohort": "Die Vergleichsgruppe konnte nicht geladen werden.",
+      "scope": {
+        "all": "Alle",
+        "size": "Größe",
+        "type": "Typ"
+      },
+      "scopeOff": "Zu wenige Vergleichsteile in dieser Gruppe.",
+      "axis": {
+        "dps": "DPS",
+        "alpha": "ALPHA",
+        "fireRate": "FEUERRATE",
+        "projectileSpeed": "PROJEKTILTEMPO",
+        "shieldHp": "SCHILD-HP",
+        "shieldRegen": "REGEN",
+        "damagedDelay": "PAUSE NACH TREFFER",
+        "downedDelay": "PAUSE NACH AUSFALL",
+        "powerOutput": "LEISTUNG",
+        "coolingRate": "KÜHLRATE",
+        "health": "HP",
+        "emSignature": "EM",
+        "irSignature": "IR",
+        "driveSpeed": "TEMPO",
+        "jumpRange": "REICHWEITE",
+        "spoolTime": "AUFLADEZEIT"
+      }
     }
   },
   "blueprint": {
