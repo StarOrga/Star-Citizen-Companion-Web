@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.234.0] - 2026-11-08
+
+### Added
+- Ship and item pages open with one head strip: patch, whether it is in your Hangar or Inventar, and your variant. The build number is gone from the head.
+- Ownership card on top of the panel ("Haben?" / "Dein Exemplar" / "Dein Bestand") with wishlist, hangar, rename, note, pin and remove; inventory items can now carry a note and a pin.
+- Klassisch / Holotisch is a toggle button in the bottom-right corner, above the feedback button.
+
+### Changed
+- One share button per page, on the feedback button's line; on ship pages it opens the share menu incl. "save & share as hangar link".
+
+### Fixed
+- The share button no longer floats on its own above the Holotisch bar.
+- Opening a hangar ship no longer flashes the Codex address first.
+
 ## [0.233.0] - 2026-11-08
 
 ### Changed
