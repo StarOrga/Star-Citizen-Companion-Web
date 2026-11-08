@@ -1007,9 +1007,20 @@
         "cohortRole": "{{n}} × {{role}}",
         "dockAria": "Energy and perspectives"
       },
-      "below": {"parts": "Components in detail", "partsCount": "{{n}} fitted", "areaEmpty": "No components in this area."},
-      "persp": {"lead": "Rated as {{mission}}, compared with {{n}} ships.", "leadNoCohort": "Rated as {{mission}}.", "allShow": "All values of all four ▾", "allHide": "Collapse all values ▴"},
-      "side": {"variants": "Variants & compare"},
+      "below": {
+        "parts": "Components in detail",
+        "partsCount": "{{n}} fitted",
+        "areaEmpty": "No components in this area."
+      },
+      "persp": {
+        "lead": "Rated as {{mission}}, compared with {{n}} ships.",
+        "leadNoCohort": "Rated as {{mission}}.",
+        "allShow": "All values of all four ▾",
+        "allHide": "Collapse all values ▴"
+      },
+      "side": {
+        "variants": "Variants & compare"
+      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -4026,7 +4037,13 @@
       "badge": "Your flagship",
       "mark": "Flagship"
     },
-    "manage": { "toggle": "Manage", "variants": "Variants", "noVariants": "No variant yet. Create one on the ship's Codex page.", "active": "Active", "openVariant": "View variant" },
+    "manage": {
+      "toggle": "Manage",
+      "variants": "Variants",
+      "noVariants": "No variant yet. Create one on the ship's Codex page.",
+      "active": "Active",
+      "openVariant": "View variant"
+    },
     "status": {
       "owned": "Owned",
       "wishlist": "Wishlist"
@@ -5255,7 +5272,8 @@
       "archive": "Archive",
       "archiveAria": "Archive, {{n}} Nachschübe",
       "introTitle": "No Nachschub yet",
-      "introText": "Tap a plus and take things from your wishlist with you. They become a Nachschub with Einsätze that you work through step by step in Jetzt."
+      "introText": "Tap a plus and take things from your wishlist with you. They become a Nachschub with Einsätze that you work through step by step in Jetzt.",
+      "newAriaEvent": "New Nachschub in slot {{n}} – event available"
     },
     "remove": {
       "titleRemove": "Delete \"{{name}}\"?",
@@ -5501,10 +5519,25 @@
       "empty": "Nothing on the supplies list yet.",
       "emptyHint": "Search for an item and add it to Supplies: Plan then shows where to get it and how to get there.",
       "tabsAria": "Lists",
-      "tabs": { "wish": "Wishlist", "nachschub": "Supplies" },
-      "wish": { "empty": "Nothing on the wishlist yet.", "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.", "toNachschub": "To Supplies", "remove": "Take {{name}} off the wishlist", "notYet": "not in the game yet" },
+      "tabs": {
+        "wish": "Wishlist",
+        "nachschub": "Supplies"
+      },
+      "wish": {
+        "empty": "Nothing on the wishlist yet.",
+        "emptyHint": "Search for an item or a ship and put it on the wishlist. From here it moves to Supplies with one click.",
+        "toNachschub": "To Supplies",
+        "remove": "Take {{name}} off the wishlist",
+        "notYet": "not in the game yet"
+      },
       "got": "Got it",
-      "place": { "title": "Where is it now?", "other": "Other place …", "otherPlaceholder": "Enter a place", "store": "Put down", "tickOnly": "Just tick off" }
+      "place": {
+        "title": "Where is it now?",
+        "other": "Other place …",
+        "otherPlaceholder": "Enter a place",
+        "store": "Put down",
+        "tickOnly": "Just tick off"
+      }
     },
     "ops": {
       "title": "Ops",
@@ -5624,7 +5657,8 @@
         "refine": "Refine",
         "craft": "Craft",
         "transport": "Haul",
-        "pickup": "Pick up"
+        "pickup": "Pick up",
+        "event": "Event"
       },
       "state": {
         "todo": "to do",
@@ -5799,22 +5833,50 @@
         "title": "Your stats grow here",
         "text": "This is what it looks like once the SCC app reads along while you play: aUEC, missions, completion rate, deaths, crimestat, refinery and blueprints. The tiles behind it are sample data.",
         "textLinked": "The SCC app is connected. Once you play, aUEC, missions, deaths, crimestat, refinery and blueprints fill up. The tiles behind it are sample data."
+      },
+      "events": {
+        "title": "Completed events",
+        "doneOn": "done on {{date}}"
       }
     },
     "stock": {
       "free": "With me",
       "sharedBtn": "Shared by friends ({{n}})",
       "captured": "Added to your inventory.",
-      "actions": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
-      "totals": { "title": "Total", "items": "items", "places": "places" },
-      "places": { "title": "Largest places" },
-      "stale": { "title": "Stand older than 7 days", "none": "All places are up to date." },
-      "cats": { "title": "Categories" },
-      "cat": { "materials": "Raw materials", "weapons": "Weapons", "armor": "Armor", "other": "Other" },
+      "actions": {
+        "browse": "Browse",
+        "find": "Where is …?",
+        "add": "Add"
+      },
+      "totals": {
+        "title": "Total",
+        "items": "items",
+        "places": "places"
+      },
+      "places": {
+        "title": "Largest places"
+      },
+      "stale": {
+        "title": "Stand older than 7 days",
+        "none": "All places are up to date."
+      },
+      "cats": {
+        "title": "Categories"
+      },
+      "cat": {
+        "materials": "Raw materials",
+        "weapons": "Weapons",
+        "armor": "Armor",
+        "other": "Other"
+      },
       "popup": {
         "title": "Inventory",
         "modes": "What to do",
-        "mode": { "browse": "Browse", "find": "Where is …?", "add": "Add" },
+        "mode": {
+          "browse": "Browse",
+          "find": "Where is …?",
+          "add": "Add"
+        },
         "search": "Search inventory",
         "searchHint": "Item or place",
         "filters": "Filters",
@@ -5992,6 +6054,95 @@
       "now": {
         "online": "Online now:",
         "active": "Running now: {{title}} · {{n}} confirmed"
+      }
+    },
+    "events": {
+      "teaser": "Event available",
+      "marker": "{{n}} event(s) open",
+      "dot": "Events open",
+      "end": {
+        "official": "until {{date}}",
+        "estimate": "by {{date}} at the latest (estimated)",
+        "unknown": "End unknown"
+      },
+      "pick": {
+        "title": "Events",
+        "hint": "Running events you have not finished – choose the rewards you want to get.",
+        "sightseeing": "No reward – as a sightseeing Nachschub."
+      },
+      "draft": {
+        "area": "The event area instead of a fixed place"
+      },
+      "severalHint": "Several events in one Nachschub work, but are not recommended.",
+      "doneTag": "Done",
+      "abort": "Abort",
+      "complete": "Event done",
+      "gone": "This event is no longer available.",
+      "area": {
+        "title": "Area",
+        "any": "Anywhere",
+        "none": "No fixed place",
+        "unknown": "Area unknown",
+        "ac": "Arena Commander"
+      },
+      "prereq": {
+        "title": "Prerequisites (estimate)",
+        "none": "Not stated",
+        "and": "and",
+        "or": "or"
+      },
+      "gear": {
+        "fps-combat-set": "FPS combat set",
+        "combat-ship": "Combat ship",
+        "salvage-ship": "Salvage ship",
+        "cargo-ship": "Cargo ship",
+        "mining-ship": "Mining ship",
+        "medical-ship": "Medical ship",
+        "any-ship": "Any ship"
+      },
+      "progress": {
+        "title": "Progress",
+        "none": "This event has no progress.",
+        "live": "live",
+        "tiers": "Tiers",
+        "appHint": "The SCC app is connected and updates progress as soon as it sees it in the game."
+      },
+      "rewards": {
+        "title": "Rewards",
+        "claim": "Claim",
+        "sightseeing": "No reward – just visit.",
+        "unknown": "Rewards not known yet.",
+        "state": {
+          "open": "open",
+          "waiting": "waiting for distribution",
+          "claimed": "claimed"
+        }
+      },
+      "channel": {
+        "pledge": "Pledge",
+        "ingame": "In game",
+        "both": "Both"
+      },
+      "claim": {
+        "title": "Claim {{name}}",
+        "channel": "How did you get it?",
+        "byApp": "The SCC app detected the channel; you can change it.",
+        "store": "Put into stock",
+        "isShip": "Is a ship",
+        "toHangar": "Goes to the Hangar.",
+        "toInventory": "Goes to the Inventar (location \"Event-Belohnungen\").",
+        "complete": "Mark the whole event as done",
+        "confirm": "Claim"
+      },
+      "offer": {
+        "area": "You are in the area of {{event}}. Switch to this Nachschub?",
+        "ac": "Arena Commander is running – fits {{event}}. Switch to this Nachschub?",
+        "switch": "Switch",
+        "notNow": "Not now"
+      },
+      "abortDialog": {
+        "title": "Abort {{name}}?",
+        "message": "Progress stays saved and nothing goes back to the wishlist. You can resume the event from the archive any time."
       }
     }
   },
@@ -6672,6 +6823,10 @@
       "translations": {
         "title": "AI translation",
         "text": "Switch, caps, languages, jobs and glossary of the game translation."
+      },
+      "events": {
+        "title": "Events",
+        "text": "Review event data sheets, approve, set by hand and re-evaluate."
       }
     }
   },
@@ -7617,5 +7772,56 @@
     "craftTimes": "How many times to craft",
     "button": "Material ×{{n}} to the wishlist",
     "done": "{{n}}× {{name}}: material put on the wishlist"
+  },
+  "adminEvents": {
+    "eyebrow": "Admins only",
+    "title": "Event data sheets",
+    "subtitle": "Fields below 80 % confidence stay unknown until you approve them or set them by hand.",
+    "retry": "Try again",
+    "listAria": "Events",
+    "pending": "{{n}} waiting",
+    "noSheet": "No data sheet",
+    "loading": "Loading …",
+    "empty": "No events.",
+    "reextract": "Re-evaluate",
+    "col": {
+      "field": "Field",
+      "value": "Value",
+      "confidence": "Confidence",
+      "source": "Origin",
+      "review": "Review",
+      "actions": "Actions"
+    },
+    "field": {
+      "venues": "Venues",
+      "area": "Area",
+      "tasks": "Tasks",
+      "progress": "Progress",
+      "rewards": "Rewards",
+      "prerequisites": "Prerequisites",
+      "start": "Start",
+      "end": "End"
+    },
+    "editAria": "Value as JSON",
+    "unknown": "unknown",
+    "save": "Save",
+    "approve": "Approve",
+    "reject": "Reject",
+    "edit": "Set by hand",
+    "review": {
+      "auto": "automatic",
+      "pending": "waiting",
+      "approved": "approved",
+      "edited": "by hand",
+      "rejected": "rejected"
+    },
+    "history": "History",
+    "historyEmpty": "No entry yet.",
+    "actor": {
+      "ai": "AI",
+      "admin": "Admin"
+    },
+    "pick": "Pick an event on the left.",
+    "badJson": "The value is not valid JSON."
   }
 }

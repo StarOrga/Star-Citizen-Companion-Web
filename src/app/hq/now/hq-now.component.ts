@@ -30,6 +30,7 @@ import { HqNowFriendsComponent } from './hq-now-friends.component';
 import { HqLiveService } from './hq-live.service';
 import { eventLabel, formatLocationName, isGameLive, presenceAt, readContracts, readLocation, readShip, readZones } from './hq-live.util';
 import { HQ_NOW_PATH, currentEinsatz } from './hq-now-path';
+import { EventHqService } from '../events/event-hq.service';
 import { HqMissionsPopoverComponent } from './hq-missions-popover.component';
 
 export const TOAST_MS = 6000;
@@ -101,6 +102,14 @@ const UPCOMING = 4;
       </p>
     }
 
+    @if (offer(); as o) {
+      <div class="offer" role="status" data-event-offer>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6.2 6.2 2.8-6.2 2.8L12 21l-2-6.2L3.8 12 10 9.2z" /></svg>
+        <span class="o-t">{{ (o.arenaCommander ? 'hq.events.offer.ac' : 'hq.events.offer.area') | translate: { event: offerEventName(), name: offerName() } }}</span>
+        <button type="button" scAction tier="secondary" (click)="takeOffer(o.nachschubId)">{{ 'hq.events.offer.switch' | translate }}</button>
+        <button type="button" scAction tier="secondary" (click)="waveOff()">{{ 'hq.events.offer.notNow' | translate }}</button>
+      </div>
+    }
     <div class="now">
       <section class="panel mapcol" [attr.aria-label]="'hq.panel.route' | translate">
         @if (graphSteps().length) {
@@ -247,6 +256,9 @@ const UPCOMING = 4;
   styles: [
     `
       :host { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); height: var(--hq-page-h, auto); min-height: 0; }
+      .offer { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px) var(--sc-space-3, 12px); padding: var(--sc-space-2, 8px) var(--sc-space-3, 12px); border: 1px solid var(--sc-accent); border-radius: 12px; background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-1)); }
+      .offer svg { width: 20px; height: 20px; fill: none; stroke: var(--sc-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+      .o-t { flex: 1; min-width: 12rem; }
       .phead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-3, 12px); flex: none; }
       .page-title { margin: 0; font: 600 1.6rem / 1.2 var(--sc-font-display); }
       .phead-r { display: inline-flex; align-items: center; gap: var(--sc-space-3, 12px); margin-left: auto; }
@@ -447,7 +459,24 @@ export class HqNowComponent {
 
   private timer: ReturnType<typeof setTimeout> | null = null;
 
+  private readonly eventHq = inject(EventHqService);
+  /** The place the reader waved off with "Nicht jetzt"; the offer stays away until the position changes. */
+  private readonly waved = signal<string | null>(null);
+  readonly offer = computed(() => this.eventHq.offer(this.waved(), this.focus.selected()?.id ?? null));
+  readonly offerName = computed(() => this.location() ? formatLocationName(this.location()!.name) : '');
+  readonly offerEventName = computed(() => this.eventHq.eventById(this.offer()?.eventId)?.name ?? '');
+
+  takeOffer(id: string): void {
+    this.focus.select(id);
+    this.pickedEinsatz.set(null);
+  }
+
+  waveOff(): void {
+    this.waved.set(this.eventHq.placeKey());
+  }
+
   constructor() {
+    this.eventHq.ensure();
     const ticker = setInterval(() => this.clock.set(Date.now()), PRESENCE_TICK_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(ticker));
     effect(() => {

@@ -1007,9 +1007,20 @@
         "cohortRole": "{{n}} × {{role}}",
         "dockAria": "Energie und Perspektiven"
       },
-      "below": {"parts": "Bauteile im Detail", "partsCount": "{{n}} verbaut", "areaEmpty": "Keine Bauteile in diesem Bereich."},
-      "persp": {"lead": "Bewertet als {{mission}}, verglichen mit {{n}} Schiffen.", "leadNoCohort": "Bewertet als {{mission}}.", "allShow": "Alle Werte aller vier ▾", "allHide": "Alle Werte zuklappen ▴"},
-      "side": {"variants": "Varianten & Vergleich"},
+      "below": {
+        "parts": "Bauteile im Detail",
+        "partsCount": "{{n}} verbaut",
+        "areaEmpty": "Keine Bauteile in diesem Bereich."
+      },
+      "persp": {
+        "lead": "Bewertet als {{mission}}, verglichen mit {{n}} Schiffen.",
+        "leadNoCohort": "Bewertet als {{mission}}.",
+        "allShow": "Alle Werte aller vier ▾",
+        "allHide": "Alle Werte zuklappen ▴"
+      },
+      "side": {
+        "variants": "Varianten & Vergleich"
+      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -4026,7 +4037,13 @@
       "badge": "Dein Flaggschiff",
       "mark": "Flaggschiff"
     },
-    "manage": { "toggle": "Verwalten", "variants": "Varianten", "noVariants": "Noch keine Variante. Im Codex-Eintrag des Schiffs legst du sie an.", "active": "Aktiv", "openVariant": "Variante ansehen" },
+    "manage": {
+      "toggle": "Verwalten",
+      "variants": "Varianten",
+      "noVariants": "Noch keine Variante. Im Codex-Eintrag des Schiffs legst du sie an.",
+      "active": "Aktiv",
+      "openVariant": "Variante ansehen"
+    },
     "status": {
       "owned": "Im Besitz",
       "wishlist": "Wunschliste"
@@ -5255,7 +5272,8 @@
       "archive": "Archiv",
       "archiveAria": "Archiv, {{n}} Nachschübe",
       "introTitle": "Noch kein Nachschub",
-      "introText": "Tippe auf ein Plus und nimm Dinge von deiner Wunschliste mit. Aus ihnen wird ein Nachschub mit Einsätzen, die du in Jetzt Schritt für Schritt abarbeitest."
+      "introText": "Tippe auf ein Plus und nimm Dinge von deiner Wunschliste mit. Aus ihnen wird ein Nachschub mit Einsätzen, die du in Jetzt Schritt für Schritt abarbeitest.",
+      "newAriaEvent": "Neuer Nachschub in Slot {{n}} – Event verfügbar"
     },
     "remove": {
       "titleRemove": "„{{name}}“ löschen?",
@@ -5501,10 +5519,25 @@
       "empty": "Noch nichts auf der Nachschub-Liste.",
       "emptyHint": "Such einen Gegenstand und leg ihn in den Nachschub: dann siehst du unter Planen, wo es ihn gibt und wie du hinkommst.",
       "tabsAria": "Listen",
-      "tabs": { "wish": "Wunschliste", "nachschub": "Nachschub" },
-      "wish": { "empty": "Noch nichts auf der Wunschliste.", "emptyHint": "Such einen Gegenstand oder ein Schiff und leg es auf die Wunschliste. Von hier wandert es mit einem Klick in den Nachschub.", "toNachschub": "In den Nachschub", "remove": "{{name}} von der Wunschliste nehmen", "notYet": "noch nicht im Spiel" },
+      "tabs": {
+        "wish": "Wunschliste",
+        "nachschub": "Nachschub"
+      },
+      "wish": {
+        "empty": "Noch nichts auf der Wunschliste.",
+        "emptyHint": "Such einen Gegenstand oder ein Schiff und leg es auf die Wunschliste. Von hier wandert es mit einem Klick in den Nachschub.",
+        "toNachschub": "In den Nachschub",
+        "remove": "{{name}} von der Wunschliste nehmen",
+        "notYet": "noch nicht im Spiel"
+      },
       "got": "Besorgt",
-      "place": { "title": "Wo liegt es jetzt?", "other": "Anderer Ort …", "otherPlaceholder": "Ort eingeben", "store": "Ablegen", "tickOnly": "Nur abhaken" }
+      "place": {
+        "title": "Wo liegt es jetzt?",
+        "other": "Anderer Ort …",
+        "otherPlaceholder": "Ort eingeben",
+        "store": "Ablegen",
+        "tickOnly": "Nur abhaken"
+      }
     },
     "ops": {
       "title": "Einsätze",
@@ -5624,7 +5657,8 @@
         "refine": "Raffinieren",
         "craft": "Craften",
         "transport": "Transportieren",
-        "pickup": "Abholen"
+        "pickup": "Abholen",
+        "event": "Event"
       },
       "state": {
         "todo": "zu tun",
@@ -5799,22 +5833,50 @@
         "title": "Hier wächst deine Statistik",
         "text": "So sieht es aus, sobald die SCC-App beim Spielen mitliest: aUEC, Missionen, Abschlussquote, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten.",
         "textLinked": "Die SCC-App ist verbunden. Sobald du spielst, füllen sich aUEC, Missionen, Tode, Crimestat, Raffinerie und Blueprints. Die Kacheln dahinter sind Beispieldaten."
+      },
+      "events": {
+        "title": "Erledigte Events",
+        "doneOn": "erledigt am {{date}}"
       }
     },
     "stock": {
       "free": "Bei mir",
       "sharedBtn": "Von Freunden geteilt ({{n}})",
       "captured": "Im Inventar eingetragen.",
-      "actions": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
-      "totals": { "title": "Gesamt", "items": "Gegenstände", "places": "Orte" },
-      "places": { "title": "Größte Orte" },
-      "stale": { "title": "Stand älter als 7 Tage", "none": "Alle Orte sind aktuell." },
-      "cats": { "title": "Kategorien" },
-      "cat": { "materials": "Rohstoffe", "weapons": "Waffen", "armor": "Rüstung", "other": "Sonstiges" },
+      "actions": {
+        "browse": "Durchsuchen",
+        "find": "Wo liegt …?",
+        "add": "Hinzufügen"
+      },
+      "totals": {
+        "title": "Gesamt",
+        "items": "Gegenstände",
+        "places": "Orte"
+      },
+      "places": {
+        "title": "Größte Orte"
+      },
+      "stale": {
+        "title": "Stand älter als 7 Tage",
+        "none": "Alle Orte sind aktuell."
+      },
+      "cats": {
+        "title": "Kategorien"
+      },
+      "cat": {
+        "materials": "Rohstoffe",
+        "weapons": "Waffen",
+        "armor": "Rüstung",
+        "other": "Sonstiges"
+      },
       "popup": {
         "title": "Inventar",
         "modes": "Was möchtest du tun",
-        "mode": { "browse": "Durchsuchen", "find": "Wo liegt …?", "add": "Hinzufügen" },
+        "mode": {
+          "browse": "Durchsuchen",
+          "find": "Wo liegt …?",
+          "add": "Hinzufügen"
+        },
         "search": "Inventar durchsuchen",
         "searchHint": "Gegenstand oder Ort",
         "filters": "Filter",
@@ -5992,6 +6054,95 @@
       "now": {
         "online": "Gerade online:",
         "active": "Läuft gerade: {{title}} · {{n}} Zusagen"
+      }
+    },
+    "events": {
+      "teaser": "Event verfügbar",
+      "marker": "{{n}} Event(s) offen",
+      "dot": "Events offen",
+      "end": {
+        "official": "bis {{date}}",
+        "estimate": "spätestens mit {{date}} (geschätzt)",
+        "unknown": "Ende unbekannt"
+      },
+      "pick": {
+        "title": "Events",
+        "hint": "Laufende Events, die du noch nicht erledigt hast – wähle die Belohnungen, die du holen willst.",
+        "sightseeing": "Keine Belohnung – als Sightseeing-Nachschub."
+      },
+      "draft": {
+        "area": "Gebiet des Events statt eines festen Ortes"
+      },
+      "severalHint": "Mehrere Events in einem Nachschub sind möglich, aber nicht empfohlen.",
+      "doneTag": "Erledigt",
+      "abort": "Abbrechen",
+      "complete": "Event erledigt",
+      "gone": "Dieses Event ist nicht mehr verfügbar.",
+      "area": {
+        "title": "Gebiet",
+        "any": "Überall",
+        "none": "Kein fester Ort",
+        "unknown": "Gebiet unbekannt",
+        "ac": "Arena Commander"
+      },
+      "prereq": {
+        "title": "Voraussetzung (Schätzung)",
+        "none": "Keine Angabe",
+        "and": "und",
+        "or": "oder"
+      },
+      "gear": {
+        "fps-combat-set": "FPS-Kampfset",
+        "combat-ship": "Kampfschiff",
+        "salvage-ship": "Bergungsschiff",
+        "cargo-ship": "Frachtschiff",
+        "mining-ship": "Bergbauschiff",
+        "medical-ship": "Medizinschiff",
+        "any-ship": "Beliebiges Schiff"
+      },
+      "progress": {
+        "title": "Fortschritt",
+        "none": "Dieses Event hat keinen Fortschritt.",
+        "live": "live",
+        "tiers": "Stufen",
+        "appHint": "Die SCC-App ist verbunden und aktualisiert den Fortschritt, sobald sie ihn im Spiel erkennt."
+      },
+      "rewards": {
+        "title": "Belohnungen",
+        "claim": "Abholen",
+        "sightseeing": "Keine Belohnung – nur ansehen.",
+        "unknown": "Belohnungen noch unbekannt.",
+        "state": {
+          "open": "offen",
+          "waiting": "wartet auf Verteilung",
+          "claimed": "abgeholt"
+        }
+      },
+      "channel": {
+        "pledge": "Pledge",
+        "ingame": "Ingame",
+        "both": "Beides"
+      },
+      "claim": {
+        "title": "{{name}} abholen",
+        "channel": "Wie hast du es bekommen?",
+        "byApp": "Die SCC-App hat den Weg erkannt; du kannst ihn ändern.",
+        "store": "In den Bestand legen",
+        "isShip": "Ist ein Schiff",
+        "toHangar": "Kommt in den Hangar.",
+        "toInventory": "Kommt ins Inventar (Ort „Event-Belohnungen“).",
+        "complete": "Ganzes Event als erledigt markieren",
+        "confirm": "Abholen"
+      },
+      "offer": {
+        "area": "Du bist im Gebiet von {{event}}. Zu diesem Nachschub wechseln?",
+        "ac": "Arena Commander läuft – passt zu {{event}}. Zu diesem Nachschub wechseln?",
+        "switch": "Wechseln",
+        "notNow": "Nicht jetzt"
+      },
+      "abortDialog": {
+        "title": "{{name}} abbrechen?",
+        "message": "Der Fortschritt bleibt gespeichert, nichts geht zurück auf die Wunschliste. Du kannst das Event jederzeit aus dem Archiv fortsetzen."
       }
     }
   },
@@ -6672,6 +6823,10 @@
       "translations": {
         "title": "KI-Übersetzung",
         "text": "Schalter, Limits, Sprachen, Aufträge und Glossar der Spiel-Übersetzung."
+      },
+      "events": {
+        "title": "Events",
+        "text": "Datenblätter der Events prüfen, freigeben, von Hand setzen und neu auswerten."
       }
     }
   },
@@ -7617,5 +7772,56 @@
     "craftTimes": "Wie oft herstellen",
     "button": "Material ×{{n}} auf die Wunschliste",
     "done": "{{n}}× {{name}}: Material auf die Wunschliste gelegt"
+  },
+  "adminEvents": {
+    "eyebrow": "Nur für Admins",
+    "title": "Event-Datenblätter",
+    "subtitle": "Felder unter 80 % Sicherheit bleiben unbekannt, bis du sie freigibst oder von Hand setzt.",
+    "retry": "Erneut versuchen",
+    "listAria": "Events",
+    "pending": "{{n}} warten",
+    "noSheet": "Kein Datenblatt",
+    "loading": "Lädt …",
+    "empty": "Keine Events.",
+    "reextract": "Neu auswerten",
+    "col": {
+      "field": "Feld",
+      "value": "Wert",
+      "confidence": "Sicherheit",
+      "source": "Herkunft",
+      "review": "Prüfung",
+      "actions": "Aktionen"
+    },
+    "field": {
+      "venues": "Schauplätze",
+      "area": "Gebiet",
+      "tasks": "Aufgaben",
+      "progress": "Fortschritt",
+      "rewards": "Belohnungen",
+      "prerequisites": "Voraussetzung",
+      "start": "Start",
+      "end": "Ende"
+    },
+    "editAria": "Wert als JSON",
+    "unknown": "unbekannt",
+    "save": "Speichern",
+    "approve": "Freigeben",
+    "reject": "Verwerfen",
+    "edit": "Von Hand setzen",
+    "review": {
+      "auto": "automatisch",
+      "pending": "wartet",
+      "approved": "freigegeben",
+      "edited": "von Hand",
+      "rejected": "verworfen"
+    },
+    "history": "Verlauf",
+    "historyEmpty": "Noch kein Eintrag.",
+    "actor": {
+      "ai": "KI",
+      "admin": "Admin"
+    },
+    "pick": "Wähle links ein Event.",
+    "badJson": "Der Wert ist kein gültiges JSON."
   }
 }

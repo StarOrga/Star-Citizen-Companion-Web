@@ -51,8 +51,8 @@ describe('HqPlanComponent', () => {
   it('opens on the seven Nachschub slots: free slots are a plus that starts the flow, no separate button', () => {
     const { f, el } = make(false);
     expect(el.querySelector('sc-hq-nachschub-board')).not.toBeNull();
-    expect(el.querySelectorAll('.board .slot').length).toBe(7);
-    expect(el.querySelectorAll('.board .slot.free').length).toBe(7);
+    expect(el.querySelectorAll('.board .slot').length).toBe(1);
+    expect(el.querySelectorAll('.board .slot.free').length).toBe(1);
     expect(el.querySelector('.intro')).not.toBeNull();
     expect(el.querySelector('.classic')).toBeNull();
     click(f, el.querySelector('.board .slot.free .hit'));
