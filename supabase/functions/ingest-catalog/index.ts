@@ -101,6 +101,7 @@ import {
 } from './_constellation.ts';
 import { nullUndefinedPlaceholders } from './_placeholders.ts';
 import { isCarryUnavailable, isRpcMissing, parseCarry, parsePrune } from './_carry.ts';
+import { sanitizeSilhouetteRow } from './_silhouette-row.ts';
 import { parseSkips } from './_silhouette-skips.ts';
 import { recordPatchNews } from './_patch-news.ts';
 import { MAX_MISSION_ROWS, parseMissions } from './_missions.ts';
@@ -143,20 +144,8 @@ const PORT_TRANSFORM_COLUMNS = ['helper_name', 'position', 'rotation'] as const;
 // ── silhouettes (Holotable outline contract, wave0-research §C1) ──────────────
 // Same pinned-column discipline as PORT_COLUMNS: an uploader field that has no
 // matching DB column is dropped, not blindly forwarded.
-const SILHOUETTE_COLUMNS = [
-  'build_id', 'channel', 'patch_version', 'build_number',
-  'kind', 'class_name', 'view_box', 'path', 'bbox', 'anchors',
-  'unresolved', 'meta', 'generated_at', 'content_sha',
-] as const;
+// (column list + sanitizer: _silhouette-row.ts, includes the optional `edges`)
 const SILHOUETTE_CONFLICT = 'channel,patch_version,build_number,kind,class_name';
-
-function sanitizeSilhouetteRow(row: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const key of SILHOUETTE_COLUMNS) {
-    if (row[key] !== undefined) out[key] = row[key];
-  }
-  return out;
-}
 
 function sanitizePortRow(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
