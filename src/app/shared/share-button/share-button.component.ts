@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../../core/beta.service';
 import { PageCornerService } from '../../shell/corners/page-corner.service';
@@ -43,11 +43,12 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (enabled()) {
-      <div class="dock">
+      <div class="dock" [class.beside]="!shell()">
         @if (toast(); as t) {
           <span class="toast" role="status">{{ t | translate }}</span>
         }
-        <button type="button" class="fab" (click)="share()" [attr.aria-label]="'share.label' | translate"
+        <button type="button" class="fab" (click)="share($event)" [attr.aria-label]="'share.label' | translate"
+                [attr.aria-haspopup]="page()?.open ? 'dialog' : null" [attr.aria-expanded]="page()?.open ? !!page()?.expanded?.() : null"
                 [scTooltip]="'share.label' | translate" scTooltipTier="label">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -71,8 +72,10 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
       bottom: calc(var(--sc-float-bottom, 16px) + (var(--sc-fab-size, 56px) - max(44px, var(--sc-tap-min, 44px))) / 2);
       display: flex; align-items: center; gap: 10px;
     }
+    /* Phone, beta shell: the launcher sits in the bar row, the share rides above the bar in its
+       column. Without the beta there is no bar: the share stays beside the launcher. */
     @media (max-width: 720px) {
-      .dock {
+      .dock:not(.beside) {
         inset-inline-end: var(--sc-fab-inset, 16px);
         bottom: calc(var(--sc-bar-stack-h, 0px) + var(--sc-float-bottom, 16px) + var(--sc-space-3));
       }
@@ -92,8 +95,11 @@ export function shareUrl(loc: Pick<Location, 'origin' | 'pathname' | 'search'>, 
 export class ShareButtonComponent {
   private readonly doc = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
-  readonly enabled = inject(BetaService).isEnabled('shell');
+  protected readonly shell = inject(BetaService).isEnabled('shell');
   private readonly corner = inject(PageCornerService);
+  protected readonly page = this.corner.share;
+  /** Beta shell everywhere; without it wherever a page registered its share (ship pages, C9/F5). */
+  readonly enabled = computed(() => this.shell() || !!this.page());
 
   /** Title handed to the native share sheet. */
   readonly shareTitle = input<string>('');
@@ -106,8 +112,12 @@ export class ShareButtonComponent {
     });
   }
 
-  async share(): Promise<void> {
+  async share(ev?: Event): Promise<void> {
     const page = this.corner.share();
+    if (page?.open) {
+      page.open((ev?.currentTarget as HTMLElement | null) ?? (this.doc.querySelector('sc-share-button .fab') as HTMLElement));
+      return;
+    }
     const url = page ? page.url() : shareUrl(this.doc.location, currentAnchor(this.doc));
     const nav = this.doc.defaultView?.navigator;
     if (nav?.share) {

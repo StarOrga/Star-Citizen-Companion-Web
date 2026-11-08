@@ -767,7 +767,8 @@ item pages, in Klassisch and Holotisch alike.
 - **Kennleiste (round 2, d1).** The head is the title block left and ONE grouped strip
   on the right: `[Patch 4.10.2-LIVE ▾ | Besitz]` (`.sc-head-strip`, `src/styles.scss`).
   Holotisch draws it on its title row (`codex-holo-stage`, the patch chooser is the first
-  segment), Klassisch in the page header's aside, the item page beside its name.
+  segment); Klassisch has the same head row (`.c-head`: the title left the picture, the strip
+  sits on its baseline); the item page beside its name.
 - **Besitz segment** (`sc-codex-own-segment`). Ship owned: "Im Hangar" + the inline
   variant select (`sc-codex-mode-switch [compact]`, same anchors and `?v=` links as before,
   no primary tier). Not owned: quiet "Nicht im Hangar"; a click scrolls to the ownership
@@ -796,8 +797,13 @@ item pages, in Klassisch and Holotisch alike.
 - **Teilen in the launcher row, one per page.** The share FAB stays on the launcher's
   centre line, directly left of it; the Holotisch bottom strip and its open dock end before
   the share lane instead of lifting the share alone (`--sc-share-lift` is gone). The stage
-  toolbar lost its "Teilen" popover and the S hotkey; on a ship page the share FAB shares
-  the page URL (view + unsaved hardpoint changes), elsewhere URL + section anchor.
+  toolbar lost its "Teilen" and the S hotkey. On a ship page the share FAB opens the share
+  popover above the corner (`sc-codex-holo-share`, `[scDialog]`): the plain link of the view
+  (view + unsaved hardpoint changes) and "save & share as hangar link" (#645) with its
+  unsaved-changes hint. Elsewhere the FAB shares URL + section anchor directly. Ship pages
+  show the share FAB without the beta shell too (they register their share), and their
+  old "Link teilen" buttons step back. The Holotisch "Wo zu kaufen" wish control stays, as
+  the compact secondary path control (no primary on the page).
 
 ### Rejected
 
@@ -809,7 +815,6 @@ item pages, in Klassisch and Holotisch alike.
 ### Left out
 
 - Item cards offer no note / pin: the Inventar has no backing service for them.
-- The Holotisch share popover's "save & share as hangar link" (#645) went with the stage
-  "Teilen"; the share FAB shares the view URL only.
+- The view toggle FAB has no `aria-pressed`: its label names the view a click leads to.
 - Klassisch shows the patch as a label, not a chooser: the patch comparison paints the
   Holotisch's KPI ghosts and port pins and has no classic counterpart.

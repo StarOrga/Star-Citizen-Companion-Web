@@ -114,3 +114,40 @@ describe('ViewToggleFabComponent + the corner order (concept codex-kopf-besitz C
     }
   });
 });
+
+describe('ShareButtonComponent without the beta shell (F5)', () => {
+  function setup() {
+    TestBed.configureTestingModule({
+      imports: [ShareButtonComponent],
+      providers: [provideTranslateService({ fallbackLang: 'en' }), { provide: BetaService, useValue: { ...betaStub, isEnabled: () => signal(false) } }],
+    });
+    const fixture = TestBed.createComponent(ShareButtonComponent);
+    fixture.detectChanges();
+    return { fixture, corner: TestBed.inject(PageCornerService), el: fixture.nativeElement as HTMLElement };
+  }
+
+  it('is absent on a page without a registered share, present (beside the launcher) on a ship page', () => {
+    const { fixture, corner, el } = setup();
+    expect(el.querySelector('.dock')).toBeNull();
+    corner.setShare({ url: () => 'u' });
+    fixture.detectChanges();
+    expect(el.querySelector('.dock.beside .fab')).not.toBeNull();
+  });
+
+  it('opens the page popover instead of sharing directly, and says so in aria', () => {
+    const { fixture, corner, el } = setup();
+    const open = jasmine.createSpy('open');
+    const expanded = signal(false);
+    corner.setShare({ url: () => 'u', open: (t) => { open(t); expanded.set(true); }, expanded });
+    fixture.detectChanges();
+    const fab = el.querySelector<HTMLButtonElement>('.fab')!;
+    expect(fab.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(fab.getAttribute('aria-expanded')).toBe('false');
+    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    fab.click();
+    fixture.detectChanges();
+    expect(open).toHaveBeenCalledWith(fab);
+    expect(write).not.toHaveBeenCalled();
+    expect(fab.getAttribute('aria-expanded')).toBe('true');
+  });
+});

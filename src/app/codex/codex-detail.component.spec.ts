@@ -1259,6 +1259,42 @@ describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz
     expect(TestBed.inject(PageCornerService).share()).withContext('released with the page').toBeNull();
     expect(TestBed.inject(PageCornerService).view()).toBeNull();
   }));
+
+  it('the share FAB opens the page popover: plain link + save & share (#645), Escape closes it (F3)', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
+    const corner = TestBed.inject(PageCornerService);
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    try {
+      corner.share()!.open!(trigger);
+      fixture.detectChanges();
+      tick();
+      const pop = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.ship-share-pop');
+      expect(pop).withContext('popover rendered').not.toBeNull();
+      expect(pop!.getAttribute('role')).toBe('dialog');
+      expect(pop!.querySelector('.link-copy')).withContext('plain link of this view').not.toBeNull();
+      expect(corner.share()!.expanded!()).toBeTrue();
+      pop!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      tick();
+      expect(fixture.componentInstance.sharePopoverOpen()).toBeFalse();
+    } finally {
+      trigger.remove();
+      fixture.destroy();
+    }
+  }));
+
+  it('no primary path panel on the page: Wo zu kaufen keeps a compact secondary wish control (F2)', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('sc-item-path.ip-primary')).toBeNull();
+    fixture.componentInstance.holoView.set(false);
+    fixture.detectChanges();
+    expect(el.querySelector('.c-head h1')).withContext('classic title in the head row (F1)').not.toBeNull();
+    expect(el.querySelector('.c-head .sc-head-strip')).not.toBeNull();
+    expect(el.querySelectorAll('h1').length).toBe(1);
+    fixture.destroy();
+  }));
 });
 
 describe('CodexDetailComponent — Holotable RSI pledge link', () => {

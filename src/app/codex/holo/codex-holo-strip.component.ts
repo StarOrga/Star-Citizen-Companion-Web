@@ -404,7 +404,8 @@ let uidSeq = 0;
          the left, the four areas evenly beside it, the arrow (concept r1 d2). */
       @media (min-width: 901px) {
         /* The launcher's lane is the grid's trailing column here (--holo-cols), not a padding. */
-        .hs-row { display: grid; grid-template-columns: var(--holo-cols, minmax(150px, 15%) repeat(4, minmax(0, 1fr)) 44px var(--fab-clear, 0px)); padding-inline-end: 0; }
+        /* The box itself ends before the corner (margin below), so the row drops the stage's trailing lane column. */
+        .hs-row { display: grid; grid-template-columns: var(--holo-lead-w, minmax(150px, 15%)) repeat(4, minmax(0, 1fr)) var(--holo-ctl-w, 44px); padding-inline-end: 0; }
         .einsatz { min-inline-size: 0; }
         .seg.tile { border-inline-start: 1px solid color-mix(in srgb, var(--sc-accent) 22%, transparent); }
         .hs-toggle { margin-inline-start: 0; }
@@ -413,7 +414,13 @@ let uidSeq = 0;
          "both": the arrow opens it anywhere). Energy is its own row on top
          (r1-dock-energy "row"), the four areas under it. Capped to the
          viewport, scrolls inside. */
-      .hs-panel { position: absolute; inset-inline: -1px calc(var(--fab-clear, 0px) - 1px); /* ends before the corner like the row */ inset-block-end: 100%; z-index: 4;
+      /* Above 640px the whole box - border, background and this open dock - ends before the share lane
+         and the launcher (concept codex-kopf-besitz C8): margin, not padding. */
+      @media (min-width: 641px) {
+        .holo-strip { margin-inline-end: var(--fab-clear, 0px); }
+        .hs-row { padding-inline-end: 0; }
+      }
+      .hs-panel { position: absolute; inset-inline: -1px; inset-block-end: 100%; z-index: 4;
         display: flex; flex-direction: column; gap: 0;
         max-block-size: calc(100dvh - var(--holo-strip-h, 64px) - 72px); overflow-y: auto; overscroll-behavior: contain;
         background: color-mix(in srgb, var(--sc-accent) 6%, var(--sc-bg-0));
@@ -730,8 +737,9 @@ export class CodexHoloStripComponent {
     const root = getComputedStyle(document.documentElement);
     const lane = (parseFloat(root.getPropertyValue('--sc-fab-inset')) || 24) + (parseFloat(root.getPropertyValue('--sc-fab-size')) || 56);
     const gutter = parseFloat(root.getPropertyValue('--sc-fab-gutter')) || 12;
-    // The bar, not the host: on a phone the bar is fixed and the host collapses.
-    const box = (el.querySelector('.holo-strip') ?? el).getBoundingClientRect();
+    // Above 640px the host (full width; the bar itself shrinks by the clearance); on a phone the
+    // fixed bar, the host collapses there.
+    const box = (this.phone ? (el.querySelector('.holo-strip') ?? el) : el).getBoundingClientRect();
     // clientWidth, not innerWidth: the launcher's `right` inset is measured
     // from the viewport WITHOUT the page's scrollbar.
     let free = document.documentElement.clientWidth - lane - gutter;

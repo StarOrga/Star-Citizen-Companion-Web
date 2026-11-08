@@ -1064,7 +1064,34 @@
         "current": "aktiv"
       },
       "share": {
-        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren."
+        "copyLink": "Link kopieren",
+        "followedBy": "verwaltet von {{owner}}",
+        "followedSince": "Stand {{date}}",
+        "refresh": "Aktualisieren",
+        "refreshing": "Wird aktualisiert …",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "revoke": "Teilen beenden",
+        "revokeNote": "Bereits folgende Empfänger:innen bleiben verbunden, bis die Konfiguration gelöscht wird.",
+        "errorGeneric": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
+        "copyLinkHint": "Kopiert die Adresse dieser Ansicht — inklusive Holotisch und ungespeicherter Änderungen an den Hardpoints.",
+        "unsavedHint": "{{n}} ungespeicherte Änderung(en) stecken nur im kopierten Link, nicht im Hangar-Link.",
+        "signInHint": "Melde dich an, um eine Hangar-Konfiguration als eigenen Link freizugeben.",
+        "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
+        "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung.",
+        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren.",
+        "saveAndShare": "Speichern & teilen",
+        "shareLink": "Link teilen",
+        "sharing": "Wird geteilt …",
+        "followedShareHint": "Teilen macht diese Konfiguration zu deiner eigenen — sie folgt dann nicht mehr ihrem Besitzer.",
+        "linksLoading": "Deine Links werden geladen …",
+        "linksError": "Deine Links konnten nicht geladen werden.",
+        "activeLinks": "Aktive Links ({{n}})",
+        "readOnlyHint": "Das ist ein geteiltes Loadout. Übernimm es, um einen eigenen Link zu teilen.",
+        "revokeConfirm": {
+          "title": "Diesen Link nicht mehr teilen?",
+          "body": "Über diesen Link kann niemand mehr eine Kopie des Loadouts anlegen. Wer ihm schon folgt, bleibt verbunden."
+        }
       },
       "components": {
         "unknownPosition": "Position im Modell unbekannt"
@@ -7979,6 +8006,9 @@
     "view": {
       "toHolo": "Zum Holotisch wechseln",
       "toClassic": "Zur klassischen Ansicht wechseln"
+    },
+    "share": {
+      "popAria": "Teilen"
     }
   }
 }

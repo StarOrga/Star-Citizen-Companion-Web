@@ -262,3 +262,24 @@ describe('CodexHoloStripComponent', () => {
     });
   });
 });
+
+describe('CodexHoloStripComponent - the box ends before the corner (concept codex-kopf-besitz C8/F4)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('shrinks the whole bar and its dock by the clearance instead of padding the cells', async () => {
+    const fixture = await setup();
+    const host = fixture.nativeElement as HTMLElement;
+    document.body.appendChild(host);
+    try {
+      host.style.setProperty('--fab-clear', '120px');
+      fixture.detectChanges();
+      const bar = host.querySelector('.holo-strip') as HTMLElement;
+      // Karma renders at 749px: the >640px branch.
+      expect(getComputedStyle(bar).marginInlineEnd).toBe('120px');
+      expect(getComputedStyle(host.querySelector('.hs-row') as HTMLElement).paddingInlineEnd).toBe('0px');
+      expect(Math.round(host.getBoundingClientRect().right - bar.getBoundingClientRect().right)).toBe(120);
+    } finally {
+      host.remove();
+    }
+  });
+});

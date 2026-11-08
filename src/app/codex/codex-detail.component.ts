@@ -2,6 +2,8 @@ import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { PageCornerService, type PageShare, type PageViewToggle } from '../shell/corners/page-corner.service';
 import { CodexOwnCardComponent } from './detail/codex-own-card.component';
+import { CodexHoloShareComponent } from './holo/codex-holo-share.component';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { CodexOwnSegmentComponent } from './detail/codex-own-segment.component';
 import { noteOpenedPage } from '../shell/merkliste/merkliste-opened';
 import { CompareIconComponent } from './compare-icon.component';
@@ -290,20 +292,18 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent],
+  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
       <sc-page-header class="crumbrow" [class.holo-on]="holoStageOn()" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
-        <!-- The head strip [Patch | Besitz] (concept codex-kopf-besitz C1): the Holotable draws it on its own
-             title row, the item page beside its name; the classic ship view here. Items keep the
-             old [Codex | Meine] switch outside the shell beta. -->
+        <!-- The head strip [Patch | Besitz] (concept codex-kopf-besitz C1) sits on the title's line: the
+             Holotable's title row, the classic ship head row (.c-head), the item name. Items keep the
+             old [Codex | Meine] switch here outside the shell beta. -->
         @if (!holoStageOn()) {
           <div phAside class="crumb-aside">
-            @if (kind() === 'ship' && detail()) {
-              <ng-container [ngTemplateOutlet]="headStrip" />
-            } @else if (showModeSwitch()) {
+            @if (kind() !== 'ship' && showModeSwitch()) {
               <sc-codex-mode-switch [kind]="kind()!" [className]="detail()!.classNameSlug" [personal]="personalMode()"
                 [variants]="myVariants()" [activeVariantId]="activeVariantId()" [hangarShipId]="hqShipId()" />
             }
@@ -425,6 +425,17 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         </div>
         } @else {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
+        @if (kind() === 'ship') {
+          <!-- Classic head row (concept codex-kopf-besitz d1-s3): the same head as the Holotable - title
+               block left, the strip on its baseline right. The title left the picture for it. -->
+          <header class="c-head">
+            <div class="c-tt">
+              @if (heroEyebrow(); as eb) { <p class="c-eyebrow">{{ eb }}</p> }
+              <h1 class="c-name">{{ displayName() }}</h1>
+            </div>
+            <ng-container [ngTemplateOutlet]="headStrip" />
+          </header>
+        }
         <div class="m-top" [class.ship-mode]="kind() === 'ship'" [class.missile-mode]="isMissile()" [scFeedbackSpot]="'feedbackSpot.headline'">
         <div class="hero-stack">
         <!-- ── Hero ───────────────────────────────────────────────────
@@ -466,6 +477,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [activePorts]="activePorts()"
               [has3dView]="has3dView()"
               [heroEyebrow]="heroEyebrow()"
+              [showIdent]="false"
               [heroChips]="heroChips()"
               [stageCounts]="stageCounts()"
               (hovered)="setActivePorts($event)"
@@ -928,7 +940,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   </ul>
                 }
                 <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
-                <sc-item-path kind="ship" level="primary" [className]="detail()!.classNameSlug" [name]="displayName()" />
+                <!-- Secondary, not primary: the page's head and ownership card carry no primary (C5/C6). -->
+                <sc-item-path kind="ship" level="secondary" [className]="detail()!.classNameSlug" [name]="displayName()" />
               </section>
               <section class="sc-card side-card">
                 <h2 class="side-h">{{ 'codex.holo.side.variants' | translate }}</h2>
@@ -1177,6 +1190,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <!-- Head strip (concept codex-kopf-besitz, d1 "Kennleiste"): [Patch 4.10.2-LIVE | Besitz]. The build's
            full stamp is for the admin data uploads only (C3): the strip names the short patch. -->
       <ng-template #headStrip>
+        <!-- Klassisch and the item page show the patch as a label, not a chooser: the comparison paints
+             the Holotable's KPI ghosts and port pins and has nothing to paint here. -->
         <div class="sc-head-strip" role="group" [attr.aria-label]="'codex.head.stripAria' | translate">
           @if (patchActiveBuild(); as b) {
             <span class="sc-head-strip__seg mono"><em>{{ 'codex.head.patch' | translate }}</em>
@@ -1295,6 +1310,29 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       </ng-template>
     </section>
     <sc-share-button />
+    @if (sharePopoverOpen() && kind() === 'ship' && detail(); as d) {
+      <!-- The one share of a ship page (concept codex-kopf-besitz C9): the plain link of this view and
+           "save & share as hangar link" (#645), above the corner's share FAB. -->
+      <sc-codex-holo-share class="share-popover ship-share-pop" role="dialog" [attr.aria-label]="'corner.share.popAria' | translate"
+        scDialog [scDialogModal]="false" [scDialogReturnFocus]="shareTrigger()" (scDialogEscape)="closeSharePopover()"
+        animate.enter="pop-enter" animate.leave="pop-leave"
+        [config]="activeHangarConfig()"
+        [shipClassName]="d.classNameSlug"
+        [channel]="build()?.channel ?? 'LIVE'"
+        [patchVersion]="build()?.patchVersion ?? ''"
+        [linkCopied]="linkCopied()"
+        [signedIn]="!!currentUserId()"
+        [inHangar]="inHangar()"
+        [unsavedChanges]="draftChangedCount()"
+        [readOnly]="draftReadOnly()"
+        [saveDraft]="saveDraftForShare"
+        [copyHotkey]="holoView() ? 'L' : null"
+        [addBusy]="addBusy()"
+        [addFailed]="addFailed()"
+        (copyCurrentLink)="copyShareLink()"
+        (addToHangar)="addToHangar()"
+        (configRefreshed)="activeHangarConfig.set($event)" />
+    }
   `,
   styles: [`
     .ho-side { display: contents; }
@@ -1323,6 +1361,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     /* Beta shell: the trail is in the Fusion bar, the aside in the Holotable's title row, nothing is left here. */
     @media (min-width: 721px) { :host-context([data-layout]) .crumbrow.holo-on { display: none; } }
     .crumb-aside { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+    .c-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; margin-block-end: 12px; }
+    .c-tt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .c-eyebrow { margin: 0; font-family: var(--sc-font-display); font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .c-name { margin: 0; font-weight: 500; font-size: clamp(18px, 1.15vw + 6px, 26px); line-height: 1.15; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-0); overflow-wrap: anywhere; }
     .m-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
     .it-strip { margin-block-start: 6px; }
     /* Switching into the Holotable fades it in — never a hard cut. */
@@ -1726,9 +1768,11 @@ export class CodexDetailComponent implements OnInit {
   private readonly ownershipSvc = inject(HqOwnershipService);
   private readonly codexBeta = inject(BetaService).isEnabled('codex');
   /** The share FAB (beta shell) replaces the "Link teilen" buttons; without the beta they stay, or no link copy would be left. */
-  protected readonly shareFab = inject(BetaService).isEnabled('shell');
+  /** Beta shell. */
+  protected readonly shellBeta = inject(BetaService).isEnabled('shell');
+  /** The corner share FAB is there (beta shell, and every ship page since it registers its share): the "Link teilen" buttons step back, one share per page. */
+  protected readonly shareFab = computed(() => this.shellBeta() || this.kind() === 'ship');
   /** Beta shell: the retired hangar button row above the classic hero is gone (concept r1-classic). */
-  protected readonly shellBeta = this.shareFab;
 
   // ── Item page (weapon, component, FPS gear): stage + panel with tabs, Codex and HQ variant ──
   /** Resolved only when the page was opened from the HQ: a Codex page does not build the Nachschub stores. */
@@ -2475,7 +2519,25 @@ export class CodexDetailComponent implements OnInit {
     // carries the view and the unsaved hardpoint changes - what copyShareLink() copies).
     const corner = inject(PageCornerService);
     const viewReg: PageViewToggle = { holo: this.holoView.asReadonly(), toggle: () => this.toggleHoloView() };
-    const shareReg: PageShare = { url: () => location.href };
+    const shareReg: PageShare = {
+      url: () => location.href,
+      open: (trigger) => this.toggleSharePopover(trigger),
+      expanded: this.sharePopoverOpen.asReadonly(),
+    };
+    // Outside click closes the popover (Escape and focus return are [scDialog]'s); the FAB toggles itself.
+    effect((onCleanup) => {
+      if (!this.sharePopoverOpen()) return;
+      const onDown = (ev: PointerEvent): void => {
+        const t = ev.target as Node | null;
+        if (t && (document.querySelector('.ship-share-pop')?.contains(t) || this.shareTrigger()?.contains(t))) return;
+        this.sharePopoverOpen.set(false);
+      };
+      const arm = setTimeout(() => document.addEventListener('pointerdown', onDown, true), 0);
+      onCleanup(() => {
+        clearTimeout(arm);
+        document.removeEventListener('pointerdown', onDown, true);
+      });
+    });
     effect(() => {
       const ship = this.kind() === 'ship' && !!this.detail();
       untracked(() => {
@@ -2484,6 +2546,7 @@ export class CodexDetailComponent implements OnInit {
           corner.setShare(shareReg);
         } else {
           corner.release(viewReg, shareReg);
+          this.sharePopoverOpen.set(false);
         }
       });
     });
@@ -3278,6 +3341,28 @@ export class CodexDetailComponent implements OnInit {
       if (saved) void this.stars.earn('cx-loadout');
       return saved;
     });
+  }
+
+  /** "Save & share" (#645): saves the draft first when there is anything to
+   * save; resolves the config the link must be minted for — null when the
+   * save failed or the fork question was declined (the save bar says why). */
+  readonly saveDraftForShare = async (): Promise<HangarShipConfig | null> => {
+    // Codex mode never saves: sharing first takes the draft into HQ as a variant.
+    if (!this.personalMode()) return this.adoptAndOpen();
+    if (this.draftStore.saveableEntries().length === 0) return this.activeHangarConfig();
+    return this.draftStore.saveLoadoutDraft();
+  };
+
+  /** The share popover of a ship page, opened by the ONE corner share FAB (C9 + #645). */
+  readonly sharePopoverOpen = signal(false);
+  /** The FAB that opened it: focus goes back there. */
+  readonly shareTrigger = signal<HTMLElement | null>(null);
+  toggleSharePopover(trigger: HTMLElement | null): void {
+    this.shareTrigger.set(trigger);
+    this.sharePopoverOpen.update((v) => !v);
+  }
+  closeSharePopover(): void {
+    this.sharePopoverOpen.set(false);
   }
 
   /** `codex.detail.actionCopyLink` (MASTER §2 / concept #t1): share the current

@@ -243,7 +243,7 @@ describe('CodexDetailComponent — Holotable / classic view toggle', () => {
     expect(el.querySelector('.m-top')).toBeTruthy();
     expect(el.querySelector('sc-codex-holo-stage')).toBeFalsy();
     expect(el.querySelector('.holo-toggle')).withContext('no Klassisch | Holotisch segment in the head').toBeNull();
-    expect(el.querySelector('.crumb-aside .sc-head-strip sc-codex-own-segment')).toBeTruthy();
+    expect(el.querySelector('.c-head .sc-head-strip sc-codex-own-segment')).withContext('strip on the classic title row (F1)').toBeTruthy();
     expect(el.querySelector('.m-side sc-codex-own-card')).withContext('ownership card on top of the side column').toBeTruthy();
     const corner = TestBed.inject(PageCornerService);
     expect(corner.view()?.holo()).toBeFalse();

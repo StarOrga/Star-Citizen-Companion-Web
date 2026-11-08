@@ -7,9 +7,13 @@ export interface PageViewToggle {
   readonly toggle: () => void;
 }
 
-/** What a page hands the share FAB: the URL that captures its whole state. */
+/** What a page hands the share FAB: the URL that captures its whole state, optionally its own popover. */
 export interface PageShare {
   readonly url: () => string;
+  /** The page shows its own share popover (ship page: link + save & share, #645) instead of a direct share. */
+  readonly open?: (trigger: HTMLElement) => void;
+  /** Whether that popover is open (aria-expanded on the FAB). */
+  readonly expanded?: Signal<boolean>;
 }
 
 /**

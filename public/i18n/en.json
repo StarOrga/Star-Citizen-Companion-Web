@@ -1064,7 +1064,34 @@
         "current": "active"
       },
       "share": {
-        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand."
+        "copyLink": "Copy link",
+        "followedBy": "managed by {{owner}}",
+        "followedSince": "as of {{date}}",
+        "refresh": "Refresh",
+        "refreshing": "Refreshing …",
+        "copy": "Copy",
+        "copied": "Copied",
+        "revoke": "Stop sharing",
+        "revokeNote": "Recipients who already follow this link stay connected until the config is deleted.",
+        "errorGeneric": "That didn't work. Please try again.",
+        "copyLinkHint": "Copies the address of this view — including the Holotable and any unsaved hardpoint changes.",
+        "unsavedHint": "{{n}} unsaved change(s) live only in the copied link, not in the hangar link.",
+        "signInHint": "Sign in to share a hangar configuration as a link of its own.",
+        "notInHangarHint": "This ship is not in your hangar yet. Add it first, then you can share a configuration.",
+        "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first.",
+        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand.",
+        "saveAndShare": "Save & share",
+        "shareLink": "Share link",
+        "sharing": "Sharing …",
+        "followedShareHint": "Sharing makes this configuration your own — it stops following its owner.",
+        "linksLoading": "Loading your links …",
+        "linksError": "Your links could not be loaded.",
+        "activeLinks": "Active links ({{n}})",
+        "readOnlyHint": "This is a shared loadout. Create a copy to share a link of your own.",
+        "revokeConfirm": {
+          "title": "Stop sharing this link?",
+          "body": "Nobody can create a copy of the loadout through this link any more. Recipients who already follow it stay connected."
+        }
       },
       "components": {
         "unknownPosition": "Position in model unknown"
@@ -7979,6 +8006,9 @@
     "view": {
       "toHolo": "Switch to the Holotable",
       "toClassic": "Switch to the classic view"
+    },
+    "share": {
+      "popAria": "Share"
     }
   }
 }
