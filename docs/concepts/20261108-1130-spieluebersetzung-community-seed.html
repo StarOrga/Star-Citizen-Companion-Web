@@ -3,7 +3,7 @@
      It MUST be written at generation time with the active iteration's
      data-iteration-template value (normalised), otherwise the page paints the
      wrong layout for one frame before showIteration() runs. -->
-<html lang="de" data-theme="dark" data-page-version="2026-11-08T10:22:32" data-template="decision">
+<html lang="de" data-theme="dark" data-page-version="2026-11-08T10:22:32" data-template="free">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5235,6 +5235,8 @@ html[data-theme="light"] .an-att-i { box-shadow: 0 6px 18px rgba(31,35,40,.18); 
 [data-analysis] [data-briefing-what], .an-claim { order: 3; max-width: 600px; margin: 8px auto 0; font-size: 17px; font-weight: 400; letter-spacing: 0; line-height: 1.5; color: var(--an-tx2); }
 [data-analysis] [data-briefing-why] { order: 4; max-width: 560px; margin: 8px auto 0; font-size: 14px; color: var(--an-mu); }
 .an-chips { order: 5; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; width: 100%; margin-top: 28px; text-align: left; }
+/* a note sent on the briefing sits after the topic cards (every other child carries an order; an unordered box would jump to the top, above the eyebrow) */
+.an-brief > .an-notes { order: 6; align-self: stretch; margin-top: 28px; }
 [data-analysis] [data-briefing-topic] { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--an-s1); border-top: 3px solid var(--bc, var(--an-b2)); font-size: 18px; font-weight: 700; color: var(--an-tx); cursor: pointer; text-decoration: none; transition: background .15s; }
 [data-analysis] [data-briefing-topic]:hover { background: var(--an-s2); }
 [data-analysis] [data-briefing-topic] em { font-style: normal; font-size: 13px; font-weight: 500; color: var(--an-tx2); }
@@ -6117,7 +6119,8 @@ Genau, das glossar kann ja zusätzlich durch admins jederzeit angepasst werden f
   </section>
 </section>
 
-<section data-iteration="2" data-iteration-template="decision" data-analysis="full" id="iter-2" data-active>
+<section data-iteration="2" data-iteration-template="decision" data-analysis="full" data-baked id="iter-2" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <section id="r2-briefing" data-analysis-briefing data-nav-label="Briefing">
     <p data-briefing-what>Runde 1 steht: Community-Paket als Startbestand, Lernen mit allen sieben Bausteinen, Pakete täglich abgleichen plus KI-Delta sofort, Herkunft in Sprachwahl und global.ini. Korrektur: In Runde 1 stand, CIG und das Deutsch-Paket weichen in etwa 7 % der CIG-Keys ab. Das war falsch: Von 13 799 Keys, die beide übersetzen, unterscheiden sich 10 280 wirklich. Deine Briefing-Notiz gilt als Regel: CIGs eigene Übersetzung geht immer vor und wird ungeprüft übernommen, nur eine Admin-Korrektur steht darüber.</p>
     <p data-briefing-why>Drei Punkte deiner Notizen brauchen noch eine Form: der Konsistenz-Mechanismus, der Schiedsrichter pro Key und die Karteikarten. Dazu kommen Französisch, Chinesisch und Spanisch, deren Pakete keine Lizenz haben, die wir einhalten könnten.</p>
@@ -6152,28 +6155,28 @@ Genau, das glossar kann ja zusätzlich durch admins jederzeit angepasst werden f
       <p data-stakes>Ob SCC für Deutsch und Russisch dauerhaft kostenlos bleiben muss.</p>
       <div data-options>
         <label data-opt="ok" data-recommended>
-          <input type="radio" name="dm-d2-license" value="ok" checked>
+          <input type="radio" name="dm-d2-license" value="ok" checked disabled>
           <span data-opt-label>Stimmt, so umsetzen</span>
           <span data-opt-consequence>Overlay DE und RU unter CC-BY-NC-SA, Nennung in App und global.ini, Entwürfe an rjcncpt und n1ghter vor der Bewerbung.</span>
         </label>
         <label data-opt="partial">
-          <input type="radio" name="dm-d2-license" value="partial">
+          <input type="radio" name="dm-d2-license" value="partial" disabled>
           <span data-opt-label>Stimmt teilweise</span>
           <span data-opt-consequence>Deine Korrektur ersetzt den betroffenen Teil, der Rest der Regel gilt.</span>
         </label>
         <label data-opt="wrong">
-          <input type="radio" name="dm-d2-license" value="wrong">
+          <input type="radio" name="dm-d2-license" value="wrong" disabled>
           <span data-opt-label>Stimmt nicht</span>
           <span data-opt-consequence>Die Regel wird mit deiner Korrektur neu gefasst und noch einmal vorgelegt.</span>
         </label>
       </div>
-      <input type="text" name="dm-d2-license-fix" value="" placeholder="Was stimmt nicht?">
-      <textarea data-comment="d2-license-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-license-none" value="">
-      <input type="hidden" name="dm-d2-license-hes" value="">
-      <input type="hidden" name="dm-d2-license-touched" value="">
-      <input type="hidden" name="dm-d2-license-issue" value="">
-      <input type="hidden" name="dm-d2-license-epic" value="">
+      <input type="text" name="dm-d2-license-fix" value="" placeholder="Was stimmt nicht?" readonly disabled>
+      <textarea data-comment="d2-license-note" placeholder="Notiz (optional)" readonly disabled>Lass uns die namensnennung einfach immer machen in gleicher form, egal was ide lizenz sagt, solange es lizenzkonform ist ! Und auch in den bewerbungen festgehalten wer wie infomriert wird, diese dann aber erst später wie ebsprochen</textarea>
+      <input type="hidden" name="dm-d2-license-none" value="" disabled>
+      <input type="hidden" name="dm-d2-license-hes" value="{&quot;ms&quot;:67029,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-license-touched" value="1" disabled>
+      <input type="hidden" name="dm-d2-license-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-license-epic" value="" disabled>
       <div data-alevel="3" data-title="Lizenzregel Deutsch und Russisch">
         <div data-slot="short">CC-BY-NC-SA verlangt Nennung, keine kommerzielle Nutzung und dieselbe Lizenz für unser Overlay.</div>
         <div data-slot="long">
@@ -6190,27 +6193,27 @@ Genau, das glossar kann ja zusätzlich durch admins jederzeit angepasst werden f
       <p data-stakes>Ob wir fremde, geschützte Texte ausliefern.</p>
       <div data-options>
         <label data-opt="draft" data-recommended>
-          <input type="radio" name="dm-d2-unlicensed" value="draft" checked>
+          <input type="radio" name="dm-d2-unlicensed" value="draft" checked disabled>
           <span data-opt-label>Anfrage als Admin-Entwurf anlegen, Import nur mit Zusage</span>
           <span data-opt-consequence>Bis zur Zusage gibt es dort nur CIG, wie bei den Sprachen ohne Paket. Mit Zusage läuft der normale Seed.</span>
         </label>
         <label data-opt="learn">
-          <input type="radio" name="dm-d2-unlicensed" value="learn">
+          <input type="radio" name="dm-d2-unlicensed" value="learn" disabled>
           <span data-opt-label>Nur intern zum Lernen nutzen, nicht ausliefern</span>
           <span data-opt-consequence>Glossar und Stil kämen aus den Paketen. Auch das nutzt geschützten Text, das Risiko bleibt, nur leiser.</span>
         </label>
         <label data-opt="ship">
-          <input type="radio" name="dm-d2-unlicensed" value="ship">
+          <input type="radio" name="dm-d2-unlicensed" value="ship" disabled>
           <span data-opt-label>Trotzdem importieren</span>
           <span data-opt-consequence>Sofort fast vollständiger Text, aber ohne Rechte. Ein Takedown wie im DMCA-Fall von rjcncpt träfe dann uns.</span>
         </label>
       </div>
-      <textarea data-comment="d2-unlicensed-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-unlicensed-none" value="">
-      <input type="hidden" name="dm-d2-unlicensed-hes" value="">
-      <input type="hidden" name="dm-d2-unlicensed-touched" value="">
-      <input type="hidden" name="dm-d2-unlicensed-issue" value="">
-      <input type="hidden" name="dm-d2-unlicensed-epic" value="">
+      <textarea data-comment="d2-unlicensed-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d2-unlicensed-none" value="" disabled>
+      <input type="hidden" name="dm-d2-unlicensed-hes" value="{&quot;ms&quot;:34901,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-unlicensed-touched" value="1" disabled>
+      <input type="hidden" name="dm-d2-unlicensed-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-unlicensed-epic" value="" disabled>
       <div data-alevel="3" data-title="Pakete ohne Erlaubnis">
         <div data-slot="short">Drei Pakete, keine Lizenz, die wir einhalten könnten: Nur eine Erlaubnis öffnet sie.</div>
         <div data-slot="long">
@@ -6227,37 +6230,37 @@ Genau, das glossar kann ja zusätzlich durch admins jederzeit angepasst werden f
       <p data-context>Mehrfachauswahl.</p>
       <div data-options>
         <label data-opt="lic" data-recommended>
-          <input type="checkbox" name="dm-d2-drafts.lic" checked>
+          <input type="checkbox" name="dm-d2-drafts.lic" checked disabled>
           <span data-opt-label>Ansprache je Lizenz wählen</span>
           <span data-opt-consequence>CC-BY-NC-SA: Information und Nennung. Ohne Lizenz: Bitte um Erlaubnis.</span>
         </label>
         <label data-opt="stats" data-recommended>
-          <input type="checkbox" name="dm-d2-drafts.stats" checked>
+          <input type="checkbox" name="dm-d2-drafts.stats" checked disabled>
           <span data-opt-label>Nennen, was wir nutzen</span>
           <span data-opt-consequence>Abdeckung, Zahl der Keys, Stand und wie wir sie nennen.</span>
         </label>
         <label data-opt="lang" data-recommended>
-          <input type="checkbox" name="dm-d2-drafts.lang" checked>
+          <input type="checkbox" name="dm-d2-drafts.lang" checked disabled>
           <span data-opt-label>In der Sprache des Maintainers schreiben</span>
           <span data-opt-consequence>Deutsch an rjcncpt, Spanisch an Thord82, Französisch an den Cirque Lisoir.</span>
         </label>
         <label data-opt="approve" data-recommended>
-          <input type="checkbox" name="dm-d2-drafts.approve" checked>
+          <input type="checkbox" name="dm-d2-drafts.approve" checked disabled>
           <span data-opt-label>Freigabe nur durch geschützten Admin, Versand von Hand</span>
           <span data-opt-consequence>Der Entwurf zeigt einen Kopieren-und-Senden-Schritt, das System selbst verschickt nichts.</span>
         </label>
         <label data-opt="log" data-recommended>
-          <input type="checkbox" name="dm-d2-drafts.log" checked>
+          <input type="checkbox" name="dm-d2-drafts.log" checked disabled>
           <span data-opt-label>Antworten und Zusagen im Admin-Bereich festhalten</span>
           <span data-opt-consequence>Eine Zusage schaltet den Import der Sprache frei, eine Absage sperrt ihn.</span>
         </label>
       </div>
-      <textarea data-comment="d2-drafts-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-drafts-none" value="">
-      <input type="hidden" name="dm-d2-drafts-hes" value="">
-      <input type="hidden" name="dm-d2-drafts-touched" value="">
-      <input type="hidden" name="dm-d2-drafts-issue" value="">
-      <input type="hidden" name="dm-d2-drafts-epic" value="">
+      <textarea data-comment="d2-drafts-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d2-drafts-none" value="" disabled>
+      <input type="hidden" name="dm-d2-drafts-hes" value="{&quot;ms&quot;:13553,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-drafts-touched" value="" disabled>
+      <input type="hidden" name="dm-d2-drafts-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-drafts-epic" value="" disabled>
       <div data-alevel="3" data-title="Inhalt der Anfrage-Entwürfe">
         <div data-slot="short">Ein Entwurf je Maintainer, kein Versand ohne geschützten Admin.</div>
         <div data-slot="long">
@@ -6292,27 +6295,27 @@ Zeile der global.ini, das Overlay steht unter CC-BY-NC-SA 4.0, SCC bleibt kosten
       <p data-stakes>Ob das Spiel einheitliche Begriffe hat und was das an KI kostet.</p>
       <div data-options>
         <label data-opt="terms" data-recommended>
-          <input type="radio" name="dm-d2-base" value="terms" checked>
+          <input type="radio" name="dm-d2-base" value="terms" checked disabled>
           <span data-opt-label>Nur Paket-Zeilen mit abweichendem CIG-Begriff umschreiben</span>
           <span data-opt-consequence>Der Lernschritt zieht Begriffe aus CIGs Zeilen ins Glossar und findet Paket-Zeilen, die denselben Begriff anders übersetzen. Nur diese schreibt die KI um.</span>
         </label>
         <label data-opt="mix">
-          <input type="radio" name="dm-d2-base" value="mix">
+          <input type="radio" name="dm-d2-base" value="mix" disabled>
           <span data-opt-label>Den Mix aus CIG- und Paket-Begriffen hinnehmen</span>
           <span data-opt-consequence>Keine Kosten und das Paket bleibt unverändert, aber derselbe Gegenstand heißt im Spiel je nach Zeile anders.</span>
         </label>
         <label data-opt="restyle">
-          <input type="radio" name="dm-d2-base" value="restyle">
+          <input type="radio" name="dm-d2-base" value="restyle" disabled>
           <span data-opt-label>Alle Paket-Zeilen in CIGs Stil umschreiben</span>
           <span data-opt-consequence>Durchgehend CIG-Deutsch, kostet aber fast so viel wie eine KI-Vollübersetzung, etwa 40–80 USD, und vom Paket bleibt kaum etwas.</span>
         </label>
       </div>
-      <textarea data-comment="d2-base-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-base-none" value="">
-      <input type="hidden" name="dm-d2-base-hes" value="">
-      <input type="hidden" name="dm-d2-base-touched" value="">
-      <input type="hidden" name="dm-d2-base-issue" value="">
-      <input type="hidden" name="dm-d2-base-epic" value="">
+      <textarea data-comment="d2-base-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d2-base-none" value="" disabled>
+      <input type="hidden" name="dm-d2-base-hes" value="{&quot;ms&quot;:35679,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-base-touched" value="" disabled>
+      <input type="hidden" name="dm-d2-base-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-base-epic" value="" disabled>
       <div data-alevel="3" data-title="Angleichung der Paket-Zeilen an CIG">
         <div data-slot="short">Das Paket weicht im Stil ab, nicht im Inhalt: englische Spielbegriffe, UI in Großbuchstaben, mehr Information.</div>
         <div data-slot="long">
@@ -6339,27 +6342,27 @@ Paket-Zeile ohne CIG-Übersetzung, aber mit „Flares“
       <p data-stakes>Wie viele Konflikte richtig entschieden werden und wie viele bei dir landen.</p>
       <div data-options>
         <label data-opt="guarded" data-recommended>
-          <input type="radio" name="dm-d2-arbiter" value="guarded" checked>
+          <input type="radio" name="dm-d2-arbiter" value="guarded" checked disabled>
           <span data-opt-label>Regel-Filter plus KI-Paarvergleich, Konsistenz als Pflichtkriterium</span>
           <span data-opt-consequence>CIG-Key: CIG gilt ohne Prüfung. Sonst verliert die Seite mit Platzhalter-Fehler, veraltetem Hash oder Glossarbruch. Den Rest vergleicht die KI in beiden Reihenfolgen, uneinig oder unsicher wird zur Karteikarte.</span>
         </label>
         <label data-opt="plain">
-          <input type="radio" name="dm-d2-arbiter" value="plain">
+          <input type="radio" name="dm-d2-arbiter" value="plain" disabled>
           <span data-opt-label>Jeden Konflikt direkt an die KI geben</span>
           <span data-opt-consequence>Einfacher bei etwa gleichen Kosten, aber ohne Kontrolle der Positionsverzerrung und ohne Regeln vorab.</span>
         </label>
         <label data-opt="fixed">
-          <input type="radio" name="dm-d2-arbiter" value="fixed">
+          <input type="radio" name="dm-d2-arbiter" value="fixed" disabled>
           <span data-opt-label>Feste Reihenfolge Admin &gt; CIG &gt; Community &gt; KI</span>
           <span data-opt-consequence>Keine Kosten. Das Paket gewinnt immer gegen die KI, auch wo die KI-Zeile besser zu Glossar und CIG passt.</span>
         </label>
       </div>
-      <textarea data-comment="d2-arbiter-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-arbiter-none" value="">
-      <input type="hidden" name="dm-d2-arbiter-hes" value="">
-      <input type="hidden" name="dm-d2-arbiter-touched" value="">
-      <input type="hidden" name="dm-d2-arbiter-issue" value="">
-      <input type="hidden" name="dm-d2-arbiter-epic" value="">
+      <textarea data-comment="d2-arbiter-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d2-arbiter-none" value="" disabled>
+      <input type="hidden" name="dm-d2-arbiter-hes" value="{&quot;ms&quot;:9933,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-arbiter-touched" value="" disabled>
+      <input type="hidden" name="dm-d2-arbiter-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-arbiter-epic" value="" disabled>
       <div data-alevel="3" data-title="Schiedsrichter pro Key">
         <div data-slot="short">Da CIG immer gilt, bleiben nur Konflikte zwischen Paket und KI: wenige Dutzend Keys je Patch.</div>
         <div data-slot="long">
@@ -6387,27 +6390,27 @@ sonst     KI: A gegen B und B gegen A, Kriterium Konsistenz mit Basis + Glossar
       <p data-stakes>Ob die Übersetzung stabil bleibt und trotzdem besser werden kann.</p>
       <div data-options>
         <label data-opt="hysteresis" data-recommended>
-          <input type="radio" name="dm-d2-revise" value="hysteresis" checked>
+          <input type="radio" name="dm-d2-revise" value="hysteresis" checked disabled>
           <span data-opt-label>Nur bei klarem Vorsprung ersetzen, dann überall auf einmal</span>
           <span data-opt-consequence>Sieg im Vergleich in beiden Reihenfolgen plus Belegvorsprung. Dann ändern sich alle Strings mit dem Begriff, nie einer allein, höchstens etwa 2 % je Sprache und Release.</span>
         </label>
         <label data-opt="freeze">
-          <input type="radio" name="dm-d2-revise" value="freeze">
+          <input type="radio" name="dm-d2-revise" value="freeze" disabled>
           <span data-opt-label>Bestehende Einträge nur durch den Admin ändern lassen</span>
           <span data-opt-consequence>Maximal stabil, aber altes Wording bleibt, bis du es selbst änderst.</span>
         </label>
         <label data-opt="latest">
-          <input type="radio" name="dm-d2-revise" value="latest">
+          <input type="radio" name="dm-d2-revise" value="latest" disabled>
           <span data-opt-label>Die neueste Quelle immer gewinnen lassen</span>
           <span data-opt-consequence>Immer aktuell, aber Begriffe springen zwischen den Quellen hin und her.</span>
         </label>
       </div>
-      <textarea data-comment="d2-revise-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-revise-none" value="">
-      <input type="hidden" name="dm-d2-revise-hes" value="">
-      <input type="hidden" name="dm-d2-revise-touched" value="">
-      <input type="hidden" name="dm-d2-revise-issue" value="">
-      <input type="hidden" name="dm-d2-revise-epic" value="">
+      <textarea data-comment="d2-revise-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d2-revise-none" value="" disabled>
+      <input type="hidden" name="dm-d2-revise-hes" value="{&quot;ms&quot;:30232,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-revise-touched" value="1" disabled>
+      <input type="hidden" name="dm-d2-revise-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-revise-epic" value="" disabled>
       <div data-alevel="3" data-title="Revision bestehender Einträge">
         <div data-slot="short">Gestützt auf MQM, Studien zu Sprachmodellen als Richter und die Margin-Regel aus Ranking-Systemen.</div>
         <div data-slot="long">
@@ -6459,13 +6462,13 @@ sonst     KI: A gegen B und B gegen A, Kriterium Konsistenz mit Basis + Glossar
           <span data-opt-consequence>Neue Inhalte, die Spieler gerade sehen, rücken vor.</span>
         </div>
       </div>
-      <input type="hidden" name="dm-d2-card-order" value="spread,reach,kind,doubt,fresh">
-      <textarea data-comment="d2-card-order-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-card-order-none" value="">
-      <input type="hidden" name="dm-d2-card-order-hes" value="">
-      <input type="hidden" name="dm-d2-card-order-touched" value="">
-      <input type="hidden" name="dm-d2-card-order-issue" value="">
-      <input type="hidden" name="dm-d2-card-order-epic" value="">
+      <input type="hidden" name="dm-d2-card-order" value="spread,reach,kind,doubt,fresh" disabled>
+      <textarea data-comment="d2-card-order-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d2-card-order-none" value="" disabled>
+      <input type="hidden" name="dm-d2-card-order-hes" value="{&quot;ms&quot;:26404,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-card-order-touched" value="1" disabled>
+      <input type="hidden" name="dm-d2-card-order-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-card-order-epic" value="" disabled>
       <div data-alevel="3" data-title="Sortierung der Kartenliste">
         <div data-slot="short">Die Reihenfolge wird zu einer gewichteten Punktzahl je Karte, das oberste Merkmal wiegt am meisten.</div>
         <div data-slot="long">
@@ -6482,42 +6485,42 @@ sonst     KI: A gegen B und B gegen A, Kriterium Konsistenz mit Basis + Glossar
       <p data-context>Mehrfachauswahl.</p>
       <div data-options>
         <label data-opt="ab" data-recommended>
-          <input type="checkbox" name="dm-d2-card-form.ab" checked>
+          <input type="checkbox" name="dm-d2-card-form.ab" checked disabled>
           <span data-opt-label>Wahl zwischen A und B</span>
           <span data-opt-consequence>Die zwei stärksten Kandidaten nebeneinander, mit ihrer Herkunft.</span>
         </label>
         <label data-opt="own" data-recommended>
-          <input type="checkbox" name="dm-d2-card-form.own" checked>
+          <input type="checkbox" name="dm-d2-card-form.own" checked disabled>
           <span data-opt-label>„Beides falsch“ mit eigenem Text</span>
           <span data-opt-consequence>Dein Text wird ein Admin-Eintrag und schlägt beide.</span>
         </label>
         <label data-opt="note" data-recommended>
-          <input type="checkbox" name="dm-d2-card-form.note" checked>
+          <input type="checkbox" name="dm-d2-card-form.note" checked disabled>
           <span data-opt-label>Notiz als Hinweis für die KI</span>
           <span data-opt-consequence>Landet im Prompt der Strings, die diesen Begriff oder Key betreffen.</span>
         </label>
         <label data-opt="rule" data-recommended>
-          <input type="checkbox" name="dm-d2-card-form.rule" checked>
+          <input type="checkbox" name="dm-d2-card-form.rule" checked disabled>
           <span data-opt-label>Antwort als Glossar- oder Stilregel speichern</span>
           <span data-opt-consequence>Gilt für jeden String mit dem Begriff, betroffene Strings werden neu übersetzt.</span>
         </label>
         <label data-opt="ctx" data-recommended>
-          <input type="checkbox" name="dm-d2-card-form.ctx" checked>
+          <input type="checkbox" name="dm-d2-card-form.ctx" checked disabled>
           <span data-opt-label>Kontext zeigen</span>
           <span data-opt-consequence>Key, Nachbarzeilen, englisches Original und wo der Text im Spiel steht.</span>
         </label>
         <label data-opt="skip" data-recommended>
-          <input type="checkbox" name="dm-d2-card-form.skip" checked>
+          <input type="checkbox" name="dm-d2-card-form.skip" checked disabled>
           <span data-opt-label>Karte überspringen</span>
           <span data-opt-consequence>Die Karte rutscht ans Ende, die Liste bleibt in Bewegung.</span>
         </label>
       </div>
-      <textarea data-comment="d2-card-form-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-card-form-none" value="">
-      <input type="hidden" name="dm-d2-card-form-hes" value="">
-      <input type="hidden" name="dm-d2-card-form-touched" value="">
-      <input type="hidden" name="dm-d2-card-form-issue" value="">
-      <input type="hidden" name="dm-d2-card-form-epic" value="">
+      <textarea data-comment="d2-card-form-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d2-card-form-none" value="" disabled>
+      <input type="hidden" name="dm-d2-card-form-hes" value="{&quot;ms&quot;:20167,&quot;revisits&quot;:0,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-card-form-touched" value="1" disabled>
+      <input type="hidden" name="dm-d2-card-form-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-card-form-epic" value="" disabled>
       <div data-alevel="3" data-title="Aufbau einer Karteikarte">
         <div data-slot="short">Eine als Regel gespeicherte Antwort wirkt auf jeden String mit diesem Begriff, nicht nur auf die Karte.</div>
         <div data-slot="long">
@@ -6541,27 +6544,27 @@ Frage der KI: Stehen Steuerungshinweise in Großbuchstaben?
       <p data-stakes>Ob du gern hin und wieder Karten beantwortest.</p>
       <div data-options>
         <label data-opt="quiet" data-recommended>
-          <input type="radio" name="dm-d2-gamify" value="quiet" checked>
+          <input type="radio" name="dm-d2-gamify" value="quiet" checked disabled>
           <span data-opt-label>Fortschritt und Wirkung zeigen</span>
           <span data-opt-consequence>Etwa „Diese Antwort hat 214 Strings vereinheitlicht“, Tagesziel und Serie, nur im Admin-Bereich.</span>
         </label>
         <label data-opt="points">
-          <input type="radio" name="dm-d2-gamify" value="points">
+          <input type="radio" name="dm-d2-gamify" value="points" disabled>
           <span data-opt-label>Punkte und Rangliste unter Admins vergeben</span>
           <span data-opt-consequence>Lohnt sich mit mehreren Admins. Allein ist eine Rangliste leer.</span>
         </label>
         <label data-opt="none">
-          <input type="radio" name="dm-d2-gamify" value="none">
+          <input type="radio" name="dm-d2-gamify" value="none" disabled>
           <span data-opt-label>Schlichte Liste ohne Spielelemente zeigen</span>
           <span data-opt-consequence>Am wenigsten Bau, aber nichts erinnert an offene Karten.</span>
         </label>
       </div>
-      <textarea data-comment="d2-gamify-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d2-gamify-none" value="">
-      <input type="hidden" name="dm-d2-gamify-hes" value="">
-      <input type="hidden" name="dm-d2-gamify-touched" value="">
-      <input type="hidden" name="dm-d2-gamify-issue" value="">
-      <input type="hidden" name="dm-d2-gamify-epic" value="">
+      <textarea data-comment="d2-gamify-note" placeholder="Notiz (optional)" readonly disabled>gern auch rangliste und punkte!</textarea>
+      <input type="hidden" name="dm-d2-gamify-none" value="" disabled>
+      <input type="hidden" name="dm-d2-gamify-hes" value="{&quot;ms&quot;:27221,&quot;revisits&quot;:1,&quot;median&quot;:27221}" disabled>
+      <input type="hidden" name="dm-d2-gamify-touched" value="1" disabled>
+      <input type="hidden" name="dm-d2-gamify-issue" value="" disabled>
+      <input type="hidden" name="dm-d2-gamify-epic" value="" disabled>
       <div data-alevel="3" data-title="Motivation der Kartenliste">
         <div data-slot="short">Die Wirkung in Strings ist die ehrlichste Kennzahl: Sie zeigt, was eine Antwort im Spiel ändert.</div>
         <div data-slot="long">
@@ -6570,6 +6573,134 @@ Frage der KI: Stehen Steuerungshinweise in Großbuchstaben?
         </div>
       </div>
     </section>
+  </section>
+</section>
+
+<section data-iteration="3" data-iteration-template="free" data-final-report id="iter-3" data-active>
+  <p class="fr-sentence">Community-Pakete lassen sich jetzt als Startbestand importieren, und die Pipeline lernt danach ohne viele Tokens weiter.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">📥</span><span><b>Seed-Import</b> für 5 Sprachen, CIG geht immer vor.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧠</span><span><b>Lernschritt</b> mit Glossar, Stil, Schiedsrichter und Hysterese.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🗂</span><span><b>Karteikarten</b> mit Punkten, Serie und Rangliste.</span></li>
+      </ul>
+      <a class="fr-try" href="https://sc-companion.vercel.app/admin/translations" target="_blank" rel="noopener noreferrer">▶ Selbst ausprobieren</a>
+      <p class="fr-try-auth">🔑 Admin-Konto; erst nach dem Einspielen der zwei neuen Migrationen.</p>
+    </div>
+    <div class="fr-ba">
+      <ol class="fr-flow">
+        <li>Paket laden, CIG-Keys überspringen, Platzhalter prüfen</li>
+        <li>Lücken und neue Patches übersetzt die KI</li>
+        <li>Paket gegen KI: Regeln, dann Vergleich in beiden Reihenfolgen</li>
+        <li>Unsicheres landet als Karteikarte bei dir</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">Was es aushält<small>Balken = wie weit die Anforderung erfüllt ist</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="434 Function-Tests und 6226 Karma-Specs grün, typecheck, lint und build grün (geschätzt: Anforderung alle Gates grün).">
+        <span class="fr-meter-name">✅ Gates</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">5 / 5</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 90%" data-tip="Unabhängige Prüfung: alle Checklistenpunkte erfüllt bis auf die nie gelaufene Migration und den ungetesteten Zip-Pfad für Chinesisch (geschätzt).">
+        <span class="fr-meter-name">📋 Checkliste</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">26 / 29</b>
+      </div>
+      <div class="fr-meter" data-grade="open" style="--fr-fill: 0%" data-tip="Migration und pgTAP sind nie gelaufen, kein Docker hier; ein echter Seed-Import mit dem 12-MB-Paket steht aus (geschätzt).">
+        <span class="fr-meter-name">🗄 Echtbetrieb</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">offen</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="3 / 7 · ✓ Code-Check · ✓ Trockentest · ✓ Zusammenspiel · ○ Lokal durchgespielt · ○ Prod-Build geprüft · ○ Live vertestet · ◌ Von dir abgenommen">
+    <span class="fr-depth-done">✓ Zuletzt bestanden: <b>Zusammenspiel</b></span>
+    <span class="fr-depth-next">○ Noch nicht gemacht: <b>Lokal durchgespielt</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 3 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-app"
+          data-issue-title="[FEATURE] SCC app: community languages, ru via korean slot, attribution line"
+          data-issue-type="feature"
+          data-issue-body="Approved in the concept 20261108-1130-spieluebersetzung-community-seed (d-langs, d-credit), not built here because the SCC desktop app is a separate repo (Star-Citizen-Companion-App). Needed: LANGUAGES for it, pt-BR, ja, ru (+ fr/zh once permitted); ru writes into korean_(south_korea) with use_cig_table=false; write the overlay `attribution` into Frontend_PU_Version; picker label from overlay `sources` instead of the old AI-only label. Contract: docs/translation/ARCHITECTURE.md (overlay v1 extension)."
+          data-issue-module="desktop-app"
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="anderes-repo">
+        <span class="oq-label">SCC-App: Sprachen + Herkunft</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Sprachwahl, russischer Umweg über den koreanischen Ordner und Herkunftszeile in der App sind nicht gebaut.</dd>
+          <dt>Wo</dt><dd>Repo Star-Citizen-Companion-App, translation-service.js</dd>
+          <dt>Warum vorbelegt</dt><dd>⚡ Jetzt, als eigene Session im App-Repo; der Overlay-Vertrag steht.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-zip"
+          data-issue-title="[CHORE] Test the zip unpack path of the community seed import"
+          data-issue-type="chore"
+          data-issue-body="_pack.ts unpacks 42Kit's data.zip with npm:fflate; no test covers it and the edge memory limit is untested. Chinese stays blocked until 42Kit grants permission, so this only matters then. Add a fixture test before zh is permitted."
+          data-issue-module="translation"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="später-nötig">
+        <span class="oq-label">Zip-Pfad ungetestet</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Das Entpacken des chinesischen Pakets hat keinen Test.</dd>
+          <dt>Wo</dt><dd>translate-orchestrator/_pack.ts</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue, Chinesisch ist ohnehin bis zur Zusage gesperrt.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-ledger"
+          data-issue-title="[CHORE] Ledger rows without a job for learning spend"
+          data-issue-type="chore"
+          data-issue-body="translation_ledger.job_id is NOT NULL, so learning/arbiter/web spend is booked on the newest translation job of the language and the web cap is summed from R2 learn-spend files. Cleaner: job_id nullable plus a kind column, then sum the web cap from the ledger."
+          data-issue-module="translation"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="aufräumen">
+        <span class="oq-label">Lern-Kosten im Ledger</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Lernkosten hängen am neuesten Job, der Deckel greift trotzdem.</dd>
+          <dt>Wo</dt><dd>translation_ledger, _learn_batch.ts</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue, funktioniert, ist aber unsauber.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/sc-translations-automated-learning-6008c4</code> · Commit <code>baf70811</code></li>
+      <li><code>supabase/migrations/20261108160000_translation_community_seed.sql</code>, <code>…170000_translation_source_sync_cron.sql</code></li>
+      <li><code>translate-orchestrator/_learn.ts</code>, <code>_arbiter.ts</code>, <code>_sources.ts</code> · Admin: <code>src/app/admin/translations/</code></li>
+      <li>Tests: test:functions 434 grün · Karma 6226 grün · typecheck, lint, build grün · pgTAP und Deno-Check nicht gelaufen</li>
+      <li>Docs: <code>docs/translation/ARCHITECTURE.md</code>, <code>OPERATIONS.md</code>, <code>PUBLIC-RELEASE.md</code></li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-seed-de" data-crit="high" data-guide="">Deutsch-Seed einmal echt importieren</li>
+      <li data-todo-id="t-admin-ui" data-crit="mid" data-guide="">Admin-Tabs mit echten Daten ansehen</li>
+    </ul>
+  </section>
+  <section data-handoffs hidden aria-label="Du machst danach">
+    <ul>
+      <li data-todo-id="h-migrate" data-crit="high" data-guide="">Migrationen lokal testen, dann einspielen</li>
+      <li data-todo-id="h-enable" data-crit="mid" data-guide="">Pipeline im Admin einschalten</li>
+    </ul>
   </section>
 </section>
 </main>
@@ -6661,7 +6792,8 @@ Frage der KI: Stehen Steuerungshinweise in Großbuchstaben?
              (iteration-rules.md § Iteration append checklist). -->
         <nav class="iteration-tabs" role="tablist" aria-label="Runden">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
-<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="3" aria-selected="true" aria-controls="iter-3">Abschlussbericht</button>
 </nav>
 
         <!-- Section TOC — auto-populated from EVERY top-level <section id="..."
@@ -17207,7 +17339,7 @@ function collectImplementItems() { return collectFollowUps('implement'); }
 // --- 🧪 / 👉 to-dos ---
 // 🧪 = what Claude could not verify ([data-tests]), 👉 = what the user does by
 // hand afterwards ([data-handoffs]). One <li> each, non-interactive, with
-// data-crit (low | mid | high) and data-guide (web | desktop | empty).
+// data-crit (low | mid | high) and data-guide (web | desktop only for a third-party / system action | empty = default).
 const CLOSEOUT_TODO_BLOCK = { tests: '[data-tests]', handoffs: '[data-handoffs]' };
 function todoItems(kind) {
   const section = finalReportSection();
@@ -17219,9 +17351,10 @@ function todoId(kind, el, i) {
 }
 function todoKey(kind, el, i) { return kind + ':' + todoId(kind, el, i); }
 // Criticality decides first: low → struck (skip, muted, ↩ brings it back).
-// Needed and guidable (a web task → auto-guide, a PC task → desktop scripts /
-// takeover help) → "Führ mich" on (guide); needed and not guidable → on the
-// completion card (self). An explicit data-mode-default wins. "Not guidable" is
+// Needed and a guided action on a third-party site (API key, OAuth app,
+// account, hosting secret → auto-guide) or a system setting (desktop scripts /
+// takeover help) → "Führ mich" on (guide); everything else, incl. manual
+// checks of the user's own app or site → off, on the completion card (self). An explicit data-mode-default wins. "Not guidable" is
 // never shown — "Führ mich" there simply means written steps (guide: "inline").
 function todoDefaultMode(el) {
   const explicit = el.dataset.modeDefault;
