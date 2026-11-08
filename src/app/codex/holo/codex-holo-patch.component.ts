@@ -81,6 +81,7 @@ export interface HoloPatchComparisonSide {
         [attr.aria-keyshortcuts]="hotkey()"
         [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate"
       >
+        <em class="pl">{{ 'codex.head.patch' | translate }}</em>
         <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
         @if (hotkey(); as hk) { <kbd class="hk" aria-hidden="true">{{ hk }}</kbd> }
         <span class="chev" [class.on]="open()" aria-hidden="true">▾</span>
@@ -222,6 +223,13 @@ export interface HoloPatchComparisonSide {
     }
     .patch-trigger:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--sc-accent); }
     .patch-trigger.active { border-color: var(--sc-accent); color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
+    .pl { font-style: normal; color: var(--sc-fg-2); font-family: var(--sc-font-body, inherit); }
+    /* In the head strip (concept codex-kopf-besitz C1) the trigger is the strip's first segment: no frame of its own. */
+    :host-context(.sc-head-strip) .patch-trigger { min-height: 100%; border: 0; border-radius: 9px 0 0 9px; background: transparent; padding: 0 12px; }
+    :host-context(.sc-head-strip) .patch-trigger:hover, :host-context(.sc-head-strip) .patch-trigger.on { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+    :host-context(.sc-head-strip) .patch-trigger.active { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+    :host-context(.sc-head-strip) { display: flex; }
+    :host-context(.sc-head-strip) .holo-patch { align-self: stretch; }
     .chev { font-size: 0.62rem; transition: transform 0.2s ease; }
     .chev.on { transform: rotate(180deg); }
 

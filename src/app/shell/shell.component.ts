@@ -58,6 +58,7 @@ import { FeedbackCaptureComponent } from '../feedback/feedback-capture.component
 import { FeedbackSpotsComponent } from '../feedback/feedback-spots.component';
 import { BetaService, betaAreaOf } from '../core/beta.service';
 import { BetaFabComponent } from './corners/beta-fab.component';
+import { ViewToggleFabComponent } from './corners/view-toggle-fab.component';
 import { LayoutService } from '../core/layout/layout.service';
 import { NgTemplateOutlet } from '@angular/common';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
@@ -71,7 +72,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, WishCartDialogComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, WishCartDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -494,6 +495,8 @@ import { avatarUrlOf } from './avatar-url';
          5920cf8c). Each gates itself on the role, so only ever one renders. -->
     <!-- The one β switch: a small FAB above the feedback launcher, both shells. -->
     <sc-beta-fab [area]="betaArea()" />
+    <!-- Ship pages: Klassisch | Holotisch, the lane between the launcher and the β FAB. -->
+    <sc-view-toggle-fab />
 
     <sc-feedback-fab />
     <sc-user-feedback-fab />

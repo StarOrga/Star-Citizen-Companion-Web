@@ -47,13 +47,13 @@ function press(key: string, target: EventTarget = document.body, init: KeyboardE
 }
 
 describe('holo hotkeys (pure)', () => {
-  it('maps L / P / V / S and nothing else, case-insensitively', () => {
-    expect(HOLO_HOTKEYS).toEqual({ copyLink: 'l', patch: 'p', view: 'v', share: 's' });
+  it('maps L / P / V and nothing else, case-insensitively (S left with the stage Teilen, C9)', () => {
+    expect(HOLO_HOTKEYS).toEqual({ copyLink: 'l', patch: 'p', view: 'v' });
     const ev = (key: string, init: KeyboardEventInit = {}) => new KeyboardEvent('keydown', { key, ...init });
     expect(holoHotkeyFor(ev('l'), null)).toBe('copyLink');
     expect(holoHotkeyFor(ev('P'), null)).toBe('patch');
     expect(holoHotkeyFor(ev('v'), null)).toBe('view');
-    expect(holoHotkeyFor(ev('s'), null)).toBe('share');
+    expect(holoHotkeyFor(ev('s'), null)).toBeNull();
     // Digits stay the pin keys, Esc stays "close", other letters start a search.
     for (const k of ['1', '0', 'Escape', 'g', '3']) expect(holoHotkeyFor(ev(k), null)).toBeNull();
     // No chords: Ctrl+L focuses the address bar, Ctrl+P prints.
@@ -108,15 +108,8 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     }
   });
 
-  it('S toggles the share popover, P the patch chooser', async () => {
+  it('P toggles the patch chooser in the head strip', async () => {
     fixture = await setup();
-    const c = fixture.componentInstance;
-    press('s');
-    fixture.detectChanges();
-    expect(c.sharePopoverOpen()).toBeTrue();
-    press('s');
-    expect(c.sharePopoverOpen()).toBeFalse();
-
     const patch = fixture.nativeElement.querySelector('sc-codex-holo-patch');
     expect(patch).toBeTruthy();
     press('p');
@@ -158,8 +151,6 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     const ev = press('v', input);
     expect(ev.defaultPrevented).toBeFalse();
     expect(c.viewMode()).toBe('holo');
-    press('s', input);
-    expect(c.sharePopoverOpen()).toBeFalse();
   });
 
   it('ignores the keys while a dialog outside the stage is open', async () => {
@@ -191,7 +182,9 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     const kbds = [...el.querySelectorAll('kbd.hk')].map((k) => k.textContent?.trim());
     expect(kbds).toContain('P');
     expect(kbds).toContain('V');
-    expect(kbds).toContain('S');
+    expect(kbds).not.toContain('S');
+    // The patch trigger is the head strip's first segment (concept codex-kopf-besitz C1).
+    expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-holo-patch')).toBeTruthy();
     expect(el.querySelector('.patch-trigger')?.getAttribute('aria-keyshortcuts')).toBe('P');
   });
 });

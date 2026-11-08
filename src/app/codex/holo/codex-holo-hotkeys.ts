@@ -3,7 +3,7 @@
 // the trigger shows it as a discreet <kbd> (hidden on touch).
 //
 // Coexistence with the Codex type-to-search (`isTypeToSearchKey`, quick-search
-// component): on the holodeck these four letters belong to the holodeck when
+// component): on the holodeck these three letters belong to the holodeck when
 // no text field is focused. The stage listens in the CAPTURE phase and calls
 // preventDefault(); type-to-search ignores a defaultPrevented key. Every other
 // letter still starts a search, digits stay the pin keys (1–9, 0 = 10), Esc
@@ -11,14 +11,13 @@
 // the holodeck: an editable target is ignored here.
 import { isEditableTarget } from '../search/codex-search-hub.service';
 
-export type HoloHotkeyAction = 'copyLink' | 'patch' | 'view' | 'share';
+export type HoloHotkeyAction = 'copyLink' | 'patch' | 'view';
 
 /** action → key (lower case). The kbd badges and aria-keyshortcuts read this. */
 export const HOLO_HOTKEYS: Readonly<Record<HoloHotkeyAction, string>> = {
   copyLink: 'l',
   patch: 'p',
   view: 'v',
-  share: 's',
 };
 
 const BY_KEY = new Map<string, HoloHotkeyAction>(

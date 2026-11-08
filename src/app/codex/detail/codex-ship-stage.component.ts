@@ -84,10 +84,12 @@ export interface StageHeroChip {
          first, the name under it in the accent — the ship IS the subject.
          A translucent panel keeps both legible on any render. The hangar
          control that used to sit here moved above the picture. -->
-    <div class="stage-ident">
-      @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
-      <h1>{{ displayName() }}</h1>
-    </div>
+    @if (showIdent()) {
+      <div class="stage-ident">
+        @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
+        <h1>{{ displayName() }}</h1>
+      </div>
+    }
 
     <!-- 2D ⇄ 3D on the card itself. A toggle, not a navigation, so a
          real button: deliberately quiet and half-transparent, and it
@@ -306,6 +308,8 @@ export class CodexShipStageComponent {
   readonly activePorts = input<readonly string[]>([]);
   readonly has3dView = input(false);
   readonly heroEyebrow = input<string | null>(null);
+  /** false: the page draws the title in its own head row (concept codex-kopf-besitz d1-s3), not on the picture. */
+  readonly showIdent = input(true);
   readonly heroChips = input<StageHeroChip[]>([]);
   readonly stageCounts = input<StageCountChip[]>([]);
 

@@ -754,3 +754,67 @@ Rule: **structure, logic and information follow the concept; polish follows the 
   largest items; a cut group's share disappears; the per-part figure comes from the game
   files). Every other dock tooltip stays verbatim. Rule R-B7 (deltas against the previous
   allocation) is unaffected: a fact whose value did not change shows no chip.
+
+## 15. Kopf, Besitz, Teilen (concept 20261108-1545)
+
+Concept: `docs/concepts/20261108-1545-codex-kopf-besitz.html`, implement brief
+`docs/concepts/20261108-1545-codex-kopf-besitz/briefs/implement.md`. Applies to the Codex
+ship page, the hangar ship page (`/hq/hangar/:id`, renders `sc-codex-detail`) and the
+item pages, in Klassisch and Holotisch alike.
+
+### Accepted
+
+- **Kennleiste (round 2, d1).** The head is the title block left and ONE grouped strip
+  on the right: `[Patch 4.10.2-LIVE ▾ | Besitz]` (`.sc-head-strip`, `src/styles.scss`).
+  Holotisch draws it on its title row (`codex-holo-stage`, the patch chooser is the first
+  segment); Klassisch has the same head row (`.c-head`: the title left the picture, the strip
+  sits on its baseline); the item page beside its name.
+- **Besitz segment** (`sc-codex-own-segment`). Ship owned: "Im Hangar" + the inline
+  variant select (`sc-codex-mode-switch [compact]`, same anchors and `?v=` links as before,
+  no primary tier). Not owned: quiet "Nicht im Hangar"; a click scrolls to the ownership
+  card, focuses it and lights it up. Items: "Im Inventar · n×" / "Nicht im Inventar"
+  (blueprints: Sammlung).
+- **Datenstand out of the head.** The data pill and the provenance build line are gone for
+  everyone; the strip names only the short patch. The full stamp stays in the admin data
+  uploads.
+- **View toggle FAB.** Klassisch | Holotisch is a round FAB in the launcher's column
+  (`sc-view-toggle-fab`, shell corners): directly above the feedback launcher, below β.
+  Drawn only while a ship page registered its switch (`PageCornerService`); it calls the
+  page's `toggleHoloView()`, so `?view=` behaves as before. Label and tooltip name the
+  target view. While it is drawn it publishes `--sc-view-fab-lane`: β and the toasts move
+  up one lane.
+- **Ownership card** (`sc-codex-own-card`) on top of the Holotisch panel (above Bauteile /
+  Einordnung / Änderungen), the classic side column (above Einordnung) and the item panel.
+  Not owned: "Haben?" with Wunschliste and Hangar / Inventar as secondary pills; wished →
+  quantity stepper + "Wunschliste öffnen" (anchor, `?cart=1`). Owned ship: "Dein Exemplar"
+  with the custom name, rename / note / pin / remove (remove = danger, confirm), the
+  Nachschub hint only when the ship sits in one, "Im HQ zeigen" (anchor), "Noch eins
+  wünschen". Owned item: "Dein Bestand" with the Inventar stepper, note, pin (own table `hq_item_marks`), remove (danger,
+  confirm), "Im HQ zeigen", "Noch eins wünschen". Every write goes through
+  `ItemPathService`. No variant select in the card.
+- **Altlasten weg.** The Wunschliste → Hangar panel, the own-ship icon row and the HQ
+  "Nachschub n" button leave the ship page head (the button only on `/hq/hangar/:id`).
+- **Teilen in the launcher row, one per page.** The share FAB stays on the launcher's
+  centre line, directly left of it; the Holotisch bottom strip and its open dock end before
+  the share lane instead of lifting the share alone (`--sc-share-lift` is gone). The stage
+  toolbar lost its "Teilen" and the S hotkey. On a ship page the share FAB opens the share
+  popover above the corner (`sc-codex-holo-share`, `[scDialog]`): the plain link of the view
+  (view + unsaved hardpoint changes) and "save & share as hangar link" (#645) with its
+  unsaved-changes hint. Elsewhere the FAB shares URL + section anchor directly. Ship pages
+  show the share FAB without the beta shell too (they register their share), and their
+  old "Link teilen" buttons step back. The Holotisch "Wo zu kaufen" wish control stays, as
+  the compact secondary path control (no primary on the page).
+
+### Rejected
+
+- Corner stack with the share above the launcher (Eckstapel), share in the page head.
+- Round 1 d1/d2 heads (badge in the title row, sub line under the title), the round 2
+  d2/d3 variants, and Klassisch | Holotisch as a strip segment (round 2 pin moved it into
+  the corner).
+
+### Left out
+
+- ~~Item cards offer no note / pin~~ - built: `hq_item_marks` (per user and item `class_name`, `HqItemMarksService`), note prompt + pin toggle on "Dein Bestand".
+- The view toggle FAB has no `aria-pressed`: its label names the view a click leads to.
+- Klassisch shows the patch as a label, not a chooser: the patch comparison paints the
+  Holotisch's KPI ghosts and port pins and has no classic counterpart.

@@ -88,6 +88,15 @@ export class BetaService {
     return computed(() => this.state()[area]);
   }
 
+  /**
+   * The area's state is not final yet: the user made no explicit choice and the PostHog flag that may decide
+   * it has not arrived, so `isEnabled` still shows the default. A decision that is costly to take back (a
+   * redirect) waits for this to be false.
+   */
+  isPending(area: BetaArea): Signal<boolean> {
+    return computed(() => this.choices()[area] === undefined && this.analytics.flagsPending());
+  }
+
   /** Records the user's choice, persists it and emits `beta_toggle`. */
   set(area: BetaArea, enabled: boolean): void {
     if (!BETA_AREAS.includes(area)) return;

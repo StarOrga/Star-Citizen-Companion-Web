@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { HqItemMarksService } from '../hq/data/hq-item-marks.service';
+import { fakeItemMarks } from '../hq/data/hq-item-marks.testing';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -127,7 +129,7 @@ describe('Codex detail blocks at a 375px viewport', () => {
     await TestBed.configureTestingModule({
       imports: [FrameHostComponent],
       providers: [provideRouter([]),
-      { provide: ItemPathService, useValue: fakeItemPath() }, provideTranslateService({})],
+      { provide: ItemPathService, useValue: fakeItemPath() }, { provide: HqItemMarksService, useValue: fakeItemMarks() }, provideTranslateService({})],
     }).compileComponents();
 
     const i18n = TestBed.inject(TranslateService);

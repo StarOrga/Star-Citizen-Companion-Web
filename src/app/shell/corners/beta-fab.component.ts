@@ -58,11 +58,12 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       --_d: max(44px, var(--sc-tap-min, 44px));
       position: fixed; z-index: 160;
       inset-inline-end: calc(max(var(--sc-fab-inset, 24px), env(safe-area-inset-right, 0px)) + (var(--sc-fab-size, 56px) - var(--_d)) / 2);
-      bottom: var(--sc-fab-clear-block, 96px);
+      /* The view toggle FAB (ship pages) takes the first lane above the launcher; β stacks on it. */
+      bottom: calc(var(--sc-fab-clear-block, 96px) + var(--sc-view-fab-lane, 0px));
       display: flex; flex-direction: column-reverse; align-items: flex-end; gap: var(--sc-space-2);
     }
     @media (max-width: 720px) {
-      .wrap { bottom: var(--sc-beta-fab-bottom, var(--sc-fab-clear-block, 96px)); }
+      .wrap { bottom: calc(var(--sc-beta-fab-bottom, var(--sc-fab-clear-block, 96px)) + var(--sc-view-fab-lane, 0px)); }
     }
     .fab {
       display: inline-grid; place-items: center; width: var(--_d); height: var(--_d);

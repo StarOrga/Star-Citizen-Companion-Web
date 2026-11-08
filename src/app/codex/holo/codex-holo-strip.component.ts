@@ -417,7 +417,8 @@ let uidSeq = 0;
          the left, the four areas evenly beside it, the arrow (concept r1 d2). */
       @media (min-width: 901px) {
         /* The launcher's lane is the grid's trailing column here (--holo-cols), not a padding. */
-        .hs-row { display: grid; grid-template-columns: var(--holo-cols, minmax(150px, 15%) repeat(4, minmax(0, 1fr)) 44px var(--fab-clear, 0px)); padding-inline-end: 0; }
+        /* The box itself ends before the corner (margin below), so the row drops the stage's trailing lane column. */
+        .hs-row { display: grid; grid-template-columns: var(--holo-lead-w, minmax(150px, 15%)) repeat(4, minmax(0, 1fr)) var(--holo-ctl-w, 44px); padding-inline-end: 0; }
         .einsatz { min-inline-size: 0; }
         .seg.tile { border-inline-start: 1px solid color-mix(in srgb, var(--sc-accent) 22%, transparent); }
         .hs-toggle { margin-inline-start: 0; }
@@ -426,6 +427,12 @@ let uidSeq = 0;
          "both": the arrow opens it anywhere). Energy is its own row on top
          (r1-dock-energy "row"), the four areas under it. Capped to the
          viewport, scrolls inside. */
+      /* Above 640px the whole box - border, background and this open dock - ends before the share lane
+         and the launcher (concept codex-kopf-besitz C8): margin, not padding. */
+      @media (min-width: 641px) {
+        .holo-strip { margin-inline-end: var(--fab-clear, 0px); }
+        .hs-row { padding-inline-end: 0; }
+      }
       .hs-panel { position: absolute; inset-inline: -1px; inset-block-end: 100%; z-index: 4;
         display: flex; flex-direction: column; gap: 0;
         max-block-size: calc(100dvh - var(--holo-strip-h, 64px) - 72px); overflow-y: auto; overscroll-behavior: contain;
@@ -743,14 +750,16 @@ export class CodexHoloStripComponent {
     const root = getComputedStyle(document.documentElement);
     const lane = (parseFloat(root.getPropertyValue('--sc-fab-inset')) || 24) + (parseFloat(root.getPropertyValue('--sc-fab-size')) || 56);
     const gutter = parseFloat(root.getPropertyValue('--sc-fab-gutter')) || 12;
-    // The bar, not the host: on a phone the bar is fixed and the host collapses.
-    const box = (el.querySelector('.holo-strip') ?? el).getBoundingClientRect();
+    // Above 640px the host (full width; the bar itself shrinks by the clearance); on a phone the
+    // fixed bar, the host collapses there.
+    const box = (this.phone ? (el.querySelector('.holo-strip') ?? el) : el).getBoundingClientRect();
     // clientWidth, not innerWidth: the launcher's `right` inset is measured
     // from the viewport WITHOUT the page's scrollbar.
     let free = document.documentElement.clientWidth - lane - gutter;
-    // A detail page's share button rides beside the launcher, on whatever row the bar is.
+    // A detail page's share button rides beside the launcher and never lifts alone (concept
+    // codex-kopf-besitz C8): the bar always ends before the share lane.
     const dock = document.querySelector('sc-share-button .dock')?.getBoundingClientRect();
-    if (dock && dock.width > 0 && dock.bottom > box.top && dock.top < box.bottom) free = Math.min(free, dock.left - gutter / 2);
+    if (dock && dock.width > 0) free = Math.min(free, dock.left - gutter / 2);
     const clear = Math.max(0, Math.round(box.right - free));
     el.style.setProperty('--fab-clear', `${clear}px`);
     // The stage's shared columns end with the same lane, so the parts and the
@@ -765,30 +774,7 @@ export class CodexHoloStripComponent {
    * into B's `persistDraft()` writes (wave5 red-team P0, strip is reused
    * across `/codex/ship/A -> /codex/ship/B` navigations). */
   private restoredFor: string | null = null;
-  /** Re-publishes the share FAB's lift (bar + open dock). */
-  private publishLift: (() => void) | null = null;
-
   constructor() {
-    // The share FAB shares the bottom-right corner with the strip's own end (its arrow):
-    // the strip publishes its height, the FAB rides above it. On a phone the fixed bar stack carries it.
-    afterNextRender(() => {
-      const el = this.host.nativeElement;
-      if (this.phone || typeof ResizeObserver === 'undefined') return;
-      const root = el.ownerDocument.documentElement;
-      // The open dock stands above the bar (absolute): the FAB rides above it too.
-      const publish = (): void => {
-        const dock = el.querySelector('.hs-panel')?.getBoundingClientRect().height ?? 0;
-        root.style.setProperty('--sc-share-lift', `${Math.round(el.getBoundingClientRect().height + dock) + 8}px`);
-      };
-      this.publishLift = publish;
-      const ro = new ResizeObserver(publish);
-      ro.observe(el);
-      publish();
-      this.destroyRef.onDestroy(() => {
-        ro.disconnect();
-        root.style.removeProperty('--sc-share-lift');
-      });
-    });
     effect(() => {
       const shipKey = this.shipClassName();
       this.userId();
@@ -817,10 +803,6 @@ export class CodexHoloStripComponent {
         window.removeEventListener('resize', onResize);
         ro?.disconnect();
       });
-    });
-    effect(() => {
-      this.expanded();
-      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => this.publishLift?.());
     });
     this.destroyRef.onDestroy(() => {
       if (this.rollRaf) cancelAnimationFrame(this.rollRaf);

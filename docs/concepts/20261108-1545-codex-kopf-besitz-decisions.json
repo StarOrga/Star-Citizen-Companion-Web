@@ -1,0 +1,30 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "favorite": "d3",
+    "designs": {
+      "d1": "Kopfzeile (Chips unter dem Titel)",
+      "d2": "Besitz-Band (ein Satz)",
+      "d3": "Panel-Karte (Kopf nur Titel, Besitz als Karte im Panel) — Favorit"
+    },
+    "annotations": {
+      "r1-d3-s3-a1": "variantenwahl in den kopf! Aber irgendwie gibt es im kopf ja einiges, einerseits welches schiff / gegenstand / welcher patch / im hangar ja nein / variante im hangar.\nDas muss irgendwie in den kopf rein!"
+    },
+    "userPins": [
+      {
+        "design": "d3",
+        "screen": "d3-s3",
+        "target": "Titelblock",
+        "text": "nimm den datenstand hier komplett raus, wir haben das ja im admin panel für data uploads! das reicht, andere müssen das nicht sehen, die sehen nur den verkürzten stand in dem patch drop down"
+      }
+    ],
+    "decisions": {
+      "share-stack": "discard",
+      "share-row": "include",
+      "share-head": "discard",
+      "share-merge": "include"
+    },
+    "summary": "Basis Panel-Karte; der Kopf trägt Ding, Patch (Kurzform), Hangar ja/nein und Variante; Datenstand raus aus dem Kopf; Teilen in einer Reihe links neben dem Launcher, nur ein Teilen pro Seite (Bühnen-Teilen entfällt)."
+  }
+]
