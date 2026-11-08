@@ -55,8 +55,8 @@
           data-issue-module="hq"
           data-oq-origin="shortfall"
           data-route-default="issue"
-          data-route-reason="braucht Schema">
-        <span class="oq-label">Gegenstand: Notiz, Anheften</span>
+          data-route-reason="braucht Schema" data-routed="now">
+        <span class="oq-label">Gegenstand: Notiz, Anheften</span> <span class="oq-done">umgesetzt: Tabelle hq_item_marks, Knöpfe in „Dein Bestand“ (da9ed0d7)</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Nicht umgesetzt, weil Inventar-Gegenstände weder Notiz noch Anheften speichern können.</dd>
           <dt>{{final.fund_where}}</dt><dd>Gegenstandsseite, Karte „Dein Bestand“</dd>
@@ -70,8 +70,8 @@
           data-issue-module="hangar"
           data-oq-origin="found"
           data-route-default="now"
-          data-route-reason="im Repo">
-        <span class="oq-label">Hangar-Seite springt kurz</span>
+          data-route-reason="im Repo" data-routed="now">
+        <span class="oq-label">Hangar-Seite springt kurz</span> <span class="oq-done">umgesetzt: wartet auf das β-Flag, höchstens 2,5 s (e621e762, d98c1144)</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Ein Hangar-Schiff zeigt beim Öffnen kurz die Codex-Adresse und springt dann zurück.</dd>
           <dt>{{final.fund_where}}</dt><dd>HQ › Hangar › Schiff öffnen</dd>
@@ -88,7 +88,7 @@
       <li><code>codex-detail.component.ts</code>, <code>detail/codex-own-card.component.ts</code>, <code>shell/corners/view-toggle-fab.component.ts</code></li>
       <li>Tests: Karma 6375 grün · Typecheck, Lint (0 Fehler), Build grün</li>
       <li>Parität C1–C11 (briefs/implement.md): 10 erfüllt per QA-Livemessung, C7 teilweise (Notiz/Anheften, s. Funde)</li>
-      <li>Hangar-Link-Teilen (#645) bleibt erhalten, jetzt im Menü des Teilen-Knopfs</li>
+      <li>Nachtrag Abschluss: Migration <code>20261108200000_hq_item_marks</code> live, Karma 6408 grün; #645 bleibt im Teilen-Menü</li>
     </ul>
   </details>
   </div>
