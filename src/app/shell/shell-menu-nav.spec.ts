@@ -162,7 +162,7 @@ describe('ShellComponent menu navigation', () => {
     const hub = items[hrefs.indexOf('/admin/hub')];
     expect(hub).withContext('Admin hub as a real anchor').toBeTruthy();
     expect(hub.classList.contains('elevated')).toBeTrue();
-    expect(hub.querySelector('.di-tag')?.textContent?.trim()).toBe('nav.adminOnly');
+    expect(hub.querySelector('.sc-sr-only')?.textContent?.trim()).toBe('nav.adminOnly');
     expect(hrefs.indexOf('/admin/api-tokens')).toBe(hrefs.indexOf('/admin/hub') + 1);
   });
 

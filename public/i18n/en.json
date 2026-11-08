@@ -3671,7 +3671,7 @@
       "retry": "Try again"
     },
     "translations": {
-      "eyebrow": "Admin · admins only",
+      "eyebrow": "Admin",
       "title": "AI translation",
       "subtitle": "Claude translation of the game strings: switch, caps, languages, jobs and glossary.",
       "tabs": {
@@ -3971,7 +3971,7 @@
   },
   "desktop": {
     "title": "Data Upload",
-    "subtitle": "Download the Data Uploader for your local Star Citizen install. Admin + collaborator only.",
+    "subtitle": "Download the Data Uploader for your local Star Citizen install.",
     "bundleHistory": "Bundle History",
     "loading": "Loading release…",
     "released": "Released",
@@ -4502,7 +4502,7 @@
   },
   "adminFeedback": {
     "title": "Feedback Board",
-    "subtitle": "Admins-only channel. Post what could be better — the nightly routine picks up open items, ships them, and marks them here.",
+    "subtitle": "Post what could be better — the nightly routine picks up open items, ships them, and marks them here.",
     "heartbeat": {
       "online": "Dev PC reachable",
       "offline": "Dev PC unreachable",
@@ -7009,7 +7009,7 @@
     }
   },
   "adminHub": {
-    "eyebrow": "Admin · admins only",
+    "eyebrow": "Admin",
     "title": "Command centre",
     "subtitle": "Every admin tool in one place.",
     "tiles": {
@@ -7921,7 +7921,7 @@
     "done": "{{n}}× {{name}}: material put on the wishlist"
   },
   "adminEvents": {
-    "eyebrow": "Admins only",
+    "eyebrow": "Admin",
     "title": "Event data sheets",
     "subtitle": "Fields below 80 % confidence stay unknown until you approve them or set them by hand.",
     "retry": "Try again",

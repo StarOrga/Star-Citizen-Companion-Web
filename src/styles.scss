@@ -33,6 +33,9 @@
   --sc-fg-2: var(--text-tertiary);
   --sc-accent: var(--accent-primary);
   --sc-accent-hot: var(--accent-hot);
+  /* Admin + collaborator surfaces a plain viewer never reaches: muted copper,
+     quieter than --sc-accent-hot (admin only). The dark-only app has one theme. */
+  --sc-accent-collab: #c27a5a;
   --sc-success: var(--status-success);
   --sc-warning: var(--accent-warning);
   /* Alias some codex analysis components already referenced with a `#e8a33d`

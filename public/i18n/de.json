@@ -3671,7 +3671,7 @@
       "retry": "Erneut versuchen"
     },
     "translations": {
-      "eyebrow": "Admin · nur für Admins",
+      "eyebrow": "Admin",
       "title": "KI-Übersetzung",
       "subtitle": "Claude-Übersetzung der Spieltexte: Schalter, Limits, Sprachen, Aufträge und Glossar.",
       "tabs": {
@@ -3971,7 +3971,7 @@
   },
   "desktop": {
     "title": "Data Upload",
-    "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install. Nur Admin + Collaborator.",
+    "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install.",
     "bundleHistory": "Bundle-Historie",
     "loading": "Lade Release…",
     "released": "Veröffentlicht",
@@ -4502,7 +4502,7 @@
   },
   "adminFeedback": {
     "title": "Feedback-Board",
-    "subtitle": "Nur für Admins. Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
+    "subtitle": "Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
     "heartbeat": {
       "online": "Dev-PC erreichbar",
       "offline": "Dev-PC nicht erreichbar",
@@ -7009,7 +7009,7 @@
     }
   },
   "adminHub": {
-    "eyebrow": "Admin · nur für Admins",
+    "eyebrow": "Admin",
     "title": "Kommandozentrale",
     "subtitle": "Alle Admin-Werkzeuge an einem Ort.",
     "tiles": {
@@ -7082,7 +7082,7 @@
       "breadcrumbAria": "Apps",
       "uploader": {
         "name": "Data Uploader",
-        "desc": "Liest dein Star-Citizen-Spiel aus und lädt die Daten in den Codex. Nur für Collaborator."
+        "desc": "Liest dein Star-Citizen-Spiel aus und lädt die Daten in den Codex."
       },
       "starscape": {
         "name": "Starscape",
@@ -7921,7 +7921,7 @@
     "done": "{{n}}× {{name}}: Material auf die Wunschliste gelegt"
   },
   "adminEvents": {
-    "eyebrow": "Nur für Admins",
+    "eyebrow": "Admin",
     "title": "Event-Datenblätter",
     "subtitle": "Felder unter 80 % Sicherheit bleiben unbekannt, bis du sie freigibst oder von Hand setzt.",
     "retry": "Erneut versuchen",

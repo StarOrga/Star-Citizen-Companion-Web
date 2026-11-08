@@ -209,7 +209,7 @@ let nextId = 0;
        ONE variable so the meaning cannot drift between the trigger, the overlay
        and the entry. Everything public reads in the normal accent. */
     .dlm { position: relative; --dlm-accent: var(--sc-accent); }
-    .dlm.restricted { --dlm-accent: var(--sc-accent-hot, #ff9f43); }
+    .dlm.restricted { --dlm-accent: var(--sc-accent-collab, #c27a5a); }
 
     .dlm-trigger {
       display: inline-flex; align-items: center; gap: 8px;
