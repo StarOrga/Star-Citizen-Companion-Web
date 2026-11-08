@@ -196,6 +196,7 @@ import { groupOccupants } from './codex-fold-preview';
 import type { PowerSheet } from './codex-power';
 import { CodexEnergyDockComponent } from './codex-energy-dock.component';
 import { CodexRankCardComponent } from './codex-rank-card.component';
+import { CodexDetailClassicComponent, type CodexClassicCtx } from './detail/codex-detail-classic.component';
 import {
   RankProfileId,
   RankResult,
@@ -253,8 +254,6 @@ import {
 } from './hardpoint-map';
 import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import type { HardpointPortRef } from './hardpoint-port-ref';
-import { CodexCategoryIconComponent } from './codex-category-icon.component';
-import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipLinkService } from './ship-link.service';
 import { AuthService } from '../auth/auth.service';
@@ -292,7 +291,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent],
+  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -423,6 +422,9 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             </aside>
           </div>
         </div>
+        } @else if (kind() !== 'ship') {
+        <!-- Klassisch for every non-ship: the frozen view in detail/codex-detail-classic.component.ts. -->
+        <sc-codex-detail-classic [ctx]="classicCtx" />
         } @else {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
         @if (kind() === 'ship') {
@@ -484,87 +486,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               (locatable)="glbLocatablePorts.set($event)"
               (artAvailable)="onArtAvailable($event)"
               (viewToggle)="toggleHeroView()" />
-          } @else {
-          <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
-            <!-- A missile has no render in the extract, but most have a 3D model:
-                 that model is the picture, here instead of further down the page. -->
-            @if (isMissile() && itemPackage(); as pkg) {
-              @defer (on viewport) {
-                <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" facing="nose" [still]="prefersReducedMotion()" />
-              } @placeholder {
-                <div class="pkg-viewer" aria-hidden="true"></div>
-              }
-            } @else {
-            <div class="art">
-              <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
-                <span class="art-fallback">
-                  <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" [attachType]="heroAttachType()" />
-                </span>
-              </sc-fallback-image>
-            </div>
-            }
-          </figure>
-          <div class="hero-body">
-            <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
-            <h1>{{ displayName() }}</h1>
-            @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
-            <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
-
-            @if (missileKeywords().length > 0) {
-              <ul class="mchips" [attr.aria-label]="'codex.missile.keywordsLabel' | translate">
-                @for (k of missileKeywords(); track k.id) {
-                  <li class="mchip" tabindex="0" [scTooltip]="k.tipKey | translate">{{ k.labelKey | translate }}</li>
-                }
-              </ul>
-            }
-
-            <!-- Skin picker (feedback d5e39f86). The list collapses a weapon's
-                 paint jobs into ONE entry, so this is where they stay
-                 reachable. Native details for the fold; every option is a real
-                 anchor to that record's own detail route, so a livery keeps a
-                 shareable URL and middle-click still opens a tab. -->
-            @if (skinOptions().length > 1) {
-              <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                [options]="skinPickerOptions()" [current]="currentLivery()" />
-            }
-
-            <!-- Edition picker (feedback 77ecad2a). Same shape as the skin
-                 picker above: a native details, options are real anchors. -->
-            @if (editionOptions().length > 1) {
-              <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                [options]="editionPickerOptions()" [current]="currentEdition()" />
-            }
-
-            @if (facts().length > 0) {
-              <ul class="facts">
-                @for (f of facts(); track f.label) {
-                  <li class="fact" [class.accent]="f.accent">
-                    <span class="f-label">{{ f.label }}</span>
-                    <span class="f-value">{{ f.value }}</span>
-                  </li>
-                }
-              </ul>
-            }
-
-            <div class="hero-actions">
-              <button type="button" class="pin" [class.pinned]="isPinned()" (click)="togglePin()">
-                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
-              </button>
-              @if (!shareFab()) {
-                <button type="button" class="pin" (click)="copyShareLink()">
-                  {{ 'codex.detail.actionCopyLink' | translate }}
-                  @if (linkCopied()) {
-                    <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
-                  }
-                </button>
-              }
-              <!-- L09: an on-foot piece goes into a set from its own page too. -->
-              @if (fpsSetPiece(); as piece) {
-                <sc-add-to-set [className]="piece.className" [kind]="piece.kind" [subType]="piece.subType"
-                               [attachType]="piece.attachType" [itemName]="displayName()" />
-              }
-            </div>
-          </div>
           }
         </header>
 
@@ -636,37 +557,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (scopeChange)="setRankScope($event)" />
           </div>
         }
-        @if (isMissile()) {
-          <sc-codex-rank-card
-            [shipName]="displayName()"
-            [sizeClass]="missileRecord()?.size ?? null"
-            [result]="missileRank()"
-            [loading]="missileCohortLoading()"
-            [profiles]="[]"
-            [scopes]="missileRankScopes"
-            [copy]="missileRankCopy"
-            [gapKey]="missileRankGapKey()"
-            [scope]="missileRankScope()"
-            (scopeChange)="missileScopeChoice.set($event)" />
-        }
         </div>
 
-        @if (isMissile() && missileStats().length > 0) {
-          <section class="sc-card block" [scFeedbackSpot]="'codex.missile.data.title'">
-            <h2>{{ 'codex.missile.data.title' | translate }}</h2>
-            @for (g of missileStats(); track g.id) {
-              <h3 class="sg-head">{{ ('codex.missile.group.' + g.id) | translate }}</h3>
-              <div class="stat-grid">
-                @for (s of g.rows; track s.key) {
-                  <div class="stat"><span class="s-label">{{ s.labelKey | translate }}</span><span class="s-value">@if (s.valueKey) { {{ s.valueKey | translate }} } @else { {{ fmt(s.value!) }} }@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
-                }
-              </div>
-            }
-            @if (missileCombatMissing()) {
-              <p class="hint">{{ 'codex.missile.data.combatMissing' | translate }}</p>
-            }
-          </section>
-        }
 
 
         <!-- ── Ships: KPI band + mission bar (PR C) ─────────────────
@@ -1772,7 +1664,7 @@ export class CodexDetailComponent implements OnInit {
   /** Beta shell. */
   protected readonly shellBeta = inject(BetaService).isEnabled('shell');
   /** The corner share FAB is there (beta shell, and every ship page since it registers its share): the "Link teilen" buttons step back, one share per page. */
-  protected readonly shareFab = computed(() => this.shellBeta() || this.kind() === 'ship');
+  readonly shareFab = computed(() => this.shellBeta() || this.kind() === 'ship');
   /** Beta shell: the retired hangar button row above the classic hero is gone (concept r1-classic). */
 
   // ── Item page (weapon, component, FPS gear): stage + panel with tabs, Codex and HQ variant ──
@@ -1784,6 +1676,8 @@ export class CodexDetailComponent implements OnInit {
   }
   protected readonly nachschubIcon = NACHSCHUB_ICON_PATHS;
   /** Every kind but ships (which keep their own stage) gets the stage layout; a missile too, with its own values and rank. */
+  /** The frozen Klassisch view reads the page through this (see CodexClassicCtx for what it may touch). */
+  protected readonly classicCtx: CodexClassicCtx = this;
   protected readonly itemStage = computed(() => !!this.detail() && this.kind() !== 'ship' && this.itemHolo());
   /**
    * Non-ship pages: Klassisch (the page as of 2026-11-07, the `@else` masthead branch — do not change it) or
