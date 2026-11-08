@@ -2,7 +2,7 @@
      rewrites it on every tab switch. body overflow is set by that function,
      the inline style below is only the first-paint value. -->
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-11-08T12:00:36" data-template="design">
+<html lang="de" data-theme="dark" data-page-version="2026-11-08T12:00:36" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2598,6 +2598,30 @@ body.upin-armed section[data-screen][data-screen-active="true"] * { cursor: cros
    steps aside while the editor is open. */
 .upin-editor:not([hidden]) ~ .upin-bubble { display: none; }
 .upin-bubble .anno-bubble-summary { appearance: none; -webkit-appearance: none; }
+/* #1080: pins and bubble summaries are <button>s inside the mock's own root,
+   so a mock reset such as `:is([data-design], …) .bz :where(button,a)
+   { background:none; border:0; padding:0; box-shadow:none }` (0,2,0) beat the
+   single-class engine rules: the pin lost its disc (a bare ✓ was left) and
+   the summary its padding (a thin outlined pill). `:not(#_)` lifts only the
+   properties such resets touch above any class-based mock rule, without
+   !important (the pins' glow animation and the dim/drag states still apply). */
+.upin-pin:not(#_) {
+  padding: 0; margin: 0; border: 0; min-width: 0; border-radius: 50% 50% 50% 4px;
+  background: linear-gradient(160deg, #ecd9ff, var(--upin-color));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--upin-color) 22%, transparent), 0 0 24px color-mix(in srgb, var(--upin-color) 65%, transparent), 0 6px 14px rgba(0, 0, 0, 0.4);
+  color: #fff;
+}
+.anno-pin:not(#_) {
+  padding: 0; margin: 0; border: 0; min-width: 0; border-radius: 50% 50% 50% 4px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--anno-accent, var(--accent-color, #58a6ff)) 30%, #fff), var(--anno-accent, var(--accent-color, #58a6ff)));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--anno-accent, var(--accent-color, #58a6ff)) 22%, transparent), 0 0 24px color-mix(in srgb, var(--anno-accent, var(--accent-color, #58a6ff)) 65%, transparent), 0 6px 14px rgba(0,0,0,0.4);
+  color: #fff; font-size: 0;
+}
+.anno-bubble-summary:not(#_) { padding: 0.45rem 0.7rem; margin: 0; color: var(--text-color, #c9d1d9); }
+/* A saved own note shows its full text on hover or keyboard focus, never only
+   the cut-off first line. */
+.upin-bubble:is(:hover, :focus-within) .anno-bubble-question { white-space: normal; overflow: visible; }
+.upin-bubble:is(:hover, :focus-within) { max-width: min(360px, 80vw); z-index: 2; }
 .upin[data-flip-x="true"] .upin-editor { left: auto; right: 32px; }
 .upin[data-flip-y="true"] .upin-editor { top: auto; bottom: 30px; }
 .upin-editor[hidden] { display: none; }
@@ -5235,6 +5259,8 @@ html[data-theme="light"] .an-att-i { box-shadow: 0 6px 18px rgba(31,35,40,.18); 
 [data-analysis] [data-briefing-what], .an-claim { order: 3; max-width: 600px; margin: 8px auto 0; font-size: 17px; font-weight: 400; letter-spacing: 0; line-height: 1.5; color: var(--an-tx2); }
 [data-analysis] [data-briefing-why] { order: 4; max-width: 560px; margin: 8px auto 0; font-size: 14px; color: var(--an-mu); }
 .an-chips { order: 5; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; width: 100%; margin-top: 28px; text-align: left; }
+/* a note sent on the briefing sits after the topic cards (every other child carries an order; an unordered box would jump to the top, above the eyebrow) */
+.an-brief > .an-notes { order: 6; align-self: stretch; margin-top: 28px; }
 [data-analysis] [data-briefing-topic] { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--an-s1); border-top: 3px solid var(--bc, var(--an-b2)); font-size: 18px; font-weight: 700; color: var(--an-tx); cursor: pointer; text-decoration: none; transition: background .15s; }
 [data-analysis] [data-briefing-topic]:hover { background: var(--an-s2); }
 [data-analysis] [data-briefing-topic] em { font-style: normal; font-size: 13px; font-weight: 500; color: var(--an-tx2); }
@@ -5684,7 +5710,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
 }
 </style>
 </head>
-<body style="overflow: hidden">
+<body>
   <div class="concept-layout design fullscreen">
     <div class="concept-content">
       <header class="page-header" data-page-header>
@@ -5693,7 +5719,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </header>
       <style>html[data-template="design"] [data-page-header] { display: none; }</style>
       <main>
-<section data-iteration="1" data-iteration-template="design" data-viewports="desktop" data-tab-label="Runde 1" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="design" data-viewports="desktop" data-tab-label="Runde 1" data-baked id="iter-1" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"userPins":[{"id":"up-mw7sp9s9zlhz","design":"events","screen":"ev-flow","x":58.9,"y":35.3,"target":"span.d1-ev-chip.ok \"✓ Alpha 4.10.2\"","text":"patch ist eh obligatorisch, hier unnötig, genauso auch spielpaket. Vorausssetzung eher eine abschätuzung was man düafr braucht, z. B. fps fight set oder kampfschiff etc.. oder salvage schiff, dabei \"oder\" und/oder \"und\" anziegen","attachments":[]}]}</script>
 <style>
 .d1-ev-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #6f8aa0; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b; --ev: #c9a6ff; --card: rgba(8, 20, 30, 0.82);
   position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 640px; box-sizing: border-box; overflow: hidden; color: var(--fg);
@@ -5856,7 +5883,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   <button class="anno-pin" type="button" data-anno-pin="ev-a1" aria-expanded="false" aria-controls="anno-bubble-ev-a1" aria-label="Frage {n}">1</button>
   <div class="anno-bubble" id="anno-bubble-ev-a1" data-anno-bubble="ev-a1" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a1" aria-expanded="false" aria-controls="anno-bubble-ev-a1"><span class="anno-bubble-question">Der Hinweis steht in der Planen-Kachel und als Punkt am Reiter Planen. Er zählt nur Events, die du weder abgehakt noch ausgeblendet hast, und nennt das nächste Ende: amtliches Datum, sonst den geschätzten nächsten Patch. Reicht das, oder soll er auffälliger sein?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a1" data-annotation="ev-a1" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a1"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a1" data-annotation="ev-a1" data-attachable placeholder="Deine Antwort…" readonly>sehr gut !</textarea><div class="attach-slot" data-attach-slot="anno-ev-a1"></div></div>
   </div>
 </div>
       </div>
@@ -5875,9 +5902,9 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
           </div>
           <div class="d1-ev-strip">
             <span class="lbl">EVENTS</span>
-            <div class="d1-ev-card"><div class="t"><b>RSI Discovery Month</b><span>Ende unbekannt · ≤ Alpha 5.0</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Verse · Stanton</span><span class="d1-ev-chip">Fortschritt: persönlich</span></div><span class="d1-ev-tiny">Lackierungen, Komponenten, Rüstung, Waffen · im Spiel</span><div class="acts"><button class="d1-ev-btn sm" type="button" data-screen-link="ev-flow">Als Nachschub planen</button><button class="d1-ev-btn ghost sm" type="button">Schon erledigt</button><button class="d1-ev-btn ghost sm" type="button">Ausblenden</button></div></div>
+            <div class="d1-ev-card"><div class="t"><b>RSI Discovery Month</b><span>Ende unbekannt · ≤ Alpha 5.0</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Verse · Stanton</span><span class="d1-ev-chip">Fortschritt: persönlich</span></div><span class="d1-ev-tiny">Lackierungen, Komponenten, Rüstung, Waffen · im Spiel</span><div class="acts"><button class="d1-ev-btn sm" type="button" data-screen-link="ev-flow">Als Nachschub planen</button><button class="d1-ev-btn ghost sm" type="button" disabled>Schon erledigt</button><button class="d1-ev-btn ghost sm" type="button" disabled>Ausblenden</button></div></div>
             <div class="d1-ev-card done"><div class="t"><b>Day of the Vara 2956</b><span>endet morgen</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Arena Commander</span><span class="d1-ev-chip ok">✓ erledigt</span></div><span class="d1-ev-tiny">Vanduul-Maske · wird nach dem Event verteilt</span><div class="acts"><button class="d1-ev-btn ghost sm" type="button" data-screen-link="ev-done">Belohnung abhaken</button></div></div>
-            <div class="d1-ev-card soon"><div class="t"><b>IAE 2956</b><span>ab 13. Nov</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Verse · New Babbage</span><span class="d1-ev-chip">Free Fly</span></div><span class="d1-ev-tiny">Keine Belohnung erkannt · Schiffe probefliegen</span><div class="acts"><button class="d1-ev-btn ghost sm" type="button">Erinnern</button></div></div>
+            <div class="d1-ev-card soon"><div class="t"><b>IAE 2956</b><span>ab 13. Nov</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Verse · New Babbage</span><span class="d1-ev-chip">Free Fly</span></div><span class="d1-ev-tiny">Keine Belohnung erkannt · Schiffe probefliegen</span><div class="acts"><button class="d1-ev-btn ghost sm" type="button" disabled>Erinnern</button></div></div>
           </div>
           <div class="d1-ev-box" style="flex:1;min-height:0"><h3>Gladius aufrüsten</h3><p class="d1-ev-muted" style="margin:0">Laser-Repeater S3 ×2 · Medpen ×4 · Quantanium 0,4 SCU · Pembroke-Helm …</p></div>
         </div>
@@ -5887,14 +5914,16 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   <button class="anno-pin" type="button" data-anno-pin="ev-a2" aria-expanded="false" aria-controls="anno-bubble-ev-a2" aria-label="Frage {n}">2</button>
   <div class="anno-bubble" id="anno-bubble-ev-a2" data-anno-bubble="ev-a2" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a2" aria-expanded="false" aria-controls="anno-bubble-ev-a2"><span class="anno-bubble-question">Laufende und angekündigte Events stehen als Leiste unter den sieben Slots, beliebig viele nebeneinander. „Als Nachschub planen“ belegt einen freien Slot. Passt die Leiste dort, oder soll sie erst erscheinen, wenn ein Event läuft, das du noch nicht hast?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a2" data-annotation="ev-a2" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a2"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a2" data-annotation="ev-a2" data-attachable placeholder="Deine Antwort…" readonly>Jain, die sollten erscheinen sobald ich auf nachschuhb + drücke, dann sollten sier auch neben der wunschliste zur auswahl stehen, aber nur welche ide ich nicht gefmacht haben, abgeschlossene events sollten dann eher unter statstik auftauchen! 
+Aber auf jeden fall hier nicht, das nervt nur  ggf. ein + nachschub irgendwie highlighten lassen, ala  event verfügbar. Btw, mach immer nur den nächsten nachschub slot ein plus die reihe sollte immer links nanfangen mit dem ältesten nachschub geplant und wenn eins erledigt wird dann zwischendurch einfach rausfliegen und die anderen aufrücken.
+Und das eine + sl.ot dann gern inkl. teaser event verfügabr </textarea><div class="attach-slot" data-attach-slot="anno-ev-a2"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="ev-a3" data-anno-side="left" data-anno-target=".d1-ev-card.soon" style="--anno-x:86%;--anno-y:44%">
   <button class="anno-pin" type="button" data-anno-pin="ev-a3" aria-expanded="false" aria-controls="anno-bubble-ev-a3" aria-label="Frage {n}">3</button>
   <div class="anno-bubble" id="anno-bubble-ev-a3" data-anno-bubble="ev-a3" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a3" aria-expanded="false" aria-controls="anno-bubble-ev-a3"><span class="anno-bubble-question">Ein Event ohne erkannte Belohnung (Free Fly wie die IAE) steht trotzdem in der Leiste, aber nur mit „Erinnern“, ohne Nachschub. Soll es dort stehen, oder nur Events mit Belohnung?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a3" data-annotation="ev-a3" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a3"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a3" data-annotation="ev-a3" data-attachable placeholder="Deine Antwort…" readonly>Ja ist auch ok! Aber dann eher belohnung sightseeing, gern das als nachschubtyp einf+hren </textarea><div class="attach-slot" data-attach-slot="anno-ev-a3"></div></div>
   </div>
 </div>
       </div>
@@ -5932,14 +5961,14 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   <button class="anno-pin" type="button" data-anno-pin="ev-a4" aria-expanded="false" aria-controls="anno-bubble-ev-a4" aria-label="Frage {n}">4</button>
   <div class="anno-bubble" id="anno-bubble-ev-a4" data-anno-bubble="ev-a4" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a4" aria-expanded="false" aria-controls="anno-bubble-ev-a4"><span class="anno-bubble-question">Steht eine Belohnung schon auf deiner Wunschliste, wird diese Position übernommen und nicht doppelt angelegt. Andere Belohnungen kommen direkt in den Nachschub, ohne Umweg über die Wunschliste. Passt das?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a4" data-annotation="ev-a4" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a4"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a4" data-annotation="ev-a4" data-attachable placeholder="Deine Antwort…" readonly>Ja genau, aber nur wenn es die belohnugn aus diesem event ist, weil ich ja sonst ggf. die maxlift bekommen will, aber hier bekomme ich ja eine pledge oder extra versioN! </textarea><div class="attach-slot" data-attach-slot="anno-ev-a4"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="ev-a5" data-anno-side="left" data-anno-target=".d1-ev-col.r .d1-ev-box" style="--anno-x:80%;--anno-y:34%">
   <button class="anno-pin" type="button" data-anno-pin="ev-a5" aria-expanded="false" aria-controls="anno-bubble-ev-a5" aria-label="Frage {n}">5</button>
   <div class="anno-bubble" id="anno-bubble-ev-a5" data-anno-bubble="ev-a5" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a5" aria-expanded="false" aria-controls="anno-bubble-ev-a5"><span class="anno-bubble-question">Ort, Voraussetzungen und Ende kommen aus der KI-Auswertung. Jeder Wert darf „unbekannt“ sein, statt geraten zu werden. Willst du sehen, woher ein Wert stammt (Comm-Link, Spectrum, Wiki), oder reicht die eine Herkunftszeile?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a5" data-annotation="ev-a5" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a5"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a5" data-annotation="ev-a5" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-ev-a5"></div></div>
   </div>
 </div>
       </div>
@@ -5969,7 +5998,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
             </div>
             <div class="d1-ev-col r">
               <div class="d1-ev-venue"><span class="sys">STANTON</span><div class="d1-ev-orbs"><span>Hurston</span><span>ArcCorp</span><span>microTech</span></div><span class="d1-ev-muted">Kein fester Ort. Du nimmst die Aufträge dort an, wo du gerade bist.</span></div>
-              <div class="d1-ev-row"><button class="d1-ev-btn ghost" type="button">Bearbeiten</button><button class="d1-ev-btn ghost" type="button">Leeren</button><button class="d1-ev-btn" type="button" data-screen-link="ev-jetzt">In Jetzt ausführen</button></div>
+              <div class="d1-ev-row"><button class="d1-ev-btn ghost" type="button" disabled>Bearbeiten</button><button class="d1-ev-btn ghost" type="button" disabled>Leeren</button><button class="d1-ev-btn" type="button" data-screen-link="ev-jetzt">In Jetzt ausführen</button></div>
             </div>
           </div>
         </div>
@@ -5979,14 +6008,14 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   <button class="anno-pin" type="button" data-anno-pin="ev-a6" aria-expanded="false" aria-controls="anno-bubble-ev-a6" aria-label="Frage {n}">6</button>
   <div class="anno-bubble" id="anno-bubble-ev-a6" data-anno-bubble="ev-a6" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a6" aria-expanded="false" aria-controls="anno-bubble-ev-a6"><span class="anno-bubble-question">Den Event-Fortschritt kennt nur das Spiel. Hier trägst du deinen Punktestand selbst ein. Später kann die SCC-App ihn liefern, wenn das Spiel ihn ins Log schreibt. Reicht das Selbst-Eintragen für den Anfang?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a6" data-annotation="ev-a6" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a6"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a6" data-annotation="ev-a6" data-attachable placeholder="Deine Antwort…" readonly>warum psäter gern mit bauen für scc app! die erkennung gern die gamelogs von gestern analysen </textarea><div class="attach-slot" data-attach-slot="anno-ev-a6"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="ev-a7" data-anno-side="left" data-anno-target=".d1-ev-venue" style="--anno-x:76%;--anno-y:44%">
   <button class="anno-pin" type="button" data-anno-pin="ev-a7" aria-expanded="false" aria-controls="anno-bubble-ev-a7" aria-label="Frage {n}">7</button>
   <div class="anno-bubble" id="anno-bubble-ev-a7" data-anno-bubble="ev-a7" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a7" aria-expanded="false" aria-controls="anno-bubble-ev-a7"><span class="anno-bubble-question">Statt der Karte mit Stationen zeigt ein Event-Einsatz nur sein Gebiet: ein System, mehrere erlaubte Orte oder „Arena Commander“. Hat der Nachschub neben Event-Einsätzen auch Kaufen-Einsätze, bleibt die Karte. Passt das?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a7" data-annotation="ev-a7" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a7"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a7" data-annotation="ev-a7" data-attachable placeholder="Deine Antwort…" readonly>ja genau, wobei arena commander gern einfach als extra element ggü. dem gebiet / sternenkarte, weil man ja auch mehrere events gleichzeitig auswählen kann innerhlab eines nachschubs auch wen nnicht empfolen</textarea><div class="attach-slot" data-attach-slot="anno-ev-a7"></div></div>
   </div>
 </div>
       </div>
@@ -5998,9 +6027,9 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
         <div class="d1-ev-sub"><span>Start</span><span>Bestand</span><span class="on">Jetzt</span><span>Planen</span><span>Statistik</span></div>
         <div class="d1-ev-page">
           <div class="d1-ev-head"><h2>Jetzt · Gladius aufrüsten</h2><span class="d1-ev-live"><i></i>LIVE · STANTON · HURSTON</span></div>
-          <div class="d1-ev-offer"><span class="say"><b>Du bist im Gebiet von RSI Discovery Month</b><small>Dein Nachschub „Discovery: Echo + Keelback“ hat hier 2 Einsätze. Verteidigung steht bei 4 100 von 10 000 Punkten.</small></span><button class="d1-ev-btn ghost" type="button">Nicht jetzt</button><button class="d1-ev-btn" type="button" data-screen-link="ev-einsatz">Zum Event wechseln</button></div>
+          <div class="d1-ev-offer"><span class="say"><b>Du bist im Gebiet von RSI Discovery Month</b><small>Dein Nachschub „Discovery: Echo + Keelback“ hat hier 2 Einsätze. Verteidigung steht bei 4 100 von 10 000 Punkten.</small></span><button class="d1-ev-btn ghost" type="button" disabled>Nicht jetzt</button><button class="d1-ev-btn" type="button" data-screen-link="ev-einsatz">Zum Event wechseln</button></div>
           <div class="d1-ev-now">
-            <div class="d1-ev-box"><h3>Nächster Schritt</h3><p style="margin:0">Laser-Repeater S3 ×2 kaufen · Lorville, Tammany and Sons</p><div class="d1-ev-row" style="margin-top:10px"><button class="d1-ev-btn" type="button">Schritt erledigt</button></div></div>
+            <div class="d1-ev-box"><h3>Nächster Schritt</h3><p style="margin:0">Laser-Repeater S3 ×2 kaufen · Lorville, Tammany and Sons</p><div class="d1-ev-row" style="margin-top:10px"><button class="d1-ev-btn" type="button" disabled>Schritt erledigt</button></div></div>
             <div class="d1-ev-box"><h3>Einsätze</h3><div class="d1-ev-row"><span class="d1-ev-chip on">Lorville kaufen</span><span class="d1-ev-chip">Aberdeen abbauen</span></div></div>
           </div>
           <div class="d1-ev-box" style="flex:none"><h3 style="margin:0 0 4px">Arena Commander</h3><p class="d1-ev-tiny" style="margin:0">Startest du Arena Commander, fragt Jetzt bei Events mit Ort „Arena Commander“ genauso: „Day of the Vara: Kill Collector, 2 Runden überleben“.</p></div>
@@ -6012,7 +6041,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   <button class="anno-pin" type="button" data-anno-pin="ev-a8" aria-expanded="false" aria-controls="anno-bubble-ev-a8" aria-label="Frage {n}">8</button>
   <div class="anno-bubble" id="anno-bubble-ev-a8" data-anno-bubble="ev-a8" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a8" aria-expanded="false" aria-controls="anno-bubble-ev-a8"><span class="anno-bubble-question">Das Angebot erscheint nur, wenn die SCC-App einen Ort im Event-Gebiet meldet und dort ein Event-Nachschub von dir offen ist. „Nicht jetzt“ blendet es bis zum nächsten Ortswechsel aus. Ohne App gibt es kein Angebot, du wechselst selbst über „Nachschub wechseln“. Passt das?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a8" data-annotation="ev-a8" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a8"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a8" data-annotation="ev-a8" data-attachable placeholder="Deine Antwort…" readonly>sehr gut</textarea><div class="attach-slot" data-attach-slot="anno-ev-a8"></div></div>
   </div>
 </div>
       </div>
@@ -6026,7 +6055,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
           <div class="d1-ev-head"><h2>Day of the Vara 2956 · Belohnungen</h2><span class="d1-ev-chip warn">endet morgen</span></div>
           <div class="d1-ev-box" style="display:flex;flex-direction:column;gap:8px">
             <div class="d1-ev-claim got"><span class="d1-ev-tickbox">✓</span><span class="nm">Teilgenommen: Kill Collector, 2 Runden überlebt<small>abgehakt am 3. Nov</small></span></div>
-            <div class="d1-ev-claim wait"><span class="d1-ev-tickbox"></span><span class="nm">Vanduul-Maske<small>Wird nach dem Event verteilt · Weg noch unbekannt</small></span><button class="d1-ev-btn sm" type="button">Erhalten</button></div>
+            <div class="d1-ev-claim wait"><span class="d1-ev-tickbox"></span><span class="nm">Vanduul-Maske<small>Wird nach dem Event verteilt · Weg noch unbekannt</small></span><button class="d1-ev-btn sm" type="button" disabled>Erhalten</button></div>
             <div class="d1-ev-claim"><span class="d1-ev-tickbox"></span><span class="nm">Kürbis-Wettbewerb: Schiff mit Lackierung<small>Nur für Gewinner · außerhalb des Spiels</small></span><span class="d1-ev-chip">ausgeblendet</span></div>
           </div>
           <p class="d1-ev-tiny" style="margin:0">Ist das Event vorbei und eine Belohnung noch nicht da, bleibt die Zeile als „wartet auf Verteilung“ im Nachschub, bis du sie abhakst oder entfernst.</p>
@@ -6035,7 +6064,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
           <div class="d1-ev-radio on"><i></i><span>Pledge-Gegenstand <small>· im RSI-Hangar</small></span></div>
           <div class="d1-ev-radio"><i></i><span>Im Spiel <small>· im Inventar</small></span></div>
           <div class="d1-ev-radio"><i></i><span>Beides</span></div>
-          <div class="d1-ev-row" style="margin-top:8px;justify-content:flex-end"><button class="d1-ev-btn ghost sm" type="button">Abbrechen</button><button class="d1-ev-btn sm" type="button">In den Bestand</button></div>
+          <div class="d1-ev-row" style="margin-top:8px;justify-content:flex-end"><button class="d1-ev-btn ghost sm" type="button" disabled>Abbrechen</button><button class="d1-ev-btn sm" type="button" disabled>In den Bestand</button></div>
         </div>
       </div>
       <div class="anno-layer" data-anno-layer>
@@ -6043,7 +6072,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   <button class="anno-pin" type="button" data-anno-pin="ev-a9" aria-expanded="false" aria-controls="anno-bubble-ev-a9" aria-label="Frage {n}">9</button>
   <div class="anno-bubble" id="anno-bubble-ev-a9" data-anno-bubble="ev-a9" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a9" aria-expanded="false" aria-controls="anno-bubble-ev-a9"><span class="anno-bubble-question">Beim Abhaken wählst du, wie die Belohnung kam. Vorausgewählt ist der Weg, den die KI erkannt hat. „Pledge“ legt sie mit Herkunft „Pledge“ in den Bestand (Schiffe in den Hangar, alles andere ins Inventar). Ein Bestandsanstieg im Spiel schließt eine Zeile wie bisher von selbst. Fehlt dir etwas, etwa „gar nicht bekommen“?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a9" data-annotation="ev-a9" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a9"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a9" data-annotation="ev-a9" data-attachable placeholder="Deine Antwort…" readonly>Ne, passt, und gern auch scc app befähigen das azusätlzich automatisch hier zu ändern</textarea><div class="attach-slot" data-attach-slot="anno-ev-a9"></div></div>
   </div>
 </div>
       </div>
@@ -6075,7 +6104,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
                 <dt>Ende</dt><dd>unbekannt · Angaben widersprechen sich (20. Okt / „ganzer Monat“)</dd><span class="c lo">0,42</span>
                 <dt>Herkunft</dt><dd>Comm-Link 21334, 21350 · Spectrum · Wiki</dd><span class="c"></span>
               </dl>
-              <div class="d1-ev-row" style="margin-top:10px;justify-content:flex-end"><button class="d1-ev-btn ghost sm" type="button">Ende von Hand setzen</button><button class="d1-ev-btn sm" type="button">Freigeben</button></div>
+              <div class="d1-ev-row" style="margin-top:10px;justify-content:flex-end"><button class="d1-ev-btn ghost sm" type="button" disabled>Ende von Hand setzen</button><button class="d1-ev-btn sm" type="button" disabled>Freigeben</button></div>
             </div>
           </div>
         </div>
@@ -6085,7 +6114,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   <button class="anno-pin" type="button" data-anno-pin="ev-a10" aria-expanded="false" aria-controls="anno-bubble-ev-a10" aria-label="Frage {n}">10</button>
   <div class="anno-bubble" id="anno-bubble-ev-a10" data-anno-bubble="ev-a10" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a10" aria-expanded="false" aria-controls="anno-bubble-ev-a10"><span class="anno-bubble-question">Jedes Feld trägt die Sicherheit der KI. Unter 0,8 geht das Event hier in die Prüfung, die übrigen Felder sind schon live. Die fünf vergangenen Events laufen als feste Testfälle durch dieselbe Auswertung. Willst du diese Prüfseite, oder sollen unsichere Felder einfach als „unbekannt“ live gehen?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a10" data-annotation="ev-a10" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a10"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a10" data-annotation="ev-a10" data-attachable placeholder="Deine Antwort…" readonly>die prüfseite gern nur für admins im admin menü, dort mit historie </textarea><div class="attach-slot" data-attach-slot="anno-ev-a10"></div></div>
   </div>
 </div>
       </div>
@@ -6110,49 +6139,49 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Fragen dazu, wie ein Event gespeichert und ausgewertet wird."}'></div></div>
         <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Comm-Link und Spectrum liefern beim Abruf nur Meta-Tags. Die Auswertung läuft deshalb auf dem Server, über die Comm-Link-Wiki-API, die fetch-verse-news schon nutzt."}'></div></div>
       </div>
-    <section id="q-store" data-nav-label="Wie ein Event gespeichert wird" data-decision="q-store" data-decision-mode="single" data-label="Event-Datenform" data-rec="sheet" data-rec-why="Jedes Event bringt andere Felder mit. Ein Datenblatt mit Schema-Version wächst mit, ohne dass jede neue Event-Art eine Migration braucht." data-applies-to="sc_events und alles, was Planen daraus liest" data-finding="f-q-store">
+    <section id="q-store" data-nav-label="Wie ein Event gespeichert wird" data-decision="q-store" data-decision-mode="single" data-label="Event-Datenform" data-rec="sheet" data-rec-why="Jedes Event bringt andere Felder mit. Ein Datenblatt mit Schema-Version wächst mit, ohne dass jede neue Event-Art eine Migration braucht." data-applies-to="sc_events und alles, was Planen daraus liest" data-finding="f-q-store"><input type="hidden" name="dm-q-store-hes" value="{&quot;ms&quot;:21188,&quot;revisits&quot;:0,&quot;median&quot;:17623}" disabled>
       <p data-applies>Gilt für: sc_events und alles, was Planen daraus liest</p>
       <p data-situation>`sc_events` hat Titel, Datum und eine feste Art (expo, showcase, seasonal, community, free-fly). Gebiet, Aufgaben, Belohnungen, Voraussetzungen und Ende fehlen ganz.</p>
       <h3 data-question>In welcher Form speichern wir, was ein Event verlangt und bringt?</h3>
       <p data-stakes>Ob ein Event mit neuen Eigenschaften ohne Migration hineinpasst.</p>
       <div data-options>
-        <label data-opt="sheet" data-recommended><input type="radio" name="dm-q-store" value="sheet" checked><span data-opt-label>Ein Datenblatt pro Event (JSON mit Schema-Version)</span><span data-opt-consequence>Gebiet, Aufgaben, Belohnungen, Voraussetzungen, Ende als Felder mit Sicherheit und Quelle. Jeder Wert darf „unbekannt“ sein. Die Edge-Function prüft das Schema.</span></label>
-        <label data-opt="tables"><input type="radio" name="dm-q-store" value="tables"><span data-opt-label>Eigene Tabellen für Belohnungen und Aufgaben</span><span data-opt-consequence>Sauber abfragbar, aber jede neue Eigenschaft ist eine Migration.</span></label>
-        <label data-opt="both"><input type="radio" name="dm-q-store" value="both"><span data-opt-label>Datenblatt, Belohnungen zusätzlich als Tabelle</span><span data-opt-consequence>Belohnungen per class_name abfragbar (für Wunschliste und Codex), der Rest bleibt flexibel.</span></label>
+        <label data-opt="sheet" data-recommended><input type="radio" name="dm-q-store" value="sheet" checked disabled><span data-opt-label>Ein Datenblatt pro Event (JSON mit Schema-Version)</span><span data-opt-consequence>Gebiet, Aufgaben, Belohnungen, Voraussetzungen, Ende als Felder mit Sicherheit und Quelle. Jeder Wert darf „unbekannt“ sein. Die Edge-Function prüft das Schema.</span></label>
+        <label data-opt="tables"><input type="radio" name="dm-q-store" value="tables" disabled><span data-opt-label>Eigene Tabellen für Belohnungen und Aufgaben</span><span data-opt-consequence>Sauber abfragbar, aber jede neue Eigenschaft ist eine Migration.</span></label>
+        <label data-opt="both"><input type="radio" name="dm-q-store" value="both" disabled><span data-opt-label>Datenblatt, Belohnungen zusätzlich als Tabelle</span><span data-opt-consequence>Belohnungen per class_name abfragbar (für Wunschliste und Codex), der Rest bleibt flexibel.</span></label>
       </div>
-      <textarea data-comment="q-store-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-store-note" placeholder="Notiz (optional)" readonly></textarea>
       <div data-alevel="3" data-title="Wie ein Event gespeichert wird">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: ein Datenblatt, jeder Wert darf unbekannt sein."}'></div></div>
         <div data-slot="long"><div data-viz="table" data-viz-spec='{"columns":["Feld","Werte (offen erweiterbar)"],"rows":[["Wo","Verse, Arena Commander, Star Marine, Website, Twitch, unbekannt"],["Gebiet","keins, System, Ort, einer aus mehreren"],["Fortschritt","keiner, einmalig, Stufen, täglich, Gruppe, Community"],["Belohnung","je Stück: Weg (Pledge / im Spiel / beides / unbekannt), Zeitpunkt (sofort / nach Ende / Datum), class_name wenn im Codex"],["Voraussetzungen","Patch, Spielpaket, bestimmter Pledge, Konto"],["Ende","Datum, mit Patch, offen; mit Herkunft und Sicherheit"]]}'></div></div>
       </div>
     </section>
-    <section id="q-review" data-nav-label="Unsichere KI-Werte" data-decision="q-review" data-decision-mode="single" data-label="Umgang mit unsicheren Werten" data-rec="review" data-rec-why="Ein falsches Ende oder ein falscher Belohnungsweg schickt dich umsonst ins Spiel. Bei 2 bis 4 Events im Monat ist eine kurze Prüfung billig." data-applies-to="die KI-Auswertung jedes Events" data-finding="f-q-review">
+    <section id="q-review" data-nav-label="Unsichere KI-Werte" data-decision="q-review" data-decision-mode="single" data-label="Umgang mit unsicheren Werten" data-rec="review" data-rec-why="Ein falsches Ende oder ein falscher Belohnungsweg schickt dich umsonst ins Spiel. Bei 2 bis 4 Events im Monat ist eine kurze Prüfung billig." data-applies-to="die KI-Auswertung jedes Events" data-finding="f-q-review"><input type="hidden" name="dm-q-review-hes" value="{&quot;ms&quot;:17623,&quot;revisits&quot;:0,&quot;median&quot;:17623}" disabled>
       <p data-applies>Gilt für: die KI-Auswertung jedes Events</p>
       <p data-situation>`sc-events-sync` nimmt KI-Datumsangaben heute erst ab 0,8 Sicherheit an. Für Belohnungen und Gebiet gibt es noch keine Regel.</p>
       <h3 data-question>Was passiert mit einem Feld unter 0,8 Sicherheit?</h3>
       <p data-stakes>Wie oft ein Event mit falschen Angaben live geht und wie viel Arbeit du damit hast.</p>
       <div data-options>
-        <label data-opt="review" data-recommended><input type="radio" name="dm-q-review" value="review" checked><span data-opt-label>Feld bleibt „unbekannt“, Admin prüft auf dem Datenblatt</span><span data-opt-consequence>Der Rest des Events geht live, das Feld kommt nach deiner Freigabe dazu.</span></label>
-        <label data-opt="auto"><input type="radio" name="dm-q-review" value="auto"><span data-opt-label>Feld bleibt „unbekannt“, ohne Prüfung</span><span data-opt-consequence>Keine Arbeit, aber manches Event zeigt Lücken, bis eine neue Quelle sie füllt.</span></label>
-        <label data-opt="all"><input type="radio" name="dm-q-review" value="all"><span data-opt-label>Jedes Event erst nach Admin-Freigabe</span><span data-opt-consequence>Nichts geht ungeprüft live, ein Event erscheint aber erst, wenn du es freigibst.</span></label>
+        <label data-opt="review" data-recommended><input type="radio" name="dm-q-review" value="review" checked disabled><span data-opt-label>Feld bleibt „unbekannt“, Admin prüft auf dem Datenblatt</span><span data-opt-consequence>Der Rest des Events geht live, das Feld kommt nach deiner Freigabe dazu.</span></label>
+        <label data-opt="auto"><input type="radio" name="dm-q-review" value="auto" disabled><span data-opt-label>Feld bleibt „unbekannt“, ohne Prüfung</span><span data-opt-consequence>Keine Arbeit, aber manches Event zeigt Lücken, bis eine neue Quelle sie füllt.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-q-review" value="all" disabled><span data-opt-label>Jedes Event erst nach Admin-Freigabe</span><span data-opt-consequence>Nichts geht ungeprüft live, ein Event erscheint aber erst, wenn du es freigibst.</span></label>
       </div>
-      <textarea data-comment="q-review-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-review-note" placeholder="Notiz (optional)" readonly></textarea>
       <div data-alevel="3" data-title="Unsichere KI-Werte">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Lücke statt Raten, Prüfung nur für Lücken."}'></div></div>
         <div data-slot="long"><p>Die Auswertung läuft bei jedem neuen Comm-Link, der zu einer Event-Reihe passt, und während eines Events einmal am Tag. Neue Quellen können ein unsicheres Feld später füllen.</p></div>
       </div>
     </section>
-    <section id="q-end" data-nav-label="Wann ein Event endet" data-decision="q-end" data-decision-mode="yesnoalt" data-label="Ende-Regel" data-rec="yes" data-rec-why="Ohne amtliches Datum ist der nächste Patch die beste Grenze, die wir haben. Das Ende hängt nicht davon ab, wann die Belohnung verteilt wird." data-applies-to="Hinweis auf HQ Start, Event-Leiste, Archivierung" data-finding="f-q-end">
+    <section id="q-end" data-nav-label="Wann ein Event endet" data-decision="q-end" data-decision-mode="yesnoalt" data-label="Ende-Regel" data-rec="yes" data-rec-why="Ohne amtliches Datum ist der nächste Patch die beste Grenze, die wir haben. Das Ende hängt nicht davon ab, wann die Belohnung verteilt wird." data-applies-to="Hinweis auf HQ Start, Event-Leiste, Archivierung" data-finding="f-q-end"><input type="hidden" name="dm-q-end-hes" value="{&quot;ms&quot;:16193,&quot;revisits&quot;:0,&quot;median&quot;:17623}" disabled>
       <p data-applies>Gilt für: Hinweis auf HQ Start, Event-Leiste, Archivierung</p>
       <p data-situation>Bei Discovery Month widersprechen sich die Quellen, Day of the Vara hat ein festes Datum. `computeNextPatch` und das amtliche LIVE-Datum (#317) gibt es schon, sie rechnen aber getrennt.</p>
       <h3 data-question>Gilt die Kette: amtliches Ende, sonst geschätzter nächster Patch, sonst „Ende unbekannt“?</h3>
       <p data-stakes>Was der Hinweis als Frist nennt und wann ein Event-Nachschub sich selbst archiviert.</p>
       <div data-options>
-        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-end" value="yes" checked><span data-opt-label>Ja, diese Kette</span><span data-opt-consequence>Eine Schätzung heißt immer „spätestens mit … (geschätzt)“. Wird das Event später verlängert, rückt die Frist mit.</span></label>
-        <label data-opt="no"><input type="radio" name="dm-q-end" value="no"><span data-opt-label>Nein, nur amtliche Daten</span><span data-opt-consequence>Ohne Datum steht „Ende unbekannt“, keine Patch-Schätzung.</span></label>
-        <label data-opt="alt"><input type="radio" name="dm-q-end" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-end-alt" placeholder="Was stattdessen?"></label>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-end" value="yes" checked disabled><span data-opt-label>Ja, diese Kette</span><span data-opt-consequence>Eine Schätzung heißt immer „spätestens mit … (geschätzt)“. Wird das Event später verlängert, rückt die Frist mit.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-end" value="no" disabled><span data-opt-label>Nein, nur amtliche Daten</span><span data-opt-consequence>Ohne Datum steht „Ende unbekannt“, keine Patch-Schätzung.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-end" value="alt" disabled><span data-opt-label>Anders …</span><input type="text" name="dm-q-end-alt" placeholder="Was stattdessen?" value="" readonly disabled></label>
       </div>
-      <textarea data-comment="q-end-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-end-note" placeholder="Notiz (optional)" readonly></textarea>
       <div data-alevel="3" data-title="Wann ein Event endet">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Amtlich › Patch-Schätzung › unbekannt."}'></div></div>
         <div data-slot="long"><p>Endet ein Event, archiviert sich sein Nachschub. Zeilen, deren Belohnung „nach Event-Ende“ kommt, bleiben als „wartet auf Verteilung“ stehen, bis du sie abhakst.</p></div>
@@ -6164,72 +6193,177 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Vier Fragen dazu, wie Events in Planen, Jetzt und Bestand auftauchen."}'></div></div>
         <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Alles baut auf dem gemergten Nachschub-HQ (#1005) auf: sieben Slots, Einsätze, Abschluss per Bestandsanstieg oder Häkchen, Herkunft Pledge im Hangar."}'></div></div>
       </div>
-    <section id="q-entry" data-nav-label="Wo ein Event-Nachschub beginnt" data-decision="q-entry" data-decision-mode="multi" data-label="Einstiege in einen Event-Nachschub" data-rec="strip line" data-rec-why="Die Leiste zeigt, was gerade läuft. Der Weg pro Zeile fängt Wünsche ab, die zufällig eine Event-Belohnung sind." data-applies-to="HQ Planen und den Schritt Einsätze im Nachschub-Ablauf" data-finding="f-q-entry">
+    <section id="q-entry" data-nav-label="Wo ein Event-Nachschub beginnt" data-decision="q-entry" data-decision-mode="multi" data-label="Einstiege in einen Event-Nachschub" data-rec="strip line" data-rec-why="Die Leiste zeigt, was gerade läuft. Der Weg pro Zeile fängt Wünsche ab, die zufällig eine Event-Belohnung sind." data-applies-to="HQ Planen und den Schritt Einsätze im Nachschub-Ablauf" data-finding="f-q-entry"><input type="hidden" name="dm-q-entry-hes" value="{&quot;ms&quot;:58978,&quot;revisits&quot;:0,&quot;median&quot;:17623}" disabled>
       <p data-applies>Gilt für: HQ Planen und den Schritt Einsätze im Nachschub-Ablauf</p>
       <p data-situation>Heute wählt Schritt 3 pro Zeile Kaufen, Craften oder Abbauen. Ein Event kommt nirgends vor.</p>
       <h3 data-question>Wo kannst du einen Event-Nachschub anlegen?</h3>
       <p data-stakes>Ob du ein Event findest, ohne davon zu wissen.</p>
       <div data-options>
-        <label data-opt="strip" data-recommended><input type="checkbox" name="dm-q-entry.strip" value="strip" checked><span data-opt-label>Events-Leiste in Planen</span><span data-opt-consequence>„Als Nachschub planen“ pro laufendem Event, wie im Entwurf.</span></label>
-        <label data-opt="line" data-recommended><input type="checkbox" name="dm-q-entry.line" value="line" checked><span data-opt-label>„Event“ als vierter Weg pro Zeile</span><span data-opt-consequence>Ist ein Wunsch die Belohnung eines laufenden Events, bietet Schritt 3 neben Kaufen und Craften auch „Event“ an.</span></label>
-        <label data-opt="codex"><input type="checkbox" name="dm-q-entry.codex" value="codex"><span data-opt-label>Hinweis auf der Codex-Seite des Gegenstands</span><span data-opt-consequence>„Belohnung von Discovery Month“ als stille Zeile auf der Detailseite.</span></label>
+        <label data-opt="strip" data-recommended><input type="checkbox" name="dm-q-entry.strip" value="strip" disabled><span data-opt-label>Events-Leiste in Planen</span><span data-opt-consequence>„Als Nachschub planen“ pro laufendem Event, wie im Entwurf.</span></label>
+        <label data-opt="line" data-recommended><input type="checkbox" name="dm-q-entry.line" value="line" checked disabled><span data-opt-label>„Event“ als vierter Weg pro Zeile</span><span data-opt-consequence>Ist ein Wunsch die Belohnung eines laufenden Events, bietet Schritt 3 neben Kaufen und Craften auch „Event“ an.</span></label>
+        <label data-opt="codex"><input type="checkbox" name="dm-q-entry.codex" value="codex" disabled><span data-opt-label>Hinweis auf der Codex-Seite des Gegenstands</span><span data-opt-consequence>„Belohnung von Discovery Month“ als stille Zeile auf der Detailseite.</span></label>
       </div>
-      <textarea data-comment="q-entry-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-entry-note" placeholder="Notiz (optional)" readonly>und wie gesagt statt der leiste einfach wenn man auf + nachschub klickt im dialog bzw. auch in der kleinen kachel schon einen teaser4</textarea>
       <div data-alevel="3" data-title="Einstiege">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Leiste plus Weg pro Zeile."}'></div></div>
         <div data-slot="long"><p>Im Code heißt das: `EinsatzRole` bekommt „event“ neben mission, buy, mine, craft. Ein Event-Schritt hat kein festes `location` und trägt stattdessen einen Verweis aufs Event, sein Gebiet kommt aus dem Datenblatt.</p></div>
       </div>
     </section>
-    <section id="q-slot" data-nav-label="Slot für Event-Nachschub" data-decision="q-slot" data-decision-mode="single" data-label="Event-Nachschub und Slots" data-rec="slot" data-rec-why="Ein Event-Nachschub ist ein Nachschub wie jeder andere. Eine Sonderregel macht die sieben Slots schwerer zu verstehen." data-applies-to="die sieben Nachschub-Slots" data-finding="f-q-slot">
+    <section id="q-slot" data-nav-label="Slot für Event-Nachschub" data-decision="q-slot" data-decision-mode="single" data-label="Event-Nachschub und Slots" data-rec="slot" data-rec-why="Ein Event-Nachschub ist ein Nachschub wie jeder andere. Eine Sonderregel macht die sieben Slots schwerer zu verstehen." data-applies-to="die sieben Nachschub-Slots" data-finding="f-q-slot"><input type="hidden" name="dm-q-slot-hes" value="{&quot;ms&quot;:7826,&quot;revisits&quot;:0,&quot;median&quot;:17623}" disabled>
       <p data-applies>Gilt für: die sieben Nachschub-Slots</p>
       <p data-situation>Ein Nachschub belegt einen von sieben Slots. Events laufen oft parallel, gerade zwei.</p>
       <h3 data-question>Belegt ein Event-Nachschub einen der sieben Slots?</h3>
       <p data-stakes>Ob zwei Events die Slots für normale Nachschübe knapp machen.</p>
       <div data-options>
-        <label data-opt="slot" data-recommended><input type="radio" name="dm-q-slot" value="slot" checked><span data-opt-label>Ja, normaler Slot mit Event-Markierung</span><span data-opt-consequence>Lila Kiste mit Frist. Archiviert sich am Event-Ende.</span></label>
-        <label data-opt="extra"><input type="radio" name="dm-q-slot" value="extra"><span data-opt-label>Eigene Event-Slots neben den sieben</span><span data-opt-consequence>Normale Slots bleiben frei, die Slot-Reihe wird aber länger.</span></label>
-        <label data-opt="mix"><input type="radio" name="dm-q-slot" value="mix"><span data-opt-label>Event-Einsätze in einen bestehenden Nachschub</span><span data-opt-consequence>Kein eigener Slot. Die Frist gilt dann nur für einzelne Zeilen.</span></label>
+        <label data-opt="slot" data-recommended><input type="radio" name="dm-q-slot" value="slot" checked disabled><span data-opt-label>Ja, normaler Slot mit Event-Markierung</span><span data-opt-consequence>Lila Kiste mit Frist. Archiviert sich am Event-Ende.</span></label>
+        <label data-opt="extra"><input type="radio" name="dm-q-slot" value="extra" disabled><span data-opt-label>Eigene Event-Slots neben den sieben</span><span data-opt-consequence>Normale Slots bleiben frei, die Slot-Reihe wird aber länger.</span></label>
+        <label data-opt="mix"><input type="radio" name="dm-q-slot" value="mix" disabled><span data-opt-label>Event-Einsätze in einen bestehenden Nachschub</span><span data-opt-consequence>Kein eigener Slot. Die Frist gilt dann nur für einzelne Zeilen.</span></label>
       </div>
-      <textarea data-comment="q-slot-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-slot-note" placeholder="Notiz (optional)" readonly></textarea>
       <div data-alevel="3" data-title="Slots">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: normaler Slot, lila markiert."}'></div></div>
         <div data-slot="long"><p>Die Regeln in `nachschub.model.ts` (Slots, Abschluss, Archivierung) bleiben gleich. Neu ist nur die Archivierung am Event-Ende.</p></div>
       </div>
     </section>
-    <section id="q-detect" data-nav-label="Ort erkennen in Jetzt" data-decision="q-detect" data-decision-mode="yesnoalt" data-label="Angebot im Event-Gebiet" data-rec="yes" data-rec-why="Das ist deine Vorgabe: kein Ort wird festgelegt, Jetzt bietet das Event an, wo du gerade bist." data-applies-to="HQ Jetzt mit SCC-App-Signal" data-finding="f-q-detect">
+    <section id="q-detect" data-nav-label="Ort erkennen in Jetzt" data-decision="q-detect" data-decision-mode="yesnoalt" data-label="Angebot im Event-Gebiet" data-rec="yes" data-rec-why="Das ist deine Vorgabe: kein Ort wird festgelegt, Jetzt bietet das Event an, wo du gerade bist." data-applies-to="HQ Jetzt mit SCC-App-Signal" data-finding="f-q-detect"><input type="hidden" name="dm-q-detect-hes" value="{&quot;ms&quot;:7206,&quot;revisits&quot;:0,&quot;median&quot;:17623}" disabled>
       <p data-applies>Gilt für: HQ Jetzt mit SCC-App-Signal</p>
       <p data-situation>Die SCC-App meldet System und Ort. Für den Planeten fehlt das Signal teilweise noch (offener Punkt aus dem HQ-Einstieg). Für „im System“ reicht es schon.</p>
       <h3 data-question>Bietet Jetzt den Wechsel an, sobald du im Gebiet eines offenen Event-Nachschubs bist?</h3>
       <p data-stakes>Ob du Event-Aufgaben im richtigen Moment siehst, ohne etwas zu planen.</p>
       <div data-options>
-        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-detect" value="yes" checked><span data-opt-label>Ja, als Leiste oben in Jetzt</span><span data-opt-consequence>„Nicht jetzt“ bis zum nächsten Ortswechsel. Arena Commander zählt als Gebiet, sobald die App den Modus meldet.</span></label>
-        <label data-opt="no"><input type="radio" name="dm-q-detect" value="no"><span data-opt-label>Nein, nur ein stiller Punkt am Reiter</span><span data-opt-consequence>Du wechselst selbst über „Nachschub wechseln“.</span></label>
-        <label data-opt="alt"><input type="radio" name="dm-q-detect" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-detect-alt" placeholder="Was stattdessen?"></label>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-detect" value="yes" checked disabled><span data-opt-label>Ja, als Leiste oben in Jetzt</span><span data-opt-consequence>„Nicht jetzt“ bis zum nächsten Ortswechsel. Arena Commander zählt als Gebiet, sobald die App den Modus meldet.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-detect" value="no" disabled><span data-opt-label>Nein, nur ein stiller Punkt am Reiter</span><span data-opt-consequence>Du wechselst selbst über „Nachschub wechseln“.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-detect" value="alt" disabled><span data-opt-label>Anders …</span><input type="text" name="dm-q-detect-alt" placeholder="Was stattdessen?" value="" readonly disabled></label>
       </div>
-      <textarea data-comment="q-detect-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-detect-note" placeholder="Notiz (optional)" readonly></textarea>
       <div data-alevel="3" data-title="Ort erkennen">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Gebiet aus dem Datenblatt × Ort aus der App."}'></div></div>
         <div data-slot="long"><p>Ob die SCC-App den Arena-Commander-Modus erkennt, prüft der Bau im App-Repo. Liefert sie ihn nicht, entfällt das Angebot dort, der Event-Nachschub läuft trotzdem.</p></div>
       </div>
     </section>
-    <section id="q-claim" data-nav-label="Belohnung abhaken" data-decision="q-claim" data-decision-mode="multi" data-label="Abhaken einer Event-Belohnung" data-rec="channel event store" data-rec-why="So deckst du Pledge-Belohnungen ab, die kein Bestandsanstieg im Spiel je meldet." data-applies-to="Event-Zeilen im Nachschub und HQ Bestand" data-finding="f-q-claim">
+    <section id="q-claim" data-nav-label="Belohnung abhaken" data-decision="q-claim" data-decision-mode="multi" data-label="Abhaken einer Event-Belohnung" data-rec="channel event store" data-rec-why="So deckst du Pledge-Belohnungen ab, die kein Bestandsanstieg im Spiel je meldet." data-applies-to="Event-Zeilen im Nachschub und HQ Bestand" data-finding="f-q-claim"><input type="hidden" name="dm-q-claim-hes" value="{&quot;ms&quot;:30178,&quot;revisits&quot;:0,&quot;median&quot;:17623}" disabled>
       <p data-applies>Gilt für: Event-Zeilen im Nachschub und HQ Bestand</p>
       <p data-situation>Eine Nachschub-Zeile schließt heute über einen Bestandsanstieg oder ein Häkchen. Pledge-Belohnungen kommen nicht im Spiel an.</p>
       <h3 data-question>Was gehört zum Abhaken einer Event-Belohnung?</h3>
       <p data-stakes>Ob Pledge-Belohnungen sauber in deinem Bestand landen.</p>
       <div data-options>
-        <label data-opt="channel" data-recommended><input type="checkbox" name="dm-q-claim.channel" value="channel" checked><span data-opt-label>Weg wählen: Pledge, im Spiel, beides</span><span data-opt-consequence>Vorausgewählt ist der erkannte Weg.</span></label>
-        <label data-opt="event" data-recommended><input type="checkbox" name="dm-q-claim.event" value="event" checked><span data-opt-label>Ganzes Event als „erledigt“ abhaken</span><span data-opt-consequence>Für Events ohne Nachschub. Der Hinweis auf HQ Start verschwindet.</span></label>
-        <label data-opt="store" data-recommended><input type="checkbox" name="dm-q-claim.store" value="store" checked><span data-opt-label>Abhaken legt die Belohnung in den Bestand</span><span data-opt-consequence>Mit Herkunft „Pledge“: Schiffe in den Hangar, alles andere ins Inventar.</span></label>
-        <label data-opt="missed"><input type="checkbox" name="dm-q-claim.missed" value="missed"><span data-opt-label>„Nicht bekommen“ als eigener Ausgang</span><span data-opt-consequence>Die Zeile geht zurück auf die Wunschliste.</span></label>
+        <label data-opt="channel" data-recommended><input type="checkbox" name="dm-q-claim.channel" value="channel" checked disabled><span data-opt-label>Weg wählen: Pledge, im Spiel, beides</span><span data-opt-consequence>Vorausgewählt ist der erkannte Weg.</span></label>
+        <label data-opt="event" data-recommended><input type="checkbox" name="dm-q-claim.event" value="event" checked disabled><span data-opt-label>Ganzes Event als „erledigt“ abhaken</span><span data-opt-consequence>Für Events ohne Nachschub. Der Hinweis auf HQ Start verschwindet.</span></label>
+        <label data-opt="store" data-recommended><input type="checkbox" name="dm-q-claim.store" value="store" checked disabled><span data-opt-label>Abhaken legt die Belohnung in den Bestand</span><span data-opt-consequence>Mit Herkunft „Pledge“: Schiffe in den Hangar, alles andere ins Inventar.</span></label>
+        <label data-opt="missed"><input type="checkbox" name="dm-q-claim.missed" value="missed" disabled><span data-opt-label>„Nicht bekommen“ als eigener Ausgang</span><span data-opt-consequence>Die Zeile geht zurück auf die Wunschliste.</span></label>
       </div>
-      <textarea data-comment="q-claim-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-claim-note" placeholder="Notiz (optional)" readonly>Ja man soll ein evneta uach abbrehcehnn können, bzw. den nachschub ist es ja wie andere auch, nur mit dem unterschiedm, dass das dann hier nicht auf die wunschliste zurückgeht sondern einfach fortschritt gespeichert wird, ggf. durch scc app immer aktuell gehaltne und dann kann man es jederzeit fortsetzen</textarea>
       <div data-alevel="3" data-title="Abhaken">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Weg wählen, Event abhaken, ab in den Bestand."}'></div></div>
         <div data-slot="long"><p>Heute kennt nur `hangar_ships` eine Herkunft (pledge, ingame, loan). Für Pledge-Gegenstände im Inventar fehlt ein solches Feld noch, es kommt mit derselben Migration.</p></div>
       </div>
     </section>
     </section>
+  </section>
+</section>
+
+<section data-iteration="2" data-iteration-template="free" data-final-report id="iter-2" data-active>
+  <p class="fr-sentence">Laufende Events lassen sich jetzt in HQ als Nachschub planen. Die KI liest sie selbst aus, du hakst die Belohnung ab, auch wenn sie als Pledge kommt.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">➕</span><span><b>Ein „+“ mit „Event verfügbar“</b> öffnet Events neben der Wunschliste.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📍</span><span><b>Kein Ort festlegen:</b> Jetzt bietet das Event an, wo du gerade bist.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧠</span><span><b>KI-Datenblatt pro Event</b>, an 7 Events geprüft, Admin prüft Lücken.</span></li>
+      </ul>
+      <p class="fr-try-auth">▶ Ausprobieren geht erst nach dem Deploy: die Event-Tabellen fehlen noch in Supabase.</p>
+    </div>
+    <div class="fr-flow">
+      <p class="fr-label">So läuft es</p>
+      <ol>
+        <li>KI liest Comm-Link und Wiki, unsichere Felder gehen in die Admin-Prüfung.</li>
+        <li>„+“ in Planen: Event wählen, Belohnungen ankreuzen, Nachschub entsteht.</li>
+        <li>Jetzt erkennt das Event-Gebiet über die SCC-App und bietet den Wechsel an.</li>
+        <li>Belohnung abhaken: Pledge, im Spiel oder beides, direkt in den Bestand.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">Was es aushält<small>Balken = wie weit die Anforderung erfüllt ist</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="7 von 7 Testfällen (2 laufende, 3 letzte große, IAE, Luminalia) liefern das erwartete Datenblatt; Anforderung: alle (geschätzt).">
+        <span class="fr-meter-name">🧱 Stabilität der KI-Auswertung</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">7 / 7</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Keine Regression im Nachschub-HQ: 6261 Karma-Specs grün; Anforderung: 0 rote (geschätzt).">
+        <span class="fr-meter-name">🧩 Kompatibilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6261 grün</b>
+      </div>
+      <div class="fr-meter" data-grade="open" style="--fr-fill: 0%" data-tip="Ob jede HQ-Seite ohne Scrollen auf 1920×1080 und 1440×900 passt, ist nicht gemessen; geht erst mit deployten Event-Tabellen (geschätzt).">
+        <span class="fr-meter-name">🖥 Passt auf eine Seite</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">offen</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="3 / 7 · ✓ Code-Check · ✓ Trockentest · ✓ Zusammenspiel · ○ Lokal durchgespielt · ✓ Prod-Build geprüft · ◌ Live vertestet · ◌ Von dir abgenommen">
+    <span class="fr-depth-done">✓ Zuletzt bestanden: <b>Prod-Build geprüft</b></span>
+    <span class="fr-depth-next">○ Noch nicht gemacht: <b>Lokal durchgespielt</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-scc-app"
+          data-issue-title="[FEATURE] SCC-App: event progress, location, Arena Commander mode and rewards from the game logs"
+          data-issue-type="feature"
+          data-issue-body="Approved in round 1 (A1–A4 of briefs/implement.md), not built here: it lives in the Star-Citizen-Companion-App repo. Analyse yesterday's Game.log/logbackups for event progress, contract completion, location, AC mode and reward lines; report via user_event_state_report per docs/contracts/scc-app-event-progress.md. A session in another repo needs the owner's explicit start."
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="außerhalb-Repo">
+        <span class="oq-label">SCC-App liest Logs nicht</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Fortschritt, Ort, Arena-Commander-Modus und Belohnung aus den Game-Logs fehlen noch. Der Vertrag dafür steht.</dd>
+          <dt>Wo</dt><dd>SCC-App (eigenes Repo)</dd>
+          <dt>Warum vorbelegt</dt><dd>⚡ Jetzt: eine eigene Session im App-Repo, die ich nur auf dein Wort starten darf.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-edit-events"
+          data-issue-title="[FEATURE] Editing a Nachschub: adding an event also binds its picked rewards"
+          data-issue-type="feature"
+          data-issue-body="When an existing Nachschub is edited and an event is added, only its event step is added, not reward lines. Creating a new Nachschub binds rewards correctly (eventBinding in event-hq.util.ts)."
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Bearbeiten ohne Belohnungen</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Fügst du beim Bearbeiten ein Event hinzu, kommen keine Belohnungszeilen mit, nur die Event-Aufgabe.</dd>
+          <dt>Wo</dt><dd>HQ Planen, Nachschub bearbeiten</dd>
+          <dt>Warum vorbelegt</dt><dd>⚡ Jetzt: kleine Lücke, die Logik zum Anlegen gibt es schon.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Commits <code>9a1c7c97</code>…<code>d12bcfb1</code> auf <code>claude/haiku-event-supply-planning-0d1116</code> · Bereiche: Supabase, Edge-Function, HQ, Admin</li>
+      <li><code>supabase/functions/sc-event-sheet/</code>, <code>src/app/hq/events/</code>, <code>src/app/admin/events/</code></li>
+      <li>Tests: Karma 6261 grün · Functions 483 grün · Gate 115 grün · Build grün</li>
+      <li>Nicht deployt: Migrationen 20261108140000/140100/150000, Function <code>sc-event-sheet</code> (danach <code>notify pgrst</code>)</li>
+      <li>Eigene Entscheidungen: Belohnungen nach Inventar „Event-Belohnungen“; nur amtliches Ende archiviert; Live-Fortschritt alle 30 s</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-visual" data-crit="high" data-guide="">Planen, Jetzt, Start nach Deploy ansehen</li>
+      <li data-todo-id="t-admin" data-crit="mid" data-guide="">/admin/events: Discovery Month neu auswerten</li>
+    </ul>
   </section>
 </section>
 </main>
@@ -6443,7 +6577,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
       <div class="panel-nav-scroll">
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
-<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="2" aria-selected="true" aria-controls="iter-2">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
@@ -16969,7 +17104,7 @@ function collectImplementItems() { return collectFollowUps('implement'); }
 // --- 🧪 / 👉 to-dos ---
 // 🧪 = what Claude could not verify ([data-tests]), 👉 = what the user does by
 // hand afterwards ([data-handoffs]). One <li> each, non-interactive, with
-// data-crit (low | mid | high) and data-guide (web | desktop | empty).
+// data-crit (low | mid | high) and data-guide (web | desktop only for a third-party / system action | empty = default).
 const CLOSEOUT_TODO_BLOCK = { tests: '[data-tests]', handoffs: '[data-handoffs]' };
 function todoItems(kind) {
   const section = finalReportSection();
@@ -16981,9 +17116,10 @@ function todoId(kind, el, i) {
 }
 function todoKey(kind, el, i) { return kind + ':' + todoId(kind, el, i); }
 // Criticality decides first: low → struck (skip, muted, ↩ brings it back).
-// Needed and guidable (a web task → auto-guide, a PC task → desktop scripts /
-// takeover help) → "Führ mich" on (guide); needed and not guidable → on the
-// completion card (self). An explicit data-mode-default wins. "Not guidable" is
+// Needed and a guided action on a third-party site (API key, OAuth app,
+// account, hosting secret → auto-guide) or a system setting (desktop scripts /
+// takeover help) → "Führ mich" on (guide); everything else, incl. manual
+// checks of the user's own app or site → off, on the completion card (self). An explicit data-mode-default wins. "Not guidable" is
 // never shown — "Führ mich" there simply means written steps (guide: "inline").
 function todoDefaultMode(el) {
   const explicit = el.dataset.modeDefault;

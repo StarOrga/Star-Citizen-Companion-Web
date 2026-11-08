@@ -1,0 +1,104 @@
+<section data-iteration="2" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Laufende Events lassen sich jetzt in HQ als Nachschub planen. Die KI liest sie selbst aus, du hakst die Belohnung ab, auch wenn sie als Pledge kommt.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">➕</span><span><b>Ein „+“ mit „Event verfügbar“</b> öffnet Events neben der Wunschliste.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📍</span><span><b>Kein Ort festlegen:</b> Jetzt bietet das Event an, wo du gerade bist.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧠</span><span><b>KI-Datenblatt pro Event</b>, an 7 Events geprüft, Admin prüft Lücken.</span></li>
+      </ul>
+      <p class="fr-try-auth">▶ Ausprobieren geht erst nach dem Deploy: die Event-Tabellen fehlen noch in Supabase.</p>
+    </div>
+    <div class="fr-flow">
+      <p class="fr-label">So läuft es</p>
+      <ol>
+        <li>KI liest Comm-Link und Wiki, unsichere Felder gehen in die Admin-Prüfung.</li>
+        <li>„+“ in Planen: Event wählen, Belohnungen ankreuzen, Nachschub entsteht.</li>
+        <li>Jetzt erkennt das Event-Gebiet über die SCC-App und bietet den Wechsel an.</li>
+        <li>Belohnung abhaken: Pledge, im Spiel oder beides, direkt in den Bestand.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="7 von 7 Testfällen (2 laufende, 3 letzte große, IAE, Luminalia) liefern das erwartete Datenblatt; Anforderung: alle (geschätzt).">
+        <span class="fr-meter-name">🧱 Stabilität der KI-Auswertung</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">7 / 7</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Keine Regression im Nachschub-HQ: 6261 Karma-Specs grün; Anforderung: 0 rote (geschätzt).">
+        <span class="fr-meter-name">🧩 Kompatibilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6261 grün</b>
+      </div>
+      <div class="fr-meter" data-grade="open" style="--fr-fill: 0%" data-tip="Ob jede HQ-Seite ohne Scrollen auf 1920×1080 und 1440×900 passt, ist nicht gemessen; geht erst mit deployten Event-Tabellen (geschätzt).">
+        <span class="fr-meter-name">🖥 Passt auf eine Seite</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">offen</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="3 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ○ {{final.level_local}} · ✓ {{final.level_prod}} · ◌ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_local}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-scc-app"
+          data-issue-title="[FEATURE] SCC-App: event progress, location, Arena Commander mode and rewards from the game logs"
+          data-issue-type="feature"
+          data-issue-body="Approved in round 1 (A1–A4 of briefs/implement.md), not built here: it lives in the Star-Citizen-Companion-App repo. Analyse yesterday's Game.log/logbackups for event progress, contract completion, location, AC mode and reward lines; report via user_event_state_report per docs/contracts/scc-app-event-progress.md. A session in another repo needs the owner's explicit start."
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="außerhalb-Repo">
+        <span class="oq-label">SCC-App liest Logs nicht</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Fortschritt, Ort, Arena-Commander-Modus und Belohnung aus den Game-Logs fehlen noch. Der Vertrag dafür steht.</dd>
+          <dt>{{final.fund_where}}</dt><dd>SCC-App (eigenes Repo)</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt: eine eigene Session im App-Repo, die ich nur auf dein Wort starten darf.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-edit-events"
+          data-issue-title="[FEATURE] Editing a Nachschub: adding an event also binds its picked rewards"
+          data-issue-type="feature"
+          data-issue-body="When an existing Nachschub is edited and an event is added, only its event step is added, not reward lines. Creating a new Nachschub binds rewards correctly (eventBinding in event-hq.util.ts)."
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Bearbeiten ohne Belohnungen</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Fügst du beim Bearbeiten ein Event hinzu, kommen keine Belohnungszeilen mit, nur die Event-Aufgabe.</dd>
+          <dt>{{final.fund_where}}</dt><dd>HQ Planen, Nachschub bearbeiten</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt: kleine Lücke, die Logik zum Anlegen gibt es schon.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Commits <code>9a1c7c97</code>…<code>d12bcfb1</code> auf <code>claude/haiku-event-supply-planning-0d1116</code> · Bereiche: Supabase, Edge-Function, HQ, Admin</li>
+      <li><code>supabase/functions/sc-event-sheet/</code>, <code>src/app/hq/events/</code>, <code>src/app/admin/events/</code></li>
+      <li>Tests: Karma 6261 grün · Functions 483 grün · Gate 115 grün · Build grün</li>
+      <li>Nicht deployt: Migrationen 20261108140000/140100/150000, Function <code>sc-event-sheet</code> (danach <code>notify pgrst</code>)</li>
+      <li>Eigene Entscheidungen: Belohnungen nach Inventar „Event-Belohnungen“; nur amtliches Ende archiviert; Live-Fortschritt alle 30 s</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-visual" data-crit="high" data-guide="">Planen, Jetzt, Start nach Deploy ansehen</li>
+      <li data-todo-id="t-admin" data-crit="mid" data-guide="">/admin/events: Discovery Month neu auswerten</li>
+    </ul>
+  </section>
+</section>
