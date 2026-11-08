@@ -1,4 +1,5 @@
-<section data-iteration="1" data-iteration-template="design" data-viewports="desktop" data-tab-label="Runde 1" data-design-set="alternatives">
+<section data-iteration="1" data-iteration-template="design" data-viewports="desktop" data-tab-label="Runde 1" data-design-set="alternatives" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"das mit der app links unten finde ich schon viel viel besser! daskannst du in einer subsession schon implementieren und shippen!","attachments":[]},"designs":{"register":"Also die sind mir alle noch nicht innovatgv genug, wenig thematisch, klar muss man direkt es excel listen mäßig wie hier vewalten können, aber zu unkreativ, außerdem ist die seitenbreite nicht die originale.\nZudem analysiere nochmal diie use cases wie 10 Agricium von verschieddenen standorten... => zum nachschub abholen machen. Nachbestellen gern auch weiteres nicht nur das letzte! Außerdem was habe ich alles in area18, ggf. auch angeordnet je nachdem wie viel im bestand ist aber bei so vielen orten auch suchbar!... \nwenn man etwas falsch eingetragen hat oder es veraltet ist soll man es rausschmeißen können. \nBei ressourcen und co. sollte man auch qualitäten sheen können, aber zusammengefasst als z. B. Eisen, aber irgendwie sichtbar wie viel ich von welcher qualität ungefähr habe, gertn visuell diagramm mäßig dargestellt. \nGgf. brauchen wir auch einen übersichtsmodus und einen detailmodus...\nAußerdem aufzeigen was man verschrotten kann und wass nicht im craft fabrikator.\nNatürlich auch die ienztlenen gegenstände auf die wunschliste erneut bringen!\nWenn man etwas filtered oder sucht sollten passende alterniven angeboten werden, z. b. kein eisen? Eisen auf die wunschliste nehmen ujnd direkt in den nachschub brijngen oder so!? Oder hier hast du auch noch eisen, obwohhl du woanders gefiltert hast. \n10 Eisen von 15 scu sollten reeservierbar sein für einen sc freund angeboten nach dort wo man es hat, alles änderbar. Außerdem reservierungen irgendwo filterbar machen / anzteign können im bestand. \nZudem direkt nicht in wunschliste oder nachschub sondern als verkaufseinsatz ine ihnenim nachschub der geld bringt (keine entitäten physissch, sprich neue nachschub klasse) aufnehmen. Gern bei planenn neuer nachschub popup generell mitaufnehemen, dass man geld amchen will und dnacach nnicht aus der wunschliste sonsern aus dem bestand auswählt . \nEinträge ovn hand sollten sich natürlich immer an der letzten bekannten ort defualt ausgewählt sein. \nLege eiin issue an für vc app, dass man live im overla ysieht beim looten ob man das verschrotten kann was man einsammelt, gebrujachen kann etc."},"screens":{},"views":{},"userPins":[{"id":"up-mw8b7sgc64n5","design":"register","screen":"r-s1","x":19.1,"y":19.6,"target":"span.d0-chip \"Sonstiges2\"","text":"´das muss deterministischer sein, ich will immer wieder alle optionen sehen uzm filtern, das darf sich nicht ändern fü r nnur die die ich habe!","attachments":[]},{"id":"up-mw8bdjydcb5e","design":"register","screen":"r-s1","x":25.8,"y":14,"target":"path","text":"irgendwiei langweilig so...","attachments":[]}]}</script>
 <style>
 .d0-app { --a:#52c1e6; --fg:#e8ebed; --fg2:#9fb3c8; --fg3:#6f8aa0; --line:rgba(159,179,200,.22); --ok:#5fd698; --warn:#f0c27b; --card:rgba(10,24,36,.85); --bg1:#0b1a26;
   position:relative; display:flex; flex-direction:column; width:100%; height:100%; min-height:660px; box-sizing:border-box; overflow:hidden; color:var(--fg);
@@ -194,7 +195,7 @@
   <button class="anno-pin" type="button" data-anno-pin="r-a1" aria-expanded="false" aria-controls="anno-bubble-r-a1" aria-label="{{anno.pin_label}}">1</button>
   <div class="anno-bubble" id="anno-bubble-r-a1" data-anno-bubble="r-a1" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="r-a1" aria-expanded="false" aria-controls="anno-bubble-r-a1"><span class="anno-bubble-question">Jeder Bereich hat sein Symbol: Kiste, Schiff, Vitrine. Der Titel wechselt mit („Inventar“ statt immer „Bestand“), darüber steht klein „Bestand › Inventar“. Eine Zahl steht nur dort, wo etwas liegt. Reicht dir das, um zu wissen, wo du bist?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r-a1" data-annotation="r-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r-a1"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r-a1" data-annotation="r-a1" data-attachable placeholder="{{anno.answer_placeholder}}">sehr gut, aber bitte die exakt gleichen symbole nehmen wie in der suche etc. </textarea><div class="attach-slot" data-attach-slot="anno-r-a1"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="r-a2" data-anno-side="bottom" data-anno-target=".d0-chips" style="--anno-x:22%;--anno-y:25%">
@@ -555,14 +556,14 @@
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Vier Fragen: Filter, Filter je Bereich, Such-Reihenfolge, Spind-Sets."}'></div></div>
         <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Bereich = was, Filter = welche Art, Suche = welcher Name. Jede Richtung setzt das anders ins Bild, die Regeln hier gelten für alle drei."}'></div></div>
       </div>
-    <section id="q-alle" data-nav-label="Kein „Alle“-Chip" data-decision="q-alle" data-decision-mode="single" data-label="Filter ohne Auswahl" data-rec="none" data-rec-why="Ein Filter ohne Auswahl zeigt ohnehin alles. Ein eigener „Alle“-Chip doppelt das und zeigt bei leerem Bestand „Alle 0“." data-applies-to="die Filter in Inventar, Hangar und Sammlung" data-finding="f-q-alle">
+    <section id="q-alle" data-nav-label="Kein „Alle“-Chip" data-decision="q-alle" data-decision-mode="single" data-label="Filter ohne Auswahl" data-rec="none" data-rec-why="Ein Filter ohne Auswahl zeigt ohnehin alles. Ein eigener „Alle“-Chip doppelt das und zeigt bei leerem Bestand „Alle 0“." data-applies-to="die Filter in Inventar, Hangar und Sammlung" data-finding="f-q-alle"><input type="hidden" name="dm-q-alle-hes" value="{&quot;ms&quot;:16478,&quot;revisits&quot;:0,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: die Filter in Inventar, Hangar und Sammlung</p>
       <p data-situation>Fest steht (deine Vorgabe): kein „Alle 0“. Heute ist „Alle N“ der erste Chip, nur im Inventar, immer mit Zahl (`hq-stock.component.ts:110`). Die übrigen Chips verschwinden bei 0.</p>
       <h3 data-question>Wie zeigt ein Bereich „alles“, wenn kein Filter gewählt ist?</h3>
       <p data-stakes>Ob der Filter ein eigenes Bedienelement für „nichts gefiltert“ braucht.</p>
       <div data-options>
-        <label data-opt="none" data-recommended><input type="radio" name="dm-q-alle" value="none" checked><span data-opt-label>Kein „Alle“-Chip, ein gewählter Filter trägt ein ×</span><span data-opt-consequence>Ohne Auswahl siehst du alles. Die Zahl je Filter bleibt, nur wo etwas liegt.</span></label>
-        <label data-opt="nozero"><input type="radio" name="dm-q-alle" value="nozero"><span data-opt-label>„Alle“ bleibt, ohne Zahl</span><span data-opt-consequence>Ein fester Rücksprung, aber ein Chip mehr, der nichts filtert.</span></label>
+        <label data-opt="none" data-recommended><input type="radio" name="dm-q-alle" value="none"><span data-opt-label>Kein „Alle“-Chip, ein gewählter Filter trägt ein ×</span><span data-opt-consequence>Ohne Auswahl siehst du alles. Die Zahl je Filter bleibt, nur wo etwas liegt.</span></label>
+        <label data-opt="nozero"><input type="radio" name="dm-q-alle" value="nozero" checked><span data-opt-label>„Alle“ bleibt, ohne Zahl</span><span data-opt-consequence>Ein fester Rücksprung, aber ein Chip mehr, der nichts filtert.</span></label>
         <label data-opt="hide"><input type="radio" name="dm-q-alle" value="hide"><span data-opt-label>„Alle N“ bleibt, verschwindet bei leerem Bereich</span><span data-opt-consequence>Wie heute, nur ohne „Alle 0“. Bei einem Gegenstand steht „Alle 1“ neben „Waffen 1“.</span></label>
       </div>
       <textarea data-comment="q-alle-note" placeholder="Notiz (optional)"></textarea>
@@ -571,16 +572,16 @@
         <div data-slot="long"><p>Gilt in jeder Richtung gleich: in den Reitern und Chips, im Raum-Band und im Baum der Leiste („Inventar“ anklicken = alles).</p></div>
       </div>
     </section>
-    <section id="q-filter" data-nav-label="Filter in Hangar und Sammlung" data-decision="q-filter" data-decision-mode="multi" data-label="Filter je Bereich" data-rec="origin kind" data-rec-why="Herkunft ist im Hangar schon gespeichert (`hangar_ships.origin`), die Sammlungsarten auch (Blaupausen, Ruf, News, Galerie). Rollen müssten erst aus dem Codex abgeleitet werden." data-applies-to="Hangar und Sammlung (Inventar behält Waffen, Rüstung, Material, Sonstiges)" data-finding="f-q-filter">
+    <section id="q-filter" data-nav-label="Filter in Hangar und Sammlung" data-decision="q-filter" data-decision-mode="multi" data-label="Filter je Bereich" data-rec="origin kind" data-rec-why="Herkunft ist im Hangar schon gespeichert (`hangar_ships.origin`), die Sammlungsarten auch (Blaupausen, Ruf, News, Galerie). Rollen müssten erst aus dem Codex abgeleitet werden." data-applies-to="Hangar und Sammlung (Inventar behält Waffen, Rüstung, Material, Sonstiges)" data-finding="f-q-filter"><input type="hidden" name="dm-q-filter-hes" value="{&quot;ms&quot;:12715,&quot;revisits&quot;:1,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: Hangar und Sammlung (Inventar behält Waffen, Rüstung, Material, Sonstiges)</p>
       <p data-situation>Heute hat nur das Inventar Filter. Der Hangar mit fünf Schiffen hat weder Filter noch Suche, die Sammlung auch nicht.</p>
       <h3 data-question>Welche Filter bekommen Hangar und Sammlung?</h3>
       <p data-stakes>Ob alle drei Bereiche gleich bedient werden.</p>
       <div data-options>
         <label data-opt="origin" data-recommended><input type="checkbox" name="dm-q-filter.origin" value="origin" checked><span data-opt-label>Hangar: Pledge, Ingame, Leihschiff</span><span data-opt-consequence>Aus vorhandenen Daten, sofort baubar.</span></label>
-        <label data-opt="role"><input type="checkbox" name="dm-q-filter.role" value="role"><span data-opt-label>Hangar: Rolle (Kampf, Fracht, Bergbau, Bergung …)</span><span data-opt-consequence>Braucht eine Rolle pro Schiff aus dem Codex.</span></label>
+        <label data-opt="role"><input type="checkbox" name="dm-q-filter.role" value="role" checked><span data-opt-label>Hangar: Rolle (Kampf, Fracht, Bergbau, Bergung …)</span><span data-opt-consequence>Braucht eine Rolle pro Schiff aus dem Codex.</span></label>
         <label data-opt="kind" data-recommended><input type="checkbox" name="dm-q-filter.kind" value="kind" checked><span data-opt-label>Sammlung: Blaupausen, Ruf, News, Galerie</span><span data-opt-consequence>Aus vorhandenen Daten.</span></label>
-        <label data-opt="place"><input type="checkbox" name="dm-q-filter.place" value="place"><span data-opt-label>Inventar: zusätzlich nach Ort</span><span data-opt-consequence>Area18, Lorville, Schiff … als zweite Chip-Reihe.</span></label>
+        <label data-opt="place"><input type="checkbox" name="dm-q-filter.place" value="place" checked><span data-opt-label>Inventar: zusätzlich nach Ort</span><span data-opt-consequence>Area18, Lorville, Schiff … als zweite Chip-Reihe.</span></label>
       </div>
       <textarea data-comment="q-filter-note" placeholder="Notiz (optional)"></textarea>
       <div data-alevel="3" data-title="Filter in Hangar und Sammlung">
@@ -588,7 +589,7 @@
         <div data-slot="long"><p>Die Filter erscheinen nur, wenn der Bereich mehr als einen Wert hat. Ein einziger Wert („alles Pledge“) braucht keinen Filter.</p></div>
       </div>
     </section>
-    <section id="q-search" data-nav-label="Reihenfolge der Subheader-Suche" data-decision="q-search" data-decision-mode="single" data-label="Suche im Bestand" data-rec="tiered" data-rec-why="So findest du zuerst, was du gerade ansiehst, verlierst aber nichts aus den anderen Bereichen und kannst Fehlendes direkt wünschen." data-applies-to="die Suche oben im Subheader auf der Seite Bestand" data-finding="f-q-search">
+    <section id="q-search" data-nav-label="Reihenfolge der Subheader-Suche" data-decision="q-search" data-decision-mode="single" data-label="Suche im Bestand" data-rec="tiered" data-rec-why="So findest du zuerst, was du gerade ansiehst, verlierst aber nichts aus den anderen Bereichen und kannst Fehlendes direkt wünschen." data-applies-to="die Suche oben im Subheader auf der Seite Bestand" data-finding="f-q-search"><input type="hidden" name="dm-q-search-hes" value="{&quot;ms&quot;:7605,&quot;revisits&quot;:0,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: die Suche oben im Subheader auf der Seite Bestand</p>
       <p data-situation>Fest steht (deine Vorgabe): gesucht wird im Subheader, die Seitensuche im Inventar-Kopf entfällt. Heute laufen beide Suchen getrennt, ohne Abgleich. Der Chip im Subheader zeigt auf jedem Reiter „Inventar“, auch in der Sammlung.</p>
       <h3 data-question>In welcher Reihenfolge zeigt die Subheader-Suche ihre Treffer?</h3>
@@ -604,7 +605,7 @@
         <div data-slot="long"><p>Steht im aktiven Bereich nichts, heißt es nie „Nichts gefunden“, sondern „Nichts im Inventar, 1 in der Sammlung“. Betroffen: `search-context.ts:138` (`hqContext`), die Specs `search-context`, `search-compose`, `search-cta`.</p></div>
       </div>
     </section>
-    <section id="q-sets" data-nav-label="Spind-Sets im Bestand" data-decision="q-sets" data-decision-mode="single" data-label="Wo Sets erscheinen" data-rec="inv" data-rec-why="Ein Set ist eine Zusammenstellung aus deinem Inventar. Als Filter im Inventar findest du es dort, wo seine Teile liegen, ohne vierten Bereich." data-applies-to="Spind-Sets (/hq/locker) und die Bestand-Kachel auf Start" data-finding="f-q-sets">
+    <section id="q-sets" data-nav-label="Spind-Sets im Bestand" data-decision="q-sets" data-decision-mode="single" data-label="Wo Sets erscheinen" data-rec="inv" data-rec-why="Ein Set ist eine Zusammenstellung aus deinem Inventar. Als Filter im Inventar findest du es dort, wo seine Teile liegen, ohne vierten Bereich." data-applies-to="Spind-Sets (/hq/locker) und die Bestand-Kachel auf Start" data-finding="f-q-sets"><input type="hidden" name="dm-q-sets-hes" value="{&quot;ms&quot;:13956,&quot;revisits&quot;:0,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: Spind-Sets (/hq/locker) und die Bestand-Kachel auf Start</p>
       <p data-situation>Die Bestand-Kachel auf Start zählt „5 Schiffe, 2 Sets“. Im Bestand selbst tauchen die Sets nirgends auf, sie leben nur unter /hq/locker.</p>
       <h3 data-question>Wo zeigt der Bestand deine Spind-Sets?</h3>
@@ -626,7 +627,7 @@
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Vier Fragen: App-Zustände, wo der Status erscheint, leere Bereiche, Schutz vor Abschneiden."}'></div></div>
         <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Wo der Status im Layout sitzt (Chip, Seitenkopf, Leiste), entscheidest du über die drei Richtungen. Hier geht es um das, was er sagt."}'></div></div>
       </div>
-    <section id="q-states" data-nav-label="App-Zustände" data-decision="q-states" data-decision-mode="single" data-label="Zustände des App-Status" data-rec="four" data-rec-why="„App läuft, Star Citizen nicht“ ist heute der häufigste Grund für „verbunden, aber es passiert nichts“. Er braucht einen eigenen Namen." data-applies-to="den App-Status auf allen HQ-Seiten und die Jetzt-Kachel auf Start" data-finding="f-q-states">
+    <section id="q-states" data-nav-label="App-Zustände" data-decision="q-states" data-decision-mode="single" data-label="Zustände des App-Status" data-rec="four" data-rec-why="„App läuft, Star Citizen nicht“ ist heute der häufigste Grund für „verbunden, aber es passiert nichts“. Er braucht einen eigenen Namen." data-applies-to="den App-Status auf allen HQ-Seiten und die Jetzt-Kachel auf Start" data-finding="f-q-states"><input type="hidden" name="dm-q-states-hes" value="{&quot;ms&quot;:28380,&quot;revisits&quot;:0,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: den App-Status auf allen HQ-Seiten und die Jetzt-Kachel auf Start</p>
       <p data-situation>Fest steht (deine Vorgabe): im UI heißt es „App“, nie „Companion“; das betrifft 26 Texte (`hq.ticker.app`, `hq.now.connect.*`, `hq.app.*`). Heute kennt der Ticker nur grün (eingecheckt in 30 Tagen oder Spiel live) und grau.</p>
       <h3 data-question>Welche Zustände zeigt der App-Status?</h3>
@@ -642,7 +643,7 @@
         <div data-slot="long"><div data-viz="table" data-viz-spec='{"columns":["Zustand","Woran erkannt","Knopf"],"rows":[["App fehlt","nie eingecheckt, kein lokaler Merker","App downloaden"],["App aus","eingecheckt, aber kein Lebenszeichen seit 3 Min.","App starten"],["App bereit","Lebenszeichen, `presence.gameRunning` falsch","keiner"],["Tracking","Lebenszeichen und Spiel läuft","keiner, letzte Meldung daneben"]]}'></div></div>
       </div>
     </section>
-    <section id="q-visible" data-nav-label="Status auch ohne App und auf Start" data-decision="q-visible" data-decision-mode="yesnoalt" data-label="Sichtbarkeit des App-Status" data-rec="yes" data-rec-why="Wer die App nicht hat, sieht heute nichts und erfährt nie, was sie auf dieser Seite bringen würde. Genau das war deine Kritik." data-applies-to="alle HQ-Seiten inklusive Start" data-finding="f-q-visible">
+    <section id="q-visible" data-nav-label="Status auch ohne App und auf Start" data-decision="q-visible" data-decision-mode="yesnoalt" data-label="Sichtbarkeit des App-Status" data-rec="yes" data-rec-why="Wer die App nicht hat, sieht heute nichts und erfährt nie, was sie auf dieser Seite bringen würde. Genau das war deine Kritik." data-applies-to="alle HQ-Seiten inklusive Start" data-finding="f-q-visible"><input type="hidden" name="dm-q-visible-hes" value="{&quot;ms&quot;:118843,&quot;revisits&quot;:0,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: alle HQ-Seiten inklusive Start</p>
       <p data-situation>Die Nachschub-Spec legte fest: Ticker nur auf HQ-Seiten außer Start und erst, wenn die App je verbunden war (`hq-live-ticker.util.ts:37`). Diese Frage würde das ablösen.</p>
       <h3 data-question>Zeigt sich der App-Status auf jeder HQ-Seite, auch auf Start und ohne App?</h3>
@@ -652,13 +653,15 @@
         <label data-opt="no"><input type="radio" name="dm-q-visible" value="no"><span data-opt-label>Nein, wie bisher erst nach der ersten Verbindung</span><span data-opt-consequence>Neue lernen die App nur über die Jetzt-Kachel kennen.</span></label>
         <label data-opt="alt"><input type="radio" name="dm-q-visible" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-visible-alt" placeholder="Was stattdessen?" value=""></label>
       </div>
-      <textarea data-comment="q-visible-note" placeholder="Notiz (optional)"></textarea>
+      <textarea data-comment="q-visible-note" placeholder="Notiz (optional)">ja auahc auf hq start, aber da in der mitte auch das alignenn, dass das damit zusammenpasst.
+
+Außerdem in jedem links unten anchor spezifisch (z. B. Bestand) immer eine kleine raussicht die erklärt wozu man es braucht, was es macht, siehe auch den größeren text in Jetzt aktuell, dort hin migrieren</textarea>
       <div data-alevel="3" data-title="Status auch ohne App und auf Start">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: überall, auch ohne App."}'></div></div>
         <div data-slot="long"><div data-viz="table" data-viz-spec='{"columns":["Seite","Satz bei „App fehlt“"],"rows":[["Start","Mit der App siehst du hier live, wo du bist und was als Nächstes kommt."],["Bestand","Die App liest dein Inventar und deine Schiffe aus dem Spiel. Du tippst nichts ab."],["Jetzt","Die App meldet, wo du gerade bist, und hakt Schritte von selbst ab."],["Planen","Die App erkennt, wann ein Nachschub-Posten ankommt, und schließt ihn."],["Statistik","Ohne App keine Spielzeit, keine Sessions, keine Verluste."]]}'></div></div>
       </div>
     </section>
-    <section id="q-empty" data-nav-label="Leerer Bereich" data-decision="q-empty" data-decision-mode="single" data-label="Leerzustand" data-rec="sentence" data-rec-why="Eine einsame Plus-Kachel mit „0–0 von 0“ sagt nicht, was zu tun ist. Ein Satz mit einem Knopf schon." data-applies-to="Inventar, Hangar und Sammlung ohne Inhalt, und die Zahlen an den Reitern" data-finding="f-q-empty">
+    <section id="q-empty" data-nav-label="Leerer Bereich" data-decision="q-empty" data-decision-mode="single" data-label="Leerzustand" data-rec="sentence" data-rec-why="Eine einsame Plus-Kachel mit „0–0 von 0“ sagt nicht, was zu tun ist. Ein Satz mit einem Knopf schon." data-applies-to="Inventar, Hangar und Sammlung ohne Inhalt, und die Zahlen an den Reitern" data-finding="f-q-empty"><input type="hidden" name="dm-q-empty-hes" value="{&quot;ms&quot;:36060,&quot;revisits&quot;:0,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: Inventar, Hangar und Sammlung ohne Inhalt, und die Zahlen an den Reitern</p>
       <p data-situation>Heute: leerer Bereich = Plus-Kachel, „Alle 0“, „0–0 von 0“ und inaktive Pager-Pfeile. Kein Satz, kein Hinweis auf die App. Der Ruf-Kasten der Sammlung ist der einzige erklärende Leerzustand.</p>
       <h3 data-question>Was zeigt ein leerer Bereich?</h3>
@@ -674,7 +677,7 @@
         <div data-slot="long"><p>Die Suche ohne Treffer folgt derselben Regel: ein Satz, wo es stattdessen etwas gibt.</p></div>
       </div>
     </section>
-    <section id="q-frame" data-nav-label="Rahmen der Seite" data-decision="q-frame" data-decision-mode="single" data-label="Höhe und Freiräume" data-rec="paged" data-rec-why="Die Spec will auf dem Desktop nie einen Seiten-Scroll im Bestand. Die Schnitte entstehen nicht durch das Blättern, sondern weil Leiste, β-Knopf und Feedback-Knopf nicht als belegt gelten." data-applies-to="das Raster, den Fuß mit Pager und den App-Status" data-finding="f-q-frame">
+    <section id="q-frame" data-nav-label="Rahmen der Seite" data-decision="q-frame" data-decision-mode="single" data-label="Höhe und Freiräume" data-rec="paged" data-rec-why="Die Spec will auf dem Desktop nie einen Seiten-Scroll im Bestand. Die Schnitte entstehen nicht durch das Blättern, sondern weil Leiste, β-Knopf und Feedback-Knopf nicht als belegt gelten." data-applies-to="das Raster, den Fuß mit Pager und den App-Status" data-finding="f-q-frame"><input type="hidden" name="dm-q-frame-hes" value="{&quot;ms&quot;:40982,&quot;revisits&quot;:0,&quot;median&quot;:22429}">
       <p data-applies>Gilt für: das Raster, den Fuß mit Pager und den App-Status</p>
       <p data-situation>Gemessen: Pager unter dem β-Knopf (1366 und 1024 breit), die Leiste über der Plus-Kachel, der Feedback-Knopf über dem Ticker (bei 768 nur „anion-App“ lesbar), der Ruf-Kasten 230 px unter dem Raster, bei 768 hoch 290 px Leere über „Bestand“.</p>
       <h3 data-question>Wie sichern wir, dass nichts angeschnitten oder verdeckt wird?</h3>

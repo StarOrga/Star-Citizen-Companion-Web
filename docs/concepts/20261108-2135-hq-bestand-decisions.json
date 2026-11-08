@@ -1,0 +1,124 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "favorite": null,
+    "decisions": [
+      {
+        "id": "q-alle",
+        "value": "nozero",
+        "rec": "none",
+        "note": ""
+      },
+      {
+        "id": "q-filter",
+        "value": [
+          "origin",
+          "role",
+          "kind",
+          "place"
+        ],
+        "rec": "origin kind",
+        "note": ""
+      },
+      {
+        "id": "q-search",
+        "value": "tiered",
+        "rec": "tiered",
+        "note": ""
+      },
+      {
+        "id": "q-sets",
+        "value": "inv",
+        "rec": "inv",
+        "note": ""
+      },
+      {
+        "id": "q-states",
+        "value": "four",
+        "rec": "four",
+        "note": ""
+      },
+      {
+        "id": "q-visible",
+        "value": {
+          "answer": "yes",
+          "alt": ""
+        },
+        "rec": "yes",
+        "note": "ja auahc auf hq start, aber da in der mitte auch das alignenn, dass das damit zusammenpasst.\n\nAußerdem in jedem links unten anchor spezifisch (z. B. Bestand) immer eine kleine raussicht die erklärt wozu man es braucht, was es macht, siehe auch den größeren text in Jetzt aktuell, dort hin migrieren"
+      },
+      {
+        "id": "q-empty",
+        "value": "sentence",
+        "rec": "sentence",
+        "note": ""
+      },
+      {
+        "id": "q-frame",
+        "value": "paged",
+        "rec": "paged",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "das mit der app links unten finde ich schon viel viel besser! daskannst du in einer subsession schon implementieren und shippen!",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-r-a1",
+          "text": "sehr gut, aber bitte die exakt gleichen symbole nehmen wie in der suche etc.",
+          "attachments": []
+        },
+        {
+          "id": "q-visible-note",
+          "text": "ja auahc auf hq start, aber da in der mitte auch das alignenn, dass das damit zusammenpasst.\n\nAußerdem in jedem links unten anchor spezifisch (z. B. Bestand) immer eine kleine raussicht die erklärt wozu man es braucht, was es macht, siehe auch den größeren text in Jetzt aktuell, dort hin migrieren",
+          "attachments": []
+        },
+        {
+          "id": "design-register",
+          "text": "Also die sind mir alle noch nicht innovatgv genug, wenig thematisch, klar muss man direkt es excel listen mäßig wie hier vewalten können, aber zu unkreativ, außerdem ist die seitenbreite nicht die originale.\nZudem analysiere nochmal diie use cases wie 10 Agricium von verschieddenen standorten... => zum nachschub abholen machen. Nachbestellen gern auch weiteres nicht nur das letzte! Außerdem was habe ich alles in area18, ggf. auch angeordnet je nachdem wie viel im bestand ist aber bei so vielen orten auch suchbar!... \nwenn man etwas falsch eingetragen hat oder es veraltet ist soll man es rausschmeißen können. \nBei ressourcen und co. sollte man auch qualitäten sheen können, aber zusammengefasst als z. B. Eisen, aber irgendwie sichtbar wie viel ich von welcher qualität ungefähr habe, gertn visuell diagramm mäßig dargestellt. \nGgf. brauchen wir auch einen übersichtsmodus und einen detailmodus...\nAußerdem aufzeigen was man verschrotten kann und wass nicht im craft fabrikator.\nNatürlich auch die ienztlenen gegenstände auf die wunschliste erneut bringen!\nWenn man etwas filtered oder sucht sollten passende alterniven angeboten werden, z. b. kein eisen? Eisen auf die wunschliste nehmen ujnd direkt in den nachschub brijngen oder so!? Oder hier hast du auch noch eisen, obwohhl du woanders gefiltert hast. \n10 Eisen von 15 scu sollten reeservierbar sein für einen sc freund angeboten nach dort wo man es hat, alles änderbar. Außerdem reservierungen irgendwo filterbar machen / anzteign können im bestand. \nZudem direkt nicht in wunschliste oder nachschub sondern als verkaufseinsatz ine ihnenim nachschub der geld bringt (keine entitäten physissch, sprich neue nachschub klasse) aufnehmen. Gern bei planenn neuer nachschub popup generell mitaufnehemen, dass man geld amchen will und dnacach nnicht aus der wunschliste sonsern aus dem bestand auswählt . \nEinträge ovn hand sollten sich natürlich immer an der letzten bekannten ort defualt ausgewählt sein. \nLege eiin issue an für vc app, dass man live im overla ysieht beim looten ob man das verschrotten kann was man einsammelt, gebrujachen kann etc.",
+          "attachments": []
+        }
+      ],
+      "designs": {
+        "register": "Also die sind mir alle noch nicht innovatgv genug, wenig thematisch, klar muss man direkt es excel listen mäßig wie hier vewalten können, aber zu unkreativ, außerdem ist die seitenbreite nicht die originale.\nZudem analysiere nochmal diie use cases wie 10 Agricium von verschieddenen standorten... => zum nachschub abholen machen. Nachbestellen gern auch weiteres nicht nur das letzte! Außerdem was habe ich alles in area18, ggf. auch angeordnet je nachdem wie viel im bestand ist aber bei so vielen orten auch suchbar!... \nwenn man etwas falsch eingetragen hat oder es veraltet ist soll man es rausschmeißen können. \nBei ressourcen und co. sollte man auch qualitäten sheen können, aber zusammengefasst als z. B. Eisen, aber irgendwie sichtbar wie viel ich von welcher qualität ungefähr habe, gertn visuell diagramm mäßig dargestellt. \nGgf. brauchen wir auch einen übersichtsmodus und einen detailmodus...\nAußerdem aufzeigen was man verschrotten kann und wass nicht im craft fabrikator.\nNatürlich auch die ienztlenen gegenstände auf die wunschliste erneut bringen!\nWenn man etwas filtered oder sucht sollten passende alterniven angeboten werden, z. b. kein eisen? Eisen auf die wunschliste nehmen ujnd direkt in den nachschub brijngen oder so!? Oder hier hast du auch noch eisen, obwohhl du woanders gefiltert hast. \n10 Eisen von 15 scu sollten reeservierbar sein für einen sc freund angeboten nach dort wo man es hat, alles änderbar. Außerdem reservierungen irgendwo filterbar machen / anzteign können im bestand. \nZudem direkt nicht in wunschliste oder nachschub sondern als verkaufseinsatz ine ihnenim nachschub der geld bringt (keine entitäten physissch, sprich neue nachschub klasse) aufnehmen. Gern bei planenn neuer nachschub popup generell mitaufnehemen, dass man geld amchen will und dnacach nnicht aus der wunschliste sonsern aus dem bestand auswählt . \nEinträge ovn hand sollten sich natürlich immer an der letzten bekannten ort defualt ausgewählt sein. \nLege eiin issue an für vc app, dass man live im overla ysieht beim looten ob man das verschrotten kann was man einsammelt, gebrujachen kann etc."
+      },
+      "screens": {},
+      "views": {}
+    },
+    "annotations": [
+      {
+        "id": "r-a1",
+        "screen": "r-s1",
+        "design": "register",
+        "question": "Jeder Bereich hat sein Symbol: Kiste, Schiff, Vitrine. Der Titel wechselt mit („Inventar“ statt immer „Bestand“), darüber steht klein „Bestand › Inventar“. Eine Zahl steht nur dort, wo etwas liegt. Reicht dir das, um zu wissen, wo du bist?",
+        "answer": "sehr gut, aber bitte die exakt gleichen symbole nehmen wie in der suche etc."
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw8b7sgc64n5",
+        "design": "register",
+        "screen": "r-s1",
+        "x": 19.1,
+        "y": 19.6,
+        "target": "span.d0-chip \"Sonstiges2\"",
+        "text": "´das muss deterministischer sein, ich will immer wieder alle optionen sehen uzm filtern, das darf sich nicht ändern fü r nnur die die ich habe!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8bdjydcb5e",
+        "design": "register",
+        "screen": "r-s1",
+        "x": 25.8,
+        "y": 14,
+        "target": "path",
+        "text": "irgendwiei langweilig so...",
+        "attachments": []
+      }
+    ]
+  }
+]
