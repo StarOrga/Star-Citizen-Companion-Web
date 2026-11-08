@@ -2,10 +2,9 @@
 // learning spend). Separate from `_db.ts` so the job state machine's Db stays unchanged; wired
 // as `deps.learn` (index.ts: `learn: makeLearnDb(admin)`). Without it the learning step is a no-op.
 //
-// Spend: `translation_ledger.job_id` is NOT NULL (FK translation_jobs), and learning has no job.
-// Until a migration makes it nullable with a `kind`, learning spend is booked on the newest
-// translation job (so `monthCommitted` and the monthly cap see it) and the per-kind month total
-// (web research cap) is kept in R2 by the caller. No carrier job = no LLM spend at all.
+// Spend: job-less `translation_ledger` rows (job_id null) with `kind` + `lang`
+// (migration 20261108180000). `monthCommitted` sums every row, so the monthly cap sees all kinds;
+// the web-research cap sums kind='web' of the month.
 
 import type { GlossaryRow } from './_prompt.ts';
 import type { LearnedStyle } from './_style.ts';
@@ -80,9 +79,10 @@ export interface LearnDb {
   listAnsweredUnapplied(lang: string, limit: number): Promise<CardRow[]>;
   listOpenCards(lang: string, kinds: CardRow['kind'][], limit: number): Promise<CardRow[]>;
   updateCardContext(id: string, context: Record<string, unknown>): Promise<void>;
-  /** Books learning spend (see header); false when there is no carrier job. */
-  addLearnLedger(month: string, usd: number): Promise<boolean>;
-  hasLedgerCarrier(): Promise<boolean>;
+  /** Books learning spend as a job-less ledger row (see header). */
+  addLearnLedger(month: string, usd: number, kind: string, lang: string): Promise<void>;
+  /** Ledger sum of one kind in a month (web-research cap). */
+  monthKindSpent(month: string, kind: string): Promise<number>;
   /** Ledger sum of the month (all spend, the monthly cap's basis). */
   monthSpent(month: string): Promise<number>;
   listApprovedLangs(): Promise<string[]>;
@@ -197,20 +197,15 @@ export function makeLearnDb(sb: Client, now: () => Date = () => new Date()): Lea
       const { error } = await sb.from('translation_cards').update({ context }).eq('id', id);
       if (error) fail(error);
     },
-    async hasLedgerCarrier() {
-      const { data, error } = await sb.from('translation_jobs').select('id').order('created_at', { ascending: false }).limit(1);
+    async addLearnLedger(month, usd, kind, lang) {
+      if (!(usd > 0)) return;
+      const { error } = await sb.from('translation_ledger').insert({ job_id: null, month, usd, kind, lang });
       if (error) fail(error);
-      return !!(data ?? [])[0];
     },
-    async addLearnLedger(month, usd) {
-      if (!(usd > 0)) return true;
-      const { data, error } = await sb.from('translation_jobs').select('id').order('created_at', { ascending: false }).limit(1);
+    async monthKindSpent(month, kind) {
+      const { data, error } = await sb.from('translation_ledger').select('usd').eq('month', month).eq('kind', kind);
       if (error) fail(error);
-      const job = (data ?? [])[0] as { id: string } | undefined;
-      if (!job) return false;
-      const ins = await sb.from('translation_ledger').insert({ job_id: job.id, month, usd });
-      if (ins.error) fail(ins.error);
-      return true;
+      return ((data ?? []) as { usd: number }[]).reduce((a, r) => a + Number(r.usd), 0);
     },
     async monthSpent(month) {
       const { data, error } = await sb.from('translation_ledger').select('usd').eq('month', month);

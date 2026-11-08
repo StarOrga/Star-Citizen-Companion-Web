@@ -122,12 +122,14 @@ term alignment, web research) are Message Batches resumed by later ticks. Progre
 | `translation-work/learn-<lang>/notes.json` | admin card notes fed into prompts |
 | `translation-work/learn-<lang>/decided.json` | hashes an admin decided on a card (never overturned) |
 | `translation-work/learn-<lang>/judge-terms.json` | term corrections from the 5 % judge |
-| `translation-work/learn-spend/<month>.json` | learning / web-research spend per kind (web cap) |
+| `translation-work/learn-spend/<month>.json` | web-research **reservations** only (`web_reserved`), released when the batch is read |
 
-`translation_ledger.job_id` is NOT NULL, so learning spend is booked on the newest translation job of the
-language; the monthly cap therefore sees it. The web-research cap (`web_research_cap_usd`) is summed from
-`learn-spend/<month>.json` with a reservation at submit time. A cleaner ledger (`job_id` nullable plus a
-`kind` column) is a possible follow-up.
+Learning spend is booked in `translation_ledger` as job-less rows (`job_id` null, migration
+`20261108180000`) with `kind` (`learn | arbiter | align | haiku | web`; job rows keep `job`) and `lang`,
+when a batch's results are read. The monthly cap sums every ledger row of the month, all kinds. The
+web-research cap (`web_research_cap_usd`) is the ledger sum of `kind = 'web'` for the current month plus
+the open reservations in `learn-spend/<month>.json`, which stop two languages in one tick from both
+passing the cap.
 
 Wiring (index.ts): `deps.learn = makeLearnDb(admin)`, `deps.overlayMeta` (sources, attribution, game
 folder on every published overlay) and `deps.alerts` (B4 override alerts during delta estimating).

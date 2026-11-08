@@ -269,7 +269,7 @@ export async function arbitrate(deps: Deps, lang: string, conflicts: Conflict[])
 
   // 2. finished batch
   if (state.batch) {
-    const read = await readLearnBatch(d, state.batch.id, 'arbiter', settings.arbiter_model);
+    const read = await readLearnBatch(d, state.batch.id, 'arbiter', settings.arbiter_model, lang);
     if (read) {
       const items = state.batch.items;
       const fwd = judgements(read.results, 'f', items.length);

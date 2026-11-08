@@ -285,8 +285,8 @@ function fakeWorld({ en = {}, cig = {}, glossary = [], cards = [], settings = {}
     async listAnsweredUnapplied() { return cardRows.filter((c) => c.status === 'answered' && !c.context?.applied_at).map((c) => structuredClone(c)); },
     async listOpenCards(_l, kinds, limit) { return cardRows.filter((c) => c.status === 'open' && kinds.includes(c.kind)).slice(0, limit); },
     async updateCardContext(id, context) { cardRows.find((c) => c.id === id).context = context; },
-    async addLearnLedger(month, usd) { ledger.push({ month, usd }); return true; },
-    async hasLedgerCarrier() { return true; },
+    async addLearnLedger(month, usd, kind, lang) { ledger.push({ month, usd, kind, lang }); },
+    async monthKindSpent(month, kind) { return ledger.filter((r) => r.month === month && r.kind === kind).reduce((a, r) => a + r.usd, 0); },
     async monthSpent() { return ledger.reduce((a, r) => a + r.usd, 0); },
     async listApprovedLangs() { return ['de']; },
   };
@@ -403,8 +403,10 @@ describe('runLearning (end to end, fake batch)', () => {
     assert.equal(w.cardRows.filter((c) => c.status === 'open').length, 1);
     // C7: the open meta card got web research attached, its spend booked under the web cap.
     assert.match(w.cardRows[0].context.research.text, /Panzerung/);
-    const spend = w.files.get('translation-work/learn-spend/2026-11-01.json');
-    assert.ok(spend.web > 0.02 && spend.web_reserved === 0);
+    const web = w.ledger.filter((r) => r.kind === 'web');
+    assert.ok(web.length === 1 && web[0].usd > 0.02 && web[0].lang === 'de' && web[0].month === '2026-11-01');
+    assert.equal(w.files.get('translation-work/learn-spend/2026-11-01.json').web_reserved, 0);
+    assert.ok(w.ledger.every((r) => ['arbiter', 'align', 'haiku', 'web'].includes(r.kind) && r.lang === 'de'));
     // Only the haiku batch asked about Armor; later runs did not re-ask it.
     const asked = w.llm.batches.flatMap((b) => b.requests).filter((r) => r.custom_id === 'f0' && r.params.model === 'claude-haiku-5-5');
     assert.equal(asked.length, 1);
@@ -412,7 +414,7 @@ describe('runLearning (end to end, fake batch)', () => {
 
   it('web research never runs once the monthly web cap is reached', async () => {
     const w = fakeWorld({ en: { ui_a: 'Armor' }, cards: [{ ...termCard({ lang: 'de', source_term: 'Armor', a: { text: 'Panzerung', source: 'mined', votes: 6 }, b: { text: 'Rüstung', source: 'mined', votes: 4 }, spread: 6, sampleKeys: ['ui_a'], doubt: 1, fresh: false, why: 'y' }), id: 'c0', status: 'open' }], settings: { web_research_cap_usd: 1 } });
-    await w.deps.store.putJson('translation-work/learn-spend/2026-11-01.json', { web: 0.99 });
+    w.ledger.push({ month: '2026-11-01', usd: 0.99, kind: 'web', lang: 'fr' });
     const s = await runLearning(w.deps, 'de', 'backfill');
     assert.ok(s.blocked.includes('web:cap'));
     assert.equal(w.llm.batches.length, 0);

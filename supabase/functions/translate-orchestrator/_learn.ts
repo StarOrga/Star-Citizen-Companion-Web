@@ -575,21 +575,21 @@ export function alignRequests(lang: string, model: string, lines: AlignLine[]): 
 
 async function pollBatches(d: LearnDeps, lang: string, settings: LearnSettings, state: LearnState, sum: LearnSummary): Promise<void> {
   if (state.haiku) {
-    const read = await readLearnBatch(d, state.haiku.id, 'haiku', HAIKU_MODEL);
+    const read = await readLearnBatch(d, state.haiku.id, 'haiku', HAIKU_MODEL, lang);
     if (read) {
       sum.haiku = { submitted: 0, ...(await applyHaiku(d, lang, settings, state.haiku.items, read.results)) };
       state.haiku = null;
     }
   }
   if (state.align) {
-    const read = await readLearnBatch(d, state.align.id, 'align', settings.arbiter_model);
+    const read = await readLearnBatch(d, state.align.id, 'align', settings.arbiter_model, lang);
     if (read) {
       sum.align = { submitted: 0, rewritten: await applyAlign(d, lang, state.align.items, read.results, settings.arbiter_model) };
       state.align = null;
     }
   }
   if (state.web) {
-    const read = await readLearnBatch(d, state.web.id, 'web', WEB_MODEL);
+    const read = await readLearnBatch(d, state.web.id, 'web', WEB_MODEL, lang);
     if (read) {
       for (const it of state.web.items) await adjustKind(d.store, it.month, 'web_reserved', -it.est);
       let attached = 0;
@@ -690,7 +690,7 @@ async function applyAlign(
 async function submitWeb(d: LearnDeps, lang: string, settings: LearnSettings, state: LearnState, sum: LearnSummary): Promise<void> {
   if (!(settings.web_research_cap_usd > 0)) return;
   const month = monthOfDate(d.now());
-  const spent = (await monthKindSpend(d.store, month, 'web')) + (await monthKindSpend(d.store, month, 'web_reserved'));
+  const spent = (await d.learn.monthKindSpent(month, 'web')) + (await monthKindSpend(d.store, month, 'web_reserved'));
   const open = (await d.learn.listOpenCards(lang, ['meta', 'wording'], 20)).filter((c) => !(c.context as { research?: unknown })?.research);
   const top = open.slice(0, WEB_CARDS);
   if (!top.length) return;
@@ -725,7 +725,7 @@ Search the web (e.g. starcitizen.tools in ${name}, the RSI website, ${name} comm
   });
   const id = await submitLearnBatch(d, reqs);
   // Reserve the estimate now so two languages in one tick cannot both pass the cap; the real spend
-  // is booked (ledger + 'web' total) when the results are read, and the reservation released then.
+  // is booked (ledger row, kind 'web') when the results are read, and the reservation released then.
   await adjustKind(d.store, month, 'web_reserved', top.length * WEB_USD_PER_CARD);
   state.web = {
     id, submitted_at: d.now().toISOString(),

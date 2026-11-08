@@ -1,7 +1,7 @@
 // Message Batches for the learning step (arbiter, Haiku pre-decision, B1 align, web research).
 // Every LLM step is a batch whose id lives in an R2 work key, so a step started on one tick
 // is read on a later one. Spend is checked against the monthly cap BEFORE submitting and booked
-// in the ledger when the results are read (same rule as every job spend).
+// in the ledger (job-less rows with kind + lang) when the results are read.
 
 import { usageCostUsd } from './_cost.ts';
 import type { Store } from './_io.ts';
@@ -10,10 +10,13 @@ import type { BatchResult, Deps } from './_machine.ts';
 import type { BatchParams } from './_prompt.ts';
 
 export const learnKey = (lang: string, name: string) => `translation-work/learn-${lang}/${name}.json`;
-/** Month totals of learning spend per kind, across languages (web research cap). */
+/** Month totals of web-research RESERVATIONS (kind web_reserved) so two languages in one tick cannot both pass the cap. Real spend is in the ledger. */
 export const spendKey = (month: string) => `translation-work/learn-spend/${month}.json`;
 
 export const monthOfDate = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`;
+
+/** translation_ledger.kind of job-less learning rows. */
+export type LearnKind = 'learn' | 'arbiter' | 'align' | 'haiku' | 'web';
 
 export interface LearnBatch<T> {
   id: string;
@@ -31,7 +34,6 @@ export function hasLearn(deps: Deps): deps is LearnDeps {
 export async function spendBlock(deps: LearnDeps, settings: LearnSettings, estimateUsd: number): Promise<string | null> {
   if (!deps.llm) return 'no_api_key';
   if (!settings.enabled) return 'disabled';
-  if (!(await deps.learn.hasLedgerCarrier())) return 'no_ledger_carrier';
   const month = monthOfDate(deps.now());
   const committed = await deps.db.monthCommitted(month, '00000000-0000-0000-0000-000000000000');
   if (committed + estimateUsd > settings.monthly_cap_usd) return 'monthly_cap';
@@ -45,7 +47,7 @@ export async function submitLearnBatch(deps: LearnDeps, requests: { custom_id: s
 
 /** null while running; else the results by custom_id and the booked spend. */
 export async function readLearnBatch(
-  deps: LearnDeps, id: string, kind: string, defaultModel: string,
+  deps: LearnDeps, id: string, kind: LearnKind, defaultModel: string, lang: string,
 ): Promise<{ results: Map<string, BatchResult>; usd: number } | null> {
   if (!deps.llm) return null;
   if (!(await deps.llm.isEnded(id))) return null;
@@ -55,18 +57,13 @@ export async function readLearnBatch(
     results.set(r.custom_id, r);
     if (r.usage) usd += usageCostUsd(r.model ?? defaultModel, r.usage);
   }
-  await bookSpend(deps, kind, usd);
+  await bookSpend(deps, kind, usd, lang);
   return { results, usd };
 }
 
-export async function bookSpend(deps: LearnDeps, kind: string, usd: number): Promise<void> {
+export async function bookSpend(deps: LearnDeps, kind: LearnKind, usd: number, lang: string): Promise<void> {
   if (!(usd > 0)) return;
-  const month = monthOfDate(deps.now());
-  const usd6 = Math.round(usd * 1e6) / 1e6;
-  await deps.learn.addLearnLedger(month, usd6);
-  const cur = ((await deps.store.getJson(spendKey(month))) ?? {}) as Record<string, number>;
-  cur[kind] = Math.round(((cur[kind] ?? 0) + usd6) * 1e6) / 1e6;
-  await deps.store.putJson(spendKey(month), cur);
+  await deps.learn.addLearnLedger(monthOfDate(deps.now()), Math.round(usd * 1e6) / 1e6, kind, lang);
 }
 
 /** Adds delta (may be negative, floor 0) to a month's per-kind total — reservations for hard caps. */
