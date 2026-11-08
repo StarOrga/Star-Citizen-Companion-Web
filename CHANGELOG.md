@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.238.2] - 2026-11-08
+
+### Fixed
+- Codex index: the area tree always ends inside the visible screen (also embedded in /codex), the page keeps scrolling past its end, and a click on an open group like "Hersteller" folds it without leaving the area.
+
 ## [0.238.1] - 2026-11-08
 
 ### Changed
