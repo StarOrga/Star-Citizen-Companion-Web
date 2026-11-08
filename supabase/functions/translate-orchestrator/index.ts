@@ -171,6 +171,9 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     if (e instanceof TranslateError) return json({ error: e.key }, 409);
+    // Upstream fetch problems of a community source (not our bug): keep the key, 502.
+    const em = String((e as Error)?.message ?? '');
+    if (em.startsWith('translate.source_')) return json({ error: em }, 502);
     logError('translate-orchestrator failed', { op, error: String((e as Error)?.message ?? e) });
     return json({ error: 'translate.internal' }, 500);
   }
