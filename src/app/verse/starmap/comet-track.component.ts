@@ -4,6 +4,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { map } from 'rxjs';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
+import { currentPatchName } from '../data/patch-alias';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet } from '../data/verse.models';
 import { formatDay } from './star-dome.component';
@@ -29,11 +30,11 @@ const RIM_K = 0.32;
     @let c = comet();
     <div class="head">
       <span class="kind"><span class="comet" [class]="'comet s-' + c.state" aria-hidden="true"></span>{{ 'starmap.comet.kind' | translate }}</span>
-      <b>{{ headKey() | translate: { patch: patchLine(), date: day(c.tippedDate, true) } }}</b>
+      <b>{{ headKey() | translate: { patch: patchName(), date: day(c.tippedDate, true) } }}</b>
       <button type="button" class="info" [attr.aria-label]="'starmap.comet.ruleAria' | translate"
-              [scTooltip]="'starmap.comet.rule' | translate: { patch: patchLine() }">i</button>
-      <span class="state" [class.tip]="c.state === 'tipped'">
-        <i class="ring" [class.half]="c.state === 'tipped'" [class.done]="c.state === 'hit'" [class.closed]="c.state === 'miss' || (c.state === 'none' && c.locked)"></i>
+              [scTooltip]="'starmap.comet.rule' | translate: { patch: patchName() }">i</button>
+      <span class="state" [class.tip]="stateKey() === 'tipped'" [class.missed]="stateKey() === 'missed'">
+        <i class="ring" [class.half]="stateKey() === 'tipped'" [class.done]="c.state === 'hit'" [class.closed]="c.state === 'miss' || stateKey() === 'missed' || (c.state === 'none' && c.locked)"></i>
         {{ 'starmap.comet.state.' + stateKey() | translate }}
       </span>
     </div>
@@ -68,6 +69,8 @@ const RIM_K = 0.32;
     TRACK_STYLES,
     COMET_STYLES,
     `
+      .state.missed { color: color-mix(in srgb, var(--sc-warning) 60%, #fff); }
+      .state.missed .ring.closed { background: color-mix(in srgb, var(--sc-warning) 55%, transparent); }
       .tok.win { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--sc-warning) 70%, transparent); }
       .tok.on { border-color: color-mix(in srgb, var(--sc-warning) 60%, #fff); color: var(--sc-fg-0);
         background: linear-gradient(180deg, color-mix(in srgb, var(--sc-warning) 24%, transparent), color-mix(in srgb, var(--sc-bg-1) 60%, transparent)); }
@@ -89,6 +92,7 @@ export class CometTrackComponent {
     initialValue: this.t.getCurrentLang() || 'de',
   });
 
+  private readonly i18n = inject(TranslateService);
   readonly today = todayYmd();
   readonly rimK = RIM_K;
   readonly busy = signal(false);
@@ -101,12 +105,25 @@ export class CometTrackComponent {
   readonly canBack = computed(() => this.start() > addDays(this.today, 1));
   readonly curve = computed(() => railCurve(this.interactive() ? COMET_DAYS + 2 : COMET_DAYS, RIM_K, false));
 
+  /** The patch under its current name (CIG renames: 4.11 became 5.0), "formerly" appended when renamed. */
+  readonly patchName = computed(() => {
+    const line = this.patchLine();
+    const now = currentPatchName(line);
+    return now === line ? line : `${now} (${this.i18n.instant('starmap.comet.formerly', { patch: line })})`;
+  });
+  /** A tip whose day passed while the patch is still not LIVE was missed: the comet flew by, the patch did not come. */
+  readonly missed = computed(() => {
+    const c = this.comet();
+    return c.state === 'tipped' && c.tippedDate !== null && c.tippedDate < this.today;
+  });
   readonly stateKey = computed(() => {
     const c = this.comet();
+    if (this.missed()) return 'missed';
     return c.state === 'none' && c.locked ? 'locked' : c.state;
   });
   readonly headKey = computed(() => {
     const c = this.comet();
+    if (this.missed()) return 'starmap.comet.head.missed';
     if (c.state === 'none') return c.locked ? 'starmap.comet.head.closed' : 'starmap.comet.head.open';
     return `starmap.comet.head.${c.state}`;
   });
