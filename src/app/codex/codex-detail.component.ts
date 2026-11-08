@@ -11,6 +11,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
   OnInit,
   computed,
   effect,
@@ -1716,7 +1717,12 @@ export class CodexDetailComponent implements OnInit {
   protected readonly pathLevel = computed(() => (this.detail() ? pathLevelFor(this.navOrigin) : 'secondary'));
 
   // ── Item page (weapon, component, FPS gear): stage + panel with tabs, Codex and HQ variant ──
-  private readonly nachschub = inject(NachschubService);
+  /** Resolved only when the page was opened from the HQ: a Codex page does not build the Nachschub stores. */
+  private readonly lazyInjector = inject(Injector);
+  private nachschubSvc: NachschubService | null = null;
+  private get nachschub(): NachschubService {
+    return (this.nachschubSvc ??= this.lazyInjector.get(NachschubService));
+  }
   protected readonly nachschubIcon = NACHSCHUB_ICON_PATHS;
   /** Every kind but ships and missiles (those keep their own stages) gets the stage layout. */
   protected readonly itemStage = computed(() => !!this.detail() && this.kind() !== 'ship' && !this.isMissile());
@@ -1725,7 +1731,7 @@ export class CodexDetailComponent implements OnInit {
   protected readonly fromHq = computed(() => (this.navOrigin.previous()?.path ?? '').startsWith('/hq'));
   protected readonly holdingNachschub = computed(() => {
     const cls = this.detail()?.classNameSlug.toLowerCase();
-    if (!cls) return null;
+    if (!cls || !this.fromHq()) return null;
     return this.nachschub.active().find((n) => this.nachschub.linesOf(n.id).some((l) => (l.className ?? '').toLowerCase() === cls)) ?? null;
   });
   protected readonly itemTabs = computed(() => {
