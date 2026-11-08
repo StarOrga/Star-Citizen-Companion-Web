@@ -164,20 +164,27 @@ export function reusableShareLink(
   `,
   styles: [`
     :host { display: block; }
-    /* Opened from the holo stage as its popover: a real surface — background,
-       frame, shadow, a notch pointing at "Teilen" — never floating text over
-       the table. The stage adds the class and the enter/leave classes. */
+    /* Opened by the corner share FAB of a ship page (concept codex-kopf-besitz C9): a real surface
+       — background, frame, shadow, a notch pointing down at the FAB — above the launcher row, inside
+       the viewport. The page adds the class and the enter/leave classes. */
     :host(.share-popover) { --pop-line: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      position: absolute; top: calc(100% + 12px); inset-inline-end: -8px; z-index: 30; width: min(360px, calc(100vw - 32px));
-      max-height: min(70dvh, 560px); overflow-y: auto; overscroll-behavior: contain;
+      position: fixed; bottom: var(--sc-fab-clear-block, 96px); inset-inline-end: var(--sc-fab-clear-inline, 92px); z-index: 170;
+      width: min(var(--sc-ov-menu, 20rem), 100vw - 32px);
+      max-height: calc(100vh - var(--sc-fab-clear-block, 96px) - 32px);
+      max-height: calc(100dvh - var(--sc-fab-clear-block, 96px) - 32px); overflow-y: auto; overscroll-behavior: contain;
       padding: 12px 14px; border-radius: var(--holo-r); background: var(--sc-bg-1); border: 1px solid var(--pop-line);
-      box-shadow: 0 18px 48px rgb(0 0 0 / 0.55), 0 0 0 1px color-mix(in srgb, var(--sc-accent) 10%, transparent); transform-origin: calc(100% - 22px) -6px; }
-    :host(.share-popover)::before { content: ''; position: absolute; top: -6px; inset-inline-end: 18px; width: 10px; height: 10px; rotate: 45deg;
-      background: var(--sc-bg-1); border-top: 1px solid var(--pop-line); border-left: 1px solid var(--pop-line); }
+      box-shadow: 0 18px 48px rgb(0 0 0 / 0.55), 0 0 0 1px color-mix(in srgb, var(--sc-accent) 10%, transparent); transform-origin: calc(100% - 22px) 100%; }
+    @media (max-width: 720px) {
+      /* Phone: the launcher column stacks share, view toggle and beta; the popover opens above all
+         of them (the toast line), full width minus the margins. */
+      :host(.share-popover) { inset-inline: 16px; width: auto; bottom: var(--sc-toast-bottom, var(--sc-fab-clear-block, 96px));
+        max-height: calc(100dvh - var(--sc-toast-bottom, 96px) - 32px); }
+      :host(.share-popover)::before { display: none; }
+    }
     :host(.pop-enter) { animation: pop-in var(--holo-t-base) var(--holo-e-out); }
     :host(.pop-leave) { animation: pop-out var(--holo-t-fast) var(--holo-e-io) forwards; }
-    @keyframes pop-in { from { opacity: 0; transform: translateY(calc(-1 * var(--holo-rise))) scale(0.97); } }
-    @keyframes pop-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+    @keyframes pop-in { from { opacity: 0; transform: translateY(var(--holo-rise, 6px)) scale(0.97); } }
+    @keyframes pop-out { to { opacity: 0; transform: translateY(4px) scale(0.98); } }
     @media (prefers-reduced-motion: reduce) { :host(.pop-enter), :host(.pop-leave) { animation: none; } }
     .holo-share { display: flex; flex-direction: column; gap: 10px; min-width: 220px; }
     .share-row {

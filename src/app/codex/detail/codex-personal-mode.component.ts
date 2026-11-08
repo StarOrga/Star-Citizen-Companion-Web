@@ -32,6 +32,35 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(document:click)': 'onDocumentClick($event)' },
   template: `
+    @if (compact() && kind() === 'ship') {
+      <!-- Head strip (concept codex-kopf-besitz C2): one inline select "Variante a ▾"; the menu holds
+           Serie (Codex only) and every variant, each a real anchor - the same links as the segments. -->
+      <span class="mine-wrap">
+        <button type="button" class="isel" aria-haspopup="true" [attr.aria-expanded]="open()"
+                [attr.aria-label]="'codex.head.variantAria' | translate: { name: compactName() ?? ('codex.personal.stock' | translate) }"
+                (click)="toggle()" (keydown.escape)="close()">
+          <em>{{ 'codex.head.variant' | translate }}</em> {{ compactName() ?? ('codex.personal.stock' | translate) }}<span aria-hidden="true" class="caret">▾</span>
+        </button>
+        @if (open()) {
+          <ul class="menu" [attr.aria-label]="'codex.personal.variantsMenu' | translate" (keydown.escape)="close()">
+            @if (!hangarShipId()) {
+              <li>
+                <a class="item" [class.current]="!personal()" [attr.aria-current]="!personal() ? 'true' : null"
+                   [routerLink]="[]" [queryParams]="codexParams" queryParamsHandling="merge" (click)="close()">{{ 'codex.personal.stock' | translate }}</a>
+              </li>
+            }
+            @for (c of variants(); track c.id) {
+              <li>
+                <a class="item" [class.current]="personal() && c.id === activeVariantId()"
+                   [attr.aria-current]="personal() && c.id === activeVariantId() ? 'true' : null"
+                   [routerLink]="variantLink(c.id).commands" [queryParams]="variantLink(c.id).queryParams"
+                   queryParamsHandling="merge" (click)="close()">{{ c.name }}</a>
+              </li>
+            }
+          </ul>
+        }
+      </span>
+    } @else {
     <div class="mode" role="group" [attr.aria-label]="'codex.personal.switchGroup' | translate">
       @if (!hangarShipId()) {
         <a class="seg" [class.active]="!personal()" [attr.aria-current]="!personal() ? 'true' : null"
@@ -66,9 +95,16 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
            [routerLink]="[]" [queryParams]="mineParams" queryParamsHandling="merge">{{ 'codex.personal.mine' | translate }}</a>
       }
     </div>
+    }
   `,
   styles: [`
     :host { display: inline-flex; }
+    .isel { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 1px 7px 1px 8px; cursor: pointer;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); border-radius: 6px; background: transparent;
+      color: var(--sc-fg-0); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); white-space: nowrap; }
+    .isel em { font-style: normal; color: var(--sc-fg-2); }
+    .isel:hover, .isel[aria-expanded='true'] { border-color: var(--sc-accent); }
+    .isel:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
     .mode { display: inline-flex; border: 1px solid var(--sc-border); border-radius: 6px; background: var(--sc-bg-1); }
     .seg { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; border: 0;
       background: transparent; color: var(--sc-fg-1); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
@@ -85,7 +121,7 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
       color: var(--sc-fg-0); text-decoration: none; font-size: max(0.8rem, var(--sc-fs-floor)); }
     .item:hover { background: var(--sc-bg-2); }
     .item.current { color: var(--sc-accent); font-weight: 600; }
-    @media (pointer: coarse) { .seg { min-height: 48px; } .item { min-height: 48px; } }
+    @media (pointer: coarse) { .seg { min-height: 48px; } .item { min-height: 48px; } .isel { min-height: 40px; } }
   `],
 })
 export class CodexModeSwitchComponent {
@@ -103,6 +139,8 @@ export class CodexModeSwitchComponent {
    * reader's own copy there, so there is no "Serie" segment and the variant links stay on the HQ URL.
    */
   readonly hangarShipId = input<string | null>(null);
+  /** The head strip's inline select instead of the two segments (ships only). */
+  readonly compact = input(false);
 
   readonly open = signal(false);
   readonly codexParams = CODEX_MODE_PARAMS;
@@ -111,6 +149,13 @@ export class CodexModeSwitchComponent {
   readonly activeVariantName = computed(() => {
     const id = this.activeVariantId();
     return this.variants().find((c) => c.id === id)?.name ?? null;
+  });
+
+  /** What the compact select shows: the variant on the table, else the first variant (HQ); null = Serie. */
+  readonly compactName = computed<string | null>(() => {
+    if (this.personal() && this.activeVariantName()) return this.activeVariantName()!;
+    if (!this.hangarShipId()) return null;
+    return this.variants()[0]?.name ?? null;
   });
 
   /** A variant link drops every other loadout source, so the variant itself shows. */

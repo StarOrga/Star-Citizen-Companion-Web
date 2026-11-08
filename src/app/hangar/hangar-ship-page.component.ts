@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom, filter } from 'rxjs';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { BetaService } from '../core/beta.service';
@@ -42,7 +43,9 @@ export class HangarShipPageComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   private readonly ownership = inject(HqOwnershipService);
   private readonly auth = inject(AuthService);
-  private readonly shellBeta = inject(BetaService).isEnabled('shell');
+  private readonly beta = inject(BetaService);
+  private readonly shellBeta = this.beta.isEnabled('shell');
+  private readonly shellPending = toObservable(this.beta.isPending('shell'));
   private readonly destroyRef = inject(DestroyRef);
 
   /** The hangar ship this page shows (shell beta), once resolved. */
@@ -66,6 +69,10 @@ export class HangarShipPageComponent implements OnInit {
       void this.router.navigate([hqHangar], { replaceUrl: true });
       return;
     }
+    // The shell flag may still be in flight (PostHog): deciding now would read the default and bounce a
+    // beta reader through /codex/ship/...?mine= and back.
+    await firstValueFrom(this.shellPending.pipe(filter((pending) => !pending)));
+    if (id !== (this.route.snapshot.paramMap.get('id') ?? '')) return;
     const configs = this.ownership.configsForShip(ship.id);
     if (!this.shellBeta()) {
       const link = ownShipLink(ship, configs);

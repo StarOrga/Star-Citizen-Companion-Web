@@ -1,7 +1,11 @@
 import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
+import { Component } from '@angular/core';
+
+@Component({ standalone: true, template: '' })
+class BlankPage {}
 import { provideTranslateService } from '@ngx-translate/core';
 import { HQ_TABS, HqShellComponent } from './hq-shell.component';
 import { HqOpsComponent } from './hq-ops.component';
@@ -10,7 +14,7 @@ describe('HqShellComponent', () => {
   function setup() {
     TestBed.configureTestingModule({
       imports: [HqShellComponent],
-      providers: [ { provide: ItemPathService, useValue: fakeItemPath() },provideRouter([]), provideTranslateService({ fallbackLang: 'en' })],
+      providers: [ { provide: ItemPathService, useValue: fakeItemPath() },provideRouter([{ path: '**', component: BlankPage }]), provideTranslateService({ fallbackLang: 'en' })],
     });
     const fixture = TestBed.createComponent(HqShellComponent);
     fixture.detectChanges();
@@ -32,6 +36,22 @@ describe('HqShellComponent', () => {
     expect(link.getAttribute('href')).toBe('/hq#planen');
     // The old popup is retired here: Nachschub is the slots of Planen.
     expect(el.querySelector('sc-hq-supplies-popup')).toBeNull();
+  });
+
+  it('drops the Nachschub link on a hangar ship page only (concept codex-kopf-besitz C6)', async () => {
+    const fixture = setup();
+    const router = TestBed.inject(Router);
+    const el: HTMLElement = fixture.nativeElement;
+    await router.navigateByUrl('/hq/hangar/sh1?v=c1');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.onShipPage()).toBeTrue();
+    expect(el.querySelector('a.supplies-btn')).toBeNull();
+    await router.navigateByUrl('/hq/hangar/import');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.onShipPage()).toBeFalse();
+    await router.navigateByUrl('/hq/hangar');
+    fixture.detectChanges();
+    expect(el.querySelector('a.supplies-btn')).not.toBeNull();
   });
 });
 

@@ -2,6 +2,9 @@
 // SEPARATE file from codex-detail.component.spec.ts on purpose: that file
 // "must stay green untouched" (no edits), so this one owns the new
 // assertions instead, reusing the same Nomad fixture/stub shape.
+import { HqItemMarksService } from '../hq/data/hq-item-marks.service';
+import { fakeItemMarks } from '../hq/data/hq-item-marks.testing';
+import { PageCornerService } from '../shell/corners/page-corner.service';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
@@ -137,7 +140,7 @@ async function setup(queryParams: Record<string, string> = {}): Promise<Componen
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
-      { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: ItemPathService, useValue: fakeItemPath() }, { provide: HqItemMarksService, useValue: fakeItemMarks() },
       provideTranslateService({}),
       { provide: CodexService, useValue: makeCodexServiceStub() },
       {
@@ -235,13 +238,20 @@ describe('CodexDetailComponent — Holotable / classic view toggle', () => {
     expect(navigate).toHaveBeenCalledWith(['/codex', 'ship', 'aegs_gladius'], { queryParams: {} });
   });
 
-  it('renders the classic masthead and the view switch when ?view=classic', async () => {
+  it('renders the classic masthead with the head strip, the view switch lives in the corner FAB when ?view=classic', async () => {
     const fixture = await setup({ view: 'classic' });
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.m-top')).toBeTruthy();
     expect(el.querySelector('sc-codex-holo-stage')).toBeFalsy();
-    expect(el.querySelectorAll('.holo-toggle .ht-btn').length).toBe(2);
+    expect(el.querySelector('.holo-toggle')).withContext('no Klassisch | Holotisch segment in the head').toBeNull();
+    expect(el.querySelector('.c-head .sc-head-strip sc-codex-own-segment')).withContext('strip on the classic title row (F1)').toBeTruthy();
+    expect(el.querySelector('.m-side sc-codex-own-card')).withContext('ownership card on top of the side column').toBeTruthy();
+    const corner = TestBed.inject(PageCornerService);
+    expect(corner.view()?.holo()).toBeFalse();
+    corner.view()!.toggle();
+    expect(fixture.componentInstance.holoView()).withContext('the FAB toggles exactly like the old segment').toBeTrue();
+    expect(corner.share()?.url()).toBe(location.href);
   });
 
   it('a hull counts as "seen" only once the stage reported its arrival (wave 5 A3.1)', async () => {

@@ -1,3 +1,6 @@
+import { PageCornerService } from '../shell/corners/page-corner.service';
+import { HqItemMarksService } from '../hq/data/hq-item-marks.service';
+import { fakeItemMarks } from '../hq/data/hq-item-marks.testing';
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { NachschubService } from '../hq/nachschub/nachschub.service';
@@ -194,7 +197,7 @@ function configureSetup(
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
-      { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: ItemPathService, useValue: fakeItemPath() }, { provide: HqItemMarksService, useValue: fakeItemMarks() },
       { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(payload), ...svc } },
@@ -769,7 +772,7 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
     providers: [
       provideNoShipBlueprints(),
       provideRouter([]),
-      { provide: ItemPathService, useValue: fakeItemPath() },
+      { provide: ItemPathService, useValue: fakeItemPath() }, { provide: HqItemMarksService, useValue: fakeItemMarks() },
       { provide: NachschubService, useValue: { active: () => [], linesOf: () => [], ensureLoaded: async () => undefined } },
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(NOMAD_PAYLOAD), ...opts.svc } },
@@ -1243,51 +1246,56 @@ describe('CodexDetailComponent — rank scope default per view', () => {
   }));
 });
 
-describe('CodexDetailComponent — Holotable copy link', () => {
-  let fixture: ComponentFixture<CodexDetailComponent>;
+describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz C9)', () => {
   beforeEach(() => configureCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } }));
 
-  function openShareCopy(): HTMLButtonElement {
-    fixture = renderOnFakeClock();
+  it('the stage toolbar has no Teilen; the corner share FAB gets the whole view URL', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
-    const share = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).find((b) =>
-      (b.textContent ?? '').includes('codex.holo.stage.viewShare'),
-    );
-    expect(share).withContext('share button rendered').toBeDefined();
-    share!.click();
-    fixture.detectChanges();
-    const copy = el.querySelector('.link-copy') as HTMLButtonElement;
-    expect(copy).withContext('copy row rendered').not.toBeNull();
-    return copy;
-  }
-
-  it('confirms for two seconds after the URL reached the clipboard', fakeAsync(() => {
-    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
-    const copy = openShareCopy();
-    expect(copy.classList).not.toContain('done');
-
-    copy.click();
-    flushMicrotasks();
-    fixture.detectChanges();
-    expect(write).toHaveBeenCalledOnceWith(location.href);
-    expect(copy.classList).toContain('done');
-    expect(copy.textContent).toContain('codex.holo.share.copied');
-
-    tick(1999);
-    fixture.detectChanges();
-    expect(copy.classList).withContext('still confirmed just before 2 s').toContain('done');
-    tick(1);
-    fixture.detectChanges();
-    expect(copy.classList).not.toContain('done');
+    const tools = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).map((b) => b.textContent ?? '');
+    expect(tools.length).withContext('3D / Schema still there').toBeGreaterThan(0);
+    expect(tools.some((t) => t.includes('Teilen') || t.includes('↗'))).toBeFalse();
+    expect(el.querySelector('sc-codex-holo-share')).toBeNull();
+    expect(TestBed.inject(PageCornerService).share()?.url()).toBe(location.href);
+    fixture.destroy();
+    expect(TestBed.inject(PageCornerService).share()).withContext('released with the page').toBeNull();
+    expect(TestBed.inject(PageCornerService).view()).toBeNull();
   }));
 
-  it('confirms nothing when the browser denies the clipboard', fakeAsync(() => {
-    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
-    const copy = openShareCopy();
-    copy.click();
-    flushMicrotasks();
+  it('the share FAB opens the page popover: plain link + save & share (#645), Escape closes it (F3)', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
+    const corner = TestBed.inject(PageCornerService);
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    try {
+      corner.share()!.open!(trigger);
+      fixture.detectChanges();
+      tick();
+      const pop = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.ship-share-pop');
+      expect(pop).withContext('popover rendered').not.toBeNull();
+      expect(pop!.getAttribute('role')).toBe('dialog');
+      expect(pop!.querySelector('.link-copy')).withContext('plain link of this view').not.toBeNull();
+      expect(corner.share()!.expanded!()).toBeTrue();
+      pop!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+      tick();
+      expect(fixture.componentInstance.sharePopoverOpen()).toBeFalse();
+    } finally {
+      trigger.remove();
+      fixture.destroy();
+    }
+  }));
+
+  it('no primary path panel on the page: Wo zu kaufen keeps a compact secondary wish control (F2)', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('sc-item-path.ip-primary')).toBeNull();
+    fixture.componentInstance.holoView.set(false);
     fixture.detectChanges();
-    expect(copy.classList).not.toContain('done');
+    expect(el.querySelector('.c-head h1')).withContext('classic title in the head row (F1)').not.toBeNull();
+    expect(el.querySelector('.c-head .sc-head-strip')).not.toBeNull();
+    expect(el.querySelectorAll('h1').length).toBe(1);
+    fixture.destroy();
   }));
 });
 
@@ -1411,25 +1419,26 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       return renderOnFakeClock();
     }
 
-    it('shows in the Holotable for an own ship, not on the classic page, not for a foreign ship', fakeAsync(() => {
+    it('the ownership card sits on top of the Holotable panel and the classic side column, never in the head', fakeAsync(() => {
       const fixture = ownFixture();
       const cmp = fixture.componentInstance;
       const el: HTMLElement = fixture.nativeElement;
-      expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull(); // codex mode: not the reader's variant
-      cmp.activeVariantId.set('cfg-1');
-      fixture.detectChanges();
-      expect(el.querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+      expect(el.querySelector('.holo-panel sc-codex-own-card')).not.toBeNull();
+      expect(el.querySelector('.holo-topbar sc-codex-own-ship-actions')).withContext('the icon row left the head').toBeNull();
+      expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-own-segment')).not.toBeNull();
       cmp.holoView.set(false);
       fixture.detectChanges();
-      expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
+      expect(el.querySelector('.m-side sc-codex-own-card')).not.toBeNull();
+      expect(el.querySelector('sc-item-path[level]')?.closest('.crumb-aside')).withContext('no path panel in the head').toBeFalsy();
     }));
 
-    it('shows for an own ship opened with ?mine and no variant (hangar list link)', fakeAsync(() => {
+    it('has no data pill in the head for anyone (C3)', fakeAsync(() => {
       const fixture = ownFixture();
-      const cmp = fixture.componentInstance;
-      cmp.mineFlag.set(true);
+      fixture.componentInstance.holoView.set(false);
       fixture.detectChanges();
-      expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.data-pill')).toBeNull();
+      expect(el.querySelector('.crumb-aside .prov')).toBeNull();
     }));
   });
 });
@@ -1506,7 +1515,6 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
     const el: HTMLElement = fixture.nativeElement;
     expect(cmp.showModeSwitch()).toBeFalse();
     expect(el.querySelector('sc-codex-mode-switch')).toBeNull();
-    expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
   }));
 
   it('without the shell beta the Codex keeps its personal ?v= mode', fakeAsync(() => {
@@ -1525,7 +1533,8 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
       expect(cmp.hqHosted()).toBeTrue();
       expect(cmp.kind()).toBe('ship');
       expect(cmp.personalMode()).withContext('?v= on the HQ URL opens the variant').toBeTrue();
-      expect(el.querySelector('sc-codex-own-ship-actions')).not.toBeNull();
+      expect(el.querySelector('sc-codex-own-card sc-codex-own-ship-actions')).withContext('rename / note / pin / remove in the card').not.toBeNull();
+      expect(el.querySelector('.sc-head-strip sc-codex-mode-switch')).withContext('variant select in the head strip').not.toBeNull();
       expect(cmp.showModeSwitch()).toBeTrue();
       expect(cmp.crumbs().map((c) => c.link)).toEqual(['/hq', '/hq/hangar']);
     }));

@@ -901,7 +901,6 @@
         "surfaceSide": "Side view",
         "surfaceFront": "Front view",
         "surfaceFrontPending": "The front view arrives with this ship's next data upload.",
-        "viewShare": "Share",
         "silhouetteAria": "Silhouette of {{name}}",
         "noGeometryReason": "No silhouette has been generated for this ship yet.",
         "inspector": "Inspector",
@@ -1486,8 +1485,6 @@
       "stageTractorBeam": "Tractor beam",
       "stageTractorBeams": "Tractor beams",
       "linkCopied": "Link copied",
-      "dataPill": "DATA {{build}} · schema {{n}}",
-      "dataPillPending": "Re-extract pending",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analysis",
       "columnFixed": "Airframe & Fixed Systems",
@@ -2571,6 +2568,56 @@
         "longRange": "In the longest-ranged quarter of its kind.",
         "quickLock": "In the quickest-locking quarter of its kind."
       }
+    },
+    "head": {
+      "stripAria": "Patch and ownership",
+      "patch": "Patch",
+      "variant": "Variant",
+      "variantAria": "Choose a variant, now: {{name}}",
+      "own": {
+        "hangar": "In hangar",
+        "inventar": "In inventory · {{n}}×",
+        "sammlung": "In collection"
+      },
+      "notOwn": {
+        "hangar": "Not in hangar",
+        "inventar": "Not in inventory",
+        "sammlung": "Not in collection"
+      }
+    },
+    "ownCard": {
+      "haveTitle": "Got it?",
+      "mineShip": "Your copy",
+      "mineItem": "Your stock",
+      "mineBlueprint": "Your blueprint",
+      "collected": "In your collection",
+      "removeSammlung": "Remove from collection",
+      "removeSammlungTitle": "Remove from collection?",
+      "removeSammlungBody": "{{name}} leaves your collection.",
+      "noneShip": "Not in your hangar, not on your wishlist.",
+      "noneItem": "Not in your inventory, not on your wishlist.",
+      "noneSammlung": "Not in your collection, not on your wishlist.",
+      "wished": "{{n}}× on your wishlist.",
+      "signedOut": "Sign in to wish for it or mark it as yours.",
+      "signIn": "Sign in",
+      "toWishlist": "Wishlist",
+      "toHangar": "Hangar",
+      "toInventar": "Inventory",
+      "toSammlung": "Collection",
+      "openWishlist": "Open wishlist",
+      "wishQtyAria": "Quantity on the wishlist: {{name}}",
+      "qtyAria": "Quantity in the inventory: {{name}}",
+      "less": "One less",
+      "more": "One more",
+      "inInventar": "in inventory",
+      "removeItem": "Remove from inventory",
+      "removeTitle": "Remove from inventory?",
+      "removeBody": "{{n}}× {{name}} leaves every place in your inventory.",
+      "removeConfirm": "Remove",
+      "inNachschub": "In supply “{{name}}”",
+      "showInHq": "Show in HQ",
+      "noteTitle": "Note on this item",
+      "wishAgain": "Wish for another"
     }
   },
   "blueprint": {
@@ -7959,5 +8006,14 @@
     },
     "pick": "Pick an event on the left.",
     "badJson": "The value is not valid JSON."
+  },
+  "corner": {
+    "view": {
+      "toHolo": "Switch to the Holotable",
+      "toClassic": "Switch to the classic view"
+    },
+    "share": {
+      "popAria": "Share"
+    }
   }
 }

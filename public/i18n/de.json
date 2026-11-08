@@ -901,7 +901,6 @@
         "surfaceSide": "Seitensicht",
         "surfaceFront": "Frontsicht",
         "surfaceFrontPending": "Die Frontsicht kommt mit dem nächsten Daten-Upload dieses Schiffs.",
-        "viewShare": "Teilen",
         "silhouetteAria": "Silhouette von {{name}}",
         "noGeometryReason": "Für dieses Schiff liegt noch keine Silhouette vor.",
         "inspector": "Inspektor",
@@ -1486,8 +1485,6 @@
       "stageTractorBeam": "Traktorstrahl",
       "stageTractorBeams": "Traktorstrahlen",
       "linkCopied": "Link kopiert",
-      "dataPill": "DATEN {{build}} · schema {{n}}",
-      "dataPillPending": "Re-Extract ausstehend",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analyse",
       "columnFixed": "Zelle & feste Systeme",
@@ -2571,6 +2568,56 @@
         "longRange": "Im reichweitenstärksten Viertel ihrer Art.",
         "quickLock": "Im schnellsten Viertel ihrer Art beim Aufschalten."
       }
+    },
+    "head": {
+      "stripAria": "Patch und Besitz",
+      "patch": "Patch",
+      "variant": "Variante",
+      "variantAria": "Variante wählen, gerade: {{name}}",
+      "own": {
+        "hangar": "Im Hangar",
+        "inventar": "Im Inventar · {{n}}×",
+        "sammlung": "In der Sammlung"
+      },
+      "notOwn": {
+        "hangar": "Nicht im Hangar",
+        "inventar": "Nicht im Inventar",
+        "sammlung": "Nicht in der Sammlung"
+      }
+    },
+    "ownCard": {
+      "haveTitle": "Haben?",
+      "mineShip": "Dein Exemplar",
+      "mineItem": "Dein Bestand",
+      "mineBlueprint": "Deine Blaupause",
+      "collected": "In deiner Sammlung",
+      "removeSammlung": "Aus der Sammlung entfernen",
+      "removeSammlungTitle": "Aus der Sammlung entfernen?",
+      "removeSammlungBody": "{{name}} verlässt deine Sammlung.",
+      "noneShip": "Nicht in deinem Hangar, nicht auf der Wunschliste.",
+      "noneItem": "Nicht in deinem Inventar, nicht auf der Wunschliste.",
+      "noneSammlung": "Nicht in deiner Sammlung, nicht auf der Wunschliste.",
+      "wished": "{{n}}× auf deiner Wunschliste.",
+      "signedOut": "Melde dich an, um es dir zu wünschen oder als deins einzutragen.",
+      "signIn": "Anmelden",
+      "toWishlist": "Wunschliste",
+      "toHangar": "Hangar",
+      "toInventar": "Inventar",
+      "toSammlung": "Sammlung",
+      "openWishlist": "Wunschliste öffnen",
+      "wishQtyAria": "Menge auf der Wunschliste: {{name}}",
+      "qtyAria": "Menge im Inventar: {{name}}",
+      "less": "Eins weniger",
+      "more": "Eins mehr",
+      "inInventar": "im Inventar",
+      "removeItem": "Aus dem Inventar entfernen",
+      "removeTitle": "Aus dem Inventar entfernen?",
+      "removeBody": "{{n}}× {{name}} verlässt jeden Ort in deinem Inventar.",
+      "removeConfirm": "Entfernen",
+      "inNachschub": "Im Nachschub „{{name}}“",
+      "showInHq": "Im HQ zeigen",
+      "noteTitle": "Notiz zu diesem Gegenstand",
+      "wishAgain": "Noch eins wünschen"
     }
   },
   "blueprint": {
@@ -7959,5 +8006,14 @@
     },
     "pick": "Wähle links ein Event.",
     "badJson": "Der Wert ist kein gültiges JSON."
+  },
+  "corner": {
+    "view": {
+      "toHolo": "Zum Holotisch wechseln",
+      "toClassic": "Zur klassischen Ansicht wechseln"
+    },
+    "share": {
+      "popAria": "Teilen"
+    }
   }
 }
