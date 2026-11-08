@@ -9,6 +9,7 @@ import { BetaService } from './core/beta.service';
 import { PRELOAD_ROUTE_DATA } from './core/idle-preloading.strategy';
 import { shellBetaOn } from './core/layout/shell-beta.guard';
 import { hqPageHref } from './hq/hq-routes';
+import { CODEX_MORE_ANCHOR } from './codex/codex-more-anchor';
 
 // Guard policy (access-control design, 2026-08-05, supersedes #131): the app
 // is now a login wall by default — fail closed. `canActivateChild` on the
@@ -187,11 +188,13 @@ export const routes: Routes = [
         // reachable one click from the Bridge. Static segment placed BEFORE
         // codex/:kind/:className so it is never consumed by the :kind wildcard.
         // "Mehr in Codex": the lower part of the Codex page (landing on top, this
-        // overview under it) — the same page, opened scrolled down. Filters in the query.
+        // overview under it). Admin feedback #319: the page has ONE url — the lower
+        // part is the anchor /codex#more, like the Verse hub under its stage. The old
+        // links (kind segments, search "more", crumbs) land there, filters kept.
         path: 'codex/index',
-        data: { layout: 'cinematic', [PRELOAD_ROUTE_DATA]: true, codexPart: 'more' },
-        loadComponent: () =>
-          import('./codex/codex-page.component').then((m) => m.CodexPageComponent),
+        pathMatch: 'full',
+        redirectTo: ({ queryParams }) =>
+          inject(Router).createUrlTree(['/codex'], { queryParams, fragment: CODEX_MORE_ANCHOR }),
       },
       {
         // Mission (contract) page — target of the global search's mission group.

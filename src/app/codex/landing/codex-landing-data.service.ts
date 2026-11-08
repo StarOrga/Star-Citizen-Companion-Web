@@ -548,7 +548,11 @@ export class CodexLandingDataService {
     const categories = await Promise.all(
       LANDING_CATEGORIES.map(async (category): Promise<LandingCodexCategory> => {
         try {
-          const { fresh, updated } = await this.pool(category);
+          // One quiet retry, as for the rotation: the catalog read is heavy, and an odd
+          // timeout used to empty the category here while the rotation recovered (#318).
+          const { fresh, updated } = await this.pool(category).catch(
+            () => new Promise<void>((r) => setTimeout(r, 700)).then(() => this.pool(category)),
+          );
           const ready: LandingCodexEntry[] = fresh.map((r) => ({
             id: r.classNameSlug,
             name: r.nameLocalized ?? r.classNameSlug,
