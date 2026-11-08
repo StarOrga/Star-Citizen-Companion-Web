@@ -101,36 +101,36 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
     return Array.from(el.querySelectorAll<HTMLElement>('.dropdown-item'));
   }
 
-  it('marks every "view as" target with the hot-accent class', () => {
+  it('marks every "view as" target with the copper (collab) class', () => {
     const el = setup({ targets: ['collaborator', 'viewer', 'anon'], active: false, admin: true });
 
     const targets = items(el).filter((b) => /nav\.viewAs\.(collaborator|viewer|anon)/.test(b.textContent ?? ''));
 
     expect(targets.length).toBe(3);
     for (const entry of targets) {
-      expect(entry.classList).withContext(entry.textContent ?? '').toContain('elevated');
+      expect(entry.classList).withContext(entry.textContent ?? '').toContain('collab');
     }
   });
 
   it('marks the group header red AND states the restriction in words', () => {
     const el = setup({ targets: ['viewer', 'anon'], active: false, admin: false });
 
-    const sep = el.querySelector('.dropdown-sep.elevated');
+    const sep = el.querySelector('.dropdown-sep.collab');
 
-    expect(sep).withContext('the "Ansehen als" separator must carry .elevated').toBeTruthy();
+    expect(sep).withContext('the "Ansehen als" separator must carry .collab').toBeTruthy();
     expect(sep!.textContent).toContain('nav.viewAs.title');
-    // Colour never carries the meaning on its own.
-    expect(sep!.querySelector('.sep-tag')?.textContent).toContain('nav.viewAs.restricted');
+    // Colour carries the meaning visually; the words stay as sr-only text.
+    expect(sep!.querySelector('.sc-sr-only')?.textContent).toContain('nav.viewAs.restricted');
   });
 
-  it('keeps the exit inside the red group - it is an elevated control too', () => {
+  it('keeps the exit inside the copper group - it is an elevated control too', () => {
     const el = setup({ targets: [], active: true, admin: true });
 
     const exit = items(el).find((b) => (b.textContent ?? '').includes('nav.viewAs.exit'));
 
     expect(exit).toBeTruthy();
-    expect(exit!.classList).toContain('elevated');
-    expect(el.querySelector('.dropdown-sep.elevated')).toBeTruthy();
+    expect(exit!.classList).toContain('collab');
+    expect(el.querySelector('.dropdown-sep.collab')).toBeTruthy();
   });
 
   it('marks the admin-only API-tokens entry red and labels it', () => {
@@ -140,7 +140,7 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
 
     expect(tokens).toBeTruthy();
     expect(tokens!.classList).toContain('elevated');
-    expect(tokens!.querySelector('.di-tag')?.textContent).toContain('nav.adminOnly');
+    expect(tokens!.querySelector('.sc-sr-only')?.textContent).toContain('nav.adminOnly');
   });
 
   it('leaves the entries every signed-in user may use in the normal accent', () => {
@@ -159,7 +159,7 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
   it('shows no elevated surface at all for a plain viewer', () => {
     const el = setup({ targets: [], active: false, admin: false });
 
-    expect(el.querySelector('.dropdown-sep.elevated')).toBeNull();
+    expect(el.querySelector('.dropdown-sep.collab')).toBeNull();
     expect(el.querySelector('.dropdown-item.elevated')).toBeNull();
   });
 });

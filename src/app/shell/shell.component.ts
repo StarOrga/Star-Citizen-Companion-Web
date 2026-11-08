@@ -194,17 +194,17 @@ import { avatarUrlOf } from './avatar-url';
                 <a class="dropdown-item elevated" role="menuitem" routerLink="/admin"
                    (click)="onAdminMenuNavigate($event)">
                   <span class="di-label">{{ 'nav.admin' | translate }}</span>
-                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                  <span class="sc-sr-only">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
                 <a class="dropdown-item elevated" role="menuitem" routerLink="/admin/telemetry"
                    (click)="onAdminMenuNavigate($event)">
                   <span class="di-label">{{ 'nav.telemetry' | translate }}</span>
-                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                  <span class="sc-sr-only">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
                 <a class="dropdown-item elevated" role="menuitem" routerLink="/admin/translations"
                    (click)="onAdminMenuNavigate($event)">
                   <span class="di-label">{{ 'nav.translations' | translate }}</span>
-                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                  <span class="sc-sr-only">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
               </div>
             }
@@ -337,7 +337,7 @@ import { avatarUrlOf } from './avatar-url';
                   [routerLink]="adminHub"
                   (click)="onMenuNavigate($event)">
                   <span class="di-label">{{ 'nav.adminMenu' | translate }}</span>
-                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                  <span class="sc-sr-only">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
               }
               @if (roles.isAdmin()) {
@@ -352,7 +352,7 @@ import { avatarUrlOf } from './avatar-url';
                   routerLink="/admin/api-tokens"
                   (click)="onMenuNavigate($event)">
                   <span class="di-label">{{ 'admin.tokens.navLink' | translate }}</span>
-                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                  <span class="sc-sr-only">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
               }
 
@@ -368,14 +368,14 @@ import { avatarUrlOf } from './avatar-url';
                      The separator is a plain div, deliberately not a
                      .dropdown-item, so the roving ArrowUp/ArrowDown focus in
                      onMenuKeydown() skips over it. -->
-                <div class="dropdown-sep elevated" role="separator">
+                <div class="dropdown-sep collab" role="separator">
                   <span>{{ 'nav.viewAs.title' | translate }}</span>
-                  <span class="sep-tag">{{ 'nav.viewAs.restricted' | translate }}</span>
+                  <span class="sc-sr-only">{{ 'nav.viewAs.restricted' | translate }}</span>
                 </div>
                 @for (target of imp.targets(); track target) {
                   <button
                     type="button"
-                    class="dropdown-item elevated"
+                    class="dropdown-item collab"
                     role="menuitem"
                     (click)="enterViewAs(target)">
                     {{ ('nav.viewAs.' + target) | translate }}
@@ -393,9 +393,9 @@ import { avatarUrlOf } from './avatar-url';
                      preview (a real target role never sees it), but a single
                      "back to my role" item is not a fidelity leak: a real
                      viewer/collaborator is never in a preview, so never sees it. -->
-                <div class="dropdown-sep elevated" role="separator">
+                <div class="dropdown-sep collab" role="separator">
                   <span>{{ 'nav.viewAs.title' | translate }}</span>
-                  <span class="sep-tag">{{ 'nav.viewAs.restricted' | translate }}</span>
+                  <span class="sc-sr-only">{{ 'nav.viewAs.restricted' | translate }}</span>
                 </div>
                 <!-- The way OUT of a preview stays inside the red group: it is
                      itself a control only an elevated account can ever reach (a
@@ -405,7 +405,7 @@ import { avatarUrlOf } from './avatar-url';
                      reserved for destructive actions. -->
                 <button
                   type="button"
-                  class="dropdown-item elevated"
+                  class="dropdown-item collab"
                   role="menuitem"
                   (click)="exitViewAs()">
                   {{ 'nav.viewAs.exit' | translate }}
@@ -802,11 +802,13 @@ import { avatarUrlOf } from './avatar-url';
     }
     .avatar-badge { position: absolute; top: -4px; right: -6px; z-index: 1; pointer-events: none; }
     .dropdown-item.elevated .di-label { flex: 1 1 auto; }
-    .dropdown-item.elevated .di-tag {
-      font-size: max(0.62rem, var(--sc-fs-floor));
-      letter-spacing: 0.08em;
-      opacity: 0.8;
-      white-space: nowrap;
+    /* Admin + collaborator surfaces (not a viewer): the muted copper accent. */
+    .dropdown-item.collab,
+    .dropdown-item.collab:hover:not(:disabled),
+    .dropdown-item.collab:focus-visible { color: var(--sc-accent-collab); }
+    .dropdown-item.collab:hover:not(:disabled),
+    .dropdown-item.collab:focus-visible {
+      background: color-mix(in srgb, var(--sc-accent-collab) 12%, transparent);
     }
     /* Deliberately not .dropdown-item — kept out of onMenuKeydown()'s
        ArrowUp/ArrowDown roving-focus query. */
@@ -831,10 +833,9 @@ import { avatarUrlOf } from './avatar-url';
       color: var(--sc-accent-hot);
       border-top-color: color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border));
     }
-    .dropdown-sep.elevated .sep-tag {
-      font-size: max(0.6rem, var(--sc-fs-floor));
-      letter-spacing: 0.08em;
-      opacity: 0.85;
+    .dropdown-sep.collab {
+      color: var(--sc-accent-collab);
+      border-top-color: color-mix(in srgb, var(--sc-accent-collab) 45%, var(--sc-border));
     }
     /* C1: groups "Abmelden" apart from everything above it (settings /
        integrations / view-as). Plain <hr>, matching .dropdown-sep's border

@@ -52,7 +52,8 @@ describe('route layout coverage (data.layout)', () => {
     expect(byUrl.get('/verse')).toBe('cinematic');
     expect(byUrl.get('/verse/explorer')).toBe('cinematic');
     expect(byUrl.get('/codex')).toBe('cinematic');
-    expect(byUrl.get('/codex/index')).toBe('tool');
+    // /codex/index is the lower half of the one Codex page ("Mehr in Codex", like Mehr im Verse).
+    expect(byUrl.get('/codex/index')).toBe('cinematic');
     expect(byUrl.get('/codex/:kind/:className')).toBe('content');
     expect(byUrl.get('/hq/hangar')).toBe('tool');
     expect(byUrl.get('/hq/hangar/:id')).toBe('content');

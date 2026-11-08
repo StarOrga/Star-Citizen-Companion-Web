@@ -564,8 +564,8 @@ describe('KeybindsComponent', () => {
     const toggle = () => fixture.nativeElement.querySelector('.assign-toggle') as HTMLButtonElement;
     const label = () => toggle().querySelector('.toggle-label')!.textContent!.trim();
     expect(label()).toBe('Kategorien zuweisen');
-    // Admin-only tooling says so in words, not only in its red.
-    expect(toggle().querySelector('.admin-tag')).not.toBeNull();
+    // Admin-only tooling is marked by its red; the words stay for screen readers only (CLAUDE.md).
+    expect(toggle().querySelector('.sc-sr-only')).not.toBeNull();
 
     toggle().click();
     fixture.detectChanges();

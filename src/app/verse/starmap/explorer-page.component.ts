@@ -10,6 +10,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet, VerseExplorerPatch } from '../data/verse.models';
 import { currentPatchName } from '../data/patch-alias';
+import { StarmapMiniComponent } from './starmap-mini.component';
 import { CometTrackComponent } from './comet-track.component';
 import { downloadBlob, renderConstellationPng } from './constellation-render';
 import { KartographCrestComponent, type CrestState } from './kartograph-crest.component';
@@ -50,6 +51,7 @@ const LADDER_SPAN = 3;
     ScDialogDirective,
     StarDomeComponent,
     CometTrackComponent,
+    StarmapMiniComponent,
     GuessTrackComponent,
     SeriesStripComponent,
     StarmapMoreComponent,
@@ -86,6 +88,7 @@ const LADDER_SPAN = 3;
         <sc-verse-header planet="starmap"
                          [title]="(mine() ? 'starmap.gallery.title' : 'starmap.map.title') | translate: { patch: name(p.patchLine) }"
                          [subtitle]="mine() ? ('starmap.gallery.subtitle' | translate) : ('starmap.map.subtitle' | translate: { total: total })">
+          <sc-starmap-mini vhEmblem [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next" />
           @if (patchOptions().length > 1 && !mine()) {
             <sc-select vhActions class="patch-pick" [options]="patchOptions()" [value]="p.patchLine" [allowEmpty]="false"
                        [ariaLabel]="'starmap.map.patchesAria' | translate" (valueChange)="selectLine($event)" />

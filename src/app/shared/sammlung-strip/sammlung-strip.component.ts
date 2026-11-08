@@ -53,7 +53,7 @@ export interface SammlungStripItem {
     `
       :host { display: block; min-width: 0; }
       .coll { padding: 8px 12px 6px; border: 1px solid var(--sc-border); border-radius: 12px; background: color-mix(in srgb, var(--sc-bg-0) 40%, transparent); }
-      h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 600 0.74rem/1.2 var(--sc-font-display, inherit); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-accent); }
+      h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 600 max(0.75rem, 12px)/1.2 var(--sc-font-display, inherit); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-accent); }
       h3 svg { width: 16px; height: 16px; fill: color-mix(in srgb, currentColor 28%, transparent); stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       h3 small { font: 500 0.78rem var(--sc-font-body, inherit); letter-spacing: 0; color: var(--sc-fg-2); }
       .row {

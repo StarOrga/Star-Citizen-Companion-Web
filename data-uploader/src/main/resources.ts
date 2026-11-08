@@ -38,6 +38,9 @@ import {
   DISK_CAPS,
   PRESET_IDS,
   appCpuPct,
+  pickCpuTotal,
+  smoothCpu,
+  SYSMON_STALE_MS,
   clampLimits,
   diskKindFrom,
   dumpWorkers,
@@ -651,11 +654,18 @@ let prevCpu: { idle: number; total: number } | null = null;
 
 interface SystemLoad {
   drives: SysDrive[] | null;
-  cpuPct: number;
+  cpuPct: number | null;
+  /** Task Manager's basis (busy share of all process rows); null when sysmon did not send it. */
+  cpuProcPct: number | null;
   readBps: number;
   writeBps: number;
   iops: number;
+  /** Date.now() when the sample arrived — a dead monitor is detected by its age. */
+  at: number;
 }
+
+/** Smoothed whole-PC CPU of the previous tick (null = none yet). */
+let cpuSmoothed: number | null = null;
 
 let sysmon: ChildProcessWithoutNullStreams | null = null;
 let systemLoad: SystemLoad | null = null;
@@ -762,10 +772,12 @@ function startSysmon(): void {
       sysDrives = parseSysDrives(ev.drives);
       systemLoad = {
         drives: sysDrives,
-        cpuPct: Number(ev.cpuPct) || 0,
+        cpuPct: typeof ev.cpuPct === 'number' && Number.isFinite(ev.cpuPct) ? ev.cpuPct : null,
+        cpuProcPct: typeof ev.cpuProcPct === 'number' && Number.isFinite(ev.cpuProcPct) ? ev.cpuProcPct : null,
         readBps: Number(ev.readBps) || 0,
         writeBps: Number(ev.writeBps) || 0,
         iops: Number(ev.iops) || 0,
+        at: Date.now(),
       };
       sysGpuRaw = ev.gpu ?? null;
       sysAppIo = parseAppIo(ev.appIo);
@@ -846,9 +858,17 @@ function takeSample(): ResourceSample {
     hardCap = hardCap && g.sample.hardCap;
   }
   const mb = 1024 * 1024;
-  const sys = systemLoad;
-  // Task Manager's value when the monitor runs; the idle-time estimate until then.
-  if (sys) cpuTotalPct = sys.cpuPct;
+  // A monitor that stopped ticking (starved, hung PDH) must not freeze the dock: its stale
+  // sample is dropped and the whole-PC numbers fall back to estimates / "unmeasured".
+  const sys = systemLoad && Date.now() - systemLoad.at <= SYSMON_STALE_MS ? systemLoad : null;
+  const picked = pickCpuTotal({
+    procPct: sys?.cpuProcPct,
+    timePct: sys?.cpuPct,
+    ageMs: sys ? Date.now() - sys.at : null,
+    estimatePct: cpuTotalPct,
+  });
+  cpuSmoothed = smoothCpu(cpuSmoothed, picked.pct);
+  cpuTotalPct = cpuSmoothed;
   return {
     t: Date.now(),
     cpuTotalPct: Math.round(Math.max(0, Math.min(100, cpuTotalPct)) * 10) / 10,
