@@ -5234,11 +5234,11 @@
   },
   "hq": {
     "route": {
-      "aria": "Route with {{n}} steps",
-      "zoomGroup": "Route zoom",
+      "aria": "Map with {{n}} steps",
+      "zoomGroup": "Map zoom",
       "zoomIn": "Zoom in",
       "zoomOut": "Zoom out",
-      "fit": "Fit route",
+      "fit": "Fit map",
       "legend": "Legend",
       "legendAria": "Show and hide actions",
       "shared": "{{place}} also serves the Nachschub \"{{name}}\"",
@@ -5317,8 +5317,19 @@
       "lessBuy": "Buy less, mine more",
       "moreBuy": "Buy more, mine less",
       "splitHint": "Buying and mining can be split: bought amount on the left, mined amount on the right.",
+      "itemsTitle": "How do you get the items?",
+      "modeOf": "How to get {{name}}",
+      "modeHint": "Buy where a merchant is known, craft where a blueprint is known. Change it per line.",
+      "leaveOut": "Take {{name}} out of the Einsatz",
+      "leftOut": "Left out of the Einsatz",
+      "putBack": "Put back",
+      "placeIs": "Place: {{place}}",
+      "noMerchant": "No merchant known, so no buy step yet.",
+      "openCodex": "Open in Codex",
+      "setPlace": "Set place",
+      "setPlaceOf": "Place for {{name}}",
       "stepsCount": "{{n}} steps",
-      "craftLast": "comes last, needs the others",
+      "craftLast": "comes last, builds on the others",
       "gets": "you get",
       "purpose": "Material for {{names}}",
       "haveEinsaetze": "Already planned",
@@ -5341,7 +5352,7 @@
       "stepsTotal": "{{n}} steps",
       "steps": "{{done}}/{{n}} steps",
       "gets": "you get",
-      "route": "Route",
+      "route": "Map",
       "places": "{{n}} places"
     },
     "run": {
@@ -5684,65 +5695,7 @@
       }
     },
     "plan": {
-      "mode": {
-        "label": "View of Planen",
-        "nachschub": "Nachschub",
-        "classic": "Selection and route"
-      },
-      "switch": {
-        "label": "View",
-        "what": "What I need",
-        "how": "How to get there"
-      },
-      "progress": {
-        "title": "Blueprint progress",
-        "loading": "Loading your supplies...",
-        "empty": "No blueprint has material in Nachschub yet. Add a blueprint from its Codex page to track it here.",
-        "count": "{{have}} of {{total}} materials"
-      },
-      "prices": {
-        "title": "Commodity prices",
-        "source": "Community source: UEX Corp. Reported by players, not confirmed by CIG.",
-        "pick": "Pick a commodity",
-        "pickAria": "Commodity for the price list",
-        "loading": "Loading prices ...",
-        "idle": "Pick a commodity to see its prices per terminal.",
-        "empty": "UEX reports no prices for this commodity.",
-        "terminal": "Terminal",
-        "buy": "Buy (aUEC/SCU)",
-        "sell": "Sell (aUEC/SCU)",
-        "age": "As of",
-        "unknownAge": "unknown",
-        "ageMinutes": "{{n}} min ago",
-        "ageHours": "{{n}} h ago",
-        "ageDays": "{{n}} days ago"
-      },
-      "selection": "Selection",
-      "stepsAria": "Step kinds",
-      "state": {
-        "top3": "Top 3",
-        "mood": "By mood: {{moods}}",
-        "custom": "Custom selection"
-      },
-      "empty": "Nothing to pick yet. Mark in Supplies what you want to get.",
-      "route": "Your route",
-      "routeEmpty": "No route yet. Pick under \"What I need\" what you want to get.",
-      "saveEinsatz": "Save as op",
-      "retry": "Try again",
-      "fresh": {
-        "title": "Nothing to plan yet",
-        "text": "Plan turns your supplies into a route: what you still need, where to get it and in which order.",
-        "step1": "Search for what you are missing and add it to Supplies.",
-        "step2": "Pick here what comes next.",
-        "step3": "Under “How do I get there” the route appears – save it as an op.",
-        "addSupply": "Search for an item"
-      },
-      "source": {
-        "loading": "Looking for shops …",
-        "none": "No shop known: it may only come from missions or crafting.",
-        "freeText": "Free-text entry without a source. Search for the item to see where to get it.",
-        "more": "+{{n}} more places"
-      }
+      "retry": "Try again"
     },
     "mood": {
       "peaceful": "Peaceful",
@@ -5753,37 +5706,10 @@
       "group": "Group",
       "pairAria": "{{left}} or {{right}}"
     },
-    "place": {
-      "search": "Search places",
-      "any": "All places",
-      "count": "{{n}} places",
-      "empty": "No place found.",
-      "label": "System, planet, place"
-    },
-    "set": {
-      "none": "No set with supplies yet.",
-      "reach": {
-        "full": "fully reachable",
-        "partial": "partly"
-      }
-    },
-    "supply": {
-      "ready": "ready",
-      "forSet": "for set {{name}}",
-      "forBlueprint": "for blueprint {{name}}",
-      "wanted": "Want to get",
-      "wantedAria": "Mark {{name}} as wanted"
-    },
     "einsatz": {
       "single": "Op",
       "multi": "Op ×{{n}}",
       "stepsTooltip": "{{n}} steps",
-      "title": "Your ops",
-      "empty": "No op saved yet.",
-      "nameLabel": "Name of the op",
-      "remove": "Remove {{name}}",
-      "removeTitle": "Remove op?",
-      "removeMessage": "\"{{name}}\" and its steps will be deleted.",
       "pick": {
         "title": "Which op?",
         "message": "\"{{name}}\" joins as a mission step.",
@@ -5802,50 +5728,8 @@
       "erkunden": "Exploring",
       "piraterie": "Piracy"
     },
-    "map": {
-      "title": "Map",
-      "routeTitle": "Route",
-      "empty": "Nothing selected. Pick needs above and they show up here.",
-      "startHere": "You start here",
-      "stepsOne": "1 step",
-      "steps": "{{n}} steps",
-      "unplaced": "{{n}} without a place, list only",
-      "node": {
-        "needs": "{{place}} ({{path}}): {{needs}}",
-        "step": "Step {{ords}}: {{place}} ({{path}}): {{needs}}",
-        "start": "{{place}} ({{path}}): you start here"
-      },
-      "status": {
-        "open": "open",
-        "partial": "partly",
-        "done": "done"
-      },
-      "legend": {
-        "title": "Legend",
-        "shape": "Shape = activity",
-        "size": "Size = amount",
-        "size_s": "up to 5",
-        "size_m": "up to 25",
-        "size_l": "more",
-        "fill": "Fill = status",
-        "line": "Line",
-        "travel": "Flight",
-        "transport": "Transport",
-        "colour": "Colour = need"
-      }
-    },
     "community": {
-      "share": "Share community data",
-      "shareOn": "Your purchases (price, amount, shop) feed the community median anonymously.",
-      "shareOff": "Off: nothing is shared. You still see the community median.",
-      "median": "Community median",
-      "reports": "{{n}} reports",
-      "source": {
-        "log": "From your log",
-        "search": "From the Codex search",
-        "community": "Community",
-        "ocr": "From a screenshot"
-      }
+      "share": "Share community data"
     },
     "stats": {
       "range": {

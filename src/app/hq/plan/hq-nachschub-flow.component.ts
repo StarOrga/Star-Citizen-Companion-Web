@@ -1,10 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { humanizeClassName } from '../../codex/codex-format';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import type { StepKind } from '../../shared/step/sc-step.component';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
+import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ScTristateComponent } from '../../shared/tristate/sc-tristate.component';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
@@ -24,19 +27,25 @@ import {
 import { NachschubService, type NachschubResult } from '../nachschub/nachschub.service';
 import { NACHSCHUB_ICON_PATHS, STEP_ICON_PATHS, TRANSPORT_WHEELS } from '../nachschub/step-icons';
 import { HqNeedSourcesService, bestSource } from './hq-need-sources.service';
+import type { MapPlace } from './map/hq-map.types';
+import { pickablePlaces } from './map/hq-places';
 import {
   type DraftEinsatz,
+  type LineMode,
   type LineSplit,
   type ProposalLine,
+  availableModes,
   defaultSplit,
   isBlueprintLine,
   isMaterialLine,
+  modeOf,
   normalizeSplit,
   proposalCounts,
   proposeEinsaetze,
   purposesOf,
   setBuyPart,
   toggleMethod,
+  unplacedLines,
 } from './einsatz-proposal';
 import { HQ_DIALOG_STYLES } from './hq-dialog.styles';
 import {
@@ -63,7 +72,7 @@ type Step = 1 | 2 | 3;
 @Component({
   selector: 'sc-hq-nachschub-flow',
   standalone: true,
-  imports: [TranslatePipe, FormsModule, ScActionDirective, ScDialogDirective, ScTooltipDirective, ScTristateComponent],
+  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, RouterLink, ScActionDirective, ScDialogDirective, ScSelectComponent, ScTooltipDirective, ScTristateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="scrim" (click)="closed.emit()">
@@ -191,28 +200,65 @@ type Step = 1 | 2 | 3;
               <p class="dlg-msg">{{ (mode() === 'edit' ? 'hq.flow.noNewLines' : 'hq.flow.noLines') | translate }}</p>
             }
             <div class="e-grid">
-              @if (materialLines().length) {
-                <section class="mats" [attr.aria-label]="'hq.flow.matsTitle' | translate">
-                  <h4>{{ 'hq.flow.matsTitle' | translate }}</h4>
-                  <ul>
-                    @for (l of materialLines(); track l.key) {
-                      @let sp = splitOf(l);
-                      <li>
-                        <span class="nm">{{ l.name }} <b class="mono">×{{ l.qty }}</b></span>
-                        <span class="seg" role="group" [attr.aria-label]="'hq.flow.methodOf' | translate: { name: l.name }">
-                          <button type="button" [attr.aria-pressed]="sp.buy === l.qty" (click)="toggle(l)">{{ 'hq.step.kind.buy' | translate }}</button>
-                          <button type="button" [attr.aria-pressed]="sp.mine === l.qty" (click)="toggle(l)">{{ 'hq.step.kind.mine' | translate }}</button>
-                        </span>
-                        <span class="stepper" role="group" [attr.aria-label]="'hq.flow.splitOf' | translate: { name: l.name }">
-                          <button type="button" class="step" [disabled]="sp.buy <= 0" [attr.aria-label]="'hq.flow.lessBuy' | translate" [scTooltip]="'hq.flow.lessBuy' | translate" scTooltipTier="label" (click)="split(l, sp.buy - 1)">−</button>
-                          <b class="n mono">{{ sp.buy }}<small> / {{ sp.mine }}</small></b>
-                          <button type="button" class="step" [disabled]="sp.buy >= l.qty" [attr.aria-label]="'hq.flow.moreBuy' | translate" [scTooltip]="'hq.flow.moreBuy' | translate" scTooltipTier="label" (click)="split(l, sp.buy + 1)">+</button>
-                        </span>
-                      </li>
-                    }
-                  </ul>
-                  <p class="hint">{{ 'hq.flow.splitHint' | translate }}</p>
-                </section>
+              @if (materialLines().length || itemLines().length) {
+                <div class="lcol">
+                  @if (materialLines().length) {
+                    <section class="mats" [attr.aria-label]="'hq.flow.matsTitle' | translate">
+                      <h4>{{ 'hq.flow.matsTitle' | translate }}</h4>
+                      <ul>
+                        @for (l of materialLines(); track l.key) {
+                          @let sp = splitOf(l);
+                          <li [class.out]="isExcluded(l)">
+                            <span class="nm">{{ l.name }} <b class="mono">×{{ l.qty }}</b></span>
+                            @if (isExcluded(l)) {
+                              <ng-container *ngTemplateOutlet="restore; context: { $implicit: l }" />
+                            } @else {
+                              <span class="seg" role="group" [attr.aria-label]="'hq.flow.methodOf' | translate: { name: l.name }">
+                                <button type="button" [attr.aria-pressed]="sp.buy === l.qty" (click)="toggle(l)">{{ 'hq.step.kind.buy' | translate }}</button>
+                                <button type="button" [attr.aria-pressed]="sp.mine === l.qty" (click)="toggle(l)">{{ 'hq.step.kind.mine' | translate }}</button>
+                              </span>
+                              <span class="stepper" role="group" [attr.aria-label]="'hq.flow.splitOf' | translate: { name: l.name }">
+                                <button type="button" class="step" [disabled]="sp.buy <= 0" [attr.aria-label]="'hq.flow.lessBuy' | translate" [scTooltip]="'hq.flow.lessBuy' | translate" scTooltipTier="label" (click)="split(l, sp.buy - 1)">−</button>
+                                <b class="n mono">{{ sp.buy }}<small> / {{ sp.mine }}</small></b>
+                                <button type="button" class="step" [disabled]="sp.buy >= l.qty" [attr.aria-label]="'hq.flow.moreBuy' | translate" [scTooltip]="'hq.flow.moreBuy' | translate" scTooltipTier="label" (click)="split(l, sp.buy + 1)">+</button>
+                              </span>
+                              <ng-container *ngTemplateOutlet="wayOut; context: { $implicit: l }" />
+                              <ng-container *ngTemplateOutlet="leave; context: { $implicit: l }" />
+                            }
+                          </li>
+                        }
+                      </ul>
+                      <p class="hint">{{ 'hq.flow.splitHint' | translate }}</p>
+                    </section>
+                  }
+                  @if (itemLines().length) {
+                    <section class="mats" [attr.aria-label]="'hq.flow.itemsTitle' | translate">
+                      <h4>{{ 'hq.flow.itemsTitle' | translate }}</h4>
+                      <ul>
+                        @for (l of itemLines(); track l.key) {
+                          <li [class.out]="isExcluded(l)">
+                            <span class="nm">{{ l.name }} <b class="mono">×{{ l.qty }}</b></span>
+                            @if (isExcluded(l)) {
+                              <ng-container *ngTemplateOutlet="restore; context: { $implicit: l }" />
+                            } @else {
+                              @let modes = modesOf(l);
+                              @if (modes.length) {
+                                <span class="seg" role="group" [attr.aria-label]="'hq.flow.modeOf' | translate: { name: l.name }">
+                                  @for (m of modes; track m) {
+                                    <button type="button" [attr.aria-pressed]="modeNow(l) === m" (click)="setMode(l, m)">{{ 'hq.step.kind.' + m | translate }}</button>
+                                  }
+                                </span>
+                              }
+                              <ng-container *ngTemplateOutlet="wayOut; context: { $implicit: l }" />
+                              <ng-container *ngTemplateOutlet="leave; context: { $implicit: l }" />
+                            }
+                          </li>
+                        }
+                      </ul>
+                      <p class="hint">{{ 'hq.flow.modeHint' | translate }}</p>
+                    </section>
+                  }
+                </div>
               }
               <div class="cards">
                 @for (d of drafts(); track d.role; let i = $index) {
@@ -265,6 +311,34 @@ type Step = 1 | 2 | 3;
         </footer>
       </div>
     </div>
+
+    <ng-template #leave let-l>
+      <button type="button" scAction tier="tertiary" tone="danger" class="leave" [attr.aria-label]="'hq.flow.leaveOut' | translate: { name: l.name }"
+              [scTooltip]="'hq.flow.leaveOut' | translate: { name: l.name }" scTooltipTier="label" (click)="exclude(l)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+    </ng-template>
+    <ng-template #restore let-l>
+      <span class="why">{{ 'hq.flow.leftOut' | translate }}</span>
+      <button type="button" scAction tier="secondary" (click)="include(l)">{{ 'hq.flow.putBack' | translate }}</button>
+    </ng-template>
+    <ng-template #wayOut let-l>
+      @if (placeNameOf(l); as pn) {
+        <span class="why">{{ 'hq.flow.placeIs' | translate: { place: pn } }}</span>
+      }
+      @if (isUnplaced(l)) {
+        <span class="why warn">{{ 'hq.flow.noMerchant' | translate }}</span>
+      }
+      @if (isUnplaced(l) || hasOwnPlace(l)) {
+        <span class="way">
+          @if (codexLink(l); as link) {
+            <a scAction tier="secondary" [routerLink]="link" target="_blank" rel="noopener noreferrer">{{ 'hq.flow.openCodex' | translate }}</a>
+          }
+          <sc-select class="placepick" [options]="placeOptions" [value]="ownPlaceId(l)" placeholderKey="hq.flow.setPlace"
+                     [ariaLabel]="'hq.flow.setPlaceOf' | translate: { name: l.name }" (valueChange)="setPlace(l, $event)" />
+        </span>
+      }
+    </ng-template>
   `,
   styles: [
     HQ_DIALOG_STYLES,
@@ -319,8 +393,15 @@ type Step = 1 | 2 | 3;
       .einsatz-head h3 { margin: 0; font: 600 1rem var(--sc-font-display, inherit); }
       .einsatz-head small { font: 400 0.8rem var(--sc-font-body, inherit); color: var(--sc-fg-2); margin-left: 8px; }
       .e-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--sc-space-3, 12px); align-items: start; }
-      .e-grid:not(:has(.mats)) { grid-template-columns: minmax(0, 1fr); }
+      .e-grid:not(:has(.lcol)) { grid-template-columns: minmax(0, 1fr); }
       @media (max-width: 860px) { .e-grid { grid-template-columns: minmax(0, 1fr); } }
+      .lcol { display: flex; flex-direction: column; gap: var(--sc-space-3, 12px); min-width: 0; }
+      .mats li.out .nm { color: var(--sc-fg-2); text-decoration: line-through; }
+      .why { color: var(--sc-fg-2); font-size: 0.78rem; }
+      .why.warn { color: var(--sc-warning); }
+      .way { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+      .placepick { min-width: 11rem; }
+      .leave { margin-left: auto; }
       .mats { border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0); padding: var(--sc-space-3, 12px); }
       .mats h4, .have { margin: 0 0 6px; color: var(--sc-fg-2); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
       .mats li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
@@ -378,6 +459,12 @@ export class HqNachschubFlowComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly busy = signal(false);
   private readonly splits = signal<ReadonlyMap<string, LineSplit>>(new Map());
+  private readonly modes = signal<ReadonlyMap<string, LineMode>>(new Map());
+  private readonly leftOut = signal<ReadonlySet<string>>(new Set());
+  /** The place the reader named for a line that has no merchant (W5.5); it becomes the location of its buy step. */
+  private readonly ownPlaces = signal<ReadonlyMap<string, MapPlace>>(new Map());
+  protected readonly placeOptions: readonly ScSelectOption[] = pickablePlaces().map((p) => ({ value: p.id, labelKey: '', label: [p.location, p.system].join(' · ') }));
+  private readonly pickable = new Map(pickablePlaces().map((p) => [p.id, p] as const));
   private readonly names = signal<ReadonlyMap<string, string>>(new Map());
   /** Lines removed from the Nachschub while editing (their rows leave the list at once, the write already happened). */
   private readonly removed = signal<ReadonlySet<string>>(new Set());
@@ -423,15 +510,22 @@ export class HqNachschubFlowComponent {
         qty: r.qty,
         forClassName: (r.forClassName ?? '').trim() || null,
         forName: g.type === 'blueprint' ? g.title : null,
+        craftable: !!(r.className && this.sourcesSvc.sources().get(r.className)?.craftable),
       })),
     ),
   );
   protected readonly materialLines = computed(() => this.proposalLines().filter((l) => isMaterialLine(l) && !isBlueprintLine(l)));
+  /** Non-material, non-blueprint lines: bought or crafted per line (W5.4). */
+  protected readonly itemLines = computed(() => this.proposalLines().filter((l) => !isMaterialLine(l) && !isBlueprintLine(l)));
   private readonly placeOf = (l: ProposalLine) => {
+    const own = this.ownPlaces().get(l.key);
+    if (own) return own;
     const opts = l.className ? (this.sourcesSvc.sources().get(l.className)?.options ?? []) : [];
     return bestSource(opts, null)?.place ?? null;
   };
-  protected readonly drafts = computed<DraftEinsatz[]>(() => proposeEinsaetze(this.proposalLines(), { placeOf: this.placeOf, split: this.splits() }));
+  protected readonly drafts = computed<DraftEinsatz[]>(() => proposeEinsaetze(this.proposalLines(), { placeOf: this.placeOf, ...this.pctx() }));
+  private readonly pctx = computed(() => ({ split: this.splits(), mode: this.modes(), excluded: this.leftOut() }));
+  private readonly unplaced = computed(() => new Set(unplacedLines(this.proposalLines(), { placeOf: this.placeOf, ...this.pctx() }).map((l) => l.key)));
   protected readonly counts = computed(() => proposalCounts(this.drafts()));
   protected readonly nextSlot = computed(() => freeSlot(this.svc.packages()));
   protected readonly maxSlots = NACHSCHUB_MAX_SLOTS;
@@ -563,6 +657,63 @@ export class HqNachschubFlowComponent {
 
   protected split(l: ProposalLine, buy: number): void {
     this.splits.update((m) => new Map(m).set(l.key, setBuyPart(l, buy)));
+  }
+
+  protected modesOf(l: ProposalLine): LineMode[] {
+    return availableModes(l, this.placeOf(l) !== null);
+  }
+
+  protected modeNow(l: ProposalLine): LineMode | null {
+    return modeOf(l, { placeOf: this.placeOf, ...this.pctx() });
+  }
+
+  protected setMode(l: ProposalLine, m: LineMode): void {
+    this.modes.update((x) => new Map(x).set(l.key, m));
+  }
+
+  protected isExcluded(l: ProposalLine): boolean {
+    return this.leftOut().has(l.key);
+  }
+
+  protected exclude(l: ProposalLine): void {
+    this.leftOut.update((x) => new Set([...x, l.key]));
+  }
+
+  protected include(l: ProposalLine): void {
+    this.leftOut.update((x) => new Set([...x].filter((k) => k !== l.key)));
+  }
+
+  /** A line that would be bought but has no merchant and no place of the reader's own. */
+  protected isUnplaced(l: ProposalLine): boolean {
+    return this.unplaced().has(l.key);
+  }
+
+  protected hasOwnPlace(l: ProposalLine): boolean {
+    return this.ownPlaces().has(l.key);
+  }
+
+  protected ownPlaceId(l: ProposalLine): string | null {
+    return this.ownPlaces().get(l.key)?.id ?? null;
+  }
+
+  protected placeNameOf(l: ProposalLine): string | null {
+    return this.ownPlaces().get(l.key)?.location ?? null;
+  }
+
+  protected setPlace(l: ProposalLine, id: string | null): void {
+    const place = id ? this.pickable.get(id) : undefined;
+    this.ownPlaces.update((m) => {
+      const next = new Map(m);
+      if (place) next.set(l.key, place);
+      else next.delete(l.key);
+      return next;
+    });
+  }
+
+  /** The Codex page of a line, once its kind is known. */
+  protected codexLink(l: ProposalLine): string[] | null {
+    const kind = l.className ? this.sourcesSvc.sources().get(l.className)?.kind : null;
+    return kind && l.className ? ['/codex', kind, l.className] : null;
   }
 
   protected draftName(d: DraftEinsatz): string {

@@ -77,6 +77,30 @@ export function placeOfName(name: string, system: string | null = null): MapPlac
   return system ? place(system, null, raw) : null;
 }
 
+/**
+ * Places a reader can name for a line without a merchant (W5.5): the trading hubs the schematic map knows.
+ * Display name, system and planet; ids are the same as `placeOfName` makes, so the route treats them alike.
+ */
+const PICKABLE: readonly (readonly [string, string])[] = [
+  ['Stanton', 'Lorville'],
+  ['Stanton', 'Area18'],
+  ['Stanton', 'Orison'],
+  ['Stanton', 'New Babbage'],
+  ['Stanton', 'Everus Harbor'],
+  ['Stanton', 'Baijini Point'],
+  ['Stanton', 'Seraphim Station'],
+  ['Stanton', 'Port Tressler'],
+  ['Stanton', 'Grim HEX'],
+  ['Pyro', 'Ruin Station'],
+  ['Pyro', 'Checkmate'],
+  ['Pyro', 'Orbituary'],
+  ['Nyx', 'Levski'],
+];
+
+export function pickablePlaces(): MapPlace[] {
+  return PICKABLE.flatMap(([system, location]) => placeOfName(location, system) ?? []);
+}
+
 /** Sort key of `to` seen from `from`; `Infinity` when either end is unknown. */
 export function placeDistance(from: MapPlace | null, to: MapPlace | null): number {
   return from && to ? schematicDistance(from, to) : Infinity;

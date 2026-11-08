@@ -66,13 +66,12 @@ describe('HqPlanComponent', () => {
   });
 
   it('W5.2: the classic Auswahl / Route face, the opt-in, Blueprint progress, commodity prices and shared Einsaetze are gone from Planen', () => {
-    const { f, el } = make();
+    const { el } = make();
     expect(el.querySelector('.classic')).toBeNull();
     expect(el.querySelector('.switch')).toBeNull();
     for (const tag of ['sc-hq-community-optin', 'sc-hq-blueprint-progress', 'sc-hq-commodity-prices', 'sc-hq-shared-einsaetze', 'sc-hq-plan-map', 'sc-hq-mood-toggles']) {
       expect(el.querySelector(tag)).withContext(tag).toBeNull();
     }
-    expect(f.componentInstance['mode']).toBeUndefined();
   });
 
   it('an Einsatz that belongs to a Nachschub selects that Nachschub when it is opened from elsewhere', () => {

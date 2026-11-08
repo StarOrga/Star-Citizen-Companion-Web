@@ -5234,11 +5234,11 @@
   },
   "hq": {
     "route": {
-      "aria": "Route mit {{n}} Schritten",
-      "zoomGroup": "Zoom der Route",
+      "aria": "Karte mit {{n}} Schritten",
+      "zoomGroup": "Zoom der Karte",
       "zoomIn": "Hineinzoomen",
       "zoomOut": "Herauszoomen",
-      "fit": "Route einpassen",
+      "fit": "Karte einpassen",
       "legend": "Legende",
       "legendAria": "Aktionen ein- und ausblenden",
       "shared": "{{place}} dient auch dem Nachschub „{{name}}“",
@@ -5317,6 +5317,17 @@
       "lessBuy": "Weniger kaufen, mehr abbauen",
       "moreBuy": "Mehr kaufen, weniger abbauen",
       "splitHint": "Kaufen und Abbauen lassen sich teilen: links gekaufte, rechts abgebaute Menge.",
+      "itemsTitle": "Wie besorgst du die Gegenstände?",
+      "modeOf": "Beschaffung von {{name}}",
+      "modeHint": "Kaufen, wo ein Händler bekannt ist, craften, wo ein Blueprint bekannt ist. Pro Zeile änderbar.",
+      "leaveOut": "{{name}} aus dem Einsatz nehmen",
+      "leftOut": "Aus dem Einsatz genommen",
+      "putBack": "Zurücknehmen",
+      "placeIs": "Ort: {{place}}",
+      "noMerchant": "Kein Händler bekannt, daher noch kein Kaufschritt.",
+      "openCodex": "Im Codex öffnen",
+      "setPlace": "Ort festlegen",
+      "setPlaceOf": "Ort für {{name}}",
       "stepsCount": "{{n}} Schritte",
       "craftLast": "kommt zuletzt, braucht die anderen",
       "gets": "bekommst du",
@@ -5341,7 +5352,7 @@
       "stepsTotal": "{{n}} Schritte",
       "steps": "{{done}}/{{n}} Schritte",
       "gets": "bekommst du",
-      "route": "Route",
+      "route": "Karte",
       "places": "{{n}} Orte"
     },
     "run": {
@@ -5684,65 +5695,7 @@
       }
     },
     "plan": {
-      "mode": {
-        "label": "Ansicht von Planen",
-        "nachschub": "Nachschub",
-        "classic": "Auswahl und Route"
-      },
-      "switch": {
-        "label": "Ansicht",
-        "what": "Was brauche ich",
-        "how": "Wie komme ich hin"
-      },
-      "progress": {
-        "title": "Blueprint-Fortschritt",
-        "loading": "Dein Nachschub wird geladen ...",
-        "empty": "Noch kein Blueprint hat Material im Nachschub. Füge einen Blueprint auf seiner Codex-Seite hinzu, um ihn hier zu verfolgen.",
-        "count": "{{have}} von {{total}} Materialien"
-      },
-      "prices": {
-        "title": "Warenpreise",
-        "source": "Community-Quelle: UEX Corp. Von Spielern gemeldet, nicht von CIG bestätigt.",
-        "pick": "Ware wählen",
-        "pickAria": "Ware für die Preisliste",
-        "loading": "Preise werden geladen ...",
-        "idle": "Wähle eine Ware, um ihre Preise je Terminal zu sehen.",
-        "empty": "Für diese Ware meldet UEX keine Preise.",
-        "terminal": "Terminal",
-        "buy": "Kauf (aUEC/SCU)",
-        "sell": "Verkauf (aUEC/SCU)",
-        "age": "Stand",
-        "unknownAge": "unbekannt",
-        "ageMinutes": "vor {{n}} Min.",
-        "ageHours": "vor {{n}} Std.",
-        "ageDays": "vor {{n}} Tagen"
-      },
-      "selection": "Auswahl",
-      "stepsAria": "Schritt-Arten",
-      "state": {
-        "top3": "Top 3",
-        "mood": "Nach Lust: {{moods}}",
-        "custom": "Eigene Auswahl"
-      },
-      "empty": "Nichts auszuwählen. Markiere in Nachschub, was du holen willst.",
-      "route": "Deine Route",
-      "routeEmpty": "Noch keine Route. Wähle unter „Was brauche ich“ aus, was du holen willst.",
-      "saveEinsatz": "Als Einsatz speichern",
-      "retry": "Erneut versuchen",
-      "fresh": {
-        "title": "Noch nichts zu planen",
-        "text": "Planen macht aus deinem Nachschub eine Route: was du noch holen musst, wo es das gibt und in welcher Reihenfolge.",
-        "step1": "Such, was dir fehlt, und leg es in den Nachschub.",
-        "step2": "Wähle hier, was davon als Nächstes dran ist.",
-        "step3": "Unter „Wie komme ich hin“ entsteht die Route – speicher sie als Einsatz.",
-        "addSupply": "Gegenstand suchen"
-      },
-      "source": {
-        "loading": "Suche Händler …",
-        "none": "Kein Händler bekannt: vielleicht nur per Mission oder Handwerk zu bekommen.",
-        "freeText": "Freitext-Eintrag ohne Bezugsquelle. Such den Gegenstand, dann siehst du, wo es ihn gibt.",
-        "more": "+{{n}} weitere Orte"
-      }
+      "retry": "Erneut versuchen"
     },
     "mood": {
       "peaceful": "Friedlich",
@@ -5753,37 +5706,10 @@
       "group": "Gruppe",
       "pairAria": "{{left}} oder {{right}}"
     },
-    "place": {
-      "search": "Ort suchen",
-      "any": "Alle Orte",
-      "count": "{{n}} Orte",
-      "empty": "Kein Ort gefunden.",
-      "label": "System, Planet, Ort"
-    },
-    "set": {
-      "none": "Noch kein Set mit Nachschub.",
-      "reach": {
-        "full": "vollständig erreichbar",
-        "partial": "teilweise"
-      }
-    },
-    "supply": {
-      "ready": "liegt bereit",
-      "forSet": "für Set {{name}}",
-      "forBlueprint": "für Blueprint {{name}}",
-      "wanted": "Will ich holen",
-      "wantedAria": "{{name}} als gewünscht markieren"
-    },
     "einsatz": {
       "single": "Einsatz",
       "multi": "Einsatz ×{{n}}",
       "stepsTooltip": "{{n}} Schritte",
-      "title": "Deine Einsätze",
-      "empty": "Noch kein Einsatz gespeichert.",
-      "nameLabel": "Name des Einsatzes",
-      "remove": "{{name}} entfernen",
-      "removeTitle": "Einsatz entfernen?",
-      "removeMessage": "„{{name}}“ und seine Schritte werden gelöscht.",
       "pick": {
         "title": "Zu welchem Einsatz?",
         "message": "„{{name}}“ kommt als Missionsschritt dazu.",
@@ -5802,50 +5728,8 @@
       "erkunden": "Erkunden",
       "piraterie": "Piraterie"
     },
-    "map": {
-      "title": "Karte",
-      "routeTitle": "Route",
-      "empty": "Nichts gewählt. Wähle oben Bedarfe aus, dann erscheinen sie hier.",
-      "startHere": "Hier startest du",
-      "stepsOne": "1 Schritt",
-      "steps": "{{n}} Schritte",
-      "unplaced": "{{n}} ohne Ort, nur in der Liste",
-      "node": {
-        "needs": "{{place}} ({{path}}): {{needs}}",
-        "step": "Schritt {{ords}}: {{place}} ({{path}}): {{needs}}",
-        "start": "{{place}} ({{path}}): hier startest du"
-      },
-      "status": {
-        "open": "offen",
-        "partial": "teilweise",
-        "done": "erledigt"
-      },
-      "legend": {
-        "title": "Legende",
-        "shape": "Form = Tätigkeit",
-        "size": "Größe = Menge",
-        "size_s": "bis 5",
-        "size_m": "bis 25",
-        "size_l": "mehr",
-        "fill": "Füllung = Stand",
-        "line": "Linie",
-        "travel": "Flug",
-        "transport": "Transport",
-        "colour": "Farbe = Bedarf"
-      }
-    },
     "community": {
-      "share": "Community-Daten teilen",
-      "shareOn": "Deine Käufe (Preis, Menge, Shop) gehen anonym in den Community-Median ein.",
-      "shareOff": "Aus: nichts wird geteilt. Den Community-Median siehst du trotzdem.",
-      "median": "Community-Median",
-      "reports": "{{n}} Meldungen",
-      "source": {
-        "log": "Aus deinem Log",
-        "search": "Aus der Codex-Suche",
-        "community": "Community",
-        "ocr": "Aus einem Screenshot"
-      }
+      "share": "Community-Daten teilen"
     },
     "stats": {
       "range": {

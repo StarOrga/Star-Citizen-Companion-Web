@@ -221,9 +221,6 @@ export class HqPlanComponent {
     this.notice.set(null);
     if (n?.undo) this.announce(await n.undo());
   }
-
-}
-
 }
 
 /** How long the result notice (with its undo) stays. */

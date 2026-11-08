@@ -235,7 +235,7 @@ describe('HqNachschubFlowComponent', () => {
   });
   const WISH = [w('item', 'medpen', 12, null, 'Medpen'), w('blueprint', 'gallant', 2, null, 'Gallant'), w('material', 'aluminium', 16, 'gallant', 'Aluminium')];
 
-  function setup(wish: WishPosition[] = WISH) {
+  function setup(wish: WishPosition[] = WISH, sources: Map<string, unknown> = new Map()) {
     TestBed.resetTestingModule();
     const created = jasmine.createSpy('createFromWishlist').and.callFake(async () => ({ ok: true, key: 'hq.nachschub.done.created', id: 'new' }));
     const fake = {
@@ -256,7 +256,7 @@ describe('HqNachschubFlowComponent', () => {
         { provide: AuthService, useValue: { user: signal(null) } },
         { provide: NachschubService, useValue: fake },
         { provide: NachschubNamingService, useValue: { nachschubName: () => Promise.resolve('Gallant-Ausrüstung'), einsatzName: () => Promise.resolve('Ein Einsatz') } },
-        { provide: HqNeedSourcesService, useValue: { ensure: () => undefined, sources: signal(new Map()) } },
+        { provide: HqNeedSourcesService, useValue: { ensure: () => undefined, sources: signal(sources) } },
         { provide: ShellChromeService, useValue: { startSupplySearch: startSearch } },
       ],
     });
@@ -310,7 +310,14 @@ describe('HqNachschubFlowComponent', () => {
     expect(cards.length).toBeGreaterThanOrEqual(2);
     expect(cards[cards.length - 1].classList).toContain('last');
     // Material can be switched between buying and mining.
-    expect(el.querySelectorAll('.mats li').length).toBe(1);
+    expect(el.querySelectorAll('.mats').length).toBe(2);
+    expect(el.querySelectorAll('.mats li').length).toBe(2);
+    // The item has no merchant and no blueprint here: no placeless buy step, a way out instead (W5.4/W5.5).
+    const item = [...el.querySelectorAll('.mats li')].find((li) => li.textContent?.includes('Medpen'))!;
+    expect(item.textContent).toContain('hq.flow.noMerchant');
+    expect(item.querySelector('sc-select')).not.toBeNull();
+    expect(item.querySelector('button.leave')).not.toBeNull();
+    expect(el.querySelectorAll('.ecard').length).toBe(cards.length);
 
     click(f, el.querySelector('.dlg-foot button:last-child')); // Nachschub anlegen
     await whenIdle(f);
@@ -321,6 +328,47 @@ describe('HqNachschubFlowComponent', () => {
     expect(einsatz.ofPackage('new').length).toBe(cards.length);
     expect(einsatz.ofPackage('new').at(-1)?.steps[0].kind).toBe('craft');
     expect(done.length).toBe(1);
+  });
+
+  async function toStep3(r: ReturnType<typeof setup>) {
+    click(r.f, r.el.querySelector('.pick-bar button'));
+    click(r.f, r.el.querySelector('.dlg-foot button:last-child'));
+    await whenIdle(r.f);
+    click(r.f, r.el.querySelector('.dlg-foot button:last-child'));
+    await whenIdle(r.f);
+  }
+  const itemRow = (el: HTMLElement) => [...el.querySelectorAll('.mats li')].find((li) => li.textContent?.includes('Medpen'))!;
+
+  it('W5.4: a craftable item without a merchant is crafted by default; the line offers only what is available', async () => {
+    const r = setup(WISH, new Map([['medpen', { state: 'ready', kind: 'item', options: [], craftable: true }]]));
+    await toStep3(r);
+    const row = itemRow(r.el);
+    expect([...row.querySelectorAll('.seg button')].map((b) => b.textContent?.trim())).toEqual(['hq.step.kind.craft']);
+    expect(row.textContent).not.toContain('hq.flow.noMerchant');
+    expect(r.el.querySelector('.ecard.last')).not.toBeNull();
+  });
+
+  it('W5.5: a line without a merchant can get a place of its own, or be taken out of the Einsatz and put back', async () => {
+    const r = setup(WISH, new Map([['medpen', { state: 'ready', kind: 'item', options: [] }]]));
+    await toStep3(r);
+    const cardsBefore = r.el.querySelectorAll('.ecard').length;
+    let row = itemRow(r.el);
+    expect(row.querySelector('a[href*="/codex/item/medpen"]')).not.toBeNull();
+    expect(row.querySelector('sc-select')).not.toBeNull();
+    // Set the place: the line turns into a buy step there.
+    const sel = r.f.debugElement.query((d) => d.nativeElement === row.querySelector('sc-select')).componentInstance as { valueChange: { emit(v: string | null): void } };
+    sel.valueChange.emit('stanton/arccorp/area18');
+    r.f.detectChanges();
+    row = itemRow(r.el);
+    expect(row.textContent).not.toContain('hq.flow.noMerchant');
+    expect([...r.el.querySelectorAll('.ecard')].some((c) => c.textContent?.includes('area18') || c.textContent?.includes('Area18'))).toBeTrue();
+    // Take it out: no buy Einsatz is left for it, and it can come back.
+    click(r.f, row.querySelector('button.leave'));
+    row = itemRow(r.el);
+    expect(row.classList).toContain('out');
+    expect(r.el.querySelectorAll('.ecard').length).toBeLessThan(cardsBefore + 1);
+    click(r.f, row.querySelector('button[scaction], button'));
+    expect(itemRow(r.el).classList).not.toContain('out');
   });
 
   it('splitting a quantity keeps the rest on the wishlist and shows it in the summary', async () => {
