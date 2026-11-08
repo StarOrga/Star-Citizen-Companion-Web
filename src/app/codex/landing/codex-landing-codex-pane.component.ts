@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { Location, NgTemplateOutlet } from '@angular/common';
 import { Params, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -21,25 +21,32 @@ export function searchQueryFor(category: LandingCategory): Params {
   return { ...CATEGORY_INDEX_QUERY[category], fresh: '1' };
 }
 
-/**
- * Rows of the entry wheel. Fixed and odd, so the entry on the table stands in
- * the middle: title, tabs, five rows and the foot fit the pane (400px, codex-landing.component.scss)
- * down to a 1280x720 window (codex-landing-codex-pane.component.spec).
- */
-export const WHEEL_ROWS = 5;
-/** Wheel distance (px, summed) that turns the entry wheel by one row. */
-const WHEEL_STEP_PX = 40;
+/** Rows shown before the pane has been measured, and on a phone (the pane there grows with its content). */
+export const DEFAULT_ROWS = 5;
+/** Gap between two rows (px, `.new` in the scss). */
+const ROW_GAP_PX = 1;
+/** Row height (px) before one has been rendered: `.new a` min-height, 48px on touch screens. */
+const ROW_PX = 28;
+const ROW_PX_COARSE = 48;
 
-/** The window of a wheel over `count` entries: indices in display order, centred on `centre`. */
-export function wheelWindow(count: number, centre: number, rows = WHEEL_ROWS): number[] {
-  if (count <= rows) return Array.from({ length: count }, (_, i) => i);
-  const half = (rows - 1) / 2;
-  return Array.from({ length: rows }, (_, i) => (((centre - half + i) % count) + count) % count);
+/**
+ * The rows of a fixed list: the first `capacity`, in order. The entry on the table is always
+ * among them - when it stands further down it takes the last visible place.
+ */
+export function visibleEntries<T extends { onTable: boolean }>(entries: readonly T[], capacity: number): T[] {
+  const cap = Math.max(1, capacity);
+  if (entries.length <= cap) return [...entries];
+  const shown = entries.slice(0, cap);
+  const table = entries.findIndex((e) => e.onTable);
+  if (table >= cap) shown[cap - 1] = entries[table];
+  return shown;
 }
 
 interface RowView {
   category: LandingCategory;
   count: number;
+  /** Nothing new: the entries are picks to discover (title without "neu", the index link without the fresh filter). */
+  discover: boolean;
   /** Index of the category's item in the rotation, -1 = nothing to put on the table. */
   index: number;
   entries: (LandingCodexEntry & { onTable: boolean })[];
@@ -50,8 +57,9 @@ interface RowView {
  * edge facing the hologram. A horizontal category bar on top (d-tabs `active`:
  * icons, the active one with its name, the others name in a tooltip); below it
  * the active category's new and updated items of the current patch stand in a
- * wheel of {@link WHEEL_ROWS} rows (the one on the table in the middle, announced
- * ships tagged); with nothing new the middle is simply gone. "+ N weitere" and
+ * fixed list with as many rows as the pane's height holds (the one on the table always
+ * among them, announced ships tagged, the mouse wheel left to the page); with nothing
+ * new the list offers entries of the category to discover (never an empty middle). "+ N weitere" and
  * "Alle <Kategorie>" close the pane at the same spot on every tab. A tab click
  * puts that category on the table and holds it; the held tab again resumes the
  * rotation. An entry click puts that entry on the table (held) — its small arrow
@@ -68,7 +76,7 @@ interface RowView {
     <nav class="body" [attr.aria-label]="'codex.landing.codex.label' | translate">
       <h2 class="ph">
         @if (codex()?.patch; as patch) {
-          {{ 'codex.landing.codex.title' | translate: { patch } }}
+          {{ (activeRow()?.discover ? 'codex.landing.codex.titleDiscover' : 'codex.landing.codex.title') | translate: { patch } }}
         } @else {
           {{ 'codex.landing.codex.titleNoPatch' | translate }}
         }
@@ -99,15 +107,16 @@ interface RowView {
       </ul>
       @if (held()) { <p class="sc-sr-only">{{ 'codex.landing.codex.held' | translate }}</p> }
       @if (activeRow(); as r) {
-        @if (wheel().length) {
-          <div class="open">
-            <ul class="new" [class.spins]="spins()" (wheel)="onWheel($event)" (keydown)="onWheelKey($event)">
-              @for (e of wheel(); track e.id; let i = $index) {
-                <li [class.table]="e.onTable" [class.flash]="e.onTable && switchNo() > 0" [class.far]="spins() && (i === 0 || i === wheel().length - 1)">
+        @if (r.entries.length) {
+          <div class="open" #openList>
+            <ul class="new">
+              @for (e of shown(); track e.id) {
+                <li [class.table]="e.onTable" [class.flash]="e.onTable && switchNo() > 0">
                   <a class="ent" [href]="href(e.route)" [attr.aria-current]="e.onTable ? 'true' : null"
                      [scTooltip]="e.name" scTooltipTier="label" (click)="onEntry($event, r.category, e)">
                     <span class="nm">{{ e.name }}</span>
                     @if (e.announced) { <em class="soon">{{ 'codex.landing.codex.announced' | translate }}</em> }
+                    @if (e.isNew) { <em class="upd fresh">{{ 'codex.landing.codex.new' | translate }}</em> }
                     @if (e.updated) { <em class="upd">{{ 'codex.landing.codex.updated' | translate }}</em> }
                     @if (e.onTable) { <span class="here">{{ 'codex.landing.codex.onTable' | translate }}</span> }
                   </a>
@@ -124,10 +133,14 @@ interface RowView {
       }
       <div class="foot">
         @if (activeRow(); as r) {
-          @if (more() > 0) {
-            <a class="more" routerLink="/codex/index" [queryParams]="searchQuery(r.category)">
-              {{ 'codex.landing.codex.more' | translate: { count: more() } }} <i aria-hidden="true">↗</i>
-            </a>
+          @if (r.entries.length) {
+            <div class="more-slot">
+              @if (more() > 0) {
+                <a class="more" routerLink="/codex/index" [queryParams]="r.discover ? indexQuery(r.category) : searchQuery(r.category)">
+                  {{ 'codex.landing.codex.more' | translate: { count: more() } }} <i aria-hidden="true">↗</i>
+                </a>
+              }
+            </div>
           }
           <a class="all" routerLink="/codex/index" [queryParams]="indexQuery(r.category)">
             {{ 'codex.landing.codex.all' | translate: { category: ('codex.landing.categories.' + r.category | translate) } }} <i aria-hidden="true">↗</i>
@@ -172,51 +185,44 @@ export class CodexLandingCodexPaneComponent {
         const item = index >= 0 ? items[index] : null;
         const entries = (n?.entries ?? []).map((e) => ({ ...e, onTable: !!cur && cur.category === category && e.id === cur.className }));
         // The item on the table joins a list that has entries — first, when it is not among them.
-        // With nothing new or updated there is no list: the middle of the pane stays away.
         if (entries.length && cur?.category === category && !entries.some((e) => e.onTable)) {
           const shown = cur.announced ? cur : (item ?? cur);
           entries.unshift({ id: shown.className, name: shown.name, route: shown.detailRoute, announced: !!shown.announced, onTable: true });
         }
-        return { category, count: n?.count ?? 0, index, entries };
+        return { category, count: n?.count ?? 0, discover: !!n?.discover, index, entries };
       },
     );
   });
 
   readonly activeRow = computed(() => this.rows().find((r) => r.category === this.active()) ?? null);
-  /** More entries than rows: the list is a wheel. */
-  readonly spins = computed(() => (this.activeRow()?.entries.length ?? 0) > WHEEL_ROWS);
-  /** Rows the reader turned the wheel; a new entry on the table centres it again. */
-  private readonly spin = linkedSignal({
-    source: () => `${this.active()}:${this.current()?.className ?? ''}`,
-    computation: () => 0,
-  });
-  /** The rows on screen, the entry on the table in the middle until the wheel is turned. */
-  readonly wheel = computed(() => {
-    const entries = this.activeRow()?.entries ?? [];
-    const table = Math.max(0, entries.findIndex((e) => e.onTable));
-    return wheelWindow(entries.length, table + this.spin()).map((i) => entries[i]);
-  });
+  /** How many rows the list holds: what the pane's height leaves between the tabs and the foot. */
+  private readonly capacity = signal(DEFAULT_ROWS);
+  private readonly openList = viewChild<ElementRef<HTMLElement>>('openList');
+  /** The rows on screen; the entry on the table always among them. */
+  readonly shown = computed(() => visibleEntries(this.activeRow()?.entries ?? [], this.capacity()));
   /** Entries beyond the rows on screen. */
-  readonly more = computed(() => Math.max(0, (this.activeRow()?.entries.length ?? 0) - this.wheel().length));
+  readonly more = computed(() => Math.max(0, (this.activeRow()?.entries.length ?? 0) - this.shown().length));
 
-  private wheelSum = 0;
-
-  /** Turns the wheel; only then the turn is taken from the page (which would open the index at its end). */
-  onWheel(ev: WheelEvent): void {
-    if (!this.spins()) return;
-    ev.preventDefault();
-    if (Math.sign(ev.deltaY) !== Math.sign(this.wheelSum)) this.wheelSum = 0;
-    this.wheelSum += ev.deltaMode === 1 ? ev.deltaY * WHEEL_STEP_PX : ev.deltaY;
-    const steps = Math.trunc(this.wheelSum / WHEEL_STEP_PX);
-    if (!steps) return;
-    this.wheelSum -= steps * WHEEL_STEP_PX;
-    this.spin.update((s) => s + steps);
-  }
-
-  onWheelKey(ev: KeyboardEvent): void {
-    if (!this.spins() || (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp')) return;
-    ev.preventDefault();
-    this.spin.update((s) => s + (ev.key === 'ArrowDown' ? 1 : -1));
+  constructor() {
+    // The list fills the pane between tabs and foot (scss `.open`); the rows that fit are counted
+    // from its height. On a phone the pane grows with its content, so there is a fixed count.
+    effect((onCleanup) => {
+      const el = this.openList()?.nativeElement;
+      if (!el || typeof ResizeObserver === 'undefined') return;
+      const measure = () => {
+        if (window.matchMedia('(max-width: 720px)').matches) {
+          this.capacity.set(DEFAULT_ROWS);
+          return;
+        }
+        const li = el.querySelector<HTMLElement>('li');
+        const row = (li?.offsetHeight || (window.matchMedia('(pointer: coarse)').matches ? ROW_PX_COARSE : ROW_PX)) + ROW_GAP_PX;
+        this.capacity.set(Math.max(1, Math.floor((el.clientHeight + ROW_GAP_PX) / row)));
+      };
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      measure();
+      onCleanup(() => ro.disconnect());
+    });
   }
 
   glyph(cat: LandingCategory): string {

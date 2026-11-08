@@ -221,7 +221,7 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
         variants: [{ id: 'c1', name: 'a', active: true }], activeVariantId: 'c1', personal: true,
       });
       const el = f.nativeElement as HTMLElement;
-      expect(el.querySelector('.own')?.textContent).toContain('codex.head.own.hangar');
+      expect(el.querySelector('.own')?.textContent).toContain('codex.head.own.hangarN');
       const sel = el.querySelector<HTMLButtonElement>('sc-codex-mode-switch .isel')!;
       expect(sel.textContent).toContain('a');
       expect(el.querySelector('[tier="primary"]')).toBeNull();
@@ -230,6 +230,15 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.menu a'));
       expect(links.length).toBe(1);
       expect(links[0].getAttribute('href')).toContain('/hq/hangar/sh1');
+    });
+
+    it('owned ship without a saved variant: "n× im Hangar · Gezeigt: Serie", no select', () => {
+      const f = setup(CodexOwnSegmentComponent, { kind: 'ship', className: 'X', forceOwned: true });
+      const el = f.nativeElement as HTMLElement;
+      expect(el.querySelector('.own')?.textContent).toContain('codex.head.own.hangarN');
+      expect(el.querySelector('.shown')?.textContent).toContain('codex.head.shown');
+      expect(el.querySelector('.shown')?.textContent).toContain('codex.personal.stock');
+      expect(el.querySelector('sc-codex-mode-switch')).toBeNull();
     });
 
     it('item: "Im Inventar · n×" / "Nicht im Inventar"', () => {

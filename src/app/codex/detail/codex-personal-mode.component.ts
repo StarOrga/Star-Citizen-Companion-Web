@@ -39,7 +39,7 @@ export const CODEX_MODE_PARAMS: Record<string, null> = {
         <button type="button" class="isel" aria-haspopup="true" [attr.aria-expanded]="open()"
                 [attr.aria-label]="'codex.head.variantAria' | translate: { name: compactName() ?? ('codex.personal.stock' | translate) }"
                 (click)="toggle()" (keydown.escape)="close()">
-          <em>{{ 'codex.head.variant' | translate }}</em> {{ compactName() ?? ('codex.personal.stock' | translate) }}<span aria-hidden="true" class="caret">▾</span>
+          <em>{{ 'codex.head.shown' | translate }}</em> {{ compactName() ?? ('codex.personal.stock' | translate) }}<span aria-hidden="true" class="caret">▾</span>
         </button>
         @if (open()) {
           <ul class="menu" [attr.aria-label]="'codex.personal.variantsMenu' | translate" (keydown.escape)="close()">

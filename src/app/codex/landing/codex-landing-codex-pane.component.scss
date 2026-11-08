@@ -58,13 +58,10 @@
 }
 :host(.paused) .prog { animation-play-state: paused; }
 .tab.held ~ .prog { animation: none; transform: scaleX(1); }
-.open { flex: 0 1 auto; min-height: 0; overflow: hidden; margin: 4px 0 8px; animation: open 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
+// The list takes the height between tabs and foot; the rows that fit are counted from it (no scrolling, no wheel).
+.open { flex: 1 1 0; min-height: 0; overflow: hidden; margin: 4px 0 8px; animation: open 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
 .new { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
 .new li { flex: 0 0 auto; display: flex; align-items: stretch; border-radius: 2px; transition: background 0.15s ease, opacity 0.15s ease; }
-// The wheel: the outer rows fade, as if they turned away.
-.new li.far { opacity: 0.55; }
-.new li.far:hover, .new li.far:focus-within { opacity: 1; }
-.new.spins { cursor: ns-resize; }
 .new li:hover { background: rgba(82, 193, 230, 0.06); }
 .new a {
   display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 4px 8px; border-radius: 2px; text-decoration: none;
@@ -76,10 +73,10 @@
 .new a.go { flex: 0 0 auto; justify-content: center; min-width: 32px; padding: 4px; color: var(--sc-fg-2); }
 .new a.go i { font-style: normal; }
 .new a.go:hover, .new a.go:focus-visible { color: var(--sc-accent); }
-// One line per row: the wheel's height never depends on a name.
+// One line per row: a row's height never depends on a name.
 .new a .nm { flex: 1 1 auto; }
 .new a.ent:hover, .new a:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.08); }
-// Inside the row: the wheel's box clips what stands outside it.
+// Inside the row: the list's box clips what stands outside it.
 .new a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
 .new li.table { background: rgba(82, 193, 230, 0.14); box-shadow: inset 2px 0 0 #c8f2ff; }
 .new li.table a.ent { color: #fff; }
@@ -89,9 +86,12 @@
   flex: 0 0 auto; padding: 1px 7px; border: 1px solid color-mix(in srgb, var(--sc-warning) 55%, transparent); border-radius: 999px;
   font-style: normal; font-size: max(9.5px, 0.58rem); letter-spacing: 0.06em; color: var(--sc-warning); white-space: nowrap;
 }
+.upd.fresh { color: var(--sc-accent); }
 .upd {
   flex: 0 0 auto; font-style: normal; font-size: max(9.5px, 0.58rem); letter-spacing: 0.06em; color: var(--sc-fg-2); white-space: nowrap;
 }
+// The "+ N weitere" place stays reserved, so the list's height does not jump when the link comes and goes.
+.more-slot { min-height: 28px; }
 // Always at the pane's bottom, wherever the middle ends.
 .foot { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; margin-top: auto; }
 .more {
@@ -136,7 +136,7 @@
 // Touch screens: readable labels and 48px rows (mobile gate).
 @media (pointer: coarse) {
   .ph, .keys, .here, .soon, .upd, .more, .new a, .tab, .all { font-size: 12px; }
-  .tab, .new a, .more, .all, .keys { min-height: 48px; }
+  .tab, .new a, .more, .all, .keys, .more-slot { min-height: 48px; }
   .tab { min-width: 48px; padding: 0 4px; }
   .tab .nm { font-size: 11px; }
   .new a.go { min-width: 48px; }
@@ -144,4 +144,7 @@
 @media (max-width: 720px) {
   .edge { display: none; }
   .body { padding: 8px 0; overflow: visible; }
+  // The pane grows with its content here: a fixed row count instead of a measured height.
+  .open { flex: 0 0 auto; }
+  .more-slot { min-height: 0; }
 }
