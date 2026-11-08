@@ -9,6 +9,7 @@ import { CodexBlueprintIngredient } from './codex.types';
 import { ItemPathService } from '../hq/data/item-path.service';
 import { type FakeItemPath, fakeItemPath } from '../shared/item-path/item-path.testing';
 import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
+import { WishlistStore } from '../hq/data/wishlist.store';
 
 const MICROSAT = 'BP_CRAFT_Carryable_2H_FL_MissionItem_Microsatellite_a';
 
@@ -400,5 +401,43 @@ describe('BlueprintDetailComponent — hero and output', () => {
     expect(el.querySelector('.output-row a.ing-name')).toBeNull();
     expect(el.querySelector('.output-row .ing-name')?.textContent?.trim()).toBe('Carryable 2H FL Mission Item Microsatellite a');
     expect(el.querySelector('.err')).toBeNull();
+  });
+});
+
+describe('BlueprintDetailComponent — Material ×N', () => {
+  function wishStore(addQty: (e: { className: string }) => Promise<boolean>) {
+    const store = {
+      qtyOf: () => 0,
+      addQty: jasmine.createSpy('addQty').and.callFake(addQty),
+      setQty: jasmine.createSpy('setQty').and.resolveTo(true),
+    };
+    TestBed.configureTestingModule({ providers: [{ provide: WishlistStore, useValue: store }] });
+    return store;
+  }
+
+  afterEach(() => TestBed.inject(UndoToastService).flush());
+
+  it('offers the success toast only when every write landed', async () => {
+    wishStore(async () => true);
+    const fixture = await setup(blueprint([{ ...ingredient(0, 'Agricium', 0.36), nameLocalized: 'Agricium' }]));
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.wish-mat .sc-action') as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+    expect(TestBed.inject(UndoToastService).current()?.messageKey).toBe('blueprintWish.done');
+    expect(el.querySelector('.wish-err')).toBeNull();
+  });
+
+  it('names the failure and takes back what landed when a write fails (AUD-11)', async () => {
+    const store = wishStore(async (e) => e.className !== 'Agricium');
+    const fixture = await setup(blueprint([{ ...ingredient(0, 'Agricium', 0.36), nameLocalized: 'Agricium' }]));
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.wish-mat .sc-action') as HTMLButtonElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+    expect(TestBed.inject(UndoToastService).current()).toBeNull();
+    expect(el.querySelector('.wish-err')?.textContent).toContain('errors.generic');
+    // The blueprint itself landed and went back to its former quantity.
+    expect(store.setQty).toHaveBeenCalledWith(jasmine.objectContaining({ kind: 'blueprint' }), 0);
   });
 });

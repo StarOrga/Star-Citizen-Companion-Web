@@ -146,6 +146,7 @@ import { blueprintMaterialWishes } from '../hq/nachschub/nachschub.model';
                     <span>{{ 'blueprintWish.button' | translate: { n: craftTimes() } }}</span>
                   </button>
                 </div>
+                @if (wishError(); as e) { <p class="wish-err" role="alert">{{ e | translate }}</p> }
               }
               @if (ingredients().length === 0) {
                 <p class="muted">{{ 'blueprint.detail.noIngredients' | translate }}</p>
@@ -261,6 +262,7 @@ import { blueprintMaterialWishes } from '../hq/nachschub/nachschub.model';
     .mission-row { align-items: center; flex-wrap: wrap; }
     .mission-meta { font-size: 0.8rem; color: var(--sc-fg-2); }
     .mission-more { margin: 10px 0 0; font-size: 0.85rem; }
+    .wish-err { margin: 0 0 var(--sc-space-2, 8px); color: var(--sc-warning); font-size: 0.85rem; }
     .ing-unit { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; color: var(--sc-fg-2); }
     .ingredient-row, .output-row {
       display: flex; gap: 14px; align-items: flex-start;
@@ -445,6 +447,8 @@ export class BlueprintDetailComponent implements OnInit {
   private readonly undoToast = inject(UndoToastService);
   protected readonly craftTimes = signal(1);
   protected readonly wishBusy = signal(false);
+  /** i18n key of a failed "Material ×N" write; the success toast only comes when every write landed. */
+  protected readonly wishError = signal<string | null>(null);
   /** The ingredients that can be wished: the ones the catalogue resolved to a class name. */
   protected readonly wishableMaterial = computed(() =>
     this.ingredients()
@@ -457,6 +461,7 @@ export class BlueprintDetailComponent implements OnInit {
     const d = this.detail();
     if (!d || this.wishBusy()) return;
     this.wishBusy.set(true);
+    this.wishError.set(null);
     try {
       const times = this.craftTimes();
       const entries = [
@@ -464,7 +469,16 @@ export class BlueprintDetailComponent implements OnInit {
         ...blueprintMaterialWishes(d.classNameSlug, this.wishableMaterial(), times).map((w) => ({ kind: w.kind, className: w.className, name: w.name, forClassName: w.forClassName ?? null, qty: w.qty })),
       ];
       const before = entries.map((e) => this.wishStore.qtyOf(e.kind, e.className, e.name, e.forClassName));
-      for (const e of entries) await this.wishStore.addQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, e.qty);
+      const results: boolean[] = [];
+      for (const e of entries) results.push(await this.wishStore.addQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, e.qty));
+      if (results.includes(false)) {
+        // Say so, and take back what did land: a half-filled list under a success toast is worse than none.
+        for (const [i, e] of entries.entries()) {
+          if (results[i]) await this.wishStore.setQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, before[i]);
+        }
+        this.wishError.set('errors.generic');
+        return;
+      }
       this.undoToast.offer({
         messageKey: 'blueprintWish.done',
         messageParams: { n: times, name: this.displayName() },

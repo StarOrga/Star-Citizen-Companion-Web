@@ -24,6 +24,11 @@ import { CART_PARAM } from '../../hq/hq-routes';
 import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { cartGroups, lastAdded, type CartItem } from './wish-cart.model';
 
+/** What identifies a position as it is now: a wish put on the list again has a new row (date) or another quantity. */
+function stamp(i: Pick<CartItem, 'qty' | 'createdAt'>): string {
+  return `${i.qty}|${i.createdAt}`;
+}
+
 /** The query string of a router URL, without the fragment. */
 function queryOf(url: string): URLSearchParams {
   const q = url.split('#', 1)[0].split('?')[1] ?? '';
@@ -51,8 +56,12 @@ export class WishCartService {
   private readonly url = signal(this.router.url);
   readonly isOpen = computed(() => queryOf(this.url()).has(CART_PARAM));
 
-  /** Positions removed in the undo window: still in the store, already gone from the cart. */
-  private readonly hidden = signal<ReadonlySet<string>>(new Set());
+  /**
+   * Positions removed in the undo window: still in the store, already gone from the cart. The value is what the position looked
+   * like when it was removed (see `stamp`): a position that changed since - it was wished again from the Codex - is no longer
+   * the removed one, so it shows up again and the delayed delete leaves it alone.
+   */
+  private readonly hidden = signal<ReadonlyMap<string, string>>(new Map());
 
   constructor() {
     this.router.events.subscribe((e) => {
@@ -116,7 +125,7 @@ export class WishCartService {
   /** What the cart shows: every position except the ones in the undo window. */
   readonly items = computed<readonly CartItem[]>(() => {
     const hide = this.hidden();
-    return this.rawItems().filter((i) => !hide.has(i.key));
+    return this.rawItems().filter((i) => hide.get(i.key) !== stamp(i));
   });
   readonly byKey = computed(() => new Map(this.items().map((i) => [i.key, i] as const)));
   /** Number of positions - what "Ganze Wunschliste · N Positionen" counts. */
@@ -155,13 +164,15 @@ export class WishCartService {
   remove(items: readonly CartItem[], messageKey = 'cart.removed', params?: Record<string, unknown>): void {
     if (!items.length) return;
     const keys = items.map((i) => i.key);
-    this.hidden.update((h) => new Set([...h, ...keys]));
+    this.hidden.update((h) => new Map([...h, ...items.map((i) => [i.key, stamp(i)] as const)]));
     this.undo.offer({
       messageKey,
       messageParams: params ?? { name: this.nameOf(items[0]), n: items.length },
       onUndo: () => this.unhide(keys),
       commit: async () => {
-        await Promise.all(items.map((i) => this.erase(i)));
+        // Only what is still the removed position: a wish that was added again meanwhile stays.
+        const now = new Map(this.rawItems().map((i) => [i.key, stamp(i)] as const));
+        await Promise.all(items.filter((i) => now.get(i.key) === stamp(i)).map((i) => this.erase(i)));
         this.unhide(keys);
       },
     });
@@ -169,7 +180,7 @@ export class WishCartService {
 
   private unhide(keys: readonly string[]): void {
     const gone = new Set(keys);
-    this.hidden.update((h) => new Set([...h].filter((k) => !gone.has(k))));
+    this.hidden.update((h) => new Map([...h].filter(([k]) => !gone.has(k))));
   }
 
   private async erase(i: CartItem): Promise<void> {

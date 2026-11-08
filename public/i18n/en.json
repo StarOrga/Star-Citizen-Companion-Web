@@ -5834,8 +5834,7 @@
         "noMatch": "Nothing matches these filters.",
         "empty": "Nothing in your inventory yet.",
         "ships": "Ships at terminal",
-        "nachholen": "Restock",
-        "nachholenAria": "Restock: {{name}}"
+        "onWishlist": "To the wishlist"
       },
       "retry": "Try again",
       "destroyed": "Last destroyed: {{at}}",
@@ -6803,7 +6802,6 @@
       "allInHq": "Open all {{n}} in the HQ",
       "mission": "Missions"
     },
-    "supplyHint": "Search for the item and add it to Supplies with this icon.",
     "own": {
       "ship": "your ship",
       "fitted": "fitted on your ship",
