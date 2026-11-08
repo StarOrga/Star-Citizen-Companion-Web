@@ -29,7 +29,10 @@ import {
   positionKey,
   reactivate,
   takeFromWishlist,
+  type NachschubType,
 } from './nachschub.model';
+import { archiveAtEventEnd, isEventNachschub } from '../events/event-nachschub';
+import type { ResolvedEnd } from '../events/event-logic';
 
 /** Outcome of a Nachschub write. `key` is an i18n key (`hq.nachschub.done.*` on success, `errors.*` / `hq.nachschub.*` on failure). */
 export interface NachschubResult {
@@ -39,6 +42,14 @@ export interface NachschubResult {
   readonly params?: Record<string, string | number>;
   /** Present where the checklist asks for an undo. Resolves to the result of the undo. */
   readonly undo?: () => Promise<NachschubResult>;
+}
+
+/** Binds a new Nachschub to an event (type event with rewards, sightseeing without). */
+export interface EventBinding {
+  readonly type: Exclude<NachschubType, 'normal'>;
+  readonly eventId: string;
+  readonly name: string;
+  readonly rewards: readonly { name: string; className: string; ship: boolean }[];
 }
 
 const fail = (key: string): NachschubResult => ({ ok: false, key });
@@ -161,7 +172,7 @@ export class NachschubService {
    * "Neuer Nachschub": take wishlist positions into a fresh Nachschub in the lowest free slot. A pick without `qty`
    * takes the full quantity; a smaller `qty` splits and the rest stays on the wishlist. Undo puts it all back.
    */
-  async createFromWishlist(opts: { picks: readonly WishPick[]; name?: string }): Promise<NachschubResult> {
+  async createFromWishlist(opts: { picks: readonly WishPick[]; name?: string; event?: EventBinding }): Promise<NachschubResult> {
     const uid = this.auth.user()?.id;
     if (!uid) return fail('errors.generic');
     await this.ensureLoaded();
@@ -169,11 +180,11 @@ export class NachschubService {
     if (slot === null) return fail('hq.nachschub.slotsFull');
     const before = this.wishPositions();
     const { taken, remaining } = takeFromWishlist(before, opts.picks);
-    if (!taken.length) return fail('hq.nachschub.nothingPicked');
+    if (!taken.length && !opts.event) return fail('hq.nachschub.nothingPicked');
 
     const id = newClientId();
     const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
-    const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(taken.map((p) => ({ name: label(p), qty: p.qty })))), NACHSCHUB_NAME_MAX);
+    const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(taken.map((p) => ({ name: label(p), qty: p.qty })))) || opts.event?.name || '', NACHSCHUB_NAME_MAX);
 
     const lineIds: string[] = [];
     const snapshot: Record<string, number> = {};
@@ -189,8 +200,15 @@ export class NachschubService {
       lineIds.push(added.id);
       snapshot[added.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
     }
+    // Rewards of the chosen event are lines of their own (they close when the claimed reward lands in Bestand).
+    for (const r of opts.event?.rewards ?? []) {
+      const added = this.supplies.addLine(r.name, 1, { entityKind: r.ship ? 'ship' : 'item', className: r.className, packageId: id, source: 'search' });
+      if (!added) continue;
+      lineIds.push(added.id);
+      snapshot[added.id] = this.ownedOf({ ship: r.ship, className: r.className });
+    }
     const now = new Date().toISOString();
-    const pkg: Nachschub = { id, name, status: 'active', slot, snapshot, createdAt: now, archivedAt: null };
+    const pkg: Nachschub = { id, name, status: 'active', slot, snapshot, createdAt: now, archivedAt: null, ...(opts.event ? { type: opts.event.type, eventId: opts.event.eventId } : {}) };
     if (!(await this.save(pkg, uid))) {
       this.supplies.removeMany(lineIds);
       return fail(this.error() ?? 'errors.generic');
@@ -258,6 +276,8 @@ export class NachschubService {
   async removeLine(lineId: string, backToWishlist: boolean): Promise<NachschubResult> {
     const l = this.supplies.items().find((x) => x.id === lineId);
     if (!l) return fail('errors.generic');
+    const owner = this.packages().find((p) => p.id === l.packageId);
+    if (owner && isEventNachschub(owner)) backToWishlist = false;
     const before = this.wishPositions();
     const out = clearNachschub(
       l.className ? [{ id: l.id, kind: l.entityKind ?? 'item', className: l.className, name: l.name, qty: l.qty, forClassName: l.forClassName, closed: l.done }] : [],
@@ -298,6 +318,8 @@ export class NachschubService {
   async empty(id: string, backToWishlist: boolean): Promise<NachschubResult> {
     const n = this.packages().find((p) => p.id === id);
     if (!n) return fail('errors.generic');
+    // An event Nachschub keeps its progress and NEVER sends lines back to the wishlist (C9).
+    if (isEventNachschub(n)) backToWishlist = false;
     const ev = this.evaluation(id);
     const lines = this.linesOf(id);
     const open: OpenLine[] = lines.map((l) => ({
@@ -347,6 +369,22 @@ export class NachschubService {
         return { ok: true, key: 'hq.nachschub.done.undone' };
       },
     };
+  }
+
+  /** Persist a changed Nachschub (the event services use this). */
+  async update(next: Nachschub): Promise<boolean> {
+    const uid = this.auth.user()?.id;
+    return uid ? this.replace(next, uid) : false;
+  }
+
+  /** An event Nachschub archives itself at its OFFICIAL end (C12); an estimate never does. */
+  async applyEventEnds(ends: ReadonlyMap<string, ResolvedEnd>, nowMs: number): Promise<void> {
+    const at = new Date(nowMs).toISOString();
+    const next = archiveAtEventEnd(this.packages(), ends, nowMs, at);
+    for (const n of next) {
+      const before = this.packages().find((p) => p.id === n.id);
+      if (before && before !== n) await this.update(n);
+    }
   }
 
   /**
@@ -441,6 +479,8 @@ export class NachschubService {
             slot: n.slot,
             snapshot: n.snapshot,
             archived_at: n.archivedAt,
+            type: n.type ?? 'normal',
+            event_id: n.eventId ?? null,
             deleted_at: null,
             updated_at: new Date().toISOString(),
           } as never,
@@ -488,5 +528,7 @@ function fromRow(r: HqSupplyPackageRow): Nachschub {
     snapshot: snap,
     createdAt: r.created_at,
     archivedAt: r.archived_at,
+    type: r.type === 'event' || r.type === 'sightseeing' ? r.type : 'normal',
+    eventId: r.event_id ?? null,
   };
 }

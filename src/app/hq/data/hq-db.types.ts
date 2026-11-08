@@ -5,7 +5,7 @@
  * Timestamps are ISO strings, numeric columns arrive as numbers.
  */
 
-export type HqStepKind = 'buy' | 'mission' | 'mine' | 'refine' | 'craft' | 'transport' | 'pickup';
+export type HqStepKind = 'buy' | 'mission' | 'mine' | 'refine' | 'craft' | 'transport' | 'pickup' | 'event';
 export type HqActivity =
   | 'kopfgeld' | 'bunker' | 'medizin' | 'rennen' | 'bergbau' | 'fracht' | 'bergung' | 'erkunden' | 'piraterie';
 export type HqSetKind = 'ship' | 'fps';

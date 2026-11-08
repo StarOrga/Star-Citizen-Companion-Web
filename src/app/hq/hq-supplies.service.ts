@@ -108,7 +108,7 @@ export const SUPPLIES_MAX_ITEMS = 100;
 export const SUPPLY_NAME_MAX = 80;
 export const SUPPLY_QTY_MAX = 999;
 
-const STEP_KINDS_SET = new Set(['buy', 'mission', 'mine', 'refine', 'craft', 'transport', 'pickup']);
+const STEP_KINDS_SET = new Set(['buy', 'mission', 'mine', 'refine', 'craft', 'transport', 'pickup', 'event']);
 const PUSH_BATCH = 200;
 const PULL_PAGE = 500;
 const PUSH_DEBOUNCE_MS = 500;

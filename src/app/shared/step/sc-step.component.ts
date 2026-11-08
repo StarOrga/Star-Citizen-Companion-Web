@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { TranslatePipe } from '@ngx-translate/core';
 
 /** The step kinds (verbs) of an Einsatz, concept D18. */
-export const STEP_KINDS = ['buy', 'mission', 'mine', 'refine', 'craft', 'transport', 'pickup'] as const;
+export const STEP_KINDS = ['buy', 'mission', 'mine', 'refine', 'craft', 'transport', 'pickup', 'event'] as const;
 export type StepKind = (typeof STEP_KINDS)[number];
 export type StepState = 'todo' | 'done';
 
@@ -18,6 +18,7 @@ export const STEP_SHAPES: Readonly<Record<StepKind, string>> = {
   craft: '4,4 20,4 20,20 4,20',
   transport: 'circle',
   pickup: '12,21 2,3.5 22,3.5',
+  event: '12,2.5 14.2,9.8 21.5,12 14.2,14.2 12,21.5 9.8,14.2 2.5,12 9.8,9.8',
 };
 
 /**

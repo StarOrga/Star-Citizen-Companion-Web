@@ -13,6 +13,8 @@ export const STEP_ICON_PATHS: Readonly<Record<StepKind, readonly string[]>> = {
   craft: ['M14.5 4.5l5 5-2.5 2.5-5-5z', 'M12 9.5L4.5 17a1.8 1.8 0 0 0 2.5 2.5L14.5 12'],
   transport: ['M3 7h11v9H3z', 'M14 10h4l3 3v3h-7'],
   pickup: ['M4 11h16v9H4z', 'M12 3v9', 'M8.5 6.5L12 3l3.5 3.5'],
+  /* Event: a four-pointed spark (the star burst of a limited-time event). */
+  event: ['M12 3l2 6.2 6.2 2.8-6.2 2.8L12 21l-2-6.2L3.8 12 10 9.2z'],
 };
 
 /** The two wheels of the transport truck (circles do not fit the path list). */

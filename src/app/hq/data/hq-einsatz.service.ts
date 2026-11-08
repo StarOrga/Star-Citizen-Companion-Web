@@ -32,6 +32,9 @@ export interface EinsatzStep {
   readonly state: 'todo' | 'done';
   readonly doneAt: string | null;
   readonly doneBy: 'user' | 'live' | null;
+  /** Event step (kind `event`): sc_events.id and the area it applies to {kind, systems, places, venues} instead of a fixed place. */
+  readonly eventId?: string | null;
+  readonly area?: Record<string, unknown> | null;
 }
 
 /** One Einsatz with its ordered steps; "Einsatz ×N" is `steps.length` ({@link einsatzBadge}). */
@@ -479,6 +482,7 @@ function stepToJson(s: EinsatzStep): Record<string, unknown> {
     state: s.state,
     done_at: s.doneAt,
     done_by: s.doneBy,
+    ...(s.eventId ? { event_id: s.eventId, area: s.area ?? null } : {}),
   };
 }
 
@@ -512,6 +516,8 @@ function stepFromRow(s: HqEinsatzStepRow): EinsatzStep {
     state: s.state,
     doneAt: s.done_at,
     doneBy: s.done_by,
+    eventId: s.event_id ?? null,
+    area: s.area ?? null,
   };
 }
 

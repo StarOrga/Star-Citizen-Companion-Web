@@ -37,6 +37,7 @@ export const STEP_MINUTES: Readonly<Record<StepKind, number>> = {
   transport: 25,
   mission: 40,
   mine: 45,
+  event: 30,
 };
 
 /** Activities (D19) that mean combat. */
