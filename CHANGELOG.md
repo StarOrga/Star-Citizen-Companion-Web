@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.232.1] - 2026-11-08
+
+### Fixed
+- Browser extension 0.1.3, Starscape and the Data Uploader point to https://versecompanion-alpha.vercel.app after the old addresses were removed.
+
 ## [0.232.0] - 2026-11-08
 
 ### Changed
