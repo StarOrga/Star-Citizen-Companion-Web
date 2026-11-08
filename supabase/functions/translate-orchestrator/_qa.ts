@@ -33,7 +33,7 @@ export function containsTerm(text: string, term: string): boolean {
 }
 
 /** Inflection-tolerant: the target without up to 2 trailing letters must appear. */
-function containsStem(text: string, target: string): boolean {
+export function containsStem(text: string, target: string): boolean {
   const t = target.toLowerCase();
   const stem = t.length > 5 ? t.slice(0, t.length - 2) : t;
   return text.toLowerCase().includes(stem);

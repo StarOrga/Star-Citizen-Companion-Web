@@ -3,9 +3,13 @@
 
 export interface TmEntry {
   t: string;
-  o: 'ai' | 'cig' | 'admin';
+  o: 'ai' | 'cig' | 'admin' | 'community';
   m?: string;
   at?: string;
+  /** Source id (translation_sources.id) for community entries. */
+  src?: string;
+  /** Licence of the source text (SPDX-ish), community entries only. */
+  lic?: string;
 }
 
 export interface UniqueText {
@@ -81,13 +85,19 @@ export async function diffStrings(input: DiffInput): Promise<DiffResult> {
       counts.blank++;
       continue;
     }
-    if (isCigValid(en, input.cig[key])) {
-      counts.cig++;
-      continue;
-    }
+    const cigOk = isCigValid(en, input.cig[key]);
     let h = cache.get(en);
     if (!h) cache.set(en, (h = await hash(en)));
     const hit = input.tm[h];
+    // Precedence (concept 2026-11-08): admin correction > CIG's own valid translation (blind, the
+    // app applies it, so it never enters the overlay) > TM entry (community / ai).
+    if (cigOk) {
+      if (hit?.o === 'admin') {
+        counts.tm++;
+        reused[key] = { h, t: hit.t };
+      } else counts.cig++;
+      continue;
+    }
     const lower = force.length ? en.toLowerCase() : '';
     const forced = !!hit && force.some((t) => lower.includes(t));
     if (hit && !forced) {

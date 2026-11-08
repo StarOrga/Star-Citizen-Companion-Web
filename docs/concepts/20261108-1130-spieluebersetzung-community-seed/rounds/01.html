@@ -1,0 +1,414 @@
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Btw, wir sollten generell auch nochmal einen konsistenz mechanismus drin haben, beei den verschiedensten quellen und co. sollte wissenschaftlich belegt sich für konsistenz in den meisten fällen entschieden werden,a ber auch ggf. manchmal, dass auch alte einträge geändert werden und aktualsiiert, damit wir nicht nur z. B. auf  alten wording oder phrasierung etc. beharren für immer. Überlege dir da einen ausgeklügelten mechanismus der wissenschaftlich belegft ist.","attachments":[]}}</script>
+  <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Deutsch in der SCC-App ist heute CIGs eigene Teilübersetzung aus deiner Data.p4k. Sie deckt etwa 20 % des Spieltexts ab, der Rest bleibt Englisch. Unser KI-Overlay ist leer: Die Pipeline ist aus, es gab noch keinen einzigen Job und keinen Glossar-Eintrag.</p>
+    <p data-briefing-why>Community-Pakete decken für sieben Sprachen 89–98 % des Texts ab, von Menschen übersetzt. Mit deinen Antworten steht fest, welche wir als Startbestand nehmen, unter welchen Lizenzregeln, und wie die Pipeline danach ohne viele Tokens dazulernt.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"94 %","unit":"Text","label":"Deutsch ohne KI-Kosten","delta":"+74 Pkt. gegen CIG"}'>94 % Text</div>
+    <a data-briefing-topic="t-seed" data-share="50">Erste Übersetzung</a>
+    <a data-briefing-topic="t-learn" data-share="30">Automatisches Lernen</a>
+    <a data-briefing-topic="t-rules" data-share="20">Regeln und Lieferung</a>
+    <p data-briefing-duration>≈ 6 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"94 %","unit":"Text","label":"Deutsch aus dem Community-Paket"}'></div></div>
+      <div data-slot="long">
+        <div data-viz="bars" data-viz-spec='{"items":[{"label":"Chinesisch (42Kit)","value":97.9},{"label":"Französisch (Dymerz)","value":97.8},{"label":"Russisch (n1ghter)","value":95.3},{"label":"Deutsch (rjcncpt)","value":94.3},{"label":"Portugiesisch BR (Dymerz)","value":93.6},{"label":"Italienisch (Dymerz)","value":93.3},{"label":"Japanisch (stdblue)","value":88.9},{"label":"Spanisch (Dymerz)","value":58.8},{"label":"CIG Deutsch heute","value":20.3}],"unit":"% Text"}'></div>
+        <p>Gemessen gegen die englische global.ini von LIVE 4.10.2 (90 946 Keys, 6,8 Mio. Zeichen). Die Kosten der Vollübersetzung laufen über den eigenen API-Key auf dem monatlichen API-Guthaben, nicht über dein Claude-Code-Limit. Laut eigener Schätzung kostet Deutsch voll per KI etwa 40 USD, grob 40–80 USD je Sprache. Mit Seed bleiben je Sprache etwa 2–5 USD.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="t-seed" data-topic data-nav-label="Erste Übersetzung">
+    <div data-alevel="2" data-title="Erste Übersetzung">
+      <div data-slot="short">Ein Community-Paket als Startbestand spart 90–95 % der KI-Kosten und ist meist besser als KI.</div>
+      <div data-slot="long">
+        <div data-viz="compare" data-viz-spec='{"before":{"label":"Voll per KI","value":60},"after":{"label":"Seed + KI-Lücke","value":4},"unit":"USD je Sprache"}'></div>
+        <p>Die Architektur sagt bisher: Community-Pakete werden nie übernommen, wegen der Lizenzen (Entscheidung vom 29.10.). Diese Runde hebt die Regel auf oder bestätigt sie. Die Lizenzen sind je Paket verschieden, daher die zweite Frage.</p>
+      </div>
+    </div>
+
+    <section id="d-seed" data-nav-label="Startbestand" data-decision="d-seed" data-decision-mode="single" data-label="Startbestand" data-rec="seed" data-rec-why="das Paket deckt fast den ganzen Text ab, ist von Menschen übersetzt, und die KI zahlt nur noch für die Lücken." data-applies-to="translate-orchestrator, Übersetzungsspeicher (TM)" data-finding="f-seed">
+      <p data-applies>Gilt für: translate-orchestrator, Übersetzungsspeicher (TM)</p>
+      <p data-situation>Für Deutsch liegt rjcncpt/StarCitizen-Deutsch-INI auf Stand 4.10.2 vom 27.10.2026 und deckt 94 % des Texts ab. Die KI-Vollübersetzung wurde nie gestartet, weil sie teuer wirkte.</p>
+      <h3 data-question>Womit füllen wir den Übersetzungsspeicher zum ersten Mal?</h3>
+      <p data-stakes>Kosten, Qualität und ob wir fremde Texte verteilen.</p>
+      <div data-options>
+        <label data-opt="seed" data-recommended>
+          <input type="radio" name="dm-d-seed" value="seed" checked>
+          <span data-opt-label>Community-Paket importieren, KI füllt nur Lücken</span>
+          <span data-opt-consequence>Ein Import-Skript ohne Tokens legt die Paare mit Herkunft „community“ und Lizenz in den TM. Danach kostet die Lücke 2–5 USD je Sprache.</span>
+        </label>
+        <label data-opt="client">
+          <input type="radio" name="dm-d-seed" value="client">
+          <span data-opt-label>Paket nur in der SCC-App beim Nutzer mischen</span>
+          <span data-opt-consequence>Die App lädt das Paket selbst vom Original. Wir verteilen nichts, aber der Server lernt nicht daraus und kennt die Lücken nicht genau.</span>
+        </label>
+        <label data-opt="ai">
+          <input type="radio" name="dm-d-seed" value="ai">
+          <span data-opt-label>Bei der KI-Vollübersetzung bleiben</span>
+          <span data-opt-consequence>Etwa 40–80 USD je Sprache aus dem Monatsguthaben, keine fremden Lizenzen. Alle Sprachen zusammen brauchen 2–4 Monatsguthaben.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-seed-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-seed-none" value="">
+      <input type="hidden" name="dm-d-seed-hes" value="{&quot;ms&quot;:40623,&quot;revisits&quot;:0,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-seed-touched" value="1">
+      <input type="hidden" name="dm-d-seed-issue" value="">
+      <input type="hidden" name="dm-d-seed-epic" value="">
+      <div data-alevel="3" data-title="Startbestand">
+        <div data-slot="short">Mit Seed bleiben für Deutsch etwa 6 % des Texts für die KI.</div>
+        <div data-slot="long">
+          <div data-viz="stack100" data-viz-spec='{"parts":[{"label":"CIG offiziell","value":20},{"label":"Community-Paket zusätzlich","value":74},{"label":"bleibt für KI","value":6}],"text":"Deutsch: CIG deckt 20 % ab, das Paket weitere 74 %, für die KI bleiben etwa 6 %."}'></div>
+          <p>Die 6 % enthalten Namen, die das Paket absichtlich englisch lässt. Die echte Lücke ist also kleiner. Etwa 2 400 Paket-Zeilen haben andere Platzhalter als das Englisch. Unser QA-Gate verwirft sie, sie wandern in die KI-Lücke.</p>
+        </div>
+        <div data-example><pre>Frontend_PU_Version=Star Citizen Alpha 4.10.2 LIVE\nDeutsche Hybrid-Übersetzung\n…Stand: 27.10.2026 - 08:32 Uhr
+TM-Eintrag: { "&lt;sha256(en)&gt;": { "t": "…", "o": "community:rjcncpt", "lic": "CC-BY-NC-SA-4.0", "at": "2026-11-08" } }</pre></div>
+      </div>
+    </section>
+
+    <section id="d-license" data-nav-label="Lizenzen" data-decision="d-license" data-decision-mode="single" data-label="Umgang mit Lizenzen" data-rec="ask" data-rec-why="rjcncpt setzt die Lizenz per DMCA durch, und eine Anfrage vorab macht aus einem Risiko eine Zusammenarbeit." data-applies-to="Deutsch, Russisch, Ukrainisch (CC-BY-NC-SA 4.0)" data-finding="f-license">
+      <p data-applies>Gilt für: Deutsch, Russisch, Ukrainisch (CC-BY-NC-SA 4.0)</p>
+      <p data-situation>Diese Pakete erlauben Nutzung und Bearbeitung nur mit Namensnennung, nicht kommerziell, und Ableitungen unter derselben Lizenz. rjcncpt hat im April 2025 ein Repo per DMCA entfernen lassen, das die Namensnennung wegließ.</p>
+      <h3 data-question>Wie nutzen wir Pakete unter CC-BY-NC-SA?</h3>
+      <p data-context>„Ableitung“ heißt hier: unser Overlay für diese Sprache steht dann ebenfalls unter CC-BY-NC-SA.</p>
+      <p data-stakes>Ob SCC später für diese Sprachen kostenpflichtig werden kann.</p>
+      <div data-options>
+        <label data-opt="ask" data-recommended>
+          <input type="radio" name="dm-d-license" value="ask">
+          <span data-opt-label>Lizenz einhalten und die Maintainer vorab anfragen</span>
+          <span data-opt-consequence>Du schreibst rjcncpt und n1ghter, wir nennen sie im Overlay und in der App. Overlay dieser Sprachen unter CC-BY-NC-SA.</span>
+        </label>
+        <label data-opt="comply">
+          <input type="radio" name="dm-d-license" value="comply" checked>
+          <span data-opt-label>Lizenz einhalten, ohne Anfrage</span>
+          <span data-opt-consequence>Rechtlich gedeckt, solange SCC kostenlos bleibt. Die Maintainer erfahren es aus der App.</span>
+        </label>
+        <label data-opt="mit">
+          <input type="radio" name="dm-d-license" value="mit">
+          <span data-opt-label>Nur MIT-Pakete nutzen</span>
+          <span data-opt-consequence>Italienisch, Portugiesisch BR und Japanisch sofort. Deutsch und Russisch bleiben KI, also je etwa 40–80 USD.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-license-note" placeholder="Notiz (optional)">aber bitte notiere irgendwo im final public release plan, also wenn wir mit der app mehr als nur bekannte werben, dass wir dann die maintainer informieren, dabei alle je nach lizenz entsprechende ansprache aber nur mit freigabe durch geschützte admins und nur entwürfe, keine automatischen absendugnen .</textarea>
+      <input type="hidden" name="dm-d-license-none" value="">
+      <input type="hidden" name="dm-d-license-hes" value="{&quot;ms&quot;:126978,&quot;revisits&quot;:0,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-license-touched" value="1">
+      <input type="hidden" name="dm-d-license-issue" value="">
+      <input type="hidden" name="dm-d-license-epic" value="">
+      <div data-alevel="3" data-title="Umgang mit Lizenzen">
+        <div data-slot="short">Drei Pakete sind frei (MIT), drei sind CC-BY-NC-SA, zwei sind ungeklärt.</div>
+        <div data-slot="long">
+          <div data-viz="table" data-viz-spec='{"columns":["Lizenz","Folge für uns"],"rows":[{"label":"Deutsch · rjcncpt","cells":["CC-BY-NC-SA 4.0","Nennung, kostenlos, Overlay gleiche Lizenz"]},{"label":"Russisch · n1ghter","cells":["CC-BY-NC-SA 4.0","wie Deutsch"]},{"label":"It · Pt-BR · Dymerz","cells":["MIT","frei, Nennung"]},{"label":"Japanisch · stdblue","cells":["MIT","frei, Nennung"]},{"label":"Französisch · Dymerz","cells":["MIT, Quelle circuspes.fr","Quelle vorher fragen"]},{"label":"Chinesisch · 42Kit","cells":["nicht gefunden","vorher fragen"]},{"label":"Spanisch · Thord82","cells":["alle Rechte vorbehalten","nicht nutzen"]}],"text":"Lizenzdateien direkt über die GitHub-API gelesen."}'></div>
+          <p>Das ist keine Rechtsberatung. Die englischen Ausgangstexte gehören immer CIG. CIG erlaubt angepasste global.ini-Dateien laut Community-Wiki, das habe ich nicht an der Originalquelle geprüft.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-langs" data-nav-label="Sprachen" data-decision="d-langs" data-decision-mode="multi" data-label="Sprachen mit Seed" data-rec="de it ptbr ja" data-rec-why="das sind die Pakete, die aktuell sind und deren Lizenz geklärt ist, und Deutsch ist die Sprache, um die es dir geht." data-applies-to="translation_languages, SCC-App-Sprachwahl" data-finding="f-langs">
+      <p data-applies>Gilt für: translation_languages, SCC-App-Sprachwahl</p>
+      <p data-situation>Die SCC-App bietet heute nur Deutsch an. Ihre Oberfläche gibt es zusätzlich in Französisch, Spanisch, Italienisch, Portugiesisch BR, Polnisch, Russisch, Japanisch, Koreanisch, Chinesisch und Hindi. Für Hindi hat das Spiel keine Sprache.</p>
+      <h3 data-question>Welche Sprachen bekommen einen Community-Seed?</h3>
+      <p data-context>Mehrfachauswahl. Sprachen ohne Seed bleiben bei CIG plus späterer KI.</p>
+      <div data-options>
+        <label data-opt="de" data-recommended>
+          <input type="checkbox" name="dm-d-langs.de" checked>
+          <span data-opt-label>Deutsch aus rjcncpt aufnehmen</span>
+          <span data-opt-consequence>94 % Text, Stand 4.10.2, wird fast täglich gepflegt.</span>
+        </label>
+        <label data-opt="it" data-recommended>
+          <input type="checkbox" name="dm-d-langs.it" checked>
+          <span data-opt-label>Italienisch aus Dymerz aufnehmen</span>
+          <span data-opt-consequence>93 % Text, MIT, Stand 4.10.1.</span>
+        </label>
+        <label data-opt="ptbr" data-recommended>
+          <input type="checkbox" name="dm-d-langs.ptbr" checked>
+          <span data-opt-label>Portugiesisch BR aus Dymerz aufnehmen</span>
+          <span data-opt-consequence>94 % Text, MIT, Stand 4.10.2.</span>
+        </label>
+        <label data-opt="ja" data-recommended>
+          <input type="checkbox" name="dm-d-langs.ja" checked>
+          <span data-opt-label>Japanisch aus stdblue aufnehmen</span>
+          <span data-opt-consequence>89 % Text, MIT, Release vom 27.08.2026.</span>
+        </label>
+        <label data-opt="fr">
+          <input type="checkbox" name="dm-d-langs.fr" checked>
+          <span data-opt-label>Französisch aus Dymerz aufnehmen</span>
+          <span data-opt-consequence>98 % Text, aber aus circuspes.fr erzeugt. Deren Bedingungen sind ungeklärt.</span>
+        </label>
+        <label data-opt="zh">
+          <input type="checkbox" name="dm-d-langs.zh" checked>
+          <span data-opt-label>Chinesisch aus 42Kit aufnehmen</span>
+          <span data-opt-consequence>98 % Text, keine Lizenz gefunden. Nur nach Antwort von 42Kit.</span>
+        </label>
+        <label data-opt="ru">
+          <input type="checkbox" name="dm-d-langs.ru" checked>
+          <span data-opt-label>Russisch aus n1ghter aufnehmen</span>
+          <span data-opt-consequence>95 % Text. Das Spiel hat keinen russischen Ordner, das Paket nutzt den koreanischen. Die App bräuchte diesen Umweg.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-langs-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-langs-none" value="">
+      <input type="hidden" name="dm-d-langs-hes" value="{&quot;ms&quot;:25825,&quot;revisits&quot;:2,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-langs-touched" value="1">
+      <input type="hidden" name="dm-d-langs-issue" value="">
+      <input type="hidden" name="dm-d-langs-epic" value="">
+      <div data-alevel="3" data-title="Sprachen mit Seed">
+        <div data-slot="short">Vier Sprachen sind sofort startklar, drei brauchen eine Antwort von außen.</div>
+        <div data-slot="long">
+          <div data-viz="scorecard" data-viz-spec='{"criteria":["aktuell","Lizenz klar","Spielordner da"],"options":[{"label":"Deutsch","marks":["ok","part","ok"]},{"label":"Italienisch","marks":["ok","ok","ok"]},{"label":"Portugiesisch BR","marks":["ok","ok","ok"]},{"label":"Japanisch","marks":["ok","ok","ok"]},{"label":"Französisch","marks":["ok","part","ok"]},{"label":"Chinesisch","marks":["ok","no","ok"]},{"label":"Russisch","marks":["ok","part","no"]}],"text":"Deutsch steht auf teilweise, weil die Lizenz Bedingungen hat. Sie lassen sich aber erfüllen."}'></div>
+          <p>Polnisch hat weder einen CIG-Ordner noch ein Paket, Koreanisch und Spanisch haben kein nutzbares Paket. Diese drei regelt die letzte Frage.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-learn" data-topic data-nav-label="Automatisches Lernen">
+    <div data-alevel="2" data-title="Automatisches Lernen">
+      <div data-slot="short">Fast alles Lernen geht ohne Tokens: aus den übersetzten Paaren, die schon da sind.</div>
+      <div data-slot="long">
+        <div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Tokens","label":"für Glossar, Namen und Stil"}'></div>
+        <p>Nach dem Seed liegen für Deutsch etwa 80 000 englisch-deutsche Paare im Speicher. Ein neuer Schritt „learning“ läuft nach jeder Veröffentlichung und einmal nach dem Seed. Er zieht daraus Glossar, Namensliste und Stil, und der nächste KI-Lauf bekommt sie im gecachten Systemprompt.</p>
+      </div>
+    </div>
+
+    <section id="d-learn" data-nav-label="Lernbausteine" data-decision="d-learn" data-decision-mode="multi" data-label="Lernbausteine" data-rec="mine dnt style fewshot judge" data-rec-why="diese fünf kosten keine oder schon bezahlte Tokens und decken ab, was eine Übersetzung konsistent macht." data-applies-to="translate-orchestrator, neuer Schritt learning" data-finding="f-learn">
+      <p data-applies>Gilt für: translate-orchestrator, neuer Schritt learning</p>
+      <p data-situation>Die Pipeline nutzt heute schon TM, Glossar und Admin-Einträge, das Glossar ist aber leer und wird nie automatisch gefüllt. Ein Lernschritt fehlt ganz.</p>
+      <h3 data-question>Welche Bausteine soll der Lernschritt haben?</h3>
+      <p data-context>Mehrfachauswahl. Die ersten fünf laufen deterministisch oder auf schon bezahlten Daten.</p>
+      <div data-options>
+        <label data-opt="mine" data-recommended>
+          <input type="checkbox" name="dm-d-learn.mine" checked>
+          <span data-opt-label>Glossar aus kurzen Paaren ziehen</span>
+          <span data-opt-consequence>Kurze Strings bis vier Wörter, etwa Item- und UI-Namen, werden zu Begriffspaaren. Kein Token.</span>
+        </label>
+        <label data-opt="dnt" data-recommended>
+          <input type="checkbox" name="dm-d-learn.dnt" checked>
+          <span data-opt-label>Eigennamen aus dem Codex als „nicht übersetzen“ führen</span>
+          <span data-opt-consequence>Hersteller, Schiffe und Orte aus unserer Datenbank, bestätigt durch ihre Häufigkeit in den Paaren. Kein Token.</span>
+        </label>
+        <label data-opt="style" data-recommended>
+          <input type="checkbox" name="dm-d-learn.style" checked>
+          <span data-opt-label>Stil aus den Paaren messen</span>
+          <span data-opt-consequence>Du oder Sie, Zahlenformat, Anführungszeichen, Einheiten. Zählt per Regex und schreibt die Regeln in den Systemprompt.</span>
+        </label>
+        <label data-opt="fewshot" data-recommended>
+          <input type="checkbox" name="dm-d-learn.fewshot" checked>
+          <span data-opt-label>Ähnliche Paare als Beispiele mitschicken</span>
+          <span data-opt-consequence>Pro Gruppe die nächsten Treffer aus dem TM per Zeichen-Ähnlichkeit. Ein paar hundert Tokens mehr je Anfrage, deutlich weniger Nacharbeit.</span>
+        </label>
+        <label data-opt="judge" data-recommended>
+          <input type="checkbox" name="dm-d-learn.judge" checked>
+          <span data-opt-label>Korrekturen der Stichprobe als Glossar-Vorschläge</span>
+          <span data-opt-consequence>Die 5-%-Prüfung läuft schon. Ihre Begriffskorrekturen landen als Kandidaten, statt zu verfallen.</span>
+        </label>
+        <label data-opt="haiku">
+          <input type="checkbox" name="dm-d-learn.haiku" checked>
+          <span data-opt-label>Begriffskonflikte von Haiku vorentscheiden lassen</span>
+          <span data-opt-consequence>Nur bei Begriffen mit zwei Übersetzungen, im Batch, Cent-Beträge. Ohne ihn landen Konflikte bei dir.</span>
+        </label>
+        <label data-opt="web">
+          <input type="checkbox" name="dm-d-learn.web" checked>
+          <span data-opt-label>Begriffe online nachrecherchieren</span>
+          <span data-opt-consequence>Etwa starcitizen.tools in der Zielsprache. Teuer pro Begriff, und die Quellen sind dünn.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-learn-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-learn-none" value="">
+      <input type="hidden" name="dm-d-learn-hes" value="{&quot;ms&quot;:27568,&quot;revisits&quot;:1,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-learn-touched" value="1">
+      <input type="hidden" name="dm-d-learn-issue" value="">
+      <input type="hidden" name="dm-d-learn-epic" value="">
+      <div data-alevel="3" data-title="Lernbausteine">
+        <div data-slot="short">Beispiele aus dem eigenen Speicher helfen einem Sprachmodell am meisten.</div>
+        <div data-slot="long">
+          <div data-viz="table" data-viz-spec='{"columns":["Tokens","Wirkung"],"rows":[{"label":"Glossar aus Paaren","cells":["0","einheitliche Begriffe"]},{"label":"Eigennamen","cells":["0","keine übersetzten Schiffsnamen"]},{"label":"Stil","cells":["0","du, 40 %, Dezimalkomma"]},{"label":"Ähnliche Beispiele","cells":["klein","weniger Nacharbeit"]},{"label":"Stichprobe","cells":["schon bezahlt","Fehler werden Regeln"]}],"text":"Die Forschung zu LLM-Übersetzung zeigt den größten Gewinn durch Beispiele aus dem eigenen Speicher (Moslem u. a. 2023)."}'></div>
+          <p>Ein Begriffspaar wird nur übernommen, wenn es oft genug gleich übersetzt ist. Die Schwelle regelt die nächste Frage.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-promote" data-nav-label="Freigabe" data-decision="d-promote" data-decision-mode="single" data-label="Freigabe gelernter Begriffe" data-rec="auto" data-rec-why="eindeutige Begriffe brauchen dich nicht, und nur die strittigen landen in deiner Liste." data-applies-to="translation_glossary, Admin-Glossar-Editor" data-finding="f-promote">
+      <p data-applies>Gilt für: translation_glossary, Admin-Glossar-Editor</p>
+      <p data-situation>Das Glossar kennt schon die Herkünfte cig, ai und admin und das Sperren durch den Admin. Für gelernte Einträge fehlt eine Herkunft und eine Regel, ab wann sie gelten.</p>
+      <h3 data-question>Wann wird ein gelernter Begriff verbindlich?</h3>
+      <p data-stakes>Wie viel Pflegearbeit bei dir landet.</p>
+      <div data-options>
+        <label data-opt="auto" data-recommended>
+          <input type="radio" name="dm-d-promote" value="auto" checked>
+          <span data-opt-label>Automatisch ab 5 Belegen und 90 % Einigkeit</span>
+          <span data-opt-consequence>Herkunft „mined“. Alles darunter oder mit Widerspruch kommt in eine Prüfliste im Admin-Bereich.</span>
+        </label>
+        <label data-opt="manual">
+          <input type="radio" name="dm-d-promote" value="manual">
+          <span data-opt-label>Jeden gelernten Begriff selbst freigeben</span>
+          <span data-opt-consequence>Volle Kontrolle, aber nach dem Seed sind das Tausende Einträge.</span>
+        </label>
+        <label data-opt="all">
+          <input type="radio" name="dm-d-promote" value="all">
+          <span data-opt-label>Alles sofort übernehmen</span>
+          <span data-opt-consequence>Keine Arbeit, aber ein Fehler im Paket wird zur Regel für jede neue Übersetzung.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-promote-note" placeholder="Notiz (optional)">Gern auch in scc web für admins in der ü+bersetzung eine art karteikarten mit auswahl machen a oder b und/oder notiz. Sprich man kann der ki übersetzung input geben wenn die ki übersetzungh nicht weiterkommt und nachfragt, dann kann der admin wählen zwischen a oder b option, präferiert meta fragen aber zur not auch zum wording oder ganz zur not auch zum stil und ggf. eine notiz als zusätzlichen hinweis ergänzen. Wie eine gamification die den admin dazu animiert mal hin und wieder die übersetzung zu verbessern. Dabie bitte priorisierte liste, damit die wichtigsten vorne stehen und wie gesagt, das ist nur last resort wenn die ki nicht weiterkommt oder sich extrem unsicher ist !
+
+Genau, das glossar kann ja zusätzlich durch admins jederzeit angepasst werden für die sprachen</textarea>
+      <input type="hidden" name="dm-d-promote-none" value="">
+      <input type="hidden" name="dm-d-promote-hes" value="{&quot;ms&quot;:174498,&quot;revisits&quot;:1,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-promote-touched" value="1">
+      <input type="hidden" name="dm-d-promote-issue" value="">
+      <input type="hidden" name="dm-d-promote-epic" value="">
+      <div data-alevel="3" data-title="Freigabe gelernter Begriffe">
+        <div data-slot="short">Admin-Einträge schlagen weiterhin alles, auch gelernte.</div>
+        <div data-slot="long">
+          <div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Einträge","label":"im Glossar heute"}'></div>
+          <p>Ein gesperrter Admin-Eintrag bleibt unberührt. Ändert sich ein verbindlicher Begriff, markiert der Lernschritt die betroffenen Strings über das vorhandene Feld needs_retranslate für den nächsten Lauf.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-sync" data-nav-label="Community-Updates" data-decision="d-sync" data-decision-mode="single" data-label="Spätere Community-Updates" data-rec="grace" data-rec-why="die Pakete ziehen nach einem Patch meist innerhalb weniger Tage nach, und was sie liefern, muss die KI nicht bezahlen." data-applies-to="translate-orchestrator, Delta-Jobs pro Build" data-finding="f-sync">
+      <p data-applies>Gilt für: translate-orchestrator, Delta-Jobs pro Build</p>
+      <p data-situation>Heute übersetzt ein Delta-Job sofort nach jedem Upload alles Neue. rjcncpt hat sein Paket zuletzt am Morgen dieser Analyse aktualisiert.</p>
+      <h3 data-question>Wie fließen neue Versionen der Pakete ein?</h3>
+      <p data-stakes>Ob die KI Strings bezahlt, die die Community kurz darauf liefert.</p>
+      <div data-options>
+        <label data-opt="grace" data-recommended>
+          <input type="radio" name="dm-d-sync" value="grace">
+          <span data-opt-label>Pakete täglich abgleichen, KI erst nach 7 Tagen</span>
+          <span data-opt-consequence>Ein Cron holt neue Paketstände ohne Tokens. Was nach 7 Tagen noch englisch ist, übersetzt die KI. Bis dahin sieht man englischen Text.</span>
+        </label>
+        <label data-opt="both">
+          <input type="radio" name="dm-d-sync" value="both" checked>
+          <span data-opt-label>Pakete abgleichen, KI-Delta trotzdem sofort</span>
+          <span data-opt-consequence>Sofort vollständig, aber jedes Delta wird doppelt gemacht. Die Community-Version ersetzt später unsere.</span>
+        </label>
+        <label data-opt="once">
+          <input type="radio" name="dm-d-sync" value="once">
+          <span data-opt-label>Nur einmal importieren, danach nur KI</span>
+          <span data-opt-consequence>Kein Abgleich nötig, aber Verbesserungen der Community kommen nie an.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-sync-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-sync-none" value="">
+      <input type="hidden" name="dm-d-sync-hes" value="{&quot;ms&quot;:22518,&quot;revisits&quot;:0,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-sync-touched" value="1">
+      <input type="hidden" name="dm-d-sync-issue" value="">
+      <input type="hidden" name="dm-d-sync-epic" value="">
+      <div data-alevel="3" data-title="Spätere Community-Updates">
+        <div data-slot="short">Jedes Paket-Update läuft auch durch den Lernschritt.</div>
+        <div data-slot="long">
+          <div data-viz="kpi" data-viz-spec='{"value":"≈ 1–5","unit":"USD","label":"je Patch-Delta heute, pro Sprache"}'></div>
+          <p>Ein Paketwert gilt nur für den englischen Text, gegen den er geschrieben wurde. Ändert CIG das Englisch, wird der Paketwert ungültig, bis das Paket nachzieht oder die Frist abläuft. Das prüft der Hash, den der Speicher schon führt.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section id="t-rules" data-topic data-nav-label="Regeln und Lieferung">
+    <div data-alevel="2" data-title="Regeln und Lieferung">
+      <div data-slot="short">Wer bei Konflikten gewinnt, wie die Herkunft sichtbar wird, was ohne Paket passiert.</div>
+      <div data-slot="long">
+        <div data-viz="kpi" data-viz-spec='{"value":"3","unit":"Sprachen","label":"ohne nutzbares Paket"}'></div>
+        <p>Spanisch, Koreanisch und Polnisch haben kein freies Paket. Für Polnisch gibt es auch keinen Ordner im Spiel.</p>
+      </div>
+    </div>
+
+    <section id="d-order" data-nav-label="Vorrang" data-decision="d-order" data-decision-mode="single" data-label="Vorrang der Quellen" data-rec="cig" data-rec-why="CIGs Begriffe sind die offiziellen, und das Paket füllt ohnehin vor allem die 80 %, die CIG nicht hat." data-applies-to="Overlay-Aufbau in translate-orchestrator und SCC-App" data-finding="f-order">
+      <p data-applies>Gilt für: Overlay-Aufbau in translate-orchestrator und SCC-App</p>
+      <p data-situation>Heute gilt: Admin vor CIG vor KI. Beim Deutsch-Paket weichen in etwa 7 % der CIG-Keys die Texte voneinander ab, meist im Wortlaut, selten im Begriff.</p>
+      <h3 data-question>Wer gewinnt, wenn CIG und Paket einen Key verschieden übersetzen?</h3>
+      <div data-options>
+        <label data-opt="cig" data-recommended>
+          <input type="radio" name="dm-d-order" value="cig" checked>
+          <span data-opt-label>Admin, dann CIG, dann Community, dann KI</span>
+          <span data-opt-consequence>Offizielle Begriffe bleiben. Im Spiel kann der Stil zwischen CIG- und Paket-Zeilen leicht wechseln.</span>
+        </label>
+        <label data-opt="community">
+          <input type="radio" name="dm-d-order" value="community">
+          <span data-opt-label>Admin, dann Community, dann CIG, dann KI</span>
+          <span data-opt-consequence>Durchgehend der Stil des Pakets. Wo CIG anders benennt, weicht das Spiel von offiziellen Patchnotes ab.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-order-note" placeholder="Notiz (optional)">Also ich würde das klassifizieren lassen, manchmal steht community direkt nach admin, manchmal ganz am ende hinter ki, ich würde die ki entscheiden lassen wo es nach admin seinen platz einnimmt bzgl. der spezifischen übersetzung, denn das mag für einen key so sein, für einen andernen key keinen sinn machen, naja und wenn selbst die ki nicht entscheiden kann was das beste ist (auch konsistenz der eigenen übersetzung warend), dann legt es die entscheidung dem admin vor</textarea>
+      <input type="hidden" name="dm-d-order-none" value="">
+      <input type="hidden" name="dm-d-order-hes" value="{&quot;ms&quot;:106404,&quot;revisits&quot;:2,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-order-touched" value="1">
+      <input type="hidden" name="dm-d-order-issue" value="">
+      <input type="hidden" name="dm-d-order-epic" value="">
+      <div data-alevel="3" data-title="Vorrang der Quellen">
+        <div data-slot="short">Die Reihenfolge wirkt nur auf die 20 % Keys, die CIG übersetzt hat.</div>
+        <div data-slot="long">
+          <div data-viz="donut" data-viz-spec='{"parts":[{"label":"nur Paket","value":74},{"label":"CIG und Paket","value":20},{"label":"keiner","value":6}]}'></div>
+          <p>Die Abweichung habe ich grob über Text-Ungleichheit bestimmt, nicht nach Begriffen getrennt. Der Lernschritt würde sie genau zählen und Widersprüche in die Prüfliste legen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="d-credit" data-nav-label="Herkunft" data-decision="d-credit" data-decision-mode="single" data-label="Herkunft sichtbar machen" data-rec="both" data-rec-why="rjcncpt verlangt ausdrücklich die erste Zeile der global.ini, und in der App sieht der Nutzer, woher sein Text kommt." data-applies-to="SCC-App Sprachwahl, gebaute global.ini, translation-overlay" data-finding="f-credit">
+      <p data-applies>Gilt für: SCC-App Sprachwahl, gebaute global.ini, translation-overlay</p>
+      <p data-situation>Die App beschriftet die Sprache heute als „inoffizielle KI-Übersetzung“. Mit Seed stimmt das nicht mehr, und die Lizenz verlangt eine Namensnennung.</p>
+      <h3 data-question>Wo nennen wir die Herkunft der Übersetzung?</h3>
+      <div data-options>
+        <label data-opt="both" data-recommended>
+          <input type="radio" name="dm-d-credit" value="both" checked>
+          <span data-opt-label>In der Sprachwahl und in der ersten Zeile der global.ini</span>
+          <span data-opt-consequence>Etwa „Community-Übersetzung (rjcncpt, CC-BY-NC-SA) + KI-Ergänzung“. Im Spiel erscheint es auf dem Hauptmenü.</span>
+        </label>
+        <label data-opt="app">
+          <input type="radio" name="dm-d-credit" value="app">
+          <span data-opt-label>Nur in der App unter Info</span>
+          <span data-opt-consequence>Dezenter, erfüllt aber den ausdrücklichen Wunsch von rjcncpt nicht.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-credit-note" placeholder="Notiz (optional)"></textarea>
+      <input type="hidden" name="dm-d-credit-none" value="">
+      <input type="hidden" name="dm-d-credit-hes" value="{&quot;ms&quot;:28181,&quot;revisits&quot;:2,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-credit-touched" value="1">
+      <input type="hidden" name="dm-d-credit-issue" value="">
+      <input type="hidden" name="dm-d-credit-epic" value="">
+      <div data-alevel="3" data-title="Herkunft sichtbar machen">
+        <div data-slot="short">rjcncpt bittet darum, die erste Zeile mit dem Quellenhinweis stehen zu lassen.</div>
+        <div data-slot="long">
+          <p>Das Overlay bekommt dafür pro Sprache die Felder <code>source</code>, <code>license</code> und <code>attribution</code>. Die App setzt daraus den Schlüssel <code>Frontend_PU_Version</code> und den Text in der Sprachwahl.</p>
+        </div>
+        <div data-example><pre>Frontend_PU_Version=Star Citizen Alpha 4.10.2 LIVE\nDeutsche Community-Übersetzung (rjcncpt, CC-BY-NC-SA 4.0)\nKI-Ergänzung: SC Companion</pre></div>
+      </div>
+    </section>
+
+    <section id="d-nopack" data-nav-label="Ohne Paket" data-decision="d-nopack" data-decision-mode="single" data-label="Sprachen ohne Paket" data-rec="ai" data-rec-why="das Monatsguthaben verfällt ohnehin, und eine Sprache pro Monat bleibt mit Abstand unter dem Deckel von 190 USD." data-applies-to="Spanisch, Koreanisch, Polnisch" data-finding="f-nopack">
+      <p data-applies>Gilt für: Spanisch, Koreanisch, Polnisch</p>
+      <p data-situation>Thord82 erlaubt nur persönliche Nutzung, das alte Dymerz-Spanisch deckt 59 % ab. Für Koreanisch und Polnisch habe ich kein Paket gefunden, die Recherche war aber nicht vollständig.</p>
+      <h3 data-question>Wie kommen Spanisch, Koreanisch und Polnisch zu einer Übersetzung?</h3>
+      <div data-options>
+        <label data-opt="ai" data-recommended>
+          <input type="radio" name="dm-d-nopack" value="ai">
+          <span data-opt-label>KI-Vollübersetzung, eine Sprache pro Monat freigeben</span>
+          <span data-opt-consequence>Je etwa 40–80 USD über start_full, mit dem gleichen Lernschritt. Spanisch kann das alte MIT-Paket als Teil-Seed nutzen.</span>
+        </label>
+        <label data-opt="ask">
+          <input type="radio" name="dm-d-nopack" value="ask">
+          <span data-opt-label>Erst Thord82 fragen und weiter nach Paketen suchen</span>
+          <span data-opt-consequence>Spanisch wäre mit Erlaubnis ein Seed. Bis dahin bleiben alle drei bei CIG.</span>
+        </label>
+        <label data-opt="skip">
+          <input type="radio" name="dm-d-nopack" value="skip" checked>
+          <span data-opt-label>Diese Sprachen vorerst nicht anbieten</span>
+          <span data-opt-consequence>Kostet nichts. Die App bietet sie dann nicht in der Sprachwahl an.</span>
+        </label>
+      </div>
+      <textarea data-comment="d-nopack-note" placeholder="Notiz (optional)">Gern als hinweis beim public release bewerbend auch rein, dass wir hier nochmal nachholen müssen (insb. koreanisch und polnisch). Aber bei thord82 fragen, warum? Verlangt das seine lizenzbestimmung? Wenn nicht nutzen wir es und dann wenn public releasee schreiben wir ihn an!? so wie bei den anderen auch.</textarea>
+      <input type="hidden" name="dm-d-nopack-none" value="">
+      <input type="hidden" name="dm-d-nopack-hes" value="{&quot;ms&quot;:92445,&quot;revisits&quot;:0,&quot;median&quot;:40623}">
+      <input type="hidden" name="dm-d-nopack-touched" value="1">
+      <input type="hidden" name="dm-d-nopack-issue" value="">
+      <input type="hidden" name="dm-d-nopack-epic" value="">
+      <div data-alevel="3" data-title="Sprachen ohne Paket">
+        <div data-slot="short">Polnisch hat im Spiel keinen eigenen Ordner, wie Russisch bräuchte es einen Umweg.</div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Spanisch (CIG)","value":21.0},{"label":"Koreanisch (CIG)","value":21.1},{"label":"Polnisch (CIG)","value":0}],"unit":"% Text heute"}'></div>
+          <p>Die Schätzung je Sprache rechnet mit Sonnet im Batch für den Großteil und Opus für Lore, plus 5 % Prüfung. Für Japanisch, Koreanisch und Chinesisch fallen mehr Ausgabe-Tokens an.</p>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
