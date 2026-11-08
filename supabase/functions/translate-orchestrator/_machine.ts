@@ -20,6 +20,9 @@ import { loadNotes } from './_cards.ts';
 import { addJudgeCandidates, resumeLearning, runLearning } from './_learn.ts';
 import type { LearnDb } from './_learn_db.ts';
 import { loadTm, makeOverlay, overlayKey, readLocaleTable, saveTm, workKey } from './_io.ts';
+import type { OverlayMeta } from './_io.ts';
+import { detectOverrideAlerts } from './_alerts.ts';
+import type { AdminTerm, AlertRow } from './_alerts.ts';
 import type { Store } from './_io.ts';
 import { mask, unmask } from './_mask.ts';
 import {
@@ -138,6 +141,10 @@ export interface Deps {
   log(msg: string, data?: Record<string, unknown>): void;
   /** Learning step adapter (`makeLearnDb`); absent = no learning, no cards (tests, older wiring). */
   learn?: LearnDb;
+  /** Overlay sources / attribution / game folder for a published overlay (index.ts wires it); absent = bare overlay. */
+  overlayMeta?: (lang: string, entries: Record<string, { h: string; t: string }>, tm: Record<string, TmEntry>) => Promise<OverlayMeta>;
+  /** Writes override alerts (B4, service-role client in index.ts); absent = no alerts. */
+  alerts?: (lang: string, buildId: string, rows: AlertRow[]) => Promise<void>;
 }
 
 export const BATCH_MAX_REQUESTS = 400;
@@ -170,6 +177,15 @@ export interface PlanResult {
   plan: Plan;
   estimate: Estimate;
   stringCount: number;
+  /** Tables already read for the plan, reused by the B4 alert check (not persisted). */
+  inputs?: {
+    en: Record<string, string>;
+    baseEn: Record<string, string> | null;
+    cig: Record<string, string>;
+    cigFolder: string;
+    tm: Record<string, TmEntry>;
+    glossary: AdminTerm[];
+  };
 }
 
 export async function computePlan(
@@ -249,7 +265,10 @@ export async function computePlan(
     reused: diff.reused, forceIds: forced.map((g) => g.id!).filter(Boolean), counts: diff.counts,
     newGlossary: newRows(dbGlossary, derived), keyNotes,
   };
-  return { plan, estimate, stringCount: diff.todo.reduce((a, u) => a + u.keys.length, 0) };
+  return {
+    plan, estimate, stringCount: diff.todo.reduce((a, u) => a + u.keys.length, 0),
+    inputs: { en, baseEn, cig, cigFolder: language.cig_folder || job.lang, tm, glossary: dbGlossary },
+  };
 }
 
 /** Dry run for the admin `estimate` op: no writes. */
@@ -403,6 +422,22 @@ function glossaryFor(plan: Plan, db: GlossaryRow[]): GlossaryRow[] {
 
 // ── steps ────────────────────────────────────────────────────────────────────
 
+/**
+ * B4: a delta whose English or CIG value changed under an admin correction raises an admin alert
+ * with the diff. Never fails the job — an alert is advice, the translation goes on.
+ */
+async function checkOverrideAlerts(deps: Deps, job: Job, r: PlanResult): Promise<void> {
+  if (!deps.alerts || job.mode !== 'delta' || !job.base_build_id || !r.inputs?.baseEn) return;
+  try {
+    const { en, baseEn, cig, cigFolder, tm, glossary } = r.inputs;
+    const baseCig = await readLocaleTable(deps.store, job.base_build_id, cigFolder);
+    const rows = await detectOverrideAlerts({ baseEn, en, baseCig, cig, tm, adminGlossary: glossary });
+    if (rows.length) await deps.alerts(job.lang, job.build_id, rows);
+  } catch (e) {
+    deps.log('translate override alerts failed', { lang: job.lang, error: String((e as Error)?.message ?? e) });
+  }
+}
+
 async function stepEstimating(deps: Deps, job: Job): Promise<void> {
   const { db, store } = deps;
   const settings = await db.getSettings();
@@ -417,6 +452,7 @@ async function stepEstimating(deps: Deps, job: Job): Promise<void> {
     throw e;
   }
   const { plan, estimate, stringCount } = r;
+  await checkOverrideAlerts(deps, job, r);
   const stats = addStats(job, { counts: plan.counts, estimate, phase: undefined, hold: undefined });
   const base = { string_count: stringCount, estimate_usd: round4(estimate.usd) };
 
@@ -644,7 +680,16 @@ async function stepPublishing(deps: Deps, job: Job): Promise<void> {
     if (it) pairs.push({ en: unmask(it.m, it.toks), t: r.t });
   }
   await saveTm(store, job.lang, tmUpdates);
-  const overlay = makeOverlay(job.lang, job.build_id, entries, at);
+  // A6: sources + uniform attribution + game folder; the TM is re-read so this job's entries count.
+  let meta: OverlayMeta = {};
+  if (deps.overlayMeta) {
+    try {
+      meta = await deps.overlayMeta(job.lang, entries, await loadTm(store, job.lang));
+    } catch (e) {
+      deps.log('translate overlay meta failed', { lang: job.lang, error: String((e as Error)?.message ?? e) });
+    }
+  }
+  const overlay = makeOverlay(job.lang, job.build_id, entries, at, meta);
   await store.putJson(overlayKey(job.lang, job.build_id), overlay);
   if (!(await db.hasNewerPublished(job))) await store.putJson(overlayKey(job.lang, 'latest'), overlay);
 

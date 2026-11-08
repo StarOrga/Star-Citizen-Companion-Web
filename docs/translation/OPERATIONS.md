@@ -107,3 +107,28 @@ All with an admin JWT or the service role (`sync_sources` also with the publisha
 | `import_seed` / `sync_sources` | 0 USD (no model call) |
 | German with seed: the remaining AI gap (about 6 % uncovered text + ~2 400 placeholder rejects) | about 2–5 USD per language instead of about 40 USD |
 | Arbiter pairwise comparison (Haiku class, batch, both orders) | cents per few thousand conflicts |
+
+## Learning step: work keys and spend
+
+The learning step (`_learn.ts`, `_arbiter.ts`, `_revise.ts`, `_cards.ts`) runs after every publish, after
+every seed import or sync, and on `op: learn`. Its LLM parts (Haiku pre-decision, pairwise arbiter, B1
+term alignment, web research) are Message Batches resumed by later ticks. Progress lives in R2:
+
+| Key | Content |
+|---|---|
+| `translation-work/learn-<lang>/state.json` | phase of the running learning pass |
+| `translation-work/learn-<lang>/arbiter.json` | open pairwise comparisons (both orders) |
+| `translation-work/learn-<lang>/revise.json` | per-release change counter (hysteresis budget) |
+| `translation-work/learn-<lang>/notes.json` | admin card notes fed into prompts |
+| `translation-work/learn-<lang>/decided.json` | hashes an admin decided on a card (never overturned) |
+| `translation-work/learn-<lang>/judge-terms.json` | term corrections from the 5 % judge |
+| `translation-work/learn-spend/<month>.json` | learning / web-research spend per kind (web cap) |
+
+`translation_ledger.job_id` is NOT NULL, so learning spend is booked on the newest translation job of the
+language; the monthly cap therefore sees it. The web-research cap (`web_research_cap_usd`) is summed from
+`learn-spend/<month>.json` with a reservation at submit time. A cleaner ledger (`job_id` nullable plus a
+`kind` column) is a possible follow-up.
+
+Wiring (index.ts): `deps.learn = makeLearnDb(admin)`, `deps.overlayMeta` (sources, attribution, game
+folder on every published overlay) and `deps.alerts` (B4 override alerts during delta estimating).
+Without `deps.learn` learning, arbiter and cards are no-ops.

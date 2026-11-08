@@ -31,7 +31,10 @@ import { approve, cancel, dryRun, startFull, tick, TranslateError } from './_mac
 import type { Deps } from './_machine.ts';
 import type { Store } from './_io.ts';
 import { learningHooks } from './_hooks.ts';
-import { draftOutreach, importSeed, syncSources } from './_sources.ts';
+import { draftOutreach, importSeed, listSources, syncSources } from './_sources.ts';
+import { buildOverlayMeta } from './_io.ts';
+import { writeAlerts } from './_alerts.ts';
+import { makeLearnDb } from './_learn_db.ts';
 
 function logWarn(msg: string, data?: Record<string, unknown>): void {
   console.warn(`translate-orchestrator: ${msg}`, data ? JSON.stringify(data) : '');
@@ -117,6 +120,11 @@ Deno.serve(async (req) => {
     llm: apiKey ? makeLlm(apiKey) : null,
     now: () => new Date(),
     log: (msg, data) => logWarn(msg, data),
+    learn: makeLearnDb(admin, () => new Date()),
+    overlayMeta: async (lang, entries, tm) => buildOverlayMeta(lang, entries, tm, await listSources(admin, lang)),
+    alerts: async (lang, buildId, rows) => {
+      await writeAlerts(admin, lang, buildId, rows);
+    },
   };
 
   try {
