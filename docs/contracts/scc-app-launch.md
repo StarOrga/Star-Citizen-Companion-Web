@@ -10,6 +10,8 @@ The HQ Start page names the action by what it knows. With no game signal on the 
 star-citizen-companion://open
 ```
 
+The scheme keeps its pre-rename name on purpose (Verse Companion rename, stage 2). Installed apps up to v0.104 register only `star-citizen-companion://`; a click on a new scheme would find no handler there and fall through to the installer download. The desktop release that registers both `star-citizen-companion` and `verse-companion` is in progress. The website switches to `verse-companion://open` once that release is the oldest supported one; until then the old name is the only one the website calls.
+
 `open` is the only action, and it carries no parameters. The app treats the URL as "bring yourself to the front" and ignores anything else in it, because any website can open this URL.
 
 ## What the desktop app must do

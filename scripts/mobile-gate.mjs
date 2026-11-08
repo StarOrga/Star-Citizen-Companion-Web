@@ -768,12 +768,12 @@ async function resolveTarget(cfg) {
   const dev = 'http://127.0.0.1:4200';
   if (await probe(dev + '/')) return { baseUrl: dev, mode: 'running dev server', stop: null };
 
-  const dist = join(REPO_ROOT, 'dist', 'sc-companion', 'browser');
+  const dist = join(REPO_ROOT, 'dist', 'verse-companion', 'browser');
   if (!existsSync(join(dist, 'index.html'))) {
     fail(
       'Nothing to test against.\n' +
         '  • start the dev server (`npm start`), or\n' +
-        '  • run `npm run build` so dist/sc-companion/browser exists, or\n' +
+        '  • run `npm run build` so dist/verse-companion/browser exists, or\n' +
         '  • pass --base-url=<url> (e.g. a preview deployment).',
     );
   }

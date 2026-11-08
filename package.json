@@ -1,5 +1,5 @@
 {
-  "name": "sc-companion",
+  "name": "verse-companion",
   "version": "0.232.5",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,

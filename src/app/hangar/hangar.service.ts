@@ -3,6 +3,7 @@ import { AuthService } from '../auth/auth.service';
 import { AnalyticsService } from '../core/analytics.service';
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
+import { readMigrated } from '../core/storage-keys';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import {
   ConfigLoadoutEntry,
@@ -40,8 +41,8 @@ const UNIQUE_VIOLATION = '23505';
  * not the `preferencesAllowed()`-gated baseline in `upcoming-ships.service.ts`).
  */
 const RECENT_MAX = 3;
-const RECENT_SHIPS_KEY = 'sc-companion.hangar.recentShipClassNames';
-const RECENT_SETS_KEY = 'sc-companion.hangar.recentSetIds';
+const RECENT_SHIPS_KEY = 'verse-companion.hangar.recentShipClassNames';
+const RECENT_SETS_KEY = 'verse-companion.hangar.recentSetIds';
 
 /**
  * CRUD + signal store for the personal hangar (hangar_ships,
@@ -125,7 +126,7 @@ export class HangarService {
   private readRecentIds(key: string): string[] {
     if (typeof localStorage === 'undefined') return [];
     try {
-      const raw = localStorage.getItem(key);
+      const raw = readMigrated(key);
       if (!raw) return [];
       const arr = JSON.parse(raw);
       return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string').slice(0, RECENT_MAX) : [];

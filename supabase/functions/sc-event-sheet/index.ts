@@ -27,7 +27,7 @@ import {
 const MODEL = Deno.env.get('SC_EVENT_SHEET_MODEL') ?? 'claude-sonnet-5-5';
 const COMM_LINK_API = 'https://api.star-citizen.wiki/api/comm-links';
 const WIKI_API = 'https://starcitizen.tools/api.php';
-const USER_AGENT = 'SC-Companion/1.0 (+sc-event-sheet)';
+const USER_AGENT = 'VerseCompanion/1.0 (+sc-event-sheet)';
 const GLOBAL_THROTTLE_MS = 10 * 60_000;
 
 const json = (body: unknown, status = 200) =>

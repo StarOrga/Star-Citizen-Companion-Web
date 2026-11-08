@@ -48,7 +48,7 @@ After a change run `npm run gen:readme-content` and the usual gates.
 - Supabase Auth: Site URL `https://versecompanion-alpha.vercel.app`, host
   added to the redirect allow list (Management API).
 - Extension: honest store text (`browser-extension/STORE-LISTING.md`),
-  version 0.1.2, new host in host permissions.
+  version 0.1.2, new host in host permissions (0.1.4 follows in stage 2: new bridge ids).
 
 ## Still needs the owner (dashboards)
 
@@ -65,12 +65,43 @@ After a change run `npm run gen:readme-content` and the usual gates.
    binaries — binaries only after the desktop updater follows redirects.
 7. Edge-function secret `PUBLIC_SITE_URL`, if set, → new host.
 
-## Stage 2 — technical identifiers (later, with migration)
+## Stage 2 — technical identifiers (done, with migration)
 
-Kept for now: localStorage keys `sc-companion.*`, extension bridge id
-`sc-companion-extension`, User-Agent `SC-Companion/x`, package name
-`sc-companion`, dist path `dist/sc-companion`, Supabase/R2 ids. Each needs a
-read-both/write-new release before the old id can go.
+Done:
+
+- **localStorage `sc-companion.*` → `verse-companion.*`** (hangar recents, upcoming-ships
+  favorites/baseline, news bookmarks, the consent purge list). One helper,
+  `src/app/core/storage-keys.ts`: a read takes the new key, else the legacy one; a legacy hit is
+  copied to the new key and the old key removed; writes only go to the new key. The consent purge
+  clears both names. Remove the legacy fallback after a few months.
+- **Extension bridge** `sc-companion-extension` → `verse-companion-extension` (app side
+  `verse-companion-app`, presence attribute `data-verse-companion-extension`). The web accepts both
+  extension ids and both attributes. It sends the legacy app id unless the extension announced
+  version ≥ 0.1.4, because 0.1.0–0.1.3 only understand the old one. Extension 0.1.4 accepts both app
+  ids, sends the new extension id and sets both attributes. Drop the legacy ids once 0.1.3 is no
+  longer supported.
+- **User-Agent** `SC-Companion/x` → `VerseCompanion/x` in every edge function (same `(+suffix)`
+  shape, host suffix where there was none).
+- **Package / build output**: `package.json` and `angular.json` project `verse-companion`, build
+  output `dist/verse-companion/browser`, with every consumer (vercel.json, build/stamp/CSP/mobile
+  gate scripts, CI, docs).
+- **OG image** carries the Fan Kit "Made by the Community" logo (unaltered, in the corner).
+
+Kept on purpose:
+
+- **`sc.*` localStorage/sessionStorage keys** (`sc.auth`, `sc.lang`, `sc.consent`, ...): a short
+  app-wide prefix, not the product name. `sc.auth` is the Supabase session; renaming it signs
+  everyone out. No user-visible gain for roughly sixty keys.
+- **URL scheme `star-citizen-companion://`**: installed desktop apps ≤ v0.104 register only that.
+  The website switches to `verse-companion://` once the desktop release registering both is the
+  oldest supported one (see `docs/contracts/scc-app-launch.md`).
+- Supabase project id/refs and `project_id` in `supabase/config.toml`, storage bucket names, R2
+  bucket and worker names (`sc-companion-assets`), `data-uploader/` package and app ids (separate
+  product, installed apps), migration file names, CHANGELOG and release notes (history).
+- readme.io subdomain (issue #1017) and GitHub repo slugs incl. the mirror `sc-companion-readme-docs`
+  (issue #1020).
+- Local-only handles: the Windows Credential Manager entry `sc-companion/test-account` and the
+  local Supabase stack id.
 
 ## Compliance findings for the owner to decide (nothing deleted)
 

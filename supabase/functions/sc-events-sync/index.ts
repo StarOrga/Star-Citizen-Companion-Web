@@ -33,7 +33,7 @@ const PAGES = 3; // 3 x 100 newest Comm-Links ≈ 4–6 months of posts
 const FETCH_TIMEOUT_MS = 15_000;
 const AI_TIMEOUT_MS = 25_000;
 const AI_MAX_CALLS = 5;
-const USER_AGENT = 'SC-Companion/1.0 (+sc-events-sync)';
+const USER_AGENT = 'VerseCompanion/1.0 (+sc-events-sync)';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });

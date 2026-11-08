@@ -230,7 +230,7 @@ async function fetchShipMatrix(): Promise<Record<string, unknown>[]> {
   const t = setTimeout(() => ctrl.abort(), SHIP_MATRIX_TIMEOUT_MS);
   try {
     const res = await fetch(SHIP_MATRIX_URL, {
-      headers: { 'Accept': 'application/json', 'User-Agent': 'SC-Companion/0.4 (+upcoming-ships)' },
+      headers: { 'Accept': 'application/json', 'User-Agent': 'VerseCompanion/0.4 (+upcoming-ships)' },
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`ship-matrix HTTP ${res.status}`);
