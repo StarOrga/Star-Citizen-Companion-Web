@@ -4597,6 +4597,8 @@
   },
   "adminFeedback": {
     "title": "Feedback Board",
+    "deployLag": "Deploy pending",
+    "deployLagHint": "Merged, but production does not carry the change yet. It appears as soon as the Vercel deploy finishes.",
     "subtitle": "Post what could be better — the nightly routine picks up open items, ships them, and marks them here.",
     "heartbeat": {
       "online": "Dev PC reachable",

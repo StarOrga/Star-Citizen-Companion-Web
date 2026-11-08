@@ -4597,6 +4597,8 @@
   },
   "adminFeedback": {
     "title": "Feedback-Board",
+    "deployLag": "Deploy ausstehend",
+    "deployLagHint": "Gemergt, aber Production trägt die Änderung noch nicht. Sie erscheint, sobald der Vercel-Deploy durch ist.",
     "subtitle": "Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
     "heartbeat": {
       "online": "Dev-PC erreichbar",
