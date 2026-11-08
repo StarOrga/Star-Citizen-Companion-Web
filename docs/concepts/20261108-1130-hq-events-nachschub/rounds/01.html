@@ -1,0 +1,539 @@
+<section data-iteration="1" data-iteration-template="design" data-viewports="desktop" data-tab-label="Runde 1">
+<style>
+.d1-ev-app { --a: #52c1e6; --fg: #e8ebed; --fg2: #9fb3c8; --fg3: #6f8aa0; --line: rgba(159, 179, 200, 0.22); --ok: #5fd698; --warn: #f0c27b; --ev: #c9a6ff; --card: rgba(8, 20, 30, 0.82);
+  position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 640px; box-sizing: border-box; overflow: hidden; color: var(--fg);
+  font: 13px/1.4 Inter, system-ui, "Segoe UI", sans-serif; text-align: left;
+  background: radial-gradient(ellipse 130% 95% at 58% 0%, #0d1d2a 0%, #07121b 40%, #03080e 100%); }
+.d1-ev-app *, .d1-ev-app *::before, .d1-ev-app *::after { box-sizing: border-box; }
+.d1-ev-mh { display: flex; align-items: center; justify-content: space-between; flex: none; height: 48px; padding: 0 24px; border-bottom: 1px solid var(--line); }
+.d1-ev-brand { font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.08em; }
+.d1-ev-nav { display: flex; gap: 22px; font: 12px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.2em; color: var(--fg2); }
+.d1-ev-nav .on { color: var(--fg); border-bottom: 2px solid var(--a); padding-bottom: 6px; }
+.d1-ev-sub { display: flex; gap: 18px; flex: none; height: 36px; align-items: center; padding: 0 24px; color: var(--fg3); font-size: 12px; border-bottom: 1px solid var(--line); }
+.d1-ev-sub .on { color: var(--fg); }
+.d1-ev-sub .dot { display: inline-block; width: 7px; height: 7px; margin-left: 5px; border-radius: 50%; background: var(--ev); box-shadow: 0 0 8px var(--ev); vertical-align: 1px; }
+.d1-ev-page { position: relative; display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; width: 100%; max-width: 1180px; margin: 0 auto; padding: 18px 28px 14px; }
+.d1-ev-head { display: flex; align-items: center; gap: 12px; flex: none; }
+.d1-ev-head h2 { margin: 0 auto 0 0; font: 600 20px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.04em; }
+.d1-ev-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border: 0; border-radius: 999px; background: var(--a); color: #04121b; font: 600 13px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+.d1-ev-btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
+.d1-ev-btn.sm { padding: 5px 12px; font-size: 12px; }
+.d1-ev-box { border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 12px 14px; }
+.d1-ev-box h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.d1-ev-muted { color: var(--fg2); }
+.d1-ev-tiny { font-size: 11px; color: var(--fg3); }
+.d1-ev-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.d1-ev-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg2); font-size: 12px; }
+.d1-ev-chip.ev { color: var(--ev); border-color: rgba(201, 166, 255, 0.5); background: rgba(201, 166, 255, 0.1); }
+.d1-ev-chip.ok { color: var(--ok); border-color: rgba(95, 214, 152, 0.45); }
+.d1-ev-chip.warn { color: var(--warn); border-color: rgba(240, 194, 123, 0.5); }
+.d1-ev-chip.on { color: var(--fg); border-color: var(--a); background: rgba(82, 193, 230, 0.14); }
+/* Start */
+.d1-ev-hero { flex: none; padding: 26px 0 10px; text-align: center; }
+.d1-ev-hero small { display: block; color: var(--fg3); letter-spacing: 0.2em; font: 11px/1 Orbitron, system-ui, sans-serif; }
+.d1-ev-hero h1 { margin: 8px 0 0; font: 600 30px/1.2 Orbitron, system-ui, sans-serif; letter-spacing: 0.04em; }
+.d1-ev-tiles { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 26px; flex: 1; min-height: 0; padding-top: 14px; }
+.d1-ev-tile { position: relative; padding: 16px 10px 0; border-top: 2px solid rgba(82, 193, 230, 0.4); }
+.d1-ev-tile.mid { text-align: center; border-top-color: var(--ok); }
+.d1-ev-tile.right { text-align: left; }
+.d1-ev-tile .k { display: flex; align-items: center; gap: 8px; font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.18em; color: var(--fg2); }
+.d1-ev-tile.mid .k { justify-content: center; }
+.d1-ev-tile .big { margin: 12px 0 4px; font: 600 22px/1.2 Inter, system-ui, sans-serif; }
+.d1-ev-flag { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 10px 12px; border: 1px solid rgba(201, 166, 255, 0.45); border-radius: 12px; background: rgba(201, 166, 255, 0.08); }
+.d1-ev-flag i { flex: none; width: 9px; height: 9px; margin-top: 4px; border-radius: 50%; background: var(--ev); box-shadow: 0 0 10px var(--ev); }
+.d1-ev-flag b { color: var(--ev); }
+.d1-ev-flag small { display: block; color: var(--fg2); }
+/* Planen */
+.d1-ev-slots { display: flex; gap: 10px; flex: none; }
+.d1-ev-crate { position: relative; flex: 1; min-width: 0; height: 92px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(160deg, rgba(82, 193, 230, 0.12), rgba(8, 20, 30, 0.9)); }
+.d1-ev-crate.sel { border-color: var(--a); box-shadow: 0 0 0 1px var(--a); }
+.d1-ev-crate.ev { background: linear-gradient(160deg, rgba(201, 166, 255, 0.18), rgba(8, 20, 30, 0.9)); border-color: rgba(201, 166, 255, 0.5); }
+.d1-ev-crate.ev.sel { box-shadow: 0 0 0 1px var(--ev); border-color: var(--ev); }
+.d1-ev-crate b { display: block; font-size: 12px; }
+.d1-ev-crate small { display: block; margin-top: 3px; color: var(--fg2); font-size: 11px; }
+.d1-ev-crate .tag { position: absolute; right: 8px; bottom: 8px; font-size: 10px; color: var(--ev); }
+.d1-ev-crate.free { display: grid; place-items: center; border-style: dashed; background: transparent; color: var(--fg3); font-size: 22px; }
+.d1-ev-strip { display: flex; gap: 10px; flex: none; align-items: stretch; }
+.d1-ev-strip > .lbl { flex: none; display: flex; align-items: center; font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; color: var(--ev); writing-mode: vertical-rl; transform: rotate(180deg); }
+.d1-ev-card { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid rgba(201, 166, 255, 0.35); border-radius: 12px; background: rgba(201, 166, 255, 0.06); }
+.d1-ev-card.soon { border-style: dashed; opacity: 0.8; }
+.d1-ev-card.done { border-color: rgba(95, 214, 152, 0.4); background: rgba(95, 214, 152, 0.05); }
+.d1-ev-card .t { display: flex; align-items: baseline; gap: 8px; }
+.d1-ev-card .t b { flex: 1; font-size: 13px; }
+.d1-ev-card .t span { font-size: 11px; color: var(--warn); white-space: nowrap; }
+.d1-ev-card .acts { display: flex; gap: 6px; margin-top: auto; }
+.d1-ev-body { display: flex; gap: 14px; flex: 1; min-height: 0; }
+.d1-ev-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+.d1-ev-col.l { flex: 0 0 56%; }
+.d1-ev-col.r { flex: 1; }
+.d1-ev-ein { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.d1-ev-ein.ev { border-color: rgba(201, 166, 255, 0.45); }
+.d1-ev-ein .t { display: flex; align-items: center; gap: 8px; }
+.d1-ev-ein .t b { flex: 1; }
+.d1-ev-ein ol { margin: 0; padding-left: 1.3em; color: var(--fg2); display: flex; flex-direction: column; gap: 3px; }
+.d1-ev-bar { position: relative; height: 6px; border-radius: 3px; background: rgba(159, 179, 200, 0.18); overflow: hidden; }
+.d1-ev-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--ev); }
+.d1-ev-ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--fg3); }
+.d1-ev-venue { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; flex: 1; min-height: 140px; border: 1px solid var(--line); border-radius: 12px; background: radial-gradient(circle at 50% 50%, rgba(201, 166, 255, 0.12), transparent 62%), #040c13; text-align: center; padding: 14px; }
+.d1-ev-venue .sys { font: 600 13px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; color: var(--ev); }
+.d1-ev-venue .orbs { display: flex; gap: 18px; }
+.d1-ev-venue .orbs span { display: grid; place-items: center; width: 54px; height: 54px; border: 1px dashed rgba(201, 166, 255, 0.5); border-radius: 50%; font-size: 10px; color: var(--fg2); }
+/* Flow */
+.d1-ev-steps { display: flex; align-items: center; gap: 8px; flex: none; }
+.d1-ev-step { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 6px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg3); }
+.d1-ev-step i { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-style: normal; font-size: 11px; }
+.d1-ev-step.done { color: var(--ok); border-color: rgba(95, 214, 152, 0.45); }
+.d1-ev-step.cur { color: var(--fg); border-color: var(--ev); background: rgba(201, 166, 255, 0.12); }
+.d1-ev-step.cur i { background: var(--ev); color: #120a1e; border-color: var(--ev); }
+.d1-ev-sep { width: 18px; height: 1px; background: var(--line); }
+.d1-ev-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; min-height: 0; overflow: hidden; }
+.d1-ev-line { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.d1-ev-line.sel { border-color: rgba(201, 166, 255, 0.55); background: rgba(201, 166, 255, 0.06); }
+.d1-ev-line .cb { flex: none; width: 15px; height: 15px; border: 1.5px solid var(--fg2); border-radius: 4px; }
+.d1-ev-line.sel .cb { border-color: var(--ev); background: var(--ev); }
+.d1-ev-line .sil { flex: none; width: 34px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, rgba(159, 179, 200, 0.25), rgba(159, 179, 200, 0.05)); }
+.d1-ev-line .nm { flex: 1; min-width: 0; }
+.d1-ev-line .nm small { display: block; color: var(--fg2); font-size: 11px; }
+.d1-ev-seg { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; }
+.d1-ev-seg span { padding: 3px 9px; border-radius: 999px; color: var(--fg3); }
+.d1-ev-seg .on { color: var(--fg); background: rgba(201, 166, 255, 0.2); box-shadow: 0 0 0 1px var(--ev); }
+.d1-ev-next { display: flex; align-items: center; gap: 12px; flex: none; padding: 9px 12px 9px 16px; border: 1px solid rgba(201, 166, 255, 0.45); border-radius: 12px; background: rgba(201, 166, 255, 0.07); }
+.d1-ev-next .say { flex: 1; }
+.d1-ev-next .say b { color: var(--ev); }
+/* Jetzt */
+.d1-ev-live { display: inline-flex; align-items: center; gap: 8px; color: var(--ok); font: 600 11px/1 Orbitron, system-ui, sans-serif; letter-spacing: 0.16em; }
+.d1-ev-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+.d1-ev-offer { display: flex; align-items: center; gap: 14px; flex: none; padding: 12px 16px; border: 1px solid var(--ev); border-radius: 14px; background: linear-gradient(90deg, rgba(201, 166, 255, 0.16), rgba(201, 166, 255, 0.04)); }
+.d1-ev-offer .say { flex: 1; }
+.d1-ev-offer .say b { display: block; font-size: 14px; }
+.d1-ev-offer .say small { color: var(--fg2); }
+.d1-ev-now { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; opacity: 0.55; }
+.d1-ev-ticker { position: absolute; left: 20px; bottom: 14px; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(3, 8, 14, 0.9); font-size: 11px; color: var(--fg2); }
+.d1-ev-ticker i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+/* Abschluss */
+.d1-ev-claim { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.d1-ev-claim .nm { flex: 1; min-width: 0; }
+.d1-ev-claim .nm small { display: block; color: var(--fg2); font-size: 11px; }
+.d1-ev-claim.got { border-color: rgba(95, 214, 152, 0.45); }
+.d1-ev-claim.wait { border-style: dashed; }
+.d1-ev-tickbox { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border: 1.5px solid var(--fg2); border-radius: 5px; font-size: 12px; }
+.d1-ev-claim.got .d1-ev-tickbox { border-color: var(--ok); background: var(--ok); color: #04121b; }
+.d1-ev-pop { position: absolute; right: 60px; top: 228px; z-index: 4; width: 300px; padding: 12px 14px; border: 1px solid var(--a); border-radius: 12px; background: #06121b; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); }
+.d1-ev-pop h4 { margin: 0 0 8px; font-size: 13px; }
+.d1-ev-radio { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+.d1-ev-radio i { width: 14px; height: 14px; border: 1.5px solid var(--fg2); border-radius: 50%; }
+.d1-ev-radio.on i { border-color: var(--a); box-shadow: inset 0 0 0 3px #06121b; background: var(--a); }
+.d1-ev-radio small { color: var(--fg3); }
+/* Datenblatt */
+.d1-ev-sheet { display: grid; grid-template-columns: 200px 1fr; gap: 14px; flex: 1; min-height: 0; }
+.d1-ev-evlist { display: flex; flex-direction: column; gap: 6px; }
+.d1-ev-evlist span { padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--fg2); font-size: 12px; }
+.d1-ev-evlist span.on { color: var(--fg); border-color: var(--ev); background: rgba(201, 166, 255, 0.08); }
+.d1-ev-evlist small { display: block; font-size: 10px; color: var(--fg3); }
+.d1-ev-dl { display: grid; grid-template-columns: 150px 1fr 70px; gap: 0; border-top: 1px solid var(--line); font-size: 12px; }
+.d1-ev-dl > * { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.d1-ev-dl dt { color: var(--fg2); }
+.d1-ev-dl dd { margin: 0; }
+.d1-ev-dl .c { text-align: right; font-family: ui-monospace, monospace; color: var(--ok); }
+.d1-ev-dl .c.lo { color: var(--warn); }
+.d1-ev-admin { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid rgba(255, 107, 107, 0.55); border-radius: 999px; color: #ff8b8b; font-size: 11px; }
+</style>
+
+  <section data-design="events" data-nav-label="Events im Nachschub" data-design-active="true">
+
+    <section id="ev-start" data-nav-label="HQ Start: Hinweis" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-ev-app">
+        <header class="d1-ev-mh"><span class="d1-ev-brand">SC Companion</span><nav class="d1-ev-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-ev-sub"><span class="on">Start</span><span>Bestand</span><span>Jetzt</span><span>Planen<i class="dot"></i></span><span>Statistik</span></div>
+        <div class="d1-ev-page">
+          <div class="d1-ev-hero"><small>HQ · ALPHA 4.10.2</small><h1>Willkommen zurück, Kommandant</h1></div>
+          <div class="d1-ev-tiles">
+            <div class="d1-ev-tile"><div class="k">BESTAND</div><p class="big">Inventar 214 · Hangar 9</p><p class="d1-ev-muted">Zuletzt: Pembroke-Helm</p></div>
+            <div class="d1-ev-tile mid"><div class="k"><span class="d1-ev-live"><i></i>LIVE</span></div><p class="big">Stanton · Hurston</p><p class="d1-ev-muted">Gladius „Rotfuchs“ · Lorville</p><button class="d1-ev-btn" type="button" data-screen-link="ev-jetzt">Weiter: Laser-Repeater kaufen</button></div>
+            <div class="d1-ev-tile right"><div class="k">PLANEN</div><p class="big">2 Nachschübe aktiv</p><p class="d1-ev-muted">„Gladius aufrüsten“ · 4 von 6</p>
+              <a class="d1-ev-flag" data-screen-link="ev-planen"><i></i><span><b>2 Events laufen, 1 davon noch offen</b><small>RSI Discovery Month · Ende unbekannt, spätestens mit Alpha 5.0 (≈ 9. Dez)</small><small>Day of the Vara · endet morgen</small></span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ev-a1" data-anno-side="left" data-anno-target=".d1-ev-flag" style="--anno-x:72%;--anno-y:62%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a1" aria-expanded="false" aria-controls="anno-bubble-ev-a1" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a1" data-anno-bubble="ev-a1" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a1" aria-expanded="false" aria-controls="anno-bubble-ev-a1"><span class="anno-bubble-question">Der Hinweis steht in der Planen-Kachel und als Punkt am Reiter Planen. Er zählt nur Events, die du weder abgehakt noch ausgeblendet hast, und nennt das nächste Ende: amtliches Datum, sonst den geschätzten nächsten Patch. Reicht das, oder soll er auffälliger sein?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a1" data-annotation="ev-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a1"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ev-planen" data-nav-label="Planen: Events-Leiste" data-screen hidden data-screen-fit="full">
+      <div class="d1-ev-app">
+        <header class="d1-ev-mh"><span class="d1-ev-brand">SC Companion</span><nav class="d1-ev-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-ev-sub"><span>Start</span><span>Bestand</span><span>Jetzt</span><span class="on">Planen<i class="dot"></i></span><span>Statistik</span></div>
+        <div class="d1-ev-page">
+          <div class="d1-ev-head"><h2>Planen</h2></div>
+          <div class="d1-ev-slots">
+            <div class="d1-ev-crate"><b>Gladius aufrüsten</b><small>4 von 6 · 2 Einsätze</small></div>
+            <div class="d1-ev-crate"><b>Bergungs-Set</b><small>1 von 5 · 3 Einsätze</small></div>
+            <div class="d1-ev-crate free">+</div><div class="d1-ev-crate free">+</div><div class="d1-ev-crate free">+</div><div class="d1-ev-crate free">+</div><div class="d1-ev-crate free">+</div>
+          </div>
+          <div class="d1-ev-strip">
+            <span class="lbl">EVENTS</span>
+            <div class="d1-ev-card"><div class="t"><b>RSI Discovery Month</b><span>Ende unbekannt · ≤ Alpha 5.0</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Verse · Stanton</span><span class="d1-ev-chip">Fortschritt: persönlich</span></div><span class="d1-ev-tiny">Lackierungen, Komponenten, Rüstung, Waffen · im Spiel</span><div class="acts"><button class="d1-ev-btn sm" type="button" data-screen-link="ev-flow">Als Nachschub planen</button><button class="d1-ev-btn ghost sm" type="button">Schon erledigt</button><button class="d1-ev-btn ghost sm" type="button">Ausblenden</button></div></div>
+            <div class="d1-ev-card done"><div class="t"><b>Day of the Vara 2956</b><span>endet morgen</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Arena Commander</span><span class="d1-ev-chip ok">✓ erledigt</span></div><span class="d1-ev-tiny">Vanduul-Maske · wird nach dem Event verteilt</span><div class="acts"><button class="d1-ev-btn ghost sm" type="button" data-screen-link="ev-done">Belohnung abhaken</button></div></div>
+            <div class="d1-ev-card soon"><div class="t"><b>IAE 2956</b><span>ab 13. Nov</span></div><div class="d1-ev-row"><span class="d1-ev-chip">Verse · New Babbage</span><span class="d1-ev-chip">Free Fly</span></div><span class="d1-ev-tiny">Keine Belohnung erkannt · Schiffe probefliegen</span><div class="acts"><button class="d1-ev-btn ghost sm" type="button">Erinnern</button></div></div>
+          </div>
+          <div class="d1-ev-box" style="flex:1;min-height:0"><h3>Gladius aufrüsten</h3><p class="d1-ev-muted" style="margin:0">Laser-Repeater S3 ×2 · Medpen ×4 · Quantanium 0,4 SCU · Pembroke-Helm …</p></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ev-a2" data-anno-side="bottom" data-anno-target=".d1-ev-strip" style="--anno-x:44%;--anno-y:38%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a2" aria-expanded="false" aria-controls="anno-bubble-ev-a2" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a2" data-anno-bubble="ev-a2" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a2" aria-expanded="false" aria-controls="anno-bubble-ev-a2"><span class="anno-bubble-question">Laufende und angekündigte Events stehen als Leiste unter den sieben Slots, beliebig viele nebeneinander. „Als Nachschub planen“ belegt einen freien Slot. Passt die Leiste dort, oder soll sie erst erscheinen, wenn ein Event läuft, das du noch nicht hast?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a2" data-annotation="ev-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a2"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="ev-a3" data-anno-side="left" data-anno-target=".d1-ev-card.soon" style="--anno-x:86%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a3" aria-expanded="false" aria-controls="anno-bubble-ev-a3" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a3" data-anno-bubble="ev-a3" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a3" aria-expanded="false" aria-controls="anno-bubble-ev-a3"><span class="anno-bubble-question">Ein Event ohne erkannte Belohnung (Free Fly wie die IAE) steht trotzdem in der Leiste, aber nur mit „Erinnern“, ohne Nachschub. Soll es dort stehen, oder nur Events mit Belohnung?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a3" data-annotation="ev-a3" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a3"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ev-flow" data-nav-label="Neuer Nachschub aus Event" data-screen hidden data-screen-fit="full">
+      <div class="d1-ev-app">
+        <header class="d1-ev-mh"><span class="d1-ev-brand">SC Companion</span><nav class="d1-ev-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-ev-sub"><span>Start</span><span>Bestand</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-ev-page">
+          <div class="d1-ev-head"><h2>Neuer Nachschub · RSI Discovery Month</h2></div>
+          <div class="d1-ev-steps"><span class="d1-ev-step cur"><i>1</i>Auswählen</span><span class="d1-ev-sep"></span><span class="d1-ev-step"><i>2</i>Zusammenfassung</span><span class="d1-ev-sep"></span><span class="d1-ev-step"><i>3</i>Einsätze</span></div>
+          <div class="d1-ev-body">
+            <div class="d1-ev-col l">
+              <p class="d1-ev-muted" style="margin:0">Welche Belohnungen willst du holen? Stufen hängen aneinander: Stufe 4 braucht die Punkte der Stufen davor.</p>
+              <ul class="d1-ev-list">
+                <li class="d1-ev-line sel"><span class="cb"></span><span class="sil"></span><span class="nm">P8-SC „Echo“ SMG<small>Verteidigung · Stufe 4 · 10 000 Punkte</small></span><span class="d1-ev-chip">im Spiel</span><span class="d1-ev-chip warn">auf der Wunschliste</span></li>
+                <li class="d1-ev-line sel"><span class="cb"></span><span class="sil"></span><span class="nm">MaxLift-II „Keelback“<small>Transport · Stufe 4 · 10 000 Punkte</small></span><span class="d1-ev-chip">im Spiel</span></li>
+                <li class="d1-ev-line"><span class="cb"></span><span class="sil"></span><span class="nm">Helios IP-10/20/30 · Mk-IV-Lackierung · 3× Zeus-Anzug<small>Gesamt · Stufe 4 · 30 000 Punkte</small></span><span class="d1-ev-chip">im Spiel</span></li>
+                <li class="d1-ev-line"><span class="cb"></span><span class="sil"></span><span class="nm">Mk-IV-Abschiedslackierung<small>Nur mit Constellation-Mk-IV-Pledge zum Event-Start · kein Einsatz nötig</small></span><span class="d1-ev-chip ev">Pledge</span></li>
+              </ul>
+              <span class="d1-ev-tiny">Erkannt aus Comm-Link 21350 und Spectrum · Stand 8. Nov · 1 Angabe unsicher</span>
+            </div>
+            <div class="d1-ev-col r">
+              <div class="d1-ev-box"><h3>Wo es stattfindet</h3><div class="d1-ev-row"><span class="d1-ev-chip ev">Verse</span><span class="d1-ev-chip">Stanton</span><span class="d1-ev-chip">jeder Ort mit RSI-Auftrag</span></div><p class="d1-ev-tiny" style="margin:8px 0 0">Kein Ort festzulegen. Jetzt bietet das Event an, sobald du in Stanton bist.</p></div>
+              <div class="d1-ev-box"><h3>Voraussetzungen</h3><div class="d1-ev-row"><span class="d1-ev-chip ok">✓ Alpha 4.10.2</span><span class="d1-ev-chip ok">✓ Spielpaket</span><span class="d1-ev-chip">Mk-IV-Pledge: nur für die Lackierung</span></div></div>
+              <div class="d1-ev-box"><h3>Ende</h3><p style="margin:0">Unbekannt <span class="d1-ev-chip warn">Angaben widersprechen sich</span></p><p class="d1-ev-tiny" style="margin:6px 0 0">Wir rechnen mit spätestens Alpha 5.0, geschätzt ≈ 9. Dez.</p></div>
+            </div>
+          </div>
+          <div class="d1-ev-next"><span class="say"><b>2 Belohnungen</b> · 1 davon stand schon auf der Wunschliste</span><button class="d1-ev-btn ghost" type="button" data-screen-link="ev-planen">Abbrechen</button><button class="d1-ev-btn" type="button" data-screen-link="ev-einsatz">Weiter</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ev-a4" data-anno-side="right" data-anno-target=".d1-ev-line .d1-ev-chip.warn" style="--anno-x:52%;--anno-y:35%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a4" aria-expanded="false" aria-controls="anno-bubble-ev-a4" aria-label="{{anno.pin_label}}">4</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a4" data-anno-bubble="ev-a4" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a4" aria-expanded="false" aria-controls="anno-bubble-ev-a4"><span class="anno-bubble-question">Steht eine Belohnung schon auf deiner Wunschliste, wird diese Position übernommen und nicht doppelt angelegt. Andere Belohnungen kommen direkt in den Nachschub, ohne Umweg über die Wunschliste. Passt das?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a4" data-annotation="ev-a4" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a4"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="ev-a5" data-anno-side="left" data-anno-target=".d1-ev-col.r .d1-ev-box" style="--anno-x:80%;--anno-y:34%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a5" aria-expanded="false" aria-controls="anno-bubble-ev-a5" aria-label="{{anno.pin_label}}">5</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a5" data-anno-bubble="ev-a5" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a5" aria-expanded="false" aria-controls="anno-bubble-ev-a5"><span class="anno-bubble-question">Ort, Voraussetzungen und Ende kommen aus der KI-Auswertung. Jeder Wert darf „unbekannt“ sein, statt geraten zu werden. Willst du sehen, woher ein Wert stammt (Comm-Link, Spectrum, Wiki), oder reicht die eine Herkunftszeile?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a5" data-annotation="ev-a5" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a5"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ev-einsatz" data-nav-label="Planen: Event-Nachschub" data-screen hidden data-screen-fit="full">
+      <div class="d1-ev-app">
+        <header class="d1-ev-mh"><span class="d1-ev-brand">SC Companion</span><nav class="d1-ev-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-ev-sub"><span>Start</span><span>Bestand</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-ev-page">
+          <div class="d1-ev-slots">
+            <div class="d1-ev-crate"><b>Gladius aufrüsten</b><small>4 von 6</small></div>
+            <div class="d1-ev-crate"><b>Bergungs-Set</b><small>1 von 5</small></div>
+            <div class="d1-ev-crate ev sel"><b>Discovery: Echo + Keelback</b><small>0 von 2 · 2 Einsätze</small><span class="tag">EVENT · ≤ 9. Dez</span></div>
+            <div class="d1-ev-crate free">+</div><div class="d1-ev-crate free">+</div><div class="d1-ev-crate free">+</div><div class="d1-ev-crate free">+</div>
+          </div>
+          <div class="d1-ev-body">
+            <div class="d1-ev-col l">
+              <div class="d1-ev-ein ev"><div class="t"><b>Verteidigung bis Stufe 4</b><span class="d1-ev-chip ev">Event</span><span class="d1-ev-chip">Stanton</span></div>
+                <ol><li>RSI-Aufträge „Mercenary“ im Contract Manager annehmen</li><li>Punkte auf der Verteidigungs-Spur sammeln</li></ol>
+                <div class="d1-ev-bar"><i style="width:41%"></i></div><div class="d1-ev-ticks"><span>4 100 / 10 000 · selbst eingetragen</span><span>2 000 · 4 000 · 6 500 · 10 000</span></div>
+              </div>
+              <div class="d1-ev-ein ev"><div class="t"><b>Transport bis Stufe 4</b><span class="d1-ev-chip ev">Event</span><span class="d1-ev-chip">Stanton</span></div>
+                <ol><li>RSI-Aufträge „Hauling“ oder „Courier“ annehmen</li><li>Punkte auf der Transport-Spur sammeln</li></ol>
+                <div class="d1-ev-bar"><i style="width:0%"></i></div><div class="d1-ev-ticks"><span>0 / 10 000</span><span>Punkte eintragen</span></div>
+              </div>
+            </div>
+            <div class="d1-ev-col r">
+              <div class="d1-ev-venue"><span class="sys">STANTON</span><div class="d1-ev-orbs"><span>Hurston</span><span>ArcCorp</span><span>microTech</span></div><span class="d1-ev-muted">Kein fester Ort. Du nimmst die Aufträge dort an, wo du gerade bist.</span></div>
+              <div class="d1-ev-row"><button class="d1-ev-btn ghost" type="button">Bearbeiten</button><button class="d1-ev-btn ghost" type="button">Leeren</button><button class="d1-ev-btn" type="button" data-screen-link="ev-jetzt">In Jetzt ausführen</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ev-a6" data-anno-side="right" data-anno-target=".d1-ev-ein .d1-ev-bar" style="--anno-x:30%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a6" aria-expanded="false" aria-controls="anno-bubble-ev-a6" aria-label="{{anno.pin_label}}">6</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a6" data-anno-bubble="ev-a6" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a6" aria-expanded="false" aria-controls="anno-bubble-ev-a6"><span class="anno-bubble-question">Den Event-Fortschritt kennt nur das Spiel. Hier trägst du deinen Punktestand selbst ein. Später kann die SCC-App ihn liefern, wenn das Spiel ihn ins Log schreibt. Reicht das Selbst-Eintragen für den Anfang?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a6" data-annotation="ev-a6" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a6"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="ev-a7" data-anno-side="left" data-anno-target=".d1-ev-venue" style="--anno-x:76%;--anno-y:44%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a7" aria-expanded="false" aria-controls="anno-bubble-ev-a7" aria-label="{{anno.pin_label}}">7</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a7" data-anno-bubble="ev-a7" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a7" aria-expanded="false" aria-controls="anno-bubble-ev-a7"><span class="anno-bubble-question">Statt der Karte mit Stationen zeigt ein Event-Einsatz nur sein Gebiet: ein System, mehrere erlaubte Orte oder „Arena Commander“. Hat der Nachschub neben Event-Einsätzen auch Kaufen-Einsätze, bleibt die Karte. Passt das?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a7" data-annotation="ev-a7" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a7"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ev-jetzt" data-nav-label="Jetzt: im Event-Gebiet" data-screen hidden data-screen-fit="full">
+      <div class="d1-ev-app">
+        <header class="d1-ev-mh"><span class="d1-ev-brand">SC Companion</span><nav class="d1-ev-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-ev-sub"><span>Start</span><span>Bestand</span><span class="on">Jetzt</span><span>Planen</span><span>Statistik</span></div>
+        <div class="d1-ev-page">
+          <div class="d1-ev-head"><h2>Jetzt · Gladius aufrüsten</h2><span class="d1-ev-live"><i></i>LIVE · STANTON · HURSTON</span></div>
+          <div class="d1-ev-offer"><span class="say"><b>Du bist im Gebiet von RSI Discovery Month</b><small>Dein Nachschub „Discovery: Echo + Keelback“ hat hier 2 Einsätze. Verteidigung steht bei 4 100 von 10 000 Punkten.</small></span><button class="d1-ev-btn ghost" type="button">Nicht jetzt</button><button class="d1-ev-btn" type="button" data-screen-link="ev-einsatz">Zum Event wechseln</button></div>
+          <div class="d1-ev-now">
+            <div class="d1-ev-box"><h3>Nächster Schritt</h3><p style="margin:0">Laser-Repeater S3 ×2 kaufen · Lorville, Tammany and Sons</p><div class="d1-ev-row" style="margin-top:10px"><button class="d1-ev-btn" type="button">Schritt erledigt</button></div></div>
+            <div class="d1-ev-box"><h3>Einsätze</h3><div class="d1-ev-row"><span class="d1-ev-chip on">Lorville kaufen</span><span class="d1-ev-chip">Aberdeen abbauen</span></div></div>
+          </div>
+          <div class="d1-ev-box" style="flex:none"><h3 style="margin:0 0 4px">Arena Commander</h3><p class="d1-ev-tiny" style="margin:0">Startest du Arena Commander, fragt Jetzt bei Events mit Ort „Arena Commander“ genauso: „Day of the Vara: Kill Collector, 2 Runden überleben“.</p></div>
+        </div>
+        <div class="d1-ev-ticker"><i></i>SCC-App · Ort erkannt: Lorville, Hurston</div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ev-a8" data-anno-side="bottom" data-anno-target=".d1-ev-offer" style="--anno-x:40%;--anno-y:20%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a8" aria-expanded="false" aria-controls="anno-bubble-ev-a8" aria-label="{{anno.pin_label}}">8</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a8" data-anno-bubble="ev-a8" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a8" aria-expanded="false" aria-controls="anno-bubble-ev-a8"><span class="anno-bubble-question">Das Angebot erscheint nur, wenn die SCC-App einen Ort im Event-Gebiet meldet und dort ein Event-Nachschub von dir offen ist. „Nicht jetzt“ blendet es bis zum nächsten Ortswechsel aus. Ohne App gibt es kein Angebot, du wechselst selbst über „Nachschub wechseln“. Passt das?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a8" data-annotation="ev-a8" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a8"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ev-done" data-nav-label="Belohnung abhaken" data-screen hidden data-screen-fit="full">
+      <div class="d1-ev-app">
+        <header class="d1-ev-mh"><span class="d1-ev-brand">SC Companion</span><nav class="d1-ev-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span></span></header>
+        <div class="d1-ev-sub"><span>Start</span><span>Bestand</span><span>Jetzt</span><span class="on">Planen</span><span>Statistik</span></div>
+        <div class="d1-ev-page">
+          <div class="d1-ev-head"><h2>Day of the Vara 2956 · Belohnungen</h2><span class="d1-ev-chip warn">endet morgen</span></div>
+          <div class="d1-ev-box" style="display:flex;flex-direction:column;gap:8px">
+            <div class="d1-ev-claim got"><span class="d1-ev-tickbox">✓</span><span class="nm">Teilgenommen: Kill Collector, 2 Runden überlebt<small>abgehakt am 3. Nov</small></span></div>
+            <div class="d1-ev-claim wait"><span class="d1-ev-tickbox"></span><span class="nm">Vanduul-Maske<small>Wird nach dem Event verteilt · Weg noch unbekannt</small></span><button class="d1-ev-btn sm" type="button">Erhalten</button></div>
+            <div class="d1-ev-claim"><span class="d1-ev-tickbox"></span><span class="nm">Kürbis-Wettbewerb: Schiff mit Lackierung<small>Nur für Gewinner · außerhalb des Spiels</small></span><span class="d1-ev-chip">ausgeblendet</span></div>
+          </div>
+          <p class="d1-ev-tiny" style="margin:0">Ist das Event vorbei und eine Belohnung noch nicht da, bleibt die Zeile als „wartet auf Verteilung“ im Nachschub, bis du sie abhakst oder entfernst.</p>
+        </div>
+        <div class="d1-ev-pop"><h4>Vanduul-Maske erhalten als …</h4>
+          <div class="d1-ev-radio on"><i></i><span>Pledge-Gegenstand <small>· im RSI-Hangar</small></span></div>
+          <div class="d1-ev-radio"><i></i><span>Im Spiel <small>· im Inventar</small></span></div>
+          <div class="d1-ev-radio"><i></i><span>Beides</span></div>
+          <div class="d1-ev-row" style="margin-top:8px;justify-content:flex-end"><button class="d1-ev-btn ghost sm" type="button">Abbrechen</button><button class="d1-ev-btn sm" type="button">In den Bestand</button></div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ev-a9" data-anno-side="left" data-anno-target=".d1-ev-pop" style="--anno-x:70%;--anno-y:52%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a9" aria-expanded="false" aria-controls="anno-bubble-ev-a9" aria-label="{{anno.pin_label}}">9</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a9" data-anno-bubble="ev-a9" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a9" aria-expanded="false" aria-controls="anno-bubble-ev-a9"><span class="anno-bubble-question">Beim Abhaken wählst du, wie die Belohnung kam. Vorausgewählt ist der Weg, den die KI erkannt hat. „Pledge“ legt sie mit Herkunft „Pledge“ in den Bestand (Schiffe in den Hangar, alles andere ins Inventar). Ein Bestandsanstieg im Spiel schließt eine Zeile wie bisher von selbst. Fehlt dir etwas, etwa „gar nicht bekommen“?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a9" data-annotation="ev-a9" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a9"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ev-sheet" data-nav-label="Event-Datenblatt (Admin)" data-screen hidden data-screen-fit="full">
+      <div class="d1-ev-app">
+        <header class="d1-ev-mh"><span class="d1-ev-brand">SC Companion</span><nav class="d1-ev-nav"><span>Verse</span><span>Codex</span><span class="on">HQ</span></nav><span class="d1-ev-admin">Nur Admin</span></header>
+        <div class="d1-ev-page">
+          <div class="d1-ev-head"><h2>Events · KI-Auswertung prüfen</h2><span class="d1-ev-chip warn">2 warten auf Prüfung</span></div>
+          <div class="d1-ev-sheet">
+            <div class="d1-ev-evlist">
+              <span class="on">RSI Discovery Month<small>läuft · 1 unsicher</small></span>
+              <span>Day of the Vara 2956<small>läuft · 1 unsicher</small></span>
+              <span>IAE 2956<small>angekündigt</small></span>
+              <span>Foundation Festival 2026<small>vorbei · Testfall</small></span>
+              <span>Invictus 2956<small>vorbei · Testfall</small></span>
+              <span>Luminalia 2955<small>vorbei · Testfall</small></span>
+            </div>
+            <div class="d1-ev-box" style="min-height:0;overflow:hidden">
+              <dl class="d1-ev-dl">
+                <dt>Wo</dt><dd>Verse</dd><span class="c">0,97</span>
+                <dt>Gebiet</dt><dd>System Stanton · beliebiger Ort mit RSI-Auftrag</dd><span class="c">0,90</span>
+                <dt>Fortschritt</dt><dd>persönlich · 3 Spuren + Gesamt · Stufen 2 000 / 4 000 / 6 500 / 10 000</dd><span class="c">0,86</span>
+                <dt>Aufgaben</dt><dd>Mercenary, Salvage, Hauling, Courier aus dem Contract Manager</dd><span class="c">0,88</span>
+                <dt>Belohnungen</dt><dd>12 Stück · 10 im Codex gefunden · Weg: im Spiel (11), Pledge (1)</dd><span class="c">0,84</span>
+                <dt>Voraussetzungen</dt><dd>Alpha 4.10.2 · Spielpaket · Mk-IV-Pledge (nur Lackierung)</dd><span class="c">0,81</span>
+                <dt>Start</dt><dd>9. Okt 2026</dd><span class="c">0,99</span>
+                <dt>Ende</dt><dd>unbekannt · Angaben widersprechen sich (20. Okt / „ganzer Monat“)</dd><span class="c lo">0,42</span>
+                <dt>Herkunft</dt><dd>Comm-Link 21334, 21350 · Spectrum · Wiki</dd><span class="c"></span>
+              </dl>
+              <div class="d1-ev-row" style="margin-top:10px;justify-content:flex-end"><button class="d1-ev-btn ghost sm" type="button">Ende von Hand setzen</button><button class="d1-ev-btn sm" type="button">Freigeben</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ev-a10" data-anno-side="left" data-anno-target=".d1-ev-dl .c.lo" style="--anno-x:84%;--anno-y:68%">
+  <button class="anno-pin" type="button" data-anno-pin="ev-a10" aria-expanded="false" aria-controls="anno-bubble-ev-a10" aria-label="{{anno.pin_label}}">10</button>
+  <div class="anno-bubble" id="anno-bubble-ev-a10" data-anno-bubble="ev-a10" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ev-a10" aria-expanded="false" aria-controls="anno-bubble-ev-a10"><span class="anno-bubble-question">Jedes Feld trägt die Sicherheit der KI. Unter 0,8 geht das Event hier in die Prüfung, die übrigen Felder sind schon live. Die fünf vergangenen Events laufen als feste Testfälle durch dieselbe Auswertung. Willst du diese Prüfseite, oder sollen unsichere Felder einfach als „unbekannt“ live gehen?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ev-a10" data-annotation="ev-a10" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ev-a10"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+
+  <section data-view="ev-modell" data-view-kind="analysis" data-analysis="full" data-nav-label="Modell und Regeln" hidden>
+    <section id="d1-ev-brief" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Events werden ein vierter Weg zu einem Gegenstand, neben Kaufen, Craften und Abbauen. Ein Event-Nachschub plant Aufgaben in einem Gebiet statt Stationen an Orten, und die Belohnung hakst du ab, auch wenn sie als Pledge kommt.</p>
+      <p data-briefing-why>Heute kennt der Code Events nur als Datum (`sc_events`, `sc-events-sync`). Was man tun muss, wo, was es bringt und über welchen Weg die Belohnung kommt, wertet niemand aus. Die zwei laufenden Events unterscheiden sich in jedem dieser Punkte, also darf das Modell keinen davon festschreiben.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"2 → 6","unit":"Events","label":"Laufende Events plus feste Testfälle, gegen die die Auswertung geprüft wird"}'>2 → 6</div>
+      <a data-briefing-topic="d1-ev-t1" data-share="50">Daten und KI-Auswertung</a>
+      <a data-briefing-topic="d1-ev-t2" data-share="50">Planen, Jetzt und Abschluss</a>
+      <p data-briefing-duration>≈ 6 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"2 → 6","unit":"Events"}'></div></div>
+        <div data-slot="long"><div data-viz="table" data-viz-spec='{"columns":["Event","Wo","Gebiet","Fortschritt","Belohnung kommt"],"rows":[["RSI Discovery Month","Verse","Stanton, jeder Ort","persönlich, Stufen","im Spiel, 1× Pledge"],["Day of the Vara 2956","Arena Commander","keins","einmal, 2 Runden","nach Event-Ende, Weg unbekannt"],["IAE 2956","Verse","New Babbage","keiner","keine Belohnung"],["Foundation Festival 2026","Verse","frei","keiner","keine Belohnung"],["Invictus 2956","Verse","frei","keiner","keine Belohnung"],["Luminalia 2955","Website + Verse","frei","täglich","Pledge (Hangar)"]]}'></div><p>Die Recherche liegt in `docs/concepts/hq-events-research.md`. Sie wurde vom Werkzeuglimit abgeschnitten. Welches Event „Orison Relief“ war und ob es einen Community-Zähler hatte, ist noch offen. Das klärt der Bau, bevor die Testfälle festgeschrieben werden.</p></div>
+      </div>
+    </section>
+    <section id="d1-ev-t1" data-topic data-nav-label="Daten und KI-Auswertung">
+      <div data-alevel="2" data-title="Daten und KI-Auswertung">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Fragen dazu, wie ein Event gespeichert und ausgewertet wird."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Comm-Link und Spectrum liefern beim Abruf nur Meta-Tags. Die Auswertung läuft deshalb auf dem Server, über die Comm-Link-Wiki-API, die fetch-verse-news schon nutzt."}'></div></div>
+      </div>
+    <section id="q-store" data-nav-label="Wie ein Event gespeichert wird" data-decision="q-store" data-decision-mode="single" data-label="Event-Datenform" data-rec="sheet" data-rec-why="Jedes Event bringt andere Felder mit. Ein Datenblatt mit Schema-Version wächst mit, ohne dass jede neue Event-Art eine Migration braucht." data-applies-to="sc_events und alles, was Planen daraus liest" data-finding="f-q-store">
+      <p data-applies>Gilt für: sc_events und alles, was Planen daraus liest</p>
+      <p data-situation>`sc_events` hat Titel, Datum und eine feste Art (expo, showcase, seasonal, community, free-fly). Gebiet, Aufgaben, Belohnungen, Voraussetzungen und Ende fehlen ganz.</p>
+      <h3 data-question>In welcher Form speichern wir, was ein Event verlangt und bringt?</h3>
+      <p data-stakes>Ob ein Event mit neuen Eigenschaften ohne Migration hineinpasst.</p>
+      <div data-options>
+        <label data-opt="sheet" data-recommended><input type="radio" name="dm-q-store" value="sheet" checked><span data-opt-label>Ein Datenblatt pro Event (JSON mit Schema-Version)</span><span data-opt-consequence>Gebiet, Aufgaben, Belohnungen, Voraussetzungen, Ende als Felder mit Sicherheit und Quelle. Jeder Wert darf „unbekannt“ sein. Die Edge-Function prüft das Schema.</span></label>
+        <label data-opt="tables"><input type="radio" name="dm-q-store" value="tables"><span data-opt-label>Eigene Tabellen für Belohnungen und Aufgaben</span><span data-opt-consequence>Sauber abfragbar, aber jede neue Eigenschaft ist eine Migration.</span></label>
+        <label data-opt="both"><input type="radio" name="dm-q-store" value="both"><span data-opt-label>Datenblatt, Belohnungen zusätzlich als Tabelle</span><span data-opt-consequence>Belohnungen per class_name abfragbar (für Wunschliste und Codex), der Rest bleibt flexibel.</span></label>
+      </div>
+      <textarea data-comment="q-store-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Wie ein Event gespeichert wird">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: ein Datenblatt, jeder Wert darf unbekannt sein."}'></div></div>
+        <div data-slot="long"><div data-viz="table" data-viz-spec='{"columns":["Feld","Werte (offen erweiterbar)"],"rows":[["Wo","Verse, Arena Commander, Star Marine, Website, Twitch, unbekannt"],["Gebiet","keins, System, Ort, einer aus mehreren"],["Fortschritt","keiner, einmalig, Stufen, täglich, Gruppe, Community"],["Belohnung","je Stück: Weg (Pledge / im Spiel / beides / unbekannt), Zeitpunkt (sofort / nach Ende / Datum), class_name wenn im Codex"],["Voraussetzungen","Patch, Spielpaket, bestimmter Pledge, Konto"],["Ende","Datum, mit Patch, offen; mit Herkunft und Sicherheit"]]}'></div></div>
+      </div>
+    </section>
+    <section id="q-review" data-nav-label="Unsichere KI-Werte" data-decision="q-review" data-decision-mode="single" data-label="Umgang mit unsicheren Werten" data-rec="review" data-rec-why="Ein falsches Ende oder ein falscher Belohnungsweg schickt dich umsonst ins Spiel. Bei 2 bis 4 Events im Monat ist eine kurze Prüfung billig." data-applies-to="die KI-Auswertung jedes Events" data-finding="f-q-review">
+      <p data-applies>Gilt für: die KI-Auswertung jedes Events</p>
+      <p data-situation>`sc-events-sync` nimmt KI-Datumsangaben heute erst ab 0,8 Sicherheit an. Für Belohnungen und Gebiet gibt es noch keine Regel.</p>
+      <h3 data-question>Was passiert mit einem Feld unter 0,8 Sicherheit?</h3>
+      <p data-stakes>Wie oft ein Event mit falschen Angaben live geht und wie viel Arbeit du damit hast.</p>
+      <div data-options>
+        <label data-opt="review" data-recommended><input type="radio" name="dm-q-review" value="review" checked><span data-opt-label>Feld bleibt „unbekannt“, Admin prüft auf dem Datenblatt</span><span data-opt-consequence>Der Rest des Events geht live, das Feld kommt nach deiner Freigabe dazu.</span></label>
+        <label data-opt="auto"><input type="radio" name="dm-q-review" value="auto"><span data-opt-label>Feld bleibt „unbekannt“, ohne Prüfung</span><span data-opt-consequence>Keine Arbeit, aber manches Event zeigt Lücken, bis eine neue Quelle sie füllt.</span></label>
+        <label data-opt="all"><input type="radio" name="dm-q-review" value="all"><span data-opt-label>Jedes Event erst nach Admin-Freigabe</span><span data-opt-consequence>Nichts geht ungeprüft live, ein Event erscheint aber erst, wenn du es freigibst.</span></label>
+      </div>
+      <textarea data-comment="q-review-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Unsichere KI-Werte">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Lücke statt Raten, Prüfung nur für Lücken."}'></div></div>
+        <div data-slot="long"><p>Die Auswertung läuft bei jedem neuen Comm-Link, der zu einer Event-Reihe passt, und während eines Events einmal am Tag. Neue Quellen können ein unsicheres Feld später füllen.</p></div>
+      </div>
+    </section>
+    <section id="q-end" data-nav-label="Wann ein Event endet" data-decision="q-end" data-decision-mode="yesnoalt" data-label="Ende-Regel" data-rec="yes" data-rec-why="Ohne amtliches Datum ist der nächste Patch die beste Grenze, die wir haben. Das Ende hängt nicht davon ab, wann die Belohnung verteilt wird." data-applies-to="Hinweis auf HQ Start, Event-Leiste, Archivierung" data-finding="f-q-end">
+      <p data-applies>Gilt für: Hinweis auf HQ Start, Event-Leiste, Archivierung</p>
+      <p data-situation>Bei Discovery Month widersprechen sich die Quellen, Day of the Vara hat ein festes Datum. `computeNextPatch` und das amtliche LIVE-Datum (#317) gibt es schon, sie rechnen aber getrennt.</p>
+      <h3 data-question>Gilt die Kette: amtliches Ende, sonst geschätzter nächster Patch, sonst „Ende unbekannt“?</h3>
+      <p data-stakes>Was der Hinweis als Frist nennt und wann ein Event-Nachschub sich selbst archiviert.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-end" value="yes" checked><span data-opt-label>Ja, diese Kette</span><span data-opt-consequence>Eine Schätzung heißt immer „spätestens mit … (geschätzt)“. Wird das Event später verlängert, rückt die Frist mit.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-end" value="no"><span data-opt-label>Nein, nur amtliche Daten</span><span data-opt-consequence>Ohne Datum steht „Ende unbekannt“, keine Patch-Schätzung.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-end" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-end-alt" placeholder="Was stattdessen?"></label>
+      </div>
+      <textarea data-comment="q-end-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Wann ein Event endet">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Amtlich › Patch-Schätzung › unbekannt."}'></div></div>
+        <div data-slot="long"><p>Endet ein Event, archiviert sich sein Nachschub. Zeilen, deren Belohnung „nach Event-Ende“ kommt, bleiben als „wartet auf Verteilung“ stehen, bis du sie abhakst.</p></div>
+      </div>
+    </section>
+    </section>
+    <section id="d1-ev-t2" data-topic data-nav-label="Planen, Jetzt und Abschluss">
+      <div data-alevel="2" data-title="Planen, Jetzt und Abschluss">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Vier Fragen dazu, wie Events in Planen, Jetzt und Bestand auftauchen."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Alles baut auf dem gemergten Nachschub-HQ (#1005) auf: sieben Slots, Einsätze, Abschluss per Bestandsanstieg oder Häkchen, Herkunft Pledge im Hangar."}'></div></div>
+      </div>
+    <section id="q-entry" data-nav-label="Wo ein Event-Nachschub beginnt" data-decision="q-entry" data-decision-mode="multi" data-label="Einstiege in einen Event-Nachschub" data-rec="strip line" data-rec-why="Die Leiste zeigt, was gerade läuft. Der Weg pro Zeile fängt Wünsche ab, die zufällig eine Event-Belohnung sind." data-applies-to="HQ Planen und den Schritt Einsätze im Nachschub-Ablauf" data-finding="f-q-entry">
+      <p data-applies>Gilt für: HQ Planen und den Schritt Einsätze im Nachschub-Ablauf</p>
+      <p data-situation>Heute wählt Schritt 3 pro Zeile Kaufen, Craften oder Abbauen. Ein Event kommt nirgends vor.</p>
+      <h3 data-question>Wo kannst du einen Event-Nachschub anlegen?</h3>
+      <p data-stakes>Ob du ein Event findest, ohne davon zu wissen.</p>
+      <div data-options>
+        <label data-opt="strip" data-recommended><input type="checkbox" name="dm-q-entry.strip" value="strip" checked><span data-opt-label>Events-Leiste in Planen</span><span data-opt-consequence>„Als Nachschub planen“ pro laufendem Event, wie im Entwurf.</span></label>
+        <label data-opt="line" data-recommended><input type="checkbox" name="dm-q-entry.line" value="line" checked><span data-opt-label>„Event“ als vierter Weg pro Zeile</span><span data-opt-consequence>Ist ein Wunsch die Belohnung eines laufenden Events, bietet Schritt 3 neben Kaufen und Craften auch „Event“ an.</span></label>
+        <label data-opt="codex"><input type="checkbox" name="dm-q-entry.codex" value="codex"><span data-opt-label>Hinweis auf der Codex-Seite des Gegenstands</span><span data-opt-consequence>„Belohnung von Discovery Month“ als stille Zeile auf der Detailseite.</span></label>
+      </div>
+      <textarea data-comment="q-entry-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Einstiege">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Leiste plus Weg pro Zeile."}'></div></div>
+        <div data-slot="long"><p>Im Code heißt das: `EinsatzRole` bekommt „event“ neben mission, buy, mine, craft. Ein Event-Schritt hat kein festes `location` und trägt stattdessen einen Verweis aufs Event, sein Gebiet kommt aus dem Datenblatt.</p></div>
+      </div>
+    </section>
+    <section id="q-slot" data-nav-label="Slot für Event-Nachschub" data-decision="q-slot" data-decision-mode="single" data-label="Event-Nachschub und Slots" data-rec="slot" data-rec-why="Ein Event-Nachschub ist ein Nachschub wie jeder andere. Eine Sonderregel macht die sieben Slots schwerer zu verstehen." data-applies-to="die sieben Nachschub-Slots" data-finding="f-q-slot">
+      <p data-applies>Gilt für: die sieben Nachschub-Slots</p>
+      <p data-situation>Ein Nachschub belegt einen von sieben Slots. Events laufen oft parallel, gerade zwei.</p>
+      <h3 data-question>Belegt ein Event-Nachschub einen der sieben Slots?</h3>
+      <p data-stakes>Ob zwei Events die Slots für normale Nachschübe knapp machen.</p>
+      <div data-options>
+        <label data-opt="slot" data-recommended><input type="radio" name="dm-q-slot" value="slot" checked><span data-opt-label>Ja, normaler Slot mit Event-Markierung</span><span data-opt-consequence>Lila Kiste mit Frist. Archiviert sich am Event-Ende.</span></label>
+        <label data-opt="extra"><input type="radio" name="dm-q-slot" value="extra"><span data-opt-label>Eigene Event-Slots neben den sieben</span><span data-opt-consequence>Normale Slots bleiben frei, die Slot-Reihe wird aber länger.</span></label>
+        <label data-opt="mix"><input type="radio" name="dm-q-slot" value="mix"><span data-opt-label>Event-Einsätze in einen bestehenden Nachschub</span><span data-opt-consequence>Kein eigener Slot. Die Frist gilt dann nur für einzelne Zeilen.</span></label>
+      </div>
+      <textarea data-comment="q-slot-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Slots">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: normaler Slot, lila markiert."}'></div></div>
+        <div data-slot="long"><p>Die Regeln in `nachschub.model.ts` (Slots, Abschluss, Archivierung) bleiben gleich. Neu ist nur die Archivierung am Event-Ende.</p></div>
+      </div>
+    </section>
+    <section id="q-detect" data-nav-label="Ort erkennen in Jetzt" data-decision="q-detect" data-decision-mode="yesnoalt" data-label="Angebot im Event-Gebiet" data-rec="yes" data-rec-why="Das ist deine Vorgabe: kein Ort wird festgelegt, Jetzt bietet das Event an, wo du gerade bist." data-applies-to="HQ Jetzt mit SCC-App-Signal" data-finding="f-q-detect">
+      <p data-applies>Gilt für: HQ Jetzt mit SCC-App-Signal</p>
+      <p data-situation>Die SCC-App meldet System und Ort. Für den Planeten fehlt das Signal teilweise noch (offener Punkt aus dem HQ-Einstieg). Für „im System“ reicht es schon.</p>
+      <h3 data-question>Bietet Jetzt den Wechsel an, sobald du im Gebiet eines offenen Event-Nachschubs bist?</h3>
+      <p data-stakes>Ob du Event-Aufgaben im richtigen Moment siehst, ohne etwas zu planen.</p>
+      <div data-options>
+        <label data-opt="yes" data-recommended><input type="radio" name="dm-q-detect" value="yes" checked><span data-opt-label>Ja, als Leiste oben in Jetzt</span><span data-opt-consequence>„Nicht jetzt“ bis zum nächsten Ortswechsel. Arena Commander zählt als Gebiet, sobald die App den Modus meldet.</span></label>
+        <label data-opt="no"><input type="radio" name="dm-q-detect" value="no"><span data-opt-label>Nein, nur ein stiller Punkt am Reiter</span><span data-opt-consequence>Du wechselst selbst über „Nachschub wechseln“.</span></label>
+        <label data-opt="alt"><input type="radio" name="dm-q-detect" value="alt"><span data-opt-label>Anders …</span><input type="text" name="dm-q-detect-alt" placeholder="Was stattdessen?"></label>
+      </div>
+      <textarea data-comment="q-detect-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Ort erkennen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Gebiet aus dem Datenblatt × Ort aus der App."}'></div></div>
+        <div data-slot="long"><p>Ob die SCC-App den Arena-Commander-Modus erkennt, prüft der Bau im App-Repo. Liefert sie ihn nicht, entfällt das Angebot dort, der Event-Nachschub läuft trotzdem.</p></div>
+      </div>
+    </section>
+    <section id="q-claim" data-nav-label="Belohnung abhaken" data-decision="q-claim" data-decision-mode="multi" data-label="Abhaken einer Event-Belohnung" data-rec="channel event store" data-rec-why="So deckst du Pledge-Belohnungen ab, die kein Bestandsanstieg im Spiel je meldet." data-applies-to="Event-Zeilen im Nachschub und HQ Bestand" data-finding="f-q-claim">
+      <p data-applies>Gilt für: Event-Zeilen im Nachschub und HQ Bestand</p>
+      <p data-situation>Eine Nachschub-Zeile schließt heute über einen Bestandsanstieg oder ein Häkchen. Pledge-Belohnungen kommen nicht im Spiel an.</p>
+      <h3 data-question>Was gehört zum Abhaken einer Event-Belohnung?</h3>
+      <p data-stakes>Ob Pledge-Belohnungen sauber in deinem Bestand landen.</p>
+      <div data-options>
+        <label data-opt="channel" data-recommended><input type="checkbox" name="dm-q-claim.channel" value="channel" checked><span data-opt-label>Weg wählen: Pledge, im Spiel, beides</span><span data-opt-consequence>Vorausgewählt ist der erkannte Weg.</span></label>
+        <label data-opt="event" data-recommended><input type="checkbox" name="dm-q-claim.event" value="event" checked><span data-opt-label>Ganzes Event als „erledigt“ abhaken</span><span data-opt-consequence>Für Events ohne Nachschub. Der Hinweis auf HQ Start verschwindet.</span></label>
+        <label data-opt="store" data-recommended><input type="checkbox" name="dm-q-claim.store" value="store" checked><span data-opt-label>Abhaken legt die Belohnung in den Bestand</span><span data-opt-consequence>Mit Herkunft „Pledge“: Schiffe in den Hangar, alles andere ins Inventar.</span></label>
+        <label data-opt="missed"><input type="checkbox" name="dm-q-claim.missed" value="missed"><span data-opt-label>„Nicht bekommen“ als eigener Ausgang</span><span data-opt-consequence>Die Zeile geht zurück auf die Wunschliste.</span></label>
+      </div>
+      <textarea data-comment="q-claim-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Abhaken">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Weg wählen, Event abhaken, ab in den Bestand."}'></div></div>
+        <div data-slot="long"><p>Heute kennt nur `hangar_ships` eine Herkunft (pledge, ingame, loan). Für Pledge-Gegenstände im Inventar fehlt ein solches Feld noch, es kommt mit derselben Migration.</p></div>
+      </div>
+    </section>
+    </section>
+  </section>
+</section>
