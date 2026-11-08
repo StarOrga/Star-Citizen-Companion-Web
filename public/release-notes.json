@@ -1,39 +1,7 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.238.9",
+  "current": "0.238.7",
   "releases": [
-    {
-      "version": "0.238.9",
-      "date": "2026-11-08",
-      "sections": [
-        {
-          "category": "Fixed",
-          "label": "",
-          "items": [
-            {
-              "title": "",
-              "text": "Codex landing: the data sheet beside the hologram projector matches its top and bottom at every window size and after every item switch."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "version": "0.238.8",
-      "date": "2026-11-08",
-      "sections": [
-        {
-          "category": "Fixed",
-          "label": "",
-          "items": [
-            {
-              "title": "",
-              "text": "Feature branches no longer create Vercel deployments at all (git.deploymentEnabled): canceled previews counted toward the Hobby limit of 100 per day and blocked production deploys."
-            }
-          ]
-        }
-      ]
-    },
     {
       "version": "0.238.7",
       "date": "2026-11-08",
