@@ -532,11 +532,13 @@ kbd.sc-kbd {
   font-family: var(--sc-font-display); font-weight: 600; font-size: 10px;
   text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap;
 }
-.res-toggle:hover .res-title, .res-toggle:focus-visible .res-title { color: var(--sc-accent); }
+.res-toggle:hover .res-preset-name, .res-toggle:focus-visible .res-preset-name { color: var(--sc-accent); }
 .res-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+/* The mode name carries the former "Performance" label's look (display font,
+   caps, tracked) — the gauge icon already says "performance". */
 .res-preset-name {
-  font-family: var(--sc-font-body); color: var(--sc-fg-2); text-transform: none;
-  letter-spacing: 0; font-weight: 500; font-size: var(--fs-xs);
+  font-family: var(--sc-font-display); color: var(--sc-fg-0); text-transform: uppercase;
+  letter-spacing: 0.1em; font-weight: 600; font-size: 10px;
 }
 .res-eta {
   font-family: var(--sc-font-body); color: var(--sc-fg-1); text-transform: none;
@@ -544,7 +546,6 @@ kbd.sc-kbd {
 }
 .res-eta:empty { display: none; }
 .res-caret { color: var(--sc-accent); font-size: 10px; }
-.resource-dock.is-expanded .res-title,
 .resource-dock.is-expanded .res-preset-name,
 .resource-dock.is-expanded .res-eta { display: none; }
 .resource-dock.is-expanded .res-toggle { padding: 0 8px; }

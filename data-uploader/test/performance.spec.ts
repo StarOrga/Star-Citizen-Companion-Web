@@ -4,6 +4,7 @@ import {
   DEFAULT_PROFILE,
   SELECTABLE_PROFILES,
   estimateForSize,
+  formatClock,
   skinWorkersFor,
   workersFor,
 } from '../src/lib/performance.js';
@@ -94,5 +95,18 @@ describe('workersFor', () => {
   it('formats short durations as seconds', () => {
     const eta = estimateForSize('maximum', 1024 * 1024 * 1024); // 1 GB
     expect(eta.formatted).toMatch(/(s|min)$/);
+  });
+});
+
+describe('formatClock (progress bar)', () => {
+  it('labels hours and minutes instead of mm:ss beyond an hour', () => {
+    expect(formatClock(221 * 60 + 58)).toBe('3 h 41 m');
+    expect(formatClock(199 * 60 + 10)).toBe('3 h 19 m');
+    expect(formatClock(3600)).toBe('1 h 0 m');
+  });
+  it('shows minutes under an hour and seconds only under a minute', () => {
+    expect(formatClock(41 * 60 + 5)).toBe('41 m');
+    expect(formatClock(59)).toBe('59 s');
+    expect(formatClock(-3)).toBe('0 s');
   });
 });

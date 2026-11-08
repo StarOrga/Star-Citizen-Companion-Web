@@ -25,6 +25,7 @@
  * all animation/transition durations), so nothing extra is needed here.
  */
 
+import { formatClock } from '../lib/performance.js';
 import { pruneSamples, throughput } from '../lib/throughput.js';
 
 function escapeHtml(s: string): string {
@@ -34,9 +35,7 @@ function escapeHtml(s: string): string {
 }
 
 function fmtElapsed(ms: number): string {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, '0')}`;
+  return formatClock(ms / 1000);
 }
 
 /** Compact "time on this step": bare seconds under a minute, m:ss beyond. */
