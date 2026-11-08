@@ -519,6 +519,53 @@ describe('CodexBrowseComponent', () => {
     expect(cmp.areaTree().find((n) => n.id === 'manufacturer')!.open).toBeFalse();
   });
 
+  it('#315: a second plain click on an opened group link folds it again, and a third opens it, all in the same area', async () => {
+    const { fixture, cmp, listByKind } = await setup({ query: { kind: 'ship' } });
+    const el = fixture.nativeElement as HTMLElement;
+    const groupLink = () => Array.from(el.querySelectorAll('.side a.node'))
+      .find((a) => (a.getAttribute('href') ?? '').includes('kind=manufacturer') && !(a.getAttribute('href') ?? '').includes('mfr=')) as HTMLAnchorElement;
+    const makers = () => cmp.areaTree().find((n) => n.id === 'manufacturer')!;
+    const click = () => {
+      const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      groupLink().dispatchEvent(ev);
+      fixture.detectChanges();
+      return ev;
+    };
+    // 1st click: switch to the manufacturers and open them.
+    expect(makers().open).toBeFalse();
+    click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(cmp.category()).toBe('manufacturer');
+    expect(makers().open).toBeTrue();
+    const calls = listByKind.calls.count();
+    // 2nd click: folds in place.
+    expect(click().defaultPrevented).toBeTrue();
+    expect(makers().open).toBeFalse();
+    expect(cmp.category()).toBe('manufacturer');
+    // 3rd click: opens again, still the same area and no new list load.
+    click();
+    expect(makers().open).toBeTrue();
+    expect(cmp.category()).toBe('manufacturer');
+    expect(listByKind.calls.count()).toBe(calls);
+  });
+
+  it('#315: from a maker, a click on the open "Hersteller" group folds it instead of leaving the maker', async () => {
+    const { fixture, cmp } = await setup({ query: { kind: 'ship' } });
+    const makers = () => cmp.areaTree().find((n) => n.id === 'manufacturer')!;
+    cmp.applyArea({ category: 'manufacturer', mfr: 'AEGS' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(makers().open).toBeTrue();
+    expect(makers().current).toBeFalse();
+    const ev = new MouseEvent('click', { cancelable: true, button: 0 });
+    cmp.onAreaClick(ev, makers());
+    fixture.detectChanges();
+    expect(ev.defaultPrevented).toBeTrue();
+    expect(makers().open).toBeFalse();
+    expect(cmp.manufacturer()).toBe('AEGS');
+  });
+
   it('#315: a closed group opens by hand, and a new area starts from its own open path again', async () => {
     const { fixture, cmp } = await setup({ query: { kind: 'manufacturer' } });
     const ship = () => cmp.areaTree().find((n) => n.id === 'ship')!;
