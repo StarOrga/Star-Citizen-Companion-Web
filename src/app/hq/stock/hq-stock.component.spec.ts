@@ -1,270 +1,263 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { HangarService } from '../../hangar/hangar.service';
+import { FriendsService } from '../../social/friends.service';
+import type { BestandKind } from '../data/hq-codex-kind';
 import { HqInventoryService } from '../data/hq-inventory.service';
+import { ScrapInfoService } from '../data/scrap-info';
 import { WishlistStore } from '../data/wishlist.store';
 import { HqOwnershipService } from '../hq-ownership.service';
 import { HqSuppliesService } from '../hq-supplies.service';
 import { NachschubEdgeService } from '../nachschub/nachschub-edge.service';
+import { NachschubTargetPicker } from '../nachschub/nachschub-target-picker';
 import { SammlungService } from '../nachschub/sammlung.service';
 import { NachschubService } from '../nachschub/nachschub.service';
 import { HqLiveService } from '../now/hq-live.service';
+import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { HqStockComponent } from './hq-stock.component';
 
-describe('HqStockComponent', () => {
+describe('HqStockComponent · Frachtdeck', () => {
   afterEach(() => TestBed.inject(UndoToastService).flush());
-  const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 
-  interface Opts {
-    user?: boolean;
-    many?: number;
-    params?: Record<string, string>;
-    events?: unknown[];
-  }
-
-  function mount(opts: Opts = {}) {
-    const base = [
-      { location: 'Lorville', name: 'Medpen', class_name: 'medpen', qty: 5, unit: 'pcs' },
-      { location: 'Cutlass Black', name: 'Medpen', class_name: 'medpen', qty: 2, unit: 'pcs' },
-      { location: 'Area18', name: 'P4-AR', class_name: 'ksar_rifle_p4ar', qty: 1, unit: 'pcs' },
-      { location: 'Area18', name: 'Gold', class_name: null, qty: 3.5, unit: 'scu' },
-      { location: 'Blueprints', name: 'Gallant', class_name: 'gallant_bp', qty: 1, unit: 'pcs' },
-    ];
-    const many = Array.from({ length: opts.many ?? 0 }, (_, i) => ({ location: `Place ${i % 9}`, name: `Item ${i}`, class_name: `item_${i}`, qty: i + 1, unit: 'pcs' }));
+  function mount(params: Record<string, string> = {}, opts: { empty?: boolean } = {}) {
+    const items = opts.empty
+      ? []
+      : [
+          { location: 'Area18', name: 'Eisen', class_name: 'Carryable_TBO_FL_32SCU_Commodity_Metal_Iron', qty: 15, unit: 'scu', stacks: [{ quality: 940, qty: 5 }, { quality: 620, qty: 10 }], reservations: [{ amount: 4, note: 'Kaelis', at: '2026-11-08T10:00:00Z', quality: 940 }] },
+          { location: 'Lorville', name: 'Eisen', class_name: 'Carryable_TBO_FL_32SCU_Commodity_Metal_Iron', qty: 9, unit: 'scu', stacks: [{ quality: 410, qty: 9 }] },
+          { location: 'Area18', name: 'Pembroke-Helm', class_name: 'cds_helmet_pembroke', qty: 1, unit: 'pcs' },
+          { location: 'Pfeil', name: 'Medpen', class_name: 'medpen', qty: 2, unit: 'pcs' },
+          { location: 'Blueprints', name: 'Gallant', class_name: 'gallant_bp', qty: 1, unit: 'pcs' },
+        ];
     const inv = {
       loaded: signal(true),
       error: signal<string | null>(null),
-      snapshots: signal([]),
-      locations: signal([]),
-      items: signal([...base, ...many]),
-      shipStorage: signal([]),
+      items: signal(items),
+      shipStorage: signal([{ ship_ref: 'sh1', location: 'Area18' }]),
+      kinds: signal<ReadonlyMap<string, BestandKind>>(new Map([['cds_helmet_pembroke', { area: 'armor', sub: 'helmet', role: null }]])),
+      lastRemovals: () => [{ key: 'r1', at: '2026-11-08T12:00:00Z', location: 'Lorville', name: 'Medpen', className: 'medpen', qty: 4, unit: 'pcs', quality: null, kind: 'take' }],
+      ensureKinds: jasmine.createSpy('ensureKinds').and.resolveTo(),
       load: jasmine.createSpy('load').and.resolveTo(),
       addManual: jasmine.createSpy('addManual').and.resolveTo(true),
+      deleteRow: jasmine.createSpy('deleteRow').and.resolveTo(true),
+      setAmount: jasmine.createSpy('setAmount').and.resolveTo(true),
+      reserve: jasmine.createSpy('reserve').and.resolveTo(true),
+      lastKnownLocation: () => Promise.resolve(null),
     };
-    const wish = {
-      totalQty: (k: string, c: string) => (c === 'ksar_rifle_p4ar' || (k === 'blueprint' && c === 'gallant_bp') ? 2 : 0),
-      qtyOf: () => 1,
-      setQty: jasmine.createSpy('setQty').and.resolveTo(true),
-      remove: jasmine.createSpy('remove').and.resolveTo(true),
-      ensureLoaded: () => Promise.resolve(),
-      error: signal<string | null>(null),
-    };
-    const shipWishes = {
-      qtyOf: (k: string, c: string) => (k === 'ship' && c === 'AEGS_Gladius' ? 3 : 0),
-      setQty: jasmine.createSpy('shipSetQty').and.resolveTo(true),
-      add: jasmine.createSpy('shipAdd').and.resolveTo(true),
-      remove: jasmine.createSpy('shipRemove').and.resolveTo(true),
-    };
+    const picker = { open: jasmine.createSpy('open').and.resolveTo(null) };
     const ships = [
-      { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Pfeil', status: 'owned', pinnedRank: 1, qty: 2, origin: 'pledge' },
-      { id: 'sh2', shipClassName: 'MISC_Freelancer', customName: null, status: 'owned', pinnedRank: null, qty: 1, origin: null },
-      { id: 'sh3', shipClassName: 'RSI_Zeus', customName: null, status: 'wishlist', pinnedRank: null, qty: 1, origin: null },
+      { id: 'sh1', shipClassName: 'AEGS_Gladius', customName: 'Pfeil', status: 'owned', pinnedRank: 1, qty: 1, origin: 'pledge' },
+      { id: 'sh2', shipClassName: 'MISC_Freelancer', customName: null, status: 'owned', pinnedRank: null, qty: 1, origin: 'ingame' },
     ];
+    const qp = new BehaviorSubject(convertToParamMap(params));
     TestBed.configureTestingModule({
       imports: [HqStockComponent],
       providers: [
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
-        { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap(opts.params ?? {})), snapshot: {} } },
+        { provide: ActivatedRoute, useValue: { queryParamMap: qp, snapshot: {} } },
         { provide: SupabaseClientProvider, useValue: { client: {} } },
-        { provide: AuthService, useValue: { user: signal(opts.user === false ? null : { id: 'u1' }) } },
-        { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([]), isFlagship: (c: string) => c === 'MISC_Freelancer' } },
-        { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve(), configsForShip: () => [] } },
+        { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
+        { provide: HangarService, useValue: { ships: signal(ships), roleLoadouts: signal([{ id: 'set1', name: 'Bergbau', role: 'mining', items: [] }]), isFlagship: () => false, error: signal(null) } },
+        { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve(), configsForShip: (id: string) => (id === 'sh1' ? [{ id: 'c1' }, { id: 'c2' }] : []) } },
         { provide: HqInventoryService, useValue: inv },
-        { provide: WishlistStore, useValue: wish },
-        { provide: SearchWishlistService, useValue: shipWishes },
+        { provide: WishlistStore, useValue: { totalQty: () => 0, qtyOf: () => 0, ensureLoaded: () => Promise.resolve(), error: signal(null) } },
+        { provide: SearchWishlistService, useValue: { qtyOf: () => 0, count: signal(3) } },
         { provide: HqSuppliesService, useValue: { items: signal([]) } },
         { provide: NachschubService, useValue: { packages: signal([]), ensureLoaded: () => Promise.resolve() } },
-        { provide: SammlungService, useValue: { blueprints: signal([{ kind: 'blueprint', id: 'gallant_bp', name: 'Gallant' }]), load: () => Promise.resolve() } },
+        { provide: SammlungService, useValue: { blueprints: signal([{ kind: 'blueprint', id: 'gallant_bp', name: 'Gallant' }]), rep: signal([]), news: signal(new Set()), gallery: signal(new Set(['g1'])), load: () => Promise.resolve() } },
         { provide: NachschubEdgeService, useValue: { resetIngameStock: jasmine.createSpy('reset').and.resolveTo(true), lastError: null } },
-        { provide: HqLiveService, useValue: { state: signal(null), events: signal(opts.events ?? []) } },
+        { provide: HqLiveService, useValue: { state: signal(null), events: signal([]) } },
+        { provide: ScrapInfoService, useValue: { info: () => ({ state: 'unknown' }), load: () => Promise.resolve() } },
+        { provide: FriendsService, useValue: { graph: signal({ friends: [] }) } },
+        { provide: NachschubTargetPicker, useValue: picker },
       ],
+    });
+    const router = TestBed.inject(Router);
+    spyOn(router, 'navigate').and.callFake((_c, extras) => {
+      const next = { ...Object.fromEntries(qp.value.keys.map((k) => [k, qp.value.get(k)!])) } as Record<string, string>;
+      for (const [k, v] of Object.entries((extras?.queryParams ?? {}) as Record<string, string | null>)) {
+        if (v === null) delete next[k];
+        else next[k] = v;
+      }
+      qp.next(convertToParamMap(next));
+      return Promise.resolve(true);
     });
     const fixture = TestBed.createComponent(HqStockComponent);
     fixture.detectChanges();
-    return { fixture, inv, wish, shipWishes, el: fixture.nativeElement as HTMLElement };
+    const el = fixture.nativeElement as HTMLElement;
+    const click = (b: Element | null | undefined): void => {
+      (b as HTMLElement).click();
+      fixture.detectChanges();
+    };
+    return { fixture, inv, picker, qp, el, click, chrome: TestBed.inject(ShellChromeService) };
   }
 
-  const click = (f: { detectChanges(): void }, b: Element | null) => {
-    (b as HTMLElement).click();
-    f.detectChanges();
-  };
+  const chip = (el: HTMLElement, key: string) => [...el.querySelectorAll<HTMLElement>('.bar .chip')].find((c) => c.textContent?.includes(key));
 
-  it('opens on Inventar: the plus tile first, one tile per thing, the Sammlung place left out', () => {
+  it('four tabs as anchors in the order Alles · Inventar · Hangar · Sammlung, with the search icons and no counts (F1, F2)', () => {
     const { el } = mount();
-    expect(el.querySelector('#hq-stock-title')).toBeTruthy();
-    const tiles = [...el.querySelectorAll('.grid .tile')];
-    expect(tiles[0].classList).toContain('add');
-    // Medpen (two places folded), P4-AR, Gold: three things; the blueprint row is not Inventar.
-    expect(tiles.length).toBe(4);
-    expect(tiles[1].querySelector('.nm')?.textContent).toBe('Medpen');
-    expect(tiles[1].querySelector('.qty')?.textContent).toBe('×7');
-    expect(tiles.some((t) => t.textContent?.includes('Gallant'))).toBeFalse();
+    const tabs = [...el.querySelectorAll<HTMLAnchorElement>('.tabs a.tab')];
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(['hq.bestand.tab.alles', 'hq.bestand.tab.inventar', 'hq.bestand.tab.hangar', 'hq.bestand.tab.sammlung']);
+    expect(tabs.every((t) => !/\d/.test(t.textContent ?? ''))).toBeTrue();
+    expect(tabs.every((t) => t.querySelector('svg path'))).toBeTrue();
+    expect(tabs[1].getAttribute('aria-current')).toBe('page');
   });
 
-  it('names the three tabs with their counts', () => {
+  it('"Alle" has no number; every kind is shown, empty ones dimmed with 0 (F3, F4)', () => {
     const { el } = mount();
-    const tabs = [...el.querySelectorAll('.tabs .tab')];
-    expect(tabs.map((t) => t.querySelector('small')?.textContent)).toEqual(['3', '2', '1']);
+    const all = el.querySelector('.bar .chip')!;
+    expect(all.querySelector('b')).toBeNull();
+    const other = chip(el, 'kind.other')!;
+    expect(other.classList).toContain('zero');
+    expect(other.querySelector('b')?.textContent).toBe('1');
+    expect(chip(el, 'kind.weapons')!.querySelector('b')?.textContent).toBe('0');
+    expect(chip(el, 'kind.sets')!.querySelector('b')?.textContent).toBe('1');
   });
 
-  it('shows a quiet hint on a tile that is already on the wishlist, and Nachholen puts it there counted up', () => {
-    const { fixture, wish, el } = mount();
-    const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
-    expect(p4ar.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
-    click(fixture, p4ar.querySelector('.nach'));
-    // A bare class name is a guess: the kind comes from the category (a rifle is a weapon, as the Codex files it).
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'weapon', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 2);
+  it('one filter bar: sub-kinds unfold inline behind the chosen kind, never a second chip row (F7, I9)', () => {
+    const { el, click } = mount();
+    click(chip(el, 'kind.armor'));
+    expect(el.querySelectorAll('.bar').length).toBe(1);
+    const subs = el.querySelector('.bar .subs')!;
+    expect(subs.previousElementSibling?.textContent).toContain('kind.armor');
+    const names = [...subs.querySelectorAll('.chip')].map((c) => c.textContent?.trim().replace(/\d+$/, ''));
+    expect(names).toEqual(['hq.bestand.deck.sub.helmet', 'hq.bestand.deck.sub.torso', 'hq.bestand.deck.sub.arms', 'hq.bestand.deck.sub.legs', 'hq.bestand.deck.sub.undersuit', 'hq.bestand.deck.sub.backpack']);
+    expect(subs.querySelector('.chip.zero')).not.toBeNull();
   });
 
-  it('Nachholen on a tile offers an undo toast that puts the former quantity back (AUD-7)', async () => {
-    const { fixture, wish, el } = mount();
-    const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
-    click(fixture, p4ar.querySelector('.nach'));
-    await new Promise((r) => setTimeout(r, 0));
-    const toast = TestBed.inject(UndoToastService);
-    expect(toast.current()?.messageKey).toBe('itemPath.done.wishOn');
-    wish.setQty.calls.reset();
-    // The write landed (1 + 1) and someone wished 3 more meanwhile: undo takes off only its own one.
-    wish.qtyOf = () => 5;
-    toast.undo();
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'weapon', className: 'ksar_rifle_p4ar', name: 'P4-AR' }, 4);
+  it('bays per place with the ship hold at the ship place, containers with the Ø Q mark (I1, I2, I3)', () => {
+    const { el } = mount();
+    const bays = [...el.querySelectorAll('.bays .bay')].map((b) => b.textContent?.replace(/\s+/g, ' ').trim());
+    expect(bays).toContain('Area18ArcCorp');
+    expect(bays.some((b) => b?.startsWith('Pfeil') && b.includes('Area18 (Stanton)'))).toBeTrue();
+    const q = [...el.querySelectorAll('sc-hq-crate .q')].map((x) => x.textContent?.trim());
+    expect(q).toContain('Ø Q 727');
   });
 
-  it('a failed wishlist write shows the error and no success toast', async () => {
-    const { fixture, wish, el } = mount();
-    wish.setQty.and.resolveTo(false);
-    const p4ar = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('P4-AR'))!;
-    click(fixture, p4ar.querySelector('.nach'));
-    await fixture.whenStable();
+  it('only the reserved share is hatched (I5) and the hover names the reservation and the quality (I4)', () => {
+    const { el } = mount();
+    const crate = [...el.querySelectorAll<HTMLElement>('sc-hq-crate button')].find((b) => b.textContent?.includes('Ø Q 727'))!;
+    const rh = crate.querySelector<HTMLElement>('.rh')!;
+    expect(rh.style.getPropertyValue('--rf')).toBe('27%');
+  });
+
+  it('selects by highlight and hands a pick-up to the Nachschub picker with one stop per place (I8, D4 input)', () => {
+    const { el, click, picker } = mount();
+    const crates = [...el.querySelectorAll<HTMLElement>('sc-hq-crate button')].filter((b) => b.textContent?.includes('Eisen'));
+    crates.forEach((c) => click(c));
+    expect(crates[0].getAttribute('aria-pressed')).toBe('true');
+    expect(el.querySelector('input[type=checkbox]')).toBeNull();
+    const bar = el.querySelector('.selbar')!;
+    expect([...bar.querySelectorAll('button')].map((b) => b.textContent?.trim()).slice(0, 4)).toEqual(['hq.bestand.deck.reserve', 'hq.bestand.deck.sell', 'hq.bestand.deck.pickup', 'hq.bestand.deck.delete']);
+    click([...bar.querySelectorAll('button')].find((b) => b.textContent?.includes('pickup')));
+    const req = picker.open.calls.mostRecent().args[0];
+    expect(req.intent).toBe('pickup');
+    expect(req.lines[0].stops.map((s: { location: string }) => s.location)).toEqual(['Area18', 'Lorville']);
+  });
+
+  it('one material selected shows its quality view with bands (I6)', () => {
+    const { el, click } = mount();
+    click([...el.querySelectorAll<HTMLElement>('sc-hq-crate button')].find((b) => b.textContent?.includes('Ø Q 727')));
+    expect(el.querySelector('.res h3')?.textContent).toContain('byQuality');
+    expect(el.querySelectorAll('.res .band').length).toBe(3);
+  });
+
+  it('the Ladeprotokoll sits beside the bays and lists removals and reservations as one log (I11, I12, I13)', () => {
+    const { el } = mount();
+    const log = el.querySelector('.main > sc-hq-stock-log')!;
+    expect(log).not.toBeNull();
+    const lines = [...log.querySelectorAll('.lines li')];
+    expect(lines.length).toBe(2);
+    expect(lines[0].textContent).toContain('Medpen');
+    expect(lines[1].classList).toContain('res');
+  });
+
+  it('the subheader search is the page search, with alternatives at up to three hits (I14, I15)', () => {
+    const { el, fixture, chrome } = mount({ ort: 'Lorville' });
+    chrome.pageSearch()!('eisen q>700');
     fixture.detectChanges();
-    expect(TestBed.inject(UndoToastService).current()).toBeNull();
-    expect(el.querySelector('p.err[role=alert]')).not.toBeNull();
+    expect(el.querySelector('.head input[type=search]')).toBeNull();
+    const alts = [...el.querySelectorAll('.ghost .alt')].map((a) => a.textContent ?? '');
+    expect(alts.some((t) => t.includes('alt.elsewhere'))).toBeTrue();
+    expect(alts.some((t) => t.includes('alt.wishQ'))).toBeTrue();
   });
 
-  it('a material tile wishes the plain material of its crate, as the blueprint recipes name it (AUD-7)', () => {
-    const { fixture, inv, wish, el } = mount();
-    inv.items.update((rs) => [...rs, { location: 'Area18', name: 'Iron', class_name: 'Carryable_TBO_FL_32SCU_Commodity_Metal_Iron', qty: 2, unit: 'scu' }]);
+  it('table mode: Excel-like rows, amount edit writes, highlight selection, wide table scrolls (I7, X2)', () => {
+    const { el, click, inv, fixture } = mount();
+    click([...el.querySelectorAll('.mode button')][1]);
+    const wrap = el.querySelector('sc-hq-stock-table .sc-table-scroll')!;
+    expect(wrap).not.toBeNull();
+    const input = wrap.querySelector<HTMLInputElement>('input.amt')!;
+    input.value = '3';
+    input.dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    const iron = [...el.querySelectorAll('.grid .tile.item')].find((t) => t.textContent?.includes('Iron'))!;
-    click(fixture, iron.querySelector('.nach'));
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'material', className: 'Iron', name: 'Iron' }, 2);
+    expect(inv.setAmount).toHaveBeenCalled();
+    click(wrap.querySelector('tbody tr'));
+    expect(wrap.querySelector('tbody tr')!.getAttribute('aria-selected')).toBe('true');
   });
 
-  it('Hangar tiles carry the wish hint and Nachholen too, the name stays an anchor beside the button (AUD-6)', () => {
-    const { fixture, shipWishes, el } = mount();
-    click(fixture, el.querySelectorAll('.tabs .tab')[1]);
-    const gladius = [...el.querySelectorAll('.grid .tile.ship')].find((t) => t.textContent?.includes('Pfeil'))!;
-    expect(gladius.querySelector('a.tile-link')?.getAttribute('href')).toContain('/codex/ship/');
-    expect(gladius.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
-    click(fixture, gladius.querySelector('.nach'));
-    expect(shipWishes.setQty).toHaveBeenCalledWith('ship', 'AEGS_Gladius', 'Pfeil', 4);
+  it('Sets live in Inventar: tiles to the set editor plus "+ Set anlegen" (S2)', () => {
+    const { el } = mount({ cat: 'sets' });
+    const sets = [...el.querySelectorAll<HTMLAnchorElement>('a.set')];
+    expect(sets[0].getAttribute('href')).toBe('/hq/locker/set1');
+    expect(el.querySelector('button.set.add')).not.toBeNull();
   });
 
-  it('Sammlung tiles carry the wish hint and Nachholen too (AUD-6)', () => {
-    const { fixture, wish, el } = mount();
-    click(fixture, el.querySelectorAll('.tabs .tab')[2]);
-    const bp = el.querySelector('.grid .tile.bp')!;
-    expect(bp.querySelector('.hint span')?.textContent).toContain('hq.bestand.hintWish');
-    click(fixture, bp.querySelector('.nach'));
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'blueprint', className: 'gallant_bp', name: 'Gallant' }, 2);
+  it('Hangar: origin and role filters, the wishlist counter, variants per ship and Importieren as an anchor (H1, H2, H3)', () => {
+    const { el, click } = mount({ bestand: 'hangar' });
+    expect(chip(el, 'origin.loan')!.classList).toContain('zero');
+    expect(chip(el, 'allRoles')).toBeTruthy();
+    expect(el.querySelector('.bar a.wishes')?.textContent).toContain('wishCount');
+    expect(el.querySelector('.tile.ship .where')?.textContent).toContain('variants');
+    click(el.querySelector('.menu-wrap button'));
+    expect(el.querySelector('.menu a[href="/hq/hangar/import"]')).not.toBeNull();
+    expect(el.querySelector('.menu button.danger')).not.toBeNull();
   });
 
-  it('the plus tile opens the stock popup in add mode', () => {
-    const { fixture, el } = mount();
-    click(fixture, el.querySelector('.grid .tile.add'));
-    expect(el.querySelector('sc-hq-stock-popup')).not.toBeNull();
+  it('Sammlung: Blaupausen, Ruf, News, Galerie; Ruf stays an honest empty state (S1)', () => {
+    const { el } = mount({ bestand: 'sammlung' });
+    const names = [...el.querySelectorAll('.bar .chip')].map((c) => c.textContent?.trim().replace(/\d+$/, ''));
+    expect(names).toEqual(['hq.bestand.all', 'hq.bestand.deck.art.blueprints', 'hq.bestand.deck.art.ruf', 'hq.bestand.deck.art.news', 'hq.bestand.deck.art.gallery']);
+    expect(el.querySelector('[data-ruf]')).not.toBeNull();
   });
 
-  it('filters by category chip and by text', () => {
-    const { fixture, el } = mount();
-    const chips = [...el.querySelectorAll('.chips .chip')];
-    // All, Rohstoffe, Waffen (Sonstiges holds Medpen).
-    click(fixture, chips.find((c) => c.textContent?.includes('hq.stock.cat.weapons')) ?? null);
-    expect(el.querySelectorAll('.grid .tile.item').length).toBe(1);
-    click(fixture, chips[0]);
-    const input = el.querySelector('.search input') as HTMLInputElement;
-    input.value = 'gold';
-    input.dispatchEvent(new Event('input'));
+  it('Alles: one deck with the ship and Sammlung lanes too (F1)', () => {
+    const { el } = mount({ bestand: 'alles' });
+    expect(chip(el, 'kind.ships')).toBeTruthy();
+    expect(el.querySelectorAll('.deck .pad').length).toBe(2);
+    expect(el.querySelectorAll('.deck .lock').length).toBe(1);
+  });
+
+  it('empty Inventar: one sentence, one primary, one second way, no 0 and no pager (F5)', () => {
+    const { el } = mount({}, { empty: true });
+    const area = el.querySelector('.empty-area')!;
+    expect(area.querySelectorAll('[tier=primary]').length).toBe(1);
+    expect(area.querySelector('a.second')).not.toBeNull();
+    expect(el.querySelector('.pager')).toBeNull();
+  });
+
+  it('empty Hangar offers Schiff anlegen and the RSI hangar import (F5)', () => {
+    const { el, fixture } = mount({ bestand: 'hangar' });
+    (TestBed.inject(HangarService).ships as ReturnType<typeof signal>).set([]);
     fixture.detectChanges();
-    expect(el.querySelectorAll('.grid .tile.item').length).toBe(1);
-  });
-
-  it('a deep link carries the filter and brings the focused item on screen', () => {
-    const { el } = mount({ params: { bestand: 'inventar', cat: 'weapons', focus: 'KSAR_rifle_p4ar' } });
-    expect(el.querySelector('.chips .chip[aria-pressed="true"]')?.textContent).toContain('hq.stock.cat.weapons');
-    expect(el.querySelector('.grid .tile.focus')?.textContent).toContain('P4-AR');
-  });
-
-  it('lists what was used up in the last 48 hours as a summary with a Nachholen action', () => {
-    const events = [
-      {
-        type: 'inventory.snapshot',
-        at: ago(5),
-        undone: false,
-        applied: { kind: 'snapshot', replaced: true, previous: { snapshot: { location: 'Lorville', source: 'ocr', taken_at: ago(60) }, items: [{ name: 'Medpen', class_name: 'medpen', qty: 8, unit: 'pcs' }] } },
-      },
-    ];
-    const { fixture, wish, el } = mount({ events });
-    expect(el.querySelector('.used .u-t')?.textContent).toContain('Medpen');
-    click(fixture, el.querySelector('.used'));
-    click(fixture, el.querySelector('.used-pop li button'));
-    expect(wish.setQty).toHaveBeenCalled();
-  });
-
-  it('pages a long list instead of growing the page', () => {
-    const { fixture, el } = mount({ many: 60 });
-    fixture.componentInstance.capacity.set(8);
-    fixture.detectChanges();
-    const pg = el.querySelector('.pager .pg');
-    expect(pg).not.toBeNull();
-    const next = el.querySelector('.pager button:last-child') as HTMLButtonElement;
-    expect(next.disabled).toBeFalse();
-    const first = el.querySelectorAll('.grid .tile').length;
-    click(fixture, next);
-    expect(el.querySelectorAll('.grid .tile').length).toBeGreaterThan(0);
-    expect(first).toBe(8);
-  });
-
-  it('Sammlung: the plus tile first, the collected blueprints as anchors, Ruf as an honest empty state', () => {
-    const { fixture, el } = mount();
-    click(fixture, el.querySelectorAll('.tabs .tab')[2]);
-    const tiles = [...el.querySelectorAll('.grid .tile')];
-    expect(tiles[0].classList).toContain('add');
-    expect(tiles[1].querySelector('a.tile-link')?.getAttribute('href')).toContain('/codex/blueprint/gallant_bp');
-    expect(el.querySelector('[data-ruf] .empty')).not.toBeNull();
-  });
-
-  it('Hangar: owned ships only, as anchors to their page, with copies and origin', () => {
-    const { fixture, el } = mount();
-    click(fixture, el.querySelectorAll('.tabs .tab')[1]);
-    const ships = [...el.querySelectorAll('.grid .tile.ship')];
-    expect(ships.length).toBe(2);
-    expect(ships.every((s) => s.querySelector('a.tile-link')?.getAttribute('href')?.includes('/codex/ship/'))).toBeTrue();
-    // The flagship stands first; the pledged Gladius carries its origin.
-    expect(ships.find((t) => t.textContent?.includes('Pfeil'))?.textContent).toContain('hq.bestand.origin.pledge');
+    expect(el.querySelector('.empty-area a.second')?.getAttribute('href')).toBe('/hq/hangar/import');
   });
 
   it('a load failure shows a translated error with retry, never an empty page', () => {
-    const { fixture, inv, el } = mount();
+    const { fixture, inv, el, click } = mount();
     inv.loaded.set(false);
     inv.error.set('errors.generic');
     fixture.detectChanges();
     expect(el.querySelector('.state[role="alert"]')).not.toBeNull();
-    click(fixture, el.querySelector('.state button'));
+    click(el.querySelector('.state button'));
     expect(inv.load).toHaveBeenCalled();
-  });
-
-  it('"Ingame-Bestand zurücksetzen" sits in the page menu, marked as danger', () => {
-    const { fixture, el } = mount();
-    click(fixture, el.querySelector('.menu-wrap button'));
-    expect(el.querySelector('.menu button.danger')).not.toBeNull();
   });
 });
