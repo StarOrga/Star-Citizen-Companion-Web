@@ -312,9 +312,6 @@ export interface HoloPatchComparisonSide {
       border: 1px solid color-mix(in srgb, var(--sc-accent-collab) 45%, var(--sc-border));
       background: color-mix(in srgb, var(--sc-accent-collab) 8%, transparent);
     }
-    .admin-flag { display: block; margin-bottom: 4px; font-family: var(--sc-font-display);
-      font-size: max(0.66rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--sc-accent-hot); }
     .admin-schema-row dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
     .admin-schema-row dt { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); }
     .admin-schema-row dd { margin: 0; color: var(--sc-fg-0); font-size: max(0.72rem, var(--sc-fs-floor)); }

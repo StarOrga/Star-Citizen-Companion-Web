@@ -464,7 +464,6 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
     .assign-toggle:focus-visible { outline: 2px solid var(--sc-accent-hot); outline-offset: 2px; }
     .assign-toggle.on { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
     /* Same wording tag as the shell's admin menu entries (.di-tag). */
-    .admin-tag { font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.08em; opacity: 0.8; white-space: nowrap; }
 
     /* ── name-language switch ──────────────────────────────────────────────
        Same segmented control as the news stream's "Beiträge | Gemerkt": two
