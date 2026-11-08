@@ -1,7 +1,17 @@
 """Whole-PC monitor — the platform-independent part of sysmon.py."""
 
 from sc_extract import sysmon
-from sc_extract.sysmon import COUNTERS, DRIVE_COUNTERS, build_drives, clean, instance_letters
+from sc_extract.sysmon import COUNTERS, DRIVE_COUNTERS, build_drives, clean, instance_letters, process_cpu_pct
+
+
+def test_process_cpu_pct_is_busy_share_of_all_process_rows():
+    # 12 logical processors: _Total 770 (of 1200), Idle 41 -> (770 - 41) / 12
+    assert process_cpu_pct(770.0, 41.0, 12) == 60.8
+    assert process_cpu_pct(1300.0, 0.0, 12) == 100.0  # capped
+    assert process_cpu_pct(50.0, 80.0, 12) == 0.0  # idle above total never goes negative
+    assert process_cpu_pct(None, 1.0, 12) is None
+    assert process_cpu_pct(float("nan"), 1.0, 12) is None
+    assert process_cpu_pct(100.0, 1.0, 0) is None
 
 
 def test_cpu_is_rounded_and_capped_at_100():
@@ -21,7 +31,7 @@ def test_glitches_read_as_zero():
 
 def test_counters_use_english_names_with_a_cpu_fallback():
     paths = dict(COUNTERS)
-    assert set(paths) == {"cpuPct", "readBps", "writeBps", "iops"}
+    assert set(paths) == {"cpuPct", "procTotal", "procIdle", "readBps", "writeBps", "iops"}
     # Task Manager's basis since Windows 11 24H2; % Processor Utility reads higher.
     assert all(path.endswith("% Processor Time") for path in paths["cpuPct"])
     assert len(paths["cpuPct"]) == 2

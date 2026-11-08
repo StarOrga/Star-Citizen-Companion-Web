@@ -467,6 +467,45 @@ export function appCpuPct(perProcess: readonly (number | null | undefined)[]): n
   return Math.round(Math.min(100, sum) * 10) / 10;
 }
 
+/** A sysmon sample older than this is dead (it ticks once a second): fall back to the estimate. */
+export const SYSMON_STALE_MS = 3500;
+/** Weight of the newest sample in the whole-PC CPU smoothing (process counters jitter ±15 pp per second). */
+export const CPU_SMOOTH_ALPHA = 0.4;
+
+export interface CpuTotalInput {
+  /** sysmon `cpuProcPct` (Task Manager's basis: busy share of all process rows), when present. */
+  procPct: number | null | undefined;
+  /** sysmon `cpuPct` (wall-clock "% Processor Time"), when present. */
+  timePct: number | null | undefined;
+  /** Age of the sysmon sample, ms; null/undefined = no sample at all. */
+  ageMs: number | null | undefined;
+  /** Idle-time estimate from os.cpus() deltas, 0..100 (always available after the first tick). */
+  estimatePct: number;
+}
+
+/**
+ * The whole-PC CPU the dock shows. Preference: sysmon's process-attributed
+ * figure (what Task Manager's header sums) -> sysmon's wall-clock figure ->
+ * the os.cpus() estimate. A sample that is missing, stale or not a finite
+ * number is skipped, so a dead monitor can never freeze the gauge on its last
+ * (possibly 100) value. Result is clamped 0..100.
+ */
+export function pickCpuTotal(i: CpuTotalInput): { pct: number; source: 'proc' | 'time' | 'estimate' } {
+  const clamp = (v: number): number => Math.max(0, Math.min(100, v));
+  const fresh = typeof i.ageMs === 'number' && Number.isFinite(i.ageMs) && i.ageMs >= 0 && i.ageMs <= SYSMON_STALE_MS;
+  if (fresh) {
+    if (typeof i.procPct === 'number' && Number.isFinite(i.procPct)) return { pct: clamp(i.procPct), source: 'proc' };
+    if (typeof i.timePct === 'number' && Number.isFinite(i.timePct)) return { pct: clamp(i.timePct), source: 'time' };
+  }
+  return { pct: clamp(Number.isFinite(i.estimatePct) ? i.estimatePct : 0), source: 'estimate' };
+}
+
+/** Exponential smoothing; the first value (prev null) and a source switch are taken as they come. */
+export function smoothCpu(prev: number | null, next: number, alpha: number = CPU_SMOOTH_ALPHA): number {
+  if (prev === null || !Number.isFinite(prev)) return next;
+  return prev + alpha * (next - prev);
+}
+
 /** Room above the limit on a measured scale, so the handle never sits pinned at its end. */
 export const MEASURED_SCALE_HEADROOM = 1.5;
 
