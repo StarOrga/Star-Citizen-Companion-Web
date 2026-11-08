@@ -213,7 +213,7 @@ describe('parsePreviousSnapshot', () => {
     });
     expect(snap?.location).toBe('Area18');
     expect(snap?.source).toBe('ocr');
-    expect(snap?.items).toEqual([{ name: 'Gold', class_name: null, qty: 4, unit: 'scu', quality: null }]);
+    expect(snap?.items).toEqual([{ name: 'Gold', class_name: null, qty: 4, unit: 'scu' }]);
   });
 
   it('still reads the flat shape and rejects a snapshot without location', () => {

@@ -1,47 +1,52 @@
 # HQ inventory quality contract (desktop <-> SCC-Web)
 
 Contract version: 1 (2026-11-09, migration `20261109000100_hq_inventory_quality_reservations.sql`).
-Companion of `hq-live.md`. The desktop app writes the field **`quality`** on `hq_inventory_items`.
+Companion of `hq-live.md`. The desktop app writes the field **`quality`** of the table **`hq_inventory_stacks`**.
 
-## The field
+## Backward compatible by design
+
+The released desktop app keeps working unchanged. `hq_inventory_items` keeps its primary key
+`(user_id, location, name)` and its meaning: **one row per item and place with the TOTAL qty**. The old
+upsert `on_conflict=user_id,location,name` stays valid. The old app writes no stacks, so all of its
+quality is "unknown" in the web.
+
+## The optional stacks endpoint
+
+`hq_inventory_stacks` splits an item row's total by quality. A new app writes stacks IN ADDITION to the item row.
 
 | column | type | meaning |
 |--------|------|---------|
-| `quality` | `smallint`, `1..1000`, nullable | The quality the game shows for the stack (materials: 1-1000 as in the inventory/refinery UI). **`null` = unknown**, never `0`. Out-of-range values are rejected (`hq_inv_item_quality`). |
-| `quality_key` | `smallint`, **generated** (`coalesce(quality, 0)`) | The nullable quality as a key column. Never written by a client, only named in `on_conflict`. |
+| `user_id` | uuid | JWT `sub` (default `auth.uid()`) |
+| `location`, `name` | text | the item row it belongs to (FK `(user_id, location, name)` -> `hq_inventory_items`, **on delete cascade**) |
+| `quality` | smallint, **1..1000**, not null | the quality the game shows. A share without a known quality is simply not written. |
+| `qty` | numeric, > 0 | the amount of that quality |
 
-## One stack per (place, item, quality)
+Primary key `(user_id, location, name, quality)`. Upsert with `on_conflict=user_id,location,name,quality`.
+RLS: owner-only select / insert / update / delete, like the items table.
 
-The primary key of `hq_inventory_items` is now `(user_id, location, name, quality_key)`.
-Two qualities of the same item at one place are two rows; the same quality adds up in ONE row (the
-app sums what it reads for that quality, the web aggregates the stacks to "Eisen: Ø Q 780, 612-905").
+## Mismatch rule (the item qty is the truth)
 
-## What changes for the desktop writer
+- **Unknown quality = `item.qty - sum(stacks.qty)`.** The remainder is shown in the web as "Qualität unbekannt".
+- A stack write is **refused** (`check_violation`) when it would push `sum(stacks)` above the item qty. Write order:
+  raising the amount = item row first, then stacks; lowering = stacks first, then the item row.
+- If an OLD app (or a manual write) lowered the item qty so that `sum(stacks) > qty`, the stacks are **stale** and the
+  web ignores them (everything unknown) until the new app rewrites them. The view `hq_inventory_item_quality`
+  (`stacked_qty`, `unknown_qty`, `stale` per item) states this.
+- Deleting the item row (including the snapshot replace "delete + insert" of a place) cascades its stacks and
+  reservations. Prefer upserting changed rows over delete + insert where you can.
+- Caps: at most 20 qualities per item, 3000 stacks per user; `hq_inventory_snapshots.item_count` still counts item rows.
 
-1. **Upsert target.** `on_conflict=user_id,location,name,quality_key` (was `user_id,location,name`).
-   The old target no longer matches a unique constraint and PostgREST answers `42P10`. A plain
-   delete + insert of a whole place (snapshot replace) keeps working unchanged.
-2. **Write `quality`** per row when the OCR/log read gives one; omit it (or `null`) when not read.
-   A row without quality is the "unknown quality" stack of that item.
-3. **Replace semantics are per place, as before.** A new snapshot of a place replaces all of the
-   place's rows (all qualities). The web's "undo" restores the previous snapshot with its qualities
-   (`hq_live_events.applied.previous.items[].quality`, optional number or null - please include it).
-4. `item_count` of `hq_inventory_snapshots` counts **stacks** (rows), max 400 per place as before.
-5. **Reservations** (`hq_inventory_reservations`) belong to one stack
-   `(user_id, location, name, quality_key)` and are removed with the stack (cascade). The app does not
-   write them. A snapshot replace therefore drops the reservations of replaced rows - same behaviour
-   as the former jsonb column. Prefer upserting changed rows over delete + insert where you can.
+## Snapshot replace
+
+Write the item rows exactly as before (`on_conflict=user_id,location,name`, total qty), then the stacks of every item whose
+qualities were read. Items without readable quality get no stack rows.
 
 ## Other tables of this release the desktop may meet
 
-- `hq_inventory_removals` (web-written, owner-only): manual removals for "zuletzt aufgebraucht". The app
-  does not write it; its own drops stay `inventory.snapshot` events.
+- `hq_inventory_reservations` (web-written; the app does not write it): reservations reference `(location, name)` and have
+  an optional `quality` (null = any stack).
+- `hq_inventory_removals` (web-written, owner-only): manual removals for "zuletzt aufgebraucht".
 - Sales: a sale the app observes may be reported to a Verkauf Nachschub with
   `rpc hq_nachschub_report_sale(p_package_id uuid, p_auec numeric, p_ref text)` -> new progress (numeric).
-  `p_ref` (use the sale's `hq_live_events.id`) makes a re-sent report a no-op; the call is `SECURITY INVOKER`,
-  so it only touches the signed-in user's own `type = 'verkauf'` Nachschub. Returns `null` when nothing matched.
-
-## Compatibility
-
-Rows written before the migration keep `quality = null`. A client that never sends `quality` but uses the
-new `on_conflict` behaves exactly as before. The web falls back to "quality unknown" everywhere.
+  `p_ref` (use the sale's `hq_live_events.id`) makes a re-sent report a no-op; the call is `SECURITY INVOKER`, so it only
+  touches the signed-in user's own `type = 'verkauf'` Nachschub. Returns `null` when nothing matched.

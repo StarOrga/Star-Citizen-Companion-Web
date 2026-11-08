@@ -1,23 +1,48 @@
-import type { HqCodexKindRow, HqInventoryRemovalRow } from './hq-db.types';
+import type { HqCodexKindRow, HqInventoryRemovalRow, HqInventoryStack } from './hq-db.types';
 import { bestandKindOf } from './hq-codex-kind';
 import { buildGatherStops, gatherProgress, gatherToSteps, moveStop, nextStop, orderByAmount, parseGather, withStopDone } from './hq-gather';
-import { aggregateQuality, averageLabel, qualityBands, rangeLabel } from './hq-quality';
+import { aggregateQuality, averageLabel, qualityBands, rangeLabel, resolveStacks, takeFromStacks } from './hq-quality';
 import { lastRemovals } from './hq-removals';
 import { parseSellGoal, sellProgress } from '../nachschub/nachschub.model';
 
-const row = (location: string, name: string, qty: number, quality: number | null, extra: Record<string, unknown> = {}) => ({
+/** One item row: ONE per place and item with the total qty, the quality split in `stacks` (known shares only). */
+const row = (location: string, name: string, qty: number, stacks: HqInventoryStack[] = [], extra: Record<string, unknown> = {}) => ({
   location,
   name,
   class_name: name.toLowerCase(),
   qty,
   unit: 'scu' as const,
-  quality,
+  stacks,
   ...extra,
+});
+
+describe('quality stacks of an item row', () => {
+  it('shows the remainder as unknown quality and keeps the sum equal to qty', () => {
+    expect(resolveStacks(10, [{ quality: 600, qty: 2 }, { quality: 800, qty: 6 }])).toEqual([
+      { quality: 800, qty: 6 },
+      { quality: 600, qty: 2 },
+      { quality: null, qty: 2 },
+    ]);
+    expect(resolveStacks(5, [])).toEqual([{ quality: null, qty: 5 }]); // old app: nothing known
+    expect(resolveStacks(5, undefined)).toEqual([{ quality: null, qty: 5 }]);
+  });
+
+  it('ignores stale stacks above the total (an old app lowered the amount)', () => {
+    expect(resolveStacks(4, [{ quality: 700, qty: 5 }, { quality: 900, qty: 3 }])).toEqual([{ quality: null, qty: 4 }]);
+  });
+
+  it('takes from the unknown remainder first, then the lowest quality; or from the named stack', () => {
+    const known = [{ quality: 800, qty: 6 }, { quality: 600, qty: 2 }];
+    expect(takeFromStacks(10, known, 2)).toEqual([{ quality: 800, qty: 6 }, { quality: 600, qty: 2 }]); // remainder 2 absorbs it
+    expect(takeFromStacks(10, known, 3)).toEqual([{ quality: 800, qty: 6 }, { quality: 600, qty: 1 }]);
+    expect(takeFromStacks(10, known, 5)).toEqual([{ quality: 800, qty: 5 }]);
+    expect(takeFromStacks(10, known, 4, 800)).toEqual([{ quality: 800, qty: 2 }, { quality: 600, qty: 2 }]);
+  });
 });
 
 describe('quality aggregation', () => {
   it('weights the average by amount and reports the range per place and item', () => {
-    const [a] = aggregateQuality([row('Area18', 'Eisen', 6, 800), row('Area18', 'Eisen', 2, 600), row('Area18', 'Eisen', 2, null)]);
+    const [a] = aggregateQuality([row('Area18', 'Eisen', 10, [{ quality: 800, qty: 6 }, { quality: 600, qty: 2 }])]);
     expect(a.qty).toBe(10);
     expect(a.avg).toBe(750); // (6*800 + 2*600) / 8
     expect([a.min, a.max]).toEqual([600, 800]);
@@ -28,34 +53,42 @@ describe('quality aggregation', () => {
   });
 
   it('keeps places apart but joins them with by "item"', () => {
-    const rows = [row('Area18', 'Eisen', 4, 900), row('Lorville', 'Eisen', 4, 700)];
+    const rows = [row('Area18', 'Eisen', 4, [{ quality: 900, qty: 4 }]), row('Lorville', 'Eisen', 4, [{ quality: 700, qty: 4 }])];
     expect(aggregateQuality(rows).length).toBe(2);
     const [all] = aggregateQuality(rows, 'item');
     expect(all.qty).toBe(8);
     expect(all.avg).toBe(800);
   });
 
-  it('has no average when no quality is known and a single value as range label', () => {
-    const [u] = aggregateQuality([row('A', 'Gold', 3, null)]);
+  it('has no average for a row without stacks (old app) and a single value as range label', () => {
+    const [u] = aggregateQuality([row('A', 'Gold', 3)]);
     expect(u.avg).toBeNull();
+    expect(u.unknownQty).toBe(3);
     expect(averageLabel(u)).toBeNull();
     expect(rangeLabel(u)).toBeNull();
-    const [one] = aggregateQuality([row('A', 'Gold', 3, 512)]);
+    const [one] = aggregateQuality([row('A', 'Gold', 3, [{ quality: 512, qty: 3 }])]);
     expect(rangeLabel(one)).toBe('512');
   });
 
-  it('counts reservations per stack and skips empty stacks', () => {
+  it('puts quality reservations on their stack and "any" reservations on the item', () => {
     const [a] = aggregateQuality([
-      row('A', 'Eisen', 5, 700, { reservations: [{ amount: 2, note: 'Max', at: '2026-11-01T00:00:00Z' }] }),
-      row('A', 'Eisen', 0, 500),
+      row('A', 'Eisen', 5, [{ quality: 700, qty: 5 }], {
+        reservations: [
+          { amount: 2, note: 'Max', at: '2026-11-01T00:00:00Z', quality: 700 },
+          { amount: 1, note: 'egal', at: '2026-11-01T00:00:00Z' },
+        ],
+      }),
+      row('A', 'Leer', 0),
     ]);
-    expect(a.reserved).toBe(2);
-    expect(a.available).toBe(3);
-    expect(a.stacks.length).toBe(1);
+    expect(a.reserved).toBe(3);
+    expect(a.available).toBe(2);
+    expect(a.stacks[0].reserved).toBe(2);
+    expect(a.stacks[0].available).toBe(3);
+    expect(a.anyReservations.length).toBe(1);
   });
 
   it('groups stacks into 100-point bands, best first', () => {
-    const [a] = aggregateQuality([row('A', 'Eisen', 1, 100), row('A', 'Eisen', 2, 101), row('A', 'Eisen', 3, 150), row('A', 'Eisen', 4, 905), row('A', 'Eisen', 9, null)]);
+    const [a] = aggregateQuality([row('A', 'Eisen', 19, [{ quality: 100, qty: 1 }, { quality: 101, qty: 2 }, { quality: 150, qty: 3 }, { quality: 905, qty: 4 }])]);
     const bands = qualityBands(a.stacks);
     expect(bands.map((b) => [b.from, b.to, b.qty])).toEqual([
       [901, 1000, 4],

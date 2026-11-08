@@ -143,22 +143,39 @@ export interface HqInventoryItemRow {
   qty: number;
   unit: 'pcs' | 'scu';
   /**
-   * Quality 1..1000, null = unknown (migration 20261109000100). One row = one stack per (place, item, quality).
-   * Absent on rows read before the migration (= unknown).
+   * The split of `qty` by quality (migration 20261109000100), filled by {@link HqInventoryService}: known qualities best
+   * first plus the unknown remainder (`quality: null`), summing to `qty`. The row stays ONE per place and item with the
+   * total qty - exactly what the released desktop app writes (it writes no stacks: everything unknown).
    */
-  quality?: number | null;
-  /** coalesce(quality, 0): part of the primary key; the desktop upserts with on_conflict=user_id,location,name,quality_key. */
-  quality_key?: number;
+  stacks?: HqInventoryStack[];
   /**
-   * The live reservations on this stack. NOT a column any more: {@link HqInventoryService} fills it from
+   * The live reservations on this item. NOT a column any more: {@link HqInventoryService} fills it from
    * `hq_inventory_reservations` on load, so the stock helpers (`reservationsOf`, `availableOf`) keep working.
    */
   reservations?: HqStockReservation[] | null;
   updated_at: string;
 }
 
-/** Part of a stack earmarked for a friend and/or a free text ("Spieler X", "Verkauf"), optionally until `expiresAt`. */
+/** One quality share of an item row's total (`quality` null = unknown). */
+export interface HqInventoryStack {
+  quality: number | null;
+  qty: number;
+}
+
+/** hq_inventory_stacks - the stored (known-quality) shares of an item row; the unknown remainder is implied. */
+export interface HqInventoryStackRow {
+  user_id: string;
+  location: string;
+  name: string;
+  quality: number;
+  qty: number;
+  updated_at: string;
+}
+
+/** Part of an item earmarked for a friend and/or a free text ("Spieler X", "Verkauf"), optionally of one quality and until `expiresAt`. */
 export interface HqStockReservation {
+  /** Quality the reservation sits on; null/absent = any stack. */
+  quality?: number | null;
   amount: number;
   /** Free text; '' on a pure friend reservation. */
   note: string;
@@ -178,7 +195,8 @@ export interface HqReservationRow {
   id: string;
   location: string;
   name: string;
-  quality_key: number;
+  /** null = any stack. */
+  quality: number | null;
   amount: number;
   note: string;
   friend_id: string | null;

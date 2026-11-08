@@ -13,7 +13,7 @@ export interface PreviousSnapshot {
   system: string | null;
   source: HqInventorySource;
   takenAt: string;
-  items: { name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu'; quality: number | null }[];
+  items: { name: string; class_name: string | null; qty: number; unit: 'pcs' | 'scu' }[];
 }
 
 /** Defensive parse of the `previous` snapshot a desktop `inventory.snapshot` event carries. */
@@ -40,7 +40,6 @@ export function parsePreviousSnapshot(raw: unknown): PreviousSnapshot | null {
       class_name: typeof r['class_name'] === 'string' && r['class_name'] ? r['class_name'] : null,
       qty,
       unit: r['unit'] === 'scu' ? 'scu' : 'pcs',
-      quality: parseQuality(r['quality']),
     });
   }
   return { location, system: typeof o['system'] === 'string' ? o['system'] : null, source, takenAt, items };
