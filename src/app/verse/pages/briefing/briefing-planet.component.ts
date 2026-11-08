@@ -11,8 +11,9 @@ import { generateWorld } from './planet/planet-world';
 /**
  * The hub's big planet, live (concept 2026-10-29 "Verse-Planet Nachtseite"):
  * a WebGL sphere that turns once in 30 minutes under a fixed sun, with city
- * lights on its night side, 2–5 trains on the rail network and an aurora now
- * and then. It draws into a sticky, viewport-tall canvas inside the stage's
+ * lights on its night side, 2–5 trains on the rail network and an aurora that
+ * never goes dark, drifting weaker and stronger. It draws into a sticky,
+ * viewport-tall canvas inside the stage's
  * `.world-clip` and takes its geometry from the CSS planet (`anchor`). That one
  * is invisible: it is shown only when no live planet can come (no WebGL). While
  * the live one loads, the stars show — there is never a second, plainer planet

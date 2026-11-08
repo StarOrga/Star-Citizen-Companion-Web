@@ -36,6 +36,10 @@ function fakeLive(state: Record<string, unknown> | null, events: HqLiveEventRow[
 }
 
 describe('HqNowComponent', () => {
+  // The app state also reads this browser's memory of a launch; every case starts from a browser that never saw the app.
+  beforeEach(() => localStorage.removeItem('sc.sccApp.launchedBefore'));
+  afterEach(() => localStorage.removeItem('sc.sccApp.launchedBefore'));
+
   function mount(live: ReturnType<typeof fakeLive>, conn: 'never' | 'connected' = 'never'): ComponentFixture<HqNowComponent> {
     TestBed.configureTestingModule({
       providers: [
@@ -63,20 +67,24 @@ describe('HqNowComponent', () => {
     const el = f.nativeElement as HTMLElement;
     expect(el.querySelector('.connect .connect-title')?.textContent).toContain('hq.now.connect.syncOffTitle');
     expect(el.querySelector('.connect .muted')?.textContent).toContain('hq.now.connect.syncOffHint');
+    // The app already runs: nothing to download or start.
+    expect(el.querySelector('.connect sc-hq-app-launch')).toBeNull();
   });
 
-  it('explains what Jetzt shows with three examples in both connect states', () => {
-    for (const conn of ['never', 'connected'] as ('never' | 'connected')[]) {
-      TestBed.resetTestingModule();
-      const el = mount(fakeLive(null), conn).nativeElement as HTMLElement;
-      expect(el.querySelector('.connect .explain-what')?.textContent).toContain('hq.now.connect.explain.what');
-      expect(el.querySelectorAll('.connect .explain-list li').length).toBe(3);
-    }
+  it('names the app state with the status chip words and offers its action', () => {
+    const el = mount(fakeLive(null)).nativeElement as HTMLElement;
+    expect(el.querySelector('.connect .connect-title')?.textContent).toContain('hq.now.connect.titleMissing');
+    expect(el.querySelector('.connect sc-hq-app-launch a')?.textContent).toContain('hq.app.downloadCta');
+    TestBed.resetTestingModule();
+    localStorage.setItem('sc.sccApp.launchedBefore', '1');
+    const off = mount(fakeLive(null)).nativeElement as HTMLElement;
+    expect(off.querySelector('.connect .connect-title')?.textContent).toContain('hq.now.connect.titleOff');
+    expect(off.querySelector('.connect sc-hq-app-launch a')?.textContent).toContain('hq.app.launch');
   });
 
-  it('shows no explanation once live data flows', () => {
+  it('drops the connect block once live data flows', () => {
     const el = mount(fakeLive({ location: { name: 'Lorville', system: null } })).nativeElement as HTMLElement;
-    expect(el.querySelector('.explain')).toBeNull();
+    expect(el.querySelector('.connect')).toBeNull();
   });
 
   const presence = (ageMs: number, gameRunning = true) => ({

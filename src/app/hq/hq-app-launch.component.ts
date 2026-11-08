@@ -11,7 +11,7 @@ type LaunchStatus = 'idle' | 'starting' | 'started' | 'downloading' | 'downloadS
 const STARTED_HINT_MS = 6000;
 
 /**
- * The one SCC-App action on the HQ pages that only fill once the app reads the game (Jetzt,
+ * The one desktop-app action on the HQ pages that only fill once the app reads the game (Jetzt,
  * Statistik): start the app, and download it when it does not answer. A small hint says which of
  * the two is happening. Public, so normal accent. Hidden on a device that cannot install a
  * desktop application (same rule as the status chip's download).
@@ -33,7 +33,8 @@ const STARTED_HINT_MS = 6000;
         class="go"
         [class.sc-btn]="look() === 'primary'"
         [class.sc-btn-primary]="look() === 'primary'"
-        [class.pill]="look() === 'pill'"
+        [class.pill]="look() === 'pill' || look() === 'chip'"
+        [class.chip]="look() === 'chip'"
         [href]="url"
         [scTooltip]="tip() ? (tip() | translate) : null"
         rel="noopener noreferrer"
@@ -71,7 +72,9 @@ const STARTED_HINT_MS = 6000;
       }
       .pill:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
       .pill:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      @media (pointer: coarse) { .pill { min-height: 48px; } }
+      /* Inside the HQ status chip (sc-hq-live-ticker): the same pill, one size down, so it fits the 32px chip. */
+      .pill.chip { min-height: 24px; padding: 0 10px; font-size: max(0.76rem, var(--sc-fs-floor)); }
+      @media (pointer: coarse) { .pill, .pill.chip { min-height: 48px; } }
       .hint {
         position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: var(--sc-float-bottom, 16px);
         display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-space-2, 8px);
@@ -91,7 +94,7 @@ export class HqAppLaunchComponent {
   readonly status = signal<LaunchStatus>('idle');
   /** `download`: never tries to start the app, the plain click downloads. */
   readonly mode = input<'launch' | 'download'>('launch');
-  readonly look = input<'primary' | 'pill'>('primary');
+  readonly look = input<'primary' | 'pill' | 'chip'>('primary');
   /** Explains the action and where the Apps menu keeps it (info tier). */
   readonly tipped = input(false);
   protected readonly tip = computed(() => {
