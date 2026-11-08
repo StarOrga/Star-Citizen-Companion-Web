@@ -1,23 +1,7 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.232.5",
+  "current": "0.232.4",
   "releases": [
-    {
-      "version": "0.232.5",
-      "date": "2026-11-08",
-      "sections": [
-        {
-          "category": "Fixed",
-          "label": "",
-          "items": [
-            {
-              "title": "",
-              "text": "Admin event sheets: \"Neu auswerten\" reaches the extraction again (the browser preflight was refused)."
-            }
-          ]
-        }
-      ]
-    },
     {
       "version": "0.232.4",
       "date": "2026-11-08",
