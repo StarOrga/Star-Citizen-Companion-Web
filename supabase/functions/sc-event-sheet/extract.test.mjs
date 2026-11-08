@@ -10,7 +10,7 @@ import {
 } from '../_shared/event-sheet.ts';
 import {
   MAX_LINKS_PER_EVENT, SHEET_TOOL_SCHEMA, buildPrompt, bundleSources, excerptAround, extractMeta, hashText, mergeSheets,
-  nameStem, parseModelAnswer, parseWikiExtract, pickEvents, sanityCheck, selectSources, sheetFromModel,
+  nameStem, parseModelAnswer, CORS, preflight, parseWikiExtract, pickEvents, sanityCheck, selectSources, sheetFromModel,
 } from './_extract.ts';
 // Static JSON imports: the Deno parity run (edge-functions-deploy.yml) grants no --allow-read.
 import fx_day_of_the_vara_2956 from './fixtures/day-of-the-vara-2956.json' with { type: 'json' };
@@ -306,4 +306,14 @@ test('a conflicting community claim (replaced PTU track) does not win over the p
   assert.equal(merged.fields.progress.value.model, 'tiers');
   assert.deepEqual(merged.fields.progress.value.tracks.map((x) => x.id), ['relief']);
   assert.equal(publicSheet(merged).fields.progress.value.model, 'tiers');
+});
+
+test('a CORS preflight is answered, so the admin re-extract works from the browser', async () => {
+  const res = preflight('OPTIONS');
+  assert.ok(res);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('access-control-allow-headers'), /authorization/);
+  assert.match(res.headers.get('access-control-allow-headers'), /x-client-info/);
+  assert.equal(preflight('POST'), null);
+  assert.equal(CORS['Access-Control-Allow-Origin'], '*');
 });

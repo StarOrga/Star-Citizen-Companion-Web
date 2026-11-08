@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.232.2",
+  "current": "0.232.4",
   "releases": [
+    {
+      "version": "0.232.4",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin event sheets: \"Neu auswerten\" reaches the extraction again (the browser preflight was refused)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.232.3",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Footer: the always-visible fan-site notice line is gone; the disclaimer stays in the \"Made by the Community\" badge bubble and on About, Imprint and Login."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.232.2",
       "date": "2026-11-08",
