@@ -10,6 +10,7 @@ import { nextLineInTesting } from '../../news/patch-stats';
 import { VerseApiService } from '../data/verse-api.service';
 import { BetaService } from '../../core/beta.service';
 import { LocaleService } from '../../core/locale/locale.service';
+import { currentPatchName, formerPatchName, samePatch } from '../data/patch-alias';
 import { PredictionMedian } from '../data/verse.models';
 import { StarTriggerService } from '../starmap/star-trigger.service';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
@@ -90,7 +91,13 @@ export function cometStrip(median: string | null, mine: string | null): CometStr
           <div pbNext class="ng">
             <section class="col" aria-labelledby="vp-ready-h">
               <div class="ngh">
-                <h3 id="vp-ready-h">{{ 'verse.patches.ready.title' | translate:{ line } }}</h3>
+                <h3 id="vp-ready-h">
+                  @if (formerName(); as former) {
+                    {{ 'verse.patches.ready.titleRenamed' | translate:{ line: lineName(), former } }}
+                  } @else {
+                    {{ 'verse.patches.ready.title' | translate:{ line: lineName() } }}
+                  }
+                </h3>
                 <span>{{ 'verse.patches.ready.progress' | translate:{ done: doneCount(), total: steps.length } }}</span>
               </div>
               <ul class="checks">
@@ -216,6 +223,14 @@ export class VersePatchesComponent {
   protected readonly steps = READINESS_STEPS;
 
   /** The line the pre-flight is about: the one in a test ring, else the digest's. */
+  /** The target line under its current name (CIG renames: 4.11 became 5.0) and the name it was announced under. */
+  readonly lineName = computed(() => currentPatchName(this.targetLine() ?? ''));
+  readonly formerName = computed(() => formerPatchName(this.targetLine() ?? ''));
+  private sameAsTarget(line: string): boolean {
+    const t = this.targetLine();
+    return t !== null && samePatch(line, t);
+  }
+
   readonly targetLine = computed<string | null>(() => {
     const testing = nextLineInTesting(this.news.patchLines());
     if (testing?.line) return testing.line;
@@ -234,7 +249,7 @@ export class VersePatchesComponent {
   /** An announced LIVE date of the target line, when the digest carries one. */
   readonly releaseDate = computed<string | null>(() => {
     const p = this.api.digest()?.patch;
-    return p?.liveAt && p.line === this.targetLine() ? p.liveAt.slice(0, 10) : null;
+    return p?.liveAt && this.sameAsTarget(p.line) ? p.liveAt.slice(0, 10) : null;
   });
 
   private notesTimer: ReturnType<typeof setTimeout> | null = null;

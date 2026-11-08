@@ -238,6 +238,19 @@ describe('star map components', () => {
     expect(f.nativeElement.querySelector('sc-comet-track .tok.on .comet.fall')).not.toBeNull();
   });
 
+  it('a tip whose day passed while the patch is not LIVE reads missed, under the renamed patch', () => {
+    explorer.set({
+      ...STATE,
+      upcoming: { patchLine: '4.11', comet: { state: 'tipped', tippedDate: '2020-11-04', locked: false, lockedReason: null, announcedDate: null } },
+    });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    const track = f.nativeElement.querySelector('sc-comet-track') as HTMLElement;
+    expect(track.querySelector('.state.missed')?.textContent).toContain('starmap.comet.state.missed');
+    expect(track.querySelector('.state.tip')).toBeNull();
+    expect(track.querySelector('b')?.textContent).toContain('starmap.comet.head.missed');
+  });
+
   it('the guess rail submits on click and hides when unavailable', async () => {
     const open = { state: 'open', guessedClass: null, answerClass: null, answerName: null } as const;
     explorer.set({ ...STATE, patches: [patch('4.4', 2, { guess: open }), ...STATE.patches.slice(1)] });

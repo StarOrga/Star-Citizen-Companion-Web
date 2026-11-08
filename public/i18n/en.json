@@ -6492,6 +6492,7 @@
       },
       "ready": {
         "title": "Pre-flight for {{line}}",
+        "titleRenamed": "Pre-flight for {{line}} (formerly {{former}})",
         "progress": "{{done}} of {{total}} done",
         "step": {
           "notes": "Patch notes read",
@@ -6819,15 +6820,18 @@
         "tipped": "set · waiting for LIVE",
         "hit": "hit",
         "miss": "missed",
-        "locked": "closed"
+        "locked": "closed",
+        "missed": "missed"
       },
       "head": {
         "closed": "Tips for {{patch}} are closed",
         "tipped": "Your tip for {{patch}}: {{date}}",
         "hit": "Impact on {{date}}",
         "miss": "Your comet: {{date}}",
-        "open": "Tips for {{patch}} open"
+        "open": "Tips for {{patch}} open",
+        "missed": "Your tip for {{patch}} missed: {{date}}"
       },
+      "formerly": "formerly {{patch}}",
       "earlier": "Earlier days",
       "later": "Later days",
       "dayAria": "Set comet on {{date}}",
