@@ -3,7 +3,7 @@
      It MUST be written at generation time with the active iteration's
      data-iteration-template value (normalised), otherwise the page paints the
      wrong layout for one frame before showIteration() runs. -->
-<html lang="de" data-theme="dark" data-page-version="2026-11-08T21:24:40" data-template="decision">
+<html lang="de" data-theme="dark" data-page-version="2026-11-08T21:24:40" data-template="free">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5728,7 +5728,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </header>
 
       <main>
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-baked id="iter-1" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <div class="iteration-intro">
     <h2>Karma → Vitest: was der Pilot zeigt</h2>
     <p>Pilot <code>src/app/feedback/</code> läuft grün in echtem Chromium; ein Probelauf über die ganze Suite liefert die Zahlen für den Rest.</p>
@@ -5768,32 +5769,32 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </div>
 
-    <section id="d-cut" data-nav-label="Zuschnitt" data-decision="d-cut" data-decision-mode="single" data-label="Zuschnitt der übrigen Specs" data-rec="bulk" data-rec-why="Der Treiber macht den Großteil fehlerfrei; die Handarbeit bleibt klein und einzeln prüfbar." data-applies-to="alle Specs außer feedback/" data-finding="f-cut">
+    <section id="d-cut" data-nav-label="Zuschnitt" data-decision="d-cut" data-decision-mode="single" data-label="Zuschnitt der übrigen Specs" data-rec="bulk" data-rec-why="Der Treiber macht den Großteil fehlerfrei; die Handarbeit bleibt klein und einzeln prüfbar." data-applies-to="alle Specs außer feedback/" data-finding="f-cut"><input type="hidden" name="dm-d-cut-hes" value="{&quot;ms&quot;:12674,&quot;revisits&quot;:0,&quot;median&quot;:6813}" disabled>
       <p data-applies>Gilt für: alle 526 Specs außer <code>src/app/feedback/</code></p>
       <p data-situation>Mit dem Treiber laufen 518 von 533 Spec-Dateien sofort grün. 24 brauchen Handarbeit, 5 davon hängen an geteilten Helfern wie <code>fake-supabase.ts</code>.</p>
       <h3 data-question>Wie schneiden wir die Umstellung der übrigen 526 Specs?</h3>
       <p data-stakes>Wie lange zwei Runner nebeneinander laufen und wie groß ein Review wird.</p>
       <div data-options>
         <label data-opt="bulk" data-recommended>
-          <input type="radio" name="dm-d-cut" value="bulk" checked>
+          <input type="radio" name="dm-d-cut" value="bulk" disabled>
           <span data-opt-label>Alles Grüne in einem PR, die 24 Reste danach</span>
           <span data-opt-consequence>Ein großer, rein mechanischer Diff; Karma schrumpft sofort auf 24 Dateien, die geteilten Helfer bekommen bis dahin eine Weiche für beide Runner.</span>
         </label>
         <label data-opt="folders">
-          <input type="radio" name="dm-d-cut" value="folders">
+          <input type="radio" name="dm-d-cut" value="folders" disabled>
           <span data-opt-label>Ordner für Ordner umstellen</span>
           <span data-opt-consequence>8–10 kleine PRs, jeder leicht zu prüfen; zwei Runner und die Helfer-Weiche bleiben über alle PRs bestehen.</span>
         </label>
         <label data-opt="allin">
-          <input type="radio" name="dm-d-cut" value="allin">
+          <input type="radio" name="dm-d-cut" value="allin" checked disabled>
           <span data-opt-label>Alles in einem PR, Reste eingeschlossen</span>
           <span data-opt-consequence>Karma ist in einem Schritt weg; der PR wartet auf die langsamste Handkorrektur und mischt Mechanik mit Einzelfällen.</span>
         </label>
       </div>
-      <textarea data-comment="d-cut-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-cut-none" value="">
-      <input type="hidden" name="dm-d-cut-issue" value="">
-      <input type="hidden" name="dm-d-cut-epic" value="">
+      <textarea data-comment="d-cut-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-cut-none" value="" disabled>
+      <input type="hidden" name="dm-d-cut-issue" value="" disabled>
+      <input type="hidden" name="dm-d-cut-epic" value="" disabled>
       <div data-alevel="3" data-title="Zuschnitt">
         <div data-slot="short">
           <div data-viz="kpi" data-viz-spec='{"value":"24","unit":"Dateien","label":"brauchen Handarbeit"}'></div>
@@ -5812,27 +5813,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </section>
 
-    <section id="d-fakeasync" data-nav-label="fakeAsync" data-decision="d-fakeasync" data-decision-mode="single" data-label="Zone-fakeAsync oder vi-Timer" data-rec="zone" data-rec-why="Zone-fakeAsync läuft unter Vitest unverändert, das Umschreiben kostet mehr rote Tests und Laufzeit." data-applies-to="42 Specs mit fakeAsync / tick / flush" data-finding="f-fakeasync">
+    <section id="d-fakeasync" data-nav-label="fakeAsync" data-decision="d-fakeasync" data-decision-mode="single" data-label="Zone-fakeAsync oder vi-Timer" data-rec="zone" data-rec-why="Zone-fakeAsync läuft unter Vitest unverändert, das Umschreiben kostet mehr rote Tests und Laufzeit." data-applies-to="42 Specs mit fakeAsync / tick / flush" data-finding="f-fakeasync"><input type="hidden" name="dm-d-fakeasync-hes" value="{&quot;ms&quot;:18663,&quot;revisits&quot;:0,&quot;median&quot;:6813}" disabled>
       <p data-applies>Gilt für: die 42 Spec-Dateien mit <code>fakeAsync</code>, <code>tick</code>, <code>flush</code></p>
       <p data-situation>Mit dem Vitest-Patch aus zone.js laufen alle 21 fakeAsync-Tests des Pilots. Ohne ihn scheitern alle 21 an „Expected to be running in ProxyZone“.</p>
       <h3 data-question>Behalten wir Zone-<code>fakeAsync</code>, oder schreiben wir auf <code>vi</code>-Timer um?</h3>
       <p data-stakes>Ob 42 Dateien umgebaut werden und wie zoneless-fähig die Tests sind.</p>
       <div data-options>
         <label data-opt="zone" data-recommended>
-          <input type="radio" name="dm-d-fakeasync" value="zone" checked>
+          <input type="radio" name="dm-d-fakeasync" value="zone" checked disabled>
           <span data-opt-label>Zone-<code>fakeAsync</code> mit dem Patch behalten</span>
           <span data-opt-consequence>Kein Umbau; die App ist ohnehin zonenbasiert. 5 Tests, die ein async-Setup in fakeAsync verketten, prüfe ich einzeln.</span>
         </label>
         <label data-opt="vitimers">
-          <input type="radio" name="dm-d-fakeasync" value="vitimers">
+          <input type="radio" name="dm-d-fakeasync" value="vitimers" disabled>
           <span data-opt-label>Auf <code>vi.useFakeTimers</code> umschreiben</span>
           <span data-opt-consequence>Unabhängig von zone.js, falls die App zoneless wird; im Probelauf 50 rote Tests, 6 Dateien kompilieren nicht, 71 s statt 41 s.</span>
         </label>
       </div>
-      <textarea data-comment="d-fakeasync-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-fakeasync-none" value="">
-      <input type="hidden" name="dm-d-fakeasync-issue" value="">
-      <input type="hidden" name="dm-d-fakeasync-epic" value="">
+      <textarea data-comment="d-fakeasync-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-fakeasync-none" value="" disabled>
+      <input type="hidden" name="dm-d-fakeasync-issue" value="" disabled>
+      <input type="hidden" name="dm-d-fakeasync-epic" value="" disabled>
       <div data-alevel="3" data-title="fakeAsync">
         <div data-slot="short">
           <div data-viz="compare" data-viz-spec='{"before":{"label":"Zone-Patch","value":19},"after":{"label":"vi-Timer","value":50},"unit":" rote Tests"}'></div>
@@ -5850,21 +5851,21 @@ Error: Expected to be running in 'ProxyZone', but it was not found.</pre></div>
       </div>
     </section>
 
-    <section id="d-matchers" data-nav-label="Treiber-Regeln" data-decision="d-matchers" data-decision-mode="multi" data-label="Nacharbeiten im Treiber" data-rec="contain lastcall resolved stub" data-rec-why="Alle vier treten massenhaft auf und haben eine eindeutige Übersetzung." data-applies-to="scripts/jasmine-to-vitest.mjs" data-finding="f-matchers">
+    <section id="d-matchers" data-nav-label="Treiber-Regeln" data-decision="d-matchers" data-decision-mode="multi" data-label="Nacharbeiten im Treiber" data-rec="contain lastcall resolved stub" data-rec-why="Alle vier treten massenhaft auf und haben eine eindeutige Übersetzung." data-applies-to="scripts/jasmine-to-vitest.mjs" data-finding="f-matchers"><input type="hidden" name="dm-d-matchers-hes" value="{&quot;ms&quot;:6252,&quot;revisits&quot;:0,&quot;median&quot;:6813}" disabled>
       <p data-applies>Gilt für: <code>scripts/jasmine-to-vitest.mjs</code></p>
       <p data-situation>Vier Muster lässt das Schematic stehen: Jasmines <code>toContain</code> vergleicht tief, Vitests per Referenz (11 rote Tests); dazu 70 Typfehler aus drei Spion-Mustern.</p>
       <h3 data-question>Welche Nacharbeiten lernt der Treiber, statt sie von Hand zu machen?</h3>
       <p data-stakes>Wie viel der 24 Reste von Hand bleibt.</p>
       <div data-options>
-        <label data-opt="contain" data-recommended><input type="checkbox" name="dm-d-matchers.contain" checked><span data-opt-label><code>toContain</code> mit Objekt oder Array wird <code>toContainEqual</code></span><span data-opt-consequence>Behebt 11 der 19 roten Tests ohne Handgriff.</span></label>
-        <label data-opt="lastcall" data-recommended><input type="checkbox" name="dm-d-matchers.lastcall" checked><span data-opt-label><code>mock.lastCall</code> bekommt ein <code>!</code></span><span data-opt-consequence>45 Typfehler weg, das Verhalten bleibt gleich.</span></label>
-        <label data-opt="resolved" data-recommended><input type="checkbox" name="dm-d-matchers.resolved" checked><span data-opt-label><code>mockResolvedValue()</code> bekommt <code>undefined</code></span><span data-opt-consequence>16 Typfehler weg (Jasmines <code>resolveTo()</code> ohne Wert).</span></label>
-        <label data-opt="stub" data-recommended><input type="checkbox" name="dm-d-matchers.stub" checked><span data-opt-label>Leere Spione bekommen <code>undefined as never</code></span><span data-opt-consequence>9 Typfehler weg; an diesen Stellen steht ein sichtbares <code>as never</code>.</span></label>
+        <label data-opt="contain" data-recommended><input type="checkbox" name="dm-d-matchers.contain" checked disabled><span data-opt-label><code>toContain</code> mit Objekt oder Array wird <code>toContainEqual</code></span><span data-opt-consequence>Behebt 11 der 19 roten Tests ohne Handgriff.</span></label>
+        <label data-opt="lastcall" data-recommended><input type="checkbox" name="dm-d-matchers.lastcall" checked disabled><span data-opt-label><code>mock.lastCall</code> bekommt ein <code>!</code></span><span data-opt-consequence>45 Typfehler weg, das Verhalten bleibt gleich.</span></label>
+        <label data-opt="resolved" data-recommended><input type="checkbox" name="dm-d-matchers.resolved" checked disabled><span data-opt-label><code>mockResolvedValue()</code> bekommt <code>undefined</code></span><span data-opt-consequence>16 Typfehler weg (Jasmines <code>resolveTo()</code> ohne Wert).</span></label>
+        <label data-opt="stub" data-recommended><input type="checkbox" name="dm-d-matchers.stub" checked disabled><span data-opt-label>Leere Spione bekommen <code>undefined as never</code></span><span data-opt-consequence>9 Typfehler weg; an diesen Stellen steht ein sichtbares <code>as never</code>.</span></label>
       </div>
-      <textarea data-comment="d-matchers-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-matchers-none" value="">
-      <input type="hidden" name="dm-d-matchers-issue" value="">
-      <input type="hidden" name="dm-d-matchers-epic" value="">
+      <textarea data-comment="d-matchers-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-matchers-none" value="" disabled>
+      <input type="hidden" name="dm-d-matchers-issue" value="" disabled>
+      <input type="hidden" name="dm-d-matchers-epic" value="" disabled>
       <div data-alevel="3" data-title="Treiber-Regeln">
         <div data-slot="short">
           <div data-viz="kpi" data-viz-spec='{"value":"81","unit":"Stellen","label":"vom Schematic stehen gelassen"}'></div>
@@ -5895,20 +5896,20 @@ AssertionError: expected [ { table: 'profiles', …(1) } ]
       </div>
     </div>
 
-    <section id="d-guards" data-nav-label="Leitplanken" data-decision="d-guards" data-decision-mode="multi" data-label="Leitplanken unter Vitest" data-rec="newtab frames shuffle" data-rec-why="Alle drei kosten nichts und halten Fehler am Ort ihres Entstehens fest." data-applies-to="src/app/testing/, vitest-base.config.mts" data-finding="f-guards">
+    <section id="d-guards" data-nav-label="Leitplanken" data-decision="d-guards" data-decision-mode="multi" data-label="Leitplanken unter Vitest" data-rec="newtab frames shuffle" data-rec-why="Alle drei kosten nichts und halten Fehler am Ort ihres Entstehens fest." data-applies-to="src/app/testing/, vitest-base.config.mts" data-finding="f-guards"><input type="hidden" name="dm-d-guards-hes" value="{&quot;ms&quot;:5171,&quot;revisits&quot;:0,&quot;median&quot;:6813}" disabled>
       <p data-applies>Gilt für: <code>src/app/testing/</code> und <code>vitest-base.config.mts</code></p>
       <p data-situation>Unter Playwright bleibt die Seite nach einem Strg+Klick sichtbar, der alte Schaden tritt nicht ein. Der Wächter fängt den Klick trotzdem beim Namen.</p>
       <h3 data-question>Welche Karma-Leitplanken behalten wir unter Vitest?</h3>
       <p data-stakes>Wie früh ein Spec auffällt, der Tabs öffnet oder vom Takt abhängt.</p>
       <div data-options>
-        <label data-opt="newtab" data-recommended><input type="checkbox" name="dm-d-guards.newtab" checked><span data-opt-label>Neuer-Tab-Wächter in <code>vitest-setup.ts</code></span><span data-opt-consequence>Ein Spec, der einen echten Tab öffnen würde, wird rot; kostet nichts.</span></label>
-        <label data-opt="frames" data-recommended><input type="checkbox" name="dm-d-guards.frames" checked><span data-opt-label><code>frames.ts</code> als Taktgeber für rAF und ResizeObserver</span><span data-opt-consequence>9 Specs bleiben unabhängig vom echten Bildtakt; der Treiber stellt es auf <code>vi.spyOn</code> um.</span></label>
-        <label data-opt="shuffle" data-recommended><input type="checkbox" name="dm-d-guards.shuffle" checked><span data-opt-label>Zufällige Reihenfolge wie bei Jasmine</span><span data-opt-consequence>Abhängigkeiten zwischen Tests bleiben sichtbar; ein roter Lauf nennt seinen Seed.</span></label>
+        <label data-opt="newtab" data-recommended><input type="checkbox" name="dm-d-guards.newtab" checked disabled><span data-opt-label>Neuer-Tab-Wächter in <code>vitest-setup.ts</code></span><span data-opt-consequence>Ein Spec, der einen echten Tab öffnen würde, wird rot; kostet nichts.</span></label>
+        <label data-opt="frames" data-recommended><input type="checkbox" name="dm-d-guards.frames" checked disabled><span data-opt-label><code>frames.ts</code> als Taktgeber für rAF und ResizeObserver</span><span data-opt-consequence>9 Specs bleiben unabhängig vom echten Bildtakt; der Treiber stellt es auf <code>vi.spyOn</code> um.</span></label>
+        <label data-opt="shuffle" data-recommended><input type="checkbox" name="dm-d-guards.shuffle" checked disabled><span data-opt-label>Zufällige Reihenfolge wie bei Jasmine</span><span data-opt-consequence>Abhängigkeiten zwischen Tests bleiben sichtbar; ein roter Lauf nennt seinen Seed.</span></label>
       </div>
-      <textarea data-comment="d-guards-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-guards-none" value="">
-      <input type="hidden" name="dm-d-guards-issue" value="">
-      <input type="hidden" name="dm-d-guards-epic" value="">
+      <textarea data-comment="d-guards-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-guards-none" value="" disabled>
+      <input type="hidden" name="dm-d-guards-issue" value="" disabled>
+      <input type="hidden" name="dm-d-guards-epic" value="" disabled>
       <div data-alevel="3" data-title="Leitplanken">
         <div data-slot="short">
           <div data-viz="text" data-viz-spec='{"text":"Der Wächter greift unter Vitest, der alte Schaden tritt nicht mehr ein."}'></div>
@@ -5924,32 +5925,32 @@ PROBE after-ctrl-click raf=frame</pre></div>
       </div>
     </section>
 
-    <section id="d-viewport" data-nav-label="Viewport" data-decision="d-viewport" data-decision-mode="single" data-label="Viewport der Specs" data-rec="parity" data-rec-why="Der Umzug soll am Prüfverhalten nichts ändern; der Desktop-Zweig ist eine eigene Aufgabe." data-applies-to="angular.json test-vitest, browserViewport" data-finding="f-viewport">
+    <section id="d-viewport" data-nav-label="Viewport" data-decision="d-viewport" data-decision-mode="single" data-label="Viewport der Specs" data-rec="parity" data-rec-why="Der Umzug soll am Prüfverhalten nichts ändern; der Desktop-Zweig ist eine eigene Aufgabe." data-applies-to="angular.json test-vitest, browserViewport" data-finding="f-viewport"><input type="hidden" name="dm-d-viewport-hes" value="{&quot;ms&quot;:6813,&quot;revisits&quot;:0,&quot;median&quot;:6813}" disabled>
       <p data-applies>Gilt für: <code>angular.json</code> → <code>test-vitest.browserViewport</code></p>
       <p data-situation>Karma rendert in 749 px, unter dem 760-px-Umbruch: Layout-Specs prüfen dort den Phone-Zweig. Vitest nimmt ohne Angabe 414 × 896, der Pilot setzt 749 × 600.</p>
       <h3 data-question>In welcher Fenstergröße laufen die Specs unter Vitest?</h3>
       <p data-stakes>Welcher Layout-Zweig geprüft wird und ob Specs beim Umzug rot werden.</p>
       <div data-options>
         <label data-opt="parity" data-recommended>
-          <input type="radio" name="dm-d-viewport" value="parity" checked>
+          <input type="radio" name="dm-d-viewport" value="parity" disabled>
           <span data-opt-label>Bei 749 × 600 bleiben, wie Karma</span>
           <span data-opt-consequence>Keine Spec ändert durch den Umzug ihr Verhalten.</span>
         </label>
         <label data-opt="desktop">
-          <input type="radio" name="dm-d-viewport" value="desktop">
+          <input type="radio" name="dm-d-viewport" value="desktop" checked disabled>
           <span data-opt-label>Auf 1280 × 800 umstellen</span>
           <span data-opt-consequence>Layout-Specs prüfen den Desktop-Zweig; Specs mit Phone-Annahmen werden rot und brauchen Anpassung.</span>
         </label>
         <label data-opt="both">
-          <input type="radio" name="dm-d-viewport" value="both">
+          <input type="radio" name="dm-d-viewport" value="both" disabled>
           <span data-opt-label>Phone und Desktop als zwei Browser-Läufe</span>
           <span data-opt-consequence>Beide Layout-Zweige werden geprüft, die Testzeit verdoppelt sich.</span>
         </label>
       </div>
-      <textarea data-comment="d-viewport-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-viewport-none" value="">
-      <input type="hidden" name="dm-d-viewport-issue" value="">
-      <input type="hidden" name="dm-d-viewport-epic" value="">
+      <textarea data-comment="d-viewport-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-viewport-none" value="" disabled>
+      <input type="hidden" name="dm-d-viewport-issue" value="" disabled>
+      <input type="hidden" name="dm-d-viewport-epic" value="" disabled>
       <div data-alevel="3" data-title="Viewport">
         <div data-slot="short">
           <div data-viz="kpi" data-viz-spec='{"value":"749","unit":"px","label":"Breite unter Vitest, gemessen"}'></div>
@@ -5962,27 +5963,27 @@ PROBE after-ctrl-click raf=frame</pre></div>
       </div>
     </section>
 
-    <section id="d-unhandled" data-nav-label="Unbehandelte Fehler" data-decision="d-unhandled" data-decision-mode="single" data-label="Unbehandelte Fehler" data-rec="fix" data-rec-why="Ein grüner Lauf soll heißen, dass nichts schiefging; die Ursache sind vier Specs mit fehlenden Test-Routen." data-applies-to="4 Specs in hangar/ und shell/" data-finding="f-unhandled">
+    <section id="d-unhandled" data-nav-label="Unbehandelte Fehler" data-decision="d-unhandled" data-decision-mode="single" data-label="Unbehandelte Fehler" data-rec="fix" data-rec-why="Ein grüner Lauf soll heißen, dass nichts schiefging; die Ursache sind vier Specs mit fehlenden Test-Routen." data-applies-to="4 Specs in hangar/ und shell/" data-finding="f-unhandled"><input type="hidden" name="dm-d-unhandled-hes" value="{&quot;ms&quot;:6712,&quot;revisits&quot;:0,&quot;median&quot;:6813}" disabled>
       <p data-applies>Gilt für: <code>hangar-dashboard</code>, <code>shell-nav</code>, <code>shell-menu-nav</code>, <code>shell-header-condense</code></p>
       <p data-situation>Im Probelauf 6 unbehandelte Fehler NG04002 (Route nicht gefunden) aus 4 Specs, deren Links ins Leere navigieren. Karma hat sie nur geloggt.</p>
       <h3 data-question>Was passiert mit Fehlern, die außerhalb eines Tests auftreten?</h3>
       <p data-stakes>Ob ein grüner Lauf auch heißt, dass nichts nebenher schiefging.</p>
       <div data-options>
         <label data-opt="fix" data-recommended>
-          <input type="radio" name="dm-d-unhandled" value="fix" checked>
+          <input type="radio" name="dm-d-unhandled" value="fix" checked disabled>
           <span data-opt-label>Specs mit Test-Routen reparieren</span>
           <span data-opt-consequence>Die 4 Specs bekommen Stub-Routen; der Lauf bleibt streng und fängt künftige Fehler dieser Art.</span>
         </label>
         <label data-opt="ignore">
-          <input type="radio" name="dm-d-unhandled" value="ignore">
+          <input type="radio" name="dm-d-unhandled" value="ignore" disabled>
           <span data-opt-label>Unbehandelte Fehler nur melden</span>
           <span data-opt-consequence><code>dangerouslyIgnoreUnhandledErrors</code>: der Lauf wird grün, echte Fehler außerhalb eines Tests fallen auch nicht mehr auf.</span>
         </label>
       </div>
-      <textarea data-comment="d-unhandled-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-unhandled-none" value="">
-      <input type="hidden" name="dm-d-unhandled-issue" value="">
-      <input type="hidden" name="dm-d-unhandled-epic" value="">
+      <textarea data-comment="d-unhandled-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-unhandled-none" value="" disabled>
+      <input type="hidden" name="dm-d-unhandled-issue" value="" disabled>
+      <input type="hidden" name="dm-d-unhandled-epic" value="" disabled>
       <div data-alevel="3" data-title="Unbehandelte Fehler">
         <div data-slot="short">
           <div data-viz="kpi" data-viz-spec='{"value":"6","unit":"Fehler","label":"außerhalb von Tests, aus 4 Specs"}'></div>
@@ -5997,27 +5998,27 @@ This error originated in "src/app/hangar/hangar-dashboard.component.spec.ts"</pr
       </div>
     </section>
 
-    <section id="d-ci" data-nav-label="CI-Browser" data-decision="d-ci" data-decision-mode="single" data-label="Browser in CI" data-rec="system" data-rec-why="Gleiche Quelle wie Karma heute, kein Download, kein zusätzlicher Cache-Schritt." data-applies-to=".github/workflows/web-ci.yml, Job unit-vitest" data-finding="f-ci">
+    <section id="d-ci" data-nav-label="CI-Browser" data-decision="d-ci" data-decision-mode="single" data-label="Browser in CI" data-rec="system" data-rec-why="Gleiche Quelle wie Karma heute, kein Download, kein zusätzlicher Cache-Schritt." data-applies-to=".github/workflows/web-ci.yml, Job unit-vitest" data-finding="f-ci"><input type="hidden" name="dm-d-ci-hes" value="{&quot;ms&quot;:12212,&quot;revisits&quot;:0,&quot;median&quot;:6813}" disabled>
       <p data-applies>Gilt für: <code>.github/workflows/web-ci.yml</code>, Job <code>unit-vitest</code></p>
       <p data-situation>Der neue Job nimmt das Google Chrome des Runner-Images, wie Karma; lokal läuft Edge. Playwright kann stattdessen ein eigenes, festes Chromium laden.</p>
       <h3 data-question>Welchen Browser nutzt CI für die Vitest-Specs?</h3>
       <p data-stakes>Ob CI und lokale Läufe dieselbe Browser-Version sehen.</p>
       <div data-options>
         <label data-opt="system" data-recommended>
-          <input type="radio" name="dm-d-ci" value="system" checked>
+          <input type="radio" name="dm-d-ci" value="system" checked disabled>
           <span data-opt-label>System-Chrome des Runners</span>
           <span data-opt-consequence>Kein Download; die Chrome-Version wandert mit dem Runner-Image, wie bei Karma heute.</span>
         </label>
         <label data-opt="pinned">
-          <input type="radio" name="dm-d-ci" value="pinned">
+          <input type="radio" name="dm-d-ci" value="pinned" disabled>
           <span data-opt-label>Playwright-Chromium fest installieren</span>
           <span data-opt-consequence>Überall dieselbe Version, dafür ≈ 1 min mehr pro Lauf und ein Cache-Schritt im Workflow.</span>
         </label>
       </div>
-      <textarea data-comment="d-ci-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-ci-none" value="">
-      <input type="hidden" name="dm-d-ci-issue" value="">
-      <input type="hidden" name="dm-d-ci-epic" value="">
+      <textarea data-comment="d-ci-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-ci-none" value="" disabled>
+      <input type="hidden" name="dm-d-ci-issue" value="" disabled>
+      <input type="hidden" name="dm-d-ci-epic" value="" disabled>
       <div data-alevel="3" data-title="CI-Browser">
         <div data-slot="short">
           <div data-viz="text" data-viz-spec='{"text":"CI braucht für Vitest nichts Neues außer dem Job selbst."}'></div>
@@ -6029,6 +6030,86 @@ This error originated in "src/app/hangar/hangar-dashboard.component.spec.ts"</pr
       </div>
     </section>
   </section>
+</section>
+
+<section data-iteration="2" data-iteration-template="free" data-final-report id="iter-2" data-active>
+  <p class="fr-sentence">Alle Unit-Tests laufen jetzt unter Vitest in echtem Chromium; Karma und Jasmine sind aus dem Projekt entfernt.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🧪</span><span><b>547 Spec-Dateien</b> grün unter Vitest, im echten Browser.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⚡</span><span>Testzeit <b>46 s statt 79 s</b> für die ganze Suite.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧹</span><span><b>Karma und Jasmine</b> samt Sonderregeln sind weg.</span></li>
+      </ul>
+    </div>
+    <ol class="fr-flow">
+      <li>Treiber stellt 405 Dateien formatgetreu um</li>
+      <li>24 Dateien von Hand nachgezogen</li>
+      <li>Fenster 1280 × 800, Sonderbreiten per <code>useViewport</code></li>
+      <li><code>npm test</code> und CI laufen nur noch Vitest</li>
+    </ol>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">Was es aushält<small>Balken = wie weit die Anforderung erfüllt ist</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="6489 von 6490 Tests laufen, 1 überspringt sich selbst, wenn der Browser keine View Transition kann; Anforderung: kein Test geht beim Umzug verloren (geschätzt).">
+        <span class="fr-meter-name">🧩 Datenintegrität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6489 / 6490</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Testzeit 46 s gegen 79 s unter Karma; die Wandzeit schwankt mit der Last des Rechners (58–135 s). Anforderung: nicht langsamer als Karma (geschätzt).">
+        <span class="fr-meter-name">⚡ Performance</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">46 s</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 75%" data-tip="In 4 vollen Läufen meldete eine Datei einmal „No test suite found“ und lief im nächsten Lauf grün. Anforderung: kein Flake (geschätzt).">
+        <span class="fr-meter-name">🔁 Stabilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">3 / 4 Läufe</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 6 · ✓ Code-Check · ✓ Trockentest · ✓ Lokal durchgespielt · ○ Prod-Build geprüft · ○ Live vertestet · ◌ Von dir abgenommen">
+    <span class="fr-depth-done">✓ Zuletzt bestanden: <b>Lokal durchgespielt</b></span>
+    <span class="fr-depth-next">○ Noch nicht gemacht: <b>Prod-Build geprüft</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-routine-prompt"
+          data-issue-title="[CHORE] Drop Karma wording from the headless feedback routine prompt"
+          data-issue-type="chore"
+          data-issue-body="docs/routine/tasks/scc-feedback-headless/SKILL.md (and its live copy in ~/.claude/scheduled-tasks, kept equal by scripts/check-routine-prompts.mjs) still says web-ci runs 'Karma' and tells workers to rerun once on 'a Karma disconnect'. Since the Vitest migration (concept 20261108-2224-vitest-migration) the unit job is Vitest and a Karma disconnect cannot happen. Update the repo copy, then npm run sync:routine-prompts -- --to-live. Left out of the migration PR because it changes the running routine's live prompt."
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="Live-Routine">
+        <span class="oq-label">Routine-Prompt nennt Karma</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Der Feedback-Routine-Prompt spricht noch von Karma und einem Karma-Disconnect.</dd>
+          <dt>Wo</dt><dd><code>docs/routine/tasks/scc-feedback-headless/SKILL.md</code> und die Live-Kopie</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue — die Änderung greift in die laufende Routine ein.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Commit <code>2465b65c</code> · Treiber <code>scripts/jasmine-to-vitest.mjs</code>, Setup <code>src/app/testing/vitest-setup.ts</code>, <code>viewport.ts</code></li>
+      <li>Handarbeit: <code>pending()</code> → <code>context.skip</code> (das Schematic hatte 10 Tests ganz abgeschaltet), kein <code>compileComponents()</code> in fakeAsync, Catch-all-Routen, −0 / toBeCloseTo</li>
+      <li>Tests: 547 Dateien, 6489 grün, 1 übersprungen · <code>test:gate</code> 127 grün · Lint 0 Fehler · Typecheck grün</li>
+      <li><code>d-guards</code> war unberührt (5 s): gebaut mit der Vorauswahl, keine Änderung gegenüber dem Pilot</li>
+      <li>Ausnahme vom Agenten-Pfad: ein Bereich, streng aufeinander aufbauende Schritte, darum inline gebaut; geprüft von einem unabhängigen QA-Agenten</li>
+    </ul>
+  </details>
+  </div>
 </section>
 </main>
     </div>
@@ -6118,7 +6199,8 @@ This error originated in "src/app/hangar/hangar-dashboard.component.spec.ts"</pr
              <section data-iteration="N">, appended by string edit
              (iteration-rules.md § Iteration append checklist). -->
         <nav class="iteration-tabs" role="tablist" aria-label="Runden">
-<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="2" aria-selected="true" aria-controls="iter-2">Abschlussbericht</button>
 </nav>
 
         <!-- Section TOC — auto-populated from EVERY top-level <section id="..."
