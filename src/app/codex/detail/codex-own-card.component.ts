@@ -35,7 +35,7 @@ const FLASH_MS = 1400;
   host: { class: 'sc-own-card', tabindex: '-1', '[class.flash]': 'flashing()', '[class.mine]': 'owned()' },
   template: `
     @if (owned()) {
-      <h3 class="oc-h">{{ (isShip() ? 'codex.ownCard.mineShip' : 'codex.ownCard.mineItem') | translate }}</h3>
+      <h3 class="oc-h">{{ (isShip() ? 'codex.ownCard.mineShip' : sammlung() ? 'codex.ownCard.mineBlueprint' : 'codex.ownCard.mineItem') | translate }}</h3>
       @if (isShip()) {
         <div class="oc-row">
           <span class="oc-name">{{ shipName() }}</span>
@@ -52,6 +52,9 @@ const FLASH_MS = 1400;
         }
       } @else {
         <div class="oc-row">
+          @if (sammlung()) {
+            <span class="oc-dim oc-collected">{{ 'codex.ownCard.collected' | translate }}</span>
+          } @else {
           <span class="oc-step" role="group" [attr.aria-label]="'codex.ownCard.qtyAria' | translate: { name: label() }">
             <button type="button" class="st" [disabled]="busy()" [attr.aria-label]="'codex.ownCard.less' | translate"
                     [scTooltip]="'codex.ownCard.less' | translate" scTooltipTier="label" (click)="stepStock(-1)">−</button>
@@ -59,7 +62,8 @@ const FLASH_MS = 1400;
             <button type="button" class="st" [disabled]="busy()" [attr.aria-label]="'codex.ownCard.more' | translate"
                     [scTooltip]="'codex.ownCard.more' | translate" scTooltipTier="label" (click)="stepStock(1)">+</button>
           </span>
-          <span class="oc-dim">{{ (word() === 'sammlung' ? 'codex.ownCard.inSammlung' : 'codex.ownCard.inInventar') | translate }}</span>
+          <span class="oc-dim">{{ 'codex.ownCard.inInventar' | translate }}</span>
+          }
           <span class="oc-grow"></span>
           <button type="button" scAction tier="tertiary" class="oc-note" [attr.aria-label]="'codex.own.note' | translate"
                   [scTooltip]="'codex.own.note' | translate" scTooltipTier="label" (click)="editNote()">
@@ -71,7 +75,7 @@ const FLASH_MS = 1400;
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2h-4v6l-1 1-1-1v-6H7v-2l3-3-1-6z" [attr.fill]="pinned() ? 'currentColor' : 'none'" /></svg>
           </button>
           <button type="button" scAction tier="tertiary" tone="danger" class="oc-remove" [busy]="busy()"
-                  [attr.aria-label]="'codex.ownCard.removeItem' | translate" [scTooltip]="'codex.ownCard.removeItem' | translate"
+                  [attr.aria-label]="removeKey() | translate" [scTooltip]="removeKey() | translate"
                   scTooltipTier="label" (click)="removeItem()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6" /></svg>
           </button>
@@ -82,11 +86,13 @@ const FLASH_MS = 1400;
         <a class="oc-link" [routerLink]="hqLink().commands" [queryParams]="hqLink().queryParams" [fragment]="hqLink().fragment">
           {{ 'codex.ownCard.showInHq' | translate }} <span aria-hidden="true">↗</span>
         </a>
-        <span class="oc-grow"></span>
-        <button type="button" scAction tier="secondary" class="oc-again" [busy]="busy()" (click)="wishAgain()">
-          <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="wishIcon" /></svg>
-          <span>{{ 'codex.ownCard.wishAgain' | translate }}</span>
-        </button>
+        @if (!sammlung()) {
+          <span class="oc-grow"></span>
+          <button type="button" scAction tier="secondary" class="oc-again" [busy]="busy()" (click)="wishAgain()">
+            <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="wishIcon" /></svg>
+            <span>{{ 'codex.ownCard.wishAgain' | translate }}</span>
+          </button>
+        }
       </div>
     } @else {
       <h3 class="oc-h">{{ 'codex.ownCard.haveTitle' | translate }}</h3>
@@ -190,6 +196,9 @@ export class CodexOwnCardComponent {
   protected readonly state = computed(() => this.path.state(this.kind(), this.className(), this.name())());
   protected readonly isShip = computed(() => this.kind() === 'ship' || this.kind() === 'upcoming');
   protected readonly word = computed(() => ownWordOf(this.kind()));
+  /** Blueprints are collected, not counted: no stepper, no second wish, removal takes it out of the Sammlung. */
+  protected readonly sammlung = computed(() => this.word() === 'sammlung');
+  protected readonly removeKey = computed(() => (this.sammlung() ? 'codex.ownCard.removeSammlung' : 'codex.ownCard.removeItem'));
   readonly owned = computed(() => this.forceOwned() || (this.isShip() ? this.state().inHangar : this.state().inventarQty > 0));
   protected readonly canOwn = computed(() => this.state().steps.some((s) => s === 'hangar' || s === 'inventar'));
   protected readonly ownActionKey = computed(() =>
@@ -283,15 +292,17 @@ export class CodexOwnCardComponent {
   }
 
   async removeItem(): Promise<void> {
+    const sammlung = this.sammlung();
     const ok = await this.confirmDialog.confirm({
-      titleKey: 'codex.ownCard.removeTitle',
-      messageKey: 'codex.ownCard.removeBody',
+      titleKey: sammlung ? 'codex.ownCard.removeSammlungTitle' : 'codex.ownCard.removeTitle',
+      messageKey: sammlung ? 'codex.ownCard.removeSammlungBody' : 'codex.ownCard.removeBody',
       params: { name: this.label(), n: this.state().inventarQty },
       confirmKey: 'codex.ownCard.removeConfirm',
       tone: 'danger',
     });
     if (!ok) return;
-    await this.run(() => this.path.removeFromInventar(this.kind(), this.className(), this.label()));
+    if (sammlung) await this.run(() => this.path.setBlueprintOwned(this.className(), this.label(), false));
+    else await this.run(() => this.path.removeFromInventar(this.kind(), this.className(), this.label()));
   }
 
   private async run(write: () => Promise<PathResult>): Promise<void> {

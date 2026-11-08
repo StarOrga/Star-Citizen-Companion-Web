@@ -124,6 +124,23 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       expect(el.querySelector('sc-codex-own-ship-actions')).toBeNull();
     });
 
+    it('blueprint collected: "Deine Blaupause" without a stepper or second wish; removal un-collects it', async () => {
+      const f = setup(CodexOwnCardComponent, { kind: 'blueprint', className: 'BP_KLWE_Laser_S3', name: 'M6A Blueprint' });
+      path.current.set({ inventarQty: 1, places: [{ location: 'Blueprints', qty: 1 }] });
+      f.detectChanges();
+      const el = f.nativeElement as HTMLElement;
+      expect(text(f)).toContain('codex.ownCard.mineBlueprint');
+      expect(text(f)).toContain('codex.ownCard.collected');
+      expect(el.querySelector('.oc-step')).toBeNull();
+      expect(el.querySelector('.oc-again')).toBeNull();
+      expect(el.querySelector('.oc-remove')?.getAttribute('aria-label')).toBe('codex.ownCard.removeSammlung');
+      el.querySelector<HTMLButtonElement>('.oc-remove')!.click();
+      await flush();
+      expect(confirm).toHaveBeenCalledWith(jasmine.objectContaining({ titleKey: 'codex.ownCard.removeSammlungTitle', tone: 'danger' }));
+      expect(path.setBlueprintOwned).toHaveBeenCalledWith('BP_KLWE_Laser_S3', 'M6A Blueprint', false);
+      expect(path.removeFromInventar).not.toHaveBeenCalled();
+    });
+
     it('item owned: note prompt saves per item, pin toggles, the note shows', async () => {
       const f = setup(CodexOwnCardComponent, { kind: 'weapon', className: 'KLWE_Laser_S3', name: 'M6A' });
       path.current.set({ inventarQty: 2, places: [{ location: 'Area 18', qty: 2 }] });
@@ -221,6 +238,14 @@ describe('Codex ownership card + head segment (concept codex-kopf-besitz C2/C5/C
       path.current.set({ inventarQty: 2 });
       f.detectChanges();
       expect(text(f)).toContain('codex.head.own.inventar');
+    });
+
+    it('blueprint: the Sammlung row counts as owned ("In der Sammlung")', () => {
+      const f = setup(CodexOwnSegmentComponent, { kind: 'blueprint', className: 'BP_X' });
+      expect(text(f)).toContain('codex.head.notOwn.sammlung');
+      path.current.set({ inventarQty: 1, places: [{ location: 'Blueprints', qty: 1 }] });
+      f.detectChanges();
+      expect(text(f)).toContain('codex.head.own.sammlung');
     });
   });
 });
