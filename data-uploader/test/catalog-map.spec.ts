@@ -10,6 +10,7 @@ import {
   dedupeStrings,
   hasViableCatalog,
   mapShips,
+  mapBlueprints,
   mapManufacturers,
   mapKeybinds,
   mapSilhouettes,
@@ -287,5 +288,21 @@ describe('mapSilhouettes', () => {
   it('skips a file with no bbox — never sends null into the not-null column', () => {
     const noBbox = { ...shipFile, silhouette: { ...shipFile.silhouette, bbox: undefined } };
     expect(mapSilhouettes([noBbox], tag)).toEqual([]);
+  });
+});
+
+describe('mapBlueprints dismantle fields', () => {
+  it('carries yield + dismantlable, and keeps unknown as null', () => {
+    const [known, unknown] = mapBlueprints(
+      [
+        { className: 'bp_a', dismantleYield: [{ material: 'MAT_Iron', amount: 2 }], dismantlable: true },
+        { className: 'bp_b' },
+      ],
+      tag,
+    ) as unknown as Record<string, unknown>[];
+    expect(known!.dismantle_yield).toEqual([{ material: 'MAT_Iron', amount: 2 }]);
+    expect(known!.dismantlable).toBe(true);
+    expect(unknown!.dismantle_yield).toBeNull();
+    expect(unknown!.dismantlable).toBeNull();
   });
 });

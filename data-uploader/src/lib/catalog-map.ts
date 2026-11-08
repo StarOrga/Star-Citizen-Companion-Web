@@ -310,6 +310,9 @@ export function mapBlueprints(list: Record<string, unknown>[], tag: Tag): Entity
       craft_time_seconds: (bp as { craftTimeSeconds?: number }).craftTimeSeconds ?? null,
       dismantle_time_seconds: (bp as { dismantleTimeSeconds?: number }).dismantleTimeSeconds ?? null,
       dismantle_efficiency: (bp as { dismantleEfficiency?: number }).dismantleEfficiency ?? null,
+      // null = unknown (extractor found no record field), never a guessed false/[].
+      dismantle_yield: (bp as { dismantleYield?: unknown[] }).dismantleYield ?? null,
+      dismantlable: (bp as { dismantlable?: boolean }).dismantlable ?? null,
       output_class_name: outputClassName,
       is_default: (bp as { isDefault?: boolean }).isDefault ?? null,
       is_variant: false,
