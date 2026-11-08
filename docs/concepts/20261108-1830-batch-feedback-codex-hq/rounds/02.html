@@ -54,8 +54,9 @@
           data-issue-body="Note #9 asked that Klassisch (the non-ship detail page as of 2026-11-07 ~18:00) never changes again. It is restored as a marked @else branch inside codex-detail.component.ts (4500+ lines), so a later edit of the shared infoBlocks template can still change it. Extract it into codex-detail-classic.component with its own inputs."
           data-oq-origin="shortfall"
           data-route-default="now"
-          data-route-reason="im Repo">
+          data-route-reason="im Repo" data-routed>
         <span class="oq-label">Klassisch nicht eingefroren</span>
+        <span class="oq-done">✓ umgesetzt — <code>src/app/codex/detail/codex-detail-classic.component.ts</code></span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Klassisch ist der wiederhergestellte Stand vom 7.11., aber nur als Zweig in der großen Detail-Komponente, nicht als eigene, unveränderliche Komponente.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex-Detail, Nicht-Schiffe</dd>
@@ -68,8 +69,9 @@
           data-issue-body="Note #9: the right rail used to have graphs. The Holotisch view got the graphs back for missiles (Einordnung ranking), but weapons and components have no graph source beyond damage bars. Needs a decision which comparison values to chart per kind."
           data-oq-origin="shortfall"
           data-route-default="issue"
-          data-route-reason="braucht Concept">
+          data-route-reason="braucht Concept" data-routed>
         <span class="oq-label">Graphen nur für Raketen</span>
+        <span class="oq-done">✓ umgesetzt — <code>src/app/codex/codex-item-rank.ts</code> (Waffen, Schild, Kraftwerk, Kühler, Quantenantrieb)</span>
         <dl class="fr-fkv">
           <dt>{{final.fund_what}}</dt><dd>Im Holotisch kamen die Graphen der rechten Leiste nur für Raketen zurück; für Waffen und Bauteile fehlt eine Datenquelle zum Vergleichen.</dd>
           <dt>{{final.fund_where}}</dt><dd>Codex-Detail, Holotisch</dd>
@@ -82,7 +84,8 @@
   <details class="fr-fold">
     <summary>🛠 {{final.dev_fold}}</summary>
     <ul class="fr-dev">
-      <li>Branch <code>claude/batch-4f25ee</code> @ <code>6c749c01</code> · enthält main inkl. #1023/#1024</li>
+      <li>Branch <code>claude/batch-4f25ee</code> @ <code>fa506e0f</code> · enthält main inkl. #1023/#1024</li>
+      <li>Nacharbeit: Klassisch als eigene Komponente <code>codex-detail-classic</code>, Rang-Graphen im Holotisch für Waffen und Bauteile (<code>codex-item-rank.ts</code>) · Codex-Specs 2559/2559 grün</li>
       <li><code>data-uploader/python/sc_extract/sysmon.py</code>, <code>src/app/codex/codex-page.component.ts</code>, <code>src/app/hq/now/hq-app-connection.service.ts</code></li>
       <li>Tests: Karma 6393/6398 im Volllauf, Rest behoben bzw. einzeln grün (briefing-planet = Last-Flake); Uploader 585 + pytest 16</li>
       <li>build, typecheck, lint (0 Fehler) grün · QA-Fixes: Deep-Link, ein h1, Ecken-Umschalter, Datenblatt-Zeilen</li>
