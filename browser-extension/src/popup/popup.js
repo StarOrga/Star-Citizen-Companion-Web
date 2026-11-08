@@ -21,7 +21,7 @@ const t = (key, ...subs) => chrome.i18n.getMessage(key, subs.map(String));
 for (const el of document.querySelectorAll('[data-t]')) {
   el.textContent = t(el.getAttribute('data-t'));
 }
-document.getElementById('open-app').href = `${COMPANION_ORIGINS[0]}/hangar`;
+document.getElementById('open-app').href = `${COMPANION_ORIGINS[0]}/hq/hangar`;
 
 function toast(message) {
   const el = document.getElementById('toast');

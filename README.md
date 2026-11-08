@@ -1,11 +1,11 @@
 # Verse Companion
 
-**Version: 0.239.3**
+**Version: 0.239.4**
 
 > Verse Companion – unofficial fan tool for Star Citizen. Your terminal to the verse: Verse News, codex, hangar and loadout tools.
 > Built with Angular 22 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
 
-[![Live](https://img.shields.io/badge/live-sc--companion.vercel.app-00d4ff)](https://versecompanion-alpha.vercel.app)
+[![Live](https://img.shields.io/badge/live-versecompanion--alpha.vercel.app-00d4ff)](https://versecompanion-alpha.vercel.app)
 [![Stack](https://img.shields.io/badge/stack-Angular%2021%20%C2%B7%20Supabase%20%C2%B7%20Vercel-00d4ff)](#)
 [![Phase](https://img.shields.io/badge/phase-alpha-fbbf24)](#)
 [![License](https://img.shields.io/badge/license-MIT-4ade80)](LICENSE)
