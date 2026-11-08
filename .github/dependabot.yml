@@ -69,6 +69,18 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "@types/three"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # jasmine-core 7 makes the spec globals (`describe`, `it`, …) read-only,
+      # and zone.js/testing (0.16.3, current latest) patches them by plain
+      # assignment, so every Karma run dies at load with "Cannot assign to read
+      # only property 'describe'" — #988 carried jasmine-core 7 and its Karma
+      # job was red for exactly that. @types/jasmine moves in lockstep.
+      #
+      # Lift both when zone.js ships a jasmine 7 compatible patchJasmine (or the
+      # app's tests leave zone.js testing).
+      - dependency-name: "jasmine-core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/jasmine"
+        update-types: ["version-update:semver-major"]
 
   # ---- data-uploader (npm) ----
   - package-ecosystem: "npm"
