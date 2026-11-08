@@ -156,7 +156,8 @@ describe('BlueprintDetailComponent — mission (A9)', () => {
     const fixture = await setup(withMission());
     click(pill(fixture)!);
     await tick();
-    expect(pathOf().addToNachschub).not.toHaveBeenCalled();
+    expect(pathOf().addWish).not.toHaveBeenCalled();
+    expect(pathOf().moveToInventar).not.toHaveBeenCalled();
   });
 });
 

@@ -7370,17 +7370,11 @@
     "done": {
       "wishOn": "„{{name}}“ ist auf der Wunschliste",
       "wishOff": "„{{name}}“ ist nicht mehr auf der Wunschliste",
-      "nachschub": "„{{name}}“ ist im Nachschub",
-      "moved": "„{{name}}“ ist jetzt im Nachschub, nicht mehr auf der Wunschliste",
-      "nachschubMaterial": "„{{name}}“ ist im Nachschub, dazu {{n}} Material",
-      "movedMaterial": "„{{name}}“ ist jetzt im Nachschub, dazu {{n}} Material, nicht mehr auf der Wunschliste",
-      "nachschubOff": "„{{name}}“ ist nicht mehr im Nachschub",
-      "nachschubOffMaterial": "„{{name}}“ und {{n}} Material sind nicht mehr im Nachschub",
-      "qty": "„{{name}}“: {{qty}} im Nachschub",
-      "nachholen": "{{qty}} × „{{name}}“ wieder im Nachschub",
       "inventar": "„{{name}}“ liegt jetzt in {{where}}",
-      "ticked": "„{{name}}“ abgehakt",
       "hangar": "„{{name}}“ ist im Hangar",
+      "hangarCopy": "„{{name}}“ ist jetzt {{n}}× im Hangar",
+      "ownWish": "„{{name}}“ ist da – Wunsch erfüllt",
+      "ownWishLeft": "„{{name}}“ ist da – noch {{left}} auf der Wunschliste",
       "undone": "Rückgängig gemacht",
       "inventarOff": "„{{name}}“ ist nicht mehr im Inventar",
       "inventarWithMe": "„{{name}}“ hast du jetzt bei dir",
@@ -7389,72 +7383,10 @@
     },
     "err": {
       "failed": "Das hat nicht geklappt. Versuch es noch einmal.",
-      "unavailable": "Diesen Schritt gibt es hier nicht.",
-      "listFull": "Der Nachschub ist voll.",
-      "noLine": "Dafür gibt es keine offene Zeile im Nachschub.",
-      "alreadyOwned": "Das Schiff ist schon im Hangar."
+      "unavailable": "Diesen Schritt gibt es hier nicht."
     },
     "hint": {
       "notYetInGame": "noch nicht im Spiel"
-    },
-    "step": {
-      "wish": "Wunschliste",
-      "nachschub": "Nachschub",
-      "inventar": "Inventar",
-      "hangar": "Hangar"
-    },
-    "node": {
-      "wish": {
-        "off": "Auf die Wunschliste",
-        "on": "Auf der Wunschliste"
-      },
-      "nachschub": {
-        "off": "In den Nachschub legen",
-        "on": "{{qty}}× im Nachschub"
-      },
-      "inventar": {
-        "off": "Ins Inventar legen",
-        "on": "{{qty}}× im Inventar"
-      },
-      "hangar": {
-        "off": "In den Hangar legen",
-        "on": "Im Hangar"
-      }
-    },
-    "go": {
-      "wish": "Auf die Wunschliste",
-      "nachschub": "In den Nachschub",
-      "inventar": "Ins Inventar",
-      "hangar": "In den Hangar"
-    },
-    "full": {
-      "wish": "Für später vormerken.",
-      "wishOn": "steht drauf",
-      "nachschub": "Jetzt holen. Mit Menge und Quelle.",
-      "nachschubOn": "{{qty}}× offen",
-      "inventar": "Hab ich. Mit Ort und Menge.",
-      "inventarOn": "{{inv}}× an {{places}} Ort(en)",
-      "inventarBlueprint": "Gesammelt. Immer verfügbar.",
-      "hangar": "Hab ich. Schon gekauft oder erspielt.",
-      "hangarOn": "steht im Hangar",
-      "change": "Ändern",
-      "direct": "Direkt hierhin"
-    },
-    "pop": {
-      "less": "Weniger",
-      "more": "Mehr",
-      "remove": "Entfernen",
-      "viewWish": "Auf der Wunschliste ansehen ›",
-      "viewNachschub": "Im Nachschub ansehen ›",
-      "toMission": "Zum Einsatz ›",
-      "viewInventar": "Im Inventar ansehen ›",
-      "viewHangar": "Im Hangar ansehen ›",
-      "whereTitle": "Wo liegt es?",
-      "otherPlace": "Anderer Ort …",
-      "otherPlaceholder": "Ort eingeben",
-      "store": "Ablegen",
-      "removeHangarTitle": "Aus dem Hangar entfernen?",
-      "removeHangarMessage": "„{{name}}“ wird samt Varianten, deren Freigaben für Freunde und Notizen gelöscht. Das lässt sich nicht rückgängig machen."
     }
   },
   "quick": {

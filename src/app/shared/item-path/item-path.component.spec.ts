@@ -138,7 +138,25 @@ describe('ItemPathComponent: the two-node path', () => {
     t.path.addWish.and.resolveTo({ ok: false, key: 'errors.itemPath.failed' });
     await t.click(t.node('wish')!);
     expect(t.popover()!.textContent).toContain('errors.itemPath.failed');
+    expect(t.popover()!.classList).toContain('err');
+    expect(t.popover()!.getAttribute('role')).toBe('alert');
     expect(t.toast.current()).toBeNull();
+  });
+
+  it('a refusal (tone info) shows neutral, as a status - never in the danger tone (AUD-2)', async () => {
+    const t = setup();
+    t.path.addWish.and.resolveTo({ ok: false, key: 'itemPath.err.unavailable', tone: 'info' });
+    await t.click(t.node('wish')!);
+    expect(t.popover()!.textContent).toContain('itemPath.err.unavailable');
+    expect(t.popover()!.classList).not.toContain('err');
+    expect(t.popover()!.getAttribute('role')).toBe('status');
+  });
+
+  it('an owned ship shows its copies on the Hangar node and still takes a wish', async () => {
+    const t = setup({ kind: 'ship', state: { inHangar: true, hangarQty: 2, hangarShipId: 's1' } });
+    expect(t.node('hangar')!.textContent).toContain('2');
+    await t.click(t.node('wish')!);
+    expect(t.path.addWish).toHaveBeenCalledOnceWith('ship', 'cls', 'Helm');
   });
 
   describe('the detail page (primary level)', () => {

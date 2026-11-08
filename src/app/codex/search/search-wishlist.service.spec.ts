@@ -9,8 +9,15 @@ import { SearchWishlistService } from './search-wishlist.service';
 
 function setup() {
   const rows = signal<WishRow[]>([]);
+  const find = (kind: string, className: string, name?: string | null) => rows().find((x) => wishKey(x.kind, x.className, x.name) === wishKey(kind, className, name));
   const store = {
     byKey: () => new Map(rows().map((r) => [wishKey(r.kind, r.className, r.name), r] as const)),
+    has: (kind: string, className: string, name?: string | null) => !!find(kind, className, name),
+    qtyOf: (kind: string, className: string, name?: string | null) => find(kind, className, name)?.qty ?? 0,
+    setQty: async (e: { kind: string; className: string; name?: string | null }, qty: number) => {
+      rows.update((r) => r.map((x) => (x === find(e.kind, e.className, e.name) ? { ...x, qty } : x)));
+      return true;
+    },
     ensureLoaded: async () => undefined,
     add: async (e: { kind: string; className: string; name?: string | null }) => {
       rows.update((r) => [...r, { kind: e.kind, className: e.className, name: e.name ?? null, manufacturer: null, rsiUrl: null, notes: null, qty: 1, forClassName: '', createdAt: '' }]);
@@ -48,11 +55,18 @@ describe('SearchWishlistService (A4 regression: announced ships)', () => {
     expect(svc.has('upcoming', 'feed-id-77', 'Idris')).toBeFalse();
   });
 
-  it('a ship already owned cannot be wished (false, nothing changes)', async () => {
-    const { svc, ships } = setup();
+  it('a ship already owned can be wished again: the wish is a list row, the owned hangar row stays (AUD-1)', async () => {
+    const { svc, ships, rows } = setup();
     ships.set([{ shipClassName: 'avenger', status: 'owned', id: 's1' }]);
-    expect(await svc.toggle('ship', 'avenger')).toBeFalse();
+    expect(await svc.toggle('ship', 'avenger', 'Avenger')).toBeTrue();
+    expect(svc.has('ship', 'avenger')).toBeTrue();
+    expect(rows().map((r) => [r.kind, r.className])).toEqual([['ship', 'avenger']]);
+    expect(await svc.setQty('ship', 'avenger', 'Avenger', 2)).toBeTrue();
+    expect(svc.qtyOf('ship', 'avenger')).toBe(2);
+    expect(svc.count()).toBe(1);
+    expect(await svc.toggle('ship', 'avenger')).toBeTrue();
     expect(svc.has('ship', 'avenger')).toBeFalse();
+    expect(ships().length).toBe(1);
   });
 
   it('live ships on the hangar wishlist count', () => {
