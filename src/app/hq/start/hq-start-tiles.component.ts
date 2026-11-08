@@ -225,7 +225,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       .side > b, .side > small { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .side-k { display: flex; align-items: center; gap: 8px; color: var(--sc-accent); font: 600 0.656rem / 1 var(--sc-font-display); letter-spacing: 0.18em; text-transform: uppercase; }
       .side-k .ico { width: 18px; height: 18px; }
-      .side b { margin-top: 6px; font: 500 1.125rem / 1.25 var(--sc-font-display); color: var(--sc-fg-0); overflow-wrap: anywhere; }
+      .side > b { margin-top: 6px; font: 500 1.125rem / 1.25 var(--sc-font-display); color: var(--sc-fg-0); overflow-wrap: anywhere; }
       .evmark { display: flex; align-items: center; gap: 6px; max-width: 100%; margin-top: auto; color: var(--sc-fg-1); font-size: max(0.8125rem, var(--sc-fs-floor)); line-height: 1.3; white-space: nowrap; }
       .evmark .ico { width: 14px; height: 14px; stroke: var(--sc-accent); }
       .evmark b { flex: none; font-weight: 500; color: var(--sc-accent); }
@@ -293,7 +293,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
         .launch, .go { margin-top: 6px; }
         .row { --hq-side-h: 140px; }
         .side { padding: 12px; }
-        .side b { font-size: 0.875rem; }
+        .side > b { font-size: 0.875rem; }
         small { font-size: max(0.75rem, var(--sc-fs-floor)); }
         .edge.left { text-align: left; align-items: flex-start; }
         .edge.left .side-k { flex-direction: row; }
