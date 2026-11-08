@@ -21,11 +21,12 @@ export class HqAppConnectionService {
 
   /** The SCC app has ever reported a state or an event for this account. */
   readonly everConnected = computed(() => this.live.state() !== null || this.live.events().length > 0);
-  /** Connected right now: a fresh life sign, or the game is live. */
+  /** Connected right now: a fresh life sign (presence, else the newest event), or the game is live. */
   readonly connected = computed(() => {
     const now = this.clock();
     if (isGameLive(this.live.state(), this.live.events(), now)) return true;
-    const at = Date.parse(presenceAt(this.live.state()) ?? '');
+    const sign = presenceAt(this.live.state()) ?? this.live.events()[0]?.at ?? '';
+    const at = Date.parse(sign);
     return Number.isFinite(at) && now - at <= LIVE_PRESENCE_MAX_AGE_MS;
   });
 }
