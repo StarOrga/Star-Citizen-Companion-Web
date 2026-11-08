@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.230.0] - 2026-11-08
+
+### Added
+- HQ: limited-time events as a Nachschub way — event data sheet with AI extraction (`sc-event-sheet`) and admin review with history, event and sightseeing Nachschub, one "+" slot with an "Event verfügbar" teaser, events in the new-Nachschub dialog, "Event" as a fourth way per line, Jetzt offer in the event area, claim as pledge / ingame / both, HQ Start marker with deadline, done events in Statistik.
+
+### Changed
+- HQ Planen: the slot row shows only the next free slot and starts with the oldest Nachschub.
+
 ## [0.229.0] - 2026-11-08
 
 ### Fixed
