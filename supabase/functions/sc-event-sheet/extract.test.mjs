@@ -12,14 +12,35 @@ import {
   MAX_LINKS_PER_EVENT, SHEET_TOOL_SCHEMA, buildPrompt, bundleSources, excerptAround, extractMeta, hashText, mergeSheets,
   nameStem, parseModelAnswer, parseWikiExtract, pickEvents, sanityCheck, selectSources, sheetFromModel,
 } from './_extract.ts';
+// Static JSON imports: the Deno parity run (edge-functions-deploy.yml) grants no --allow-read.
+import fx_day_of_the_vara_2956 from './fixtures/day-of-the-vara-2956.json' with { type: 'json' };
+import fx_discovery_month_2956 from './fixtures/discovery-month-2956.json' with { type: 'json' };
+import fx_foundation_festival_2026 from './fixtures/foundation-festival-2026.json' with { type: 'json' };
+import fx_iae_2956 from './fixtures/iae-2956.json' with { type: 'json' };
+import fx_invictus_2956 from './fixtures/invictus-2956.json' with { type: 'json' };
+import fx_luminalia_2955 from './fixtures/luminalia-2955.json' with { type: 'json' };
+import fx_orison_relief_support_2956 from './fixtures/orison-relief-support-2956.json' with { type: 'json' };
 
 const here = dirname(fileURLToPath(import.meta.url));
-const fixtureDir = join(here, 'fixtures');
-const fixtures = readdirSync(fixtureDir).filter((f) => f.endsWith('.json')).sort()
-  .map((f) => ({ file: f, ...JSON.parse(readFileSync(join(fixtureDir, f), 'utf8')) }));
+const fixtures = [
+  ['day-of-the-vara-2956.json', fx_day_of_the_vara_2956],
+  ['discovery-month-2956.json', fx_discovery_month_2956],
+  ['foundation-festival-2026.json', fx_foundation_festival_2026],
+  ['iae-2956.json', fx_iae_2956],
+  ['invictus-2956.json', fx_invictus_2956],
+  ['luminalia-2955.json', fx_luminalia_2955],
+  ['orison-relief-support-2956.json', fx_orison_relief_support_2956],
+].map(([file, fx]) => ({ file, ...fx }));
+// Source checks read files: skipped where the runtime denies read access (Deno without --allow-read).
+const noRead = typeof Deno !== 'undefined' && (await Deno.permissions.query({ name: 'read', path: here })).state !== 'granted';
 
 const FORBIDDEN_WORDS = /patch|alpha|game-?package|package|edition|account/;
 const walkGear = (node) => prereqGear(node ?? null);
+
+test('every fixture file on disk is in the static import list', { skip: noRead }, () => {
+  const onDisk = readdirSync(join(here, 'fixtures')).filter((f) => f.endsWith('.json')).sort();
+  assert.deepEqual(fixtures.map((f) => f.file).sort(), onDisk);
+});
 
 test('the seven recorded events are all present', () => {
   assert.deepEqual(fixtures.map((f) => f.event.id).sort(), ['dm-2956', 'dotv-2956', 'ff-2956', 'iae-2956', 'inv-2956', 'lum-2955', 'orison-2956']);
@@ -264,7 +285,7 @@ test('pickEvents: new and running events first, hidden/cancelled/old skipped, ca
   assert.ok(pickEvents(events, new Map(), new Map(), now).length <= 10);
 });
 
-test('index.ts imports the shared sheet module and holds no key or write path other than the RPC', () => {
+test('index.ts imports the shared sheet module and holds no key or write path other than the RPC', { skip: noRead }, () => {
   const src = readFileSync(join(here, 'index.ts'), 'utf8');
   assert.match(src, /from '\.\.\/_shared\/event-sheet\.ts'/);
   assert.match(src, /sc_event_sheet_apply/);
