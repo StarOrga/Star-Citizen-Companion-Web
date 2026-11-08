@@ -88,7 +88,7 @@ const HIGHLIGHTS = 4;
         @if (lang() !== 'en') {
           <p lang="en"><span class="sc-sr-only">{{ 'footer.noticeOriginalLabel' | translate }}: </span>{{ 'footer.noticeOriginal' | translate }}</p>
         }
-        <p><a href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a></p>
+        <p><a class="rsi-link" href="https://robertsspaceindustries.com" target="_blank" rel="noopener noreferrer">{{ 'footer.rsiLink' | translate }}</a></p>
         <p class="disclaimer">{{ 'footer.trademarks' | translate }}</p>
       </div>
 
@@ -201,6 +201,8 @@ const HIGHLIGHTS = 4;
     .state .skel-short { width: min(70%, 360px); }
     .state-text { color: var(--sc-fg-1); margin: 0; }
     .affiliation { border-color: var(--sc-accent); }
+    /* The RSI link stands alone in its paragraph, so it is a tap target of its own (48px, the mobile-gate baseline). */
+    .affiliation .rsi-link { display: inline-flex; align-items: center; min-height: 48px; }
     .affiliation .disclaimer {
       color: var(--sc-fg-2);
       font-size: max(0.85rem, 13.5px);
