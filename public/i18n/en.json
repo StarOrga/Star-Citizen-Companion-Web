@@ -5692,7 +5692,8 @@
       "tab": {
         "inventar": "Inventar",
         "hangar": "Hangar",
-        "sammlung": "Sammlung"
+        "sammlung": "Sammlung",
+        "alles": "All"
       },
       "search": "Search the Inventar",
       "menu": "Page menu",
@@ -5736,6 +5737,154 @@
         "owned": "already in the collection",
         "add": "Add",
         "addAria": "Add “{{name}}” to the collection"
+      },
+      "deck": {
+        "modeAria": "View",
+        "mode": {
+          "deck": "Overview",
+          "table": "Table"
+        },
+        "import": "Import …",
+        "kindAria": "Kind",
+        "subAria": "{{kind}} in detail",
+        "kind": {
+          "materials": "Materials",
+          "weapons": "Weapons",
+          "armor": "Armour",
+          "other": "Other",
+          "sets": "Sets",
+          "ships": "Ships",
+          "sammlung": "Collection"
+        },
+        "sub": {
+          "ore": "Ore",
+          "refined": "Refined",
+          "helmet": "Helmet",
+          "torso": "Torso",
+          "arms": "Arms",
+          "legs": "Legs",
+          "undersuit": "Undersuit",
+          "backpack": "Backpack",
+          "sidearm": "Sidearm",
+          "primary": "Primary",
+          "heavy": "Heavy",
+          "melee": "Melee",
+          "throwable": "Throwable",
+          "gadget": "Gadget",
+          "other": "Other"
+        },
+        "placeAria": "Place",
+        "allPlaces": "All places",
+        "placeSearch": "Find a place …",
+        "otherPlaces": "Other places",
+        "reserved": "Reserved",
+        "scrapOnly": "Dismantlable",
+        "originAria": "Origin",
+        "origin": {
+          "pledge": "Pledge",
+          "ingame": "In-game",
+          "loan": "Loaner"
+        },
+        "roleAria": "Role",
+        "allRoles": "All roles",
+        "role": {
+          "combat": "Combat",
+          "transport": "Cargo",
+          "exploration": "Exploration",
+          "industrial": "Mining & salvage",
+          "support": "Support",
+          "competition": "Racing",
+          "ground": "Ground vehicle",
+          "multirole": "Multi-role"
+        },
+        "wishCount": "{{n}} on the wishlist",
+        "artAria": "Kind",
+        "art": {
+          "blueprints": "Blueprints",
+          "ruf": "Reputation",
+          "news": "News",
+          "gallery": "Gallery"
+        },
+        "resetFilters": "Reset filters",
+        "hits": "{{n}} hits",
+        "baysAria": "Loading bays by place",
+        "byQuality": "{{name}} by quality",
+        "resSummary": "{{qty}} at {{n}} places",
+        "toWishlist": "Add to wishlist",
+        "bandTip": "Q {{from}}–{{to}}: {{qty}}, {{res}} of it reserved",
+        "qUnknown": "Q ?",
+        "qUnknownLong": "Quality unknown",
+        "reservedN": "{{n}} reserved",
+        "reservedAny": "{{n}} reserved (any quality)",
+        "scrap": {
+          "yes": "dismantlable",
+          "no": "not dismantlable",
+          "unknown": "Dismantling: unknown"
+        },
+        "noHits": "No hit for “{{q}}”",
+        "fewHits": "Only {{n}} hits for “{{q}}”",
+        "alt": {
+          "elsewhere": "Elsewhere: {{qty}} {{name}} at {{place}}",
+          "free": "{{n}} free",
+          "wish": "Wish and plan {{name}}",
+          "wishQ": "Wish and plan {{name}} Q ≥ {{q}}",
+          "wishGo": "Wish and plan",
+          "swap": "Substitute: {{name}}, {{qty}} at {{place}}",
+          "swapWhy": "same slot",
+          "craft": "Craft it yourself"
+        },
+        "pickup": "Plan pick-up",
+        "alsoIn": "Also in your stock",
+        "inCodex": "In the Codex: “{{q}}” – onto the wishlist",
+        "setItems": "{{n}} pieces",
+        "addSet": "Create set",
+        "setName": "Set name",
+        "emptyInv": "Nothing stored yet.",
+        "emptyInvSecond": "Read it in with the app",
+        "emptyFiltered": "Nothing under this filter.",
+        "emptyHangar": "No ship in the hangar yet.",
+        "emptyHangarSecond": "Fetch RSI hangar",
+        "emptySammlung": "No blueprint collected yet.",
+        "emptySammlungSecond": "Browse the Codex",
+        "emptyArt": {
+          "news": "{{n}} saved news.",
+          "gallery": "{{n}} saved images."
+        },
+        "emptyArtGo": {
+          "news": "Go to the news",
+          "gallery": "Go to the gallery"
+        },
+        "log": "Load log",
+        "changes": "Last changes",
+        "everything": "Everything",
+        "more": "All {{n}} changes",
+        "less": "Less",
+        "reorder": "Reorder ({{n}})",
+        "logEmpty": "No change yet.",
+        "variants": "{{n}} variants",
+        "inSpace": "In space",
+        "selAria": "Selection",
+        "selected": "{{n}} selected",
+        "reserve": "Reserve",
+        "sell": "Sell",
+        "delete": "Delete",
+        "clearSel": "Clear selection",
+        "reserveTitle": "Reserve",
+        "reserveLabel": "For whom or what?",
+        "reserveNeedsNote": "A reservation needs a purpose.",
+        "deleteTitle": "Delete entries?",
+        "deleteMessage": "{{n}} entries leave your stock.",
+        "deleteOne": "Delete {{name}}",
+        "editAmount": "Amount of {{name}}",
+        "col": {
+          "item": "Item",
+          "place": "Place",
+          "quality": "Quality",
+          "amount": "Amount",
+          "reserved": "Reserved",
+          "scrap": "Dismantle",
+          "actions": "Actions"
+        }
       }
     },
     "nachschub": {
@@ -7110,7 +7259,10 @@
       "hqPlan": "Plan",
       "hqNow": "Now",
       "hqStock": "Inventory",
-      "hqStats": "Stats"
+      "hqStats": "Stats",
+      "hqStockAll": "Stock",
+      "hqStockHangar": "Hangar",
+      "hqStockSammlung": "Collection"
     },
     "placeholder": {
       "all": "Search everywhere …",
@@ -7124,7 +7276,7 @@
       "hq": "Hangar, sets, ships …",
       "hqPlan": "A set, part or place for your op …",
       "hqNow": "Ship, place or part …",
-      "hqStock": "Search your inventory …",
+      "hqStock": "Search your stock …",
       "hqStats": "Ship or set …"
     },
     "search": {

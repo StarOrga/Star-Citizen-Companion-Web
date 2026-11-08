@@ -15,7 +15,7 @@ import { PATH_ICONS } from '../../shared/item-path/path-icons';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ShellChromeService } from '../../shell/fusion-bar/shell-chrome.service';
 import { FriendsService } from '../../social/friends.service';
-import { SHIP_ROLES, type ShipRole } from '../data/hq-codex-kind';
+import { SHIP_ROLES, type ShipRole } from '../../codex/codex-ship-filters';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { aggregateQuality, averageLabel, itemIdentity, qualityBands, rangeLabel } from '../data/hq-quality';
 import { ScrapInfoService } from '../data/scrap-info';
@@ -29,6 +29,7 @@ import {
   HQ_STOCK_TABS,
   HQ_STOCK_TAB_PARAM,
   type HqLink,
+  type HqPageLink,
   type HqStockTab,
   hqListLink,
   hqPage,
@@ -706,8 +707,8 @@ export class HqStockComponent implements OnInit {
     if (k === 'ships' || k === 'sammlung') return [];
     return filterCrates(this.crates(), this.filter(), this.scrapYes);
   });
-  protected readonly view = computed(() => pageOf(this.isDeckTab() ? this.shownCrates() : this.cells().slice(1), this.page(), this.capacity()));
-  protected readonly pageCrates = computed(() => (this.isDeckTab() ? (this.view().items as DeckCrate[]) : []));
+  protected readonly view = computed(() => pageOf<DeckCrate | Cell>(this.isDeckTab() ? this.shownCrates() : this.cells().slice(1), this.page(), this.capacity()));
+  protected readonly pageCrates = computed(() => (this.isDeckTab() ? (this.view().items as unknown as DeckCrate[]) : []));
   protected readonly lanes = computed(() => deckLanes(this.pageCrates()));
   protected readonly bays = computed(() => deckBays(this.shownCrates()));
   private readonly kindCountMap = computed(() => kindCounts(this.crates(), this.filter(), this.scrapYes, this.sets().length));
@@ -759,7 +760,7 @@ export class HqStockComponent implements OnInit {
     }
     return [{ kind: 'add' }];
   });
-  protected readonly pageCells = computed<Cell[]>(() => [{ kind: 'add' }, ...(this.isDeckTab() ? [] : (this.view().items as Cell[]))]);
+  protected readonly pageCells = computed<Cell[]>(() => [{ kind: 'add' }, ...(this.isDeckTab() ? [] : (this.view().items as unknown as Cell[]))]);
 
   protected readonly searchTiers = computed(() => {
     const entries: SearchEntry[] = [
@@ -990,7 +991,7 @@ export class HqStockComponent implements OnInit {
     return a === 'news' ? this.sammlung.news().size : this.sammlung.gallery().size;
   }
 
-  protected tabLink(t: HqStockTab): HqLink & { fragment?: string } {
+  protected tabLink(t: HqStockTab): HqPageLink {
     return hqStockLink({ tab: t });
   }
 
@@ -998,7 +999,7 @@ export class HqStockComponent implements OnInit {
     return t === 'hangar' ? PATH_ICONS.hangar : t === 'sammlung' ? PATH_ICONS.sammlung : PATH_ICONS.inventar;
   }
 
-  protected restLink(e: SearchEntry): HqLink & { fragment?: string } {
+  protected restLink(e: SearchEntry): HqPageLink {
     return hqStockLink({ tab: e.area, focus: e.key });
   }
 
@@ -1157,7 +1158,7 @@ export class HqStockComponent implements OnInit {
 
   protected async deleteSel(): Promise<void> {
     const list = this.selectedCrates();
-    const ok = await this.confirm.confirm({ titleKey: 'hq.bestand.deck.deleteTitle', messageKey: 'hq.bestand.deck.deleteMessage', messageParams: { n: list.length }, confirmKey: 'hq.bestand.deck.delete', tone: 'danger' });
+    const ok = await this.confirm.confirm({ titleKey: 'hq.bestand.deck.deleteTitle', messageKey: 'hq.bestand.deck.deleteMessage', params: { n: list.length }, confirmKey: 'hq.bestand.deck.delete', tone: 'danger' });
     if (!ok) return;
     let failed = false;
     for (const c of list) if (!(await this.inv.deleteRow({ location: c.location, name: c.name }))) failed = true;
@@ -1166,7 +1167,7 @@ export class HqStockComponent implements OnInit {
   }
 
   protected async deleteOne(c: DeckCrate): Promise<void> {
-    const ok = await this.confirm.confirm({ titleKey: 'hq.bestand.deck.deleteTitle', messageKey: 'hq.bestand.deck.deleteMessage', messageParams: { n: 1 }, confirmKey: 'hq.bestand.deck.delete', tone: 'danger' });
+    const ok = await this.confirm.confirm({ titleKey: 'hq.bestand.deck.deleteTitle', messageKey: 'hq.bestand.deck.deleteMessage', params: { n: 1 }, confirmKey: 'hq.bestand.deck.delete', tone: 'danger' });
     if (!ok) return;
     const done = await this.inv.deleteRow({ location: c.location, name: c.name });
     this.errorKey.set(done ? null : (this.inv.error() ?? 'errors.generic'));
