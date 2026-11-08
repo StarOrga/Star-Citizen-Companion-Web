@@ -1,7 +1,67 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.225.16",
+  "current": "0.226.0",
   "releases": [
+    {
+      "version": "0.226.0",
+      "date": "2026-11-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Nachschub: up to 7 named Nachschübe with Einsätze and an archive, filled from the wishlist; names suggested automatically"
+            },
+            {
+              "title": "",
+              "text": "Wishlist with quantities, a Warenkorb dialog and „Passt dazu“ suggestions (armor, weapons, ship components, missiles, consumables)"
+            },
+            {
+              "title": "",
+              "text": "Schnellzugriff in the header: recently opened (top 3, up to 7) and the top of the wishlist"
+            },
+            {
+              "title": "",
+              "text": "Bestand tab „Sammlung“: blueprints, collected news and up-voted wallpapers"
+            },
+            {
+              "title": "",
+              "text": "Per-line choice in an Einsatz: buy, craft or gather; lines without a merchant get a Codex link, a place picker or removal"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex item detail (weapons, armor, blueprints, missiles) in the holotable style with wishlist and inventory nodes"
+            },
+            {
+              "title": "",
+              "text": "Planen shows only Nachschübe and Einsätze; the old selection/route mode, prices, community opt-in, blueprint progress and shared Einsätze left Planen"
+            },
+            {
+              "title": "",
+              "text": "„Lesezeichen“ is gone: news are collected instead"
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Holotable stat chips are 48 px tap targets on touch devices"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.225.16",
       "date": "2026-11-07",
