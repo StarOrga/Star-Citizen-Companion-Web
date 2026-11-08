@@ -65,4 +65,10 @@ describe('bucketBytes cache', () => {
     await bucketBytes(cfg, 1000 + BUCKET_BYTES_TTL_MS + 1);
     assert.equal(calls.n, 2);
   });
+  it('lists afresh inside the TTL once the reading is at or above cacheBelow (near the quota)', async () => {
+    const { cfg, calls } = make([ok(7), ok(7)]);
+    assert.equal(await bucketBytes(cfg, 1000, 7), 7);
+    assert.equal(await bucketBytes(cfg, 1001, 7), 7);
+    assert.equal(calls.n, 2);
+  });
 });

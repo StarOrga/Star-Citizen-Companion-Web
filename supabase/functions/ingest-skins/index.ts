@@ -160,6 +160,9 @@ type R2 = NonNullable<ReturnType<typeof r2FromEnv>>;
  * 24 h old from the same month bridges an Analytics outage (usageGate); without
  * one it stays fail-closed. Also refuses past the bucket quota. null = go on.
  */
+/** Below this share of the quota a 60 s old bucket reading is trusted. */
+const BUCKET_CACHE_HEADROOM = 0.9;
+
 async function r2Gate(r2: R2): Promise<Response | null> {
   const { reading, error } = await readUsage(r2);
   const gate = usageGate(reading, error, Date.now());
@@ -174,7 +177,8 @@ async function r2Gate(r2: R2): Promise<Response | null> {
   }
   let used: number;
   try {
-    used = await bucketBytes(r2);
+    // A cached reading only counts with 10 % headroom under the quota (Codex review).
+    used = await bucketBytes(r2, Date.now(), r2.quotaBytes * BUCKET_CACHE_HEADROOM);
   } catch (e) {
     return r2SignFailed(e);
   }

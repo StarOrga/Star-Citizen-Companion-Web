@@ -170,11 +170,13 @@ export async function deleteObject(cfg: R2Config, key: string): Promise<void> {
 }
 
 /** Total bytes stored in the whole bucket (every prefix counts against the free tier). */
-export async function bucketBytes(cfg: R2Config, now = Date.now()): Promise<number> {
+export async function bucketBytes(cfg: R2Config, now = Date.now(), cacheBelow = Number.POSITIVE_INFINITY): Promise<number> {
   // The quota gate runs on EVERY sign call; a full, sequential bucket listing
-  // each time made one flaky page fail a whole sign request. Per isolate, 60 s.
+  // each time made one flaky page fail a whole sign request. Per isolate, 60 s —
+  // but only while the reading sits below `cacheBelow`: uploads keep growing the
+  // bucket inside the window, so close to the quota every call lists afresh.
   const hit = bucketBytesCache.get(cfg.accountId + '/' + cfg.bucket);
-  if (hit && now - hit.at < BUCKET_BYTES_TTL_MS) return hit.bytes;
+  if (hit && now - hit.at < BUCKET_BYTES_TTL_MS && hit.bytes < cacheBelow) return hit.bytes;
   const objects = await listObjects(cfg, '');
   const bytes = objects.reduce((sum, o) => sum + o.size, 0);
   bucketBytesCache.set(cfg.accountId + '/' + cfg.bucket, { at: now, bytes });
