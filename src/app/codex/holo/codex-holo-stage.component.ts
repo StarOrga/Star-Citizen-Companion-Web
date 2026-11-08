@@ -128,13 +128,6 @@ const PANEL_TABS: readonly { id: HoloPanelTab; labelKey: string; icon: string }[
   { id: 'changes', labelKey: 'codex.holo.stage.tab.changes', icon: 'M4 12a8 8 0 1 0 3-6.2M4 4v5h5M12 8v4l3 2' },
 ];
 
-/** One "Einordnung" top-3 row (user decision 1). */
-interface TopCohortShip {
-  className: string;
-  displayName: string;
-  value: number;
-}
-
 type StaticKey = 'crew' | 'mass' | 'cargo';
 
 const SOUND_PREF_KEY = 'sc.codex.holo.sound';
@@ -480,14 +473,6 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
                         (profileChange)="rankProfileChange.emit($event)"
                         (scopeChange)="rankScopeChange.emit($event)" />
                     }
-                    @if (topCohortShips().length > 0) {
-                      <div class="sub"><span>{{ 'codex.holo.stage.top3' | translate }}</span><i></i></div>
-                      <ol class="top3">
-                        @for (s of topCohortShips(); track s.className) {
-                          <li><a [routerLink]="['/codex', 'ship', s.className]">{{ s.displayName }}</a></li>
-                        }
-                      </ol>
-                    }
                     <a class="cohort-link" routerLink="/codex/index" [queryParams]="{ kind: 'ship' }">
                       {{ 'codex.holo.stage.cohortLink' | translate }} ›
                     </a>
@@ -754,13 +739,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   @media (pointer: coarse) { .statics div { min-width: var(--sc-tap-min); min-height: var(--sc-tap-min); align-content: center; } }
   .sub { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); display: flex; align-items: center; gap: 8px; }
   .sub i { flex: 1; height: 1px; background: var(--hair); }
-  .top3 { margin: 0; padding: 0 0 0 18px; font-size: max(12px, var(--f)); color: var(--sc-fg-1); display: grid; gap: 3px; }
-  .top3 a { color: var(--sc-fg-0); text-decoration: none; transition: color 160ms ease; }
-  .top3 a:hover { color: var(--sc-accent); }
-  /* Touch: the focusable title and the top-3 links reach the tap minimum. */
+  /* Touch: the focusable title reaches the tap minimum. */
   @media (pointer: coarse) {
     .ht-name { min-height: var(--sc-tap-min); line-height: var(--sc-tap-min); }
-    .top3 a { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
   }
   .cohort-link { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); text-decoration: none; text-align: center; transition: color 160ms ease; }
   .cohort-link:hover { color: var(--sc-accent); }
@@ -822,7 +803,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .area-empty { margin: 4px 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
   .holo-below .holo-details { grid-column: 2 / 6; grid-row: 3; min-width: 0; }
   /* At the page's end the perspectives sit right on the strip. */
-  .below-persp { margin-top: 14px; margin-bottom: -6px; }
+  .below-persp { margin-top: 14px; margin-bottom: 0; }
   .holo-stage.first:is(.ph-wait, .ph-hero) .holo-below { opacity: 0; }
   .first.ph-reveal .holo-below { animation: rise 600ms var(--e-out) 440ms backwards; }
   .holo-below { transition: opacity var(--holo-t-fast) var(--e-io); }
@@ -1029,7 +1010,6 @@ export class CodexHoloStageComponent {
   readonly rankDisabledReasons = input<Partial<Record<RankProfileId, string | null>>>({});
   readonly rankCohort = input<readonly RankShipInput[] | null>(null);
   readonly recentlyViewedShips = input<readonly string[]>([]);
-  readonly hangarShipClassNames = input<readonly string[]>([]);
 
   // ── Perspectives (reuse today's analysis panels for "Alle Werte") ──
   readonly offensivePanel = input<OffensivePanel | null>(null);
@@ -1511,6 +1491,28 @@ export class CodexHoloStageComponent {
       measureTop();
       window.addEventListener('resize', measureTop, { passive: true });
       this.destroyRef.onDestroy(() => window.removeEventListener('resize', measureTop));
+      // Perspektiven panel + Einsatz bar are one box where they touch at the
+      // page's end: --holo-join = 1 squares the bar's top corners and drops its
+      // top edge/shadow (strip CSS, desktop only); floating over the page the
+      // bar keeps its own rounded top.
+      let joinRaf = 0;
+      const measureJoin = (): void => {
+        joinRaf = 0;
+        const panel = root.querySelector<HTMLElement>('.below-persp');
+        const bar = root.querySelector<HTMLElement>('sc-codex-holo-strip .holo-strip');
+        if (!stage || !panel || !bar) return;
+        const gap = bar.getBoundingClientRect().top - panel.getBoundingClientRect().bottom;
+        stage.style.setProperty('--holo-join', gap <= 2 ? '1' : '0');
+      };
+      const queueJoin = (): void => { joinRaf ||= requestAnimationFrame(measureJoin); };
+      queueJoin();
+      document.addEventListener('scroll', queueJoin, { capture: true, passive: true });
+      window.addEventListener('resize', queueJoin, { passive: true });
+      this.destroyRef.onDestroy(() => {
+        cancelAnimationFrame(joinRaf);
+        document.removeEventListener('scroll', queueJoin, { capture: true });
+        window.removeEventListener('resize', queueJoin);
+      });
       if (typeof ResizeObserver !== 'function') return;
       // In the next frame: these sizes change layout, inside the callback that is a "ResizeObserver loop".
       let raf = 0;
@@ -1521,7 +1523,7 @@ export class CodexHoloStageComponent {
           const h = Math.round(el.getBoundingClientRect().height);
           if (el.matches('.holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
           else if (el.matches('.hs-row')) stage?.style.setProperty('--holo-row-h', `${h}px`);
-          else if (el.matches('.below-persp')) el.style.setProperty('--persp-h', `${h}px`);
+          else if (el.matches('.below-persp')) { el.style.setProperty('--persp-h', `${h}px`); queueJoin(); }
           else if (el.matches('.holo-topbar')) measureTop();
         }
         pending.clear();
@@ -2316,37 +2318,6 @@ export class CodexHoloStageComponent {
     const better = c.lowerIsBetter ? c.delta.raw < 0 : c.delta.raw > 0;
     return better ? 'up' : 'down';
   }
-
-  // ── "Einordnung" top-3 (user decision 1) ────────────────────────────
-  // best-ranked ships (by the active Einsatz KPI) among recently-viewed ∪
-  // hangar ships; random cohort fill-up below 3. Every value is read off the
-  // SAME cohort data `rankShip()` already fetched — nothing invented.
-  readonly topCohortShips = computed<TopCohortShip[]>(() => {
-    const cohort = this.rankCohort();
-    if (!cohort || cohort.length === 0) return [];
-    const activeKey = (this.kpiCells().find((c) => c.accent) ?? this.kpiCells()[0])?.key;
-    if (!activeKey) return [];
-    const self = this.detail().classNameSlug;
-    const byClass = new Map(cohort.map((c) => [c.className, c] as const));
-    const candidateNames = new Set([...this.recentlyViewedShips(), ...this.hangarShipClassNames()]);
-    candidateNames.delete(self);
-    const hasValue = (c: RankShipInput): boolean => (c.sheet as Record<string, number | null>)[activeKey] != null;
-    let pool = [...candidateNames].map((cn) => byClass.get(cn)).filter((c): c is RankShipInput => !!c && hasValue(c));
-    if (pool.length < 3) {
-      const already = new Set(pool.map((p) => p.className));
-      const rest = cohort.filter((c) => c.className !== self && !already.has(c.className) && hasValue(c));
-      const shuffled = [...rest].sort((a, b) => (a.className > b.className ? 1 : -1));
-      pool = [...pool, ...shuffled.slice(0, 3 - pool.length)];
-    }
-    return pool
-      .map((c) => ({
-        className: c.className,
-        displayName: c.name?.trim() || humanizeClassName(c.className),
-        value: (c.sheet as Record<string, number | null>)[activeKey] ?? 0,
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 3);
-  });
 
   // ── Perspectives (concept round 10 "Weg B": four tiles) ──────────
   readonly perspectiveTiles = computed<PerspectiveTile[]>(() => {

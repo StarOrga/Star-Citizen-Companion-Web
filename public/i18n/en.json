@@ -928,7 +928,6 @@
         "staticMass": "Mass",
         "staticCargo": "Cargo",
         "strengthsWeaknesses": "Strengths · weaknesses",
-        "top3": "Top 3 · recently viewed & hangar",
         "portsCount": "{{n}} ports",
         "legendConfigurable": "configurable",
         "legendMissiles": "missiles",
