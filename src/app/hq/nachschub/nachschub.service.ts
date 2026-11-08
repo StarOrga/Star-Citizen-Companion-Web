@@ -4,6 +4,7 @@ import { humanizeClassName } from '../../codex/codex-format';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { SearchWishlistService } from '../../codex/search/search-wishlist.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HqSupplyPackageRow } from '../data/hq-db.types';
 import { newClientId } from '../data/hq-supplies-sync';
@@ -104,6 +105,7 @@ export class NachschubService {
   private readonly inventory = inject(HqInventoryService);
   private readonly hangar = inject(HangarService);
   private readonly naming = inject(NachschubNamingService);
+  private readonly searchWish = inject(SearchWishlistService);
 
   readonly packages = signal<readonly Nachschub[]>([]);
   readonly loaded = signal(false);
@@ -610,19 +612,12 @@ export class NachschubService {
 
   /**
    * Set a wishlist position to an absolute quantity (0 removes it), whichever store holds it. False when the write
-   * failed. A ship that is already in the Hangar (owned) cannot be wished again: that is no failure, there is nothing
-   * to put back (an owned ship's line is satisfied anyway).
+   * failed.
    */
   private async setWishQty(p: WishPosition, qty: number): Promise<boolean> {
-    if (p.kind === 'ship') {
-      const s = this.hangar.shipByClassName(p.className);
-      if (s?.status === 'owned') return true;
-      if (qty <= 0) return s?.status === 'wishlist' ? await this.hangar.removeShip(s.id) : true;
-      if (s?.status === 'wishlist') return !!(await this.hangar.updateShip(s.id, { qty }));
-      const added = await this.hangar.addShip(p.className, 'wishlist');
-      if (!added) return false;
-      return qty > 1 ? !!(await this.hangar.updateShip(added.id, { qty })) : true;
-    }
+    // Ship wishes live in two places (a not-owned ship's hangar row, an owned ship's extra copies in the store);
+    // SearchWishlistService knows which and 0 removes the wish.
+    if (p.kind === 'ship') return this.searchWish.setQty('ship', p.className, p.name, qty);
     return this.wish.setQty({ kind: p.kind, className: p.className, name: p.name, forClassName: p.forClassName }, qty);
   }
 
