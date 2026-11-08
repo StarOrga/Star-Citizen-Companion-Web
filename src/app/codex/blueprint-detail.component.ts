@@ -46,7 +46,7 @@ import { blueprintMissions } from './blueprint-missions';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
 import { WishlistStore } from '../hq/data/wishlist.store';
-import { blueprintMaterialWishes } from '../hq/nachschub/nachschub.model';
+import { blueprintMaterialWishes, clampWishQty } from '../hq/nachschub/nachschub.model';
 
 @Component({
   selector: 'sc-blueprint-detail',
@@ -354,8 +354,17 @@ export class BlueprintDetailComponent implements OnInit {
     return (
       fromPayload ||
       cleanLocaleValue(this.detail()?.row['name_localized'] as string) ||
+      // No name on the blueprint itself: it is named after what it crafts, not after its slug.
+      this.outputName() ||
       humanizeBlueprintName(this.detail()?.classNameSlug)
     );
+  });
+
+  /** The crafted thing's catalogue name once resolved ('' until then, or when the catalogue has none). */
+  private readonly outputName = computed(() => {
+    const e = this.outputEntity();
+    if (!e) return '';
+    return (e.name ? pickLocalized(e.name, this.lang) : '') || cleanLocaleValue(e.nameLocalized) || '';
   });
 
   readonly description = computed(() => {
@@ -456,21 +465,26 @@ export class BlueprintDetailComponent implements OnInit {
       .map((i) => ({ className: i.ingredientClassName as string, name: this.ingredientName(i), perBlueprint: i.quantity })),
   );
 
-  /** N crafts: the blueprint (quantity N, at least) and its material on the wishlist, counted up where they are already; one undo toast. */
+  /** N more crafts: the blueprint's group quantity rises by N and its material is set from the total; one undo toast. */
   protected async wishMaterial(): Promise<void> {
     const d = this.detail();
     if (!d || this.wishBusy()) return;
     this.wishBusy.set(true);
     this.wishError.set(null);
     try {
+      // One multiplier: the blueprint's wished quantity is the group quantity N (what is already there plus this
+      // click), and every material is SET to ceil(N x perBlueprint) from that total - never added per click, so
+      // fractional amounts do not round up again with each click.
       const times = this.craftTimes();
+      const current = this.wishStore.qtyOf('blueprint', d.classNameSlug, this.displayName(), null);
+      const total = clampWishQty(current + times);
       const entries = [
-        { kind: 'blueprint', className: d.classNameSlug, name: this.displayName(), forClassName: null as string | null, qty: times },
-        ...blueprintMaterialWishes(d.classNameSlug, this.wishableMaterial(), times).map((w) => ({ kind: w.kind, className: w.className, name: w.name, forClassName: w.forClassName ?? null, qty: w.qty })),
+        { kind: 'blueprint', className: d.classNameSlug, name: this.displayName(), forClassName: null as string | null, qty: total },
+        ...blueprintMaterialWishes(d.classNameSlug, this.wishableMaterial(), total).map((w) => ({ kind: w.kind, className: w.className, name: w.name, forClassName: w.forClassName ?? null, qty: w.qty })),
       ];
       const before = entries.map((e) => this.wishStore.qtyOf(e.kind, e.className, e.name, e.forClassName));
       const results: boolean[] = [];
-      for (const e of entries) results.push(await this.wishStore.addQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, e.qty));
+      for (const e of entries) results.push(await this.wishStore.setQty({ kind: e.kind, className: e.className, name: e.name, forClassName: e.forClassName }, e.qty));
       if (results.includes(false)) {
         // Say so, and take back what did land: a half-filled list under a success toast is worse than none.
         for (const [i, e] of entries.entries()) {
@@ -567,7 +581,11 @@ export class BlueprintDetailComponent implements OnInit {
     if (!out?.className) return;
     try {
       const map = await this.svc.resolveEntities([out.className]);
-      if (seq === this.loadSeq) this.outputEntity.set(map.get(out.className) ?? null);
+      if (seq !== this.loadSeq) return;
+      this.outputEntity.set(map.get(out.className) ?? null);
+      // The recent-pages row was written with the slug name before the lookup; write it again with the real one.
+      const d = this.detail();
+      if (d && this.outputName()) noteOpenedPage({ kind: 'blueprint', className: d.classNameSlug, title: this.displayName(), manufacturerCode: null });
     } catch {
       /* the plain humanized line stays */
     }

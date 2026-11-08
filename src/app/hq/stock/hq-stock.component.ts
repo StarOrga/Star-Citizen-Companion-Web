@@ -1,4 +1,5 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -60,7 +61,7 @@ type Cell =
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
+  imports: [TranslatePipe, DatePipe, ScDatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
@@ -125,7 +126,7 @@ type Cell =
                     @for (u of used(); track u.key) {
                       <li>
                         <span class="nm">{{ usedQty(u) }} {{ u.name }}</span>
-                        <small>{{ u.at | date: 'short' }}</small>
+                        <small>{{ u.at | scDate: 'datetime' }}</small>
                         <button type="button" scAction tier="secondary" (click)="catchUp([u])">{{ 'hq.bestand.catchUp' | translate }}</button>
                       </li>
                     }
@@ -277,8 +278,8 @@ type Cell =
       .hint { position: relative; z-index: 1; }
       .tile .qty { position: absolute; top: 8px; right: 12px; font: 700 1rem var(--sc-font-display, inherit); color: var(--sc-accent); }
       .tile .where { color: var(--sc-fg-2); font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .hint { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 28px; color: var(--sc-fg-2); font-size: 0.74rem; }
-      .hint span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .hint { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 34px; color: var(--sc-fg-2); font-size: 0.74rem; }
+      .hint span { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; line-height: 1.25; }
       .nach svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       .tile.focus { border-color: var(--sc-accent); box-shadow: 0 0 0 1px var(--sc-accent), 0 0 20px color-mix(in srgb, var(--sc-accent) 40%, transparent); animation: tile-focus 4s ease-in forwards; }
       @keyframes tile-focus { 70% { box-shadow: 0 0 0 1px var(--sc-accent), 0 0 20px color-mix(in srgb, var(--sc-accent) 40%, transparent); } 100% { box-shadow: none; border-color: var(--sc-border); } }

@@ -4967,7 +4967,7 @@
   "consent": {
     "banner": {
       "title": "Browser storage",
-      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and bookmarks, plus anonymous usage statistics. You can change this anytime in Settings.",
+      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and your Sammlung, plus anonymous usage statistics. You can change this anytime in Settings.",
       "acceptAll": "Allow all",
       "essentialOnly": "Essential only"
     },
@@ -4983,7 +4983,7 @@
       },
       "preferences": {
         "label": "Preferences",
-        "desc": "News channel filter, bookmarks and similar convenience state. Turning this off deletes the stored values."
+        "desc": "News channel filter, Sammlung and similar convenience state. Turning this off deletes the stored values."
       },
       "statistics": {
         "label": "Statistics",
@@ -5763,11 +5763,11 @@
       },
       "planen": {
         "empty": "Nothing planned yet",
-        "emptyHint": "Supplies turn into a route.",
+        "emptyHint": "Your Nachschub turns into an Einsatz.",
         "go": "Plan now",
         "count": "{{n}} open",
         "needs": "{{n}} in supplies",
-        "route": "Open route"
+        "route": "Open Einsatz"
       },
       "stats": {
         "missions": "{{n}} missions",
@@ -7554,6 +7554,8 @@
     "more": "Show more",
     "less": "Show less",
     "emptyRecent": "Nothing opened yet.",
+    "recentNeedsConsent": "This device only remembers opened pages with the \"Preferences\" consent.",
+    "recentConsentLink": "Open settings",
     "wish": "Wishlist",
     "lastAdded": "last added",
     "emptyWish": "Nothing on the wishlist yet.",

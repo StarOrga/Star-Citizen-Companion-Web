@@ -931,7 +931,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   </ul>
                 }
                 <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
-                <sc-item-path kind="ship" level="secondary" [className]="detail()!.classNameSlug" [name]="displayName()" />
+                <sc-item-path kind="ship" level="primary" [className]="detail()!.classNameSlug" [name]="displayName()" />
               </section>
               <section class="sc-card side-card">
                 <h2 class="side-h">{{ 'codex.holo.side.variants' | translate }}</h2>
