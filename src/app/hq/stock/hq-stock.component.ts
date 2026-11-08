@@ -268,7 +268,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
                 </div>
                 <div class="stacks">
                   @for (c of d.crates; track c.key) {
-                    <sc-hq-crate class="sz-m" [crate]="c" size="m" [selected]="selection().has(c.key)" [placeLabel]="crateLabel(c.location)" [scrap]="scrapOf(c)" [friendName]="friendName" (toggle)="toggleSel(c)" />
+                    <sc-hq-crate class="sz-m" [crate]="c" size="m" [selected]="selection().has(c.key)" [placeLabel]="crateLabel(c.location)" [scrap]="scrapOf(c)" [friendName]="friendName" (chosen)="toggleSel(c)" />
                   }
                 </div>
               </section>
@@ -314,7 +314,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
             }
 
             @if (mode() === 'table') {
-              <sc-hq-stock-table [rows]="pageCrates()" [isSelected]="isSelected" [placeLabel]="crateLabel" [scrap]="scrapOf" (toggle)="toggleSel($event)"
+              <sc-hq-stock-table [rows]="pageCrates()" [isSelected]="isSelected" [placeLabel]="crateLabel" [scrap]="scrapOf" (rowToggle)="toggleSel($event)"
                                  (amountChange)="setAmount($event.crate, $event.qty)" (remove)="deleteOne($event)" />
             } @else {
               <div #deck class="deck">
@@ -324,7 +324,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
                     <div class="row">
                       @for (c of l.crates; track c.key) {
                         <sc-hq-crate [class]="'sz-' + sizeOf(c, l.crates)" [crate]="c" [size]="sizeOf(c, l.crates)" [selected]="selection().has(c.key)" [showPlace]="!place()"
-                                     [placeLabel]="crateLabel(c.location)" [scrap]="scrapOf(c)" [friendName]="friendName" (toggle)="toggleSel(c)" />
+                                     [placeLabel]="crateLabel(c.location)" [scrap]="scrapOf(c)" [friendName]="friendName" (chosen)="toggleSel(c)" />
                       }
                     </div>
                   </section>

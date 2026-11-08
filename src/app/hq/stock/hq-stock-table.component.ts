@@ -86,14 +86,14 @@ export class HqStockTableComponent {
   readonly isSelected = input<(key: string) => boolean>(() => false);
   readonly placeLabel = input<(location: string) => string>((l) => l);
   readonly scrap = input<(c: DeckCrate) => ScrapState>(() => 'unknown');
-  readonly toggle = output<DeckCrate>();
+  readonly rowToggle = output<DeckCrate>();
   readonly amountChange = output<{ crate: DeckCrate; qty: number }>();
   readonly remove = output<DeckCrate>();
 
   protected onRow(ev: Event, c: DeckCrate): void {
     if ((ev.target as HTMLElement).closest('input, button')) return;
     ev.preventDefault();
-    this.toggle.emit(c);
+    this.rowToggle.emit(c);
   }
 
   protected commit(ev: Event, c: DeckCrate): void {

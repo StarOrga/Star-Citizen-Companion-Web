@@ -28,7 +28,7 @@ export function qualityTone(q: number | null): 'unknown' | 'low' | 'mid' | 'high
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <button type="button" class="crate" [class.box]="crate().unit !== 'scu'" [class]="'sz-' + size()" [attr.data-tone]="tone()"
-            [class.sel]="selected()" [attr.aria-pressed]="selected()" [scTooltip]="tip()" scTooltipTier="info" (click)="toggle.emit()">
+            [class.sel]="selected()" [attr.aria-pressed]="selected()" [scTooltip]="tip()" scTooltipTier="info" (click)="chosen.emit()">
       @if (crate().unit === 'scu') {
         <i class="qs" aria-hidden="true"></i>
         <span class="q">{{ avg() ?? ('hq.bestand.deck.qUnknown' | translate) }}</span>
@@ -96,7 +96,7 @@ export class HqCrateComponent {
   readonly scrap = input<ScrapState>('unknown');
   /** Friend id → display name for the reservation hover. */
   readonly friendName = input<(id: string) => string | null>(() => null);
-  readonly toggle = output<void>();
+  readonly chosen = output<void>();
 
   protected readonly avg = computed(() => averageLabel(this.crate()));
   protected readonly range = computed(() => (this.crate().unit === 'scu' && this.crate().min !== this.crate().max ? rangeLabel(this.crate()) : null));
