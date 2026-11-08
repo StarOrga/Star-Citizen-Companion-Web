@@ -169,8 +169,11 @@ export async function latestRelease(f: FetchFn, r: Extract<Resolver, { kind: 'gi
 }
 
 /** Extracts one entry of a zip; only that entry is inflated. fflate is loaded lazily (tests never need it). */
-export async function unzipEntry(zip: Uint8Array, path: string): Promise<Uint8Array> {
-  const { unzipSync } = await import('npm:fflate@0.8.2');
+export type UnzipFn = (zip: Uint8Array, opts: { filter: (f: { name: string }) => boolean }) => Record<string, Uint8Array>;
+
+/** `unzip` is injectable so tests can pass a node-side reader; the default is fflate (Deno `npm:`). */
+export async function unzipEntry(zip: Uint8Array, path: string, unzip?: UnzipFn): Promise<Uint8Array> {
+  const unzipSync: UnzipFn = unzip ?? (await import('npm:fflate@0.8.2')).unzipSync;
   const files = unzipSync(zip, { filter: (f: { name: string }) => f.name === path });
   const hit = files[path];
   if (!hit) throw new Error('translate.source_entry_missing');
@@ -178,7 +181,7 @@ export async function unzipEntry(zip: Uint8Array, path: string): Promise<Uint8Ar
 }
 
 /** Fetches the bytes of one source's global.ini (raw url · latest release asset · zip entry). */
-export async function resolveSource(src: PackSource, f: FetchFn = fetch, ghToken?: string): Promise<ResolvedPack> {
+export async function resolveSource(src: PackSource, f: FetchFn = fetch, ghToken?: string, unzip?: UnzipFn): Promise<ResolvedPack> {
   const r = parseResolver(src.resolver);
   if (src.resolver && !r) throw new Error('translate.source_resolver_invalid');
   if (r?.kind === 'github-release') {
@@ -189,7 +192,7 @@ export async function resolveSource(src: PackSource, f: FetchFn = fetch, ghToken
   if (!src.raw_url) throw new Error('translate.source_no_url');
   if (r?.kind === 'zip-entry') {
     const { bytes, res } = await getBytes(f, src.raw_url, MAX_ZIP_BYTES);
-    const entry = await unzipEntry(bytes, r.path);
+    const entry = await unzipEntry(bytes, r.path, unzip);
     return { bytes: entry, token: res.headers.get('etag') ?? res.headers.get('last-modified'), url: src.raw_url };
   }
   const { bytes, res } = await getBytes(f, src.raw_url, MAX_INI_BYTES);
