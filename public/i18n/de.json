@@ -1937,6 +1937,8 @@
         "topAria": "Draufsicht des Schiffs mit {{count}} markierten Hardpoints",
         "extent": "{{length}} × {{beam}} × {{height}} m",
         "hint": "Von oben gesehen, Bug nach rechts. Marker zeigen Größe und Typ, ein Klick öffnet die Komponente.",
+        "hintSide": "Von der Seite gesehen, Bug nach rechts. Marker zeigen Größe und Typ, ein Klick öffnet die Komponente.",
+        "hintFront": "Von vorn gesehen, Bug zum Betrachter. Marker zeigen Größe und Typ, ein Klick öffnet die Komponente.",
         "noPositions": "Für diesen Rumpf gibt es noch keine Hardpoint-Positionen — sie kommen mit seinem nächsten 3D-Upload.",
         "listLabel": "Hardpoints",
         "size": "Größe {{size}}"

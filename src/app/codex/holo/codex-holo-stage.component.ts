@@ -798,7 +798,11 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .tcount { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-accent); }
   .ptab.on .tcount { color: var(--sc-fg-0); }
   .pbody { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 12px 16px; animation: rise var(--rise-dur, 300ms) var(--e-out) var(--rise-delay, 60ms) backwards;
-  transition: opacity var(--holo-t-fast) var(--e-io); }
+  transition: opacity var(--holo-t-fast) var(--e-io);
+  /* The card scrolls; its bottom edge fades instead of cutting a line in half, and the extra bottom
+     padding lets the last line scroll fully clear of the fade (QA: "Außen – fast bester Wert…"). */
+  padding-bottom: 28px; scroll-padding-bottom: 28px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent); }
   .ph-reveal .pbody { --rise-dur: 560ms; --rise-delay: 260ms; }
   .holo-stage:not(.first):is(.ph-wait, .ph-hero) :is(.holo-below, .pbody) { opacity: 0.35; }
   .pbody:focus-visible { outline: none; }
@@ -938,6 +942,11 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   /* The toast rides above the strip, whatever height the strip has. */
   .toasts { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px + var(--holo-strip-lift, 0px)); left: 50%; translate: -50% 0; z-index: 20;
   display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  /* Wide: the views + parts-filter row stands on the strip — the toast rides above that row too,
+     never over the chips (QA 1920x1080). */
+  @media (min-width: 901px) {
+    .toasts { bottom: calc(var(--holo-strip-h, 64px) + var(--holo-views-h, 0px) + 12px + var(--holo-strip-lift, 0px)); }
+  }
   .draft-float { pointer-events: auto; width: min(560px, calc(100vw - 32px)); padding: 8px 12px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
   /* Wide: the draft sits in the fixed card, above "Details"; narrow: it floats above the strip. */
@@ -1716,6 +1725,7 @@ export class CodexHoloStageComponent {
           const h = Math.round(el.getBoundingClientRect().height);
           if (el.matches('.holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
           else if (el.matches('.hs-row')) stage?.style.setProperty('--holo-row-h', `${h}px`);
+          else if (el.matches('.holo-views')) stage?.style.setProperty('--holo-views-h', `${h}px`);
           else if (el.matches('.below-persp')) { el.style.setProperty('--persp-h', `${h}px`); queueJoin(); }
           else if (el.matches('.holo-topbar')) measureTop();
         }
@@ -1728,7 +1738,7 @@ export class CodexHoloStageComponent {
       this.destroyRef.onDestroy(() => cancelAnimationFrame(raf));
       // The strip's inner bar, not its host: on a phone the bar is position:
       // fixed and the host collapses to 0px, which put the toast on the bar.
-      for (const sel of ['sc-codex-holo-strip .holo-strip', 'sc-codex-holo-strip .hs-row', '.below-persp', '.holo-topbar']) {
+      for (const sel of ['sc-codex-holo-strip .holo-strip', 'sc-codex-holo-strip .hs-row', '.below-persp', '.holo-topbar', '.holo-views']) {
         const el = root.querySelector(sel);
         if (el) ro.observe(el);
       }

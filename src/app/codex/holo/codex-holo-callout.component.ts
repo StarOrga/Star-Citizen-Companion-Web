@@ -11,7 +11,7 @@ import { HoloDiffMarkerComponent } from './holo-diff-marker';
  * category, e.g. "Waffen", "Kühler"), the name below, three values, and the
  * swap icon button that opens the same swap flow the inspector uses.
  *
- * Purely presentational and sized by `--co-u` (the host sets it, 1 = 188 px
+ * Purely presentational and sized by `--co-u` (the host sets it, 1 = 220 px
  * wide); the host positions it and draws the leader line.
  */
 @Component({
@@ -41,7 +41,7 @@ import { HoloDiffMarkerComponent } from './holo-diff-marker';
     </div>
   `,
   styles: [`
-    :host { --co-u: 1px; display: block; width: calc(188 * var(--co-u)); pointer-events: auto; }
+    :host { --co-u: 1px; display: block; width: calc(220 * var(--co-u)); pointer-events: auto; }
     .co { box-sizing: border-box; display: flex; flex-direction: column; gap: calc(4 * var(--co-u));
       padding: calc(7 * var(--co-u)) calc(9 * var(--co-u)) calc(8 * var(--co-u));
       border: 1px solid rgb(from var(--sc-accent) r g b / 0.55); border-radius: calc(10 * var(--co-u));
@@ -51,10 +51,10 @@ import { HoloDiffMarkerComponent } from './holo-diff-marker';
     .k-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .nm { font-size: calc(12.5 * var(--co-u)); line-height: 1.2; font-weight: 600; color: var(--sc-fg-0);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .v { display: grid; align-items: end; gap: calc(3 * var(--co-u));
+    .v { display: grid; align-items: end; gap: calc(6 * var(--co-u));
       grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
     .v span { min-width: 0; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      font: 600 calc(12.5 * var(--co-u)) / 1.05 var(--font-monospace, monospace); }
+      font: 600 calc(12.5 * var(--co-u)) / 1.05 var(--font-monospace, monospace); font-variant-numeric: tabular-nums; }
     .v small { display: block; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       margin-bottom: calc(1 * var(--co-u)); font: 400 max(8px, calc(8.5 * var(--co-u))) / 1.15 var(--sc-font-body); }
     .sw svg { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

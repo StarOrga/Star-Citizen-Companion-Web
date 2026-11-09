@@ -42,7 +42,7 @@ import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { AssetPackageViewerComponent, type CalloutValue, type PlacementSelection } from '../asset-package/asset-package-viewer.component';
 import type { HotspotScope } from '../asset-package/asset-package.model';
-import { calloutGutter } from '../asset-package/holo-overlay';
+import { calloutGutter, calloutSize } from '../asset-package/holo-overlay';
 import { AssetPackageService } from '../asset-package/asset-package.service';
 import type { AssetPackageRow } from '../asset-package/asset-package.model';
 import { logWarn } from '../../core/log';
@@ -959,9 +959,12 @@ export class CodexHoloTableComponent {
       };
       measure();
       if (typeof ResizeObserver !== 'function') return;
-      const ro = new ResizeObserver(measure);
+      // In the next frame: the size moves the callout and the tags, a write inside the callback is a
+      // "ResizeObserver loop" (seen as an unhandled error after an exemplar was removed).
+      let raf = 0;
+      const ro = new ResizeObserver(() => { raf ||= requestAnimationFrame(() => { raf = 0; measure(); }); });
       ro.observe(frame);
-      destroyRef.onDestroy(() => ro.disconnect());
+      destroyRef.onDestroy(() => { ro.disconnect(); cancelAnimationFrame(raf); });
     });
     afterNextRender(() => {
       const frame = this.frameRef()?.nativeElement;
@@ -1089,8 +1092,7 @@ export class CodexHoloTableComponent {
     const l = lay.labels.find((k) => k.portName === port);
     const pin = this.pinByPort().get(port);
     if (!l || !pin) return null;
-    const w = 188 * Math.min(1, Math.max(0.8, 0.5 + (typeof window === 'undefined' ? 1920 : window.innerWidth) / 3840));
-    const h = 88 * (w / 188);
+    const { w, h } = calloutSize(typeof window === 'undefined' ? 1920 : window.innerWidth);
     const inner = l.side === 'left' ? l.rect.x + l.rect.w : l.rect.x;
     const left = Math.min(Math.max(0, l.side === 'left' ? inner - w : inner), Math.max(0, this.frameW() - w));
     const top = Math.min(Math.max(0, l.rect.y + l.rect.h / 2 - h / 2), Math.max(0, this.frameH() - h));

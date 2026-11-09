@@ -90,11 +90,18 @@ const KPI_LABEL_KEYS: Record<string, string> = {
     .ptitle { margin: 0 0 6px; font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
     .none { margin: 0; padding: 4px 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
-    .delta-table { width: 100%; border-collapse: collapse; font-size: max(0.8rem, var(--sc-fs-floor)); }
-    .delta-table th, .delta-table td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--sc-border); font-variant-numeric: tabular-nums; }
-    .delta-table th[scope="row"] { text-align: left; color: var(--sc-fg-1); font-weight: 500; }
-    .delta-table thead th { color: var(--sc-fg-2); font-weight: 500; font-size: max(0.7rem, var(--sc-fs-floor));
-      text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--sc-border); }
+    /* Fits the 360 px card at any value (QA 1920x1080: "ÄNDERUNC", "+28?"): the number columns take
+       exactly their content and never wrap, the label column takes the rest and wraps (hyphenated). */
+    .delta-table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .delta-table th, .delta-table td { padding: 5px 4px; text-align: right; border-bottom: 1px solid var(--sc-border);
+      font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .delta-table th:first-child { padding-left: 0; }
+    .delta-table th:last-child, .delta-table td:last-child { padding-right: 0; }
+    .delta-table th[scope="row"], .delta-table thead th:first-child { width: 100%; text-align: left; white-space: normal;
+      overflow-wrap: anywhere; hyphens: auto; }
+    .delta-table th[scope="row"] { color: var(--sc-fg-1); font-weight: 500; }
+    .delta-table thead th { color: var(--sc-fg-2); font-weight: 500; font-size: max(0.66rem, var(--sc-fs-floor));
+      text-transform: uppercase; letter-spacing: 0.02em; border-bottom: 1px solid var(--sc-border); }
     tr.good .pct { color: var(--sc-accent); }
     tr.bad .pct { color: var(--sc-warning); }
   `],

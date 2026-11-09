@@ -22,14 +22,14 @@ describe('loadoutHash', () => {
 });
 
 describe('ExemplarAiService', () => {
-  function mount(opts: { data?: unknown; invokeError?: unknown; stored?: Record<string, unknown> | null; updateError?: unknown } = {}) {
+  function mount(opts: { data?: unknown; invokeError?: unknown; stored?: Record<string, unknown> | null; updateError?: unknown; readError?: unknown } = {}) {
     const invoke = vi.fn().mockResolvedValue({
       data: opts.data ?? { ok: true, status: 'generated', text: 'Laser-Jäger' },
       error: opts.invokeError ?? null,
     });
     const eqUpdate = vi.fn().mockResolvedValue({ error: opts.updateError ?? null });
     const update = vi.fn().mockReturnValue({ eq: eqUpdate });
-    const maybeSingle = vi.fn().mockResolvedValue({ data: opts.stored ?? null, error: null });
+    const maybeSingle = vi.fn().mockResolvedValue({ data: opts.stored ?? null, error: opts.readError ?? null });
     const select = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle }) });
     const from = vi.fn().mockReturnValue({ select, update });
     TestBed.resetTestingModule();
@@ -71,6 +71,17 @@ describe('ExemplarAiService', () => {
     expect(m.invoke).toHaveBeenCalledTimes(1);
     expect(m.update).toHaveBeenCalledWith(expect.objectContaining({ ai_summary: r.summary, ai_summary_hash: loadoutHash(loadout) }));
     expect(m.eqUpdate).toHaveBeenCalledWith('id', 'c1');
+  });
+
+  it('ensureSummary: missing summary columns are detected once, then never queried again', async () => {
+    const m = mount({ readError: { code: '42703', message: 'column hangar_ship_configs.ai_summary does not exist' } });
+    const first = await m.svc.ensureSummary('c1', { shipName: 'Gladius', loadout, changes });
+    expect(first).toEqual({ summary: null, hash: loadoutHash(loadout), regenerated: false, errorKey: null });
+    await m.svc.ensureSummary('c2', { shipName: 'Gladius', loadout, changes });
+    await m.svc.ensureSummary('c3', { shipName: 'Gladius', loadout, changes, stored: { summary: null, hash: 'other' } });
+    expect(m.select).toHaveBeenCalledTimes(1);
+    expect(m.invoke).not.toHaveBeenCalled();
+    expect(m.update).not.toHaveBeenCalled();
   });
 
   it('ensureSummary: reads the stored hash itself when the caller gives none', async () => {

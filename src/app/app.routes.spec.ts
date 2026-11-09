@@ -178,6 +178,10 @@ describe('HQ routes', () => {
     }
   });
 
+  it('matches the redirecting /hq/hangar only in full, so /hq/hangar/:id (own ship, exemplar links) is never redirected', () => {
+    expect(hq?.children?.find((c) => c.path === 'hangar')?.pathMatch).toBe('full');
+  });
+
   it('hands the dashboard its section through route data', () => {
     const data = (p: string) => hq?.children?.find((c) => c.path === p)?.data;
     expect(data('hangar')).toEqual({ layout: 'tool', section: 'hangar' });
