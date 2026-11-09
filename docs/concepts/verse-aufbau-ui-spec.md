@@ -18,9 +18,12 @@ Source: concepts `20261106-1513-verse-aufbau` and `20261109-1752-kamera-welt` (r
 - A door stays empty until its planet is drawn, then comes in 0.3 s. Without WebGL it shows its CSS art after 2 s.
 - The hub renders in steps: stage and hero, then doors and beacons, then the columns (`staged-build.ts`).
 
+- The shell takes the two beats as their own delays (`--sc-intro-search-at` 3.5 s, `--sc-intro-header-at` 4.3 s, `ENTRANCE_BEATS`); `--sc-intro-k` only paces the search's ignite (k = 1.52).
+- One planet: the hub draws none. The scene's live planet stands where the hub's planet geometry (`.brief-world`) is, its News / Patches / Galerie pieces under the doors; the hub lends both rects to the scene (`SceneCameraService.setVerseAnchors`). Leaving the hub, the doors hand over to those pieces and the camera carries them.
+- A menu switch into the hub plays only the hub's own sequence; the shell's general page rise (`sc-switch-in`) stays off there.
+
 ## Open (needs the shell)
 
-- Header 4.3 s and search 3.5 s need two delays; the shell has one factor (`--sc-intro-k`, header 1.9 s, search 2.3 s). Interim: k = 1.52, search at 3.5 s, header at 2.9 s.
 - The dolly runs on the stage's own world; the scene camera follows `<html data-kw-entrance="dolly">` once its camera API exists.
 
 ## Rejected

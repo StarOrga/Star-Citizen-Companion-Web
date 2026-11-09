@@ -18,7 +18,7 @@ describe('ToastStackService', () => {
     svc.remove(b);
   });
 
-  it('keeps a closing toast's slot until its leave animation is over', async () => {
+  it('keeps the slot of a closing toast until its leave animation is over', async () => {
     @Component({
       standalone: true,
       imports: [ToastSlotDirective],
