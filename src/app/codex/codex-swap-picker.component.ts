@@ -589,7 +589,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-row.cur { background: color-mix(in srgb, var(--sc-warn) 8%, transparent); }
     .pick-row.cur td.c-name { background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-0)); }
 
-    td.c-name { padding: 4px 5px; }
+    td.c-name { padding: 4px 5px; min-inline-size: 14rem; }
     .pick-path { display: inline-flex; margin-inline-start: auto; }
     .pick-detail { position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center;
       min-width: 28px; min-height: max(28px, var(--sc-tap-min)); border-radius: 6px; color: var(--sc-fg-2);
@@ -600,8 +600,8 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-row.pinned td { position: sticky; top: 34px; z-index: 1; background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-1)); }
     .pick-row.pinned td.c-name { z-index: 3; }
     .pick-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; margin-left: 4px; }
-    .pick-name { font-size: 0.8rem; color: var(--sc-fg-0); overflow-wrap: anywhere; display: inline-flex; align-items: center; gap: 6px; }
-    .pick-meta { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .pick-name { font-size: 0.8rem; color: var(--sc-fg-0); overflow-wrap: break-word; word-break: normal; display: inline-flex; align-items: center; gap: 6px; }
+    .pick-meta { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: break-word; }
     .size-tag { font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; padding: 1px 6px; border-radius: 4px;
       color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
