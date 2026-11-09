@@ -992,8 +992,8 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .slot-note { margin-top: 4px; font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
     /* The indent is the whole point of the block, so it survives a phone —
-       only its width gives way (Karma renders at 749px, i.e. inside this
-       branch: the rail and the elbow must hold in BOTH branches). */
+       only its width gives way (the rail and the elbow must hold in BOTH
+       branches). */
     @media (max-width: 720px) {
       .kids { margin-left: 4px; padding-left: 10px; }
       .kid::before { left: -10px; }

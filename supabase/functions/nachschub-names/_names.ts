@@ -74,15 +74,34 @@ export function parseName(replyText: string, max: number): string | null {
 
 export function buildPrompt(req: NameRequest): string {
   const max = limitOf(req.kind);
-  const lang = req.locale === 'en' ? 'English' : 'German';
-  const list = req.items.map((i) => `- ${i.qty}x ${i.name}`).join('\n');
-  const what =
+  const de = req.locale !== 'en';
+  const lang = de ? 'German' : 'English';
+  const list = req.items.map((i) => (req.kind === 'nachschub' ? `- ${i.qty}x ${i.name}` : `- ${i.name}`)).join('\n');
+  const rules =
     req.kind === 'nachschub'
-      ? 'a supply bundle in a Star Citizen companion app. Name it by WHAT THE PLAYER GETS, summarised short (e.g. "Rattler-Vorrat" or "Pembroke-Ruestung").'
-      : 'a mission/activity plan in a Star Citizen companion app. Name it by WHAT THE PLAYER HAS TO DO (e.g. "Titan-Erz abbauen und raffinieren").';
+      ? [
+          'Name a supply bundle in a Star Citizen companion app by WHAT THE PLAYER GETS.',
+          'Write a short, natural noun phrase a player would say, not a list: one or two items keep their own names',
+          '(a ship or armour set may stand alone); several items of one kind get their common term',
+          '(weapons, ammunition, medical, armour, ore, ship components); a mix of kinds gets the main item plus a short umbrella word.',
+          de
+            ? 'German: real compounds with a hyphen after a product name ("Rattler-Munition", "Pembroke-Rüstung"), correct umlauts, no English filler.'
+            : 'English: plain words ("Rattler ammo", "Pembroke armour set").',
+          'Never use the words "new", "neu", "Nachschub", "supply", "package", "Paket", never quantities, never a colon or a plus sign.',
+          de
+            ? 'Good: "Rattler-Vorrat", "Pembroke-Rüstung", "Gallant mit Munition", "Medizinvorrat", "Titan und Quantanium".'
+            : 'Good: "Rattler stock", "Pembroke armour", "Gallant with ammo", "Medical kit", "Titanium and Quantanium".',
+        ]
+      : [
+          'Name a mission/activity plan in a Star Citizen companion app by WHAT THE PLAYER HAS TO DO, from the steps below.',
+          de
+            ? 'German infinitive phrase, object first, verb last ("Titan-Erz abbauen und raffinieren", "Medpens in Area18 kaufen"); several steps of one kind share one verb; a mix names the main goal, not every step.'
+            : 'English imperative phrase ("Mine and refine titanium ore", "Buy medpens in Area18"); several steps of one kind share one verb; a mix names the main goal, not every step.',
+          'No colon, no list, no "and" chain of more than two verbs, never the words "new", "neu", "Einsatz", "mission plan".',
+        ];
   return [
-    `Give a name for ${what}`,
-    `At most ${max} characters, in ${lang}, no quotes, no trailing period, no mention of AI or of the word package.`,
+    ...rules,
+    `At most ${max} characters, in ${lang}, no quotes, no trailing period, no mention of AI.`,
     'Reply with JSON only: {"name":"..."}.',
     '',
     list,

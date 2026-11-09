@@ -5930,7 +5930,6 @@
     "nachschub": {
       "slotsFull": "All 7 Nachschub slots are in use. Finish or delete one to free a slot.",
       "nothingPicked": "Pick at least one item from the wishlist.",
-      "newName": "New Nachschub",
       "sellGoalInvalid": "Enter a goal of at least 1 aUEC.",
       "target": {
         "minQ": "min. Q {{q}}",
@@ -5981,15 +5980,16 @@
         "route": "{{done}} of {{n}} stops",
         "tick": "{{place}} picked up"
       },
+      "dayName": "Supplies {{date}}",
       "newEinsatz": "New Einsatz",
-      "verb": {
-        "buy": "Buy:",
-        "mission": "Mission:",
-        "mine": "Mine:",
-        "refine": "Refine:",
-        "craft": "Craft:",
-        "transport": "Haul:",
-        "pickup": "Pick up:"
+      "act": {
+        "buy": "Buy {{label}}",
+        "mission": "Mission: {{label}}",
+        "mine": "Mine {{label}}",
+        "refine": "Refine {{label}}",
+        "craft": "Craft {{label}}",
+        "transport": "Haul {{label}}",
+        "pickup": "Pick up {{label}}"
       },
       "done": {
         "created": "\"{{name}}\" is created.",
@@ -6601,7 +6601,7 @@
       "starting": "Starting the app …",
       "started": "The app is starting. Sign in there and your data will come through here.",
       "downloading": "App not found: the download is running now (about 500 MB). Run the setup afterwards.",
-      "noResponse": "The app didn't respond. Start it by hand or download it again.",
+      "noResponse": "No word from the app. If it is already running, all is well – otherwise start it by hand or download it again.",
       "retry": "Already installed? Start again",
       "download": "Download app",
       "downloadCta": "Download app",

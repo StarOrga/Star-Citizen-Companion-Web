@@ -88,7 +88,7 @@ describe('MainHeaderComponent', () => {
     const widths = links
       .map((a) => Math.round(a.getBoundingClientRect().width))
       .filter((w) => w > 0);
-    // Karma renders at 749px: the phone branch spreads the slots evenly, wider screens pin them.
+    // The phone branch spreads the slots evenly, wider screens (the 1280px test window) pin them.
     expect(new Set(widths).size).toBe(1);
     if (window.innerWidth > 720) expect(widths[0]).toBe(MAIN_NAV_SLOT_PX);
   });

@@ -28,7 +28,7 @@ describe('ApiTokensComponent', () => {
 
   async function mount(rows: ApiTokenRow[] = [ROW_A, ROW_B]) {
     // A closing [scDialog] hands focus back on the next animation frame. A
-    // real frame never comes while the Karma page is hidden (a headed Chrome
+    // real frame never comes while the test page is hidden (a headed browser
     // behind other windows), and its pending rAF kept whenStable() waiting
     // into the 5 s timeout — so the spec plays the frame clock itself.
     frames = installFrameClock();

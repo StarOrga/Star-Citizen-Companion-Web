@@ -6,7 +6,7 @@ import { fakeEngine, setupFusionSearch } from './fusion-search.testing';
 describe('FusionSearchComponent recent term click', () => {
   afterEach(() => (document.activeElement as HTMLElement | null)?.blur?.());
 
-  /** Click, swallowing the browser default on `window` so a leaked click cannot open a real tab/reload Karma. Returns whether it was left to the browser. */
+  /** Click, swallowing the browser default on `window` so a leaked click cannot open a real tab/reload the test page. Returns whether it was left to the browser. */
   function click(target: HTMLElement, init: MouseEventInit = {}): boolean {
     let leftToBrowser = false;
     const swallow = (ev: Event) => {

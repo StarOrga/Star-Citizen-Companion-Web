@@ -251,7 +251,7 @@ describe('CodexSetStageComponent', () => {
     const helmet = tile('helmet');
     const t = stage().tiles().find((x) => x.slot === 'helmet')!;
 
-    // Called directly: a dispatched modified click would open a real tab in Karma.
+    // Called directly: a dispatched modified click would open a real tab from the test page.
     const modified = new MouseEvent('click', { button: 0, ctrlKey: true, cancelable: true });
     stage().onTileClick(modified, t, helmet);
     expect(hop).not.toHaveBeenCalled();

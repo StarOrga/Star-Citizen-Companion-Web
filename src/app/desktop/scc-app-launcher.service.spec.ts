@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { SCC_APP_URI, SCC_LAUNCH_WAIT_MS, SccAppLauncherService } from './scc-app-launcher.service';
+import { SCC_APP_URI, SCC_LAUNCH_GRACE_MS, SCC_LAUNCH_WAIT_MS, SccAppLauncherService } from './scc-app-launcher.service';
 
 describe('SccAppLauncherService', () => {
   const KEY = 'sc.sccApp.launchedBefore';
@@ -54,5 +54,13 @@ describe('SccAppLauncherService', () => {
     vi.advanceTimersByTime(SCC_LAUNCH_WAIT_MS);
     expect(await a).toBe(false);
     expect(await b).toBe(false);
+  });
+
+  it('a longer wait still takes a late focus change as the answer', async () => {
+    const result = svc.launch(SCC_LAUNCH_GRACE_MS);
+    vi.advanceTimersByTime(SCC_LAUNCH_WAIT_MS + 3000);
+    window.dispatchEvent(new Event('blur'));
+    expect(await result).toBe(true);
+    expect(svc.launchedBefore()).toBe(true);
   });
 });

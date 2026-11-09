@@ -3,20 +3,21 @@
  * browser's rendering steps: `requestAnimationFrame`, or a `ResizeObserver`
  * report.
  *
- * A spec that waits for a REAL frame is at the mercy of the Karma page being
- * rendered at all, and it is not always: a hidden page renders nothing. That
- * is what took the patch board, the patch dossier and the feedback motion
- * down in full runs (2026-09-25) — a spec's Ctrl+click had opened a real tab
- * in front of Karma's, no frame arrived for the rest of the run, and every
- * frame-driven spec that happened to come later timed out, a different
- * handful per random-order run, while each file passed on its own.
- * (`new-tab-guard.spec.ts` now fails such a click where it happens.)
+ * A spec that waits for a REAL frame is at the mercy of the test page being
+ * rendered at all: a hidden page renders nothing. Under Karma that took the
+ * patch board, the patch dossier and the feedback motion down in full runs
+ * (2026-09-25) — a spec's Ctrl+click had opened a real tab in front of the
+ * test page, no frame arrived for the rest of the run, and every frame-driven
+ * spec that happened to come later timed out, a different handful per
+ * random-order run, while each file passed on its own. (The new-tab guard in
+ * `vitest-setup.ts` now fails such a click where it happens, and under
+ * Playwright the page stays visible.)
  *
  * What these specs need from the frame is only its MOMENT: layout itself is
  * synchronous (`getBoundingClientRect()` and friends lay the page out on
  * demand). So the spec plays the browser's part and says when the frame is.
- * Both helpers are jasmine spies, so they are undone with the spec's others;
- * install them before the code that asks for a frame runs.
+ * Both helpers are `vi.spyOn` spies, so `restoreMocks` undoes them after the
+ * spec; install them before the code that asks for a frame runs.
  */
 
 /** A spec-driven stand-in for the browser's animation-frame clock. */

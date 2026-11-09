@@ -71,7 +71,7 @@ describe('VerseStatusChipComponent — Companion app download', () => {
     setup(true);
     const link = openPanel().querySelector('a.app-dl') as HTMLAnchorElement;
     const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
-    // Keep karma on this page: the anchor is a real navigation by design.
+    // Keep the test page where it is: the anchor is a real navigation by design.
     link.addEventListener('click', (e) => e.preventDefault());
     link.dispatchEvent(ev);
     fixture.detectChanges();

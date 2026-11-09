@@ -629,8 +629,8 @@ describe('CodexEnergyDockComponent', () => {
     expect(strip.right).toBeLessThanOrEqual(dock.right + 1);
     expect(dock.width).toBeLessThanOrEqual(window.innerWidth);
     // the wide layout wraps rather than overflowing; the phone layout is a
-    // grid that fits as many columns as have room (Karma renders at 749px,
-    // so only the wide branch is measured here)
+    // grid that fits as many columns as have room (the test window is 1280px
+    // wide, so only the wide branch is measured here)
     const display = getComputedStyle(stripEl).display;
     if (display === 'flex') expect(getComputedStyle(stripEl).flexWrap).toBe('wrap');
     else expect(display).toBe('grid');

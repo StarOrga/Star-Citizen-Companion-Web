@@ -1,7 +1,7 @@
 /**
  * Every spec starts at the top of the page, whatever ran before it.
  *
- * Specs share one Karma page and run in random order. Once leftovers make that
+ * Specs share one test page and run in random order. Once leftovers make that
  * page tall, a spec that scrolls leaves `window.scrollY` behind for the rest of
  * the run, and every spec that needs the top of the page fails (the fusion bar
  * reads as docked, the header as compressed). That showed up as rare red runs

@@ -290,7 +290,7 @@ export class NachschubService {
 
     const id = newClientId();
     const label = (p: WishPosition): string => p.name?.trim() || humanizeClassName(p.className);
-    const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(taken.map((p) => ({ name: label(p), qty: p.qty })))) || opts.event?.name || '', NACHSCHUB_NAME_MAX);
+    const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(taken.map((p) => ({ name: label(p), qty: p.qty })), opts.event?.name)), NACHSCHUB_NAME_MAX);
 
     const lines: AddedPick[] = [];
     const snapshot: Record<string, number> = {};

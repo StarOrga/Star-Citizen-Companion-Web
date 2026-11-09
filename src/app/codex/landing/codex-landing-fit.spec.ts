@@ -51,7 +51,7 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
 
   /**
    * Pane widths: 257 = the real list pane at 1440 (measured in the app by QA; the side column is clamp(250px, 22%, 350px) of the
-   * page frame minus gutter and 22px), 328 = phone content width. Karma is a fine pointer, so
+   * page frame minus gutter and 22px), 328 = phone content width. The test browser is a fine pointer, so
    * the phone case replays the (pointer: coarse) tab sizing of the pane's stylesheet (min-width 48, 11px name).
    * 186 = tablet (721-1099px): below the desktop minimum a wrap is the honest last resort, so only "no clipping" is asserted there.
    */

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
-import { SccAppLauncherService } from '../desktop/scc-app-launcher.service';
+import { SCC_LAUNCH_GRACE_MS, SCC_LAUNCH_WAIT_MS, SccAppLauncherService } from '../desktop/scc-app-launcher.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 import { HqAppLaunchComponent } from './hq-app-launch.component';
 
@@ -49,6 +49,7 @@ describe('HqAppLaunchComponent', () => {
   it('downloads right away and says so when the app does not answer', async () => {
     const { f, launcher } = mount(false);
     await clickPlain(f);
+    expect(launcher.launch).toHaveBeenCalledWith(SCC_LAUNCH_WAIT_MS);
     expect(launcher.downloadInstaller).toHaveBeenCalledTimes(1);
     expect(f.componentInstance.status()).toBe('downloading');
     expect((f.nativeElement as HTMLElement).querySelector('[role="status"] .hint')).toBeTruthy();
@@ -57,6 +58,8 @@ describe('HqAppLaunchComponent', () => {
   it('never auto-downloads once this browser has seen the app answer', async () => {
     const { f, launcher } = mount(false, true);
     await clickPlain(f);
+    // Seen here before: a cold start gets the long wait before "no word" shows.
+    expect(launcher.launch).toHaveBeenCalledWith(SCC_LAUNCH_GRACE_MS);
     expect(launcher.downloadInstaller).not.toHaveBeenCalled();
     expect(f.componentInstance.status()).toBe('noResponse');
     expect((f.nativeElement as HTMLElement).querySelector('.hint a')?.getAttribute('href')).toBe(SCC_INSTALLER_URL);
@@ -66,7 +69,7 @@ describe('HqAppLaunchComponent', () => {
     const { f, launcher } = mount(true);
     const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ctrlKey: true });
     let leftToBrowser = false;
-    // Runs after the component's handler; stopping here keeps Karma's page in place.
+    // Runs after the component's handler; stopping here keeps the test page in place.
     anchor(f).addEventListener(
       'click',
       (e) => {
@@ -94,6 +97,18 @@ describe('HqAppLaunchComponent', () => {
   it('download mode stays a real anchor at the installer', () => {
     const { f } = mount(false, false, 'download');
     expect(anchor(f).getAttribute('href')).toBe(SCC_INSTALLER_URL);
+  });
+
+  it('a late answer after closing the hint changes nothing', async () => {
+    let answer!: (v: boolean) => void;
+    const { f, launcher } = mount(false, true);
+    launcher.launch.mockReturnValue(new Promise<boolean>((r) => (answer = r)));
+    await clickPlain(f);
+    expect(f.componentInstance.status()).toBe('starting');
+    f.componentInstance.dismiss();
+    answer(false);
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(f.componentInstance.status()).toBe('idle');
   });
 
   it('closes the hint', async () => {

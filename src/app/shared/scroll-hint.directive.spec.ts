@@ -23,7 +23,7 @@ describe('ScScrollHintDirective', () => {
   let resize: ResizeDriver;
 
   beforeEach(async () => {
-    // Spec-driven ResizeObserver: a hidden Karma page delivers no real one.
+    // Spec-driven ResizeObserver: a hidden test page delivers no real one.
     resize = installResizeDriver();
     await TestBed.configureTestingModule({ imports: [HostComponent] }).compileComponents();
     fixture = TestBed.createComponent(HostComponent);
