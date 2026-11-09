@@ -181,20 +181,33 @@ export function wireSnap(
 function snapPositions(marked: readonly HTMLElement[]): number[] {
   const y = window.scrollY;
   const vh = window.innerHeight;
+  const root = getComputedStyle(document.documentElement);
+  // The snapport is the viewport minus the root's scroll-padding (the docked bar's height).
+  const padTop = parseFloat(root.scrollPaddingTop) || 0;
+  const padBottom = parseFloat(root.scrollPaddingBottom) || 0;
   const max = Math.max(0, document.documentElement.scrollHeight - vh);
   const out = marked.map((el) => {
     const r = el.getBoundingClientRect();
     const cs = getComputedStyle(el);
-    const p = el.style.getPropertyValue('scroll-snap-align') === 'end' ? r.bottom + y - vh + (parseFloat(cs.scrollMarginBottom) || 0) : r.top + y - (parseFloat(cs.scrollMarginTop) || 0);
+    const p = el.style.getPropertyValue('scroll-snap-align') === 'end'
+      ? r.bottom + y - vh + padBottom + (parseFloat(cs.scrollMarginBottom) || 0)
+      : r.top + y - padTop - (parseFloat(cs.scrollMarginTop) || 0);
     return Math.round(Math.min(max, Math.max(0, p)));
   });
   return [...new Set(out)].sort((a, b) => a - b);
 }
 
 /**
+ * An area counts as taller than the viewport (free wheel inside) above this many viewports:
+ * a viewport-high stage measures up to ~1.1 viewports between its snap positions, because
+ * the docked header changes the layout above the lower part.
+ */
+const TALL_AREA = 1.3;
+
+/**
  * Where a wheel step in `dir` goes from `y` between the snap positions `ps` (sorted), or
  * null when the native scroll must run (an area taller than the viewport, no next position).
- * An area of at most one viewport is one step; from the end of a tall area the next step
+ * An area of about one viewport is one step; from the end of a tall area the next step
  * is the next position.
  */
 export function snapStepTarget(y: number, dir: number, ps: readonly number[], vh: number): number | null {
@@ -203,17 +216,17 @@ export function snapStepTarget(y: number, dir: number, ps: readonly number[], vh
   const next = ps.find((p) => p > y + 1) ?? null;
   if (dir > 0) {
     if (next === null) return null;
-    const tall = next - at > vh + 1;
+    const tall = next - at > vh * TALL_AREA;
     return !tall || y + vh >= next - 1 ? next : null;
   }
   if (y > at + 1) {
     // Between two positions: inside a tall area the wheel is free, a short one steps back to its start.
-    return next !== null && next - at > vh + 1 ? null : at;
+    return next !== null && next - at > vh * TALL_AREA ? null : at;
   }
   const prev = [...ps].reverse().find((p) => p < at - 1) ?? null;
   if (prev === null) return null;
   // Up into a tall area scrolls natively (it is free inside); a short one is one step.
-  return at - prev > vh + 1 ? null : prev;
+  return at - prev > vh * TALL_AREA ? null : prev;
 }
 
 /** Nested scroll containers (a list, a panel) keep their own wheel. */
