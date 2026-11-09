@@ -108,5 +108,35 @@
         "attachments": []
       }
     ]
+  },
+  {
+    "iteration": 3,
+    "action": "implement",
+    "annotations": [
+      {
+        "id": "r3-q3-s2-a1",
+        "answer": "ne, lass uns das rausnehmen, im zweifel laden komponenten... das heißt hierfür nix designene"
+      },
+      {
+        "id": "r3-q3-s3-a1",
+        "answer": "ne, nur silhouette, ohne davor sonne und sternchen etc. da drin!"
+      },
+      {
+        "id": "r3-q3-s5-a1",
+        "answer": "sehr gut!"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw9h5q3vufxn",
+        "design": "q3",
+        "screen": "q3-s1",
+        "x": 51,
+        "y": 62.6,
+        "target": "span.q3-lsub \"Quantum-Antrieb spult auf\"",
+        "text": "quan... benötigen wir nicht!",
+        "attachments": []
+      }
+    ]
   }
 ]
