@@ -67,6 +67,14 @@ export class ShellSceneComponent {
   readonly carry = signal(false);
   private carryToken = 0;
 
+  /**
+   * The live planet parks while the pose hides it (admin, the Verse sub-pages): once the fade-out
+   * flight is over, so the planet keeps riding the camera while it is still visible; it wakes at
+   * once when a pose shows it again.
+   */
+  readonly planetParked = signal(false);
+  private parkTimer: ReturnType<typeof setTimeout> | null = null;
+
   /** The live planet reports in (G1): the CSS planet steps back, the hub's entrance may go on. */
   onPlanet(state: 'drawn' | 'failed'): void {
     this.cam.planetState.set(state);
@@ -92,6 +100,24 @@ export class ShellSceneComponent {
 
   constructor() {
     const root = this.document.documentElement;
+    effect(() => {
+      const hidden = !(POSES[this.cam.target()].show.planet ?? 0);
+      const ms = this.cam.moveMs();
+      untracked(() => {
+        if (this.parkTimer !== null) clearTimeout(this.parkTimer);
+        this.parkTimer = null;
+        if (!hidden) {
+          this.planetParked.set(false);
+          return;
+        }
+        this.zone.runOutsideAngular(() => {
+          this.parkTimer = setTimeout(() => {
+            this.parkTimer = null;
+            this.zone.run(() => this.planetParked.set(true));
+          }, ms + 120);
+        });
+      });
+    });
     const subs = this.router.events.subscribe((e) => {
       if (e instanceof NavigationStart) this.go(e.url);
       else if (e instanceof NavigationCancel || e instanceof NavigationError || e instanceof NavigationSkipped) this.go(this.router.url);
@@ -106,6 +132,7 @@ export class ShellSceneComponent {
     const stopSlow = this.cam.reducedMotion() ? null : this.slow.start();
     let detach: (() => void) | null = null;
     inject(DestroyRef).onDestroy(() => {
+      if (this.parkTimer !== null) clearTimeout(this.parkTimer);
       subs.unsubscribe();
       this.document.removeEventListener('pointerdown', onDown, { capture: true });
       stopFocus();

@@ -1,4 +1,5 @@
 import { BetaService } from '../../core/beta.service';
+import { onScrollTick } from '../../core/scroll-tick';
 import { logWarn } from '../../core/log';
 import {
   ChangeDetectionStrategy,
@@ -671,8 +672,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   transition: background var(--holo-t-base) ease; }
   /* One sheet of glass, one hairline. */
   .holo-panel { position: relative; z-index: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
-  border: 1px solid var(--hair); border-radius: 16px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  border: 1px solid var(--hair); border-radius: 16px; background: color-mix(in srgb, var(--sc-bg-0) 73%, transparent);
+ }
 
   /* ── Tabs: a glowing pill slides under the word ── */
   .ptabs { position: relative; flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 10px 10px 0; min-height: max(38px, var(--sc-tap-min, 0px));
@@ -1490,11 +1491,11 @@ export class CodexHoloStageComponent {
       };
       const queueJoin = (): void => { joinRaf ||= requestAnimationFrame(measureJoin); };
       queueJoin();
-      document.addEventListener('scroll', queueJoin, { capture: true, passive: true });
+      const offScroll = onScrollTick(measureJoin, { anyTarget: true });
       window.addEventListener('resize', queueJoin, { passive: true });
       this.destroyRef.onDestroy(() => {
         cancelAnimationFrame(joinRaf);
-        document.removeEventListener('scroll', queueJoin, { capture: true });
+        offScroll();
         window.removeEventListener('resize', queueJoin);
       });
       if (typeof ResizeObserver !== 'function') return;

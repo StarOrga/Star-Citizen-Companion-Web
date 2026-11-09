@@ -13,6 +13,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { onScrollTick } from '../../core/scroll-tick';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloSilhouette } from '../holo-silhouette';
@@ -132,13 +133,13 @@ function bindParallax(frame: HTMLElement, still: () => boolean): () => void {
   };
   frame.addEventListener('pointermove', onMove, { passive: true });
   frame.addEventListener('pointerleave', onLeave, { passive: true });
-  window.addEventListener('scroll', queue, { passive: true, capture: true });
+  const offScroll = onScrollTick(apply, { anyTarget: true });
   queue();
   return () => {
     if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
     frame.removeEventListener('pointermove', onMove);
     frame.removeEventListener('pointerleave', onLeave);
-    window.removeEventListener('scroll', queue, { capture: true });
+    offScroll();
   };
 }
 

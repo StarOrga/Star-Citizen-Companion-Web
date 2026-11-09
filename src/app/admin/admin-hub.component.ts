@@ -198,8 +198,7 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = ADMIN_HUB_GROUPS.flatMap
         padding: var(--sc-space-4);
         border-radius: 14px;
         border: 1px solid color-mix(in srgb, var(--sc-accent-hot) 30%, var(--sc-border));
-        background: color-mix(in srgb, var(--sc-bg-2) 72%, transparent);
-        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-2) 85%, transparent);
         color: var(--sc-fg-0);
         text-decoration: none;
         transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;

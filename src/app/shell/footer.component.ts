@@ -335,8 +335,7 @@ import { BRAND_NAME } from '../core/brand';
         margin: 0; box-sizing: border-box;
         padding: 0 var(--sc-fab-clear-inline) var(--sc-safe-bottom, 0px) 190px;
         height: calc(48px + var(--sc-safe-bottom, 0px));
-        background: color-mix(in srgb, var(--sc-bg-1) 55%, transparent);
-        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-1) 75%, transparent);
         border-top: 1px solid var(--sc-border);
       }
       .overlay .inner { height: 48px; gap: 18px; max-width: none; margin: 0; }

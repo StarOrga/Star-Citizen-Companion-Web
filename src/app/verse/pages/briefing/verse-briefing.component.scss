@@ -319,8 +319,7 @@
   padding: 0 26px;
   border: 1px solid color-mix(in srgb, var(--sc-fg-0) 60%, transparent);
   border-radius: 30px;
-  background: color-mix(in srgb, var(--sc-bg-0) 35%, transparent);
-  backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--sc-bg-0) 64%, transparent);
   color: var(--sc-fg-0);
   font: 400 max(0.75rem, var(--sc-fs-floor)) var(--sc-font-display);
   letter-spacing: 0.2em;

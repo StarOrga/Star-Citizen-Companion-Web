@@ -16,6 +16,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { onScrollTick } from '../../core/scroll-tick';
 import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -575,39 +576,37 @@ export class FusionBarComponent {
 
   private listen(): void {
     if (typeof window === 'undefined') return;
-    // Scroll-linked: one progress update per frame, however many scroll events came in.
-    let scrollFrame = 0;
-    const onScroll = () => {
-      if (scrollFrame) return;
-      scrollFrame = requestAnimationFrame(() => {
-        scrollFrame = 0;
-        this.onScroll(window.scrollY);
-      });
-    };
     const onResize = () => {
       const phone = matches('(max-width: 720px)');
       if (phone !== this.phone()) this.zone.run(() => this.phone.set(phone));
       this.barH = readBarHeight();
+      this.condenseGeo = null;
       this.publishHeight();
       this.schedulePlace();
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
+    // Scroll-linked: one progress update per frame, on the app's shared scroll tick.
+    const offScroll = onScrollTick(() => this.onScroll(window.scrollY));
     // The stack grows with the panel; the page above the slot can reflow — keep both true.
     const ro =
       typeof ResizeObserver === 'undefined'
         ? null
-        : new ResizeObserver(() => this.scheduleMeasure());
+        : new ResizeObserver(() => {
+            this.condenseGeo = null;
+            this.scheduleMeasure();
+          });
     ro?.observe(this.host.nativeElement as HTMLElement);
     ro?.observe(document.body);
     window.addEventListener('resize', onResize, { passive: true });
     // A main page's hero re-aligned its slot (late data around it): stand on it again.
-    const onSlotMoved = () => this.schedulePlace();
+    const onSlotMoved = () => {
+      this.condenseGeo = null;
+      this.schedulePlace();
+    };
     window.addEventListener(STAGE_SLOT_MOVED, onSlotMoved);
     this.publishHeight();
     this.onScroll(window.scrollY);
     this.injector.get(DestroyRef).onDestroy(() => {
-      window.removeEventListener('scroll', onScroll);
-      if (scrollFrame) cancelAnimationFrame(scrollFrame);
+      offScroll();
       window.removeEventListener('resize', onResize);
       window.removeEventListener(STAGE_SLOT_MOVED, onSlotMoved);
       ro?.disconnect();
@@ -647,7 +646,9 @@ export class FusionBarComponent {
     const restoring = this.navQuiet || this.routeScroll.restoring;
     if (restoring) this.snap();
     // Stage geometry first: the cap's width and travel are measured against the slot.
-    if (mid) this.measureCondense();
+    // Fresh geometry for every morph; inside one, the cached rects plus scrollY are enough.
+    if (!mid) this.condenseGeo = null;
+    else this.measureCondense();
     if (dockedNow !== this.docked() || mid !== this.condensing()) {
       const wasFull = this.chrome.dockProgress === 1;
       this.zone.run(() => {
@@ -657,11 +658,29 @@ export class FusionBarComponent {
         if (p >= 1 && !wasFull && !restoring) this.pulse('morph');
       });
       this.flush();
+      // The state classes just changed the cap: measure the morph's geometry after them.
+      this.condenseGeo = null;
       if (mid) this.measureCondense();
       else if (!dockedNow) this.placeStage(true);
     }
     this.chrome.setDockProgress(p);
   }
+
+  /**
+   * The geometry the condense frames need, measured once per morph (and again on resize,
+   * a moved slot or a reflow) instead of every scroll frame: the slot's page position and
+   * the cap's untransformed offsets do not change while the page only scrolls.
+   */
+  private condenseGeo: {
+    anchor: Element;
+    w: number;
+    cx: number;
+    slotDocTop: number;
+    dockedCx: number;
+    dockedTop: number;
+    fixed: boolean;
+    lead: number;
+  } | null = null;
 
   /** The stage slot's width and the cap's offset from its docked rect, as CSS vars for the in-between frames. */
   private measureCondense(): void {
@@ -669,27 +688,43 @@ export class FusionBarComponent {
     const el = this.host.nativeElement as HTMLElement;
     const cap = this.capEl();
     if (!anchor || !anchor.isConnected || !cap) {
+      this.condenseGeo = null;
       setVar(el, '--_dx', '0px');
       setVar(el, '--_dy', '0px');
       return;
     }
-    const a = anchor.getBoundingClientRect();
-    const h = el.getBoundingClientRect();
-    setVar(el, '--_st-w', `${Math.round(a.width)}px`);
-    // offsetLeft/Top ignore the cap's own transform: where the docked bar would stand.
-    const dockedCx = h.left + cap.offsetLeft + cap.offsetWidth / 2;
-    const dockedTop = h.top + cap.offsetTop;
-    setVar(el, '--_dx', `${Math.round(a.left + a.width / 2 - dockedCx)}px`);
+    const y = window.scrollY;
+    let c = this.condenseGeo;
+    if (!c || c.anchor !== anchor) {
+      const a = anchor.getBoundingClientRect();
+      const h = el.getBoundingClientRect();
+      const fixed = getComputedStyle(el).position === 'fixed';
+      // offsetLeft/Top ignore the cap's own transform: where the docked bar would stand.
+      const search = cap.querySelector<HTMLElement>(':scope > .search');
+      const first = cap.querySelector<HTMLElement>(':scope > .blogo');
+      c = this.condenseGeo = {
+        anchor,
+        w: Math.round(a.width),
+        cx: a.left + a.width / 2,
+        slotDocTop: a.top + y,
+        dockedCx: h.left + cap.offsetLeft + cap.offsetWidth / 2,
+        // A fixed bar stays put while the page scrolls; an in-flow one moves with it.
+        dockedTop: h.top + cap.offsetTop + (fixed ? 0 : y),
+        fixed,
+        // How far the docked search starts right of the cap's first slot (logo, plate, divider): it
+        // slides left by this while staged, so the cap's layout never changes during the morph.
+        lead: search && first ? Math.max(0, Math.round(search.offsetLeft - first.offsetLeft)) : 0,
+      };
+    }
+    setVar(el, '--_st-w', `${c.w}px`);
+    setVar(el, '--_dx', `${Math.round(c.cx - c.dockedCx)}px`);
     // Over a whole snap step the slot scrolls out of view long before the morph lands: the
     // cap then starts where the slot stands at rest and travels in one straight line up into
     // the bar (rounds/05 d5-pb-scroll), instead of riding the slot off screen and coming back.
-    const slotTop = snapTravelPx() ? a.top + window.scrollY : a.top;
+    const slotTop = snapTravelPx() ? c.slotDocTop : c.slotDocTop - y;
+    const dockedTop = c.fixed ? c.dockedTop : c.dockedTop - y;
     setVar(el, '--_dy', `${Math.round(slotTop - dockedTop)}px`);
-    // How far the docked search starts right of the cap's first slot (logo, plate, divider): it
-    // slides left by this while staged, so the cap's layout never changes during the morph.
-    const search = cap.querySelector<HTMLElement>(':scope > .search');
-    const first = cap.querySelector<HTMLElement>(':scope > .blogo');
-    setVar(el, '--_lead', `${search && first ? Math.max(0, Math.round(search.offsetLeft - first.offsetLeft)) : 0}px`);
+    setVar(el, '--_lead', `${c.lead}px`);
   }
 
   /** Transitions off for the next two frames (bar + header), so a state change jumps. */

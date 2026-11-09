@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, NgZone, afterNextRender, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { onScrollTick } from '../../../core/scroll-tick';
 import { logWarn } from '../../../core/log';
 import { WindowFocusService } from '../../../core/window-focus.service';
 import { PLANET_SOURCES, PlanetSources, loadBakedPlanet, nightSize } from './planet/planet-assets';
@@ -51,6 +52,11 @@ export class BriefingPlanetComponent {
   readonly anchor = input.required<HTMLElement>();
   /** Appear at once instead of sliding in; also makes a fallback generation run in fat slices. */
   readonly snap = input(false);
+  /**
+   * The host hides the planet (the shell scene's pose shows none, its layer stands at opacity 0):
+   * the render loop parks until it shows again — an invisible canvas drew 15 frames a second.
+   */
+  readonly paused = input(false);
   /** Fires once the planet is drawn for the first time. */
   readonly drawn = output<void>();
   /** Fires when no live planet will come (no WebGL). */
@@ -65,6 +71,7 @@ export class BriefingPlanetComponent {
   private readonly zone = inject(NgZone);
   private readonly loader = inject(PLANET_SOURCES);
   private readonly focus = inject(WindowFocusService);
+  private readonly injector = inject(Injector);
   private stopped = false;
   private cleanup: (() => void)[] = [];
   /**
@@ -285,6 +292,7 @@ export class BriefingPlanetComponent {
     // anyone sees, but the loop kept stepping the trains and redrawing the GL planet. It pauses
     // there and picks up again on return (dt is clamped by the scene, so the world just moves on).
     let onScreen = true;
+    let parked = false;
     const halt = () => {
       cancelAnimationFrame(frame);
       frame = 0;
@@ -293,7 +301,7 @@ export class BriefingPlanetComponent {
     };
     const tick = (now: number) => {
       frame = 0;
-      if (!onScreen || suspended) return;
+      if (!onScreen || suspended || parked) return;
       const v = geometry();
       if (last && (v.cx !== last.cx || v.cy !== last.cy || v.r !== last.r)) followUntil = now + FOLLOW_MS;
       last = v;
@@ -331,7 +339,7 @@ export class BriefingPlanetComponent {
     };
     // Capture: the shell may scroll an inner element instead of the window.
     addEventListener('resize', onResize);
-    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    const offScroll = onScrollTick(onScroll, { anyTarget: true });
     const io = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(([e]) => {
       onScreen = e.isIntersecting;
       if (onScreen && !reduce && !suspended && !frame && timer === null) {
@@ -347,17 +355,35 @@ export class BriefingPlanetComponent {
         planet.suspend();
         return;
       }
+      if (parked) return;
       planet.wake(performance.now());
       last = null;
       if (onScreen && !frame && timer === null) frame = requestAnimationFrame(tick);
     });
+    const park = reduce ? null : effect(() => {
+      const p = this.paused();
+      untracked(() => {
+        if (p === parked) return;
+        parked = p;
+        if (p) {
+          halt();
+          planet.suspend();
+          return;
+        }
+        if (suspended) return;
+        planet.wake(performance.now());
+        last = null;
+        if (onScreen && !frame && timer === null) frame = requestAnimationFrame(tick);
+      });
+    }, { injector: this.injector });
     this.cleanup.push(() => {
+      park?.destroy();
       halt();
       cancelAnimationFrame(suspendedDraw);
       stopFocus?.();
       io?.disconnect();
       removeEventListener('resize', onResize);
-      document.removeEventListener('scroll', onScroll, { capture: true });
+      offScroll();
     });
     // rAF pauses in a background tab by itself; reduced motion draws on demand only.
     if (reduce) planet.draw(geometry(), performance.now());

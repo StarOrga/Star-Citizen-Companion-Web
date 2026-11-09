@@ -1,4 +1,5 @@
 import { rankBySearch } from './codex-search';
+import { onScrollTick } from '../core/scroll-tick';
 import { CompareIconComponent } from './compare-icon.component';
 import { CodexBuildDiffService, NEW_SORT_KINDS } from './codex-build-diff.service';
 import { toErrorKey } from '../core/describe-error';
@@ -1249,13 +1250,13 @@ export class CodexBrowseComponent implements OnInit {
     const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
     afterNextRender(() => {
       measure();
-      window.addEventListener('scroll', schedule, { passive: true });
+      const offScroll = onScrollTick(measure);
       window.addEventListener('resize', schedule, { passive: true });
       const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
       const el = this.sideEl()?.nativeElement;
       if (ro && el?.parentElement) ro.observe(el.parentElement);
       this.destroyRef.onDestroy(() => {
-        window.removeEventListener('scroll', schedule);
+        offScroll();
         window.removeEventListener('resize', schedule);
         ro?.disconnect();
         if (frame) cancelAnimationFrame(frame);

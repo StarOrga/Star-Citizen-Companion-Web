@@ -12,6 +12,7 @@ import {
   createComponent,
   inject,
   input,
+  ApplicationRef,
 } from '@angular/core';
 
 /** `small` = beam + unfold (menus, notices); `large` = horizon plate; `panel` = the compact horizon rise of an in-page panel. */
@@ -41,7 +42,12 @@ const MAX_ANIMATED_ROWS = 16;
 })
 export class ScPopupMotionStylesComponent {}
 
-let stylesMounted = false;
+/**
+ * Apps the shared stylesheet is mounted in. Keyed by the ApplicationRef, not a module flag: a
+ * new application (every TestBed reset, a re-bootstrap) gets its own style host and would
+ * otherwise never see the popup keyframes again.
+ */
+const stylesMounted = new WeakSet<ApplicationRef>();
 
 /** Class on <html> while a large popup is open: the shell scene pushes in ~4 % and dims (P2 "Szene stößt vor"). */
 export const SCENE_PUSHIN_CLASS = 'sc-scene-pushin';
@@ -112,8 +118,9 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
   private pushing = false;
 
   constructor() {
-    if (!stylesMounted && typeof document !== 'undefined') {
-      stylesMounted = true;
+    const app = this.env.get(ApplicationRef);
+    if (!stylesMounted.has(app) && typeof document !== 'undefined') {
+      stylesMounted.add(app);
       createComponent(ScPopupMotionStylesComponent, { environmentInjector: this.env });
     }
     afterNextRender(() => this.index());

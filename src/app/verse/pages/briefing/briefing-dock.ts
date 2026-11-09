@@ -1,4 +1,5 @@
 import { NgZone, Signal, signal } from '@angular/core';
+import { onScrollTick } from '../../../core/scroll-tick';
 import { TX_DOORS } from './briefing-transmit.component';
 import { setSnapTravelPx } from '../../../shared/snap-travel';
 
@@ -198,7 +199,7 @@ export function wireDock(
     host.querySelector<HTMLElement>('section'),
     host.querySelector<HTMLElement>('sc-briefing-hub'),
   ], { zone });
-  const onScroll = (): void => schedule();
+  let offScroll = (): void => undefined;
 
   const parts = () =>
     TX_DOORS.map((d) => ({
@@ -258,7 +259,7 @@ export function wireDock(
   };
 
   zone.runOutsideAngular(() => {
-    window.addEventListener('scroll', onScroll, { passive: true });
+    offScroll = onScrollTick(update);
     window.addEventListener('resize', schedule);
   });
   wide?.addEventListener('change', schedule);
@@ -274,7 +275,7 @@ export function wireDock(
     destroy: () => {
       if (frame) cancelAnimationFrame(frame);
       releaseSnap();
-      window.removeEventListener('scroll', onScroll);
+      offScroll();
       window.removeEventListener('resize', schedule);
       wide?.removeEventListener('change', schedule);
       reduce?.removeEventListener('change', schedule);

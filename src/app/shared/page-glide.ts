@@ -1,4 +1,5 @@
 import { NgZone, Signal, signal } from '@angular/core';
+import { onScrollTick } from '../core/scroll-tick';
 import { DOCK_MIN_WIDTH, scrollToSmooth, wireSnap } from '../verse/pages/briefing/briefing-dock';
 
 /**
@@ -74,12 +75,12 @@ export function wirePageGlide(lower: () => HTMLElement | null, zone: NgZone, onS
     scrollToSmooth(to);
     return true;
   };
-  const onScroll = (): void => sync();
+  let offScroll = (): void => undefined;
   // The stage (the lower part's previous sibling) and the lower part are the two snap areas.
   const releaseSnap = wireSnap(() => [lower()?.previousElementSibling as HTMLElement | null, lower()], { zone });
 
   zone.runOutsideAngular(() => {
-    window.addEventListener('scroll', onScroll, { passive: true });
+    offScroll = onScrollTick(sync);
     window.addEventListener('resize', sync);
   });
   sync();
@@ -93,7 +94,7 @@ export function wirePageGlide(lower: () => HTMLElement | null, zone: NgZone, onS
     },
     destroy: () => {
       releaseSnap();
-      window.removeEventListener('scroll', onScroll);
+      offScroll();
       window.removeEventListener('resize', sync);
     },
   };
@@ -137,12 +138,12 @@ export function holdOnLower(
     ro?.disconnect();
     clearTimeout(timer);
     for (const t of userEvents) window.removeEventListener(t, stop, true);
-    window.removeEventListener('scroll', onScroll);
+    offScroll();
     onStop();
   };
+  const offScroll = onScrollTick({ read: onScroll });
   const timer = setTimeout(stop, ms);
   for (const t of userEvents) window.addEventListener(t, stop, { capture: true, passive: true });
-  window.addEventListener('scroll', onScroll, { passive: true });
   ro?.observe(document.body);
   land();
   return stop;

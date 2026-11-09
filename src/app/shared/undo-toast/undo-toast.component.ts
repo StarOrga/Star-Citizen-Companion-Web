@@ -36,10 +36,9 @@ import { UndoToastService } from './undo-toast.service';
       width: min(var(--sc-toast-w, 24rem), calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: flex; align-items: center; gap: 12px;
       padding: 10px 10px 12px 16px; border-radius: 14px; overflow: hidden;
-      background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 30px color-mix(in srgb, var(--sc-accent) 14%, transparent);
-      backdrop-filter: blur(10px);
     }
     .msg { flex: 1; min-width: 0; font-size: 0.9rem; color: var(--sc-fg-0); }
     .undo {

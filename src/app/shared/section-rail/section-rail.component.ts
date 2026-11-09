@@ -85,9 +85,7 @@ export interface SectionRailGo {
         z-index: 5;
         margin: 0 calc(-1 * var(--sc-page-gutter, 16px)) var(--sc-space-3, 12px);
         padding: var(--sc-space-2, 8px) var(--sc-page-gutter, 16px);
-        background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent);
-        -webkit-backdrop-filter: blur(12px);
-        backdrop-filter: blur(12px);
+        background: color-mix(in srgb, var(--sc-bg-0) 92%, transparent);
         border-bottom: 1px solid var(--sc-border);
       }
       :host:not(.inline) .rail {
@@ -199,7 +197,7 @@ export interface SectionRailGo {
       :host(.inline) .label .short { display: none; }
       @media (max-width: 720px) {
         /* A dialog on a phone: the same pill strip the edge variant becomes. */
-        :host(.inline) { position: sticky; top: 0; z-index: 2; padding: 8px 12px; background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--sc-border); }
+        :host(.inline) { position: sticky; top: 0; z-index: 2; padding: 8px 12px; background: color-mix(in srgb, var(--sc-bg-0) 92%, transparent); border-bottom: 1px solid var(--sc-border); }
         :host(.inline) .rail { flex-direction: row; gap: 6px; overflow-x: auto; scrollbar-width: none; }
         :host(.inline) .rail::-webkit-scrollbar { display: none; }
         :host(.inline) .stop, :host(.inline) .stop:hover, :host(.inline) .stop:focus-visible {

@@ -72,10 +72,9 @@ const STARSCAPE_FALLBACK_URL =
       width: min(var(--sc-toast-w, 24rem), calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: grid; grid-template-columns: auto 1fr auto; column-gap: 12px; align-items: center;
       padding: 10px 12px; border-radius: 14px; overflow: hidden; cursor: pointer;
-      background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 30px color-mix(in srgb, var(--sc-accent) 14%, transparent);
-      backdrop-filter: blur(10px);
     }
     .toast.open { cursor: default; }
     .ico {

@@ -11,6 +11,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { onScrollTick } from '../core/scroll-tick';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -895,8 +896,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     }
     const panel = this.host.nativeElement.querySelector<HTMLElement>('.panel');
     if (panel) {
-      this.scrollListener = () => this.syncActive(panel);
-      panel.addEventListener('scroll', this.scrollListener, { passive: true });
+      this.scrollListener = onScrollTick(() => this.syncActive(panel), { target: panel });
     }
   }
 
@@ -906,7 +906,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     if (this.flashTimer !== null) clearTimeout(this.flashTimer);
     if (this.cardFlashTimer !== null) clearTimeout(this.cardFlashTimer);
     const panel = this.host.nativeElement.querySelector<HTMLElement>('.panel');
-    if (panel && this.scrollListener) panel.removeEventListener('scroll', this.scrollListener);
+    this.scrollListener?.();
   }
 
   /** Escape inside the panel (ScDialogDirective) and the ✕ close; a click on the scrim does not. */

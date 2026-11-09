@@ -1,4 +1,5 @@
 import { logWarn } from '../core/log';
+import { onScrollTick } from '../core/scroll-tick';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -855,6 +856,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
    * settings page costs one rAF-throttled measurement and no change detection.
    */
   private scrollListener?: () => void;
+  private offScroll?: () => void;
   private spyFrame = 0;
 
   readonly languages: readonly LangId[] = ['de', 'en'];
@@ -955,7 +957,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
           this.syncActiveGroup();
         });
       };
-      window.addEventListener('scroll', this.scrollListener, { passive: true });
+      this.offScroll = onScrollTick(() => this.syncActiveGroup());
       window.addEventListener('resize', this.scrollListener, { passive: true });
       this.syncActiveGroup();
     });
@@ -1041,7 +1043,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy() {
     if (this.spyFrame) cancelAnimationFrame(this.spyFrame);
     if (!this.scrollListener) return;
-    window.removeEventListener('scroll', this.scrollListener);
+    this.offScroll?.();
     window.removeEventListener('resize', this.scrollListener);
     this.scrollListener = undefined;
   }

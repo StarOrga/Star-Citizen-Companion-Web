@@ -11,6 +11,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { onScrollTick } from '../core/scroll-tick';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, Scroll } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -258,14 +259,14 @@ export class HqPagesComponent {
     };
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(queue);
     this.zone.runOutsideAngular(() => {
-      window.addEventListener('scroll', queue, { passive: true });
       window.addEventListener('resize', queue, { passive: true });
       ro?.observe(this.host.nativeElement);
     });
+    const offScroll = onScrollTick(() => this.measureCue());
     this.measureCue();
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', queue);
+      offScroll();
       window.removeEventListener('resize', queue);
       ro?.disconnect();
     };
