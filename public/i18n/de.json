@@ -925,7 +925,6 @@
         "detailHide": "Detail ▴",
         "allValues": "Alle Werte ▾",
         "allValuesHide": "Alle Werte ▴",
-        "journal": "Änderungsprotokoll",
         "journalChanged": "Geändert: {{label}}",
         "undo": "Rückgängig",
         "detailsShow": "Details ▾",
@@ -949,7 +948,6 @@
         "legendMissiles": "Raketen",
         "legendHint": "Hover = Kurzwerte · Klick = Inspector",
         "inspectorEmptyTitle": "Kein Hardpoint gewählt",
-        "inspectorEmptyBody": "Klick auf einen Pin — oder tippe „1“ bis „{{n}}“.",
         "emptyBay": "Leerer Platz",
         "journalEmpty": "Noch nichts — Werksausstattung.",
         "allPorts": "Alle {{n}} Ports",
@@ -985,7 +983,6 @@
         "backToParts": "Alle Bauteile",
         "backHint": "Zurück zur Liste (Esc)",
         "partsTotal": "{{n}} Bauteile",
-        "partsInstalled": "{{n}} verbaut",
         "partSize": "Größe",
         "partGrade": "Klasse",
         "iconWishlist": "Wunschliste",
@@ -998,8 +995,6 @@
         "previewBuy": "Wo zu kaufen",
         "previewAlternatives": "Passende Alternativen",
         "previewOpen": "Detailseite öffnen",
-        "patchDiff": "Patch-Vergleich",
-        "patchDiffHint": "Wähle oben im Patch-Menü einen anderen Patch, dann steht hier, was sich an diesem Schiff geändert hat.",
         "viewAkte": "Akte",
         "view3dUnavailable": "Für dieses Schiff gibt es noch kein 3D-Modell.",
         "viewsAria": "Ansicht",
@@ -1046,10 +1041,8 @@
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
-          "comparing": "Vergleich mit {{patch}}",
           "hotkeyHint": "Mit einem anderen Patch vergleichen"
         },
-        "popTitle": "Patch wählen",
         "loading": "Wird geladen …",
         "empty": "Keine weiteren Patches verfügbar.",
         "notFinalised": "Nicht abgeschlossen",
@@ -1083,7 +1076,23 @@
         },
         "deltaShow": "Änderungen zeigen",
         "deltaHide": "Änderungen ausblenden",
-        "current": "aktiv"
+        "current": "aktuell",
+        "hint": "Wähle links einen älteren Patch, dann steht hier, was sich an diesem Schiff geändert hat.",
+        "fromAria": "Von {{patch}} — Patch wählen",
+        "toAria": "Bis {{patch}} — Patch wählen",
+        "fromTitle": "Von Patch",
+        "toTitle": "Bis Patch",
+        "pickFrom": "Patch wählen",
+        "orderHint": "Rechts steht immer der neuere Patch. Ältere wählst du links bei „von“.",
+        "onOtherSide": "steht schon auf der anderen Seite",
+        "newerThan": "nicht älter als {{patch}}",
+        "olderThan": "nicht neuer als {{patch}}",
+        "changedOn": "Was sich an der {{name}} geändert hat",
+        "channel": {
+          "LIVE": "Live",
+          "PTU": "PTU",
+          "EPTU": "EPTU"
+        }
       },
       "share": {
         "copyLink": "Link kopieren",
@@ -1126,7 +1135,25 @@
         "loadError": "Das geteilte Loadout konnte nicht geladen werden.",
         "exit": "Zurück zu meinem Loadout",
         "readOnlyHint": "Geteiltes Loadout — nur lesen. Übernimm es, um es zu ändern oder zu speichern."
-      }
+      },
+      "card": {
+        "rank": "Rang {{n}} von {{m}}",
+        "overallTip": "Gesamtwert: besser als {{pct}} % der Gruppe",
+        "compareWith": "Vergleich mit",
+        "scopeOff": "{{name}} · keine Daten",
+        "shapeAria": "Darstellung der Einordnung",
+        "shapeHex": "Hexagon",
+        "shapeBars": "Balken",
+        "changesAria": "Art der Änderungen",
+        "changesMine": "Deine Anpassungen",
+        "changesPatch": "Patch-Vergleich",
+        "changesHead": "Getauscht gegenüber dem Werk",
+        "backToWerk": "Zurück auf Werk"
+      },
+      "inspector": {
+        "diffLegend": "weicht vom Werk ab"
+      },
+      "diffMarker": "Weicht vom Werk ab"
     },
     "empty": {
       "title": "Noch nichts hier",

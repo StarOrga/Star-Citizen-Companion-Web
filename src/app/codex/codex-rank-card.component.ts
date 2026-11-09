@@ -114,9 +114,9 @@ function readShapePref(): 'hex' | 'bars' {
       @if (result() && holo()) {
         <!-- Holotable card (r4 d1, C15): the place in the group first, then
              "Vergleich mit" + the group as a list and the hexagon ⇄ bars switch. -->
-        @if (result()!.rank != null) {
+        @if (result()!.rank) {
           <p class="holo-rank" tabindex="0"
-             [scTooltip]="result()!.overall != null ? ('codex.holo.card.overallTip' | translate: { pct: result()!.overall }) : null" scTooltipTier="label">
+             [scTooltip]="result()!.overall !== null ? ('codex.holo.card.overallTip' | translate: { pct: result()!.overall }) : null" scTooltipTier="label">
             <b>{{ 'codex.holo.card.rank' | translate: { n: result()!.rank, m: result()!.cohortSize } }}</b>
             <span class="grp">· {{ activeScopeLabel() }}</span>
             @if (result()!.bandKey; as band) { <span class="band">· {{ band | translate }}</span> }

@@ -412,7 +412,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
               <div class="patch-slot" [hidden]="panelTab() !== 'changes' || changeView() !== 'patch'">
                 <sc-codex-holo-patch
                   [hotkey]="hkLabel.patch"
-                  [dockDelta]="true"
+                  [shipName]="displayName()"
                   [autoCompare]="panelTab() === 'changes' && changeView() === 'patch'"
                   [className]="detail().classNameSlug"
                   [channel]="channel()"
@@ -458,7 +458,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
                 @case ('rank') {
                   <div class="rankbody" [scFeedbackSpot]="'codex.holo.stage.einordnung'">
                     <!-- With a ranking the card itself opens with "Rang N von M" (C15). -->
-                    @if (rankResult()?.overall == null) {
+                    @if ((rankResult()?.overall ?? null) === null) {
                       <div class="rh"><strong>{{ roleName() ?? (rankClassLabel() | translate) }}</strong></div>
                     }
                     <div class="statics">
