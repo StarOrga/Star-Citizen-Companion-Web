@@ -1,16 +1,17 @@
 import { NgZone, Signal, signal } from '@angular/core';
-import { DOCK_GLIDE_MS, DOCK_MIN_WIDTH, glideEase, inScroller, keyDirection, typing } from '../verse/pages/briefing/briefing-dock';
+import { DOCK_MIN_WIDTH, scrollToSmooth, wireSnap } from '../verse/pages/briefing/briefing-dock';
 
 /**
  * The "Mehr im Verse" scroll mechanism (verse/pages/briefing/briefing-dock.ts)
  * for a page that is a stage on top and one tall lower part under it (the
- * Codex: landing, then the overview). Same rules as the Verse dock:
- * a scroll gesture (wheel, keys) on the stage glides all the way to the lower
- * part ({@link DOCK_GLIDE_MS}), an upward gesture at the top of the lower part
- * glides back to the stage, and a scroll that stops half way (scrollbar, focus,
- * find in page) finishes in the direction it went — never a half-and-half
- * picture. Inside the lower part the page scrolls natively (it is longer than
- * a viewport). Narrow screens and reduced motion keep the browser's own scroll.
+ * Codex: landing, then the overview). Same rules as the Verse dock, now as
+ * native CSS scroll-snap ({@link wireSnap}): stage and lower part are the two
+ * snap areas, so a scroll gesture on the stage finishes on the lower part, an
+ * upward one at the top of the lower part finishes on the stage, and a scroll
+ * that stops half way (scrollbar, focus, find in page) never shows a
+ * half-and-half picture. Inside the lower part the page scrolls freely (it is
+ * longer than a viewport). Narrow screens and reduced motion keep the
+ * browser's own scroll. The scripted rAF glide is gone.
  */
 
 export type PartState = 'top' | 'fly' | 'docked';
@@ -48,10 +49,6 @@ export function wirePageGlide(lower: () => HTMLElement | null, zone: NgZone, onS
   const state = signal<PartState>('top');
   const reduce = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   const wide = typeof matchMedia === 'function' ? matchMedia(`(min-width: ${DOCK_MIN_WIDTH}px)`) : null;
-  let glideFrame = 0;
-  let lastY = window.scrollY;
-  let lastDir = 0;
-  let lastScrollAt = 0;
   const start = (): number => {
     const el = lower();
     return el ? lowerStart(el) : 0;
@@ -70,61 +67,19 @@ export function wirePageGlide(lower: () => HTMLElement | null, zone: NgZone, onS
     const s = start();
     document.querySelector<HTMLElement>('.cx-more-cue')?.style.setProperty('--dock', (s > 1 ? Math.min(1, window.scrollY / s) : 0).toFixed(3));
   };
-  const stopGlide = (): void => {
-    if (glideFrame) cancelAnimationFrame(glideFrame);
-    glideFrame = 0;
-  };
   const glide = (dir: number): boolean => {
     if (!active()) return false;
     const to = partTarget(window.scrollY, start(), dir);
     if (to === null) return false;
-    stopGlide();
-    const from = window.scrollY;
-    const ms = Math.max(400, DOCK_GLIDE_MS * Math.min(1, Math.abs(to - from) / Math.max(1, start())));
-    const t0 = performance.now();
-    const step = (now: number): void => {
-      const t = Math.min(1, (now - t0) / ms);
-      window.scrollTo({ top: from + (to - from) * glideEase(t), behavior: 'instant' });
-      glideFrame = t < 1 ? requestAnimationFrame(step) : 0;
-    };
-    zone.runOutsideAngular(() => (glideFrame = requestAnimationFrame(step)));
+    scrollToSmooth(to);
     return true;
   };
-
-  const onWheel = (e: WheelEvent): void => {
-    if (!active() || e.ctrlKey || !e.deltaY || inScroller(e.target as Element | null)) return;
-    // The hologram zooms on the wheel: that turn is not the page's.
-    if ((e.target as Element | null)?.closest?.('model-viewer')) return;
-    const dir = Math.sign(e.deltaY);
-    // The inertia of a native scroll up through the lower part must not flip straight on to the stage.
-    if (dir < 0 && !glideFrame && performance.now() - lastScrollAt < 160 && lastDir < 0) return;
-    if (glideFrame || glide(dir)) e.preventDefault();
-  };
-  const onKey = (e: KeyboardEvent): void => {
-    const dir = keyDirection(e);
-    if (!dir || !active() || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || typing(e.target as Element | null)) return;
-    if (e.key === ' ' && (e.target as Element | null)?.closest?.('button, a, summary, [role="button"]')) return;
-    if (glideFrame || glide(dir)) e.preventDefault();
-  };
-  const onScroll = (): void => {
-    const y = window.scrollY;
-    if (y !== lastY) lastDir = Math.sign(y - lastY);
-    lastY = y;
-    lastScrollAt = performance.now();
-    sync();
-  };
-  const onScrollEnd = (): void => {
-    if (glideFrame || !active()) return;
-    const y = window.scrollY;
-    const s = start();
-    if (y > 1 && y < s - 1) glide(lastDir || (y > s / 2 ? 1 : -1));
-  };
+  const onScroll = (): void => sync();
+  // The stage (the lower part's previous sibling) and the lower part are the two snap areas.
+  const releaseSnap = wireSnap(() => [lower()?.previousElementSibling as HTMLElement | null, lower()]);
 
   zone.runOutsideAngular(() => {
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('scrollend', onScrollEnd);
-    window.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('keydown', onKey);
     window.addEventListener('resize', sync);
   });
   sync();
@@ -133,16 +88,12 @@ export function wirePageGlide(lower: () => HTMLElement | null, zone: NgZone, onS
     state: state.asReadonly(),
     glide,
     jumpToLower: () => {
-      stopGlide();
       window.scrollTo({ top: start(), behavior: 'instant' });
       sync();
     },
     destroy: () => {
-      stopGlide();
+      releaseSnap();
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('scrollend', onScrollEnd);
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('keydown', onKey);
       window.removeEventListener('resize', sync);
     },
   };

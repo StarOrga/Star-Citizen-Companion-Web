@@ -450,7 +450,9 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   opacity: 0;
 }
 :host(.condense) .blogo sc-brand-logo {
-  transition: opacity 0.15s linear;
+  // One hard swap with the header's logo (same spot): a fade here left both half-visible,
+  // or neither, for a few frames (S2).
+  transition: none;
 }
 :host(.condensing) .cap {
   // Between the stage slot and the docked rect: width and travel follow the scroll.
@@ -472,7 +474,15 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   margin: 0 calc(var(--sc-space-4) * var(--sc-dock-p, 1)) 0 calc(var(--sc-space-2) * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
 }
+// The hit count fades in as the field arrives (S1).
+:host(.condensing) .count {
+  opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.7) * 3.4), 1);
+}
 @media (max-width: 720px) {
+  // The phone's route line joins the header's logo instead of covering it (S3).
+  :host(.condensing) .route {
+    opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.2) * 2), 1);
+  }
   // The phone bar sits at the bottom: the cap keeps its own (auto) width while it travels.
   :host(.condensing) .cap {
     width: auto;
@@ -710,7 +720,8 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 // Docked main page: the header's own copy is still gliding in — this one keeps its
 // room (the field never shifts when it lands) but stays invisible until it has.
 .account {
-  transition: opacity 0.2s ease;
+  // Hard swap with the header's account (it stands until this one shows): never a frame without icons.
+  transition: none;
 }
 .account.pending {
   opacity: 0;
@@ -981,8 +992,25 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   .ks-label {
     display: none;
   }
-  .blogo {
-    width: 36px;
+  // The logo stays on top, in the route line (.rlogo); the thumb bar holds search and filters.
+  .blogo,
+  :host(.condensing) .blogo {
+    display: none;
+  }
+  .rlogo {
+    flex: none;
+    align-self: center;
+    display: flex;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+  .rlogo sc-brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+  .route .cat {
+    align-self: center;
   }
   // Under the thumb: logo · field · compact filter button. The kind switch and the
   // tokens live in the panel (its kind row, its columns); the field keeps its width.
