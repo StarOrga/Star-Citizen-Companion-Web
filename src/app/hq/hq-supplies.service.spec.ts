@@ -100,6 +100,23 @@ describe('HqSuppliesService', () => {
     expect(s.items()[0].qty).toBe(3);
   });
 
+  it('keeps the minimum quality on the line, the stricter one wins on a merge, and pushes it as min_quality', async () => {
+    const s = make();
+    await s.sync();
+    const first = s.addLine('Eisen', 1, { minQuality: 700 });
+    expect(first).not.toBeNull();
+    s.addLine('Eisen', 1, { minQuality: 600 });
+    expect(s.items().length).toBe(1);
+    expect(s.items()[0].minQuality).toBe(700);
+    s.addLine('Eisen', 1, { minQuality: 850 });
+    expect(s.items()[0].minQuality).toBe(850);
+    s.setMinQuality(s.items()[0].id, 2000);
+    expect(s.items()[0].minQuality).toBeNull();
+    s.setMinQuality(s.items()[0].id, 720);
+    await s.sync();
+    expect(server.find((r) => r.name === 'Eisen')?.min_quality).toBe(720);
+  });
+
   it('rejects empty names and clamps quantities', () => {
     const s = make();
     expect(s.add('   ', 1)).toBe(false);

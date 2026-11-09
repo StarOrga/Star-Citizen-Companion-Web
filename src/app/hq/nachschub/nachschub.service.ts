@@ -33,7 +33,9 @@ import {
   positionKey,
   reactivate,
   takeFromWishlist,
+  type NachschubLineInput,
   type NachschubType,
+  parseSellGoal,
 } from './nachschub.model';
 import { archiveAtEventEnd, clearEventNachschub, isEventNachschub, rewardWishes, wishlistAfterClaim } from '../events/event-nachschub';
 import type { EventReward } from '../events/event-sheet';
@@ -402,6 +404,154 @@ export class NachschubService {
     };
   }
 
+  // ------------------------------------------------------------------------------------------ from the Bestand (D4-D6)
+
+  /**
+   * "Abholen planen" / "Verkaufen" in the Bestand: puts `lines` into the existing active Nachschub `target` (as often
+   * as you like - each call adds more, a line already there for the same item grows and its pick-up places merge), or
+   * into a NEW normal Nachschub with `'new'`. A line with `stops` is a gather line (route ordered by amount, tickable
+   * per stop). No cross-Nachschub merging: the lines stay in the one Nachschub you named. Undo takes back exactly what
+   * this call added.
+   */
+  async addToNachschub(target: string | 'new', lines: readonly NachschubLineInput[], opts: { name?: string } = {}): Promise<NachschubResult> {
+    if (target === 'new') return this.createWithLines(lines, { name: opts.name });
+    const n = this.packages().find((p) => p.id === target && p.status === 'active');
+    if (!n) return fail('errors.generic');
+    return this.putLines(n.id, lines, 'hq.nachschub.done.added');
+  }
+
+  /**
+   * "Geld verdienen": a new Nachschub of type `verkauf` with an aUEC goal and `lines` from the Bestand (the items to
+   * sell, each with the places they lie at). Progress comes from sales the app reports ({@link reportSale}) or is set
+   * by hand ({@link setSellProgress}). `goalAuec` must be a whole aUEC amount of at least 1.
+   */
+  async createSellNachschub(goalAuec: number, lines: readonly NachschubLineInput[], opts: { name?: string } = {}): Promise<NachschubResult> {
+    const goal = parseSellGoal(goalAuec);
+    if (goal === null) return fail('hq.nachschub.sellGoalInvalid');
+    return this.createWithLines(lines, { name: opts.name, sell: goal });
+  }
+
+  /** Sets the earned aUEC of a Verkauf Nachschub by hand (never below 0). */
+  async setSellProgress(id: string, earnedAuec: number): Promise<boolean> {
+    const uid = this.auth.user()?.id;
+    const n = this.packages().find((p) => p.id === id && p.type === 'verkauf');
+    if (!uid || !n || !Number.isFinite(earnedAuec) || earnedAuec < 0) return false;
+    const earned = Math.round(earnedAuec);
+    if ((await this.patch(id, uid, { progress_auec: earned })) !== 'ok') return false;
+    this.packages.update((ps) => ps.map((p) => (p.id === id ? { ...p, progressAuec: earned } : p)));
+    return true;
+  }
+
+  /**
+   * A sale the app reported: adds `auec` to the Verkauf Nachschub atomically (`hq_nachschub_report_sale`); `ref` (the
+   * sale's log event id) makes a re-sent report a no-op. Returns the new progress, null when nothing matched.
+   */
+  async reportSale(id: string, auec: number, ref: string | null = null): Promise<number | null> {
+    try {
+      const { data, error } = await this.sb.client.rpc('hq_nachschub_report_sale' as never, { p_package_id: id, p_auec: auec, p_ref: ref } as never);
+      if (error) throw error;
+      const next = data === null || data === undefined ? null : Number(data);
+      if (next === null || !Number.isFinite(next)) return null;
+      this.packages.update((ps) => ps.map((p) => (p.id === id ? { ...p, progressAuec: next } : p)));
+      return next;
+    } catch (err) {
+      logWarn('nachschub', 'report sale failed', err);
+      return null;
+    }
+  }
+
+  private async createWithLines(lines: readonly NachschubLineInput[], opts: { name?: string; sell?: number }): Promise<NachschubResult> {
+    const uid = this.auth.user()?.id;
+    if (!uid) return fail('errors.generic');
+    if (!lines.length) return fail('hq.nachschub.nothingPicked');
+    await this.ensureLoaded();
+    await this.reload();
+    const slot = freeSlot(this.packages());
+    if (slot === null) return fail('hq.nachschub.slotsFull');
+    const id = newClientId();
+    const items = lines.map((l) => ({ name: l.name, qty: Math.max(1, Math.round(l.amount)) }));
+    const name = clampName(opts.name?.trim() || (await this.naming.nachschubName(items)) || '', NACHSCHUB_NAME_MAX);
+    const now = new Date().toISOString();
+    const base: Nachschub = { id, name, status: 'active', slot, snapshot: {}, createdAt: now, archivedAt: null };
+    const saved = await this.insertNew(opts.sell ? { ...base, type: 'verkauf', goalAuec: opts.sell, progressAuec: 0 } : base, uid);
+    if (!saved) return fail(this.error() ?? 'errors.generic');
+    const put = await this.putLines(id, lines, 'hq.nachschub.done.created', { name });
+    if (!put.ok) {
+      await this.drop(id, uid);
+      return put;
+    }
+    const undoLines = put.undo;
+    return {
+      ...put,
+      undo: async () => {
+        if (!(await this.drop(id, uid))) return fail(this.error() ?? 'errors.generic');
+        await undoLines?.();
+        return UNDONE;
+      },
+    };
+  }
+
+  /** Adds the lines to Nachschub `id` with baselines; undo restores quantities / gather and removes the lines it created. */
+  private async putLines(id: string, lines: readonly NachschubLineInput[], key: string, params?: Record<string, string | number>): Promise<NachschubResult> {
+    const uid = this.auth.user()?.id;
+    const n = this.packages().find((p) => p.id === id);
+    if (!uid || !n) return fail('errors.generic');
+    const stock = await this.ensureStock();
+    const before = new Map(this.supplies.linesOfPackage(id).map((l) => [l.id, l]));
+    const snapshot: Record<string, number> = { ...n.snapshot };
+    const added: AddedLine[] = [];
+    let skipped = 0;
+    for (const l of lines) {
+      const stops = l.stops?.length ? l.stops : undefined;
+      const scu = l.unit === 'scu';
+      const line = this.supplies.addLine(l.name, scu ? 1 : Math.max(1, Math.round(l.amount)), {
+        entityKind: 'item',
+        className: l.className,
+        packageId: id,
+        source: 'search',
+        ...(scu ? { amount: l.amount, unit: 'scu' as const } : {}),
+        ...(stops ? { gather: stops, stepKind: 'pickup' as const } : {}),
+        ...(l.minQuality ? { minQuality: l.minQuality } : {}),
+      });
+      if (!line) {
+        skipped++;
+        continue;
+      }
+      added.push(line);
+      if (line.prevQty === 0 && stock) snapshot[line.id] = this.ownedOf({ ship: false, className: l.className ?? '' });
+    }
+    if (!added.length) return fail('hq.nachschub.linesFull');
+    if (JSON.stringify(snapshot) !== JSON.stringify(n.snapshot)) {
+      if ((await this.patch(id, uid, { snapshot })) !== 'ok') {
+        this.revertLines(added, before);
+        return fail(this.error() ?? 'errors.generic');
+      }
+      this.packages.update((ps) => ps.map((p) => (p.id === id ? { ...p, snapshot } : p)));
+    }
+    return {
+      ok: true,
+      key,
+      id,
+      params,
+      warn: skipped > 0 ? { key: 'hq.nachschub.partial', params: { count: skipped } } : undefined,
+      undo: async () => {
+        this.revertLines(added, before);
+        return UNDONE;
+      },
+    };
+  }
+
+  private revertLines(added: readonly AddedLine[], before: ReadonlyMap<string, SupplyItem>): void {
+    const fresh = added.filter((a) => a.prevQty === 0).map((a) => a.id);
+    if (fresh.length) this.supplies.removeMany(fresh);
+    for (const a of added) {
+      if (a.prevQty === 0) continue;
+      this.supplies.setLine(a.id, a.prevQty, a.prevAmount);
+      const g = before.get(a.id)?.gather;
+      if (g) this.supplies.setGather(a.id, g);
+    }
+  }
+
   /** Reward lines of chosen events: one line per reward; they close when the claimed reward lands in Bestand. */
   private addRewardLines(rewards: EventBinding['rewards'], packageId: string, snapshot: Record<string, number>, stock: boolean): AddedLine[] {
     const out: AddedLine[] = [];
@@ -714,6 +864,7 @@ export class NachschubService {
           archived_at: cur.archivedAt,
           type: cur.type ?? 'normal',
           event_id: cur.eventId ?? null,
+          ...(cur.type === 'verkauf' ? { goal_auec: cur.goalAuec ?? null, progress_auec: cur.progressAuec ?? 0 } : {}),
           deleted_at: null,
           updated_at: new Date().toISOString(),
         },
@@ -841,7 +992,8 @@ function fromRow(r: HqSupplyPackageRow): Nachschub {
     snapshot: snap,
     createdAt: r.created_at,
     archivedAt: r.archived_at,
-    type: r.type === 'event' || r.type === 'sightseeing' ? r.type : 'normal',
+    type: r.type === 'event' || r.type === 'sightseeing' || r.type === 'verkauf' ? r.type : 'normal',
     eventId: r.event_id ?? null,
+    ...(r.type === 'verkauf' ? { goalAuec: r.goal_auec ?? null, progressAuec: Number(r.progress_auec ?? 0) } : {}),
   };
 }

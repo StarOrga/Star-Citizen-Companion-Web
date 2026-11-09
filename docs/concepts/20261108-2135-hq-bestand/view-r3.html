@@ -1,0 +1,67 @@
+  <section data-view="d14-regeln" data-view-kind="analysis" data-analysis="full" data-nav-label="Offene Regeln" hidden>
+    <section id="d14-brief" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Drei Regeln fehlen noch, bevor das Frachtdeck gebaut werden kann: was „zuletzt aufgebraucht“ heißt, wie sich Routen mischen und wie fein die Unterfilter werden.</p>
+      <p data-briefing-why>Aus Runde 2 stehen fest: Qualität liest die App, von Hand optional; Zerlege-Daten kommen aus den Spieldaten; alle Orte im gruppierten Auswahlfeld; eine Sammel-Zeile für Abholen; eine eigene Nachschub-Art „Verkauf“; Reservieren mit Freund, Freitext, Benachrichtigung und Ablauf; alle vier Auswege bei leerem Treffer. Offen blieb „Nachbestellen“: deine Notiz sagt, es soll an den letzten Aktivitäten hängen, nicht an einer Frist.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"3","unit":"offene Regeln","label":"Danach ist das Frachtdeck baubar"}'>3</div>
+      <a data-briefing-topic="d14-t1" data-share="100">Offene Regeln</a>
+      <p data-briefing-duration>≈ 3 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"7 + 3","unit":"Regeln"}'></div></div>
+        <div data-slot="long"><div data-viz="table" data-viz-spec='{"columns":["Aus Runde 2","Entschieden"],"rows":[["Qualität","App liest sie, von Hand optional"],["Zerlegbar","aus den Spieldaten, sonst grau"],["Orts-Filter","alle Orte, gruppiert, leere gedimmt"],["Abholen","eine Sammel-Zeile mit Route"],["Verkaufen","eigene Nachschub-Art mit aUEC-Ziel"],["Reservieren","Freund, Freitext, Benachrichtigung, Ablauf"],["Auswege","woanders, wünschen, Ersatz, herstellen"]]}'></div><p>Neue Issues: #1033 (Loot-Overlay der App), #1037 (Begriff „Nachschub“). Die Session für den App-Status unten links wartet weiter auf deinen Klick.</p></div>
+      </div>
+    </section>
+    <section id="d14-t1" data-topic data-nav-label="Offene Regeln">
+      <div data-alevel="2" data-title="Offene Regeln">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Drei Fragen, die das Frachtdeck nicht selbst beantwortet."}'></div></div>
+        <div data-slot="long"><div data-viz="text" data-viz-spec='{"text":"Wie sie aussehen, zeigt das Design; hier geht es um die Regel dahinter."}'></div></div>
+      </div>
+    <section id="q-recent" data-nav-label="Zuletzt aufgebraucht" data-decision="q-recent" data-decision-mode="single" data-label="Zuletzt aufgebraucht" data-rec="session" data-rec-why="Eine Spielsitzung ist die Einheit, in der du verbrauchst. Wer eine Woche nicht spielt, sieht trotzdem, was beim letzten Mal draufging." data-applies-to="„Zuletzt aufgebraucht“ im Ladeprotokoll und Nachbestellen" data-finding="f-q-recent">
+      <p data-applies>Gilt für: „Zuletzt aufgebraucht“ im Ladeprotokoll und Nachbestellen</p>
+      <p data-situation>Fest steht (deine Notiz): es hängt an den letzten Aktivitäten, nicht an einer Frist. Heute zählen 48 Stunden aus den App-Ereignissen „inventory.snapshot“; ein Handabgang zählt gar nicht.</p>
+      <h3 data-question>Was heißt „zuletzt“?</h3>
+      <p data-stakes>Welche Gegenstände Nachbestellen anbietet.</p>
+      <div data-options>
+        <label data-opt="session" data-recommended><input type="radio" name="dm-q-recent" value="session" checked><span data-opt-label>Die letzte Spielsitzung, egal wann</span><span data-opt-consequence>Eine Sitzung = Spiel an bis Spiel aus laut App. Ohne App: der letzte Tag mit Änderungen.</span></label>
+        <label data-opt="three" ><input type="radio" name="dm-q-recent" value="three"><span data-opt-label>Die letzten drei Sitzungen</span><span data-opt-consequence>Mehr Auswahl, auch was vorgestern draufging.</span></label>
+        <label data-opt="changes"><input type="radio" name="dm-q-recent" value="changes"><span data-opt-label>Die letzten zehn Abgänge</span><span data-opt-consequence>Unabhängig von Sitzungen, auch Handabgänge.</span></label>
+      </div>
+      <textarea data-comment="q-recent-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Zuletzt aufgebraucht">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: die letzte Spielsitzung."}'></div></div>
+        <div data-slot="long"><p>Handabgänge (<code>takeOut</code>) schreiben dafür künftig ein Ereignis. Nachbestellen bietet alles daraus an, mit Menge, nicht nur das letzte.</p></div>
+      </div>
+    </section>
+    <section id="q-route" data-nav-label="Routen mischen" data-decision="q-route" data-decision-mode="single" data-label="Routen über mehrere Nachschübe" data-rec="merge" data-rec-why="Du fliegst einmal nach Area18, nicht einmal pro Nachschub. Jetzt soll zeigen, was du dort alles erledigen kannst." data-applies-to="Jetzt, Planen und Abholen aus dem Bestand" data-finding="f-q-route">
+      <p data-applies>Gilt für: Jetzt, Planen und Abholen aus dem Bestand</p>
+      <p data-situation>Deine Frage: was, wenn man für eine Route mehrere Einsätze mischt? Heute führt Jetzt genau einen Nachschub im Fokus (<code>NachschubFocusService</code>), jeder Einsatz hat seine eigenen Halte.</p>
+      <h3 data-question>Wie mischen sich Halte aus mehreren Nachschüben auf einer Route?</h3>
+      <p data-stakes>Ob du am selben Ort alles auf einmal erledigst.</p>
+      <div data-options>
+        <label data-opt="merge" data-recommended><input type="radio" name="dm-q-route" value="merge" checked><span data-opt-label>Jetzt legt Halte aller aktiven Nachschübe am selben Ort zusammen</span><span data-opt-consequence>Ein Halt „Area18“ zeigt Abholen, Kaufen und Verkaufen aus allen Nachschüben; jeder Haken zählt im eigenen Nachschub.</span></label>
+        <label data-opt="attach"><input type="radio" name="dm-q-route" value="attach"><span data-opt-label>Nur beim Anlegen anhängen</span><span data-opt-consequence>Abholen wird Teil eines gewählten Nachschubs; Jetzt bleibt bei einem Fokus.</span></label>
+        <label data-opt="none"><input type="radio" name="dm-q-route" value="none"><span data-opt-label>Kein Mischen</span><span data-opt-consequence>Jeder Nachschub bleibt eine eigene Route.</span></label>
+      </div>
+      <textarea data-comment="q-route-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Routen mischen">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Halte am selben Ort zusammenlegen."}'></div></div>
+        <div data-slot="long"><p>Betroffen: Jetzt (Einsatz-Ansicht), <code>hq_einsatz_steps</code> und die Fokus-Logik. Planen bleibt bei sieben Slots.</p></div>
+      </div>
+    </section>
+    <section id="q-subfilter" data-nav-label="Unterfilter" data-decision="q-subfilter" data-decision-mode="single" data-label="Unterfilter" data-rec="codex" data-rec-why="Der Codex kennt Typ und Slot jedes Gegenstands schon. So bleiben die Unterfilter vollständig und gleich für jeden Spieler." data-applies-to="die zweite Filterreihe im Inventar" data-finding="f-q-subfilter">
+      <p data-applies>Gilt für: die zweite Filterreihe im Inventar</p>
+      <p data-situation>Deine Notiz: Teilfilter wie Rüstung › Helme. Heute leitet <code>categoryOf</code> die vier Arten aus der Einheit und einem Muster im <code>class_name</code> ab; Handeinträge ohne <code>class_name</code> landen in „Sonstiges“.</p>
+      <h3 data-question>Woher kommen die Unterarten?</h3>
+      <p data-stakes>Ob „Helm“ jeden Helm findet.</p>
+      <div data-options>
+        <label data-opt="codex" data-recommended><input type="radio" name="dm-q-subfilter" value="codex" checked><span data-opt-label>Fest aus dem Codex: Typ und Slot</span><span data-opt-consequence>Rüstung › Helm, Torso, Arme, Beine, Unterkleidung, Rucksack; Waffen › Pistole bis Nahkampf. Handeinträge wählen ihre Unterart beim Eintragen.</span></label>
+        <label data-opt="maker"><input type="radio" name="dm-q-subfilter" value="maker"><span data-opt-label>Codex-Typ plus Hersteller als dritte Ebene</span><span data-opt-consequence>Feiner, aber eine Reihe mehr.</span></label>
+        <label data-opt="own"><input type="radio" name="dm-q-subfilter" value="own"><span data-opt-label>Eigene Gruppen zusätzlich</span><span data-opt-consequence>Du legst Gruppen wie „Bergbau-Set“ selbst an.</span></label>
+      </div>
+      <textarea data-comment="q-subfilter-note" placeholder="Notiz (optional)"></textarea>
+      <div data-alevel="3" data-title="Unterfilter">
+        <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Empfehlung: Codex-Typ und Slot."}'></div></div>
+        <div data-slot="long"><p>Leere Unterarten bleiben sichtbar und gedimmt, wie die Arten selbst.</p></div>
+      </div>
+    </section>
+    </section>
+  </section>

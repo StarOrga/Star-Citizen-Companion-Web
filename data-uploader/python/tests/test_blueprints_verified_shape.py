@@ -248,3 +248,66 @@ def test_dismantle_blueprint_still_resolves(tmp_path: Path) -> None:
     assert bp["dismantleTimeSeconds"] == pytest.approx(15.0)
     assert bp["dismantleEfficiency"] == pytest.approx(0.5)
     assert bp["ingredients"] == []
+
+
+def _extract_dismantle(tmp_path: Path, process: Dict[str, Any]) -> Dict[str, Any]:
+    record = MagicMock()
+    record.name = "CraftingBlueprintRecord.DismantleYieldProbe"
+    record.type = "CraftingBlueprintRecord"
+    record.guid = BP_GUID
+    record.filename = "libs/foundry/records/crafting/probe.xml"
+    record.tag = None
+    df = MagicMock()
+    df.records_by_type_name.side_effect = (
+        lambda t: [record] if t == "CraftingBlueprintRecord" else []
+    )
+    df.record_to_dict.return_value = {"_RecordValue_": {
+        "_Type_": "CraftingBlueprintRecord",
+        "blueprint": {"_Type_": "GenericCraftingBlueprint",
+                      "processSpecificData": process},
+    }}
+    df.record_by_id.side_effect = lambda guid: None
+    CodexExtractor(
+        df, Localizer({"en": {}, "de": {}}), tmp_path,
+        {"channel": "TEST", "patch": "0.0.0", "build": "0"},
+        extract_assets=False,
+    ).extract_blueprints()
+    return _payload(tmp_path)
+
+
+def test_dismantle_yield_unknown_when_record_has_no_yield_field(tmp_path: Path) -> None:
+    """Absent record field => None (unknown), never [] and never dismantlable=False."""
+    bp = _extract_dismantle(tmp_path, {
+        "_Type_": "GenericCraftingProcess_Dismantle", "efficiency": 0.5,
+        "dismantleTime": {"_Type_": "TimeValue_Partitioned", "seconds": 15.0},
+    })
+    assert bp["dismantleYield"] is None
+    assert bp["dismantlable"] is None
+
+
+def test_dismantle_yield_reads_material_and_amount(tmp_path: Path) -> None:
+    bp = _extract_dismantle(tmp_path, {
+        "_Type_": "GenericCraftingProcess_Dismantle", "efficiency": 0.5,
+        "dismantlable": True,
+        "outputs": [
+            {"material": {"_RecordName_": "EntityClassDefinition.MAT_Iron",
+                          "_RecordId_": "11111111-1111-1111-1111-111111111111"},
+             "quantity": 2.5},
+            {"material": {"_RecordName_": "EntityClassDefinition.MAT_Tungsten"},
+             "amount": 1},
+            {"material": {"_RecordName_": "EntityClassDefinition.MAT_Broken"}},
+        ],
+    })
+    assert bp["dismantleYield"] == [
+        {"material": "MAT_Iron", "amount": 2.5},
+        {"material": "MAT_Tungsten", "amount": 1.0},
+    ]
+    assert bp["dismantlable"] is True
+
+
+def test_dismantlable_false_only_from_explicit_flag(tmp_path: Path) -> None:
+    bp = _extract_dismantle(tmp_path, {
+        "_Type_": "GenericCraftingProcess_Dismantle", "canDismantle": False,
+    })
+    assert bp["dismantlable"] is False
+    assert bp["dismantleYield"] is None

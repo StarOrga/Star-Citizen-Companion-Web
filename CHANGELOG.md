@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.244.0] - 2026-11-09
+
+### Added
+- HQ Bestand as a cargo deck: tabs Alles · Inventar · Hangar · Sammlung without counts, one filter bar with Codex sub-kinds and a grouped place select, bays per place, resource containers with average quality, table mode, selection by highlight.
+- Reservations for friends or free text with amount, quality stack and expiry; friends see reservations made for them.
+- Load log at the top with the last changes and the last ten removals; reorder all of them.
+- Search alternatives at ≤ 3 hits: found elsewhere, wish and plan with a minimum quality, swap, craft.
+- Add a Bestand selection to an existing or new Nachschub; new Nachschub type "Verkauf" with an aUEC goal; gather line over several places.
+- Quality stacks per inventory item (backward compatible with the shipped desktop app), dismantle-yield fields in the Codex.
+
+### Fixed
+- The HQ quick-scroll rail no longer covers page content on 1024–1340 px screens.
+- The Bestand header no longer overflows on phones; the subheader search chip follows the Bestand tab.
+
 ## [0.242.0] - 2026-11-09
 
 ### Added

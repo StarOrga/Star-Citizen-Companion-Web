@@ -155,6 +155,9 @@
   --sc-measure: 70ch;
   --sc-content-max: var(--sc-page-max);
   --sc-content-narrow: 56rem;
+  /* HQ quick-scroll rail lane (>= 1024px): the rail's inset + its 36px + a gap. The HQ page
+     container pads only what the frame's own gutter leaves short of it (see hq-pages). */
+  --hq-rail-clear: calc(max(var(--sc-fab-inset, 24px), env(safe-area-inset-left, 0px)) + 36px + 12px);
 }
 html:has([data-layout]) {
   --sc-page-gutter: var(--sc-rand);

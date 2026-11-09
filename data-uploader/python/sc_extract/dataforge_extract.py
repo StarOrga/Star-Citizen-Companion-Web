@@ -1078,6 +1078,8 @@ class CodexExtractor:
             craft_time: Optional[float] = None
             dismantle_time: Optional[float] = None
             dismantle_eff: Optional[float] = None
+            dismantle_yield: Optional[list] = None
+            dismantlable: Optional[bool] = None
             proc_data = (bp_node.get("processSpecificData")
                          or rv.get("processSpecificData")
                          or rv.get("processData") or [])
@@ -1091,6 +1093,10 @@ class CodexExtractor:
                         dismantle_time = t
                     if dismantle_eff is None:
                         dismantle_eff = _to_float(_pick(proc, ("@efficiency", "efficiency")))
+                    if dismantle_yield is None:
+                        dismantle_yield = _dismantle_yield(proc, _ref_stub)
+                    if dismantlable is None:
+                        dismantlable = _dismantlable_flag(proc)
                 elif craft_time is None and t is not None:
                     craft_time = t
             # Fallback: any TimeValue_Partitioned anywhere on the record
@@ -1145,6 +1151,9 @@ class CodexExtractor:
                 "craftTimeSeconds": craft_time,
                 "dismantleTimeSeconds": dismantle_time,
                 "dismantleEfficiency": dismantle_eff,
+                # null = unknown (no recognised record field); see _dismantle_yield.
+                "dismantleYield": dismantle_yield,
+                "dismantlable": dismantlable,
                 "ingredients": ingredients,
                 "outputs": outputs,
                 "qualityRefs": quality_refs,
@@ -3060,6 +3069,69 @@ def _as_list(v: Any) -> List[str]:
 
 
 # ── generic deep helpers (no per-ship special-casing) ──────────────────────────
+# Dismantle yield (material class + amount handed back per item) and the
+# dismantlable flag. UNCONFIRMED hook (D7): no real GenericCraftingProcess_Dismantle
+# record with a yield has been inspected yet -- the key names below are hypotheses
+# and an absent/unrecognised field yields None (= unknown), never [] and never
+# False. Confirm against a real Data.p4k and narrow these tuples.
+_DISMANTLE_YIELD_LISTS = ("outputs", "yield", "dismantleOutputs",
+                          "returnedMaterials", "materials", "results")
+_DISMANTLE_YIELD_MATERIAL = ("material", "resource", "entity", "entityClass",
+                             "item", "ingredient")
+_DISMANTLE_YIELD_AMOUNT = ("quantity", "amount", "@quantity", "@amount", "count")
+_DISMANTLABLE_FLAGS = ("dismantlable", "isDismantlable", "canDismantle",
+                       "allowDismantle", "@dismantlable")
+
+
+def _dismantle_yield(proc: Any, ref_stub: Any) -> Optional[list]:
+    """[{material, amount}] from one dismantle process struct, or None (unknown).
+
+    `ref_stub` resolves a DataForge GUID stub to {className, guid}. Entries
+    without a resolvable material class or a numeric amount are skipped; if
+    nothing survives the result is None, not an empty list.
+    """
+    if not isinstance(proc, dict):
+        return None
+    for key in _DISMANTLE_YIELD_LISTS:
+        lst = proc.get(key)
+        if not isinstance(lst, list):
+            continue
+        out: list = []
+        for e in lst:
+            if not isinstance(e, dict):
+                continue
+            material = None
+            for mk in _DISMANTLE_YIELD_MATERIAL:
+                mv = e.get(mk)
+                if isinstance(mv, dict):
+                    material = ref_stub(mv).get("className")
+                elif isinstance(mv, str) and mv:
+                    material = _strip_type_prefix(mv)
+                if material:
+                    break
+            amount = None
+            for ak in _DISMANTLE_YIELD_AMOUNT:
+                amount = _to_float(e.get(ak))
+                if amount is not None:
+                    break
+            if material and amount is not None:
+                out.append({"material": material, "amount": amount})
+        if out:
+            return out
+    return None
+
+
+def _dismantlable_flag(proc: Any) -> Optional[bool]:
+    """Explicit boolean on the dismantle process, else None (unknown)."""
+    if not isinstance(proc, dict):
+        return None
+    for key in _DISMANTLABLE_FLAGS:
+        v = proc.get(key)
+        if isinstance(v, bool):
+            return v
+    return None
+
+
 def _to_float(v: Any) -> Optional[float]:
     """Coerce to float, tolerating numeric strings; None on failure."""
     if isinstance(v, bool):  # bool is an int subclass — exclude

@@ -1,0 +1,114 @@
+<section id="iter-4" data-iteration="4" data-iteration-template="free" data-final-report data-active>
+  <p class="fr-sentence">Der Bestand ist jetzt ein Frachtdeck: vier Reiter, eine Filterleiste, Ladebuchten je Ort, Qualität und Reservierungen, Einplanen in Nachschübe.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">📦</span><span><b>Alles · Inventar · Hangar · Sammlung</b> ohne Zahlen, nichts verdeckt.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🤝</span><span><b>Reservieren für Freunde</b> mit Menge, Qualität und Ablauf.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧭</span><span>Auswahl <b>an bestehenden Nachschub anhängen</b> oder verkaufen.</span></li>
+      </ul>
+      <p class="fr-try-auth">🔑 Lokal nur mit dem Testkonto; du siehst es live nach dem Ship.</p>
+    </div>
+    <div class="fr-ba" data-label-before="Desktop 1280 px" data-label-after="Phone 375 px">
+      <figure class="fr-shot"><img src="20261108-2135-hq-bestand/checks/impl/desktop-alles.png" alt=""><figcaption>Alles: Buchten, Bahnen, Ladeprotokoll</figcaption></figure>
+      <figure class="fr-shot"><img src="20261108-2135-hq-bestand/checks/impl/phone-alles.png" alt=""><figcaption>Phone ohne Querscrollen</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 93%" data-tip="40 von 43 Prüfpunkten voll erfüllt, 3 als Issues weitergegeben; Anforderung 43 (geschätzt).">
+        <span class="fr-meter-name">✅ Umfang</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">40 / 43</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Die ausgelieferte Desktop-App schreibt nach der Migration unverändert weiter (Probelauf); Anforderung kein Bruch (geschätzt).">
+        <span class="fr-meter-name">🛡 Alte App</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">kein Bruch</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="scrollWidth 365 bei 375 px auf allen vier Reitern; Anforderung ≤ 375 (geschätzt).">
+        <span class="fr-meter-name">📱 Phone</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">365 / 375 px</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 6 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_local}} · ○ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_local}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_prod}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 4 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-minq"
+          data-issue-title="[FEATURE] Store the minimum quality of a Nachschub line in the database"
+          data-issue-type="feature"
+          data-issue-body="HQ Bestand concept (docs/concepts/20261108-2135-hq-bestand), checklist I15: 'wish + plan' carries the searched minimum quality (e.g. Eisen Q >= 700) into the Nachschub line. NachschubLineInput.minQuality exists and is shown in the picker and Planen, but hq_supplies has no column, so the value lives in localStorage (src/app/hq/nachschub/nachschub-min-quality.ts) and does not sync across devices. Add a min_quality smallint column (1..1000, null) to hq_supplies, write and read it in HqSuppliesService, drop the localStorage store."
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="im Repo" data-routed>
+        <span class="oq-label">Mindestqualität nur lokal</span>
+        <span class="oq-done">✓ {{final.done_prefix}} — <code>supabase/migrations/20261109000600_hq_supplies_min_quality.sql</code></span>
+      
+      </li>
+      <li data-oq-id="oq-swapbp"
+          data-issue-title="[FEATURE] Link stock items to their blueprint for the 'Ersatz' alternative"
+          data-issue-type="feature"
+          data-issue-body="HQ Bestand concept, checklist I15 (R2 q-alt 'swap'): 'Ersatz aus derselben Blaupause oder Tauschtabelle'. The swap-table part works (sameSlot via swapArchetype in src/app/hq/stock/hq-stock-deck.ts). The blueprint part (sameBlueprint) is inactive because stock rows carry no item-to-blueprint link. Needs a lookup from class_name to the blueprints that use or produce it (codex_blueprints), then feed it to sameBlueprint."
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="braucht Daten" data-routed>
+        <span class="oq-label">Ersatz ohne Blaupause</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Verse-Companion-Web/issues/1057" target="_blank" rel="noopener noreferrer">{{final.issue_link_prefix}} #1057</a>
+      
+      </li>
+      <li data-oq-id="oq-scrapdata"
+          data-issue-title="[CHORE] Confirm the dismantle-yield record keys with a real Data.p4k run"
+          data-issue-type="chore"
+          data-issue-body="HQ Bestand concept, checklist D7 (R2 q-scrap=extract). Codex fields dismantle_yield / dismantlable, the extractor hook (data-uploader/python/sc_extract/dataforge_extract.py: _dismantle_yield, _dismantlable_flag) and the UI accessor (src/app/hq/data/scrap-info.ts) exist; the record keys are hypotheses because no fixture shows a per-item dismantle yield (dismantling looked global in GenericCraftingBlueprint). Run sc_extract on a real Data.p4k, confirm or correct the keys, re-upload. Until then the Bestand shows 'unbekannt' for every item. Also open: shop/loot items have no blueprint row to carry the data."
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="braucht Spieldaten" data-routed>
+        <span class="oq-label">Zerlege-Daten fehlen noch</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Verse-Companion-Web/issues/1058" target="_blank" rel="noopener noreferrer">{{final.issue_link_prefix}} #1058</a>
+      
+      </li>
+      <li data-oq-id="oq-appstacks"
+          data-issue-title="[FEATURE] Desktop app writes quality stacks to hq_inventory_stacks"
+          data-issue-type="feature"
+          data-issue-body="HQ Bestand concept, checklist D1 (R2 q-quality=app: 'App liest sie, von Hand optional'). The web side is done and backward compatible: hq_inventory_items keeps its key, quality lives in the child table hq_inventory_stacks (user_id, location, name, quality, qty), contract in docs/contracts/hq-inventory-quality.md. The SCC desktop app must read the quality per stack and upsert stacks (write the item row first when raising, the stacks first when lowering). Lives in the desktop-app repo."
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo" data-routed>
+        <span class="oq-label">App liefert keine Qualität</span>
+        <a class="oq-issue-link" href="https://github.com/StarOrga/Verse-Companion-Web/issues/1059" target="_blank" rel="noopener noreferrer">{{final.issue_link_prefix}} #1059</a>
+      
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/hq-bestand-ui-improvements-33d845</code> @ <code>fe8e22d1</code> · main (Vitest) eingemergt, Drift: nur i18n</li>
+      <li>Migrationen <code>20261109000100</code>–<code>000300</code>, <code>000500</code> — noch nicht in der Cloud</li>
+      <li><code>src/app/hq/stock/</code>, <code>src/app/hq/nachschub/nachschub-target-*</code>, <code>src/app/hq/data/</code></li>
+      <li>Tests: 957 Vitest grün (hq, fusion-bar, codex), Build grün; QA: <code>checks/implement-qa.md</code></li>
+      <li>App-Status unten links kam separat als v0.239.0 (#1038)</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-realdata" data-crit="mid" data-guide="">Bestand live mit echten Daten ansehen</li>
+    </ul>
+  </section>
+</section>

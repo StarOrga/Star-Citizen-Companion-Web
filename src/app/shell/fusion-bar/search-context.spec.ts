@@ -124,6 +124,33 @@ describe('search-context · HQ pages (exclusion)', () => {
     expect(keys.every((c) => c.ownedFirst && c.placesFirst)).toBe(true);
   });
 
+  it('lets the Bestand chip follow the tab (I14); a link without a tab stays Inventar', () => {
+    const label = (url: string): string => searchContextOf(url, 'inventar').labelKey;
+    const chipCount = (url: string) => searchContextOf(url, 'inventar').chips.length;
+    expect(chipCount('/hq?bestand=hangar#inventar')).toBe(1);
+    const chipLabel = (url: string) => searchContextOf(url, 'inventar').chips[0]?.labelKey;
+    expect(chipLabel('/hq?bestand=alles#inventar')).toBe('fusionBar.ctx.hqStockAll');
+    expect(chipLabel('/hq?bestand=hangar#inventar')).toBe('search.chip.section.hangar');
+    expect(chipLabel('/hq?bestand=sammlung#inventar')).toBe('fusionBar.ctx.hqStockSammlung');
+    expect(chipLabel('/hq?bestand=inventar#inventar')).toBe('search.chip.section.stock');
+    expect(label('/hq?bestand=alles#inventar')).toBe('fusionBar.ctx.hqStockAll');
+    expect(label('/hq?bestand=hangar#inventar')).toBe('fusionBar.ctx.hqStockHangar');
+    expect(label('/hq?bestand=sammlung#inventar')).toBe('fusionBar.ctx.hqStockSammlung');
+    expect(label('/hq?bestand=inventar#inventar')).toBe('fusionBar.ctx.hqStock');
+    expect(label('/hq#inventar')).toBe('fusionBar.ctx.hqStock');
+    expect(searchContextOf('/hq?bestand=hangar#inventar', 'inventar').key).toBe('hqStock');
+  });
+
+  it('lets the Bestand chip follow the tab (I14); a link without a tab stays Inventar', () => {
+    const label = (url: string): string => searchContextOf(url, 'inventar').labelKey;
+    expect(label('/hq?bestand=alles#inventar')).toBe('fusionBar.ctx.hqStockAll');
+    expect(label('/hq?bestand=hangar#inventar')).toBe('fusionBar.ctx.hqStockHangar');
+    expect(label('/hq?bestand=sammlung#inventar')).toBe('fusionBar.ctx.hqStockSammlung');
+    expect(label('/hq?bestand=inventar#inventar')).toBe('fusionBar.ctx.hqStock');
+    expect(label('/hq#inventar')).toBe('fusionBar.ctx.hqStock');
+    expect(searchContextOf('/hq?bestand=hangar#inventar', 'inventar').key).toBe('hqStock');
+  });
+
   it('never hard-filters: an excluded group stays, collapsed to one row with its "all N" link', () => {
     const ctx = searchContextOf('/hq', 'inventar');
     expect(ctx.exclude).toContain('upcoming');

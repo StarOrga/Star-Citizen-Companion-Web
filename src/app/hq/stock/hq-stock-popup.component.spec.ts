@@ -38,6 +38,7 @@ describe('HqStockPopupComponent: capture and links', () => {
       shipStorage: signal([]),
       load: vi.fn().mockName('load').mockResolvedValue(undefined),
       addManual: vi.fn().mockName('addManual').mockResolvedValue(true),
+      lastKnownLocation: () => Promise.resolve(null),
     };
     TestBed.configureTestingModule({
       imports: [HqStockPopupComponent],
@@ -73,13 +74,18 @@ describe('HqStockPopupComponent: capture and links', () => {
     fixture.detectChanges();
   }
 
-  it('says it does not exist and keeps Add disabled for text without a Codex match', async () => {
-    const { fixture } = mount({ mode: 'add' });
+  it('says it does not exist, offers the sub-kind and saves a manual entry with it (I9)', async () => {
+    const { fixture, inv } = mount({ mode: 'add' });
     const el: HTMLElement = fixture.nativeElement;
-    fixture.componentInstance.location = 'Area18';
+    const c = fixture.componentInstance as unknown as { location: string; manualSub: { set(v: string | null): void }; add(): Promise<void> };
+    c.location = 'Area18';
     await type(fixture, 'q34tqaergv');
     expect(el.querySelector('#hq-stock-item-msg')?.textContent).toContain('hq.stock.capture.unknown');
-    expect((el.querySelector('form.capture button[type=submit]') as HTMLButtonElement).disabled).toBe(true);
+    expect(el.querySelector('sc-select[aria-label], sc-select')).not.toBeNull();
+    expect((el.querySelector('form.capture button[type=submit]') as HTMLButtonElement).disabled).toBe(false);
+    c.manualSub.set('armor.helmet');
+    await c.add();
+    expect(inv.addManual).toHaveBeenCalledWith('Area18', 'q34tqaergv', 1, 'pcs', 'manual:armor.helmet');
   });
 
   it('saves a picked suggestion with its kind and class name', async () => {
@@ -148,8 +154,7 @@ describe('HqStockPopupComponent: capture and links', () => {
     btn.click();
     await new Promise((r) => setTimeout(r, 0));
     fixture.detectChanges();
-    expect(wish.setQty).toHaveBeenCalledTimes(1);
-    expect(wish.setQty).toHaveBeenCalledWith({ kind: 'item', className: 'Medpen_01', name: 'Medpen' }, 1);
+    expect(wish.setQty).toHaveBeenCalledExactlyOnceWith({ kind: 'item', className: 'Medpen_01', name: 'Medpen' }, 1);
     expect(path.nachholen).not.toHaveBeenCalled();
     expect(inv.addManual).not.toHaveBeenCalled();
     const toast = TestBed.inject(UndoToastService);

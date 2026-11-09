@@ -107,6 +107,8 @@ import { HqStockComponent } from './stock/hq-stock.component';
       /* Like the Verse cue it has no ground, so it stands back while page content lies beneath it. */
       .page-cue.gone { opacity: 0; visibility: hidden; }
       @media (prefers-reduced-motion: reduce) { .page-cue { transition: none; } }
+      /* The fixed rail stands left of the frame: keep its lane free where the frame's gutter is narrower. */
+      @media (min-width: 1024px) { .page { padding-inline-start: max(0px, calc(var(--hq-rail-clear) - var(--sc-page-gutter))); } }
       @media (min-width: 1024px) { .follow { padding-bottom: calc(var(--sc-space-8, 64px) + var(--sc-space-5, 24px)); } }
       @media (max-width: 1023px) { .page-cue { display: none; } }
       /* From the rail's breakpoint the left page rail (24px inset + 36px wide) stands in the page margin. Where that margin is

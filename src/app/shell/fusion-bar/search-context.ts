@@ -92,7 +92,8 @@ export function searchContextOf(
   const base = routeContext(url.split('#', 1)[0], hqPage);
   // The section the search was opened from: an explicit id wins over the URL #anchor.
   const chip = sectionChip(section ?? hash);
-  if (!chip || base.chips.some((c) => c.id.split(':')[1] === chip.id.split(':')[1])) return base;
+  // The Bestand page names its own chip per tab; its #inventar anchor must not add a second "Inventar" one.
+  if (!chip || base.key === 'hqStock' || base.chips.some((c) => c.id.split(':')[1] === chip.id.split(':')[1])) return base;
   return { ...base, chips: [...base.chips, chip] };
 }
 
@@ -106,7 +107,7 @@ function routeContext(urlNoHash: string, hqPage: HqPageId | null): SearchContext
     if (seg[1] === 'gallery') return { ...ctx('gallery', [], true), chips: [routeChip('gallery', ['gallery'])] };
     return ctx('verse', ['ship', 'upcoming'], false);
   }
-  if (seg[0] === 'hq') return hqContext(seg.length === 1 ? hqPage : null, seg[1] ?? null);
+  if (seg[0] === 'hq') return hqContext(seg.length === 1 ? hqPage : null, seg[1] ?? null, params.get('bestand'));
   if (seg[0] === 'codex') {
     if (seg.length === 1) return ctx('codex', ['ship'], false);
     if (seg[1] === 'index' || seg[1] === 'upcoming') {
@@ -135,7 +136,23 @@ function routeContext(urlNoHash: string, hqPage: HqPageId | null): SearchContext
  * kinds it leans towards. The mission and shop groups of the plan (§4.4) join these lists with
  * their PolyHitKind once the Codex index holds them.
  */
-export function hqContext(page: HqPageId | null, sub: string | null = null): SearchContext {
+/** Chip label of the Bestand context per tab (I14: the chip follows the tab; `alles` = the whole Bestand). */
+const STOCK_TAB_LABEL: Readonly<Record<string, string>> = {
+  alles: 'fusionBar.ctx.hqStockAll',
+  inventar: 'fusionBar.ctx.hqStock',
+  hangar: 'fusionBar.ctx.hqStockHangar',
+  sammlung: 'fusionBar.ctx.hqStockSammlung',
+};
+
+/** The chip of the Bestand page follows its tab: Alles / Sammlung name themselves, Hangar scopes to ships. */
+function stockChip(stockTab: string | null): SearchChip {
+  if (stockTab === 'hangar') return sectionChipById('hangar', 'route')!;
+  const chip = sectionChipById('stock', 'route')!;
+  const labelKey = STOCK_TAB_LABEL[stockTab ?? ''];
+  return stockTab && stockTab !== 'inventar' && labelKey ? { ...chip, labelKey } : chip;
+}
+
+export function hqContext(page: HqPageId | null, sub: string | null = null, stockTab: string | null = null): SearchContext {
   const base: SearchContext = { ...ctx('hq', ['ship'], true), ownedFirst: true };
   if (!page && sub === 'hangar') base.chips = [sectionChipById('hangar', 'route')!];
   if (!page && sub === 'locker') base.chips = [sectionChipById('sets', 'route')!];
@@ -145,7 +162,7 @@ export function hqContext(page: HqPageId | null, sub: string | null = null): Sea
     case 'jetzt':
       return { ...base, key: 'hqNow', labelKey: 'fusionBar.ctx.hqNow', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition'] };
     case 'inventar':
-      return { ...base, chips: [sectionChipById('stock', 'route')!], key: 'hqStock', labelKey: 'fusionBar.ctx.hqStock', prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
+      return { ...base, chips: [stockChip(stockTab)], key: 'hqStock', labelKey: STOCK_TAB_LABEL[stockTab ?? ''] ?? STOCK_TAB_LABEL['inventar'], prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
     case 'statistik':
       return { ...base, key: 'hqStats', labelKey: 'fusionBar.ctx.hqStats', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition', 'component', 'weapon', 'item', 'blueprint'] };
     default:

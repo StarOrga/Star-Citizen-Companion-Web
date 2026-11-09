@@ -60,7 +60,7 @@ describe('AddToSetComponent (L09)', () => {
     const { fixture, el } = await setup({ sets: [] });
     await open(fixture);
     expect(fixture.componentInstance.view()).toBe('noSet');
-    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/locker');
+    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq?bestand=inventar&cat=sets#inventar');
   });
 
   it('asks for the set, then the slot, and writes through the equip-mode merge', async () => {

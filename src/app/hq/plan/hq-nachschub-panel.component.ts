@@ -17,6 +17,7 @@ import { NACHSCHUB_ICON_PATHS, STEP_ICON_PATHS, TRANSPORT_WHEELS } from '../nach
 import { EventHqService } from '../events/event-hq.service';
 import { isEventNachschub } from '../events/event-nachschub';
 import { HqEventSectionComponent } from '../events/hq-event-section.component';
+import { HqNachschubGatherComponent } from './hq-nachschub-gather.component';
 import { HqRouteGraphicComponent, type RouteSharedStop } from './route/route-graphic.component';
 import { routeFilterKey } from './route/route-filter.store';
 import type { RouteGraphStep } from './route/route-layout';
@@ -67,7 +68,7 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
 @Component({
   selector: 'sc-hq-nachschub-panel',
   standalone: true,
-  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, ScActionDirective, ScSelectComponent, ScTooltipDirective, HqRouteGraphicComponent, HqEventSectionComponent],
+  imports: [NgTemplateOutlet, TranslatePipe, FormsModule, ScActionDirective, ScSelectComponent, ScTooltipDirective, HqRouteGraphicComponent, HqEventSectionComponent, HqNachschubGatherComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel" [attr.aria-label]="nachschub().name">
@@ -97,6 +98,8 @@ export function systemsOf(e: Pick<Einsatz, 'steps'>): string[] {
           </button>
         </span>
       </header>
+
+      <sc-hq-nachschub-gather [nachschub]="nachschub()" />
 
       @if (isEvent()) {
         <sc-hq-event-section [nachschub]="nachschub()" (abortAsk)="abortEvent()" />
