@@ -1,25 +1,33 @@
 # /verse build-up: living spec
 
-Source: concept `20261106-1513-verse-aufbau`. Read this before changing how the hub builds; earlier rules are in `docs/performance-plan.md`, section 5.
+Source: concepts `20261106-1513-verse-aufbau` and `20261109-1752-kamera-welt` (round 5, mock `d5-pb-main` / `d5-pb-nav` / `d5-pb-cycle`). Read this before changing how the hub builds; earlier rules are in `docs/performance-plan.md`, section 5.
 
 ## Accepted
 
 | Visit | What it does |
 |---|---|
-| First visit of the day, opened on `/verse` | Full entrance: stars, name, header 1.9 s, search 2.3 s, sun 2.6 s, doors 2.9 s, comet from 3.6 s, first story at +0.8 s. The length stays. |
-| First visit of the day, through the menu | The same scene; header and search already stand. |
-| Reload, later start the same day | Stars, then the hub fades in as one once the story is there, at most 800 ms. The bar only after that. |
-| Back through the menu | The hub's content rises in with the menu switch. |
+| Direct call of the bare domain (`/`, no path; it redirects to `/verse`), first one in this tab | Cinematic entrance, seconds from the start (the start is after the boot splash has handed over): stars ignite 0 s, camera dolly from depth 0.8 s for 2.7 s, title light-edge scan with afterglow 2.2 s, search grows out of the title and is usable 3.5 s, header, Patches and the rest 4.3 s, "Mehr im Verse" breathes in 5.0 s, the page stands 5.5 s. |
+| Same tab again (reload, a link to `/verse`, the bare domain a second time) | Short build, at most 0.8 s: stars, then the hub fades in as one once the story is there (400 ms wait + 400 ms fade). No dolly. |
+| Through the menu (arriving from Codex / HQ ...) | The header stands. Title scan 0.75 s, search 1.05 s, Patches and notices 1.3 s, the three planets send an impulse one after another from 1.55 s (ring, 0.1 s apart). The page stands 2.3 s. |
 
-- The holo sends only after the comet. On every other visit the first message stands at once and the next planet sends after 6 s.
-- Any input ends the entrance within 300 ms and counts the day as seen; the input itself still acts.
+- The claim is a tab flag (`sessionStorage` `sc.verse.entrancePlayed`), set when the cinematic plays. The entry URL is read from Navigation Timing (`documentEntry()` in `briefing.model.ts`): a bare `/` that is not a reload or history step. A path, a reload or blocked Navigation Timing means short.
+- Any input ends the entrance within 300 ms (everything still on its way hurries to its end); the input itself still acts, typed keys go on to the search.
+- **Projector cycle (every visit, `briefing-transmit.component.ts`)**: 5 s after the page stands, the planet with the newest content ignites (cone and panel, the existing projection), the panel stands 5 s, is projected away with the same animations reversed (unwrite, unbuild, uncharge, about 2.6 s), 5 s with no projection and no panel, then the next planet, newest first (publish dates, so the order changes from day to day), endlessly. A panel under the pointer or focus is held; a hidden tab, being away from the top and reduced motion stop it. The timers run outside the Angular zone.
+- Planet names (News, Patches, Galerie) show only on hover and focus through `scTooltip`; on touch the first tap shows the name, the second opens the page. The planets stay real anchors.
+- Reduced motion: no entrance, no dolly, no cycle.
 - A door stays empty until its planet is drawn, then comes in 0.3 s. Without WebGL it shows its CSS art after 2 s.
 - The hub renders in steps: stage and hero, then doors and beacons, then the columns (`staged-build.ts`).
 
+## Open (needs the shell)
+
+- Header 4.3 s and search 3.5 s need two delays; the shell has one factor (`--sc-intro-k`, header 1.9 s, search 2.3 s). Interim: k = 1.52, search at 3.5 s, header at 2.9 s.
+- The dolly runs on the stage's own world; the scene camera follows `<html data-kw-entrance="dolly">` once its camera API exists.
+
 ## Rejected
 
-- A shorter entrance (3.2 s or 2.4 s): the owner keeps the 4.2 s accepted on 2026-11-04.
 - The full entrance on every reload: too long for each Ctrl+R.
+- The full entrance once per day and device (2026-11-04): replaced by once per tab on a direct call of the bare domain (2026-11-09).
+- The projector as part of the entrance (first message standing at once, next planet after 6 s): replaced by the cycle above.
 
 ## Measured
 
