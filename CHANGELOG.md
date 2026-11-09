@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.241.2] - 2026-11-09
 
+### Changed
+- Development: the Codex landing's data-sheet fit (#320) is tested at four real window sizes instead of forced landing heights.
+
+## [0.241.2] - 2026-11-09
+
 ### Fixed
 - HQ "App starten": a browser that has seen the app waits 15 s for it before saying it got no word, so a slow start no longer shows "Die App hat nicht reagiert"; the hint can be closed while waiting.
 - HQ page rail: hovering a page shows its name as plain text instead of a pill; the bar on the left marks the current page.
