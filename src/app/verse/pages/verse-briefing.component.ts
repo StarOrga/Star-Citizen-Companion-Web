@@ -37,7 +37,7 @@ import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import { BriefingBeaconsComponent } from './briefing/briefing-beacons.component';
 import { BriefingGalleryFillService } from './briefing/briefing-gallery-fill.service';
 import { BriefingHubComponent } from './briefing/briefing-hub.component';
-import { BriefingPlanetComponent } from './briefing/briefing-planet.component';
+import { toVwRect } from '../../shell/scene/scene.model';
 import { BriefingAsteroidComponent } from './briefing/briefing-asteroid.component';
 import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
 import { VERSE_BUILD_STEPS, VERSE_STAGED_BUILD, afterPaint } from './briefing/staged-build';
@@ -234,9 +234,11 @@ export function hurry(a: Animation, ms: number): void {
     StageSearchDirective,
     StageHeroDirective,
     RouterLink, TranslatePipe, ScTooltipDirective, AppNoticeComponent, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
-    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, BriefingPlanetComponent, BriefingAsteroidComponent,
+    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, BriefingAsteroidComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // The camera leaves the hub (NavigationStart): the doors hand over to the scene's pieces at once (G1).
+  host: { '[class.kw-leaving]': "shell() && camera.target() !== 'verse'" },
   templateUrl: './briefing/verse-briefing.component.html',
   styleUrls: ['./briefing/verse-briefing.component.scss', './briefing/verse-briefing-planet.scss'],
 })
@@ -252,7 +254,7 @@ export class VerseBriefingComponent {
   private readonly chrome = inject(ShellChromeService);
   private readonly windowFocus = inject(WindowFocusService);
   private readonly router = inject(Router);
-  private readonly camera = inject(SceneCameraService);
+  protected readonly camera = inject(SceneCameraService);
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -638,6 +640,7 @@ export class VerseBriefingComponent {
     });
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const zone = inject(NgZone);
+    if (this.shell()) this.lendLayout(host, zone);
     afterNextRender(() => {
       const d = wireDock(host, zone);
       this.glide = d.glide;
@@ -836,6 +839,45 @@ export class VerseBriefingComponent {
     delete document.documentElement.dataset['kwEntrance'];
     // The page stands: the projector cycle's 5 s clock starts here.
     this.stands.set(true);
+  }
+
+  /**
+   * G1: the hub draws no planet of its own. It lends the scene its layout — the planet geometry
+   * (.brief-world) and its three doors, measured at the top of the page — so the world's one
+   * planet stands exactly here and its pieces under the doors. Measured again when the page
+   * stands, on resize and when the font or the doors move; never mid-scroll (the dock flight
+   * moves the doors). The scene's live planet reports when it is drawn, which the finale waits for.
+   */
+  private lendLayout(host: HTMLElement, zone: NgZone): void {
+    const measure = (): void => {
+      if (this.dock() !== 'top' || window.scrollY > 2) return;
+      const world = host.querySelector<HTMLElement>('.brief-world');
+      if (!world) return;
+      const w = window.innerWidth, y = window.scrollY;
+      const doors: Partial<Record<'news' | 'patches' | 'gallery', readonly [number, number, number, number]>> = {};
+      for (const d of ['news', 'patches', 'gallery'] as const) {
+        const el = host.querySelector<HTMLElement>(`sc-briefing-transmit .pl[data-door="${d}"]`);
+        if (el && !el.style.transform) doors[d] = toVwRect(el.getBoundingClientRect(), y, w);
+      }
+      this.camera.setVerseAnchors({ planet: toVwRect(world.getBoundingClientRect(), y, w), doors });
+    };
+    afterRenderEffect(() => {
+      this.stands();
+      this.buildStep();
+      measure();
+    });
+    afterNextRender(() => {
+      const timers = [600, 2400, 6000].map((ms) => zone.runOutsideAngular(() => setTimeout(measure, ms)));
+      window.addEventListener('resize', measure, { passive: true });
+      this.destroyRef.onDestroy(() => {
+        timers.forEach(clearTimeout);
+        window.removeEventListener('resize', measure);
+      });
+    });
+    effect(() => {
+      const s = this.camera.planetState();
+      if (s !== 'pending') untracked(() => this.onPlanetSettled());
+    });
   }
 
   /** Planet output: it stands (drawn) or will not come (no WebGL) — the finale may follow. */

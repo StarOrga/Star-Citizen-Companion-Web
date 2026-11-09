@@ -1,14 +1,11 @@
 @if (enabled()) {
   @if (shell()) {
-    <!-- The stage's own big planet (the bottom third of the stage, radius 80 %
-         of the width): its rim arcs into the lower corners, its night side
-         carries the hub columns further down — one cinematic picture. The live
-         WebGL planet draws over the CSS one once its world is generated; the
-         CSS planet stays as the fallback and as its geometry. -->
-    <div class="world-clip" aria-hidden="true" [class.quake]="quake()" [class.css-planet]="planet.failed()" [class.cinema]="titleIntro()">
+    <!-- The big planet's geometry (the bottom third of the stage, radius 80 % of
+         the width): invisible. The one planet is the scene's (camera world G1) —
+         the hub lends it this rect and its doors' rects (lendLayout), so the
+         world's live planet stands exactly here and a menu switch is a camera move. -->
+    <div class="world-clip" aria-hidden="true" [class.quake]="quake()" [class.cinema]="titleIntro()">
       <div class="brief-world" #world></div>
-      <div class="city"></div>
-      <sc-briefing-planet #planet [anchor]="world" (drawn)="onPlanetSettled()" (unavailable)="onPlanetSettled()" />
     </div>
     <!-- Easter egg: a double click on the empty sky left of the hero (see the component). -->
     <sc-briefing-asteroid #egg [planet]="world" (passing)="shake()" />

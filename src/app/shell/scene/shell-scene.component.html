@@ -1,12 +1,18 @@
 @if (on()) {
   <div class="scene" [attr.data-pose]="cam.target()" [attr.data-pushed]="cam.pushed() ? '' : null"
-       [attr.data-flying]="cam.flying() ? '' : null" [attr.data-fade]="cam.fadeTick() % 2" [style]="vars()">
+       [attr.data-flying]="cam.flying() ? '' : null" [attr.data-carry]="carry() ? '' : null" [attr.data-live]="cam.planetState() === 'drawn' ? '' : null" [attr.data-fade]="cam.fadeTick() % 2" [style]="vars()">
     <!-- Far layer: the sky follows the camera damped and tilts least with scroll. -->
     <div class="tilt far"><div class="sky" #sky><div class="neb"></div><div class="stars"></div><div class="stars near"></div></div></div>
+    <!-- The one planet, live (G1): the hub's WebGL planet, drawn exactly over the world's planet
+         (its anchor), so it rides every camera move. Loaded lazily; the CSS planet stands in until
+         it is drawn and wherever no WebGL comes. -->
+    @defer (on idle) {
+      <div class="live-planet"><sc-briefing-planet [anchor]="planetEl" (drawn)="onPlanet('drawn')" (unavailable)="onPlanet('failed')" /></div>
+    }
     <!-- The one world (rounds/05 .d5-world): every page is a camera pose on it. -->
     <div class="tilt near">
       <div class="world" #world>
-        <div class="o planet"><i class="night"></i><i class="lights"></i></div>
+        <div class="o planet" #planetEl><i class="night"></i><i class="lights"></i></div>
         <i class="o hqst"><i></i></i>
         <i class="o pl news"></i>
         <i class="o pl patches"></i>

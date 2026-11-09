@@ -426,3 +426,7 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 
 // The hub is still on its way (staged-build): the page already has its final height.
 .hub-hold { height: 100dvh; }
+
+// G1 (camera world): the camera leaves the hub — its doors hand over to the scene's pieces, which
+// stand exactly under them and ride the flight on. No fade: the same objects, one camera move.
+:host(.kw-leaving) sc-briefing-transmit { visibility: hidden; }

@@ -545,15 +545,14 @@ describe('Verse briefing — component', () => {
       tick(10_000);
     }));
 
-    it('shows the CSS planet only when no live planet can come — never on a timer', fakeAsync(() => {
+    it('draws no planet of its own under the shell: the scene holds the one planet (G1)', fakeAsync(() => {
       chrome.holdHeroIntro();
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
       tick(10_000);
       fixture.detectChanges();
-      const clip = fixture.nativeElement.querySelector('.world-clip') as HTMLElement;
-      const planet = fixture.debugElement.query(By.directive(BriefingPlanetComponent)).componentInstance as BriefingPlanetComponent;
-      expect(clip.classList.contains('css-planet')).toBe(planet.failed());
+      expect(fixture.debugElement.query(By.directive(BriefingPlanetComponent))).toBeNull();
+      expect(fixture.nativeElement.querySelector('.world-clip .brief-world')).not.toBeNull();
     }));
   });
 });

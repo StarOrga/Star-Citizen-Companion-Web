@@ -10,11 +10,14 @@ import {
   SCENE_FLIGHT_MS,
   SCENE_PUSH_MS,
   WORLD_RECTS,
+  doorRects,
   easeInOutCubic,
   framedLikeNews,
   poseAt,
+  poseCam,
   poseTransform,
   sceneTargetOf,
+  verseCam,
   zoomAbout,
 } from './scene.model';
 
@@ -75,8 +78,26 @@ describe('Shell scene — model', () => {
     expect(POSES.admin.show).toEqual({ station: 1 });
     expect(POSES.starmap.show.planet).toBe(0.3);
     expect(POSES.starmap.show.gallery ?? 0).toBe(0);
-    // The hub draws its own planet: never two planets on /verse (r3).
-    expect(POSES.verse.show.planet ?? 0).toBe(0);
+    // One planet in one world (G1): the scene's planet stands on /verse, the hub draws none.
+    expect(POSES.verse.show.planet).toBe(1);
+  });
+
+  it('G1: the verse camera stands the world planet on the hub planet and frames the doors like News', () => {
+    const anchors = { planet: [-30, 60, 160, 160] as const, doors: { news: [8, 52, 5, 5] as const } };
+    const cam = verseCam(anchors);
+    const [px, py, pw] = WORLD_RECTS.planet;
+    expect(cam.s * (px + cam.x)).toBeCloseTo(-30, 4);
+    expect(cam.s * (py + cam.y)).toBeCloseTo(60, 4);
+    expect(cam.s * pw).toBeCloseTo(160, 4);
+    const news = doorRects(anchors).news;
+    expect(cam.s * (news[0] + cam.x)).toBeCloseTo(8, 4);
+    expect(cam.s * (news[1] + cam.y)).toBeCloseTo(52, 4);
+    // News frames its (moved) planet exactly where the static pose framed the static one.
+    const framed = poseCam('news', anchors);
+    const ref = POSES.news.cam;
+    expect(framed.s * (news[0] + framed.x)).toBeCloseTo(ref.s * (WORLD_RECTS.news[0] + ref.x), 3);
+    expect(framed.s * news[2]).toBeCloseTo(ref.s * WORLD_RECTS.news[2], 3);
+    expect(poseCam('codex', anchors)).toEqual(POSES.codex.cam);
   });
 
   it('poseAt: a straight path — the fixed point stands still, the zoom grows logarithmically, the ends match', () => {

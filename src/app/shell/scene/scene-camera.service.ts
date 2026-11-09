@@ -5,7 +5,9 @@ import {
   SCENE_FADE_MS,
   SCENE_FLIGHT_MS,
   ScenePoseId,
+  VerseAnchors,
   easeInOutCubic,
+  poseCam,
   poseAt,
   poseTransform,
   skyTransform,
@@ -59,6 +61,10 @@ export class SceneCameraService {
   /** Length of the running flight (for the object fades), ms. */
   readonly moveMs = signal(SCENE_FLIGHT_MS);
   readonly veil = computed(() => POSES[this.target()].veil);
+  /** The hub's layout lent to the world (G1): the verse camera and the doors' pieces follow it. */
+  readonly verseAnchors = signal<VerseAnchors | null>(null);
+  /** The live planet in the scene: 'drawn' once it stands, 'failed' when none comes (the CSS planet stays). */
+  readonly planetState = signal<'pending' | 'drawn' | 'failed'>('pending');
 
   /** Swappable for specs. */
   reducedMotion: () => boolean = cameraReducedMotion;
@@ -77,11 +83,27 @@ export class SceneCameraService {
     this.world = world;
     this.sky = sky;
     this.target.set(at);
-    this.jump(POSES[at].cam);
+    this.jump(this.camOf(at));
     return () => {
       this.stop();
       if (this.world === world) this.world = this.sky = null;
     };
+  }
+
+  /** The camera of a named pose (following the hub's lent layout). */
+  camOf(id: ScenePoseId): CameraPose {
+    return poseCam(id, this.verseAnchors());
+  }
+
+  /**
+   * The hub hands over (or updates) its layout. Standing at the hub, the camera re-stands at
+   * once so the world's planet stays exactly on the hub's; mid-flight the flight keeps its path.
+   */
+  setVerseAnchors(a: VerseAnchors): void {
+    const prev = this.verseAnchors();
+    if (prev && JSON.stringify(prev) === JSON.stringify(a)) return;
+    this.verseAnchors.set(a);
+    if (this.target() === 'verse' && !this.flight) this.jump(this.camOf('verse'));
   }
 
   /** The pose the camera shows right now. */
@@ -98,9 +120,9 @@ export class SceneCameraService {
    * switches the object isolation; a free pose keeps the current one.
    */
   flyTo(to: ScenePoseId | CameraPose, opts: SceneFlyOptions = {}): Promise<void> {
-    const dest = typeof to === 'string' ? POSES[to].cam : to;
+    const dest = typeof to === 'string' ? this.camOf(to) : to;
     if (typeof to === 'string') this.target.set(to);
-    const from = opts.from === undefined ? this.current() : typeof opts.from === 'string' ? POSES[opts.from].cam : opts.from;
+    const from = opts.from === undefined ? this.current() : typeof opts.from === 'string' ? this.camOf(opts.from) : opts.from;
     this.stop();
     if (!this.world || !this.sky) {
       this.pose = dest;

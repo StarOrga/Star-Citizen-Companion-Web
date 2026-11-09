@@ -133,17 +133,17 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   // The hub's planets as world objects (Crusader = News, ArcCorp = Patches, microTech = Galerie).
   .pl { border-radius: 50%; }
   .news {
-    left: 103.438vw; top: 82.938vw; width: 6vw; height: 6vw; opacity: var(--o-news, 0);
+    left: var(--r-news-x, 103.438vw); top: var(--r-news-y, 82.938vw); width: var(--r-news-s, 6vw); height: var(--r-news-s, 6vw); opacity: var(--o-news, 0);
     background: radial-gradient(circle at 34% 30%, #f6d2c2 0, #d99782 18%, #a5604e 42%, #4a2621 72%, #140a09 100%);
     box-shadow: 0 0 1.2vw rgba(233, 180, 160, 0.28);
   }
   .patches {
-    left: 114.625vw; top: 80vw; width: 4.625vw; height: 4.625vw; opacity: var(--o-patches, 0);
+    left: var(--r-patches-x, 114.625vw); top: var(--r-patches-y, 80vw); width: var(--r-patches-s, 4.625vw); height: var(--r-patches-s, 4.625vw); opacity: var(--o-patches, 0);
     background: radial-gradient(circle at 34% 30%, #ffe2b0 0, #e3a85a 20%, #a86a2c 46%, #4a2b10 74%, #120a04 100%);
     box-shadow: 0 0 1vw rgba(243, 200, 140, 0.26);
   }
   .gallery {
-    left: 181.5vw; top: 79.313vw; width: 6vw; height: 6vw; opacity: var(--o-gallery, 0);
+    left: var(--r-gallery-x, 181.5vw); top: var(--r-gallery-y, 79.313vw); width: var(--r-gallery-s, 6vw); height: var(--r-gallery-s, 6vw); opacity: var(--o-gallery, 0);
     background: radial-gradient(circle at 34% 30%, #f2fbff 0, #bfe6f7 20%, #78b4d2 46%, #2c5670 74%, #0a1822 100%);
     box-shadow: 0 0 1.2vw rgba(170, 222, 255, 0.28);
   }
@@ -199,6 +199,23 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     opacity: var(--scene-veil, 0);
     transition: opacity var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1);
   }
+
+  // ── G1: one planet. The live WebGL planet draws over the world's planet (its anchor) in its own
+  // viewport layer between sky and world; once it is drawn the CSS planet keeps only its geometry
+  // and the HQ city hint. The layer fades with the pose like every object.
+  .live-planet {
+    position: absolute;
+    inset: 0;
+    opacity: var(--o-planet, 0);
+    transition: opacity var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .scene[data-live] .planet { background: none; box-shadow: none; }
+  // Leaving the hub (data-carry): the doors' pieces stand where the hub's doors stood and ride the
+  // camera to the next pose — shown at once, then the pose's own value over the flight.
+  .scene[data-carry] :is(.news, .patches, .gallery) { animation: sc-scene-carry var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1) both; }
+  .scene[data-carry] .news { --carry-to: var(--o-news, 0); }
+  .scene[data-carry] .patches { --carry-to: var(--o-patches, 0); }
+  .scene[data-carry] .gallery { --carry-to: var(--o-gallery, 0); }
 
   // ── P2 "Szene stößt vor": while a large popup is open (html.sc-scene-pushin, set by
   // [scPopupMotion="large"]) the scene pushes in ~4 % and dims; the close reverses it in
@@ -261,5 +278,6 @@ body:has(.brief-world) { overflow: clip; }
 @keyframes sc-scene-beacon { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 @keyframes sc-scene-fade-a { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sc-scene-fade-b { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sc-scene-carry { from { opacity: 1; } to { opacity: var(--carry-to, 0); } }
 @keyframes sc-scene-tilt-far { to { transform: translateY(-3vh); } }
 @keyframes sc-scene-tilt-near { to { transform: translateY(-7vh) scale(1.015); } }

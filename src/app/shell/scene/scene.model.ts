@@ -12,9 +12,10 @@
  * `transform: scale(s) translate(x, y)` with `transform-origin: 0 0`, so a
  * world point w lands on screen at `s · (w + t)`.
  *
- * The Verse hub draws its own live planet and tiles (`sc-briefing-planet`):
- * at the `verse` pose the scene hides its copies (`pageDraws`), so there are
- * never two planets (r3 „zwei riesen planeten“).
+ * There is one planet, the scene's: the live WebGL planet (`sc-briefing-planet`)
+ * is mounted in the scene, anchored to the world's planet. The Verse hub draws
+ * none of its own and lends the scene its layout (`VerseAnchors`), so there are
+ * never two planets (r3 „zwei riesen planeten“) and leaving /verse is a camera move.
  */
 
 /** A camera pose: zoom and the world translation in vw (mock `scale(s) translate(x, y)`). */
@@ -83,8 +84,9 @@ export interface ScenePoseDef {
 export const POSES: Readonly<Record<ScenePoseId, ScenePoseDef>> = {
   // First visit: the camera far out, the whole world small (mock `d5-pb-main-cam` 0 %).
   entrance: { cam: { s: 0.42, x: -30.952, y: -11.161 }, show: { planet: 1, hqst: 1, holo: 1 }, veil: 0 },
-  // The hub draws its own planet and tiles: the scene shows only what the page does not.
-  verse: { cam: VERSE, show: { hqst: 1, holo: 1 }, veil: 0 },
+  // The one planet is the scene's (G1); the hub's doors stand over the scene's pieces, which only
+  // show while the camera carries them away (data-carry, shell-scene.component.scss).
+  verse: { cam: VERSE, show: { planet: 1, hqst: 1, holo: 1 }, veil: 0 },
   news: { cam: NEWS, show: { news: 1 }, veil: 0 },
   patches: { cam: framedLikeNews(WORLD_RECTS.patches), show: { patches: 1 }, veil: 0 },
   gallery: { cam: framedLikeNews(WORLD_RECTS.gallery), show: { gallery: 1 }, veil: 0 },
@@ -102,6 +104,70 @@ export const POSES: Readonly<Record<ScenePoseId, ScenePoseDef>> = {
   // Pages outside the areas: the Verse view with its planet, under a veil (minor-page playbook dims the scene).
   deep: { cam: VERSE, show: { planet: 1, hqst: 1, holo: 1 }, veil: 0.45 },
 };
+
+// ── G1: one planet in one world ─────────────────────────────────────────────
+// The hub no longer draws a planet of its own; it lends the scene its layout instead. It
+// measures, at scroll 0, where its (invisible) planet geometry `.brief-world` and its three
+// planet doors stand and hands those viewport rects over (`VerseAnchors`). The scene then
+// stands the `verse` camera so the world's planet lands exactly on the hub's planet, and
+// moves its News / Patches / Galerie pieces under the doors — so leaving /verse is a camera
+// move of the very same objects, never a swap.
+
+/** Viewport rectangle in vw (`left, top, width, height`, document position at scroll 0). */
+export type VwRect = readonly [number, number, number, number];
+export type VerseDoor = 'news' | 'patches' | 'gallery';
+export interface VerseAnchors {
+  /** The hub's planet geometry (160 vw wide, its top is the rim). */
+  readonly planet: VwRect;
+  readonly doors: Partial<Record<VerseDoor, VwRect>>;
+}
+
+/** Where the News pose frames its planet on screen (vw): big, cut by the left edge. */
+const NEWS_FRAME = {
+  x: NEWS.s * (WORLD_RECTS.news[0] + NEWS.x),
+  y: NEWS.s * (WORLD_RECTS.news[1] + NEWS.y),
+  w: NEWS.s * WORLD_RECTS.news[2],
+};
+
+/** The pose that frames `rect` (world vw) the way the News pose frames the News planet. */
+export function framedLike(rect: readonly [number, number, number, number]): CameraPose {
+  const s = NEWS_FRAME.w / rect[2];
+  return { s, x: NEWS_FRAME.x / s - rect[0], y: NEWS_FRAME.y / s - rect[1] };
+}
+
+/** The `verse` camera that puts the world's planet on the hub's planet (`anchors.planet`). */
+export function verseCam(anchors: VerseAnchors | null): CameraPose {
+  if (!anchors) return VERSE;
+  const [l, t, w] = anchors.planet;
+  const [px, py, pw] = WORLD_RECTS.planet;
+  const s = w > 0 ? w / pw : 1;
+  return { s, x: l / s - px, y: t / s - py };
+}
+
+/** World rects of the three doors at the `verse` camera (screen = s · (world + t)). */
+export function doorRects(anchors: VerseAnchors | null): Record<VerseDoor, readonly [number, number, number, number]> {
+  const cam = verseCam(anchors);
+  const out = { news: WORLD_RECTS.news, patches: WORLD_RECTS.patches, gallery: WORLD_RECTS.gallery };
+  for (const d of ['news', 'patches', 'gallery'] as const) {
+    const r = anchors?.doors[d];
+    if (r) out[d] = [r[0] / cam.s - cam.x, r[1] / cam.s - cam.y, r[2] / cam.s, r[3] / cam.s];
+  }
+  return out;
+}
+
+/** A pose's camera, following the hub's layout where it has lent one. */
+export function poseCam(id: ScenePoseId, anchors: VerseAnchors | null): CameraPose {
+  if (!anchors) return POSES[id].cam;
+  if (id === 'verse') return verseCam(anchors);
+  if (id === 'news' || id === 'patches' || id === 'gallery') return framedLike(doorRects(anchors)[id]);
+  return POSES[id].cam;
+}
+
+/** Viewport px rect (getBoundingClientRect + scroll) → vw rect. */
+export function toVwRect(r: { left: number; top: number; width: number; height: number }, scrollY: number, viewportW: number): VwRect {
+  const k = 100 / (viewportW || 1);
+  return [r.left * k, (r.top + scrollY) * k, r.width * k, r.height * k];
+}
 
 /** Main ↔ main flight (r2 decision). */
 export const SCENE_FLIGHT_MS = 1100;

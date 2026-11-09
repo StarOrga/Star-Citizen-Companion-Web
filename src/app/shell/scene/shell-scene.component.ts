@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, ElementRef, NgZone, ViewEncapsulation, computed, effect, inject, untracked, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, ElementRef, NgZone, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { BriefingPlanetComponent } from '../../verse/pages/briefing/briefing-planet.component';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
 import { SlowMotionService } from '../../core/slow-motion.service';
@@ -12,6 +13,7 @@ import {
   SCENE_PUSH_VEIL,
   SCENE_PUSH_ZOOM,
   ScenePoseId,
+  doorRects,
   sceneTargetOf,
   zoomAbout,
 } from './scene.model';
@@ -37,6 +39,7 @@ export const SCENE_HTML_ATTR = 'data-sc-scene';
   selector: 'sc-shell-scene',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [BriefingPlanetComponent],
   templateUrl: './shell-scene.component.html',
   styleUrl: './shell-scene.component.scss',
   // Global on purpose: it has to clear body's background (see the stylesheet); every rule is scoped by the host class.
@@ -60,6 +63,15 @@ export class ShellSceneComponent {
   /** Last pointer-down in vw (the push-in aims there); null = centre of the view. */
   private pointer: { x: number; y: number } | null = null;
 
+  /** The doors' pieces ride along with the camera while it leaves the hub (G1: one object, a camera move). */
+  readonly carry = signal(false);
+  private carryToken = 0;
+
+  /** The live planet reports in (G1): the CSS planet steps back, the hub's entrance may go on. */
+  onPlanet(state: 'drawn' | 'failed'): void {
+    this.cam.planetState.set(state);
+  }
+
   /** Object opacities and veil as custom properties (the stylesheet transitions them over the flight). */
   readonly vars = computed(() => {
     const def = POSES[this.cam.target()];
@@ -68,6 +80,13 @@ export class ShellSceneComponent {
       '--scene-move': `${this.cam.moveMs()}ms`,
     };
     for (const o of SCENE_OBJECTS) out[`--o-${o}`] = def.show[o] ?? 0;
+    // The doors' pieces stand under the hub's doors (its lent layout).
+    const doors = doorRects(this.cam.verseAnchors());
+    for (const [d, r] of Object.entries(doors)) {
+      out[`--r-${d}-x`] = `${r[0].toFixed(3)}vw`;
+      out[`--r-${d}-y`] = `${r[1].toFixed(3)}vw`;
+      out[`--r-${d}-s`] = `${r[2].toFixed(3)}vw`;
+    }
     return out;
   });
 
@@ -123,14 +142,20 @@ export class ShellSceneComponent {
     const prev = this.at;
     if (next.pose === prev.pose && next.depth === prev.depth) return;
     this.at = next;
-    const base = POSES[next.pose].cam;
+    const base = this.cam.camOf(next.pose);
     // Deeper than before: push in towards the click; shallower or a new pose: the pose itself (pull-out).
     const pushIn = next.depth > 0 && (next.pose !== prev.pose || next.depth > prev.depth);
     const dest: CameraPose = next.depth > 0 ? (pushIn ? this.pushPose(base) : this.cam.current()) : base;
     const ms = next.pose !== prev.pose ? SCENE_FLIGHT_MS : SCENE_PUSH_MS;
     this.cam.pushed.set(next.depth > 0);
     this.pointer = null;
-    void this.flyNamed(next.pose, dest, ms, next.depth > 0 && next.pose === prev.pose && !pushIn);
+    // Leaving the hub: its doors go with the page, the scene's pieces under them carry on with the camera.
+    const token = ++this.carryToken;
+    this.carry.set(prev.pose === 'verse' && next.pose !== 'verse');
+    const flight = this.flyNamed(next.pose, dest, ms, next.depth > 0 && next.pose === prev.pose && !pushIn);
+    void flight.then(() => {
+      if (token === this.carryToken) this.carry.set(false);
+    });
   }
 
   private flyNamed(pose: ScenePoseId, dest: CameraPose, ms: number, stay: boolean): Promise<void> {

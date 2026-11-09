@@ -741,7 +741,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     .pm-on h1 { --pm-delay: 450ms; }
     .pm-on .group-title { animation: pm-fade 420ms ease-out calc(620ms + var(--pm-g, 0) * 110ms) backwards; }
     .pm-on .grid > * {
-      animation: pm-rise 560ms var(--pm-ease) calc(700ms +(var(--pm-g, 0) + var(--pm-c, 0)) * var(--pm-step)) backwards;
+      animation: pm-rise 560ms var(--pm-ease) calc(700ms + (var(--pm-g, 0) + var(--pm-c, 0)) * var(--pm-step)) backwards;
     }
     .sections > .group:nth-child(2) { --pm-g: 2; }
     .sections > .group:nth-child(3) { --pm-g: 4; }
