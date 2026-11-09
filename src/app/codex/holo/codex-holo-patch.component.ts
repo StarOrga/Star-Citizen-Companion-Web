@@ -38,6 +38,7 @@ import {
 } from '../codex-build-compare';
 import { CodexHoloPatchDeltaComponent } from './codex-holo-patch-delta.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
 
 /** One port's Δ badge — keyed by port name in {@link CodexHoloPatchComponent.portPins}'s emitted map. */
 export interface PortPinBadge {
@@ -66,7 +67,7 @@ export type HoloPatchSide = CodexBuild | 'active';
 @Component({
   selector: 'sc-codex-holo-patch',
   standalone: true,
-  imports: [TranslatePipe, CodexHoloPatchDeltaComponent, ScTooltipDirective, NgTemplateOutlet],
+  imports: [TranslatePipe, CodexHoloPatchDeltaComponent, ScTooltipDirective, ScActionDirective, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- One line (r4 d1 s6, C18): "4.10.1 [Live] ▾ → 4.10.2 [Live] ● aktuell ▾".
@@ -77,7 +78,7 @@ export type HoloPatchSide = CodexBuild | 'active';
                 (click)="toggle()" aria-haspopup="listbox" [attr.aria-expanded]="openSide() === 'from'"
                 [attr.aria-controls]="panelId" [attr.aria-keyshortcuts]="hotkey()"
                 [attr.aria-label]="'codex.holo.patch.fromAria' | translate: { patch: fromLabel() }"
-                [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate">
+                [scTooltip]="openSide() ? null : ('codex.holo.patch.trigger.hotkeyHint' | translate)" scTooltipPlacement="below">
           @if (from(); as f) {
             {{ sideVersion(f) }}
             <!-- Two extracts of one patch (4.10.2 → 4.10.2): the build tells them apart. -->
@@ -104,6 +105,13 @@ export type HoloPatchSide = CodexBuild | 'active';
         </button>
         @if (openSide() === 'to') { <ng-container *ngTemplateOutlet="list; context: { side: 'to' }" /> }
       </span>
+      <!-- D7: back to the default comparison (the patch before -> the table's), no expand step. -->
+      <button type="button" scAction tier="tertiary" class="p-reset"
+              [attr.aria-label]="'codex.holo.patch.reset' | translate"
+              [scTooltip]="'codex.holo.patch.reset' | translate" scTooltipTier="label" scTooltipPlacement="below"
+              (click)="reset()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" /></svg>
+      </button>
     </div>
 
     <ng-template #list let-side="side">
@@ -143,9 +151,6 @@ export type HoloPatchSide = CodexBuild | 'active';
             }
           </ul>
           <p class="pop-why" [id]="panelId + '-why'">{{ 'codex.holo.patch.orderHint' | translate }}</p>
-          @if (selected()) {
-            <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
-          }
         }
       </div>
     </ng-template>
@@ -162,7 +167,6 @@ export type HoloPatchSide = CodexBuild | 'active';
       @if (perspectives(); as groups) {
         <div class="delta-head">
           <span class="pop-label">{{ 'codex.holo.patch.changedOn' | translate: { name: shipName() } }}</span>
-          <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
         </div>
         <div class="delta-view">
           @for (g of groups; track g.perspective) {
@@ -196,6 +200,8 @@ export type HoloPatchSide = CodexBuild | 'active';
     .pline { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; min-width: 0; }
     .pw { position: relative; display: inline-flex; min-width: 0; }
     .ar { flex: none; color: var(--sc-fg-2); }
+    .p-reset { flex: none; margin-left: auto; }
+    .p-reset svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     .pv {
       display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
       min-height: max(30px, var(--sc-tap-min, 0px)); padding: 2px 7px;
@@ -591,6 +597,18 @@ export class CodexHoloPatchComponent {
     } finally {
       if (seq === this.compareSeq) this.compareLoading.set(false);
     }
+  }
+
+  /** D7: back to the default comparison - the patch before on the left, the table's build on the right. */
+  async reset(): Promise<void> {
+    this.close();
+    this.compareSeq++;
+    this.compareLoading.set(false);
+    this.compareError.set(null);
+    this.from.set(null);
+    this.to.set('active');
+    this.userCleared = false;
+    await this.autoPick();
   }
 
   /** Ends the comparison (by hand: the auto pick stays off until the ship changes). */

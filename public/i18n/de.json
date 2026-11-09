@@ -955,6 +955,9 @@
         "perspectives": "Perspektiven",
         "deckOutside": "Außen",
         "deckInside": "Innen",
+        "rooms": "Räume",
+        "roomsAria": "Räume dieses Decks",
+        "roomsNone": "Keine benannten Räume",
         "percentileAria": "Perzentil {{p}}",
         "say": {
           "gap": "Für diese Perspektive liefert das Vergleichsfeld keinen Rang.",
@@ -1044,7 +1047,7 @@
         "loading": "Wird geladen …",
         "empty": "Keine weiteren Patches verfügbar.",
         "notFinalised": "Nicht abgeschlossen",
-        "clear": "Vergleich beenden",
+        "reset": "Auf Standardvergleich zurücksetzen",
         "comparing": "Vergleich wird geladen …",
         "perspective": {
           "offensive": "Offensive",

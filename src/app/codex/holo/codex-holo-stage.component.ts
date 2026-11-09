@@ -371,6 +371,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             [(hotspotScope)]="hotspotScope"
             [patchPortPins]="patchPortPins()"
             [deckPlan]="tableDeck()"
+            (deckRoomChange)="deckRoom.set($event)"
             [displayName]="displayName()"
             [dense]="dense()"
             [hasUnresolved]="hasUnresolvedPins()"
@@ -560,6 +561,22 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             }
           </div>
           <span class="vw-sep" aria-hidden="true"></span>
+          @if (tableDeck()) {
+            <!-- D5: inside a deck the parts filters have nothing to filter (no part markers on a deck),
+                 so their slot lists the deck's rooms — one line, scrolling sideways when they don't fit. -->
+            <div class="vf vr" role="group" [attr.aria-label]="'codex.holo.stage.roomsAria' | translate">
+              <span class="vw-gl">{{ 'codex.holo.stage.rooms' | translate }}</span>
+              <div class="vf-row vr-row">
+                @for (r of roomChips(); track r.key) {
+                  <button type="button" class="vf-chip vr-chip" [attr.data-room]="r.key"
+                          [class.on]="deckRoomLabel() === r.label" [attr.aria-pressed]="deckRoomLabel() === r.label"
+                          (click)="pickRoom(r.key)">{{ r.label }}</button>
+                } @empty {
+                  <span class="vr-none">{{ 'codex.holo.stage.roomsNone' | translate }}</span>
+                }
+              </div>
+            </div>
+          } @else {
           <div class="vf" role="group" [attr.aria-label]="'codex.holo.stage.filtersAria' | translate">
             <span class="vw-gl">{{ 'codex.holo.stage.filterParts' | translate }}</span>
             <div class="vf-row">
@@ -575,6 +592,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
               </button>
             </div>
           </div>
+          }
         </div>
       </div>
 
@@ -887,6 +905,12 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .vf-chip[aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
   .vf-chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   @media (pointer: coarse) { .vf-chip { height: var(--sc-tap-min, 44px); } }
+  /* D5: the rooms take the filters' slot and the rest of the row; overflow scrolls sideways, the row stays one line. */
+  .vr { flex: 1 1 auto; }
+  .vr-row { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity;
+  scrollbar-width: thin; mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); padding-inline-end: 24px; }
+  .vr-chip { padding: 0 11px; scroll-snap-align: start; }
+  .vr-none { font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); line-height: 26px; }
   /* The fixed card's patch slot (C18): only on the Änderungen tab. */
   .patch-slot { margin-bottom: 10px; }
   .chg-sw { display: block; margin-bottom: 10px; }
@@ -1405,7 +1429,11 @@ export class CodexHoloStageComponent {
     const set = buildDeckPlans(this.decks(), this.deckLang());
     if (!set || set.decks.length === 0) return [];
     const outside = { key: null, label: '', labelKey: 'codex.holo.stage.deckOutside' };
-    if (set.decks.length === 1) return [outside, { key: set.decks[0].key, label: '', labelKey: 'codex.holo.stage.deckInside' }];
+    // One deck (often the uploader's fallback "Alle Räume"): its own name, else "Innen".
+    if (set.decks.length === 1) {
+      const only = set.decks[0];
+      return [outside, { key: only.key, label: only.label, labelKey: only.label ? null : 'codex.holo.stage.deckInside' }];
+    }
     return [outside, ...set.decks.map((d) => ({ key: d.key, label: d.label, labelKey: null }))];
   });
   /** What the table draws for the picked deck; null = the hull. */
@@ -1413,11 +1441,37 @@ export class CodexHoloStageComponent {
     const key = this.deckView();
     const decks = this.decks();
     if (!key || !decks || this.surface() !== 'simple' || !this.deckChips().some((c) => c.key === key)) return null;
-    return { decks, lang: this.deckLang(), key };
+    return { decks, lang: this.deckLang(), key, room: this.deckRoom() };
   });
   pickDeck(key: string | null): void {
     if (key !== this.deckView() && this.soundOn()) this.tone('switch');
+    if (key !== this.deckView()) this.deckRoom.set(null);
     this.deckView.set(key);
+  }
+  /** D5: the room picked in the bottom row or on the plan (its key); null = none. */
+  readonly deckRoom = signal<string | null>(null);
+  /** D5: the rooms of the deck on the table, one chip per readable name, A-Z. */
+  readonly roomChips = computed<readonly { key: string; label: string }[]>(() => {
+    const t = this.tableDeck();
+    if (!t) return [];
+    const deck = buildDeckPlans(t.decks, t.lang)?.decks.find((d) => d.key === t.key);
+    const seen = new Set<string>();
+    return [...(deck?.rooms ?? [])]
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .filter((r) => r.label && (seen.has(r.label) ? false : (seen.add(r.label), true)))
+      .map((r) => ({ key: r.key, label: r.label }));
+  });
+  /** The label of the picked room — every chip of that name reads as on. */
+  readonly deckRoomLabel = computed(() => {
+    const key = this.deckRoom();
+    const t = this.tableDeck();
+    if (!key || !t) return null;
+    return buildDeckPlans(t.decks, t.lang)?.decks.find((d) => d.key === t.key)?.rooms.find((r) => r.key === key)?.label ?? null;
+  });
+  /** A room chip: picks the room on the plan, a second press lets it go. */
+  pickRoom(key: string): void {
+    const on = this.deckRoomLabel() === this.roomChips().find((r) => r.key === key)?.label;
+    this.deckRoom.set(on ? null : key);
   }
   readonly inspectedPort = signal<string | null>(null);
   /** The placement a click on the model chose, when it says more than the slot's port (a gun on its mount). */

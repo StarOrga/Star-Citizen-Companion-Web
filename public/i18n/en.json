@@ -955,6 +955,9 @@
         "perspectives": "Perspectives",
         "deckOutside": "Outside",
         "deckInside": "Inside",
+        "rooms": "Rooms",
+        "roomsAria": "Rooms on this deck",
+        "roomsNone": "No named rooms",
         "percentileAria": "Percentile {{p}}",
         "say": {
           "gap": "The cohort gives no rank for this perspective.",
@@ -1044,7 +1047,7 @@
         "loading": "Loading …",
         "empty": "No further patches available.",
         "notFinalised": "Not finalised",
-        "clear": "Stop comparing",
+        "reset": "Reset to the default comparison",
         "comparing": "Loading comparison …",
         "perspective": {
           "offensive": "Offensive",
