@@ -145,6 +145,20 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
     return this.exiting;
   }
 
+  /** Re-open while a close is still playing (the host never left the DOM): play the open again. */
+  restart(): void {
+    if (!this.exiting) return;
+    this.exiting = null;
+    const cl = this.host.classList;
+    cl.remove('pm-out');
+    void this.host.offsetWidth;
+    cl.add('pm-in');
+    this.clearTimer();
+    this.zone.runOutsideAngular(() => {
+      this.timer = setTimeout(() => this.settle(), POPUP_MOTION_TOTAL[this.kind] + 80);
+    });
+  }
+
   ngOnDestroy(): void {
     this.clearTimer();
     this.observer?.disconnect();

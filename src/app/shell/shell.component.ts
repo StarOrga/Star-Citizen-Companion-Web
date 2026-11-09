@@ -13,6 +13,7 @@ import {
   inject,
   signal,
   untracked,
+  viewChildren,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -300,8 +301,8 @@ import { avatarUrlOf } from './avatar-url';
             </span>
           }
 
-          @if (menuOpen()) {
-            <div class="dropdown" role="menu" scPopupMotion scPopupMotionItems=".dropdown-item" scPopupMotionOrigin="tr" animate.leave="pm-out" (keydown)="onMenuKeydown($event)">
+          @if (menuShown()) {
+            <div class="dropdown" role="menu" scPopupMotion scPopupMotionItems=".dropdown-item" scPopupMotionOrigin="tr" (keydown)="onMenuKeydown($event)">
               <div class="dropdown-header">
                 <div class="dh-id">
                   <span class="dh-name">{{ displayName() }}</span>
@@ -1101,6 +1102,10 @@ export class ShellComponent implements AfterViewInit {
   /** The Admin hub, the first red entry of the account menu. */
   protected readonly adminHub = ADMIN_HUB;
   readonly menuOpen = signal(false);
+  /** The profile menu stays mounted while its close (the open reversed in 60 %) plays. */
+  readonly menuShown = signal(false);
+  private readonly menuMotions = viewChildren(ScPopupMotionDirective);
+  private menuHideTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly popouts = inject(HeaderPopoutService);
   /** The folded admin menu (721-1179px). */
   readonly adminMenuOpen = signal(false);
@@ -1157,6 +1162,21 @@ export class ShellComponent implements AfterViewInit {
   private topbarHeightPx: number | null = null;
 
   constructor() {
+    // Profile menu: mount on open, keep it until its reversed close has played.
+    effect(() => {
+      const open = this.menuOpen();
+      untracked(() => {
+        if (this.menuHideTimer !== null) { clearTimeout(this.menuHideTimer); this.menuHideTimer = null; }
+        if (open) {
+          if (this.menuShown()) this.menuMotions().forEach((m) => m.restart());
+          else this.menuShown.set(true);
+        } else if (this.menuShown()) {
+          const exits = this.menuMotions().map((m) => m.exit());
+          if (exits.length === 0) { this.menuShown.set(false); return; }
+          void Promise.all(exits).then(() => { if (!this.menuOpen()) this.menuShown.set(false); });
+        }
+      });
+    });
     // Another header popout (wishlist / apps) took the slot: the profile menu folds away.
     effect(() => {
       if (this.popouts.active() !== 'profile' && untracked(() => this.menuOpen())) this.menuOpen.set(false);
