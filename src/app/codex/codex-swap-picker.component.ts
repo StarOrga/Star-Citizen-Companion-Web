@@ -1,3 +1,4 @@
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { searchMatcher } from './codex-search';
@@ -176,17 +177,17 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [ItemPathComponent, TranslatePipe, RouterLink, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective],
+  imports: [ItemPathComponent, TranslatePipe, RouterLink, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
-      <div class="pick-veil">
+      <div class="pick-veil" scPopupMotion="large" scPopupMotionPlate=".pick-win" scPopupMotionFoot=".pick-foot">
         <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
         <!-- [scDialog]: focus in, Tab trap, Escape, focus back to the opener
              (audit S15). An open sc-select consumes its own Escape first. -->
         <article class="pick-win" role="dialog" aria-modal="true"
                  aria-labelledby="pick-title"
-                 scDialog (scDialogEscape)="closed.emit()"
+                 scDialog (scDialogEscape)="dismiss()"
                  (click)="$event.stopPropagation()">
           <header class="pick-head">
             <div class="pick-titles">
@@ -205,7 +206,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
             <button type="button" class="pick-clear" (click)="clearSlot()">
               {{ 'codex.swap.clearSlot' | translate }}
             </button>
-            <button type="button" class="pick-close" (click)="closed.emit()"
+            <button type="button" class="pick-close" (click)="dismiss()"
                     [attr.aria-label]="'codex.picker.close' | translate"
                     [scTooltip]="'codex.picker.close' | translate">✕</button>
           </header>
@@ -697,6 +698,17 @@ export class CodexSwapPickerComponent {
   readonly typeFilter = signal<string>(TYPE_ALL);
 
   private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
+  private readonly motion = viewChild(ScPopupMotionDirective);
+  private dismissing = false;
+
+  /** Close through the horizon motion (the open reversed in 60 % of the time), then tell the host. */
+  dismiss(): void {
+    const m = this.motion();
+    if (!m) { this.closed.emit(); return; }
+    if (this.dismissing) return;
+    this.dismissing = true;
+    void m.exit().then(() => { this.dismissing = false; this.closed.emit(); });
+  }
   private loadToken = 0;
 
   /** Value keys that get a magnitude bar (MASTER §9: Alpha, DPS only). */

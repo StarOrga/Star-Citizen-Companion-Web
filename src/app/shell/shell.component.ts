@@ -34,6 +34,7 @@ import { ProfileService } from '../auth/profile.service';
 import { VerseApiService } from '../verse/data/verse-api.service';
 import { KartographCrestComponent } from '../verse/starmap/kartograph-crest.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { AppsMenuComponent } from './apps-menu.component';
 import { HeaderPopoutService } from './header-popout.service';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
@@ -75,7 +76,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent, SlowNavigationComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent, SlowNavigationComponent, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -300,7 +301,7 @@ import { avatarUrlOf } from './avatar-url';
           }
 
           @if (menuOpen()) {
-            <div class="dropdown" role="menu" (keydown)="onMenuKeydown($event)">
+            <div class="dropdown" role="menu" scPopupMotion scPopupMotionItems=".dropdown-item" scPopupMotionOrigin="tr" animate.leave="pm-out" (keydown)="onMenuKeydown($event)">
               <div class="dropdown-header">
                 <div class="dh-id">
                   <span class="dh-name">{{ displayName() }}</span>

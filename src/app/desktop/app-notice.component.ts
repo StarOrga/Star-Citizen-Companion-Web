@@ -1,3 +1,4 @@
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -31,11 +32,11 @@ const STARSCAPE_FALLBACK_URL =
 @Component({
   selector: 'sc-app-notice',
   standalone: true,
-  imports: [ToastSlotDirective, TranslatePipe, ScTooltipDirective],
+  imports: [ScPopupMotionDirective, ToastSlotDirective, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <div class="toast" scToastSlot role="region" [attr.aria-label]="'appNotice.aria' | translate"
+      <div class="toast" scToastSlot scPopupMotion scPopupMotionOrigin="br" animate.leave="pm-out" role="region" [attr.aria-label]="'appNotice.aria' | translate"
            [class.open]="expanded()" (click)="expand()">
         <i class="ico" aria-hidden="true">
           @if (app() === 'scc') {
@@ -75,7 +76,6 @@ const STARSCAPE_FALLBACK_URL =
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 30px color-mix(in srgb, var(--sc-accent) 14%, transparent);
       backdrop-filter: blur(10px);
-      animation: notice-in 0.28s ease-out both;
     }
     .toast.open { cursor: default; }
     .ico {
@@ -111,7 +111,6 @@ const STARSCAPE_FALLBACK_URL =
     .dl:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     @keyframes notice-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
     @media (prefers-reduced-motion: reduce) {
-      .toast { animation: notice-fade 0.2s linear both; }
       .more { transition: none; }
       @keyframes notice-fade { from { opacity: 0; } to { opacity: 1; } }
     }
