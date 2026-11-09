@@ -16,13 +16,13 @@ const ITEMS: SectionRailItem[] = [
 class HostComponent {
   items = ITEMS;
   seen: SectionRailGo[] = [];
-  motion = signal(false);
+  readonly motion = signal(false);
   /** The page decides: here it swallows the click so the test iframe never navigates. */
   onGo(go: SectionRailGo): void {
     go.event.preventDefault();
     this.seen.push(go);
   }
-  variant = signal<'edge' | 'inline'>('edge');
+  readonly variant = signal<'edge' | 'inline'>('edge');
 }
 
 function mount() {
