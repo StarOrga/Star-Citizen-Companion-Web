@@ -108,6 +108,8 @@ export class ScTooltipDirective implements OnDestroy {
   readonly scTooltip = input<string | null | undefined>(null);
   readonly scTooltipTier = input<'info' | 'label'>('info');
   readonly scTooltipDisabled = input(false);
+  /** Preferred side; the others stay as fallbacks. `below` for a host whose label sits right above it. */
+  readonly scTooltipPlacement = input<'above' | 'below'>('above');
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly overlay = inject(Overlay);
@@ -285,7 +287,7 @@ export class ScTooltipDirective implements OnDestroy {
       positionStrategy: this.overlay
         .position()
         .flexibleConnectedTo(this.anchorElement())
-        .withPositions(POSITIONS)
+        .withPositions(this.scTooltipPlacement() === 'below' ? [POSITIONS[1], POSITIONS[0], POSITIONS[2], POSITIONS[3]] : POSITIONS)
         .withPush(true),
       scrollStrategy: this.overlay.scrollStrategies.reposition(),
       panelClass: 'sc-tooltip-panel',

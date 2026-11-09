@@ -1044,7 +1044,7 @@
         "loading": "Loading …",
         "empty": "No further patches available.",
         "notFinalised": "Not finalised",
-        "clear": "Stop comparing",
+        "reset": "Reset to the default comparison",
         "comparing": "Loading comparison …",
         "perspective": {
           "offensive": "Offensive",

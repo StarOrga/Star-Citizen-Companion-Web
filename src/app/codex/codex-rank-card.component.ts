@@ -122,27 +122,29 @@ function readShapePref(): 'hex' | 'bars' {
             @if (result()!.bandKey; as band) { <span class="sep" aria-hidden="true">·</span><span class="band">{{ band | translate }}</span> }
           </p>
         }
+        <!-- D6: one header block. The label (its info in the label's own tooltip) above,
+             the group picker and the hexagon/bars switch side by side at one height below. -->
         <div class="holo-ctrl">
-          <span class="hc-label">{{ 'codex.holo.card.compareWith' | translate }}</span>
-          <sc-select class="hc-select"
+          <span class="hc-label" tabindex="0" [scTooltip]="compareInfoKey() | translate">
+            {{ 'codex.holo.card.compareWith' | translate }}<span class="hc-i" aria-hidden="true">i</span>
+            <span class="sr-only">{{ compareInfoKey() | translate }}</span>
+          </span>
+          <sc-select class="compact hc-select"
             [options]="scopeSelectOptions()"
             [value]="activeScope()"
             [allowEmpty]="false"
             [ariaLabel]="'codex.rank.scopeLabel' | translate"
             (valueChange)="$event && pickScope($any($event))" />
-          <button type="button" class="compare-info"
-            [scTooltip]="compareInfoKey() | translate"
-            [attr.aria-label]="compareInfoKey() | translate">ⓘ</button>
+          @if (result()!.axes.length >= 3) {
+            <sc-segmented class="compact hc-shape"
+              [options]="shapeChoices"
+              [value]="shape()"
+              [ariaLabel]="'codex.holo.card.shapeAria' | translate"
+              (valueChange)="setShape($any($event))" />
+          }
         </div>
         @if (smallGroupSize(); as n) {
           <p class="small-group" role="status">{{ 'codex.rank.group.smallHint' | translate: { n: n } }}</p>
-        }
-        @if (result()!.axes.length >= 3) {
-          <sc-segmented class="compact hc-shape"
-            [options]="shapeChoices"
-            [value]="shape()"
-            [ariaLabel]="'codex.holo.card.shapeAria' | translate"
-            (valueChange)="setShape($any($event))" />
         }
       } @else if (result()) {
         <!-- Comparison group as the panel's head line (concept round 3, L2):
@@ -527,10 +529,17 @@ function readShapePref(): 'hex' | 'bars' {
     /* " · " between the parts: the template's whitespace is stripped, the margin carries the space. */
     :host(.holo) .holo-rank .sep { margin-inline: 0.4em; color: var(--sc-fg-2); }
     :host(.holo) .holo-rank:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
-    :host(.holo) .holo-ctrl { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; }
-    :host(.holo) .hc-label { font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
+    :host(.holo) .holo-ctrl { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 4px 8px; min-width: 0;
+      padding-bottom: 10px; border-bottom: 1px solid var(--sc-border); }
+    :host(.holo) .hc-label { grid-column: 1 / -1; justify-self: start; display: inline-flex; align-items: center; gap: 5px;
+      font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; cursor: help; border-radius: 3px; }
+    :host(.holo) .hc-label:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    :host(.holo) .hc-i { display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 50%; border: 1px solid currentColor;
+      font: italic 600 9px/1 Georgia, serif; letter-spacing: 0; text-transform: none; }
+    :host(.holo) .hc-label:hover { color: var(--sc-fg-1); }
     :host(.holo) .hc-select { min-width: 0; }
-    :host(.holo) .hc-shape { justify-self: center; }
+    /* Same height as the compact picker beside it: both rows are 32px. */
+    :host(.holo) .hc-shape { align-self: stretch; }
     .rim-note { margin: 0; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
   `],
 })
