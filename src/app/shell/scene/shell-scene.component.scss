@@ -48,11 +48,11 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     position: absolute;
     inset: 0;
     opacity: 0.55;
-    @include stars.field-image(170, 1931, 1213, 7, (1px, 1px, 1.4px, 1px), (#fff, #cfe8ff, #fff, #9cc));
+    @include stars.far-field;
   }
   .stars.near {
     opacity: 0.7;
-    @include stars.field-image(56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
+    @include stars.near-field;
   }
   // A few stars light up once each at random spots (star-sparkle.ts).
   .spark {

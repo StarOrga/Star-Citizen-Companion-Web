@@ -35,7 +35,7 @@
 /// held every frame back for 630 ms on average after a menu click (51 ms with this
 /// image, 2026-11-06). An image is rastered once, and stays sharp at any pixel density.
 /// Colours must be literal here; a `var()` cannot reach into an image.
-@mixin field-image($count, $w, $h, $seed, $sizes, $colors) {
+@function field-url($count, $w, $h, $seed, $sizes, $colors) {
   $defs: '';
   @for $c from 1 through list.length($colors) {
     $hex: string.slice('#{list.nth($colors, $c)}', 2);
@@ -52,6 +52,31 @@
     $c: ($i % list.length($colors)) + 1;
     $dots: $dots + "<circle cx='#{$x}' cy='#{$y}' r='#{$r}' fill='url(%23s#{$c})'/>";
   }
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='#{$w}' height='#{$h}'>#{$defs}#{$dots}</svg>");
+  @return url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='#{$w}' height='#{$h}'>#{$defs}#{$dots}</svg>");
+}
+
+@mixin field-image($count, $w, $h, $seed, $sizes, $colors) {
+  background-image: field-url($count, $w, $h, $seed, $sizes, $colors);
   background-size: #{$w}px #{$h}px;
+}
+
+// The app's two star fields (the boot sky and the shell scene draw the same ones). Defined ONCE
+// as custom properties on :root (styles.scss) — inlined per stylesheet they were 12 kB twice.
+$far: (170, 1931, 1213, 7, (1px, 1px, 1.4px, 1px), (#fff, #cfe8ff, #fff, #9cc));
+$near: (56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
+
+/// Emits --sc-stars-far / --sc-stars-near; include once, on :root.
+@mixin shared-fields {
+  --sc-stars-far: #{field-url(list.nth($far, 1), list.nth($far, 2), list.nth($far, 3), list.nth($far, 4), list.nth($far, 5), list.nth($far, 6))};
+  --sc-stars-near: #{field-url(list.nth($near, 1), list.nth($near, 2), list.nth($near, 3), list.nth($near, 4), list.nth($near, 5), list.nth($near, 6))};
+}
+
+@mixin far-field {
+  background-image: var(--sc-stars-far);
+  background-size: #{list.nth($far, 2)}px #{list.nth($far, 3)}px;
+}
+
+@mixin near-field {
+  background-image: var(--sc-stars-near);
+  background-size: #{list.nth($near, 2)}px #{list.nth($near, 3)}px;
 }

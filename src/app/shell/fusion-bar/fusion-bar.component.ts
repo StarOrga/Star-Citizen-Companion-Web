@@ -312,7 +312,7 @@ const MAX_TOKENS = 3;
       </div>
     }
   `,
-  styleUrl: './fusion-bar.component.scss',
+  styleUrls: ['./fusion-bar.component.scss', './fusion-bar.adapt.scss'],
 })
 export class FusionBarComponent {
   private readonly router = inject(Router);
