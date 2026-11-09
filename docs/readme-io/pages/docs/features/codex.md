@@ -244,7 +244,8 @@ The card at the top of a ship page is a stage: the render fills it, the name
 sits on it, and a small half-transparent **3D / 2D** switch in its corner swaps
 the picture for the interactive model and back. Everything that is not "which
 ship am I looking at?" — the edition, the livery, the port overview, the link
-out to RSI — sits in one flat tool row directly underneath. The same
+out to RSI — sits at the end of the one action row directly underneath,
+next to compare, stock loadout, copy link and switch ship. The same
 **⌂ Hangar** button as on the landing stage sits in the top-left corner of the
 render and unfolds your last three ships.
 
