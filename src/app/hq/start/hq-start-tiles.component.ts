@@ -113,9 +113,9 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
           <button type="button" class="own retry" (click)="live.refresh()">{{ 'hq.start.retry' | translate }}</button>
         } @else {
           <!-- The same state words and action as the status chip (sc-hq-live-ticker), so both never disagree. -->
-          <b class="app-state">{{ 'hq.appStatus.state.' + appStatus() | translate }}</b>
+          <b class="app-state app-only">{{ 'hq.appStatus.state.' + appStatus() | translate }}</b>
           @if (appStatus() === 'ready') {
-            <small>{{ 'hq.appStatus.waiting' | translate }}</small>
+            <small class="app-only">{{ 'hq.appStatus.waiting' | translate }}</small>
           } @else if (appStatus() === 'off') {
             @if (ago(); as when) {
               <small>
@@ -127,7 +127,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
               </small>
             }
           } @else {
-            <small>{{ 'hq.start.now.noneHint' | translate }}</small>
+            <small class="app-only">{{ 'hq.start.now.noneHint' | translate }}</small>
           }
           @if (appAction(); as a) {
             <sc-hq-app-launch class="own launch" look="pill" [tipped]="true" [mode]="a" />
@@ -250,6 +250,7 @@ export function agoText(iso: string, lang: string | undefined, now: number = Dat
       .sys { margin-top: 6px; font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.04em; color: var(--sc-fg-2); }
       .sys + b { margin-top: 2px; }
       .launch, .go { margin-top: 10px; }
+      @media (max-width: 749px) { .app-only { display: none; } }
       .go {
         display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 14px;
         border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, transparent); border-radius: 999px;
