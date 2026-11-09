@@ -126,6 +126,8 @@ describe('search-context · HQ pages (exclusion)', () => {
 
   it('lets the Bestand chip follow the tab (I14); a link without a tab stays Inventar', () => {
     const label = (url: string): string => searchContextOf(url, 'inventar').labelKey;
+    const chipCount = (url: string) => searchContextOf(url, 'inventar').chips.length;
+    expect(chipCount('/hq?bestand=hangar#inventar')).toBe(1);
     const chipLabel = (url: string) => searchContextOf(url, 'inventar').chips[0]?.labelKey;
     expect(chipLabel('/hq?bestand=alles#inventar')).toBe('fusionBar.ctx.hqStockAll');
     expect(chipLabel('/hq?bestand=hangar#inventar')).toBe('search.chip.section.hangar');

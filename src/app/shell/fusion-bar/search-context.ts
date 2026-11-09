@@ -92,7 +92,8 @@ export function searchContextOf(
   const base = routeContext(url.split('#', 1)[0], hqPage);
   // The section the search was opened from: an explicit id wins over the URL #anchor.
   const chip = sectionChip(section ?? hash);
-  if (!chip || base.chips.some((c) => c.id.split(':')[1] === chip.id.split(':')[1])) return base;
+  // The Bestand page names its own chip per tab; its #inventar anchor must not add a second "Inventar" one.
+  if (!chip || base.key === 'hqStock' || base.chips.some((c) => c.id.split(':')[1] === chip.id.split(':')[1])) return base;
   return { ...base, chips: [...base.chips, chip] };
 }
 

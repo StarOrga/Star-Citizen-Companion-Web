@@ -525,7 +525,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .tab[aria-current='page'] { color: var(--sc-fg); background: color-mix(in srgb, var(--sc-accent) 20%, transparent); box-shadow: 0 0 0 1px var(--sc-accent); }
       .tab[aria-current='page'] svg { color: var(--sc-accent); }
       .tab:focus-visible, .chip:focus-visible, .tog:focus-visible, .bay:focus-visible, .mode button:focus-visible, .tile:focus-visible, .set:focus-visible, .pad:focus-visible, .lock:focus-visible, .band:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .head-r { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sc-space-2, 8px); }
+      .head-r { margin-left: auto; display: inline-flex; flex-wrap: wrap; justify-content: flex-end; max-width: 100%; align-items: center; gap: var(--sc-space-2, 8px); }
       .mode { display: inline-flex; padding: 3px; border: 1px solid var(--sc-border); border-radius: 10px; }
       .mode button { min-height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--sc-fg-2); font: inherit; font-size: 0.8rem; cursor: pointer; }
       .mode button[aria-pressed='true'] { color: var(--sc-fg); background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
@@ -660,7 +660,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
         .place { margin-left: 0; }
         .bays { flex-wrap: wrap; }
         .bay { flex-basis: 30%; }
-        .head-r { margin-left: 0; }
+        .head-r { margin-left: 0; flex-basis: 100%; justify-content: flex-start; }
       }
       @media (prefers-reduced-motion: reduce) { .tile { transition: none; } .tile.focus { animation: none; } }
     `,
