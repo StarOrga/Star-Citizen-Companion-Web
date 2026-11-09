@@ -290,9 +290,11 @@ export class ShipBlueprintSchemaComponent {
     const { w, h } = calloutSize(typeof window === 'undefined' ? 1920 : window.innerWidth);
     const gap = 14;
     const pad = 6;
+    // Shot 05: the card keeps a margin to the sheet frame, never flush on its edge.
+    const edge = 12;
     const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), Math.max(lo, hi));
-    const cx = clamp(a.x - w / 2, 0, px.sheetW - w);
-    const cy = clamp(a.y - h / 2, 0, px.sheetH - h);
+    const cx = clamp(a.x - w / 2, edge, px.sheetW - w - edge);
+    const cy = clamp(a.y - h / 2, edge, px.sheetH - h - edge);
     const candidates = [
       { x: cx, y: hull.t - gap - h },
       { x: cx, y: hull.b + gap },
@@ -302,7 +304,7 @@ export class ShipBlueprintSchemaComponent {
       { x: a.x - 22 - w, y: a.y - 22 - h },
       { x: a.x + 22, y: a.y + 22 },
       { x: a.x - 22 - w, y: a.y + 22 },
-    ].map((p) => ({ x: clamp(p.x, 0, px.sheetW - w), y: clamp(p.y, 0, px.sheetH - h) }));
+    ].map((p) => ({ x: clamp(p.x, edge, px.sheetW - w - edge), y: clamp(p.y, edge, px.sheetH - h - edge) }));
     const dots = this.markers().map((k) => toPx(k.x, k.y));
     const score = (p: { x: number; y: number }) => {
       let covered = 0;

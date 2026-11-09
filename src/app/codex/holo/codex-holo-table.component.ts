@@ -57,6 +57,8 @@ export interface HoloDeckView {
   decks: readonly ShipDeck[];
   lang: Lang;
   key: string;
+  /** D5: the room picked in the bottom row (its key); null/absent = none. */
+  room?: string | null;
 }
 
 /**
@@ -246,7 +248,8 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         <!-- Schema "Einfach" on a deck chip (concept r1-decks): the deck's
              rooms replace the hull; no part markers or callouts inside a deck. -->
         <sc-ship-deck-plan class="mode-viewer deck-sheet" animate.leave="surface-leave"
-          [decks]="dp.decks" [lang]="dp.lang" [deckKey]="dp.key" [bare]="true" />
+          [decks]="dp.decks" [lang]="dp.lang" [deckKey]="dp.key" [bare]="true"
+          [room]="dp.room ?? null" (roomChange)="deckRoomChange.emit($event)" />
       } @else if (showCanvas()) {
         <div class="shipwrap" animate.leave="surface-leave" [class.no-geometry]="!silhouette()" [class.dense]="keyMode()"
              [class.leader]="!!leader()" [style.width.px]="leader()?.hull?.w ?? null"
@@ -865,6 +868,8 @@ export class CodexHoloTableComponent {
   readonly labelPins = input<readonly StagePin[] | null>(null);
   /** A deck picked by the Schema chips (null = the hull from outside). */
   readonly deckPlan = input<HoloDeckView | null>(null);
+  /** D5: a room picked (or let go) on the deck plan — the bottom row's room chips follow it. */
+  readonly deckRoomChange = output<string | null>();
   readonly shipClassName = input('');
   readonly hardpointPortRefs = input<readonly HardpointPortRef[]>([]);
   readonly hardpointFrame = input<HardpointFrame | null>(null);

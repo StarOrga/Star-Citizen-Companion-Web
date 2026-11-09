@@ -850,13 +850,14 @@ describe('CodexHoloStageComponent lower part (concept holotisch-unten r1, d2)', 
 
   const room = (key: string) => ({ key, name: null, pos: [0, 0, 0], floorZ: null, height: 3, shapes: [[[-2, -2], [2, -2], [2, 2], [-2, 2]]] });
 
-  it('deck chips in Einfach: Außen + one per deck; one deck reads Außen/Innen; no rooms, no chips (C14)', async () => {
+  it('deck chips in Einfach: Außen + one per deck; one deck reads Außen + its own name; no rooms, no chips (C14, D5)', async () => {
     const f = await setup();
     const c = f.componentInstance;
     expect(c.deckChips()).toEqual([]);
     f.componentRef.setInput('decks', [{ key: 'D1', name: { en: 'Deck 1', de: 'Deck 1' }, order: 0, rooms: [room('A')] }]);
     f.detectChanges();
-    expect(c.deckChips().map((d) => d.labelKey)).toEqual(['codex.holo.stage.deckOutside', 'codex.holo.stage.deckInside']);
+    expect(c.deckChips().map((d) => d.labelKey)).toEqual(['codex.holo.stage.deckOutside', null]);
+    expect(c.deckChips()[1].label).toBe('Deck 1');
     f.componentRef.setInput('decks', [
       { key: 'D1', name: { en: 'Deck 1', de: 'Deck 1' }, order: 0, rooms: [room('A')] },
       { key: 'D2', name: { en: 'Deck 2', de: 'Deck 2' }, order: 1, rooms: [room('B')] },
@@ -877,5 +878,38 @@ describe('CodexHoloStageComponent lower part (concept holotisch-unten r1, d2)', 
     // Picking a part goes back outside, where its marker is.
     c.inspectPin('hp_gun');
     expect(c.deckView()).toBeNull();
+  });
+
+  it('D5: a deck on the table lists its rooms in the bottom row; a chip picks the room on the plan', async () => {
+    const f = await setup();
+    const c = f.componentInstance;
+    const named = (key: string, en: string) => ({ ...room(key), name: { en, de: en } });
+    f.componentRef.setInput('decks', [
+      { key: 'D1', name: { en: 'Deck 1', de: 'Deck 1' }, order: 0, rooms: [named('R1', 'Cockpit'), named('R2', 'Cargo Bay'), named('R3', 'Cargo Bay')] },
+      { key: 'D2', name: { en: 'Deck 2', de: 'Deck 2' }, order: 1, rooms: [named('R4', 'Engineering')] },
+    ]);
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    // Outside: the parts filters, no rooms.
+    expect(el.querySelector('.vr-chip')).toBeNull();
+    el.querySelector<HTMLButtonElement>('.vw-thumb[data-view="deck:D1"]')!.click();
+    f.detectChanges();
+    // One chip per readable name, A-Z; the filters make way.
+    expect(Array.from(el.querySelectorAll('.vr-chip')).map((b) => b.textContent!.trim())).toEqual(['Cargo Bay', 'Cockpit']);
+    expect(el.querySelector('.vf-chip.all')).toBeNull();
+    el.querySelector<HTMLButtonElement>('.vr-chip[data-room="R1"]')!.click();
+    f.detectChanges();
+    expect(c.deckRoom()).toBe('R1');
+    expect(c.tableDeck()?.room).toBe('R1');
+    expect(el.querySelector('.vr-chip[data-room="R1"]')!.getAttribute('aria-pressed')).toBe('true');
+    // The plan shows the same room picked.
+    expect(el.querySelector('sc-ship-deck-plan .room.on')?.getAttribute('aria-label')).toBe('Cockpit');
+    // A second press lets go; another deck starts with no room.
+    el.querySelector<HTMLButtonElement>('.vr-chip[data-room="R1"]')!.click();
+    f.detectChanges();
+    expect(c.deckRoom()).toBeNull();
+    c.pickRoom('R2');
+    c.pickDeck('D2');
+    expect(c.deckRoom()).toBeNull();
   });
 });

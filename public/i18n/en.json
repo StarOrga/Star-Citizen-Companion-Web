@@ -955,6 +955,9 @@
         "perspectives": "Perspectives",
         "deckOutside": "Outside",
         "deckInside": "Inside",
+        "rooms": "Rooms",
+        "roomsAria": "Rooms on this deck",
+        "roomsNone": "No named rooms",
         "percentileAria": "Percentile {{p}}",
         "say": {
           "gap": "The cohort gives no rank for this perspective.",

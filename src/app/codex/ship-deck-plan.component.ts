@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, model, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import type { Lang, ShipDeck } from './codex.types';
@@ -196,7 +196,7 @@ export class ShipDeckPlanComponent {
   /** Room under the pointer or a focused chip — transient. */
   readonly hovered = signal<string | null>(null);
   /** Room a click/tap selected — holds until another click or a deck switch. */
-  readonly pinned = signal<string | null>(null);
+  readonly pinned = model<string | null>(null, { alias: 'room' });
   /** What the plan highlights and the readout names: hover wins over the pin. */
   readonly active = computed(() => this.hovered() ?? this.pinned());
 

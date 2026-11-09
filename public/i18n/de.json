@@ -955,6 +955,9 @@
         "perspectives": "Perspektiven",
         "deckOutside": "Außen",
         "deckInside": "Innen",
+        "rooms": "Räume",
+        "roomsAria": "Räume dieses Decks",
+        "roomsNone": "Keine benannten Räume",
         "percentileAria": "Perzentil {{p}}",
         "say": {
           "gap": "Für diese Perspektive liefert das Vergleichsfeld keinen Rang.",
