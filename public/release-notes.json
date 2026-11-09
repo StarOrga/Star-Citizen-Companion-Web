@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.241.0",
+  "current": "0.241.1",
   "releases": [
+    {
+      "version": "0.241.1",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Development: test comments describe the Vitest test window instead of Karma's, and the overlay scroll spec waits for the router instead of a fixed 40 ms."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.241.0",
       "date": "2026-11-09",
