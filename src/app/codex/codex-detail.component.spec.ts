@@ -1318,8 +1318,8 @@ describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz
   it('the stage toolbar has no Teilen; the corner share FAB gets the whole view URL', fakeAsync(() => {
     const fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
-    const tools = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).map((b) => b.textContent ?? '');
-    expect(tools.length, '3D / Schema still there').toBeGreaterThan(0);
+    const tools = Array.from(el.querySelectorAll<HTMLButtonElement>('.holo-views button')).map((b) => b.textContent ?? '');
+    expect(tools.length, 'the views row is there').toBeGreaterThan(0);
     expect(tools.some((t) => t.includes('Teilen') || t.includes('↗'))).toBe(false);
     expect(el.querySelector('sc-codex-holo-share')).toBeNull();
     expect(TestBed.inject(PageCornerService).share()?.url()).toBe(location.href);

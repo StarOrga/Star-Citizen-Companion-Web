@@ -294,7 +294,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             (missionChange)="missionChange.emit($event)" />
         </div>
         <!-- slot [htOwn]: the one hangar button (count + shown loadout ▾, C5). -->
-        <div class="ht-right"><ng-content select="[htOwn]" /></div>
+        <div class="ht-right">
+          <div class="sc-head-strip" role="group" [attr.aria-label]="'codex.head.stripAria' | translate"><ng-content select="[htOwn]" /></div>
+        </div>
       </div>
 
       <!-- A shared link's loadout on the table, read-only until adopted (#646). -->
