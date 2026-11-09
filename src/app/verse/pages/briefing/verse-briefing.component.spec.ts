@@ -23,10 +23,8 @@ import { BriefingPlanetComponent } from './briefing-planet.component';
 import { VERSE_STAGED_BUILD } from './staged-build';
 import {
   INTRO_FLAG,
-  localDay,
+  VERSE_DOCUMENT_ENTRY,
   briefingStatus,
-  claimIntro,
-  resetIntroDocument,
   explorerLit,
   followingLine,
   liveStatusKey,
@@ -138,21 +136,6 @@ describe('Verse briefing — model (more)', () => {
     expect(skyFigure(FALLBACK_POINTS, 7).stars.every((s) => s.state === 'lit')).toBe(true);
   });
 
-  it('claimIntro plays the full entrance once per local day and survives blocked storage', () => {
-    const store = new Map<string, string>();
-    const fake = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
-    const day = () => new Date(2026, 10, 5, 9, 0);
-    resetIntroDocument();
-    expect(claimIntro(fake, day)).toBe('full');
-    expect(store.get(INTRO_FLAG)).toBe('2026-11-05');
-    expect(claimIntro(fake, day)).toBe('short');
-    expect(claimIntro(fake, () => new Date(2026, 10, 6, 9, 0))).toBe('full');
-    const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => undefined };
-    resetIntroDocument();
-    expect(claimIntro(broken)).toBe('full');
-    resetIntroDocument();
-    expect(claimIntro(null)).toBe('full');
-  });
 
   it('fillGallery tops the digest up to the candidate count from the gallery source, without repeats', () => {
     const g = (id: string, image = `${id}.jpg`) => ({ ...item(`gallery:${id}`, 1, `/verse/gallery?image=${id}`, 'gallery'), image });
@@ -200,7 +183,7 @@ describe('Verse briefing — component', () => {
   const loadSeen = vi.fn().mockName('loadSeen');
 
   beforeEach(() => {
-    localStorage.removeItem(INTRO_FLAG);
+    sessionStorage.removeItem(INTRO_FLAG);
     captureVerse.mockClear();
     trackShown.mockClear();
     loadSeen.mockClear();
@@ -208,6 +191,7 @@ describe('Verse briefing — component', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: VERSE_STAGED_BUILD, useValue: false },
+        { provide: VERSE_DOCUMENT_ENTRY, useValue: () => ({ bare: true, revisit: false }) },
         provideRouter([]),
         provideTranslateService({}),
         // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
@@ -243,7 +227,7 @@ describe('Verse briefing — component', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     beta.set({ ...beta(), shell: false });
-    localStorage.removeItem(INTRO_FLAG);
+    sessionStorage.removeItem(INTRO_FLAG);
   });
 
   it('renders the hero CTA, moons and the constellation star-map link as anchors and the story pills as buttons', () => {
@@ -378,7 +362,7 @@ describe('Verse briefing — component', () => {
   });
 
   it('plays the short entrance on a later visit in the same session', () => {
-    localStorage.setItem(INTRO_FLAG, localDay());
+    sessionStorage.setItem(INTRO_FLAG, '1');
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.stage')?.classList).toContain('short');
@@ -390,7 +374,7 @@ describe('Verse briefing — component', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('sc-news-list')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.stage')).toBeNull();
-    expect(localStorage.getItem(INTRO_FLAG)).toBeNull();
+    expect(sessionStorage.getItem(INTRO_FLAG)).toBeNull();
     expect(trackShown).not.toHaveBeenCalled();
     beta.set({ ...beta(), verse: true });
   });
@@ -478,7 +462,7 @@ describe('Verse briefing — component', () => {
     });
 
     it('a reload waits behind the stars for the story, at most the calm wait, then fades in', fakeAsync(() => {
-      localStorage.setItem(INTRO_FLAG, localDay());
+      sessionStorage.setItem(INTRO_FLAG, '1');
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
       const c = fixture.componentInstance;
@@ -550,7 +534,7 @@ describe('Verse briefing — component', () => {
     }));
 
     it('a return within the session shows everything at once and releases an announced hold', fakeAsync(() => {
-      localStorage.setItem(INTRO_FLAG, localDay());
+      sessionStorage.setItem(INTRO_FLAG, '1');
       chrome.holdHeroIntro();
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
