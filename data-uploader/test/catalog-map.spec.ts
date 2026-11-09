@@ -249,7 +249,7 @@ describe('mapSilhouettes', () => {
       className: 'COOL_AEGS_S01_Bracer_SCItem',
       silhouette: { ...shipFile.silhouette, edges: 'M 1 1 L 9 9', view: 'side' },
     };
-    const [itemRow, shipRow] = mapSilhouettes([item, shipFile], tag);
+    const [itemRow, shipRow] = mapSilhouettes([item, shipFile], tag) as [ReturnType<typeof mapSilhouettes>[number], ReturnType<typeof mapSilhouettes>[number]];
     expect(itemRow.edges).toBe('M 1 1 L 9 9');
     expect(itemRow.meta['edges']).toBeUndefined();
     expect(itemRow.meta['view']).toBe('side');
