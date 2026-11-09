@@ -6043,7 +6043,6 @@
     },
     "title": "HQ",
     "eyebrow": "Personal area",
-    "subtitle": "Your ships, sets and ops in one place.",
     "tabsAria": "HQ sections",
     "tabs": {
       "overview": "Overview",
@@ -7444,7 +7443,6 @@
   "adminHub": {
     "eyebrow": "Admin",
     "title": "Command centre",
-    "subtitle": "Every admin tool in one place.",
     "groups": {
       "people": "People & access",
       "operations": "Operations",
