@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.242.0] - 2026-11-09
+
+### Added
+- Not-found pages for unknown Codex entries, locker sets and gallery images, with a way back to the list.
+
+### Fixed
+- "Mehr in Codex" sits exactly where "Mehr im Verse" sits, at every window size.
+- "Neu in <Patch>" compares against the previous patch, not against a rebuild of the same patch; the nightly cleanup keeps that comparison build.
+- Behind an open dialog the rest of the page can no longer be reached with the keyboard or a screen reader.
+- After deleting a Nachschub the focus moves to the next one, never onto its delete button.
+- The Bestand tab (Inventar/Hangar/Sammlung) is kept in the address, so a reload or a shared link opens it again.
+- "In einen Nachschub" in the wish list does nothing while nothing is selected.
+- The "add" tiles in Bestand are announced as buttons.
+
 ## [0.241.3] - 2026-11-09
 
 ### Changed
