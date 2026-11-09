@@ -22,17 +22,22 @@ describe('ToastStackService', () => {
     @Component({
       standalone: true,
       imports: [ToastSlotDirective],
-      template: `@if (a()) { <div scToastSlot style="height:50px"></div> } <div scToastSlot id="b" style="height:30px"></div>`,
+      // Both in blocks: their slots register in template order (the older toast lowest).
+      template: `@if (a()) { <div scToastSlot style="height:50px"></div> } @if (b()) { <div scToastSlot id="b" style="height:30px"></div> }`,
     })
     class Host {
       readonly a = signal(true);
+      readonly b = signal(true);
     }
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
     await fixture.whenStable();
     const b = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('#b')!;
-    fixture.detectChanges();
-    expect(b.style.getPropertyValue('--sc-toast-offset')).toBe(`${50 + ToastStackService.GAP_PX}px`);
+    // The heights arrive through the ResizeObserver after layout.
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(b.style.getPropertyValue('--sc-toast-offset')).toBe(`${50 + ToastStackService.GAP_PX}px`);
+    });
     fixture.componentInstance.a.set(false);
     fixture.detectChanges();
     await new Promise((r) => setTimeout(r, 60));

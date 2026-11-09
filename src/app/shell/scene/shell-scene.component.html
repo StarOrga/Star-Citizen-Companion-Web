@@ -6,7 +6,7 @@
     <!-- The one planet, live (G1): the hub's WebGL planet, drawn exactly over the world's planet
          (its anchor), so it rides every camera move. Loaded lazily; the CSS planet stands in until
          it is drawn and wherever no WebGL comes. -->
-    @defer (on idle) {
+    @defer (on timer(700ms)) {
       <div class="live-planet"><sc-briefing-planet [anchor]="planetEl" (drawn)="onPlanet('drawn')" (unavailable)="onPlanet('failed')" /></div>
     }
     <!-- The one world (rounds/05 .d5-world): every page is a camera pose on it. -->
