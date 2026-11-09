@@ -410,33 +410,31 @@ describe('CodexLandingComponent', () => {
     flush();
   }));
 
-  describe('in the window the spec was written for', () => {
-    // #320 was measured in Karma's 749 × 600 window. In the 1280 × 800 default the sheet stands
-    // 15 px above the box when the spec forces the landing's height apart from the window
-    // height; whether the real page (landing height follows the window) shows that is open.
-    useViewport(749, 600);
+  // #320: the landing takes the window's height (100dvh minus its offset), so the window is what
+  // varies here, as on the real page. Forcing the landing's height apart from the window measured
+  // a page that never exists (15 px off at 1280 × 800, while the live page at 1912 × 948 fits).
+  for (const [w, h] of [[1280, 720], [1280, 800], [1366, 768], [1920, 1080]] as const) {
+    describe(`at ${w} × ${h}`, () => {
+      useViewport(w, h);
 
-    it('#320: the data sheet spans the hologram box at every stage height and for every shown item', fakeAsync(() => {
-      setup(three());
-      fixture.componentInstance.still.set(true);
-      settle();
-      const landing = el.querySelector<HTMLElement>('.landing')!;
-      const sheet = el.querySelector<HTMLElement>('sc-codex-landing-values-pane')!;
-      const check = (ctx: string): void => {
-        const box = piece().querySelector<HTMLElement>('.holo')!.getBoundingClientRect();
-        const r = sheet.getBoundingClientRect();
-        expect(Math.abs(r.top - box.top), `${ctx}: top ${r.top} vs box ${box.top}`).toBeLessThanOrEqual(2);
-        expect(Math.abs(r.bottom - box.bottom), `${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeLessThanOrEqual(2);
-      };
-      for (const h of [560, 720, 940]) {
-        landing.style.height = `${h}px`;
-        check(`${h}px`);
-      }
-      fixture.componentInstance.pick(2);
-      settle();
-      check('after a switch');
-      flush();
-      discardPeriodicTasks();
-    }));
-  });
+      it('#320: the data sheet spans the hologram box, also after a switch', fakeAsync(() => {
+        setup(three());
+        fixture.componentInstance.still.set(true);
+        settle();
+        const sheet = el.querySelector<HTMLElement>('sc-codex-landing-values-pane')!;
+        const check = (ctx: string): void => {
+          const box = piece().querySelector<HTMLElement>('.holo')!.getBoundingClientRect();
+          const r = sheet.getBoundingClientRect();
+          expect(Math.abs(r.top - box.top), `${ctx}: top ${r.top} vs box ${box.top}`).toBeLessThanOrEqual(2);
+          expect(Math.abs(r.bottom - box.bottom), `${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeLessThanOrEqual(2);
+        };
+        check('first item');
+        fixture.componentInstance.pick(2);
+        settle();
+        check('after a switch');
+        flush();
+        discardPeriodicTasks();
+      }));
+    });
+  }
 });
