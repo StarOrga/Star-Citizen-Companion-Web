@@ -1,5 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { DraftMap, DraftValue } from '../codex-loadout-draft';
+import { DraftMap, DraftValue, encodeDraftParam } from '../codex-loadout-draft';
 
 /** One named loadout the reader saved for a ship (#322). */
 export interface SavedLoadout {
@@ -11,7 +11,12 @@ export interface SavedLoadout {
   readonly entries: readonly [string, DraftValue][];
   /** ISO timestamp of the last save. */
   readonly savedAt: string;
+  /** ISO timestamp of the first save — keeps the "Layout 1/2/…" order stable. Older entries lack it. */
+  readonly createdAt?: string;
 }
+
+/** The query param the classic ship view restores a draft from (codex-loadout-draft store). */
+export const SHARED_LOADOUT_PARAM = 'loadout';
 
 export const SAVED_LOADOUTS_STORAGE_KEY = 'scc-codex-saved-loadouts:v1';
 export const SAVED_LOADOUT_NAME_MAX = 60;
@@ -32,6 +37,14 @@ export class SavedLoadoutsService {
   private readonly state = signal<readonly SavedLoadout[]>(readAll());
   readonly all = this.state.asReadonly();
 
+  /** The layouts of one ship in the order they were created (the "Layout 1/2/…" switch). */
+  layoutsOf(shipClassName: string): SavedLoadout[] {
+    return this.state()
+      .filter((l) => l.shipClassName === shipClassName)
+      .slice()
+      .sort((a, b) => (a.createdAt ?? a.savedAt).localeCompare(b.createdAt ?? b.savedAt));
+  }
+
   /** The saved loadouts of one ship, newest first. */
   forShip(shipClassName: string) {
     return computed(() =>
@@ -46,6 +59,7 @@ export class SavedLoadoutsService {
   save(shipClassName: string, name: string, buildId: string, draft: DraftMap): SavedLoadout | null {
     const trimmed = name.trim().slice(0, SAVED_LOADOUT_NAME_MAX);
     if (!trimmed || draft.size === 0) return null;
+    const now = new Date().toISOString();
     const existing = this.state().find((l) => l.shipClassName === shipClassName && l.name === trimmed);
     const entry: SavedLoadout = {
       id: existing?.id ?? newId(),
@@ -53,9 +67,26 @@ export class SavedLoadoutsService {
       name: trimmed,
       buildId,
       entries: [...draft.entries()],
-      savedAt: new Date().toISOString(),
+      savedAt: now,
+      createdAt: existing?.createdAt ?? existing?.savedAt ?? now,
     };
     this.state.update((list) => [entry, ...list.filter((l) => l.id !== entry.id)]);
+    this.persist();
+    return entry;
+  }
+
+  /** Write the current draft into an existing layout, keeping its name and place. null when unknown or empty. */
+  overwrite(id: string, buildId: string, draft: DraftMap): SavedLoadout | null {
+    const existing = this.get(id);
+    if (!existing || draft.size === 0) return null;
+    const entry: SavedLoadout = {
+      ...existing,
+      buildId,
+      entries: [...draft.entries()],
+      savedAt: new Date().toISOString(),
+      createdAt: existing.createdAt ?? existing.savedAt,
+    };
+    this.state.update((list) => list.map((l) => (l.id === id ? entry : l)));
     this.persist();
     return entry;
   }
@@ -77,6 +108,34 @@ export class SavedLoadoutsService {
       // Private mode / quota — the list lives on in memory for this session.
     }
   }
+}
+
+/**
+ * The smallest N ≥ 1 whose default name ("Layout N", built by `nameFor`) no
+ * layout of the ship carries yet — the name a new layout gets when the reader
+ * types none.
+ */
+export function nextLayoutNumber(names: readonly string[], nameFor: (n: number) => string): number {
+  const taken = new Set(names.map((n) => n.trim().toLowerCase()));
+  let n = 1;
+  while (taken.has(nameFor(n).trim().toLowerCase())) n++;
+  return n;
+}
+
+/**
+ * The share link of one layout (#322): the ship page's own URL with the
+ * layout encoded in the `loadout` query param — the same param the page
+ * mirrors its draft into, so the receiver's page opens with the layout on the
+ * table as an unsaved draft they can keep as a layout of their own. Client
+ * side only; null when the layout carries nothing.
+ */
+export function layoutShareUrl(pageUrl: string, entry: SavedLoadout): string | null {
+  const param = encodeDraftParam(entry.buildId, new Map(entry.entries));
+  if (!param) return null;
+  const url = new URL(pageUrl);
+  url.hash = '';
+  url.searchParams.set(SHARED_LOADOUT_PARAM, param);
+  return url.toString();
 }
 
 function readAll(): readonly SavedLoadout[] {
