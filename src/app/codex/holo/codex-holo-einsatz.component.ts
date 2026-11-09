@@ -41,7 +41,7 @@ export interface StripMission {
       <span class="sub" [class.gapv]="!cohortLabel()">{{ cohortLabel() ?? ('codex.kpi.gap' | translate) }}<span class="caret" aria-hidden="true">▾</span></span>
     </button>
     @if (open()) {
-      <div class="mission-pop" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate" (keydown.escape)="close($event)">
+      <div class="mission-pop" role="radiogroup" tabindex="-1"[attr.aria-label]="'codex.mission.label' | translate" (keydown.escape)="close($event)">
         @for (m of missions(); track m.id) {
           <button type="button" class="mp" role="radio" [class.on]="m.id === active()" [attr.aria-checked]="m.id === active()"
                   [attr.aria-disabled]="!!m.disabledKey" [class.dis]="!!m.disabledKey"

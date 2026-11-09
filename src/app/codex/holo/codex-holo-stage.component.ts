@@ -505,7 +505,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
         <!-- ── The one bottom row (r4 d1, C6): Akte › views (Außen | Innen),
              a single choice; then the parts filters, multi-select chips. ── -->
         <div class="holo-views mobile-table" [scFeedbackSpot]="'codex.holo.stage.viewsAria'">
-          <div class="vw" role="radiogroup" [attr.aria-label]="'codex.holo.stage.viewsAria' | translate"
+          <div class="vw" role="radiogroup" tabindex="-1" [attr.aria-label]="'codex.holo.stage.viewsAria' | translate"
                [attr.aria-keyshortcuts]="hkLabel.view" (keydown)="onViewKey($event)">
             @for (g of viewGroups(); track g.id; let first = $first) {
               @if (!first) { <span class="vw-div" aria-hidden="true"></span> }
