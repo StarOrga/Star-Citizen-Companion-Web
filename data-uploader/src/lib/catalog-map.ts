@@ -458,6 +458,8 @@ export interface SilhouetteRow {
   class_name: string;
   view_box: string;
   path: string;
+  /** Items only: stroke-only inner feature edges, same 0..1000 viewBox as `path`. Stored in the shape blob, exposed on the codex_silhouettes view. */
+  edges?: string;
   bbox: { x: number; y: number; w: number; h: number } | null;
   anchors: unknown[];
   unresolved: string[];
@@ -481,6 +483,10 @@ export interface SilhouetteFile {
     scaleMPerUnit?: number;
     pointCount?: number;
     simplifyToleranceM?: number;
+    /** Items only: view the outline was taken from. */
+    view?: string;
+    /** Items only: stroke-only inner feature edges, same 0..1000 viewBox as `path`. */
+    edges?: string;
   };
   anchors?: unknown[];
   unresolved?: string[];
@@ -536,6 +542,8 @@ export function mapSilhouettes(list: Record<string, unknown>[], tag: Tag): Silho
       class_name: f.className,
       view_box: f.silhouette.viewBox ?? '0 0 1000 1000',
       path: f.silhouette.path,
+      // Optional inner-edge path (items only): its own column on ingest (ingest-catalog SILHOUETTE_COLUMNS).
+      ...(f.silhouette.edges ? { edges: f.silhouette.edges } : {}),
       bbox: f.silhouette.bbox,
       anchors: Array.isArray(f.anchors) ? f.anchors : [],
       unresolved: Array.isArray(f.unresolved) ? (f.unresolved as string[]) : [],
@@ -547,6 +555,7 @@ export function mapSilhouettes(list: Record<string, unknown>[], tag: Tag): Silho
         scaleMPerUnit: f.silhouette.scaleMPerUnit ?? null,
         pointCount: f.silhouette.pointCount ?? null,
         simplifyToleranceM: f.silhouette.simplifyToleranceM ?? null,
+        ...(f.silhouette.view ? { view: f.silhouette.view } : {}),
       },
       generated_at: f.generatedAt ?? null,
     }) as unknown as SilhouetteRow;

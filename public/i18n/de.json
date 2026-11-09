@@ -230,6 +230,7 @@
     "landing": {
       "hero": {
         "eyebrow": "{{category}} · neu in {{patch}}",
+        "eyebrowPatch": "{{category}} · {{patch}}",
         "title": "Alles über jedes Schiff.",
         "eyebrowIdle": "Codex"
       },
@@ -471,6 +472,7 @@
         "label": "Codex: neu in diesem Patch",
         "title": "Codex · neu in {{patch}}",
         "titleNoPatch": "Codex · neu",
+        "titleDiscover": "Codex · {{patch}}",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
         "categories": "Kategorien",
@@ -478,7 +480,8 @@
         "more": "+ {{count}} weitere",
         "all": "Alle {{category}}",
         "held": "gehalten",
-        "updated": "aktualisiert"
+        "updated": "aktualisiert",
+        "new": "neu"
       }
     },
     "index": {
@@ -2586,8 +2589,10 @@
       "patch": "Patch",
       "variant": "Variante",
       "variantAria": "Variante wählen, gerade: {{name}}",
+      "shown": "Gezeigt:",
       "own": {
         "hangar": "Im Hangar",
+        "hangarN": "{{n}}× im Hangar",
         "inventar": "Im Inventar · {{n}}×",
         "sammlung": "In der Sammlung"
       },
@@ -4622,6 +4627,8 @@
   },
   "adminFeedback": {
     "title": "Feedback-Board",
+    "deployLag": "Deploy ausstehend",
+    "deployLagHint": "Gemergt, aber Production trägt die Änderung noch nicht. Sie erscheint, sobald der Vercel-Deploy durch ist.",
     "subtitle": "Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
     "heartbeat": {
       "online": "Dev-PC erreichbar",

@@ -142,6 +142,8 @@ export async function sql(query) {
     method: 'POST',
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
+    // Without a cap a dead socket (the PC just woke) hangs until the watcher kills the gate: `exit null`, no cause.
+    signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`SQL HTTP ${res.status}: ${text.slice(0, 300)}`);

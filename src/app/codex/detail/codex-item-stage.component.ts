@@ -66,6 +66,7 @@ export type ItemStageView = 'silhouette' | '3d';
               </linearGradient>
             </defs>
             <path [attr.d]="s.path" pathLength="1" [attr.fill]="'url(#' + gradId + ')'" vector-effect="non-scaling-stroke" />
+            @if (s.edges) { <path class="edges" [attr.d]="s.edges" fill="none" vector-effect="non-scaling-stroke" /> }
           </svg>
         } @else {
           <div class="art" aria-hidden="true">
@@ -107,6 +108,7 @@ export type ItemStageView = 'silhouette' | '3d';
       /* Pinned to the surface: a square viewBox (a missile) would otherwise size itself by its width and run out of the stage. */
       .sil { position: absolute; left: 12px; top: 8px; width: calc(100% - 24px); height: calc(100% - 16px); overflow: visible; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
       .sil path { stroke: var(--sc-accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+      .sil path.edges { stroke-width: 0.8; opacity: 0.55; }
       .pkg { display: block; width: 100%; height: 100%; min-height: 240px; }
       /* The preview image stands in for a missing silhouette: let it fill the stage up to 224 px (sizing travels as custom properties, see FallbackImageComponent). */
       .art { width: 100%; height: 100%; display: grid; place-items: center; --sc-img-w: min(100%, 224px); --sc-img-h: auto; }

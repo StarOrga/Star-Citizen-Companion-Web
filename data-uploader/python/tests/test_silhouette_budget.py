@@ -184,7 +184,7 @@ def test_lod1_retry_budget_exceeded_ends_in_skip(tmp_path: Path) -> None:
     release = threading.Event()
 
     class Lod1Hangs(FakeExporter):
-        def source(self, mesh, tolerance_m):
+        def source(self, mesh, tolerance_m, item=False):
             return MeshSource(mesh, b"x", None, mesh)
 
         def compute(self, src, mesh_id, tolerance_m):
@@ -205,7 +205,7 @@ def test_lod1_retry_budget_exceeded_ends_in_skip(tmp_path: Path) -> None:
 
 def test_lod1_retry_emits_start_and_finish_events(tmp_path: Path) -> None:
     class Lod0Breaks(FakeExporter):
-        def source(self, mesh, tolerance_m):
+        def source(self, mesh, tolerance_m, item=False):
             return MeshSource(mesh, b"x", None, mesh)
 
         def compute(self, src, mesh_id, tolerance_m):

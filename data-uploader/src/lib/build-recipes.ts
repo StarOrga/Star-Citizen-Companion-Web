@@ -53,7 +53,8 @@ export const BUILD_RECIPES: readonly BuildRecipe[] = [
   {
     key: 'silhouette',
     // The mesh → silhouette blob step; anchors are re-derived every run.
-    revision: 1,
+    // 2: item view + relative tolerance + inner `edges` path, proxy nodes dropped.
+    revision: 2,
     sources: [
       'data-uploader/python/sc_extract/silhouette.py',
       'data-uploader/python/sc_extract/silhouette_export.py',

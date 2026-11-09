@@ -31,6 +31,12 @@ export const NEW_SORT_KINDS: readonly CodexKind[] = ['ship', 'weapon', 'componen
  */
 const NON_SHIP_VEHICLE_PREFIXES = ['SalvageableDebris', 'Orbital_Sentry', 'probe_'] as const;
 
+/** New and changed class names of the current build's patch for one kind (`codex_patch_news`). */
+export interface PatchNews {
+  added: string[];
+  changed: string[];
+}
+
 /** Class names in `current` that `previous` does not have, in `current` order. */
 export function addedClassNames(current: readonly string[], previous: readonly string[]): string[] {
   const before = new Set(previous);
@@ -62,6 +68,7 @@ export class CodexBuildDiffService {
   private memo: { buildId: string | null; rows: Promise<CodexListRow[]> } | null = null;
   private namesMemo = new Map<string, Promise<string[]>>();
   private pairMemo: { buildId: string | null; pair: Promise<[CodexBuild, CodexBuild] | null> } | null = null;
+  private newsMemo = new Map<string, Promise<PatchNews>>();
   /** Set once the RPC answered "not found" — later diffs skip straight to the paged path. */
   private rpcMissing = false;
 
@@ -122,6 +129,43 @@ export class CodexBuildDiffService {
       });
     }
     return this.pairMemo.pair;
+  }
+
+  /**
+   * What the current build's patch brought for one kind, from the ingest-time
+   * record (`codex_patch_news(p_kind)` -> class_name + 'added'|'changed'): the
+   * truth that survives re-uploads of the same patch, unlike the two-build diff
+   * (empty when both builds are the same patch). Read once per build and kind.
+   * Best-effort: a missing function (PGRST202) or any error yields no rows
+   * (logged), and the callers fall back to the two-build diff.
+   */
+  patchNewsMemo(kind: CodexKind): Promise<PatchNews> {
+    const key = `news:${this.codex.build()?.id ?? ''}:${kind}`;
+    let hit = this.newsMemo.get(key);
+    if (!hit) {
+      hit = this.patchNews(kind);
+      this.newsMemo.set(key, hit);
+    }
+    return hit;
+  }
+
+  private async patchNews(kind: CodexKind): Promise<PatchNews> {
+    const none: PatchNews = { added: [], changed: [] };
+    if (!NEW_SORT_KINDS.includes(kind)) return none;
+    try {
+      const { data, error } = await this.sb.client.rpc('codex_patch_news', { p_kind: kind });
+      if (error) throw error;
+      const out: PatchNews = { added: [], changed: [] };
+      for (const r of (data ?? []) as { class_name?: string; status?: string }[]) {
+        if (!r?.class_name) continue;
+        if (r.status === 'added') out.added.push(r.class_name);
+        else if (r.status === 'changed') out.changed.push(r.class_name);
+      }
+      return out;
+    } catch (error) {
+      logWarn('codex', `patch news (${kind}) failed`, error);
+      return none;
+    }
   }
 
   private async changedClassNames(kind: CodexKind): Promise<string[]> {

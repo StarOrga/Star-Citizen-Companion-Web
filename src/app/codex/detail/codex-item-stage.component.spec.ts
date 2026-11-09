@@ -49,6 +49,19 @@ describe('CodexItemStageComponent', () => {
     expect(tools.querySelector('.tt.on')!.textContent).toContain('itemStage.viewSilhouette');
   });
 
+  it('draws the inner edges as a second, quieter path only when the silhouette has them', async () => {
+    const withEdges = mount({ sil: { ...SIL, edges: 'M10 10L90 30' } as HoloSilhouette });
+    await settle(withEdges.f);
+    const paths = withEdges.el.querySelectorAll('svg.sil path');
+    expect(paths.length).toBe(2);
+    expect(paths[1].getAttribute('d')).toBe('M10 10L90 30');
+    expect(paths[1].getAttribute('fill')).toBe('none');
+    TestBed.resetTestingModule();
+    const plain = mount({ sil: SIL });
+    await settle(plain.f);
+    expect(plain.el.querySelectorAll('svg.sil path').length).toBe(1);
+  });
+
   it('the 3D switch is disabled with a reason when the build has no 3D model, and stays on the silhouette', async () => {
     const { f, el } = mount({ sil: SIL });
     await settle(f);

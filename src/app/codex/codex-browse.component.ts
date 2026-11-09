@@ -322,7 +322,7 @@ export function blueprintCategoriesForGroup(
                       <a class="row-link" [routerLink]="['/codex', kind(), r.classNameSlug]">
                         @if (silhouetteOf(r); as s) {
                           <span class="sil" aria-hidden="true">
-                            <svg [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" focusable="false"><path [attr.d]="s.path" /></svg>
+                            <svg [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" focusable="false"><path [attr.d]="s.path" />@if (s.edges) { <path class="edges" [attr.d]="s.edges" /> }</svg>
                           </span>
                         } @else {
                           <span class="sil icon" aria-hidden="true"><sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" /></span>
@@ -701,7 +701,10 @@ export function blueprintCategoriesForGroup(
       flex: 1 1 0; min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto;
       align-items: center; gap: 14px; height: 64px; padding: 6px 14px; color: inherit; text-decoration: none;
     }
-    .row-link:has(.c-where) { grid-template-columns: 56px minmax(0, 1fr) min(15rem, 30%) auto; }
+    /* Ship rows: name/maker/price take only the width of maker + price (11rem + 12px + 9.5rem), so the
+       place follows the price directly; the free space goes after the place, before size and HQ icons (#314). */
+    .row-link:has(.c-where) { grid-template-columns: 56px minmax(0, 21.25rem) min(15rem, 30%) minmax(max-content, 1fr); }
+    .row-link:has(.c-where) > .spec { justify-self: end; }
     .row:hover, .row:focus-within { background: color-mix(in srgb, var(--sc-accent) 6%, transparent); }
     .row-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .sil { width: 56px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: var(--sc-accent); }
@@ -711,6 +714,7 @@ export function blueprintCategoriesForGroup(
       stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-linejoin: round;
       filter: drop-shadow(0 0 2px color-mix(in srgb, var(--sc-accent) 55%, transparent));
     }
+    .sil path.edges { fill: none; stroke-width: 0.7; opacity: 0.5; filter: none; }
     .sil.icon { color: var(--sc-fg-2); }
     .sil.icon sc-codex-icon { width: 22px; height: 22px; }
     .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -822,7 +826,7 @@ export function blueprintCategoriesForGroup(
       .acts .act { opacity: 1; }
       .sil { width: 44px; }
       .row-link { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 6px 10px; }
-      .row-link:has(.c-where) { grid-template-columns: 44px minmax(0, 1fr) min(12rem, 32%) auto; }
+      .row-link:has(.c-where) { grid-template-columns: 44px minmax(0, 21.25rem) min(12rem, 32%) minmax(max-content, 1fr); }
       .buy { padding-left: 14px; }
       .filter-fab {
         display: inline-flex; align-items: center; justify-content: center;

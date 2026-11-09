@@ -23,9 +23,9 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { RUNNER_NAME, newestActivity, sql, transcriptDirFor } from './routine-gate.mjs';
 import {
-  REPLY_GIVE_UP_MIN, TERMINAL_STATUSES, WATCH_INTERVAL_MIN, applyRun, classifyBranch, classifyExit, emptyState,
-  holdClosedMessage, holdMessage, itemKey, mergedSinceClaim, parkMessage, planQueue, plainShippedMessage,
-  shortIdOfBranch, shouldNotify, watchdogStep,
+  REPLY_GIVE_UP_MIN, TERMINAL_STATUSES, WATCH_INTERVAL_MIN, applyRun, classifyBranch, classifyExit, describeSpawnFailure, emptyState,
+  holdClosedMessage, holdMessage, isHang, itemKey, mayRemoveRunFile, mergedSinceClaim, needsDeployCheck, parkMessage, planQueue,
+  plainShippedMessage, productionLive, runClaimVerdict, shortIdOfBranch, shouldNotify, watchdogStep,
 } from './lib/routine-watcher-core.mjs';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -128,10 +128,21 @@ function notify(state, kind, title, text) {
 }
 
 // ---------------------------------------------------------------- gate
-function gate(args) {
-  const r = spawnSync(process.execPath, [GATE, ...args], { cwd: REPO, encoding: 'utf8', windowsHide: true, timeout: 120_000 });
+const GATE_TIMEOUT_MS = 120_000;
+/** One try. A child that never answered is described with its cause (timeout, signal, stderr tail), never a bare `exit null`. */
+function gateOnce(args) {
+  const r = spawnSync(process.execPath, [GATE, ...args], { cwd: REPO, encoding: 'utf8', windowsHide: true, timeout: GATE_TIMEOUT_MS });
   const line = (r.stdout || '').trim().split('\n').pop() || '';
-  try { return JSON.parse(line); } catch { return { verdict: 'error', error: (r.stderr || `exit ${r.status}`).slice(-200) }; }
+  try { return { out: JSON.parse(line), r }; } catch { return { out: { verdict: 'error', error: describeSpawnFailure(r, GATE_TIMEOUT_MS).slice(-260) }, r }; }
+}
+function gate(args) {
+  let { out, r } = gateOnce(args);
+  // `check` and `heartbeat` are idempotent: a hang (no exit status) gets one more try before it counts as an error.
+  if (out.verdict === 'error' && isHang(r) && ['check', 'heartbeat'].includes(args[0])) {
+    log(`gate ${args[0]} hung (${out.error}), trying once more`);
+    ({ out } = gateOnce(args));
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- board
@@ -194,6 +205,54 @@ async function settleReplies() {
     await reply(r.id, text);
     await sql(`update public.admin_feedback set review_reply_pending = false where id = ${q(r.id)}`);
     log(`review reply posted for #${r.seq} (${v.status === 0 ? 'live' : 'not verified live'})`);
+  }
+}
+
+/** Successful Production deployments, newest first, as { sha }. null when GitHub did not answer. */
+function productionSuccesses() {
+  const list = shOk('gh', ['api', 'repos/{owner}/{repo}/deployments?environment=Production&per_page=15']);
+  if (list === null) return null;
+  let deployments;
+  try { deployments = JSON.parse(list); } catch { return null; }
+  const successes = [];
+  for (const d of deployments) {
+    const st = shOk('gh', ['api', `repos/{owner}/{repo}/deployments/${d.id}/statuses?per_page=1`]);
+    try { if (JSON.parse(st ?? '[]')[0]?.state === 'success') successes.push({ sha: d.sha }); } catch { /* next deployment */ }
+  }
+  return successes;
+}
+/**
+ * "shipped" means online: a merged item gets `live_at` only once the Production deployment of its merge (or of a
+ * later commit) succeeded. Until then the board shows it as merged-but-lagging and the author still sees "in progress".
+ * Vercel Hobby skips builds at its rate limit, so the lag can last hours (2026-11-08: #1027 merged, production stayed behind).
+ */
+async function settleLive(state) {
+  const rows = await sql(`select id, seq, ship_ref, shipped_at from public.admin_feedback where status = 'shipped' and live_at is null`);
+  if (!rows.length) return;
+  let successes;
+  let fetched = false;
+  for (const r of rows) {
+    let live = !needsDeployCheck(r.ship_ref);
+    let via = 'no PR';
+    if (!live) {
+      const pr = prByUrl(r.ship_ref);
+      const sha = pr?.state === 'MERGED' ? pr.mergeCommit?.oid : null;
+      if (!sha) continue; // GitHub is away, or the PR is not merged: next tick
+      successes ??= productionSuccesses();
+      if (successes === null) return;
+      if (!fetched) { shOk('git', ['fetch', 'origin', 'main', '--quiet']); fetched = true; }
+      const v = productionLive(sha, successes, (a, b) => shOk('git', ['merge-base', '--is-ancestor', a, b]) !== null);
+      live = v.live; via = v.via?.slice(0, 10);
+      if (!live && shouldNotify(state, `lag-${r.id}`, Date.now(), 3_600_000)) {
+        state.notified = { ...state.notified, [`lag-${r.id}`]: Date.now() };
+        saveState(state);
+        log(`#${r.seq} merged ${Math.round((Date.now() - Date.parse(r.shipped_at ?? 0)) / 60_000)} min ago, production does not carry ${sha.slice(0, 10)} yet`);
+      }
+    }
+    if (live) {
+      await sql(`update public.admin_feedback set live_at = now() where id = ${q(r.id)} and status = 'shipped' and live_at is null`);
+      log(`#${r.seq} is live (${via})`);
+    }
   }
 }
 
@@ -365,20 +424,44 @@ async function postflight(run, outcome) {
 }
 
 // ---------------------------------------------------------------- tick
+/**
+ * Exclusive create, so two ticks cannot both hold it (the old read-remove-write let two ticks that started
+ * together both pass). A stale lock is moved aside by rename: of two ticks that find it stale, one rename wins.
+ */
 function takeTickLock() {
-  try {
-    const held = readJson(TICK_LOCK);
-    if (held && pidAlive(held.pid) && Date.now() - held.at < 15 * 60_000) return false;
-    rmSync(TICK_LOCK, { force: true });
-    writeFileSync(TICK_LOCK, JSON.stringify({ pid: process.pid, at: Date.now() }), { flag: 'wx' });
-    return true;
-  } catch { return false; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      writeFileSync(TICK_LOCK, JSON.stringify({ pid: process.pid, at: Date.now() }), { flag: 'wx' });
+      return true;
+    } catch (e) {
+      if (e.code !== 'EEXIST') return false;
+      const held = readJson(TICK_LOCK);
+      // Unreadable = its writer is mid-write: held, unless the file is old.
+      const fresh = held ? pidAlive(held.pid) && Date.now() - held.at < 15 * 60_000 : Date.now() - (statSync(TICK_LOCK, { throwIfNoEntry: false })?.mtimeMs ?? 0) < 60_000;
+      if (fresh) return false;
+      const aside = `${TICK_LOCK}.stale.${process.pid}`;
+      try { renameSync(TICK_LOCK, aside); rmSync(aside, { force: true }); } catch { return false; }
+    }
+  }
+  return false;
 }
+/**
+ * The run file is claimed with an exclusive create before the supervisor is spawned. Two ticks that passed the
+ * gate check together (one slow, 35 s later: 2026-11-06 15:24:04 / 15:24:39, #266) can no longer both start a run.
+ */
 function startSupervisor(snapshot, state) {
   const sid = randomUUID();
   const startedIso = new Date().toISOString();
-  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), 'supervise', sid], { cwd: REPO, detached: true, stdio: 'ignore', windowsHide: true });
-  writeJson(RUN_FILE, { pid: child.pid, sid, startedIso, snapshot, attempts: Object.fromEntries(snapshot.map((i) => [i.id, (state.items[i.id]?.key === itemKey(i) ? state.items[i.id].attempts : 0) + 1])) });
+  const run = { pid: process.pid, sid, startedIso, snapshot, attempts: Object.fromEntries(snapshot.map((i) => [i.id, (state.items[i.id]?.key === itemKey(i) ? state.items[i.id].attempts : 0) + 1])) };
+  try { writeFileSync(RUN_FILE, JSON.stringify(run, null, 2), { flag: 'wx' }); } catch (e) {
+    if (e.code === 'EEXIST') { log(`not starting a run: ${runClaimVerdict(true)} by another tick (${readJson(RUN_FILE)?.sid?.slice(0, 8) ?? 'unreadable'})`); return; }
+    throw e;
+  }
+  let child;
+  try {
+    child = spawn(process.execPath, [fileURLToPath(import.meta.url), 'supervise', sid], { cwd: REPO, detached: true, stdio: 'ignore', windowsHide: true });
+    writeJson(RUN_FILE, { ...run, pid: child.pid });
+  } catch (e) { rmSync(RUN_FILE, { force: true }); throw e; }
   child.unref();
   log(`started run ${sid.slice(0, 8)} for ${snapshot.map((i) => `#${i.seq}`).join(', ')}`);
 }
@@ -387,6 +470,8 @@ async function tick() {
   if (!takeTickLock()) return;
   try {
     const run = readJson(RUN_FILE);
+    // A file that exists but cannot be read is a run being written, not "no run".
+    if (!run && existsSync(RUN_FILE)) { log('run file unreadable, leaving it to the next tick'); return; }
     const state = loadState();
     const now = Date.now();
     const awakeBefore = state.lastTickAt && now - state.lastTickAt < 10 * 60_000;
@@ -426,6 +511,7 @@ async function tick() {
     }
 
     if ((g.counts?.f ?? 0) > 0) await settleReplies();
+    await settleLive(state).catch((e) => log(`settleLive failed: ${e.message}`));
     if (!state.lastSweepAt || now - state.lastSweepAt > 3_600_000) {
       state.lastSweepAt = now;
       saveState(state);
@@ -524,7 +610,8 @@ async function supervise(sid) {
   const lock = gate(['start-run', '--session', sid, '--note', `work:${run.snapshot.length}`]);
   if (!lock.acquired) {
     log(`run lock not acquired (${lock.error ?? 'held by another run'}), standing down`);
-    rmSync(RUN_FILE, { force: true });
+    // Only our own file: the loser of a double start used to delete the winner's run file.
+    if (mayRemoveRunFile(readJson(RUN_FILE)?.sid, sid)) rmSync(RUN_FILE, { force: true });
     return;
   }
   try {

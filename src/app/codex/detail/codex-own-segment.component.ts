@@ -28,7 +28,11 @@ export const OWN_ICONS = {
       <span class="seg own">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="isShip() ? icons.hangar : icons.box" /></svg>
         <span class="lbl">{{ ownedKey() | translate: { n: qty() } }}</span>
+        @if (isShip() && !showVariant()) {
+          <span class="shown"><span class="dot" aria-hidden="true">·</span> <em>{{ 'codex.head.shown' | translate }}</em> {{ 'codex.personal.stock' | translate }}</span>
+        }
         @if (showVariant()) {
+          <span class="dot" aria-hidden="true">·</span>
           <sc-codex-mode-switch class="var" [compact]="true" kind="ship" [className]="className()" [personal]="personal()"
             [variants]="variants()" [activeVariantId]="activeVariantId()" [hangarShipId]="hangarShipId()" />
         }
@@ -50,7 +54,9 @@ export const OWN_ICONS = {
     .quiet:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
     .quiet:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-    .var { margin-inline-start: 3px; }
+    .var { margin-inline-start: 0; }
+    .shown em { font-style: normal; color: var(--sc-fg-2); }
+    .dot { color: var(--sc-fg-2); }
   `],
 })
 export class CodexOwnSegmentComponent {
@@ -77,7 +83,7 @@ export class CodexOwnSegmentComponent {
   readonly owned = computed(() => this.forceOwned() || (this.isShip() ? this.state().inHangar : this.state().inventarQty > 0));
   private readonly word = computed(() => ownWordOf(this.kind()) ?? 'hangar');
   protected readonly ownedKey = computed(() => {
-    if (this.isShip()) return 'codex.head.own.hangar';
+    if (this.isShip()) return 'codex.head.own.hangarN';
     return this.word() === 'sammlung' ? 'codex.head.own.sammlung' : 'codex.head.own.inventar';
   });
   protected readonly notOwnedKey = computed(() => {
