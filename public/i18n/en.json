@@ -1498,7 +1498,11 @@
       "draftNotice": "Not saved. This session only.",
       "draftDiscard": "Discard",
       "draftApplyAndSave": "Apply & save to hangar",
-      "chipCargoUnknown": "Cargo hold · capacity not in the game files"
+      "chipCargoUnknown": "Cargo hold · capacity not in the game files",
+      "notFoundPage": {
+        "title": "Entry not found",
+        "body": "This entry is not in the current build. It may have been renamed or removed."
+      }
     },
     "energy": {
       "title": "Power",
@@ -2171,7 +2175,6 @@
       "back": "← Back to Codex",
       "backToHangar": "← Back to Hangar",
       "flowHint": "Tap a slot — armour around the figure, weapons in the bar below — to fill it from the Arsenal.",
-      "notFound": "That set was not found — showing the first set from your hangar.",
       "signInHint": "Sign in to view and edit your sets.",
       "noSets": "No set commissioned yet.",
       "createInHangar": "Create a set in the hangar →",
@@ -2204,6 +2207,10 @@
         "none": "Everything owned or already in supplies.",
         "added": "{{n}} parts added to supplies.",
         "toPlan": "Go to Plan"
+      },
+      "notFoundPage": {
+        "title": "Set not found",
+        "body": "This set does not exist, or it is not in your locker."
       }
     },
     "stat": {
@@ -5407,9 +5414,11 @@
     },
     "gallery": {
       "image": "Image",
-      "missing": "This image was not found.",
+      "missing": "This image does not exist or was removed.",
       "download": "Download original",
-      "article": "View on RSI"
+      "article": "View on RSI",
+      "notFoundTitle": "Image not found",
+      "loadFailed": "The image could not be loaded."
     },
     "share": {
       "label": "Share a link to this section",
@@ -8173,5 +8182,8 @@
     "share": {
       "popAria": "Share"
     }
+  },
+  "notFound": {
+    "backTo": "Back to {{target}}"
   }
 }

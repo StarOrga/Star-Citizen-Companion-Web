@@ -143,6 +143,22 @@ describe('WishCartDialogComponent (Warenkorb)', () => {
     expect(ev.defaultPrevented).toBe(true);
   });
 
+  it('AUD-L15: with nothing selected (and in the empty state) the primary action has no href, so no navigation is possible; a selection makes it a real link', () => {
+    const { el, fixture } = setup(rows);
+    const go = el.querySelector<HTMLAnchorElement>('a.go')!;
+    expect(go.hasAttribute('href')).toBe(false);
+    expect(go.getAttribute('aria-disabled')).toBe('true');
+    el.querySelector<HTMLInputElement>('.tile-chk')!.click();
+    fixture.detectChanges();
+    expect(go.getAttribute('href')).toContain('/hq');
+    expect(go.getAttribute('aria-disabled')).toBeNull();
+    TestBed.resetTestingModule();
+    const empty = setup([]);
+    const emptyGo = empty.el.querySelector<HTMLAnchorElement>('a.go')!;
+    expect(emptyGo.hasAttribute('href')).toBe(false);
+    expect(emptyGo.getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('the red trash removes at once and offers an undo, no question; undo brings it back and writes nothing', () => {
     const { fixture, el, store, toast, cart } = setup(rows);
     el.querySelector<HTMLButtonElement>('.tile .foot .sc-action--danger')!.click();

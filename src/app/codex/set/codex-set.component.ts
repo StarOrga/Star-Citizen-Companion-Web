@@ -36,6 +36,7 @@ import {
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
+import { NotFoundComponent } from '../../shared/not-found/not-found.component';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { PageCrumb } from '../../shared/page-header/nav-origin.service';
 import { HqFriendShareComponent } from '../../hq/social/hq-friend-share.component';
@@ -74,12 +75,13 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
     SetSuppliesComponent,
     LoadoutSharePanelComponent,
     ScTooltipDirective,
+    NotFoundComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="set-page">
-      <sc-page-header [crumbs]="crumbs()" [rememberAs]="activeSet()?.name ?? null">
-        @if (!loading() && auth.user() && activeSet()) {
+      <sc-page-header [crumbs]="crumbs()" [rememberAs]="notFound() ? null : (activeSet()?.name ?? null)">
+        @if (!loading() && auth.user() && activeSet() && !notFound()) {
           <span phAside class="share-wrap">
             <button
               type="button"
@@ -109,13 +111,16 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
         <p class="hint">
           <a routerLink="/login" [queryParams]="{ redirect: currentPath }">{{ 'codex.set.signInHint' | translate }}</a>
         </p>
-      } @else if (!activeSet() && hangar.error()) {
+      } @else if ((!activeSet() || notFound()) && hangar.error()) {
         <!-- loadAll() never throws — it parks the failure in hangar.error. Without
              this branch a failed read read as "no set commissioned yet". -->
         <div class="sc-card load-err" role="alert">
           <span>{{ 'codex.set.loadFailed' | translate }}</span>
           <button type="button" class="retry" (click)="retry()">{{ 'codex.error.retry' | translate }}</button>
         </div>
+      } @else if (notFound()) {
+        <!-- The read worked and the id is not among the user's sets: say so, never show another set under this URL. -->
+        <sc-not-found titleKey="codex.set.notFoundPage.title" bodyKey="codex.set.notFoundPage.body" [back]="lockerCrumb" />
       } @else if (!activeSet()) {
         <p class="hint">
           {{ 'codex.set.noSets' | translate }}
@@ -127,10 +132,6 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
             <sc-loadout-share-panel [loadoutId]="activeSet()!.id" />
             <sc-hq-friend-share kind="loadout" [subjectId]="activeSet()!.id" />
           </div>
-        }
-
-        @if (notFound()) {
-          <p class="hint note">{{ 'codex.set.notFound' | translate }}</p>
         }
 
         <!-- A brand-new set: one line says the tiles — armour around the figure,
@@ -200,7 +201,6 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
       .load-err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
       /* The empty state's only action: a real thumb target, not a line of running text. */
       .hint .create-set { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
-      .hint.note { color: var(--sc-warning); }
 
       /* Masthead: stage + Einordnung card side by side from ~1100px of page
          width, stacked below that (container query: the page frame decides,
@@ -218,6 +218,7 @@ export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hq
 export class CodexSetComponent implements OnInit {
   /** A set is personal: its page sits in the HQ locker, whatever page opened it. */
   readonly crumbs = computed<PageCrumb[]>(() => [HQ_LOCKER_CRUMB]);
+  protected readonly lockerCrumb = HQ_LOCKER_CRUMB;
   readonly lockerLink = hqLocker;
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);

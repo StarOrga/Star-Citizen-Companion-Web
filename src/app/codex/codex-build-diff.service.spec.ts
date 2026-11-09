@@ -5,7 +5,9 @@ import {
   ADDED_SHIPS_LIMIT,
   BUILD_DIFF_PAGE_SIZE,
   CodexBuildDiffService,
+  DIFF_LOOKBACK,
   addedClassNames,
+  diffPair,
 } from './codex-build-diff.service';
 import { FakeCall, FakeResult, chainArgs, fakeSupabase } from '../testing/fake-supabase';
 
@@ -23,6 +25,24 @@ function buildIdOf(call: FakeCall): string | undefined {
 describe('addedClassNames', () => {
   it('is current minus previous, in current order, deduped', () => {
     expect(addedClassNames(['C', 'A', 'B', 'C', ''], ['A'])).toEqual(['C', 'B']);
+  });
+});
+
+describe('diffPair', () => {
+  const b = (id: string, patchVersion: string) => ({ id, patchVersion }) as CodexBuild;
+
+  it('compares the newest build with the newest build of an older patch, skipping same-patch rebuilds', () => {
+    const pair = diffPair([b('cur', '4.10.2'), b('rebuild', '4.10.2'), b('old', '4.10.0'), b('older', '4.9.0')]);
+    expect(pair?.map((x) => x.id)).toEqual(['cur', 'old']);
+  });
+
+  it('falls back to the previous build when every retained build is of the same patch', () => {
+    expect(diffPair([b('cur', '4.10.2'), b('rebuild', '4.10.2')])?.map((x) => x.id)).toEqual(['cur', 'rebuild']);
+  });
+
+  it('is null with fewer than two builds', () => {
+    expect(diffPair([b('cur', '4.10.2')])).toBeNull();
+    expect(diffPair([])).toBeNull();
   });
 });
 
@@ -223,5 +243,18 @@ describe('CodexBuildDiffService', () => {
       expect(await svc.addedClassNamesMemo('item')).toEqual([]);
       expect(sb.calls.filter((c) => c.op === 'from').length).toBe(0);
     });
+  });
+
+  it('diffs against the older patch, not a rebuild of the same patch', async () => {
+    const cur = { id: 'b-cur', patchVersion: '4.10.2' } as CodexBuild;
+    const rebuild = { id: 'b-rebuild', patchVersion: '4.10.2' } as CodexBuild;
+    const old = { id: 'b-old', patchVersion: '4.10.0' } as CodexBuild;
+    const { svc, codex } = setup({
+      builds: [cur, rebuild, old],
+      names: { 'b-cur': ['AEGS_Gladius', 'AEGS_Avenger_Stalker'], 'b-rebuild': ['AEGS_Gladius', 'AEGS_Avenger_Stalker'], 'b-old': ['AEGS_Gladius'] },
+    });
+    const rows = await svc.addedShips();
+    expect(rows.map((r) => r.classNameSlug)).toEqual(['AEGS_Avenger_Stalker']);
+    expect(codex.recentLiveBuilds).toHaveBeenCalledWith(DIFF_LOOKBACK);
   });
 });

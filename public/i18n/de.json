@@ -1498,7 +1498,11 @@
       "draftNotice": "Nicht gespeichert. Nur diese Sitzung.",
       "draftDiscard": "Verwerfen",
       "draftApplyAndSave": "Übernehmen & in Hangar speichern",
-      "chipCargoUnknown": "Laderaum · Kapazität nicht in den Spieldaten"
+      "chipCargoUnknown": "Laderaum · Kapazität nicht in den Spieldaten",
+      "notFoundPage": {
+        "title": "Eintrag nicht gefunden",
+        "body": "Dieser Eintrag steckt nicht im aktuellen Build. Er wurde vielleicht umbenannt oder entfernt."
+      }
     },
     "energy": {
       "title": "Energie",
@@ -2171,7 +2175,6 @@
       "back": "← Zurück zum Codex",
       "backToHangar": "← Zurück zum Hangar",
       "flowHint": "Tippe einen Slot an — Rüstung am Körper, Waffen in der Leiste darunter —, um ihn im Arsenal zu befüllen.",
-      "notFound": "Dieses Set wurde nicht gefunden — das erste Set aus deinem Hangar.",
       "signInHint": "Melde dich an, um deine Sets zu sehen und zu bearbeiten.",
       "noSets": "Noch kein Set kommissioniert.",
       "createInHangar": "Set im Hangar anlegen →",
@@ -2204,6 +2207,10 @@
         "none": "Alles da oder schon im Nachschub.",
         "added": "{{n}} Teile im Nachschub.",
         "toPlan": "Zum Planen"
+      },
+      "notFoundPage": {
+        "title": "Set nicht gefunden",
+        "body": "Dieses Set gibt es nicht, oder es liegt nicht in deinem Spind."
       }
     },
     "stat": {
@@ -5407,9 +5414,11 @@
     },
     "gallery": {
       "image": "Bild",
-      "missing": "Dieses Bild wurde nicht gefunden.",
+      "missing": "Dieses Bild gibt es nicht oder es wurde entfernt.",
       "download": "Original herunterladen",
-      "article": "Auf RSI sehen"
+      "article": "Auf RSI sehen",
+      "notFoundTitle": "Bild nicht gefunden",
+      "loadFailed": "Das Bild konnte nicht geladen werden."
     },
     "share": {
       "label": "Link zu diesem Abschnitt teilen",
@@ -8173,5 +8182,8 @@
     "share": {
       "popAria": "Teilen"
     }
+  },
+  "notFound": {
+    "backTo": "Zurück zu {{target}}"
   }
 }

@@ -863,20 +863,50 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
   afterEach(() => localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY));
 
   describe('invalid route', () => {
-    it('names an unknown category on the error card and offers no retry', async () => {
+    it('names an unknown category in the not-found state (h1, line, way back) and offers no retry', async () => {
       const getDetail = vi.fn().mockName('getDetail');
       const fixture = await setupCharacterisation({
         params: { kind: 'foo', className: 'x' },
         svc: { getDetail },
       });
       const el: HTMLElement = fixture.nativeElement;
-      const err = el.querySelector('.err');
-      expect(err, 'error card rendered').not.toBeNull();
-      expect(err!.getAttribute('role')).toBe('alert');
-      expect(err!.textContent).toContain('codex.detail.invalidRoute');
-      expect(el.querySelector('.err .retry')).toBeNull();
+      const h1 = el.querySelector('sc-not-found h1');
+      expect(h1, 'not-found heading rendered').not.toBeNull();
+      expect(h1!.textContent).toContain('codex.detail.notFoundPage.title');
+      expect(el.querySelector('sc-not-found')!.textContent).toContain('codex.detail.invalidRoute');
+      expect(el.querySelector('sc-not-found a.nf-back')?.getAttribute('href')).toContain('/codex');
+      expect(el.querySelector('.err')).toBeNull();
       expect(getDetail).not.toHaveBeenCalled();
       expect(fixture.componentInstance.canRetry()).toBe(false);
+    });
+  });
+
+  describe('unknown entry (AUD-L17)', () => {
+    it('renders a not-found state with an h1 and a real anchor back to the kind index when the read finds no row', async () => {
+      const getDetail = vi.fn().mockName('getDetail').mockResolvedValue(null);
+      const fixture = await setupCharacterisation({
+        params: { kind: 'ship', className: 'NOPE_Ship' },
+        svc: { getDetail },
+      });
+      const el: HTMLElement = fixture.nativeElement;
+      const h1s = el.querySelectorAll('h1');
+      expect(h1s.length).toBe(1);
+      expect(h1s[0].textContent).toContain('codex.detail.notFoundPage.title');
+      const back = el.querySelector('a.nf-back') as HTMLAnchorElement | null;
+      expect(back, 'way back is an anchor').not.toBeNull();
+      expect(back!.getAttribute('href')).toContain('/codex/index');
+      expect(el.querySelector('.err')).toBeNull();
+    });
+
+    it('keeps the error state with retry when the read itself failed', async () => {
+      const getDetail = vi.fn().mockName('getDetail').mockRejectedValue(new Error('network down'));
+      const fixture = await setupCharacterisation({
+        params: { kind: 'item', className: 'NOPE' },
+        svc: { getDetail },
+      });
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('sc-not-found')).toBeNull();
+      expect(el.querySelector('.err .retry')).not.toBeNull();
     });
   });
 

@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
@@ -70,7 +70,7 @@ describe('HqStockComponent', () => {
     TestBed.configureTestingModule({
       imports: [HqStockComponent],
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: '**', children: [] }]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap(opts.params ?? {})), snapshot: {} } },
         { provide: SupabaseClientProvider, useValue: { client: {} } },
@@ -96,6 +96,37 @@ describe('HqStockComponent', () => {
     (b as HTMLElement).click();
     f.detectChanges();
   };
+
+  it('AUD-L12: the plus tile is a native button inside a listitem wrapper, not a button with role=listitem', () => {
+    const { el } = mount();
+    const add = el.querySelector<HTMLElement>('.grid .tile.add')!;
+    expect(add.tagName).toBe('BUTTON');
+    expect(add.getAttribute('role')).toBeNull();
+    expect(add.parentElement?.getAttribute('role')).toBe('listitem');
+    expect(add.parentElement?.parentElement?.getAttribute('role')).toBe('list');
+    // The wrapper keeps a box of its own (display: contents can drop the listitem role) and the tile fills it.
+    expect(getComputedStyle(add.parentElement!).display).not.toBe('contents');
+    const sibling = el.querySelector<HTMLElement>('.grid > .tile:not(.add)');
+    if (sibling) expect(Math.round(add.getBoundingClientRect().height)).toBe(Math.round(sibling.getBoundingClientRect().height));
+  });
+
+  it('AUD-L16: switching the tab writes ?bestand= into the URL (replace, fragment kept) and the param restores the tab', async () => {
+    const { fixture, el } = mount();
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/hq?bestand=inventar&cat=weapon#planen');
+    const tabs = [...el.querySelectorAll<HTMLElement>('.tabs .tab')];
+    click(fixture, tabs[1]);
+    await fixture.whenStable();
+    const url = router.parseUrl(router.url);
+    expect(url.queryParams['bestand']).toBe('hangar');
+    expect(url.queryParams['cat']).toBeUndefined();
+    expect(url.fragment).toBe('planen');
+    expect(tabs[1].getAttribute('aria-pressed')).toBe('true');
+    // reading it back: a fresh mount on ?bestand=hangar opens on Hangar
+    TestBed.resetTestingModule();
+    const again = mount({ params: { bestand: 'hangar' } });
+    expect(again.el.querySelectorAll('.tabs .tab')[1].getAttribute('aria-pressed')).toBe('true');
+  });
 
   it('opens on Inventar: the plus tile first, one tile per thing, the Sammlung place left out', () => {
     const { el } = mount();

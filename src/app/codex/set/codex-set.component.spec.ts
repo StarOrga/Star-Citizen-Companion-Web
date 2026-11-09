@@ -302,13 +302,31 @@ describe('CodexSetComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('button.share-btn')).toBeNull();
   });
 
-  it('falls back to the most recently touched set when the requested id no longer exists', async () => {
+  it('renders a not-found state (h1, line, anchor to the locker) when the requested id does not exist (AUD-L17)', async () => {
     const fixture = await setup({ id: 'missing', loadouts: [SET_A, SET_B] });
-    // Neither fixture id matches — sortByRecency picks the most recently
-    // touched one (SET_B, updatedAt 2026-01-03), same fallback the ship page
-    // uses (flagship-or-first).
-    expect(fixture.componentInstance.activeSet()?.id).toBe('set-b');
+    const el: HTMLElement = fixture.nativeElement;
     expect(fixture.componentInstance.notFound()).toBe(true);
+    const h1s = el.querySelectorAll('h1');
+    expect(h1s.length).toBe(1);
+    expect(h1s[0].textContent).toContain('codex.set.notFoundPage.title');
+    expect(el.querySelector('a.nf-back')?.getAttribute('href')).toBe('/hq/locker');
+    // Never another set's board under the wrong URL, nor a share button for it.
+    expect(el.querySelector('sc-codex-set-stage')).toBeNull();
+    expect(el.querySelector('button.share-btn')).toBeNull();
+  });
+
+  it('a non-uuid id with no sets at all is also not found, not "no sets yet"', async () => {
+    const fixture = await setup({ id: 'not-a-uuid', loadouts: [] });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('sc-not-found h1')).not.toBeNull();
+    expect(el.textContent).not.toContain('codex.set.noSets');
+  });
+
+  it('keeps the error state with retry, not not-found, when the sets could not be read', async () => {
+    const fixture = await setup({ id: 'missing', loadouts: [SET_A], loadFails: true });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.load-err .retry')).not.toBeNull();
+    expect(el.querySelector('sc-not-found')).toBeNull();
   });
 
   it('follows an in-place navigation to another set instead of keeping the first one', async () => {
@@ -333,14 +351,14 @@ describe('CodexSetComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-stage[title]'), 'stageTitle, never a native title tooltip').toBeNull();
   });
 
-  it('drops the "not found" note once the page navigates to a set that exists', async () => {
+  it('drops the not-found state once the page navigates to a set that exists', async () => {
     const fixture = await setup({ id: 'missing', loadouts: [SET_A, SET_B] });
     expect(fixture.componentInstance.notFound()).toBe(true);
 
     await navigateTo(fixture, 'set-a');
 
     expect(fixture.componentInstance.notFound()).toBe(false);
-    expect((fixture.nativeElement as HTMLElement).querySelector('.hint.note')).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('sc-not-found')).toBeNull();
   });
 
   it('refreshes the sets once before reporting a set created elsewhere as not found', async () => {
