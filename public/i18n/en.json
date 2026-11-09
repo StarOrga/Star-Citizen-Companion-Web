@@ -13,6 +13,8 @@
       "confirm": "Switch account"
     },
     "revoke": "Sign out",
+    "revokeNote": "A signed-out phone loses access within one hour at the latest.",
+    "revokeDone": "Phone signed out. It loses access within one hour at the latest.",
     "errors": {
       "invalidCode": "This link has expired or was already used. Create a new one on your computer.",
       "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
@@ -5929,7 +5931,8 @@
           "refine": "Refine {{label}}",
           "craft": "Craft {{label}}",
           "transport": "Transport {{label}}",
-          "pickup": "Pick up {{label}}"
+          "pickup": "Pick up {{label}}",
+          "event": "Event: {{label}}"
         }
       },
       "planen": {
@@ -5980,10 +5983,12 @@
           "complete": "Refinery done: {{count}} orders ({{location}})"
         },
         "contract": {
-          "completed": "Mission completed: {{name}}"
+          "completed": "Mission completed: {{name}}",
+          "accepted": "Mission accepted"
         },
         "qt": {
-          "arrived": "Quantum jump finished"
+          "arrived": "Quantum jump finished",
+          "target": "Quantum target set"
         },
         "hangar": {
           "ready": "Hangar ready"
@@ -5992,6 +5997,19 @@
           "opened": "Inventory opened ({{location}})"
         },
         "other": "Event: {{type}}",
+        "armistice": {
+          "exited": "Left armistice zone"
+        },
+        "jurisdiction": {
+          "changed": "Jurisdiction changed"
+        },
+        "session": {
+          "quit": "Game quit"
+        },
+        "mobiglas": {
+          "app": "mobiGlas app opened"
+        },
+        "disconnect": "Disconnected",
         "blueprint": {
           "received": "Blueprint received: {{name}}"
         }

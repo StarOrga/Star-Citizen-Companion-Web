@@ -52,7 +52,6 @@ import {
   proposeEinsaetze,
   purposesOf,
   setBuyPart,
-  toggleMethod,
   unplacedLines,
 } from './einsatz-proposal';
 import { HQ_DIALOG_STYLES } from './hq-dialog.styles';
@@ -242,8 +241,8 @@ type Step = 1 | 2;
                               <ng-container *ngTemplateOutlet="restore; context: { $implicit: l }" />
                             } @else {
                               <span class="seg" role="group" [attr.aria-label]="'hq.flow.methodOf' | translate: { name: l.name }">
-                                <button type="button" [attr.aria-pressed]="sp.buy === l.qty" (click)="toggle(l)">{{ 'hq.step.kind.buy' | translate }}</button>
-                                <button type="button" [attr.aria-pressed]="sp.mine === l.qty" (click)="toggle(l)">{{ 'hq.step.kind.mine' | translate }}</button>
+                                <button type="button" [attr.aria-pressed]="sp.buy === l.qty" (click)="split(l, l.qty)">{{ 'hq.step.kind.buy' | translate }}</button>
+                                <button type="button" [attr.aria-pressed]="sp.mine === l.qty" (click)="split(l, 0)">{{ 'hq.step.kind.mine' | translate }}</button>
                               </span>
                               <span class="stepper" role="group" [attr.aria-label]="'hq.flow.splitOf' | translate: { name: l.name }">
                                 <button type="button" class="step" [disabled]="sp.buy <= 0" [attr.aria-label]="'hq.flow.lessBuy' | translate" [scTooltip]="'hq.flow.lessBuy' | translate" scTooltipTier="label" (click)="split(l, sp.buy - 1)">−</button>
@@ -651,7 +650,11 @@ export class HqNachschubFlowComponent {
   private readonly pctx = computed(() => ({ split: this.splits(), mode: this.modes(), excluded: this.leftOut() }));
   private readonly unplaced = computed(() => new Set(unplacedLines(this.proposalLines(), { placeOf: this.placeOf, ...this.pctx() }).map((l) => l.key)));
   protected readonly counts = computed(() => proposalCounts(this.drafts()));
-  protected readonly nextSlot = computed(() => freeSlot(this.svc.packages()));
+  /** The number the board tile showed: the board lists the active Nachschübe compacted, the new one takes the next place (not the DB slot). */
+  protected readonly nextSlot = computed(() => {
+    if (freeSlot(this.svc.packages()) === null) return null;
+    return this.svc.packages().filter((n) => n.status === 'active').length + 1;
+  });
   protected readonly maxSlots = NACHSCHUB_MAX_SLOTS;
 
   protected readonly canNext = computed(() => this.picks().size > 0 || this.eventPicks().size > 0 || (this.mode() === 'edit' && this.existing().length > 0));
@@ -773,10 +776,6 @@ export class HqNachschubFlowComponent {
 
   protected splitOf(l: ProposalLine): LineSplit {
     return normalizeSplit(l, this.splits().get(l.key) ?? defaultSplit(l, this.placeOf(l) !== null));
-  }
-
-  protected toggle(l: ProposalLine): void {
-    this.splits.update((m) => new Map(m).set(l.key, toggleMethod(l, this.splitOf(l))));
   }
 
   protected split(l: ProposalLine, buy: number): void {
@@ -967,9 +966,18 @@ export class HqNachschubFlowComponent {
         id = this.nachschubId() ?? undefined;
         if (!id) return;
         const current = this.svc.packages().find((p) => p.id === id);
-        if (current && current.name !== name) await this.svc.rename(id, name);
+        if (current && name && current.name !== name && !(await this.svc.rename(id, name))) {
+          this.error.set(this.svc.error() ?? 'errors.generic');
+          return;
+        }
         const binding = this.pickedEventBinding();
         result = picks.length || binding?.rewards.length ? await this.svc.addFromWishlist(id, picks, binding?.rewards) : { ok: true, key: 'hq.nachschub.done.edited', id };
+        // An event chosen while editing binds a plain Nachschub to it, exactly like on creation (end archive, C11).
+        const now = result.ok && binding ? this.svc.packages().find((p) => p.id === id) : undefined;
+        if (now && binding && (now.type ?? 'normal') === 'normal' && !(await this.svc.update({ ...now, type: binding.type, eventId: binding.eventId }))) {
+          this.error.set(this.svc.error() ?? 'errors.generic');
+          return;
+        }
       }
       if (!result.ok || !id) {
         this.error.set(result.key);

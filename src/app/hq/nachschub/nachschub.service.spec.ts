@@ -4,6 +4,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { FakeCall, FakeResult, chainArgs, fakeSupabase } from '../../testing/fake-supabase';
+import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { WishlistStore } from '../data/wishlist.store';
 import { HqSuppliesService } from '../hq-supplies.service';
@@ -288,6 +289,18 @@ describe('NachschubService', () => {
       expect(server.find((s) => s.id === r.id)!.snapshot).toEqual({});
     });
 
+    it('M2: an event reward line gets no baseline from unloaded stock either (it must not close at once)', async () => {
+      inventory.loaded.set(false);
+      inventory.items.set([{ class_name: 'karna_reward', qty: 1 }]);
+      const r = await svc.createFromWishlist({
+        picks: [],
+        name: 'Event',
+        event: { type: 'event', eventId: 'ev1', name: 'Ev', rewards: [{ name: 'Karna', className: 'karna_reward', ship: false }] },
+      });
+      expect(r.ok).toBe(true);
+      expect(server.find((s) => s.id === r.id)!.snapshot).toEqual({});
+    });
+
     it('undo takes out exactly what the creation put in, and keeps a wish added meanwhile', async () => {
       addWish('medpen', 3);
       const r = await create([{ key: 'item:medpen' }]);
@@ -544,5 +557,47 @@ describe('NachschubFocusService (M10)', () => {
     ns.packages.set([toNach(row('a', 1))]);
     focus.select('gone');
     expect(focus.current()?.id).toBe('a');
+  });
+});
+
+describe('Einsätze of a deleted Nachschub (AUD-L02)', () => {
+  const steps = [{ kind: 'buy' as const, label: 'Gladius', location: null, system: null, className: null, qty: 1, supplyId: null, missionRef: null }];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [provideTranslateService(), fakeSupabase().provider, { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } }],
+    });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    localStorage.clear();
+  });
+
+  it('are gone for every consumer once the list is loaded and the Nachschub is not in it; while loading nothing is hidden', () => {
+    const ns = TestBed.inject(NachschubService);
+    const einsatz = TestBed.inject(HqEinsatzService);
+    const kept = einsatz.create({ title: 'Kept', packageId: 'a', steps })!;
+    const orphan = einsatz.create({ title: 'Orphan', packageId: 'gone', steps })!;
+    const loose = einsatz.create({ title: 'Loose', steps })!;
+    TestBed.flushEffects();
+    expect(einsatz.upcoming().length).toBe(3); // list not loaded yet
+    ns.packages.set([{ id: 'a', name: 'A', status: 'active', slot: 1, snapshot: {}, createdAt: '2026-11-07T10:00:00Z', archivedAt: null }]);
+    ns.loaded.set(true);
+    TestBed.flushEffects();
+    expect(einsatz.upcoming().map((e) => e.id).sort()).toEqual([kept.id, loose.id].sort());
+    expect(einsatz.ofPackage('gone')).toEqual([]);
+    expect(einsatz.markStepDone({ kind: 'buy' })?.einsatzId).not.toBe(orphan.id);
+  });
+
+  it('an archived Nachschub keeps its Einsätze', () => {
+    const ns = TestBed.inject(NachschubService);
+    const einsatz = TestBed.inject(HqEinsatzService);
+    einsatz.create({ title: 'Old', packageId: 'a', steps });
+    ns.packages.set([{ id: 'a', name: 'A', status: 'archived', slot: null, snapshot: {}, createdAt: '2026-11-07T10:00:00Z', archivedAt: '2026-11-08T00:00:00Z' }]);
+    ns.loaded.set(true);
+    TestBed.flushEffects();
+    expect(einsatz.ofPackage('a').length).toBe(1);
   });
 });

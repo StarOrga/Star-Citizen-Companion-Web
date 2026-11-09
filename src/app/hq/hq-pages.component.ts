@@ -109,6 +109,14 @@ import { HqStockComponent } from './stock/hq-stock.component';
       @media (prefers-reduced-motion: reduce) { .page-cue { transition: none; } }
       @media (min-width: 1024px) { .follow { padding-bottom: calc(var(--sc-space-8, 64px) + var(--sc-space-5, 24px)); } }
       @media (max-width: 1023px) { .page-cue { display: none; } }
+      /* From the rail's breakpoint the left page rail (24px inset + 36px wide) stands in the page margin. Where that margin is
+         narrower than the rail's lane (up to ~1440px) the content's left edge makes room for it, so no card lies under an icon;
+         the right edge stays on the subheader's. From ~1440px the margin is wide enough and this is 0. */
+      @media (min-width: 1024px) { .follow { padding-inline-start: max(0px, calc(max(var(--sc-fab-inset, 24px), env(safe-area-inset-left, 0px)) + 36px + var(--sc-space-2, 8px) - (100% - var(--sc-b-w)) / 2)); } }
+      /* The app-status chip (32px, 48px on a touch screen) floats above the page bar (tablet) / the fusion and page bars (phone): the page's own end keeps
+         that lane free, so its last control scrolls clear of the chip instead of standing under it. */
+      @media (max-width: 1023px) { .follow { padding-bottom: calc(12px + var(--sc-safe-bottom, 0px) + 58px + 2 * var(--sc-space-2, 8px) + 48px); } }
+      @media (max-width: 720px) { .follow { padding-bottom: calc(var(--sc-float-bottom, 16px) + var(--sc-bar-h, 56px) + 58px + 3 * var(--sc-space-2, 8px) + 48px + var(--sc-space-2, 8px)); } }
     `,
   ],
 })

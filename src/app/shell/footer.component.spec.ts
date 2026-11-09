@@ -48,3 +48,44 @@ describe('FooterComponent area links', () => {
     expect(current).toEqual(['/codex']);
   });
 });
+
+describe('FooterComponent disclaimer bubble', () => {
+  function open() {
+    TestBed.configureTestingModule({
+      imports: [FooterComponent],
+      providers: [
+        provideRouter([{ path: '**', component: BlankComponent }]),
+        provideTranslateService(),
+        { provide: BetaService, useValue: { isEnabled: () => () => true, state: () => ({ codex: true }) } },
+        { provide: AuthService, useValue: { user: () => null } },
+        { provide: LayoutService, useValue: { layout: () => 'standard' } },
+        { provide: ReleaseSeenService, useValue: { unseen: () => false } },
+      ],
+    });
+    const f = TestBed.createComponent(FooterComponent);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    el.querySelector<HTMLButtonElement>('.sf-badge-btn')!.click();
+    f.detectChanges();
+    return { f, el };
+  }
+
+  it('closes on Escape inside the bubble', () => {
+    const { f, el } = open();
+    const bubble = el.querySelector<HTMLElement>('.sf-bubble[role="dialog"]')!;
+    expect(bubble).not.toBeNull();
+    bubble.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    f.detectChanges();
+    expect(el.querySelector('.sf-bubble')).toBeNull();
+  });
+
+  it('closes on a press beside it, but not on a press inside the badge', () => {
+    const { f, el } = open();
+    el.querySelector<HTMLElement>('.sf-bubble')!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    f.detectChanges();
+    expect(el.querySelector('.sf-bubble')).not.toBeNull();
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    f.detectChanges();
+    expect(el.querySelector('.sf-bubble')).toBeNull();
+  });
+});

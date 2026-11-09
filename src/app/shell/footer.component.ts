@@ -25,6 +25,7 @@ import { BRAND_NAME } from '../core/brand';
   standalone: true,
   imports: [TranslatePipe, RouterLink, ScTooltipDirective, ScDialogDirective, NgTemplateOutlet, HandoffButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:pointerdown)': 'onDocumentPointerdown($event)' },
   template: `
     @if (shellOn()) {
       <footer class="sf" [class.sf-stage]="stage()" [attr.data-footer]="stage() ? 'stage' : 'end'">
@@ -37,7 +38,7 @@ import { BRAND_NAME } from '../core/brand';
             <span class="sf-word">{{ 'footer.madeByCommunity' | translate }}</span>
           </button>
           @if (bubble() === 'pinned') {
-            <div class="sf-bubble" id="sf-bubble" scDialog role="dialog" [attr.aria-label]="'footer.disclaimerTitle' | translate">
+            <div class="sf-bubble" id="sf-bubble" scDialog (scDialogEscape)="bubble.set('closed')" role="dialog" [attr.aria-label]="'footer.disclaimerTitle' | translate">
               <ng-container *ngTemplateOutlet="disclaimerBody" />
             </div>
           } @else if (bubble() === 'peek') {
@@ -390,6 +391,12 @@ export class FooterComponent {
   protected peek(): void { if (this.bubble() === 'closed') this.bubble.set('peek'); }
   protected unpeek(): void { if (this.bubble() === 'peek') this.bubble.set('closed'); }
   protected togglePinned(): void { this.bubble.set(this.bubble() === 'pinned' ? 'closed' : 'pinned'); }
+  /** A press beside the pinned bubble closes it (a popover rule); a press on the badge is the toggle's own. */
+  protected onDocumentPointerdown(ev: PointerEvent): void {
+    if (this.bubble() !== 'pinned') return;
+    if (ev.target instanceof Element && ev.target.closest('.sf-badge')) return;
+    this.bubble.set('closed');
+  }
   protected onFocusOut(ev: FocusEvent): void {
     const next = ev.relatedTarget as Node | null;
     if (this.bubble() === 'peek' && !(ev.currentTarget as HTMLElement).contains(next)) this.bubble.set('closed');

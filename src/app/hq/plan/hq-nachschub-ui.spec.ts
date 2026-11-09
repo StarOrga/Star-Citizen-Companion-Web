@@ -402,14 +402,16 @@ describe('HqNachschubFlowComponent', () => {
     return { f, el: f.nativeElement as HTMLElement, created, startSearch };
   }
 
-  function setupEdit() {
+  function setupEdit(opts: { plain?: boolean; renameOk?: boolean } = {}) {
     TestBed.resetTestingModule();
     const fake = {
       wishPositions: () => [] as WishPosition[],
-      packages: signal<Nachschub[]>([{ ...nach('n1', 'Bestehend', 1), type: 'event', eventId: 'ev0' }]),
+      packages: signal<Nachschub[]>([opts.plain ? nach('n1', 'Bestehend', 1) : { ...nach('n1', 'Bestehend', 1), type: 'event', eventId: 'ev0' }]),
+      error: signal<string | null>(null),
+      update: vi.fn().mockName('update').mockResolvedValue(true),
       linesOf: () => [{ id: 'line1', className: 'ARGO_KEELBACK' }],
       createFromWishlist: vi.fn().mockName('createFromWishlist'),
-      rename: vi.fn().mockName('rename').mockResolvedValue(true),
+      rename: vi.fn().mockName('rename').mockResolvedValue(opts.renameOk ?? true),
       addFromWishlist: vi.fn().mockName('addFromWishlist').mockResolvedValue({ ok: true, key: 'hq.nachschub.done.added', id: 'n1' }),
       removeLine: vi.fn().mockName('removeLine'),
     };
@@ -455,6 +457,41 @@ describe('HqNachschubFlowComponent', () => {
     expect(args[2].map((r) => [r.eventId, r.className])).toEqual([['ev', 'ARGO_KEELBACK']]);
     const steps = vi.mocked(create).mock.lastCall![0].steps;
     expect(steps.map((s) => [s.kind, s.eventId, s.className])).toEqual([['event', 'ev', 'ARGO_KEELBACK']]);
+  });
+
+  it('edit: an event chosen for a plain Nachschub binds it to the event (type + event id)', async () => {
+    const { f, fake } = setupEdit({ plain: true });
+    vi.spyOn(TestBed.inject(HqEinsatzService), 'create').mockReturnValue(null);
+    const cmp = f.componentInstance as unknown as { eventPicks: { set(v: unknown): void }; name: { set(v: string): void }; save(): Promise<void> };
+    cmp.eventPicks.set(new Map([['ev', new Set(['r1'])]]));
+    cmp.name.set('Bestehend');
+    await cmp.save();
+    const next = vi.mocked(fake.update).mock.lastCall![0] as Nachschub;
+    expect([next.id, next.type, next.eventId]).toEqual(['n1', 'event', 'ev']);
+  });
+
+  it('edit: an event Nachschub keeps its own binding (no rewrite)', async () => {
+    const { f, fake } = setupEdit();
+    vi.spyOn(TestBed.inject(HqEinsatzService), 'create').mockReturnValue(null);
+    const cmp = f.componentInstance as unknown as { eventPicks: { set(v: unknown): void }; name: { set(v: string): void }; save(): Promise<void> };
+    cmp.eventPicks.set(new Map([['ev', new Set(['r1'])]]));
+    cmp.name.set('Bestehend');
+    await cmp.save();
+    expect(fake.update).not.toHaveBeenCalled();
+  });
+
+  it('edit: a rename the server refuses shows an error and saves nothing else', async () => {
+    const { f, fake } = setupEdit({ renameOk: false });
+    const done: unknown[] = [];
+    f.componentInstance.done.subscribe((r) => done.push(r));
+    const cmp = f.componentInstance as unknown as { eventPicks: { set(v: unknown): void }; name: { set(v: string): void }; save(): Promise<void>; error(): string | null };
+    cmp.eventPicks.set(new Map([['ev', new Set(['r1'])]]));
+    cmp.name.set('Neuer Name');
+    await cmp.save();
+    expect(fake.rename).toHaveBeenCalledWith('n1', 'Neuer Name');
+    expect(fake.addFromWishlist).not.toHaveBeenCalled();
+    expect(cmp.error()).toBe('errors.generic');
+    expect(done).toEqual([]);
   });
 
   it('step 1 shows the Wunschliste under its own title with its own search, also when it is empty', () => {
@@ -548,6 +585,27 @@ describe('HqNachschubFlowComponent', () => {
     expect(created).toHaveBeenCalledTimes(1);
     expect(einsatz.ofPackage('new').length).toBe(cards);
     expect(einsatz.ofPackage('new').every((e) => e.steps.length > 0)).toBe(true);
+  });
+
+  it('Kaufen / Abbauen set the way of a material line - clicking the pressed one never flips it', async () => {
+    const r = setup();
+    await toStep2(r);
+    const alu = () => [...r.el.querySelectorAll('.mats li')].find((li) => li.textContent?.includes('Aluminium'))!;
+    const seg = (label: string) => [...alu().querySelectorAll('.seg button')].find((b) => b.textContent?.includes(label)) as HTMLButtonElement;
+    const pressed = () => [...alu().querySelectorAll('.seg button')].map((b) => b.getAttribute('aria-pressed'));
+    // No shop known: mined by default.
+    expect(pressed()).toEqual(['false', 'true']);
+    click(r.f, seg('hq.step.kind.mine'));
+    expect(pressed()).toEqual(['false', 'true']);
+    click(r.f, seg('hq.step.kind.buy'));
+    expect(pressed()).toEqual(['true', 'false']);
+    click(r.f, seg('hq.step.kind.buy'));
+    expect(pressed()).toEqual(['true', 'false']);
+    // A mixed split: "Abbauen" mines all of it (it used to buy all).
+    click(r.f, alu().querySelector('.stepper button.step'));
+    expect(pressed()).toEqual(['false', 'false']);
+    click(r.f, seg('hq.step.kind.mine'));
+    expect(pressed()).toEqual(['false', 'true']);
   });
 
   async function toStep2(r: ReturnType<typeof setup>) {
@@ -686,6 +744,19 @@ describe('HqNachschubFlowComponent', () => {
     fake.packages.set(Array.from({ length: 7 }, (_, i) => nach(`n${i}`, `N${i}`, i + 1)));
     f.detectChanges();
     expect(el.querySelector('.dlg-title small')).toBeNull();
+  });
+
+  it('AUD-L10: the flow numbers the new Nachschub like the board tile (next display place), not the DB slot', () => {
+    const { f } = setup();
+    const fake = TestBed.inject(NachschubService) as unknown as { packages: { set(v: Nachschub[]): void } };
+    // one active Nachschub parked on DB slot 1 -> the board's "+" tile is place 2; freeSlot would say 2 too, so use a gap:
+    fake.packages.set([nach('n1', 'N1', 3)]);
+    f.detectChanges();
+    expect(f.componentInstance['nextSlot']()).toBe(2);
+    fake.packages.set([nach('n1', 'N1', 3), nach('a', 'A', 1, 'archived')]);
+    expect(f.componentInstance['nextSlot']()).toBe(2);
+    fake.packages.set(Array.from({ length: 7 }, (_, i) => nach('n' + i, 'N' + i, i + 1)));
+    expect(f.componentInstance['nextSlot']()).toBeNull();
   });
 
   it('a blueprint follows its material when only part of the material is taken (2x becomes 1x)', () => {

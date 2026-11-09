@@ -13,6 +13,8 @@
       "confirm": "Konto wechseln"
     },
     "revoke": "Abmelden",
+    "revokeNote": "Ein abgemeldetes Handy verliert den Zugriff spätestens nach einer Stunde.",
+    "revokeDone": "Handy abgemeldet. Es verliert den Zugriff spätestens nach einer Stunde.",
     "errors": {
       "invalidCode": "Dieser Link ist abgelaufen oder wurde schon benutzt. Erzeuge am Computer einen neuen.",
       "rateLimit": "Zu viele Versuche. Bitte warte ein paar Minuten und versuche es erneut.",
@@ -5929,7 +5931,8 @@
           "refine": "{{label}} raffinieren",
           "craft": "{{label}} craften",
           "transport": "{{label}} transportieren",
-          "pickup": "{{label}} abholen"
+          "pickup": "{{label}} abholen",
+          "event": "Event: {{label}}"
         }
       },
       "planen": {
@@ -5980,10 +5983,12 @@
           "complete": "Raffinerie fertig: {{count}} Aufträge ({{location}})"
         },
         "contract": {
-          "completed": "Mission abgeschlossen: {{name}}"
+          "completed": "Mission abgeschlossen: {{name}}",
+          "accepted": "Mission angenommen"
         },
         "qt": {
-          "arrived": "Quantum-Sprung beendet"
+          "arrived": "Quantum-Sprung beendet",
+          "target": "Quantum-Ziel gesetzt"
         },
         "hangar": {
           "ready": "Hangar bereit"
@@ -5992,6 +5997,19 @@
           "opened": "Inventar geöffnet ({{location}})"
         },
         "other": "Ereignis: {{type}}",
+        "armistice": {
+          "exited": "Waffenstillstandszone verlassen"
+        },
+        "jurisdiction": {
+          "changed": "Rechtsgebiet gewechselt"
+        },
+        "session": {
+          "quit": "Spiel beendet"
+        },
+        "mobiglas": {
+          "app": "mobiGlas-App geöffnet"
+        },
+        "disconnect": "Verbindung getrennt",
         "blueprint": {
           "received": "Blaupause erhalten: {{name}}"
         }

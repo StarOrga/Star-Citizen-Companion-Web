@@ -19,6 +19,8 @@ import type { Nachschub } from '../nachschub/nachschub.model';
 /** Where claimed event rewards land in Inventar (ships go to the Hangar instead). */
 export const EVENT_REWARD_LOCATION = 'Event-Belohnungen';
 const LIVE_POLL_MS = 30_000;
+/** How often the clock behind "open" events advances in a long-open tab. */
+const CLOCK_MS = 60_000;
 
 /**
  * Facade of the HQ event surfaces: which events are open for this reader (slot "+" teaser, Start marker, "Neuer
@@ -39,15 +41,20 @@ export class EventHqService {
 
   private readonly now = signal(Date.now());
   private ensured: string | null = null;
-  private readonly endsReady = signal(false);
-  private endsApplied = false;
+  /** The user id whose sheets, states and Nachschuebe finished loading (the end-archive pass may run for it). */
+  private readonly endsReady = signal<string | null>(null);
+  private endsAppliedFor: string | null = null;
   private pollTimer: ReturnType<typeof setInterval> | undefined;
+  private clockTimer: ReturnType<typeof setInterval> | undefined;
+  /** i18n key of the last failed claim write (Bestand/Hangar), else null; the claim dialog shows it. */
+  readonly claimError = signal<string | null>(null);
 
   constructor() {
     // Archive at the end of every bound event - only once the Einsaetze are loaded, so the event steps are known.
     effect(() => {
-      if (!this.endsReady() || !this.einsatz.ready() || this.endsApplied) return;
-      this.endsApplied = true;
+      const uid = this.endsReady();
+      if (!uid || !this.einsatz.ready() || this.endsAppliedFor === uid) return;
+      this.endsAppliedFor = uid;
       untracked(() => void this.ns.applyEventEnds(this.ends(), Date.now(), (n) => this.eventIdsOf(n)));
     });
   }
@@ -78,7 +85,27 @@ export class EventHqService {
     if (!uid || this.ensured === uid) return;
     this.ensured = uid;
     this.now.set(Date.now());
-    void Promise.all([this.sheets.load(), this.states.load(), this.ns.ensureLoaded()]).then(() => this.endsReady.set(true));
+    this.startClock();
+    void Promise.all([this.sheets.load(), this.states.load(), this.ns.ensureLoaded()]).then(() => {
+      if (this.ensured !== uid) return;
+      // load() swallows errors: a failed load must not consume the end pass - the next ensure() retries it.
+      if (this.sheets.loaded() && this.states.loaded() && !this.error()) this.endsReady.set(uid);
+      else this.ensured = null;
+    });
+  }
+
+  /** Advances the clock behind {@link open} so an event whose end passed leaves a long-open tab; stops at sign-out. */
+  private startClock(): void {
+    if (this.clockTimer) return;
+    this.clockTimer = setInterval(() => {
+      if (!this.auth.user()) {
+        clearInterval(this.clockTimer);
+        this.clockTimer = undefined;
+        this.ensured = null;
+        return;
+      }
+      this.now.set(Date.now());
+    }, CLOCK_MS);
   }
 
   eventById(id: string | null | undefined): EventRow | null {
@@ -126,11 +153,12 @@ export class EventHqService {
     if (!isEventNachschub(n) || !n.eventId) return false;
     const r = abortEventNachschub(n, new Date().toISOString());
     const ok = await this.ns.update(r.nachschub);
-    if (ok) await this.states.setStatus(n.eventId, r.eventStatus);
-    return ok;
+    if (!ok) return false;
+    return this.states.setStatus(n.eventId, r.eventStatus);
   }
 
   async resume(id: string): Promise<boolean> {
+    await this.ns.reload(); // another tab or device may have taken the slot meanwhile
     const r = resumeEventNachschub(this.ns.packages(), id);
     if (!r) return false;
     const ok = await this.ns.update(r.nachschub);
@@ -157,26 +185,39 @@ export class EventHqService {
    * shrinks on the wishlist - never the base item (C11).
    */
   async claim(eventId: string, reward: EventReward, channel: ClaimChannel, store: boolean, ship: boolean): Promise<boolean> {
+    this.claimError.set(null);
     const saved = await this.states.claim(eventId, reward.id, channel, store);
     if (!saved || !store || !reward.className) return saved;
     const plan = claimPlan(channel, ship);
+    let granted = true;
     for (const g of plan.grants) {
-      if (g.destination === 'hangar') await this.grantShip(reward.className, g.origin);
-      else await this.inventory.addStock(EVENT_REWARD_LOCATION, reward.name, 1, 'pcs', reward.className, g.origin);
+      const ok =
+        g.destination === 'hangar'
+          ? await this.grantShip(reward.className, g.origin)
+          : await this.inventory.addStock(EVENT_REWARD_LOCATION, reward.name, 1, 'pcs', reward.className, g.origin);
+      if (!ok) {
+        granted = false;
+        break;
+      }
+    }
+    if (!granted) {
+      // The state says "stored" but nothing landed: say so again, so the claim stays open for a retry.
+      this.claimError.set(this.inventory.error() ?? this.hangar.error() ?? 'errors.generic');
+      await this.states.claim(eventId, reward.id, channel, false);
+      return false;
     }
     await this.ns.fulfilEventReward(reward, plan.grants.length);
     return true;
   }
 
-  private async grantShip(className: string, origin: 'pledge' | 'ingame'): Promise<void> {
+  private async grantShip(className: string, origin: 'pledge' | 'ingame'): Promise<boolean> {
     const have = this.hangar.shipByClassName(className);
     if (!have) {
       const added = await this.hangar.addShip(className, 'owned');
-      if (added) await this.hangar.updateShip(added.id, { origin });
-      return;
+      return added ? this.hangar.updateShip(added.id, { origin }) : false;
     }
-    if (have.status !== 'owned') await this.hangar.updateShip(have.id, { status: 'owned', origin });
-    else await this.hangar.updateShip(have.id, { qty: (have.qty ?? 1) + 1, origin });
+    if (have.status !== 'owned') return this.hangar.updateShip(have.id, { status: 'owned', origin });
+    return this.hangar.updateShip(have.id, { qty: (have.qty ?? 1) + 1, origin });
   }
 
   // ------------------------------------------------------------------------------------------------ Jetzt offer (F9)

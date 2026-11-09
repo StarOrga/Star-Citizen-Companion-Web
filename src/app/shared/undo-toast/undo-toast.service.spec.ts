@@ -78,6 +78,15 @@ describe('UndoToastService', () => {
     expect(svc.current()).toBeNull();
   });
 
+  it('the tab turning hidden commits a pending offer', () => {
+    offer();
+    const spy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+    spy.mockRestore();
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(svc.current()).toBeNull();
+  });
+
   it('flush and undo are no-ops without a pending offer', () => {
     svc.flush();
     svc.undo();

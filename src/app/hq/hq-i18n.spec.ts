@@ -41,4 +41,11 @@ describe('hq.* wording', () => {
     expect(Object.keys(hq.pages)).toEqual(expect.arrayContaining(['start', 'planen', 'jetzt', 'inventar', 'statistik']));
     expect(Object.keys(hq.step.kind).sort()).toEqual(['buy', 'craft', 'event', 'mine', 'mission', 'pickup', 'refine', 'transport']);
   });
+
+  it('the Start "Jetzt" tile has a next-step label for every step kind (no raw key for an event step)', () => {
+    for (const tree of [de, en]) {
+      const hq = (tree as unknown as { hq: { step: { kind: Tree }; start: { now: { step: Tree } } } }).hq;
+      expect(Object.keys(hq.start.now.step).sort()).toEqual(Object.keys(hq.step.kind).sort());
+    }
+  });
 });

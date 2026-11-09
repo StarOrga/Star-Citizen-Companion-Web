@@ -1,5 +1,5 @@
 import { BetaService } from '../../core/beta.service';
-import { DatePipe } from '@angular/common';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { humanizeClassName } from '../../codex/codex-format';
 import { ChangeDetectionStrategy, Component, ElementRef, Injector, OnInit, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -59,7 +59,7 @@ export interface StockStart {
 @Component({
   selector: 'sc-hq-stock-popup',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, FormsModule, RouterLink, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, ItemPathComponent],
+  imports: [TranslatePipe, ScDatePipe, FormsModule, RouterLink, OverlayFrameComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, ItemPathComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <sc-overlay-frame [heading]="'hq.stock.popup.title' | translate" [popup]="true" (closed)="closed.emit()">
@@ -203,7 +203,7 @@ export interface StockStart {
                                 <li>
                                   <span class="res-amt">{{ r.amount }} {{ unitLabel(l.row.unit) }}</span>
                                   <span class="res-note">{{ r.note }}</span>
-                                  <span class="res-at">{{ r.at | date: 'short' }}</span>
+                                  <span class="res-at">{{ r.at | scDate: 'datetime' }}</span>
                                   <button type="button" scAction tier="secondary" [busy]="busy() === l.key" (click)="endReservation(l.key, l.row, ri, true)">
                                     <span>{{ 'hq.stock.desk.handOut' | translate }}</span>
                                   </button>
@@ -248,7 +248,7 @@ export interface StockStart {
                         }
                       </span>
                       <span class="qty">
-                        @if (s.destroyedAt) { <span class="lost">{{ 'hq.stock.destroyed' | translate: { at: (s.destroyedAt | date: 'short') } }}</span> · }
+                        @if (s.destroyedAt) { <span class="lost">{{ 'hq.stock.destroyed' | translate: { at: (s.destroyedAt | scDate: 'datetime') } }}</span> · }
                         {{ s.location }} · <span class="age" [class.stale]="s.stale">{{ s.age }}</span>
                       </span>
                     </li>

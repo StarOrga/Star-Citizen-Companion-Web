@@ -57,3 +57,61 @@ describe('EventHqService offer freshness (F9)', () => {
     expect(svc.offer(null, null, Date.now())).toBeNull();
   });
 });
+
+describe('EventHqService claim / resume / end pass', () => {
+  const reward = { id: 'r1', name: 'Reward', className: 'ITEM_X' } as never;
+  const invError = signal<string | null>(null);
+
+  function setup(opts: { addStock: boolean; loaded?: boolean; user?: { id: string } | null }) {
+    const claim = vi.fn().mockResolvedValue(true);
+    const fulfil = vi.fn().mockResolvedValue(undefined);
+    const reload = vi.fn().mockResolvedValue(true);
+    const applyEventEnds = vi.fn().mockResolvedValue(undefined);
+    const user = signal<{ id: string } | null>(opts.user ?? null);
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { user } },
+        { provide: EventSheetService, useValue: { events: signal([event]), byId: signal(new Map([['ev', event]])), loaded: signal(opts.loaded ?? true), error: signal(null), load: () => Promise.resolve() } },
+        { provide: UserEventStateService, useValue: { states: signal(new Map()), done: signal([]), loaded: signal(true), error: signal(null), stateOf: () => ({ status: 'open', progress: {}, claimed: {} }), claim, load: () => Promise.resolve() } },
+        { provide: NewsService, useValue: { patchLines: () => [] } },
+        { provide: NachschubService, useValue: { active: () => [n], packages: signal([n]), loaded: signal(true), fulfilEventReward: fulfil, reload, ensureLoaded: () => Promise.resolve(), applyEventEnds } },
+        { provide: HqEinsatzService, useValue: { ofPackage: () => [], ready: signal(true) } },
+        { provide: HqInventoryService, useValue: { addStock: () => Promise.resolve(opts.addStock), error: invError } },
+        { provide: HangarService, useValue: { error: signal(null) } },
+        { provide: HqLiveService, useValue: { state: signal(null), events: signal([]) } },
+      ],
+    });
+    return { svc: TestBed.inject(EventHqService), claim, fulfil, reload, applyEventEnds, user };
+  }
+
+  it('a failed Bestand write re-reports the claim as not stored and keeps the dialog open', async () => {
+    invError.set('errors.hq.inventory.add');
+    const { svc, claim, fulfil } = setup({ addStock: false });
+    expect(await svc.claim('ev', reward, 'ingame', true, false)).toBe(false);
+    expect(claim).toHaveBeenCalledTimes(2);
+    expect(claim.mock.calls[1][3]).toBe(false);
+    expect(fulfil).not.toHaveBeenCalled();
+    expect(svc.claimError()).toBe('errors.hq.inventory.add');
+  });
+
+  it('a stored claim fulfils the wishlist once', async () => {
+    const { svc, claim, fulfil } = setup({ addStock: true });
+    expect(await svc.claim('ev', reward, 'ingame', true, false)).toBe(true);
+    expect(claim).toHaveBeenCalledTimes(1);
+    expect(fulfil).toHaveBeenCalled();
+  });
+
+  it('resume reloads the Nachschuebe before it looks for a free slot', async () => {
+    const { svc, reload } = setup({ addStock: true });
+    await svc.resume('n');
+    expect(reload).toHaveBeenCalled();
+  });
+
+  it('end pass runs per user and not after a failed load', async () => {
+    const failed = setup({ addStock: true, loaded: false, user: { id: 'a' } });
+    failed.svc.ensure();
+    await new Promise((r) => setTimeout(r, 0));
+    TestBed.tick();
+    expect(failed.applyEventEnds).not.toHaveBeenCalled();
+  });
+});
