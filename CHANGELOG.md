@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The HQ quick-scroll rail no longer covers page content on 1024–1340 px screens.
 - The Bestand header no longer overflows on phones; the subheader search chip follows the Bestand tab.
 
+## [0.241.3] - 2026-11-09
+
+### Changed
+- Development: the Codex landing's data-sheet fit (#320) is tested at four real window sizes instead of forced landing heights.
+
 ## [0.241.2] - 2026-11-09
 
 ### Fixed

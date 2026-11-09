@@ -1,7 +1,73 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.241.2",
+  "current": "0.242.0",
   "releases": [
+    {
+      "version": "0.242.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ Bestand as a cargo deck: tabs Alles · Inventar · Hangar · Sammlung without counts, one filter bar with Codex sub-kinds and a grouped place select, bays per place, resource containers with average quality, table mode, selection by highlight."
+            },
+            {
+              "title": "",
+              "text": "Reservations for friends or free text with amount, quality stack and expiry; friends see reservations made for them."
+            },
+            {
+              "title": "",
+              "text": "Load log at the top with the last changes and the last ten removals; reorder all of them."
+            },
+            {
+              "title": "",
+              "text": "Search alternatives at ≤ 3 hits: found elsewhere, wish and plan with a minimum quality, swap, craft."
+            },
+            {
+              "title": "",
+              "text": "Add a Bestand selection to an existing or new Nachschub; new Nachschub type \"Verkauf\" with an aUEC goal; gather line over several places."
+            },
+            {
+              "title": "",
+              "text": "Quality stacks per inventory item (backward compatible with the shipped desktop app), dismantle-yield fields in the Codex."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The HQ quick-scroll rail no longer covers page content on 1024–1340 px screens."
+            },
+            {
+              "title": "",
+              "text": "The Bestand header no longer overflows on phones; the subheader search chip follows the Bestand tab."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.241.3",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Development: the Codex landing's data-sheet fit (#320) is tested at four real window sizes instead of forced landing heights."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.241.2",
       "date": "2026-11-09",
