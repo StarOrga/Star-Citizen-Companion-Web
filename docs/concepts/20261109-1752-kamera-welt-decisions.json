@@ -75,5 +75,111 @@
    }
   ],
   "response": "Round 2: one world built from live captures (sky, WebGL planet, holotable, content layers); world map with every page as a camera frame, a tour, end poses with a HEUTE inset; HQ moved onto the planet night side; station proposed as Admin; round-1 technical questions carried over unchanged (all untouched)."
+ },
+ {
+  "iteration": 2,
+  "action": "iterate",
+  "favorite": null,
+  "general": "Lass uns mit den korrekturen, dann zusätzlich in nähcster rudne auf jeder seite und subseite klären wie elemente eingeblendet werden in welcher reihenfolge mit welchen effekten - dabei mehrer playbooks erstellen wie animationen stattfinden sollten je nach sieten typ (hauptseiten vs scrolled seiten vs detailseiten vs unwesentliche seiten, z. B. was hinter profil liegt). Außerdme animationen für einblendungen von popup (den kleinen wei wunschliste, aber auch den großejn wie bauteil wechseln!)\n\nLass uns außerdem refinen wenn jeman ddie seite ohne subseite /verse zum beispiel aufruft, dann soll es cinemastisch bombastisch, gern bis zu >6s dauern bis alle elemente erscheinen. Bei den subseiten (damit meine ich irgendien suffix,, wie verse, auch wenn es dort am ende immer hinelitet und das ggf. als leseziechen abgesppecihertt wird) nicht bei der hauptseite immer.",
+  "annotations": [
+   {
+    "id": "d1-kw-a-hq",
+    "answer": "am besten eher links oder rechts z. B. hier"
+   },
+   {
+    "id": "d1-kw-a-admin",
+    "answer": "Achso verstehe, ne, dann eher statt raumstation eine station auf der  Erde am rand links oder so und weiterhin zu hq"
+   },
+   {
+    "id": "d1-kw-a-codex",
+    "answer": "das passt, so hat codex index einen gleichmäß0igen hintergrund und codex selber interessanten hintergrund mit den leichten galaaxien collorierungen"
+   }
+  ],
+  "screens": {
+   "d1-kw-verse": "das mit dem schlenker finde ich merkwürdig",
+   "d1-kw-news": "Bei diesen planeten sollte so gezoomed werden, dass der planet am nede exakt den planeten abbildet der im header von der seite ist! Oder der planet ragt links am seitenrand groß rein und wir nehmen den planeten in dieser detailaanischt von fvese news heraus",
+   "d1-kw-starmap": "sternkarte muss zur sternenkarte transformieren, ansonsten super, gerade auch mit dem planeten links unten sehr gut, gern feinjustieren aber gut"
+  },
+  "userPins": [
+   {
+    "target": "a.d1-kw-frame.d1-kw-f-admin \"Admin\"",
+    "text": "admin ist ok mit der raumschiffbasis ok! Aber HQ ist wichtiger visuell"
+   },
+   {
+    "target": "a.d1-kw-frame.d1-kw-f-hq \"HQ\"",
+    "text": "HQ Sollte noch viel weiter ranzoomen, damit nur angedeutet lichtetrr / eine stadt zu sehen ist im background, weil dort viele elemtne sind und wir wollen den hintergrund nicht mit soooo vielenm lichtern, auch nicht wenigen,m aber heer ruhig"
+   }
+  ],
+  "decisions": [
+   {
+    "id": "r2-d-snapshot",
+    "value": "live",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-setpieces",
+    "value": "welt",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-sub",
+    "value": "push",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-first",
+    "value": "ankunft",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-dur",
+    "value": 1100,
+    "untouched": false
+   },
+   {
+    "id": "r2-d-scope",
+    "value": "beta",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-reduced",
+    "value": "ok",
+    "untouched": true
+   },
+   {
+    "id": "r2-d-retarget",
+    "value": "ok",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-glass",
+    "value": "gezielt",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-glide",
+    "value": "snap",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-scrollcam",
+    "value": {
+     "answer": "yes",
+     "alt": ""
+    },
+    "untouched": false
+   },
+   {
+    "id": "r2-d-listeners",
+    "value": "ok",
+    "untouched": false
+   },
+   {
+    "id": "r2-d-budget",
+    "value": "messen",
+    "untouched": false
+   }
+  ],
+  "response": "Round 3: HQ on the planet left limb at 3.6x with a calm veil, ground station as HQ door, orbit station stays Admin; straight Verse arrival; News A (planet becomes emblem) vs B (large left); starmap grows from the hub constellation; 7 playbooks (entrance 6.6 s, menu switch, scroll page, detail, minor page, small and large popups); new analysis on entrance, popups, places, playbook rules. All 13 technical decisions of round 2 accepted as recommended."
  }
 ]

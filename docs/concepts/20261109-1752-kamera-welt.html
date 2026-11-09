@@ -5180,7 +5180,10 @@ html[data-theme="light"] .an-kind { color: var(--an-ac); }
 .an-rail:hover .an-ri.an-here, .an-rail:focus-within .an-ri.an-here { padding-left: 12px; border-radius: 12px 0 0 12px; background: color-mix(in srgb, var(--dc) 24%, transparent); box-shadow: inset -3px 0 0 var(--dc); color: var(--an-tx); font-size: 13px; font-weight: 750; }
 /* collapsed: "you are here" as a tag in the row's colour with its short name, pointing at the dot. A fixed element beside the
    rail (the rail clips and masks its own content), placed by JS level with the open row; the expanded rail names the row itself. */
-.an-here-tag { position: fixed; right: 40px; z-index: 5; display: flex; align-items: center; max-width: clamp(72px, calc((100vw - 780px) / 2 - 44px), 168px); height: 24px; padding: 0 9px; transform: translateY(-50%); border-radius: 7px; background: var(--dc, var(--an-b2)); color: #0d1117; font-size: 11.5px; font-weight: 750; line-height: 24px; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 10px rgba(0,0,0,.3); transition: opacity .15s ease; }
+.an-here-tag { position: fixed; right: 40px; z-index: 5; display: flex; align-items: center; max-width: clamp(72px, calc((100vw - 780px) / 2 - 44px), 168px); height: 24px; padding: 0 9px; transform: translateY(-50%); border-radius: 7px; background: var(--dc, var(--an-b2)); color: #0d1117; font-size: 11.5px; font-weight: 750; line-height: 24px; white-space: nowrap; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.3); transition: opacity .15s ease; }
+/* The tag is part of the rail's hit area: it sticks out left of the 28 px rail, so hovering any part of it opens the rail
+   (the expanded rail then covers the tag and keeps itself open); a click focuses the open row (JS), for touch too. */
+[data-analysis]:has(> .an-here-tag:hover) > .an-rail { width: 260px; }
 .an-here-tag[hidden] { display: none; }
 .an-here-tag > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .an-here-tag::after { content: ""; position: absolute; left: 100%; top: 50%; margin-top: -6px; border-style: solid; border-width: 6px 0 6px 7px; border-color: transparent transparent transparent var(--dc, var(--an-b2)); }
@@ -6562,7 +6565,8 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
 
 </section>
 
-<section data-iteration="2" data-iteration-template="design" data-tab-label="Runde 2" id="iter-2" data-active>
+<section data-iteration="2" data-iteration-template="design" data-tab-label="Runde 2" data-baked id="iter-2" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"Lass uns mit den korrekturen, dann zusätzlich in nähcster rudne auf jeder seite und subseite klären wie elemente eingeblendet werden in welcher reihenfolge mit welchen effekten - dabei mehrer playbooks erstellen wie animationen stattfinden sollten je nach sieten typ (hauptseiten vs scrolled seiten vs detailseiten vs unwesentliche seiten, z. B. was hinter profil liegt). Außerdme animationen für einblendungen von popup (den kleinen wei wunschliste, aber auch den großejn wie bauteil wechseln!)\n\nLass uns außerdem refinen wenn jeman ddie seite ohne subseite /verse zum beispiel aufruft, dann soll es cinemastisch bombastisch, gern bis zu >6s dauern bis alle elemente erscheinen. Bei den subseiten (damit meine ich irgendien suffix,, wie verse, auch wenn es dort am ende immer hinelitet und das ggf. als leseziechen abgesppecihertt wird) nicht bei der hauptseite immer.","attachments":[]},"designs":{},"screens":{"d1-kw-verse":"das mit dem schlenker finde ich merkwürdig","d1-kw-news":"Bei diesen planeten sollte so gezoomed werden, dass der planet am nede exakt den planeten abbildet der im header von der seite ist! Oder der planet ragt links am seitenrand groß rein und wir nehmen den planeten in dieser detailaanischt von fvese news heraus","d1-kw-starmap":"sternkarte muss zur sternenkarte transformieren, ansonsten super, gerade auch mit dem planeten links unten sehr gut, gern feinjustieren aber gut"},"views":{},"userPins":[{"id":"up-mw9ixibs2u56","design":"welt","screen":"d1-kw-map","x":41.4,"y":34.3,"target":"a.d1-kw-frame.d1-kw-f-admin \"Admin\"","text":"admin ist ok mit der raumschiffbasis ok! Aber HQ ist wichtiger visuell","attachments":[]},{"id":"up-mw9iyp0c71lg","design":"welt","screen":"d1-kw-map","x":49.5,"y":63.7,"target":"a.d1-kw-frame.d1-kw-f-hq \"HQ\"","text":"HQ Sollte noch viel weiter ranzoomen, damit nur angedeutet lichtetrr / eine stadt zu sehen ist im background, weil dort viele elemtne sind und wir wollen den hintergrund nicht mit soooo vielenm lichtern, auch nicht wenigen,m aber heer ruhig","attachments":[]}]}</script>
 <style>
 
 .d1-kw-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 600px; box-sizing: border-box; background: #02070d; overflow: hidden; }
@@ -6667,21 +6671,21 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
   <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-hq" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq" aria-label="Frage {n}">1</button>
   <div class="anno-bubble" id="anno-bubble-kw-a-hq" data-anno-bubble="d1-kw-a-hq" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-hq" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq"><span class="anno-bubble-question">HQ liegt jetzt ganz auf dem Planeten: unter dem Verse, auf der Nachtseite mit den Stadtlichtern. Scrollen im HQ fährt weiter über die Oberfläche (Lager darunter). Stimmt dieser Ort?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq" data-annotation="d1-kw-a-hq" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq" data-annotation="d1-kw-a-hq" data-attachable placeholder="Deine Antwort…" readonly>am besten eher links oder rechts z. B. hier</textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="d1-kw-a-admin" data-anno-side="right" data-anno-target=".d1-kw-f-admin" style="--anno-x:36%;--anno-y:31%">
   <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-admin" aria-expanded="false" aria-controls="anno-bubble-kw-a-admin" aria-label="Frage {n}">2</button>
   <div class="anno-bubble" id="anno-bubble-kw-a-admin" data-anno-bubble="d1-kw-a-admin" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-admin" aria-expanded="false" aria-controls="anno-bubble-kw-a-admin"><span class="anno-bubble-question">Die Raumstation im Verse-Orbit führt heute ins HQ. Mit HQ auf dem Planeten wird sie zur Kommandozentrale (Admin). Passt das, oder soll Admin woanders liegen?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-admin" data-annotation="d1-kw-a-admin" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-admin"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-admin" data-annotation="d1-kw-a-admin" data-attachable placeholder="Deine Antwort…" readonly>Achso verstehe, ne, dann eher statt raumstation eine station auf der  Erde am rand links oder so und weiterhin zu hq</textarea><div class="attach-slot" data-attach-slot="anno-kw-a-admin"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="d1-kw-a-codex" data-anno-side="left" data-anno-target=".d1-kw-f-codex" style="--anno-x:72%;--anno-y:22%">
   <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-codex" aria-expanded="false" aria-controls="anno-bubble-kw-a-codex" aria-label="Frage {n}">3</button>
   <div class="anno-bubble" id="anno-bubble-kw-a-codex" data-anno-bubble="d1-kw-a-codex" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-codex" aria-expanded="false" aria-controls="anno-bubble-kw-a-codex"><span class="anno-bubble-question">Codex liegt rechts oben im All, um den Holotisch herum; der Index ist ein Push-in auf die Tischplatte. Rechts vom Verse, oder lieber an einer anderen Stelle der Welt?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-codex" data-annotation="d1-kw-a-codex" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-codex"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-codex" data-annotation="d1-kw-a-codex" data-attachable placeholder="Deine Antwort…" readonly>das passt, so hat codex index einen gleichmäß0igen hintergrund und codex selber interessanten hintergrund mit den leichten galaaxien collorierungen </textarea><div class="attach-slot" data-attach-slot="anno-kw-a-codex"></div></div>
   </div>
 </div>
       </div>
@@ -6717,7 +6721,7 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
   <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-news" aria-expanded="false" aria-controls="anno-bubble-kw-a-news" aria-label="Frage {n}">1</button>
   <div class="anno-bubble" id="anno-bubble-kw-a-news" data-anno-bubble="d1-kw-a-news" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-news" aria-expanded="false" aria-controls="anno-bubble-kw-a-news"><span class="anno-bubble-question">Unterseiten sind ein Push-in (2,4×) auf ihren Planeten: hinter News steht der News-Planet groß im Bild, ein Wechsel zu Patches ist ein kurzer Schwenk daneben. Zu nah, zu weit?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-news" data-annotation="d1-kw-a-news" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-news"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-news" data-annotation="d1-kw-a-news" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-news"></div></div>
   </div>
 </div>
       </div>
@@ -6762,7 +6766,7 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
   <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-cxi" aria-expanded="false" aria-controls="anno-bubble-kw-a-cxi" aria-label="Frage {n}">1</button>
   <div class="anno-bubble" id="anno-bubble-kw-a-cxi" data-anno-bubble="d1-kw-a-cxi" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-cxi" aria-expanded="false" aria-controls="anno-bubble-kw-a-cxi"><span class="anno-bubble-question">Codex-Index: beim Scrollen neigt sich die Kamera unter den Holotisch, die Platte bleibt oben am Rand im Bild, die Liste steht im freien All. So, oder lieber direkt über der leuchtenden Platte?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-cxi" data-annotation="d1-kw-a-cxi" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-cxi"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-cxi" data-annotation="d1-kw-a-cxi" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-cxi"></div></div>
   </div>
 </div>
       </div>
@@ -6780,14 +6784,14 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
   <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-hq-hor" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-hor" aria-label="Frage {n}">1</button>
   <div class="anno-bubble" id="anno-bubble-kw-a-hq-hor" data-anno-bubble="d1-kw-a-hq-hor" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-hq-hor" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-hor"><span class="anno-bubble-question">Im HQ ist kein Horizont mehr zu sehen, nur Oberfläche und Stadtlichter. Soll oben ein Streifen Atmosphäre bleiben, damit man den Planeten als Planeten erkennt?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq-hor" data-annotation="d1-kw-a-hq-hor" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq-hor"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq-hor" data-annotation="d1-kw-a-hq-hor" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq-hor"></div></div>
   </div>
 </div>
 <div class="anno" data-anno="d1-kw-a-hq-lights" data-anno-side="left" data-anno-target=".d1-kw-world" style="--anno-x:26%;--anno-y:62%">
   <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-hq-lights" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-lights" aria-label="Frage {n}">2</button>
   <div class="anno-bubble" id="anno-bubble-kw-a-hq-lights" data-anno-bubble="d1-kw-a-hq-lights" data-open="false">
     <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-hq-lights" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-lights"><span class="anno-bubble-question">Die Stadtlichter kommen aus dem echten Planeten (Scroll-Ansicht von /verse), hier 1,6× nah. Wird das als „auf dem Planeten“ lesbar, oder braucht HQ mehr Boden-Details?</span></button>
-    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq-lights" data-annotation="d1-kw-a-hq-lights" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq-lights"></div></div>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq-lights" data-annotation="d1-kw-a-hq-lights" data-attachable placeholder="Deine Antwort…" readonly></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq-lights"></div></div>
   </div>
 </div>
       </div>
@@ -6846,23 +6850,23 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-stakes>Ob der Himmel beim Flug springt oder durchgehend fährt.</p>
         <div data-options>
           <label data-opt="live" data-recommended>
-            <input type="radio" name="dm-r2-d-snapshot" value="live" checked>
+            <input type="radio" name="dm-r2-d-snapshot" value="live" checked disabled>
             <span data-opt-label>Szene aus dem Bild nehmen, Kamera fährt live</span>
             <span data-opt-consequence>Die Szene bekommt einen eigenen Namen ohne Animation, nur die Inhalte fliegen; die Kamera fährt dazu echt mit.</span>
           </label>
           <label data-opt="ohne-vt">
-            <input type="radio" name="dm-r2-d-snapshot" value="ohne-vt">
+            <input type="radio" name="dm-r2-d-snapshot" value="ohne-vt" disabled>
             <span data-opt-label>View Transitions ganz ersetzen</span>
             <span data-opt-consequence>Inhalte animieren sich selbst; mehr Umbau, aber ein Weg für alle Wechsel.</span>
           </label>
           <label data-opt="bleibt">
-            <input type="radio" name="dm-r2-d-snapshot" value="bleibt">
+            <input type="radio" name="dm-r2-d-snapshot" value="bleibt" disabled>
             <span data-opt-label>Flüge so lassen</span>
             <span data-opt-consequence>Der Hintergrund zoomt weiter mit weg und wird ersetzt.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-snapshot-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-snapshot-none" value=""><input type="hidden" name="dm-r2-d-snapshot-hes" value=""><input type="hidden" name="dm-r2-d-snapshot-touched" value=""><input type="hidden" name="dm-r2-d-snapshot-issue" value=""><input type="hidden" name="dm-r2-d-snapshot-epic" value="">
+        <textarea data-comment="r2-d-snapshot-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-snapshot-none" value="" disabled><input type="hidden" name="dm-r2-d-snapshot-hes" value="{&quot;ms&quot;:20786,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-snapshot-touched" value="1" disabled><input type="hidden" name="dm-r2-d-snapshot-issue" value="" disabled><input type="hidden" name="dm-r2-d-snapshot-epic" value="" disabled>
         <div data-alevel="3" data-title="Hintergrund im Flug">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"×3","unit":"Zoom","label":"des Hintergrunds beim Abtauchen"}'></div></div>
           <div data-slot="long">
@@ -6884,18 +6888,18 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-stakes>Ob ein Bereichswechsel wie ein Schwenk oder wie eine Überblendung aussieht.</p>
         <div data-options>
           <label data-opt="welt" data-recommended>
-            <input type="radio" name="dm-r2-d-setpieces" value="welt" checked>
+            <input type="radio" name="dm-r2-d-setpieces" value="welt" checked disabled>
             <span data-opt-label>An festen Orten in der einen Szene</span>
             <span data-opt-consequence>Planet unten mittig, Holotisch rechts, Nachtseite darunter; die Kamera schwenkt zu ihnen.</span>
           </label>
           <label data-opt="seite">
-            <input type="radio" name="dm-r2-d-setpieces" value="seite">
+            <input type="radio" name="dm-r2-d-setpieces" value="seite" disabled>
             <span data-opt-label>Bleiben in ihren Seiten</span>
             <span data-opt-consequence>Die Szene zeigt nur Himmel; die Stücke kommen und gehen mit der Seite.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-setpieces-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-setpieces-none" value=""><input type="hidden" name="dm-r2-d-setpieces-hes" value=""><input type="hidden" name="dm-r2-d-setpieces-touched" value=""><input type="hidden" name="dm-r2-d-setpieces-issue" value=""><input type="hidden" name="dm-r2-d-setpieces-epic" value="">
+        <textarea data-comment="r2-d-setpieces-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-setpieces-none" value="" disabled><input type="hidden" name="dm-r2-d-setpieces-hes" value="{&quot;ms&quot;:6942,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-setpieces-touched" value="1" disabled><input type="hidden" name="dm-r2-d-setpieces-issue" value="" disabled><input type="hidden" name="dm-r2-d-setpieces-epic" value="" disabled>
         <div data-alevel="3" data-title="Bühnenstücke">
           <div data-slot="short"><p>3 Bühnenstücke, 2 davon nur per Deckkraft.</p></div>
           <div data-slot="long">
@@ -6911,23 +6915,23 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-stakes>Ob jeder Listen- und Detailklick in derselben Welt bleibt.</p>
         <div data-options>
           <label data-opt="push" data-recommended>
-            <input type="radio" name="dm-r2-d-sub" value="push" checked>
+            <input type="radio" name="dm-r2-d-sub" value="push" checked disabled>
             <span data-opt-label>Kleiner Push-in zum geklickten Element</span>
             <span data-opt-consequence>Kamera zoomt leicht in Richtung Klick, zurück zieht sie heraus; der Schleier wird mitgefahren statt gesetzt.</span>
           </label>
           <label data-opt="still">
-            <input type="radio" name="dm-r2-d-sub" value="still">
+            <input type="radio" name="dm-r2-d-sub" value="still" disabled>
             <span data-opt-label>Kamera steht, nur der Inhalt wechselt</span>
             <span data-opt-consequence>Kein Sprung mehr, aber auch kein Gefühl von Tiefe.</span>
           </label>
           <label data-opt="heute">
-            <input type="radio" name="dm-r2-d-sub" value="heute">
+            <input type="radio" name="dm-r2-d-sub" value="heute" disabled>
             <span data-opt-label>Schnitt mit Schleier wie heute</span>
             <span data-opt-consequence>Der Hintergrund springt bei jedem Unterseiten-Klick.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-sub-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-sub-none" value=""><input type="hidden" name="dm-r2-d-sub-hes" value=""><input type="hidden" name="dm-r2-d-sub-touched" value=""><input type="hidden" name="dm-r2-d-sub-issue" value=""><input type="hidden" name="dm-r2-d-sub-epic" value="">
+        <textarea data-comment="r2-d-sub-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-sub-none" value="" disabled><input type="hidden" name="dm-r2-d-sub-hes" value="{&quot;ms&quot;:14537,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-sub-touched" value="1" disabled><input type="hidden" name="dm-r2-d-sub-issue" value="" disabled><input type="hidden" name="dm-r2-d-sub-epic" value="" disabled>
         <div data-alevel="3" data-title="Unterseiten">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0 ms","unit":"","label":"Übergang heute (Modus still)"}'></div></div>
           <div data-slot="long">
@@ -6943,23 +6947,23 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-stakes>Erster Eindruck, und ob Codex und HQ gleich wie Verse ankommen.</p>
         <div data-options>
           <label data-opt="ankunft" data-recommended>
-            <input type="radio" name="dm-r2-d-first" value="ankunft" checked>
+            <input type="radio" name="dm-r2-d-first" value="ankunft" checked disabled>
             <span data-opt-label>Kamera fährt aus der Ferne an, dann die Inhalte</span>
             <span data-opt-consequence>Leichter Dolly-in auf die Pose des Bereichs, innerhalb der bestehenden Einstiegszeiten.</span>
           </label>
           <label data-opt="nur-verse">
-            <input type="radio" name="dm-r2-d-first" value="nur-verse">
+            <input type="radio" name="dm-r2-d-first" value="nur-verse" disabled>
             <span data-opt-label>Ankunft nur beim ersten Verse-Besuch</span>
             <span data-opt-consequence>Codex und HQ stehen beim Laden sofort.</span>
           </label>
           <label data-opt="steht">
-            <input type="radio" name="dm-r2-d-first" value="steht">
+            <input type="radio" name="dm-r2-d-first" value="steht" disabled>
             <span data-opt-label>Szene steht beim Laden sofort</span>
             <span data-opt-consequence>Nur die Inhalte bauen sich auf.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-first-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-first-none" value=""><input type="hidden" name="dm-r2-d-first-hes" value=""><input type="hidden" name="dm-r2-d-first-touched" value=""><input type="hidden" name="dm-r2-d-first-issue" value=""><input type="hidden" name="dm-r2-d-first-epic" value="">
+        <textarea data-comment="r2-d-first-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-first-none" value="" disabled><input type="hidden" name="dm-r2-d-first-hes" value="{&quot;ms&quot;:17895,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-first-touched" value="1" disabled><input type="hidden" name="dm-r2-d-first-issue" value="" disabled><input type="hidden" name="dm-r2-d-first-epic" value="" disabled>
         <div data-alevel="3" data-title="Erster Aufruf">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4,2","unit":"s","label":"Verse-Einstieg des Tages, bleibt"}'></div></div>
           <div data-slot="long">
@@ -6973,10 +6977,10 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-situation>Heute 900 ms plus ein Streckenanteil, höchstens 1600 ms; Unterseiten bekommen etwa die Hälfte.</p>
         <h3 data-question>Wie lange dauert die kürzeste Kamerafahrt zwischen Hauptseiten?</h3>
         <div data-options>
-          <input type="range" name="dm-r2-d-dur" min="500" max="1600" step="50" value="1100">
+          <input type="range" name="dm-r2-d-dur" min="500" max="1600" step="50" value="1100" disabled>
         </div>
-        <textarea data-comment="r2-d-dur-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-dur-hes" value=""><input type="hidden" name="dm-r2-d-dur-touched" value=""><input type="hidden" name="dm-r2-d-dur-issue" value=""><input type="hidden" name="dm-r2-d-dur-epic" value="">
+        <textarea data-comment="r2-d-dur-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-dur-hes" value="{&quot;ms&quot;:78368,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-dur-touched" value="1" disabled><input type="hidden" name="dm-r2-d-dur-issue" value="" disabled><input type="hidden" name="dm-r2-d-dur-epic" value="" disabled>
         <div data-alevel="3" data-title="Flugdauer">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"900–1600","unit":"ms","label":"heute (flightMs)"}'></div></div>
           <div data-slot="long"><p><code>flightMs()</code> rechnet 900 ms + Abstand × 200, gedeckelt bei 1600 ms. Der Regler setzt den Grundwert; der Deckel wächst mit (+500 ms).</p></div>
@@ -6996,18 +7000,18 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <h3 data-question>Wer bekommt die Kamera-Welt?</h3>
         <div data-options>
           <label data-opt="beta" data-recommended>
-            <input type="radio" name="dm-r2-d-scope" value="beta" checked>
+            <input type="radio" name="dm-r2-d-scope" value="beta" checked disabled>
             <span data-opt-label>Weiter nur in der Shell-Beta</span>
             <span data-opt-consequence>Kein Risiko für alle anderen; Freigabe später mit der Shell.</span>
           </label>
           <label data-opt="alle">
-            <input type="radio" name="dm-r2-d-scope" value="alle">
+            <input type="radio" name="dm-r2-d-scope" value="alle" disabled>
             <span data-opt-label>Szene auch ohne Shell-Beta zeigen</span>
             <span data-opt-consequence>Jeder sieht die Welt; die alte Shell braucht dafür eigene Anpassungen.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-scope-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-scope-none" value=""><input type="hidden" name="dm-r2-d-scope-hes" value=""><input type="hidden" name="dm-r2-d-scope-touched" value=""><input type="hidden" name="dm-r2-d-scope-issue" value=""><input type="hidden" name="dm-r2-d-scope-epic" value="">
+        <textarea data-comment="r2-d-scope-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-scope-none" value="" disabled><input type="hidden" name="dm-r2-d-scope-hes" value="{&quot;ms&quot;:7018,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-scope-touched" value="1" disabled><input type="hidden" name="dm-r2-d-scope-issue" value="" disabled><input type="hidden" name="dm-r2-d-scope-epic" value="" disabled>
         <div data-alevel="3" data-title="Geltung">
           <div data-slot="short"><p><code>BETA_DEFAULTS</code>: verse aus, codex an, shell aus.</p></div>
           <div data-slot="long"><p><code>ShellSceneComponent</code> rendert nur mit <code>isEnabled('shell')</code>; ohne die Beta hat die Seite einen einfarbigen Hintergrund, durch den keine Kamera fahren kann.</p></div>
@@ -7019,13 +7023,13 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-situation>Mit „Bewegung reduzieren“ wird aus jeder Fahrt eine kurze Überblendung (420 ms), der Push-in entfällt.</p>
         <h3 data-question>Stimmt das so für alle neuen Fahrten?</h3>
         <div data-options>
-          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-reduced" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Überblendung statt Fahrt, auch für Unterseiten und Ankunft.</span></label>
-          <label data-opt="partial"><input type="radio" name="dm-r2-d-reduced" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
-          <label data-opt="wrong"><input type="radio" name="dm-r2-d-reduced" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-reduced" value="ok" checked disabled><span data-opt-label>Stimmt so</span><span data-opt-consequence>Überblendung statt Fahrt, auch für Unterseiten und Ankunft.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r2-d-reduced" value="partial" disabled><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r2-d-reduced" value="wrong" disabled><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
         </div>
-        <input type="text" name="dm-r2-d-reduced-fix" value="" placeholder="Korrektur">
-        <textarea data-comment="r2-d-reduced-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-reduced-none" value=""><input type="hidden" name="dm-r2-d-reduced-hes" value=""><input type="hidden" name="dm-r2-d-reduced-touched" value=""><input type="hidden" name="dm-r2-d-reduced-issue" value=""><input type="hidden" name="dm-r2-d-reduced-epic" value="">
+        <input type="text" name="dm-r2-d-reduced-fix" value="" placeholder="Korrektur" readonly disabled>
+        <textarea data-comment="r2-d-reduced-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-reduced-none" value="" disabled><input type="hidden" name="dm-r2-d-reduced-hes" value="{&quot;ms&quot;:3702,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-reduced-touched" value="" disabled><input type="hidden" name="dm-r2-d-reduced-issue" value="" disabled><input type="hidden" name="dm-r2-d-reduced-epic" value="" disabled>
         <div data-alevel="3" data-title="Weniger Bewegung">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"420","unit":"ms","label":"Überblendung (SCENE_FADE_MS)"}'></div></div>
           <div data-slot="long"><p><code>sceneStep()</code> gibt bei reduzierter Bewegung <code>mode: 'fade'</code>; die Verse-Flüge starten gar nicht. Das bleibt die Regel.</p></div>
@@ -7037,13 +7041,13 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-situation>Ein neuer Klick mitten in der Fahrt lenkt die Kamera von ihrer aktuellen Stelle zum neuen Ziel um, ohne Sprung zurück.</p>
         <h3 data-question>Stimmt das als Regel für jede Fahrt?</h3>
         <div data-options>
-          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-retarget" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Kein Wechsel wartet auf das Ende einer Fahrt.</span></label>
-          <label data-opt="partial"><input type="radio" name="dm-r2-d-retarget" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
-          <label data-opt="wrong"><input type="radio" name="dm-r2-d-retarget" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-retarget" value="ok" checked disabled><span data-opt-label>Stimmt so</span><span data-opt-consequence>Kein Wechsel wartet auf das Ende einer Fahrt.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r2-d-retarget" value="partial" disabled><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r2-d-retarget" value="wrong" disabled><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
         </div>
-        <input type="text" name="dm-r2-d-retarget-fix" value="" placeholder="Korrektur">
-        <textarea data-comment="r2-d-retarget-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-retarget-none" value=""><input type="hidden" name="dm-r2-d-retarget-hes" value=""><input type="hidden" name="dm-r2-d-retarget-touched" value=""><input type="hidden" name="dm-r2-d-retarget-issue" value=""><input type="hidden" name="dm-r2-d-retarget-epic" value="">
+        <input type="text" name="dm-r2-d-retarget-fix" value="" placeholder="Korrektur" readonly disabled>
+        <textarea data-comment="r2-d-retarget-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-retarget-none" value="" disabled><input type="hidden" name="dm-r2-d-retarget-hes" value="{&quot;ms&quot;:12154,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-retarget-touched" value="1" disabled><input type="hidden" name="dm-r2-d-retarget-issue" value="" disabled><input type="hidden" name="dm-r2-d-retarget-epic" value="" disabled>
         <div data-alevel="3" data-title="Klick im Flug">
           <div data-slot="short"><p>Heute: Hauptseiten ja, Verse-Flüge nein (<code>running</code> blockiert).</p></div>
           <div data-slot="long"><p><code>VerseFlight.begin()</code> verweigert einen zweiten Flug, solange einer läuft (<code>this.running</code>). Mit der live fahrenden Szene kann die Kamera umlenken, der Inhalt springt dann ans neue Ziel.</p></div>
@@ -7067,23 +7071,23 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-stakes>Ruckler bei Fahrt und Scrollen gegen den Glas-Look.</p>
         <div data-options>
           <label data-opt="gezielt" data-recommended>
-            <input type="radio" name="dm-r2-d-glass" value="gezielt" checked>
+            <input type="radio" name="dm-r2-d-glass" value="gezielt" checked disabled>
             <span data-opt-label>Nur Kopfzeile, Menüs und Dialoge</span>
             <span data-opt-consequence>Karten und Listen bekommen einen festen dunklen Ton, der gleich aussieht.</span>
           </label>
           <label data-opt="pause">
-            <input type="radio" name="dm-r2-d-glass" value="pause">
+            <input type="radio" name="dm-r2-d-glass" value="pause" disabled>
             <span data-opt-label>Überall behalten, während der Fahrt aussetzen</span>
             <span data-opt-consequence>Glas bleibt, aber flackert beim Ein- und Ausschalten; Scrollen bleibt teuer.</span>
           </label>
           <label data-opt="alle">
-            <input type="radio" name="dm-r2-d-glass" value="alle">
+            <input type="radio" name="dm-r2-d-glass" value="alle" disabled>
             <span data-opt-label>Überall behalten</span>
             <span data-opt-consequence>Ruckler auf schwächeren Rechnern bleiben.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-glass-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-glass-none" value=""><input type="hidden" name="dm-r2-d-glass-hes" value=""><input type="hidden" name="dm-r2-d-glass-touched" value=""><input type="hidden" name="dm-r2-d-glass-issue" value=""><input type="hidden" name="dm-r2-d-glass-epic" value="">
+        <textarea data-comment="r2-d-glass-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-glass-none" value="" disabled><input type="hidden" name="dm-r2-d-glass-hes" value="{&quot;ms&quot;:20407,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-glass-touched" value="1" disabled><input type="hidden" name="dm-r2-d-glass-issue" value="" disabled><input type="hidden" name="dm-r2-d-glass-epic" value="" disabled>
         <div data-alevel="3" data-title="Glas-Unschärfe">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"55","unit":"Stellen","label":"backdrop-filter in src/app"}'></div></div>
           <div data-slot="long">
@@ -7099,18 +7103,18 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <h3 data-question>Womit gleitet die Seite von der Bühne zum unteren Teil?</h3>
         <div data-options>
           <label data-opt="snap" data-recommended>
-            <input type="radio" name="dm-r2-d-glide" value="snap" checked>
+            <input type="radio" name="dm-r2-d-glide" value="snap" checked disabled>
             <span data-opt-label>Mit nativem Einrasten (CSS scroll-snap)</span>
             <span data-opt-consequence>Gleiches Verhalten, ohne Skript im Bild; die Gleitkurve bestimmt dann der Browser.</span>
           </label>
           <label data-opt="skript">
-            <input type="radio" name="dm-r2-d-glide" value="skript">
+            <input type="radio" name="dm-r2-d-glide" value="skript" disabled>
             <span data-opt-label>Skript behalten, nur entlasten</span>
             <span data-opt-consequence>Eigene Kurve bleibt; Ruckler nur weniger, nicht weg.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-glide-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-glide-none" value=""><input type="hidden" name="dm-r2-d-glide-hes" value=""><input type="hidden" name="dm-r2-d-glide-touched" value=""><input type="hidden" name="dm-r2-d-glide-issue" value=""><input type="hidden" name="dm-r2-d-glide-epic" value="">
+        <textarea data-comment="r2-d-glide-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-glide-none" value="" disabled><input type="hidden" name="dm-r2-d-glide-hes" value="{&quot;ms&quot;:7523,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-glide-touched" value="1" disabled><input type="hidden" name="dm-r2-d-glide-issue" value="" disabled><input type="hidden" name="dm-r2-d-glide-epic" value="" disabled>
         <div data-alevel="3" data-title="Bühne → unterer Teil">
           <div data-slot="short"><p>2 Seiten mit Skript-Gleiten: Verse-Hub, Codex.</p></div>
           <div data-slot="long"><p>Beim Skript-Gleiten setzt JavaScript jedes Bild die Scrollposition; jede andere Arbeit im selben Bild (Planet, Szene, Listener) lässt es stocken. Mit <code>scroll-snap-type: y mandatory</code> nur zwischen Bühne und unterem Teil übernimmt der Browser die Fahrt.</p></div>
@@ -7122,13 +7126,13 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-situation>Beim Scrollen steht der Hintergrund heute still, die Seite gleitet darüber.</p>
         <h3 data-question>Soll sich die Kamera beim Scrollen leicht mitneigen (höchstens 3 % der Höhe)?</h3>
         <div data-options>
-          <label data-opt="yes" data-recommended><input type="radio" name="dm-r2-d-scrollcam" value="yes" checked><span data-opt-label>Ja, leicht mitneigen</span><span data-opt-consequence>Sterne wandern etwas langsamer als die Seite; läuft im Compositor.</span></label>
-          <label data-opt="no"><input type="radio" name="dm-r2-d-scrollcam" value="no"><span data-opt-label>Nein, Hintergrund steht</span><span data-opt-consequence>Wie heute.</span></label>
-          <label data-opt="alt"><input type="radio" name="dm-r2-d-scrollcam" value="alt"><span data-opt-label>Anders</span><span data-opt-consequence>Eigene Antwort unten.</span></label>
+          <label data-opt="yes" data-recommended><input type="radio" name="dm-r2-d-scrollcam" value="yes" checked disabled><span data-opt-label>Ja, leicht mitneigen</span><span data-opt-consequence>Sterne wandern etwas langsamer als die Seite; läuft im Compositor.</span></label>
+          <label data-opt="no"><input type="radio" name="dm-r2-d-scrollcam" value="no" disabled><span data-opt-label>Nein, Hintergrund steht</span><span data-opt-consequence>Wie heute.</span></label>
+          <label data-opt="alt"><input type="radio" name="dm-r2-d-scrollcam" value="alt" disabled><span data-opt-label>Anders</span><span data-opt-consequence>Eigene Antwort unten.</span></label>
         </div>
-        <input type="text" name="dm-r2-d-scrollcam-alt" value="" placeholder="Deine Antwort">
-        <textarea data-comment="r2-d-scrollcam-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-scrollcam-none" value=""><input type="hidden" name="dm-r2-d-scrollcam-hes" value=""><input type="hidden" name="dm-r2-d-scrollcam-touched" value=""><input type="hidden" name="dm-r2-d-scrollcam-issue" value=""><input type="hidden" name="dm-r2-d-scrollcam-epic" value="">
+        <input type="text" name="dm-r2-d-scrollcam-alt" value="" placeholder="Deine Antwort" readonly disabled>
+        <textarea data-comment="r2-d-scrollcam-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-scrollcam-none" value="" disabled><input type="hidden" name="dm-r2-d-scrollcam-hes" value="{&quot;ms&quot;:4837,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-scrollcam-touched" value="1" disabled><input type="hidden" name="dm-r2-d-scrollcam-issue" value="" disabled><input type="hidden" name="dm-r2-d-scrollcam-epic" value="" disabled>
         <div data-alevel="3" data-title="Kamera beim Scrollen">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≤ 3","unit":"%","label":"Neigung der Szene über die ganze Seite"}'></div></div>
           <div data-slot="long"><p><code>animation-timeline: scroll()</code> auf der Himmelsebene, nur <code>transform</code>. Kein Scroll-Listener, kein Skript; ohne Unterstützung im Browser steht der Himmel wie heute.</p></div>
@@ -7140,13 +7144,13 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <p data-situation>17 Komponenten hören einzeln auf Scroll und lesen Layout. Sie werden zu einem gemeinsamen Takt pro Bild zusammengelegt, ohne dass sich ihr Verhalten ändert.</p>
         <h3 data-question>Ist das als reiner Umbau ohne sichtbare Änderung in Ordnung?</h3>
         <div data-options>
-          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-listeners" value="ok" checked><span data-opt-label>Ja, so umbauen</span><span data-opt-consequence>Gleiches Verhalten, weniger Arbeit pro Bild.</span></label>
-          <label data-opt="partial"><input type="radio" name="dm-r2-d-listeners" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was ausgenommen wird.</span></label>
-          <label data-opt="wrong"><input type="radio" name="dm-r2-d-listeners" value="wrong"><span data-opt-label>Nein</span><span data-opt-consequence>Bitte unten begründen.</span></label>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-listeners" value="ok" checked disabled><span data-opt-label>Ja, so umbauen</span><span data-opt-consequence>Gleiches Verhalten, weniger Arbeit pro Bild.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r2-d-listeners" value="partial" disabled><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was ausgenommen wird.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r2-d-listeners" value="wrong" disabled><span data-opt-label>Nein</span><span data-opt-consequence>Bitte unten begründen.</span></label>
         </div>
-        <input type="text" name="dm-r2-d-listeners-fix" value="" placeholder="Korrektur">
-        <textarea data-comment="r2-d-listeners-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-listeners-none" value=""><input type="hidden" name="dm-r2-d-listeners-hes" value=""><input type="hidden" name="dm-r2-d-listeners-touched" value=""><input type="hidden" name="dm-r2-d-listeners-issue" value=""><input type="hidden" name="dm-r2-d-listeners-epic" value="">
+        <input type="text" name="dm-r2-d-listeners-fix" value="" placeholder="Korrektur" readonly disabled>
+        <textarea data-comment="r2-d-listeners-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-listeners-none" value="" disabled><input type="hidden" name="dm-r2-d-listeners-hes" value="{&quot;ms&quot;:14708,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-listeners-touched" value="1" disabled><input type="hidden" name="dm-r2-d-listeners-issue" value="" disabled><input type="hidden" name="dm-r2-d-listeners-epic" value="" disabled>
         <div data-alevel="3" data-title="Scroll-Listener">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"17","unit":"Listener","label":"auf window/document scroll"}'></div></div>
           <div data-slot="long"><p>Darunter <code>briefing-planet</code>, <code>briefing-dock</code>, <code>fusion-bar</code>, <code>hq-page-bar</code>, <code>hq-pages</code>, <code>codex-holo-stage</code>, <code>codex-browse</code>. Jeder liest <code>getBoundingClientRect</code> oder <code>scrollY</code>; zusammen erzwingen sie mehrfaches Layout im selben Bild.</p></div>
@@ -7159,21 +7163,735 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
         <h3 data-question>Woran gilt der Durchgang als bestanden?</h3>
         <div data-options>
           <label data-opt="messen" data-recommended>
-            <input type="radio" name="dm-r2-d-budget" value="messen" checked>
+            <input type="radio" name="dm-r2-d-budget" value="messen" checked disabled>
             <span data-opt-label>Kein Bild über 33 ms bei Fahrt und Scrollen</span>
             <span data-opt-consequence>Gemessen mit echter GPU auf 60 Hz und 144 Hz, vorher und nachher im Bericht.</span>
           </label>
           <label data-opt="auge">
-            <input type="radio" name="dm-r2-d-budget" value="auge">
+            <input type="radio" name="dm-r2-d-budget" value="auge" disabled>
             <span data-opt-label>Nach Augenmaß auf deinem Rechner</span>
             <span data-opt-consequence>Schneller, aber nicht wiederholbar.</span>
           </label>
         </div>
-        <textarea data-comment="r2-d-budget-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r2-d-budget-none" value=""><input type="hidden" name="dm-r2-d-budget-hes" value=""><input type="hidden" name="dm-r2-d-budget-touched" value=""><input type="hidden" name="dm-r2-d-budget-issue" value=""><input type="hidden" name="dm-r2-d-budget-epic" value="">
+        <textarea data-comment="r2-d-budget-note" placeholder="Notiz (optional)" readonly></textarea>
+        <input type="hidden" name="dm-r2-d-budget-none" value="" disabled><input type="hidden" name="dm-r2-d-budget-hes" value="{&quot;ms&quot;:10378,&quot;revisits&quot;:0,&quot;median&quot;:12154}" disabled><input type="hidden" name="dm-r2-d-budget-touched" value="1" disabled><input type="hidden" name="dm-r2-d-budget-issue" value="" disabled><input type="hidden" name="dm-r2-d-budget-epic" value="" disabled>
         <div data-alevel="3" data-title="Messlatte">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"33","unit":"ms","label":"längstes erlaubtes Bild"}'></div></div>
           <div data-slot="long"><p>Gemessen werden je zehn Fahrten Verse ↔ Codex, Verse ↔ HQ, Hub ↔ News und ein Scroll über Codex-Liste und HQ. Rechner im Leerlauf, Fenster sichtbar, Shader vorgewärmt.</p></div>
+        </div>
+      </section>
+    </section>
+  </section>
+
+</section>
+
+<section data-iteration="3" data-iteration-template="design" data-tab-label="Runde 3" id="iter-3" data-active>
+<style>
+
+.d3-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 600px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d3-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; background: #02070d; font-family: Inter, system-ui, "Segoe UI", sans-serif; }
+.d3-world { position: absolute; left: 0; top: 0; width: 350cqw; height: 262.5cqw; transform-origin: 0 0; will-change: transform; }
+.d3-sky { position: absolute; inset: 0; background: url(20261109-1752-kamera-welt/assets/sky.jpg) center / cover no-repeat, #041320; }
+.d3-stars { position: absolute; left: 0; top: 0; width: 1px; height: 1px; border-radius: 50%; box-shadow: 0cqw 241.688cqw 0 0.037cqw #ffffff,73.688cqw 191.438cqw 0 0.037cqw #ffffff,115.25cqw 197.438cqw 0 0.037cqw #ffffff,190cqw 179.688cqw 0 0.037cqw #ffffff,285.875cqw 63.5cqw 0 0.037cqw #ffffff,247.75cqw 183.25cqw 0 0.037cqw #ffffff,239.375cqw 122.813cqw 0 0.081cqw #ffe7c4,282.563cqw 32.25cqw 0 0.037cqw #ffffff,323.125cqw 180.75cqw 0 0.037cqw #ffffff,202.125cqw 239.375cqw 0 0.081cqw #cfe8ff,130.313cqw 88.063cqw 0 0.037cqw #cfe8ff,116.313cqw 40.063cqw 0 0.037cqw #ffffff,149.938cqw 77.375cqw 0 0.081cqw #ffe7c4,195.063cqw 191.438cqw 0 0.081cqw #cfe8ff,20.5cqw 71.813cqw 0 0.037cqw #ffffff,178.063cqw 110.625cqw 0 0.037cqw #ffffff,318.125cqw 14.375cqw 0 0.037cqw #ffffff,120.438cqw 174.438cqw 0 0.081cqw #ffe7c4,180.188cqw 43.438cqw 0 0.037cqw #ffffff,99.25cqw 95.688cqw 0 0.037cqw #ffffff,116.375cqw 139.563cqw 0 0.037cqw #ffffff,81.625cqw 237.938cqw 0 0.037cqw #ffffff,302.063cqw 166.75cqw 0 0.037cqw #ffffff,180.688cqw 132.563cqw 0 0.037cqw #ffffff,328.875cqw 104.125cqw 0 0.037cqw #ffffff,87.875cqw 154.063cqw 0 0.037cqw #ffffff,115.688cqw 102.75cqw 0 0.037cqw #ffffff,307.125cqw 29.188cqw 0 0.037cqw #cfe8ff,27.188cqw 106.813cqw 0 0.037cqw #ffffff,27.25cqw 261.5cqw 0 0.037cqw #ffffff,221.313cqw 37.875cqw 0 0.037cqw #ffffff,207.5cqw 36.188cqw 0 0.081cqw #ffe7c4,309.625cqw 233.75cqw 0 0.081cqw #cfe8ff,317.688cqw 199.813cqw 0 0.037cqw #ffffff,3.688cqw 65.188cqw 0 0.037cqw #ffffff,0.563cqw 161.938cqw 0 0.037cqw #ffffff,259.375cqw 128.438cqw 0 0.037cqw #ffffff,83.313cqw 231.563cqw 0 0.037cqw #ffffff,130.875cqw 234.75cqw 0 0.037cqw #ffffff,171.25cqw 0.75cqw 0 0.081cqw #cfe8ff,222.938cqw 242.063cqw 0 0.037cqw #ffffff,315cqw 49.375cqw 0 0.081cqw #ffe7c4,197.875cqw 178.313cqw 0 0.037cqw #ffffff,78cqw 54.875cqw 0 0.037cqw #ffffff,18.313cqw 202cqw 0 0.037cqw #ffffff,249.938cqw 130.75cqw 0 0.037cqw #ffffff,38.625cqw 241.25cqw 0 0.037cqw #ffffff,240.75cqw 234.438cqw 0 0.037cqw #ffffff,309.125cqw 226.125cqw 0 0.081cqw #ffe7c4,334cqw 200.813cqw 0 0.037cqw #ffffff,86.875cqw 191cqw 0 0.081cqw #cfe8ff,139.375cqw 61.625cqw 0 0.037cqw #ffffff,310.438cqw 146.688cqw 0 0.037cqw #ffffff,217.5cqw 192.938cqw 0 0.037cqw #ffffff,253.813cqw 111cqw 0 0.037cqw #ffffff,109.125cqw 258.688cqw 0 0.081cqw #ffe7c4,221.313cqw 228.938cqw 0 0.081cqw #cfe8ff,69.813cqw 169.375cqw 0 0.037cqw #ffffff,174.125cqw 146.313cqw 0 0.037cqw #ffffff,331cqw 126.563cqw 0 0.037cqw #ffffff,156.313cqw 43.625cqw 0 0.037cqw #ffffff,182.625cqw 147.375cqw 0 0.037cqw #ffffff,265cqw 95.125cqw 0 0.037cqw #ffffff,9.125cqw 78.438cqw 0 0.037cqw #ffffff,70.938cqw 189.75cqw 0 0.037cqw #ffffff,82.5cqw 173.125cqw 0 0.037cqw #ffffff,26.375cqw 202.875cqw 0 0.037cqw #cfe8ff,320.438cqw 238.875cqw 0 0.037cqw #ffffff,335.625cqw 6.625cqw 0 0.037cqw #ffffff,210.375cqw 190.063cqw 0 0.081cqw #cfe8ff,12.938cqw 35.688cqw 0 0.037cqw #ffffff,37.875cqw 22.25cqw 0 0.037cqw #ffffff,211.75cqw 248.25cqw 0 0.037cqw #ffffff,46.75cqw 53.063cqw 0 0.037cqw #ffffff,85.125cqw 119.813cqw 0 0.081cqw #ffe7c4,147.938cqw 176.875cqw 0 0.037cqw #ffffff,138.938cqw 109.313cqw 0 0.037cqw #ffffff,80.563cqw 212cqw 0 0.081cqw #ffe7c4,53.375cqw 242.938cqw 0 0.037cqw #ffffff,42.75cqw 55.188cqw 0 0.037cqw #ffffff,59.688cqw 20.5cqw 0 0.037cqw #ffffff,226.313cqw 146cqw 0 0.037cqw #ffffff,347.813cqw 19.75cqw 0 0.037cqw #ffffff,110.063cqw 1.063cqw 0 0.037cqw #ffffff,144.688cqw 24cqw 0 0.037cqw #ffffff,323.438cqw 204.063cqw 0 0.037cqw #ffffff,152.875cqw 224.438cqw 0 0.081cqw #ffe7c4,280.313cqw 173.75cqw 0 0.037cqw #ffffff,121.813cqw 106.813cqw 0 0.037cqw #ffffff,173.188cqw 148.938cqw 0 0.037cqw #ffffff,232.813cqw 166.125cqw 0 0.037cqw #ffffff,309.563cqw 221.875cqw 0 0.081cqw #ffe7c4,153.313cqw 127.875cqw 0 0.081cqw #ffe7c4,341.313cqw 93.938cqw 0 0.037cqw #ffffff,119.938cqw 231.688cqw 0 0.037cqw #ffffff,258.313cqw 250.75cqw 0 0.037cqw #ffffff,72.5cqw 62.5cqw 0 0.037cqw #ffffff,36.438cqw 240.313cqw 0 0.037cqw #cfe8ff,222.313cqw 186.75cqw 0 0.037cqw #ffffff,155.063cqw 228.938cqw 0 0.037cqw #ffffff,305.813cqw 71cqw 0 0.037cqw #ffffff,151.875cqw 103.688cqw 0 0.037cqw #ffffff,206.188cqw 60.75cqw 0 0.081cqw #cfe8ff,287.75cqw 88.75cqw 0 0.037cqw #ffffff,307.063cqw 30.438cqw 0 0.037cqw #ffffff,322.313cqw 0.375cqw 0 0.037cqw #ffffff,139.063cqw 5.688cqw 0 0.037cqw #ffffff,314.25cqw 45.438cqw 0 0.037cqw #ffffff,331.563cqw 183.688cqw 0 0.037cqw #ffffff,40.875cqw 164.5cqw 0 0.037cqw #ffffff,284.188cqw 155.313cqw 0 0.037cqw #ffffff,44.813cqw 86.938cqw 0 0.037cqw #ffffff,334.25cqw 143.813cqw 0 0.037cqw #ffffff,272.125cqw 184.375cqw 0 0.037cqw #ffffff,209.125cqw 26.313cqw 0 0.037cqw #ffffff,214.625cqw 59.063cqw 0 0.037cqw #ffffff,87.813cqw 58.563cqw 0 0.037cqw #ffffff,220.313cqw 213.375cqw 0 0.037cqw #ffffff,316.938cqw 13.875cqw 0 0.037cqw #ffffff,142.375cqw 207.875cqw 0 0.037cqw #ffffff,281.625cqw 27.5cqw 0 0.081cqw #cfe8ff,175.313cqw 216cqw 0 0.037cqw #ffffff,303.188cqw 207.563cqw 0 0.037cqw #ffffff,317.75cqw 225.25cqw 0 0.037cqw #ffffff,251.875cqw 40.563cqw 0 0.037cqw #ffffff,332cqw 250.625cqw 0 0.037cqw #ffffff,26.938cqw 68.75cqw 0 0.081cqw #ffe7c4,304.438cqw 251.125cqw 0 0.037cqw #ffffff,69.375cqw 7.813cqw 0 0.037cqw #ffffff,195.813cqw 37.188cqw 0 0.037cqw #ffffff,168.313cqw 59.5cqw 0 0.037cqw #ffffff,15.563cqw 24.563cqw 0 0.037cqw #ffffff,163.813cqw 212.125cqw 0 0.037cqw #ffffff,178.75cqw 183.875cqw 0 0.037cqw #ffffff,214.688cqw 253.375cqw 0 0.037cqw #ffffff,336.688cqw 186.75cqw 0 0.037cqw #ffffff,280.938cqw 44.938cqw 0 0.037cqw #ffffff,254.313cqw 169.75cqw 0 0.037cqw #ffffff,190.688cqw 101.563cqw 0 0.037cqw #ffffff,42.688cqw 17.438cqw 0 0.037cqw #ffffff,124cqw 90.438cqw 0 0.037cqw #ffffff,224cqw 32.938cqw 0 0.037cqw #ffffff,0.563cqw 219.375cqw 0 0.081cqw #cfe8ff,15.563cqw 201.625cqw 0 0.037cqw #ffffff,140.813cqw 238.375cqw 0 0.037cqw #ffffff,4.063cqw 260.75cqw 0 0.037cqw #ffffff,225cqw 112.25cqw 0 0.037cqw #ffffff,60.438cqw 198.25cqw 0 0.037cqw #ffffff,87.188cqw 225.125cqw 0 0.037cqw #cfe8ff,111.25cqw 120.563cqw 0 0.037cqw #ffffff,88.625cqw 231.375cqw 0 0.081cqw #cfe8ff,237.375cqw 130.875cqw 0 0.081cqw #cfe8ff,286.938cqw 213.438cqw 0 0.037cqw #ffffff,339.625cqw 181.5cqw 0 0.037cqw #ffffff,249.25cqw 85.125cqw 0 0.081cqw #cfe8ff,57.063cqw 221.875cqw 0 0.037cqw #ffffff,285.625cqw 122.563cqw 0 0.037cqw #ffffff,290.063cqw 11.188cqw 0 0.037cqw #ffffff,68.438cqw 6.125cqw 0 0.037cqw #ffffff,284.188cqw 164.625cqw 0 0.081cqw #cfe8ff,302.938cqw 213.5cqw 0 0.037cqw #ffffff,196.875cqw 120.688cqw 0 0.037cqw #ffffff,188.375cqw 197.188cqw 0 0.037cqw #ffffff,134.313cqw 131.188cqw 0 0.037cqw #ffffff,246.188cqw 202.563cqw 0 0.037cqw #ffffff,89.125cqw 161.188cqw 0 0.037cqw #ffffff,328.375cqw 149.188cqw 0 0.037cqw #ffffff,210.063cqw 150.563cqw 0 0.037cqw #ffffff,199.875cqw 42.375cqw 0 0.037cqw #ffffff,41.438cqw 87.563cqw 0 0.037cqw #ffffff,306.125cqw 169.063cqw 0 0.037cqw #ffffff,121.563cqw 104.5cqw 0 0.037cqw #ffffff,54.188cqw 13.938cqw 0 0.037cqw #ffffff,131.563cqw 24cqw 0 0.037cqw #ffffff,141.25cqw 120.063cqw 0 0.037cqw #ffffff,294.063cqw 72cqw 0 0.037cqw #ffffff,42.5cqw 53.25cqw 0 0.037cqw #ffffff,69.875cqw 159.5cqw 0 0.037cqw #ffffff,263.875cqw 206cqw 0 0.037cqw #ffffff,303.438cqw 179.625cqw 0 0.037cqw #ffffff,218.375cqw 193.25cqw 0 0.081cqw #cfe8ff,203cqw 253.875cqw 0 0.037cqw #ffffff,348.188cqw 9.813cqw 0 0.037cqw #ffffff,107.688cqw 224.75cqw 0 0.081cqw #cfe8ff,253.188cqw 143.5cqw 0 0.037cqw #ffffff,187.125cqw 203.813cqw 0 0.037cqw #ffffff,284.125cqw 179.313cqw 0 0.037cqw #ffffff,332.875cqw 80.5cqw 0 0.037cqw #ffffff,257.188cqw 135.125cqw 0 0.037cqw #ffffff,242.25cqw 178.938cqw 0 0.037cqw #ffffff,247.188cqw 257.5cqw 0 0.037cqw #cfe8ff,237.938cqw 148.875cqw 0 0.037cqw #ffffff,220.5cqw 148.938cqw 0 0.037cqw #ffffff,7.938cqw 226.5cqw 0 0.037cqw #ffffff,341.688cqw 80.813cqw 0 0.037cqw #ffffff,328.375cqw 149.875cqw 0 0.037cqw #ffffff,69.313cqw 63.5cqw 0 0.037cqw #ffffff,151.375cqw 12.438cqw 0 0.037cqw #ffffff,273.313cqw 220.625cqw 0 0.037cqw #ffffff,107.125cqw 161.313cqw 0 0.037cqw #ffffff,111.063cqw 76.125cqw 0 0.037cqw #ffffff,129.313cqw 113.438cqw 0 0.037cqw #ffffff,176.438cqw 142.688cqw 0 0.037cqw #ffffff,218.063cqw 235.688cqw 0 0.081cqw #ffe7c4,161.875cqw 218.5cqw 0 0.081cqw #ffe7c4,227cqw 106.188cqw 0 0.037cqw #ffffff,18.438cqw 75.188cqw 0 0.037cqw #ffffff,294.25cqw 29.313cqw 0 0.037cqw #ffffff,233.25cqw 58.125cqw 0 0.037cqw #ffffff,49.375cqw 199.563cqw 0 0.037cqw #ffffff,218.563cqw 198.375cqw 0 0.037cqw #ffffff,288.75cqw 239.188cqw 0 0.037cqw #ffffff,333.813cqw 19.063cqw 0 0.037cqw #ffffff,13.563cqw 258.063cqw 0 0.037cqw #ffffff,96.813cqw 137.375cqw 0 0.037cqw #cfe8ff,247.75cqw 207.563cqw 0 0.037cqw #ffffff,40.063cqw 161.875cqw 0 0.037cqw #ffffff,30.75cqw 75.5cqw 0 0.037cqw #ffffff,269.563cqw 177.375cqw 0 0.037cqw #ffffff,54.875cqw 244.25cqw 0 0.081cqw #ffe7c4,216.438cqw 189.438cqw 0 0.037cqw #ffffff,311.25cqw 41.875cqw 0 0.037cqw #ffffff,243.938cqw 110.563cqw 0 0.037cqw #ffffff,344.75cqw 117.563cqw 0 0.037cqw #ffffff,231.25cqw 26.813cqw 0 0.037cqw #ffffff,64.563cqw 219.938cqw 0 0.037cqw #ffffff,348.563cqw 142.063cqw 0 0.037cqw #ffffff,167.5cqw 133.313cqw 0 0.037cqw #ffffff,189.625cqw 214.938cqw 0 0.037cqw #ffffff,74cqw 17.563cqw 0 0.037cqw #ffffff,152.5cqw 34.125cqw 0 0.037cqw #cfe8ff,7.188cqw 239.625cqw 0 0.037cqw #ffffff,311.438cqw 175.688cqw 0 0.037cqw #ffffff,294.375cqw 72.25cqw 0 0.037cqw #ffffff,163.063cqw 0.313cqw 0 0.037cqw #ffffff,31.188cqw 15.375cqw 0 0.037cqw #ffffff,41.813cqw 58.188cqw 0 0.037cqw #ffffff,229.063cqw 64.188cqw 0 0.037cqw #ffffff,250.625cqw 196.938cqw 0 0.037cqw #ffffff,302cqw 47.313cqw 0 0.037cqw #ffffff,191.375cqw 106.125cqw 0 0.037cqw #ffffff,142.375cqw 144.625cqw 0 0.081cqw #cfe8ff,298.438cqw 107.063cqw 0 0.037cqw #ffffff,340.625cqw 194.063cqw 0 0.081cqw #ffe7c4,83.563cqw 252.188cqw 0 0.081cqw #ffe7c4,249.688cqw 149.063cqw 0 0.037cqw #ffffff,313.063cqw 47.875cqw 0 0.037cqw #ffffff,154.625cqw 202.25cqw 0 0.037cqw #ffffff,242.188cqw 160.625cqw 0 0.037cqw #ffffff,103.813cqw 199.5cqw 0 0.037cqw #ffffff,11.813cqw 144.813cqw 0 0.081cqw #ffe7c4,4cqw 250cqw 0 0.037cqw #ffffff,191.688cqw 225.938cqw 0 0.081cqw #cfe8ff,321.063cqw 14.563cqw 0 0.037cqw #ffffff,127.125cqw 183.5cqw 0 0.037cqw #ffffff,144.188cqw 20.875cqw 0 0.037cqw #ffffff,129.375cqw 82.75cqw 0 0.037cqw #ffffff,4.313cqw 104.188cqw 0 0.037cqw #ffffff,280.438cqw 215.375cqw 0 0.037cqw #ffffff,155cqw 150.063cqw 0 0.037cqw #ffffff,47.375cqw 30.75cqw 0 0.037cqw #ffffff,15.688cqw 72.625cqw 0 0.037cqw #ffffff,65.063cqw 254.375cqw 0 0.081cqw #cfe8ff,195.688cqw 41.563cqw 0 0.037cqw #ffffff,245.313cqw 74.438cqw 0 0.037cqw #ffffff,108cqw 102.438cqw 0 0.037cqw #ffffff,2.5cqw 57.688cqw 0 0.037cqw #ffffff,229.438cqw 8.25cqw 0 0.081cqw #ffe7c4,30.25cqw 28.375cqw 0 0.037cqw #ffffff,239.125cqw 178.438cqw 0 0.037cqw #ffffff,329.063cqw 15.5cqw 0 0.037cqw #ffffff,57.938cqw 96.25cqw 0 0.037cqw #ffffff,70.688cqw 8.5cqw 0 0.037cqw #ffffff,178.5cqw 254.813cqw 0 0.037cqw #ffffff,180.5cqw 165.125cqw 0 0.037cqw #ffffff,321.125cqw 177.188cqw 0 0.037cqw #ffffff,328.375cqw 181.5cqw 0 0.037cqw #ffffff,134.938cqw 117.188cqw 0 0.037cqw #ffffff,52.125cqw 106.375cqw 0 0.037cqw #ffffff,224.813cqw 178.063cqw 0 0.037cqw #cfe8ff,298.25cqw 141.188cqw 0 0.037cqw #ffffff,120.25cqw 252cqw 0 0.037cqw #ffffff,257.875cqw 218.188cqw 0 0.037cqw #ffffff,268.938cqw 94.75cqw 0 0.037cqw #ffffff,5.063cqw 147cqw 0 0.037cqw #ffffff,180.125cqw 128.75cqw 0 0.037cqw #ffffff,54.313cqw 130.625cqw 0 0.037cqw #ffffff,185.438cqw 26.5cqw 0 0.037cqw #ffffff,269.563cqw 147.563cqw 0 0.037cqw #cfe8ff,300.063cqw 175.563cqw 0 0.037cqw #ffffff,292cqw 101.5cqw 0 0.081cqw #cfe8ff,130.938cqw 98.125cqw 0 0.037cqw #ffffff,28.688cqw 26.188cqw 0 0.037cqw #ffffff,202.125cqw 177.5cqw 0 0.037cqw #ffffff,2.188cqw 10.875cqw 0 0.037cqw #ffffff,338.75cqw 232.688cqw 0 0.037cqw #cfe8ff,330.75cqw 193.375cqw 0 0.037cqw #ffffff,216.938cqw 17.625cqw 0 0.037cqw #ffffff,165.688cqw 137.938cqw 0 0.037cqw #ffffff,207.625cqw 168.438cqw 0 0.037cqw #ffffff,254.25cqw 89.313cqw 0 0.081cqw #cfe8ff,5cqw 10.688cqw 0 0.037cqw #ffffff,343.188cqw 53.25cqw 0 0.037cqw #ffffff,75.5cqw 10.25cqw 0 0.037cqw #ffffff,235.813cqw 161.625cqw 0 0.037cqw #ffffff,297.125cqw 9.688cqw 0 0.037cqw #cfe8ff,304.75cqw 116.125cqw 0 0.037cqw #ffffff,72.188cqw 167.375cqw 0 0.037cqw #ffffff,101.875cqw 173.75cqw 0 0.037cqw #ffffff,197.438cqw 243.188cqw 0 0.037cqw #ffffff,318.125cqw 64.125cqw 0 0.037cqw #ffffff,11.938cqw 234.75cqw 0 0.037cqw #ffffff,89.25cqw 161.063cqw 0 0.037cqw #ffffff,180.938cqw 109.5cqw 0 0.081cqw #ffe7c4,287.25cqw 251.438cqw 0 0.081cqw #cfe8ff,17.938cqw 70.438cqw 0 0.037cqw #ffffff,188.563cqw 33.063cqw 0 0.037cqw #ffffff,84.5cqw 103.625cqw 0 0.037cqw #ffffff,294.188cqw 92.75cqw 0 0.037cqw #ffffff,60cqw 62.5cqw 0 0.037cqw #ffffff,321cqw 192.188cqw 0 0.037cqw #ffffff,291.75cqw 18.125cqw 0 0.037cqw #ffffff,306cqw 34.75cqw 0 0.037cqw #ffffff,126.938cqw 203.188cqw 0 0.037cqw #ffffff,333.063cqw 10.125cqw 0 0.037cqw #ffffff,300.875cqw 221.25cqw 0 0.037cqw #ffffff,39.625cqw 131.563cqw 0 0.037cqw #ffffff,260.438cqw 170.375cqw 0 0.037cqw #ffffff,29.5cqw 25.375cqw 0 0.037cqw #ffffff,327.813cqw 173.875cqw 0 0.037cqw #cfe8ff,319.188cqw 224.313cqw 0 0.037cqw #ffffff,115.688cqw 179.375cqw 0 0.037cqw #ffffff,254.375cqw 133.688cqw 0 0.037cqw #ffffff,245.938cqw 154.875cqw 0 0.037cqw #ffffff,308.813cqw 191.313cqw 0 0.037cqw #ffffff,130.625cqw 36.938cqw 0 0.081cqw #cfe8ff,75.875cqw 95.188cqw 0 0.081cqw #cfe8ff,245.563cqw 194.5cqw 0 0.037cqw #ffffff,235cqw 212.438cqw 0 0.037cqw #ffffff,256.375cqw 105.313cqw 0 0.037cqw #ffffff,7.125cqw 59.313cqw 0 0.037cqw #ffffff,344.938cqw 156.438cqw 0 0.037cqw #ffffff,12.25cqw 110.188cqw 0 0.037cqw #ffffff,334.75cqw 25.813cqw 0 0.037cqw #ffffff,224.938cqw 73.688cqw 0 0.081cqw #ffe7c4,55.688cqw 60.625cqw 0 0.037cqw #cfe8ff,143.688cqw 258.688cqw 0 0.037cqw #ffffff,14.563cqw 215.313cqw 0 0.037cqw #ffffff,130.188cqw 238.125cqw 0 0.037cqw #ffffff,248.563cqw 176.625cqw 0 0.037cqw #ffffff,311.375cqw 191.625cqw 0 0.037cqw #ffffff,182.625cqw 12.875cqw 0 0.037cqw #ffffff,123.438cqw 189.125cqw 0 0.037cqw #ffffff,4.813cqw 251.938cqw 0 0.081cqw #cfe8ff,270.313cqw 134.688cqw 0 0.037cqw #ffffff,187.375cqw 179.875cqw 0 0.037cqw #cfe8ff,112.5cqw 179.125cqw 0 0.081cqw #ffe7c4,247.438cqw 194.375cqw 0 0.037cqw #cfe8ff,245.375cqw 226.813cqw 0 0.037cqw #ffffff,187.813cqw 107.25cqw 0 0.081cqw #ffe7c4,55.25cqw 194cqw 0 0.037cqw #ffffff,184.375cqw 120.125cqw 0 0.037cqw #ffffff,232.563cqw 17.5cqw 0 0.037cqw #ffffff,35cqw 11.688cqw 0 0.037cqw #ffffff,198.063cqw 183.625cqw 0 0.037cqw #cfe8ff,71.938cqw 14.563cqw 0 0.037cqw #ffffff,21.25cqw 235.563cqw 0 0.037cqw #cfe8ff,190.375cqw 247.688cqw 0 0.081cqw #ffe7c4,298.438cqw 49.813cqw 0 0.037cqw #ffffff,179.313cqw 260.188cqw 0 0.037cqw #ffffff,299.438cqw 39.938cqw 0 0.081cqw #ffe7c4,144.375cqw 129.938cqw 0 0.037cqw #ffffff,81.063cqw 132.625cqw 0 0.037cqw #ffffff,302.375cqw 98.25cqw 0 0.037cqw #ffffff,280.938cqw 130.563cqw 0 0.081cqw #ffe7c4,232.563cqw 119.938cqw 0 0.037cqw #ffffff,121.938cqw 82.938cqw 0 0.037cqw #ffffff,173cqw 93.188cqw 0 0.037cqw #ffffff,279.563cqw 141.25cqw 0 0.081cqw #cfe8ff,44.688cqw 61.875cqw 0 0.037cqw #cfe8ff,92.688cqw 152.875cqw 0 0.037cqw #ffffff,236.938cqw 132.625cqw 0 0.037cqw #ffffff,43.563cqw 105.125cqw 0 0.037cqw #ffffff,263.938cqw 28.875cqw 0 0.037cqw #cfe8ff,50.625cqw 238.188cqw 0 0.037cqw #ffffff,208.063cqw 140.5cqw 0 0.037cqw #ffffff,197.625cqw 0.875cqw 0 0.037cqw #ffffff,318.313cqw 118.938cqw 0 0.037cqw #ffffff,174.688cqw 12.5cqw 0 0.037cqw #ffffff,155.438cqw 254.813cqw 0 0.037cqw #ffffff,134.063cqw 55.688cqw 0 0.037cqw #ffffff,152.25cqw 200.438cqw 0 0.037cqw #ffffff,343.75cqw 53.063cqw 0 0.037cqw #ffffff,308.5cqw 161.625cqw 0 0.081cqw #ffe7c4,291.563cqw 231.563cqw 0 0.037cqw #ffffff,88.813cqw 130.375cqw 0 0.037cqw #ffffff,259.938cqw 168.688cqw 0 0.037cqw #ffffff,275.688cqw 149.438cqw 0 0.081cqw #ffe7c4,23.75cqw 220.813cqw 0 0.037cqw #ffffff,213.25cqw 83.625cqw 0 0.037cqw #ffffff,282.813cqw 259.438cqw 0 0.037cqw #ffffff,207.375cqw 208.563cqw 0 0.037cqw #ffffff,205.25cqw 98.75cqw 0 0.081cqw #cfe8ff,240.125cqw 234.938cqw 0 0.037cqw #ffffff,264.75cqw 215.563cqw 0 0.037cqw #ffffff,244.125cqw 220.625cqw 0 0.037cqw #ffffff,6.5cqw 33.563cqw 0 0.037cqw #ffffff,208cqw 2.875cqw 0 0.037cqw #ffffff,303.938cqw 139.375cqw 0 0.037cqw #ffffff,208.063cqw 166.813cqw 0 0.037cqw #ffffff,195cqw 69.875cqw 0 0.037cqw #ffffff,128.813cqw 151.5cqw 0 0.037cqw #ffffff,284.813cqw 47.75cqw 0 0.081cqw #cfe8ff,159cqw 130.25cqw 0 0.081cqw #ffe7c4,223.5cqw 221.75cqw 0 0.037cqw #ffffff,337.375cqw 26.438cqw 0 0.037cqw #ffffff,134.813cqw 54.125cqw 0 0.037cqw #ffffff,188.375cqw 185.25cqw 0 0.037cqw #ffffff,312.063cqw 102.625cqw 0 0.037cqw #ffffff,277.25cqw 181.875cqw 0 0.037cqw #ffffff,307.5cqw 37cqw 0 0.037cqw #ffffff,300.125cqw 186.438cqw 0 0.037cqw #ffffff,124.375cqw 212.875cqw 0 0.037cqw #ffffff,94.688cqw 170.375cqw 0 0.037cqw #ffffff,208cqw 77.375cqw 0 0.081cqw #cfe8ff,335.625cqw 54.938cqw 0 0.037cqw #cfe8ff,333.563cqw 227.063cqw 0 0.037cqw #ffffff,76.563cqw 33.5cqw 0 0.037cqw #ffffff,242.313cqw 242.563cqw 0 0.037cqw #ffffff,301.125cqw 130.063cqw 0 0.037cqw #ffffff,13.813cqw 113cqw 0 0.037cqw #ffffff,0.688cqw 103.563cqw 0 0.037cqw #ffffff,106.063cqw 116.938cqw 0 0.037cqw #ffffff,80.438cqw 1.438cqw 0 0.081cqw #ffe7c4,277.875cqw 185.938cqw 0 0.081cqw #ffe7c4,137.5cqw 52cqw 0 0.037cqw #ffffff,16.625cqw 192.5cqw 0 0.081cqw #ffe7c4,347.75cqw 50.25cqw 0 0.037cqw #ffffff,201.625cqw 103.188cqw 0 0.037cqw #ffffff,279.938cqw 200cqw 0 0.037cqw #ffffff,10.25cqw 156.563cqw 0 0.037cqw #ffffff,89.625cqw 243.438cqw 0 0.037cqw #ffffff,309.188cqw 7cqw 0 0.037cqw #ffffff,233.25cqw 190.063cqw 0 0.037cqw #ffffff,119.188cqw 197.125cqw 0 0.037cqw #ffffff,319.375cqw 35.125cqw 0 0.037cqw #ffffff,6.25cqw 54.75cqw 0 0.037cqw #ffffff,286.813cqw 25cqw 0 0.081cqw #cfe8ff,160.563cqw 79.125cqw 0 0.037cqw #ffffff,104.125cqw 208.625cqw 0 0.037cqw #ffffff,120.75cqw 106.188cqw 0 0.037cqw #ffffff,69.938cqw 72.188cqw 0 0.081cqw #ffe7c4,342.688cqw 29.563cqw 0 0.037cqw #ffffff,195.813cqw 166.438cqw 0 0.037cqw #ffffff,28.625cqw 243.375cqw 0 0.037cqw #ffffff,96.875cqw 209cqw 0 0.081cqw #ffe7c4,36.063cqw 189.813cqw 0 0.037cqw #cfe8ff,147.563cqw 85.938cqw 0 0.037cqw #ffffff,330.813cqw 222.25cqw 0 0.081cqw #cfe8ff,311.75cqw 85.313cqw 0 0.037cqw #ffffff,40.5cqw 111.813cqw 0 0.037cqw #ffffff,3.375cqw 257.313cqw 0 0.037cqw #cfe8ff,304.5cqw 242.625cqw 0 0.037cqw #ffffff,227.625cqw 155.875cqw 0 0.037cqw #cfe8ff,71.188cqw 30.313cqw 0 0.081cqw #ffe7c4,344.188cqw 212.813cqw 0 0.037cqw #ffffff,337.938cqw 115.563cqw 0 0.037cqw #ffffff,226cqw 70cqw 0 0.081cqw #ffe7c4,77.625cqw 4.125cqw 0 0.037cqw #ffffff,136.625cqw 182cqw 0 0.037cqw #ffffff,244.875cqw 186.188cqw 0 0.037cqw #ffffff,274.25cqw 51.938cqw 0 0.037cqw #ffffff,285.688cqw 117.25cqw 0 0.037cqw #ffffff,9.375cqw 61.438cqw 0 0.037cqw #ffffff,135.25cqw 177.938cqw 0 0.037cqw #ffffff,217.813cqw 69.25cqw 0 0.037cqw #ffffff,86cqw 172.063cqw 0 0.037cqw #ffffff,40.563cqw 9.063cqw 0 0.037cqw #ffffff,207.875cqw 46.313cqw 0 0.037cqw #ffffff,149.563cqw 50.5cqw 0 0.037cqw #ffffff,55.25cqw 200.438cqw 0 0.037cqw #ffffff,324.75cqw 196.063cqw 0 0.037cqw #ffffff,58.438cqw 55.188cqw 0 0.037cqw #ffffff,71.563cqw 103.063cqw 0 0.037cqw #cfe8ff,72.813cqw 107.438cqw 0 0.037cqw #ffffff,194.688cqw 21.375cqw 0 0.037cqw #cfe8ff,105.813cqw 71.75cqw 0 0.037cqw #ffffff,72.5cqw 155.063cqw 0 0.037cqw #ffffff,279cqw 201.938cqw 0 0.037cqw #ffffff,38.375cqw 47.75cqw 0 0.037cqw #ffffff,316.625cqw 197.5cqw 0 0.037cqw #ffffff,306.938cqw 252.188cqw 0 0.081cqw #ffe7c4,294.375cqw 179.563cqw 0 0.037cqw #ffffff,224.25cqw 216.75cqw 0 0.037cqw #ffffff,298.75cqw 40.688cqw 0 0.037cqw #ffffff,103.75cqw 90.5cqw 0 0.037cqw #ffffff,101.938cqw 20.875cqw 0 0.037cqw #ffffff,65.25cqw 192.25cqw 0 0.037cqw #ffffff,168.125cqw 226.625cqw 0 0.037cqw #ffffff,59.875cqw 250.813cqw 0 0.081cqw #cfe8ff,343.625cqw 87.938cqw 0 0.037cqw #ffffff,168.125cqw 36.75cqw 0 0.037cqw #ffffff,230cqw 128.5cqw 0 0.037cqw #ffffff,92.313cqw 90.75cqw 0 0.037cqw #ffffff,282.875cqw 114.938cqw 0 0.037cqw #ffffff,269.188cqw 19.75cqw 0 0.037cqw #ffffff,97.688cqw 3.063cqw 0 0.037cqw #cfe8ff,247.125cqw 60cqw 0 0.037cqw #ffffff,155.688cqw 41.438cqw 0 0.081cqw #cfe8ff,285.313cqw 76.938cqw 0 0.037cqw #ffffff,173.938cqw 142.438cqw 0 0.037cqw #ffffff,273.688cqw 16.438cqw 0 0.037cqw #ffffff,342.375cqw 221.688cqw 0 0.037cqw #ffffff,336.563cqw 182cqw 0 0.081cqw #cfe8ff,106.688cqw 82.438cqw 0 0.081cqw #ffe7c4,111.25cqw 167.375cqw 0 0.081cqw #ffe7c4,290.125cqw 164.125cqw 0 0.037cqw #ffffff,76.5cqw 247.5cqw 0 0.037cqw #ffffff,0.063cqw 129.063cqw 0 0.037cqw #ffffff,251.063cqw 71.688cqw 0 0.037cqw #ffffff; opacity: .75; }
+.d3-planet { position: absolute; left: 69.688cqw; top: 85.75cqw; width: 160cqw; height: 160cqw; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 50% 2%, #17394c 0, #0d2535 4%, #081926 9%, #05121c 18%, #040d15 36%, #030a10 70%);
+  box-shadow: 0 -0.188cqw 1.625cqw rgba(82,193,230,.32), inset 0 0.25cqw 1.125cqw rgba(150,225,255,.22); }
+.d3-surface { position: absolute; left: -12.5cqw; right: -12.5cqw; top: 18.75cqw; bottom: 0; background: url(20261109-1752-kamera-welt/assets/verse-low-stage.jpg) 0 0 / 100cqw 56.25cqw repeat; mix-blend-mode: lighten; opacity: .95;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 16.25cqw); mask-image: linear-gradient(180deg, transparent 0, #000 16.25cqw); }
+.d3-surface.b { background-position: 50cqw 28.125cqw; transform: scaleX(-1); opacity: .7; }
+.d3-hub { position: absolute; left: 100cqw; top: 50cqw; width: 100cqw; height: 56.25cqw; background: url(20261109-1752-kamera-welt/assets/verse-stage.jpg) 0 0 / 100cqw auto no-repeat; mix-blend-mode: lighten; }
+.d3-hi { position: absolute; background: center / 100% 100% no-repeat; mix-blend-mode: lighten; }
+.d3-holo { position: absolute; left: 225cqw; top: 37.5cqw; width: 100cqw; height: 56.25cqw; background: url(20261109-1752-kamera-welt/assets/codex-stage.jpg) 0 0 / 100% 100% no-repeat; mix-blend-mode: lighten; }
+/* HQ ground station on the planet's left limb (replaces the orbit station as the HQ door). */
+.d3-hqst { position: absolute; left: 111.125cqw; top: 98.625cqw; width: 2.75cqw; height: 1.375cqw; }
+.d3-hqst::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 0.75cqw; border-radius: 1.375cqw 1.375cqw 0.188cqw 0.188cqw; background: linear-gradient(180deg, #ffd9a8, #a86a2c); box-shadow: 0 0 0.625cqw rgba(255,184,107,.9), 0 0 1.875cqw rgba(255,184,107,.45); }
+.d3-hqst::after { content: ''; position: absolute; left: 50%; top: -1.125cqw; width: 0.125cqw; height: 1.25cqw; translate: -50% 0; background: linear-gradient(180deg, rgba(255,214,160,0), #ffd6a0); }
+.d3-hqst i { position: absolute; left: 50%; top: -1.375cqw; width: 0.375cqw; height: 0.375cqw; translate: -50% 0; border-radius: 50%; background: #fff3e0; box-shadow: 0 0 0.5cqw #ffb86b; animation: d3-beacon 2.4s ease-in-out infinite; }
+@keyframes d3-beacon { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.d3-veil { position: absolute; inset: 0; z-index: 1; background: #02070d; opacity: 0; pointer-events: none; }
+.d3-calm .d3-veil { opacity: .38; }
+.d3-ui { position: absolute; inset: 0; z-index: 2; background: center / 100% 100% no-repeat; mix-blend-mode: lighten; pointer-events: none; }
+.d3-ui-cover { position: absolute; background: #000; }
+.d3-today { position: absolute; left: 1.4cqw; bottom: 1.4cqw; z-index: 4; width: 19cqw; aspect-ratio: 16 / 9; border: 1px solid rgba(255,255,255,.28); border-radius: .5cqw; background: center / cover no-repeat; box-shadow: 0 .6cqw 2cqw rgba(0,0,0,.6); }
+.d3-today::before { content: 'HEUTE'; position: absolute; left: .5cqw; top: .4cqw; padding: .15cqw .45cqw; border-radius: .3cqw; background: rgba(2,7,13,.82); font: 600 .78cqw/1.2 Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #f3c88c; }
+.d3-tag { position: absolute; right: 1.4cqw; bottom: 1.4cqw; z-index: 4; padding: .3cqw .7cqw; border-radius: .3cqw; background: rgba(2,7,13,.78); font: 600 .9cqw/1.2 Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #8fb2c6; }
+.d3-frame { position: absolute; z-index: 3; box-sizing: border-box; border: 0.5cqw solid rgba(76,201,240,.75); border-radius: 1cqw; background: rgba(76,201,240,.05); text-decoration: none; cursor: pointer; }
+.d3-frame:hover { border-color: #4cc9f0; background: rgba(76,201,240,.14); }
+.d3-frame b { position: absolute; left: 1.125cqw; top: 0.625cqw; font: 600 4cqw/1.1 Orbitron, Inter, sans-serif; letter-spacing: .08em; color: #dff4ff; text-shadow: 0 0 1.125cqw #000, 0 0 0.375cqw #000; white-space: nowrap; }
+.d3-frame.sub { border-style: dashed; border-color: rgba(243,200,140,.8); }
+.d3-frame.sub b { font-size: 2.625cqw; color: #ffe2b8; }
+.d3-frame.hq { border-color: rgba(255,184,107,.95); }
+.d3-legend { position: absolute; left: 1.4cqw; top: 1.2cqw; z-index: 4; display: grid; gap: .4cqw; padding: .8cqw 1cqw; border-radius: .5cqw; background: rgba(2,7,13,.8); font: 500 .95cqw/1.3 Inter, sans-serif; color: #b9d3e1; }
+.d3-legend i { display: inline-block; width: 1.8cqw; height: 1cqw; margin-right: .6cqw; vertical-align: -.1cqw; border: 2px solid rgba(76,201,240,.8); border-radius: .2cqw; }
+.d3-legend i.s { border-style: dashed; border-color: rgba(243,200,140,.85); }
+.d3-legend i.h { border-color: rgba(255,184,107,.9); }
+.d3-legend b { font: 600 .82cqw Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #4cc9f0; }
+/* Playbooks */
+.d3-base { position: absolute; inset: 0; z-index: 0; background: center / 100% 100% no-repeat; }
+.d3-r { position: absolute; inset: 0; z-index: 2; background: center / 100% 100% no-repeat; mix-blend-mode: lighten; }
+.d3-r.solid { mix-blend-mode: normal; }
+.d3-scrim { position: absolute; inset: 0; z-index: 1; background: #02070d; opacity: 0; }
+.d3-steps { position: absolute; right: 1.4cqw; top: 6cqw; z-index: 5; width: 25cqw; padding: 1cqw 1.2cqw; border-radius: .6cqw; background: rgba(2,7,13,.86); border: 1px solid rgba(120,200,240,.22); font: 500 .92cqw/1.35 Inter, sans-serif; color: #b9d3e1; }
+.d3-steps h4 { margin: 0 0 .2cqw; font: 600 .95cqw/1.2 Orbitron, Inter, sans-serif; letter-spacing: .1em; color: #4cc9f0; }
+.d3-steps p { margin: 0 0 .7cqw; color: #7f9fb2; font-size: .82cqw; }
+.d3-steps ol { margin: 0; padding: 0; list-style: none; display: grid; gap: .45cqw; }
+.d3-steps li { display: grid; grid-template-columns: 3.4cqw 1fr; gap: .6cqw; opacity: .45; }
+.d3-steps li b { font: 600 .85cqw Orbitron, Inter, sans-serif; color: #f3c88c; }
+.d3-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; height: .35cqw; background: rgba(255,255,255,.08); }
+.d3-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; transform-origin: 0 50%; background: #4cc9f0; }
+@media (prefers-reduced-motion: reduce) { .d3-stage * { animation-duration: 0s !important; } }
+@keyframes d3-verse-cam { 0%, 14% { transform: scale(0.42) translate(-30.952cqw, -11.161cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 51.1%, 100% { transform: scale(1) translate(-100cqw, -50cqw); } }
+@keyframes d3-verse-ui { 0%, 47.1% { opacity: 0; } 55.1%, 100% { opacity: 1; } }
+#d3-verse .d3-world { transform: scale(1) translate(-100cqw, -50cqw); animation: d3-verse-cam 7s infinite; }
+#d3-verse .d3-ui { animation: d3-verse-ui 7s infinite; }
+@keyframes d3-news-a-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(0.7619) translate(-91.098cqw, -74.453cqw); } }
+@keyframes d3-news-a-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-news-a .d3-world { transform: scale(0.7619) translate(-91.098cqw, -74.453cqw); animation: d3-news-a-cam 7s infinite; }
+#d3-news-a .d3-ui { animation: d3-news-a-ui 7s infinite; }
+@keyframes d3-news-b-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(7.8571) translate(-106.756cqw, -81.801cqw); } }
+@keyframes d3-news-b-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-news-b .d3-world { transform: scale(7.8571) translate(-106.756cqw, -81.801cqw); animation: d3-news-b-cam 7s infinite; }
+#d3-news-b .d3-ui { animation: d3-news-b-ui 7s infinite; }
+@keyframes d3-starmap-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(3) translate(-155.427cqw, -70.5cqw); } }
+@keyframes d3-starmap-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-starmap .d3-world { transform: scale(3) translate(-155.427cqw, -70.5cqw); animation: d3-starmap-cam 7s infinite; }
+#d3-starmap .d3-ui { animation: d3-starmap-ui 7s infinite; }
+@keyframes d3-starmap-morph { 0%, 23.7% { opacity: 1; } 31.7%, 100% { opacity: 0; } }
+#d3-starmap .d3-hi-starmap { animation: d3-starmap-morph 7s infinite; }
+@keyframes d3-codex-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1) translate(-225cqw, -37.5cqw); } }
+@keyframes d3-codex-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-codex .d3-world { transform: scale(1) translate(-225cqw, -37.5cqw); animation: d3-codex-cam 7s infinite; }
+#d3-codex .d3-ui { animation: d3-codex-ui 7s infinite; }
+@keyframes d3-codex-index-cam { 0%, 14% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); } }
+@keyframes d3-codex-index-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-codex-index .d3-world { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); animation: d3-codex-index-cam 7s infinite; }
+#d3-codex-index .d3-ui { animation: d3-codex-index-ui 7s infinite; }
+@keyframes d3-hq-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(3.6) translate(-81.111cqw, -120.313cqw); } }
+@keyframes d3-hq-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-hq .d3-world { transform: scale(3.6) translate(-81.111cqw, -120.313cqw); animation: d3-hq-cam 7s infinite; }
+#d3-hq .d3-ui { animation: d3-hq-ui 7s infinite; }
+@keyframes d3-hq-lager-cam { 0%, 14% { transform: scale(3.6) translate(-81.111cqw, -120.313cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(3.6) translate(-81.111cqw, -135.938cqw); } }
+@keyframes d3-hq-lager-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-hq-lager .d3-world { transform: scale(3.6) translate(-81.111cqw, -135.938cqw); animation: d3-hq-lager-cam 7s infinite; }
+#d3-hq-lager .d3-ui { animation: d3-hq-lager-ui 7s infinite; }
+@keyframes d3-admin-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(2.2) translate(-104.585cqw, -62.903cqw); } }
+@keyframes d3-admin-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d3-admin .d3-world { transform: scale(2.2) translate(-104.585cqw, -62.903cqw); animation: d3-admin-cam 7s infinite; }
+#d3-admin .d3-ui { animation: d3-admin-ui 7s infinite; }
+#d3-map .d3-world { transform: scale(0.2778) translate(5cqw, 3.75cqw); }
+@keyframes d3-tour-cam { 0%, 2.92% { transform: scale(0.42) translate(-30.952cqw, -11.161cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 5.39%, 8.31% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 10.79%, 13.71% { transform: scale(0.7619) translate(-91.098cqw, -74.453cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 16.18%, 19.1% { transform: scale(1.0323) translate(-105.615cqw, -73.836cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 21.57%, 24.49% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 26.97%, 29.89% { transform: scale(3) translate(-155.427cqw, -70.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 32.36%, 35.28% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 37.75%, 40.67% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 43.15%, 46.07% { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 48.54%, 51.46% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 53.93%, 56.85% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 59.33%, 62.25% { transform: scale(1) translate(-100cqw, -101.625cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 64.72%, 67.64% { transform: scale(3.6) translate(-81.111cqw, -120.313cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 70.11%, 73.03% { transform: scale(3.6) translate(-81.111cqw, -135.938cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 75.51%, 78.43% { transform: scale(3.6) translate(-81.111cqw, -120.313cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 80.9%, 83.82% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 86.29%, 89.21% { transform: scale(2.2) translate(-104.585cqw, -62.903cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 91.69%, 94.61% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 97.08%, 100% { transform: scale(0.42) translate(-30.952cqw, -11.161cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } }
+#d3-tour .d3-world { animation: d3-tour-cam 44.5s infinite; transform: scale(0.42) translate(-30.952cqw, -11.161cqw); }
+@keyframes d3-tour-c-verse { 0% { opacity: 0; } 4.61% { opacity: 0; } 5.51%, 8.2% { opacity: 1; } 8.99% { opacity: 0; } 20.79% { opacity: 0; } 21.69%, 24.38% { opacity: 1; } 25.17% { opacity: 0; } 31.57% { opacity: 0; } 32.47%, 35.17% { opacity: 1; } 35.96% { opacity: 0; } 53.15% { opacity: 0; } 54.04%, 56.74% { opacity: 1; } 57.53% { opacity: 0; } 80.11% { opacity: 0; } 81.01%, 83.71% { opacity: 1; } 84.49% { opacity: 0; } 90.9% { opacity: 0; } 91.8%, 94.49% { opacity: 1; } 95.28% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-verse { animation: d3-tour-c-verse 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-verse-news { 0% { opacity: 0; } 10% { opacity: 0; } 10.9%, 13.6% { opacity: 1; } 14.38% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-verse-news { animation: d3-tour-c-verse-news 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-verse-patches { 0% { opacity: 0; } 15.39% { opacity: 0; } 16.29%, 18.99% { opacity: 1; } 19.78% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-verse-patches { animation: d3-tour-c-verse-patches 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-verse-starmap { 0% { opacity: 0; } 26.18% { opacity: 0; } 27.08%, 29.78% { opacity: 1; } 30.56% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-verse-starmap { animation: d3-tour-c-verse-starmap 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-codex { 0% { opacity: 0; } 36.97% { opacity: 0; } 37.87%, 40.56% { opacity: 1; } 41.35% { opacity: 0; } 47.75% { opacity: 0; } 48.65%, 51.35% { opacity: 1; } 52.13% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-codex { animation: d3-tour-c-codex 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-codex-low { 0% { opacity: 0; } 42.36% { opacity: 0; } 43.26%, 45.96% { opacity: 1; } 46.74% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-codex-low { animation: d3-tour-c-codex-low 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-hq { 0% { opacity: 0; } 63.93% { opacity: 0; } 64.83%, 67.53% { opacity: 1; } 68.31% { opacity: 0; } 74.72% { opacity: 0; } 75.62%, 78.31% { opacity: 1; } 79.1% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-hq { animation: d3-tour-c-hq 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-hq-lager { 0% { opacity: 0; } 69.33% { opacity: 0; } 70.22%, 72.92% { opacity: 1; } 73.71% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-hq-lager { animation: d3-tour-c-hq-lager 44.5s infinite; opacity: 0; }
+@keyframes d3-tour-c-admin { 0% { opacity: 0; } 85.51% { opacity: 0; } 86.4%, 89.1% { opacity: 1; } 89.89% { opacity: 0; } 100% { opacity: 0; } }
+#d3-tour .d3-ui.t-c-admin { animation: d3-tour-c-admin 44.5s infinite; opacity: 0; }
+@keyframes d3-pb-main-li0 { 0%, 4.06% { opacity: .45; color: #b9d3e1; } 4.17%, 10.42% { opacity: 1; color: #fff; } 13.54%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(1) { animation: d3-pb-main-li0 9.6s infinite; }
+@keyframes d3-pb-main-li1 { 0%, 8.23% { opacity: .45; color: #b9d3e1; } 8.33%, 14.58% { opacity: 1; color: #fff; } 17.71%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(2) { animation: d3-pb-main-li1 9.6s infinite; }
+@keyframes d3-pb-main-li2 { 0%, 29.06% { opacity: .45; color: #b9d3e1; } 29.17%, 35.42% { opacity: 1; color: #fff; } 38.54%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(3) { animation: d3-pb-main-li2 9.6s infinite; }
+@keyframes d3-pb-main-r0 { 0%, 29.17% { opacity: 0; transform: translateY(-1.6cqw); } 32.81%, 95.83% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-main-r0 { clip-path: inset(0% 0% 91% 0%); transform-origin: 50% 4.5%; animation: d3-pb-main-r0 9.6s infinite; }
+@keyframes d3-pb-main-li3 { 0%, 35.31% { opacity: .45; color: #b9d3e1; } 35.42%, 41.67% { opacity: 1; color: #fff; } 44.79%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(4) { animation: d3-pb-main-li3 9.6s infinite; }
+@keyframes d3-pb-main-r1 { 0%, 35.42% { clip-path: inset(13% 24% 87% 24%); opacity: 1; } 40.1%, 95.83% { clip-path: inset(13% 24% 72% 24%); opacity: 1; } 100% { clip-path: inset(13% 24% 72% 24%); opacity: 0; } }
+.d3-pb-main-r1 { clip-path: inset(13% 24% 72% 24%); animation: d3-pb-main-r1 9.6s infinite; }
+@keyframes d3-pb-main-li4 { 0%, 43.65% { opacity: .45; color: #b9d3e1; } 43.75%, 50% { opacity: 1; color: #fff; } 53.13%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(5) { animation: d3-pb-main-li4 9.6s infinite; }
+@keyframes d3-pb-main-r2 { 0%, 43.75% { opacity: 0; transform: scaleX(.55); } 47.4%, 95.83% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-main-r2 { clip-path: inset(29% 29% 63% 29%); transform-origin: 50% 33%; animation: d3-pb-main-r2 9.6s infinite; }
+@keyframes d3-pb-main-li5 { 0%, 49.9% { opacity: .45; color: #b9d3e1; } 50%, 56.25% { opacity: 1; color: #fff; } 59.38%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(6) { animation: d3-pb-main-li5 9.6s infinite; }
+@keyframes d3-pb-main-r3 { 0%, 50% { opacity: 0; } 53.65%, 95.83% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-main-r3 { clip-path: inset(52% 2% 30% 2%); transform-origin: 50% 61%; animation: d3-pb-main-r3 9.6s infinite; }
+@keyframes d3-pb-main-li6 { 0%, 58.23% { opacity: .45; color: #b9d3e1; } 58.33%, 64.58% { opacity: 1; color: #fff; } 67.71%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(7) { animation: d3-pb-main-li6 9.6s infinite; }
+@keyframes d3-pb-main-r4 { 0%, 58.33% { clip-path: inset(60% 33% 40% 33%); opacity: 1; } 63.02%, 95.83% { clip-path: inset(60% 33% 10% 33%); opacity: 1; } 100% { clip-path: inset(60% 33% 10% 33%); opacity: 0; } }
+.d3-pb-main-r4 { clip-path: inset(60% 33% 10% 33%); animation: d3-pb-main-r4 9.6s infinite; }
+@keyframes d3-pb-main-li7 { 0%, 66.56% { opacity: .45; color: #b9d3e1; } 66.67%, 72.92% { opacity: 1; color: #fff; } 76.04%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-main .d3-steps li:nth-child(8) { animation: d3-pb-main-li7 9.6s infinite; }
+@keyframes d3-pb-main-r5 { 0%, 66.67% { opacity: 0; } 70.31%, 95.83% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-main-r5 { clip-path: inset(90% 40% 1% 40%); transform-origin: 50% 94.5%; animation: d3-pb-main-r5 9.6s infinite; }
+@keyframes d3-pb-main-cam { 0%, 8.33% { transform: scale(0.42) translate(-30.952cqw, -11.161cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 35.42%, 100% { transform: scale(1) translate(-100cqw, -50cqw); } }
+#d3-pb-main .d3-world { transform: scale(1) translate(-100cqw, -50cqw); animation: d3-pb-main-cam 9.6s infinite; }
+@keyframes d3-pb-main-fadein { 0%, 2.08% { opacity: 0; } 14.58%, 100% { opacity: 1; } }
+#d3-pb-main .d3-world { animation: d3-pb-main-cam 9.6s infinite, d3-pb-main-fadein 9.6s infinite; }
+@keyframes d3-pb-main-bar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+#d3-pb-main .d3-bar i { animation: d3-pb-main-bar 9.6s linear infinite; }
+@keyframes d3-pb-nav-li0 { 0%, 8.48% { opacity: .45; color: #b9d3e1; } 8.7%, 21.74% { opacity: 1; color: #fff; } 28.26%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-nav .d3-steps li:nth-child(1) { animation: d3-pb-nav-li0 4.6000000000000005s infinite; }
+@keyframes d3-pb-nav-li1 { 0%, 8.48% { opacity: .45; color: #b9d3e1; } 8.7%, 21.74% { opacity: 1; color: #fff; } 28.26%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-nav .d3-steps li:nth-child(2) { animation: d3-pb-nav-li1 4.6000000000000005s infinite; }
+.d3-pb-nav-r0 { clip-path: inset(0% 0% 91% 0%); }
+@keyframes d3-pb-nav-li2 { 0%, 23.7% { opacity: .45; color: #b9d3e1; } 23.91%, 36.96% { opacity: 1; color: #fff; } 43.48%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-nav .d3-steps li:nth-child(3) { animation: d3-pb-nav-li2 4.6000000000000005s infinite; }
+@keyframes d3-pb-nav-r1 { 0%, 23.91% { opacity: 0; } 31.52%, 91.3% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-nav-r1 { clip-path: inset(13% 24% 62% 24%); transform-origin: 50% 25.5%; animation: d3-pb-nav-r1 4.6000000000000005s infinite; }
+@keyframes d3-pb-nav-li3 { 0%, 28.04% { opacity: .45; color: #b9d3e1; } 28.26%, 41.3% { opacity: 1; color: #fff; } 47.83%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-nav .d3-steps li:nth-child(4) { animation: d3-pb-nav-li3 4.6000000000000005s infinite; }
+@keyframes d3-pb-nav-r2 { 0%, 28.26% { opacity: 0; } 35.87%, 91.3% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-nav-r2 { clip-path: inset(52% 2% 8% 2%); transform-origin: 50% 72%; animation: d3-pb-nav-r2 4.6000000000000005s infinite; }
+@keyframes d3-pb-nav-cam { 0%, 8.7% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 32.61%, 100% { transform: scale(1) translate(-100cqw, -50cqw); } }
+#d3-pb-nav .d3-world { transform: scale(1) translate(-100cqw, -50cqw); animation: d3-pb-nav-cam 4.6000000000000005s infinite; }
+@keyframes d3-pb-nav-bar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+#d3-pb-nav .d3-bar i { animation: d3-pb-nav-bar 4.6000000000000005s linear infinite; }
+@keyframes d3-pb-scroll-li0 { 0%, 8.12% { opacity: .45; color: #b9d3e1; } 8.33%, 20.83% { opacity: 1; color: #fff; } 27.08%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-scroll .d3-steps li:nth-child(1) { animation: d3-pb-scroll-li0 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-li1 { 0%, 8.12% { opacity: .45; color: #b9d3e1; } 8.33%, 20.83% { opacity: 1; color: #fff; } 27.08%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-scroll .d3-steps li:nth-child(2) { animation: d3-pb-scroll-li1 4.800000000000001s infinite; }
+.d3-pb-scroll-r0 { clip-path: inset(0% 0% 91% 0%); }
+@keyframes d3-pb-scroll-li2 { 0%, 18.54% { opacity: .45; color: #b9d3e1; } 18.75%, 31.25% { opacity: 1; color: #fff; } 37.5%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-scroll .d3-steps li:nth-child(3) { animation: d3-pb-scroll-li2 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r1 { 0%, 18.75% { opacity: 0; transform: translateY(.5cqw); } 26.04%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r1 { clip-path: inset(10% 74% 79% 9%); transform-origin: 17.5% 15.5%; animation: d3-pb-scroll-r1 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-li3 { 0%, 20.62% { opacity: .45; color: #b9d3e1; } 20.83%, 33.33% { opacity: 1; color: #fff; } 39.58%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-scroll .d3-steps li:nth-child(4) { animation: d3-pb-scroll-li3 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r2 { 0%, 20.83% { opacity: 0; transform: translateX(-2cqw); } 28.13%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r2 { clip-path: inset(21% 74% 20% 9%); transform-origin: 17.5% 50.5%; animation: d3-pb-scroll-r2 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-li4 { 0%, 22.71% { opacity: .45; color: #b9d3e1; } 22.92%, 35.42% { opacity: 1; color: #fff; } 41.67%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-scroll .d3-steps li:nth-child(5) { animation: d3-pb-scroll-li4 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r3 { 0%, 22.92% { opacity: 0; } 30.21%, 91.67% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-scroll-r3 { clip-path: inset(10% 10% 76% 27%); transform-origin: 58.5% 17%; animation: d3-pb-scroll-r3 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-li5 { 0%, 25.83% { opacity: .45; color: #b9d3e1; } 26.04%, 38.54% { opacity: 1; color: #fff; } 44.79%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-scroll .d3-steps li:nth-child(6) { animation: d3-pb-scroll-li5 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r4-0 { 0%, 26.04% { opacity: 0; transform: translateY(.4cqw); } 31.25%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r4-0 { clip-path: inset(24% 10% 65.14% 27%); animation: d3-pb-scroll-r4-0 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r4-1 { 0%, 28.13% { opacity: 0; transform: translateY(.4cqw); } 33.33%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r4-1 { clip-path: inset(34.86% 10% 54.29% 27%); animation: d3-pb-scroll-r4-1 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r4-2 { 0%, 30.21% { opacity: 0; transform: translateY(.4cqw); } 35.42%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r4-2 { clip-path: inset(45.71% 10% 43.43% 27%); animation: d3-pb-scroll-r4-2 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r4-3 { 0%, 32.29% { opacity: 0; transform: translateY(.4cqw); } 37.5%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r4-3 { clip-path: inset(56.57% 10% 32.57% 27%); animation: d3-pb-scroll-r4-3 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r4-4 { 0%, 34.37% { opacity: 0; transform: translateY(.4cqw); } 39.58%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r4-4 { clip-path: inset(67.43% 10% 21.71% 27%); animation: d3-pb-scroll-r4-4 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r4-5 { 0%, 36.46% { opacity: 0; transform: translateY(.4cqw); } 41.67%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r4-5 { clip-path: inset(78.29% 10% 10.86% 27%); animation: d3-pb-scroll-r4-5 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-r4-6 { 0%, 38.54% { opacity: 0; transform: translateY(.4cqw); } 43.75%, 91.67% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-scroll-r4-6 { clip-path: inset(89.14% 10% 0% 27%); animation: d3-pb-scroll-r4-6 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-cam { 0%, 8.33% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 27.08%, 100% { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); } }
+#d3-pb-scroll .d3-world { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); animation: d3-pb-scroll-cam 4.800000000000001s infinite; }
+@keyframes d3-pb-scroll-bar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+#d3-pb-scroll .d3-bar i { animation: d3-pb-scroll-bar 4.800000000000001s linear infinite; }
+@keyframes d3-pb-detail-li0 { 0%, 8.67% { opacity: .45; color: #b9d3e1; } 8.89%, 22.22% { opacity: 1; color: #fff; } 28.89%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-detail .d3-steps li:nth-child(1) { animation: d3-pb-detail-li0 4.5s infinite; }
+@keyframes d3-pb-detail-li1 { 0%, 8.67% { opacity: .45; color: #b9d3e1; } 8.89%, 22.22% { opacity: 1; color: #fff; } 28.89%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-detail .d3-steps li:nth-child(2) { animation: d3-pb-detail-li1 4.5s infinite; }
+.d3-pb-detail-r0 { clip-path: inset(0% 0% 91% 0%); }
+@keyframes d3-pb-detail-li2 { 0%, 16.44% { opacity: .45; color: #b9d3e1; } 16.67%, 30% { opacity: 1; color: #fff; } 36.67%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-detail .d3-steps li:nth-child(3) { animation: d3-pb-detail-li2 4.5s infinite; }
+@keyframes d3-pb-detail-r1 { 0%, 16.67% { opacity: 0; } 24.44%, 91.11% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-detail-r1 { clip-path: inset(10% 56% 81% 4%); transform-origin: 24% 14.5%; animation: d3-pb-detail-r1 4.5s infinite; }
+@keyframes d3-pb-detail-li3 { 0%, 19.78% { opacity: .45; color: #b9d3e1; } 20%, 33.33% { opacity: 1; color: #fff; } 40%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-detail .d3-steps li:nth-child(4) { animation: d3-pb-detail-li3 4.5s infinite; }
+@keyframes d3-pb-detail-r2 { 0%, 20% { opacity: 0; transform: scale(1.02); } 27.78%, 91.11% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-detail-r2 { clip-path: inset(20% 35% 10% 5%); transform-origin: 35% 55%; animation: d3-pb-detail-r2 4.5s infinite; }
+@keyframes d3-pb-detail-li4 { 0%, 23.11% { opacity: .45; color: #b9d3e1; } 23.33%, 36.67% { opacity: 1; color: #fff; } 43.33%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-detail .d3-steps li:nth-child(5) { animation: d3-pb-detail-li4 4.5s infinite; }
+@keyframes d3-pb-detail-r3 { 0%, 23.33% { opacity: 0; transform: translateX(2cqw); } 31.11%, 91.11% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-detail-r3 { clip-path: inset(11% 10% 3% 67%); transform-origin: 78.5% 54%; animation: d3-pb-detail-r3 4.5s infinite; }
+@keyframes d3-pb-detail-li5 { 0%, 28.67% { opacity: .45; color: #b9d3e1; } 28.89%, 42.22% { opacity: 1; color: #fff; } 48.89%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-detail .d3-steps li:nth-child(6) { animation: d3-pb-detail-li5 4.5s infinite; }
+@keyframes d3-pb-detail-r4 { 0%, 28.89% { opacity: 0; transform: translateY(.5cqw); } 36.67%, 91.11% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-detail-r4 { clip-path: inset(92% 10% 0% 4%); transform-origin: 47% 96%; animation: d3-pb-detail-r4 4.5s infinite; }
+@keyframes d3-pb-detail-base { 0%, 8.89% { transform: scale(0.97); } 24.44%, 91.11% { transform: scale(1); } 100% { transform: scale(1); } }
+.d3-pb-detail-base { animation: d3-pb-detail-base 4.5s infinite; transform-origin: 40% 50%; }
+@keyframes d3-pb-detail-bar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+#d3-pb-detail .d3-bar i { animation: d3-pb-detail-bar 4.5s linear infinite; }
+@keyframes d3-pb-minor-li0 { 0%, 10.83% { opacity: .45; color: #b9d3e1; } 11.11%, 27.78% { opacity: 1; color: #fff; } 36.11%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-minor .d3-steps li:nth-child(1) { animation: d3-pb-minor-li0 3.6s infinite; }
+@keyframes d3-pb-minor-li1 { 0%, 10.83% { opacity: .45; color: #b9d3e1; } 11.11%, 27.78% { opacity: 1; color: #fff; } 36.11%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-minor .d3-steps li:nth-child(2) { animation: d3-pb-minor-li1 3.6s infinite; }
+.d3-pb-minor-r0 { clip-path: inset(0% 0% 91% 0%); }
+@keyframes d3-pb-minor-li2 { 0%, 15% { opacity: .45; color: #b9d3e1; } 15.28%, 31.94% { opacity: 1; color: #fff; } 40.28%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-minor .d3-steps li:nth-child(3) { animation: d3-pb-minor-li2 3.6s infinite; }
+@keyframes d3-pb-minor-r1 { 0%, 15.28% { opacity: 0; } 25%, 88.89% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-minor-r1 { clip-path: inset(9% 0% 0% 0%); transform-origin: 50% 54.5%; animation: d3-pb-minor-r1 3.6s infinite; }
+@keyframes d3-pb-minor-scrim { 0%, 11.11% { opacity: 0; } 19.44%, 88.89% { opacity: 0.3; } 100% { opacity: 0; } }
+.d3-pb-minor-scrim { animation: d3-pb-minor-scrim 3.6s infinite; }
+@keyframes d3-pb-minor-bar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+#d3-pb-minor .d3-bar i { animation: d3-pb-minor-bar 3.6s linear infinite; }
+@keyframes d3-pb-pop-s-li0 { 0%, 10.83% { opacity: .45; color: #b9d3e1; } 11.11%, 27.78% { opacity: 1; color: #fff; } 36.11%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-pop-s .d3-steps li:nth-child(1) { animation: d3-pb-pop-s-li0 3.6s infinite; }
+@keyframes d3-pb-pop-s-li1 { 0%, 12.22% { opacity: .45; color: #b9d3e1; } 12.5%, 29.17% { opacity: 1; color: #fff; } 37.5%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-pop-s .d3-steps li:nth-child(2) { animation: d3-pb-pop-s-li1 3.6s infinite; }
+@keyframes d3-pb-pop-s-r0 { 0%, 12.5% { opacity: 0; transform: scale(.96); } 16.39%, 88.89% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.d3-pb-pop-s-r0 { clip-path: inset(7.6% 8.1% 80% 64.9%); transform-origin: 94% 0%; animation: d3-pb-pop-s-r0 3.6s infinite; }
+@keyframes d3-pb-pop-s-li2 { 0%, 16.39% { opacity: .45; color: #b9d3e1; } 16.67%, 33.33% { opacity: 1; color: #fff; } 41.67%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-pop-s .d3-steps li:nth-child(3) { animation: d3-pb-pop-s-li2 3.6s infinite; }
+@keyframes d3-pb-pop-s-bar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+#d3-pb-pop-s .d3-bar i { animation: d3-pb-pop-s-bar 3.6s linear infinite; }
+@keyframes d3-pb-pop-l-li0 { 0%, 10% { opacity: .45; color: #b9d3e1; } 10.26%, 25.64% { opacity: 1; color: #fff; } 33.33%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-pop-l .d3-steps li:nth-child(1) { animation: d3-pb-pop-l-li0 3.9s infinite; }
+@keyframes d3-pb-pop-l-li1 { 0%, 12.56% { opacity: .45; color: #b9d3e1; } 12.82%, 28.21% { opacity: 1; color: #fff; } 35.9%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-pop-l .d3-steps li:nth-child(2) { animation: d3-pb-pop-l-li1 3.9s infinite; }
+@keyframes d3-pb-pop-l-r0 { 0%, 12.82% { opacity: 0; } 15.9%, 89.74% { opacity: 1; } 100% { opacity: 0; } }
+.d3-pb-pop-l-r0 { clip-path: inset(4.6% 10% 4.6% 9.7%); animation: d3-pb-pop-l-r0 3.9s infinite; box-shadow: inset 0 0 0 .2cqw #4cc9f0; background: none !important; }
+@keyframes d3-pb-pop-l-li2 { 0%, 15.64% { opacity: .45; color: #b9d3e1; } 15.9%, 31.28% { opacity: 1; color: #fff; } 38.97%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-pop-l .d3-steps li:nth-child(3) { animation: d3-pb-pop-l-li2 3.9s infinite; }
+@keyframes d3-pb-pop-l-r1 { 0%, 15.9% { clip-path: inset(4.6% 10% 95.4% 9.7%); opacity: 1; } 27.44%, 89.74% { clip-path: inset(4.6% 10% 4.6% 9.7%); opacity: 1; } 100% { clip-path: inset(4.6% 10% 4.6% 9.7%); opacity: 0; } }
+.d3-pb-pop-l-r1 { clip-path: inset(4.6% 10% 4.6% 9.7%); animation: d3-pb-pop-l-r1 3.9s infinite; }
+@keyframes d3-pb-pop-l-li3 { 0%, 20.26% { opacity: .45; color: #b9d3e1; } 20.51%, 35.9% { opacity: 1; color: #fff; } 43.59%, 100% { opacity: .75; color: #b9d3e1; } }
+#d3-pb-pop-l .d3-steps li:nth-child(4) { animation: d3-pb-pop-l-li3 3.9s infinite; }
+@keyframes d3-pb-pop-l-base { 0%, 10.26% { transform: scale(1); } 28.21%, 89.74% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.d3-pb-pop-l-base { animation: d3-pb-pop-l-base 3.9s infinite; transform-origin: 40% 50%; }
+@keyframes d3-pb-pop-l-scrim { 0%, 10.26% { opacity: 0; } 17.95%, 89.74% { opacity: 0.55; } 100% { opacity: 0; } }
+.d3-pb-pop-l-scrim { animation: d3-pb-pop-l-scrim 3.9s infinite; }
+@keyframes d3-pb-pop-l-bar { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+#d3-pb-pop-l .d3-bar i { animation: d3-pb-pop-l-bar 3.9s linear infinite; }
+
+</style>
+  <section data-design="welt3" data-nav-label="Eine Welt" data-design-active="true">
+
+    <section id="d3-map" data-nav-label="Weltkarte" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div><a class="d3-frame d3-f-verse " data-screen-link="d3-verse" style="left:100cqw;top:50cqw;width:100cqw;height:56.25cqw"><b>Verse</b></a><a class="d3-frame d3-f-newsA sub" data-screen-link="d3-news-a" style="left:91.098cqw;top:74.453cqw;width:131.25cqw;height:73.828cqw"><b>News</b></a><a class="d3-frame d3-f-patchesA sub" data-screen-link="d3-news-a" style="left:105.615cqw;top:73.836cqw;width:96.875cqw;height:54.492cqw"><b>Patches</b></a><a class="d3-frame d3-f-gallery sub" data-screen-link="d3-news-a" style="left:169.16cqw;top:70.828cqw;width:131.25cqw;height:73.828cqw"><b>Galerie</b></a><a class="d3-frame d3-f-starmap sub" data-screen-link="d3-starmap" style="left:155.427cqw;top:70.5cqw;width:33.333cqw;height:18.75cqw"><b>Sternkarte</b></a><a class="d3-frame d3-f-mehr sub" data-screen-link="d3-verse" style="left:100cqw;top:101.625cqw;width:100cqw;height:56.25cqw"><b>Mehr im Verse</b></a><a class="d3-frame d3-f-codex " data-screen-link="d3-codex" style="left:225cqw;top:37.5cqw;width:100cqw;height:56.25cqw"><b>Codex</b></a><a class="d3-frame d3-f-codexIndex sub" data-screen-link="d3-codex-index" style="left:233.021cqw;top:87.813cqw;width:83.333cqw;height:46.875cqw"><b>Codex-Index</b></a><a class="d3-frame d3-f-hq hq" data-screen-link="d3-hq" style="left:81.111cqw;top:120.313cqw;width:27.778cqw;height:15.625cqw"><b>HQ</b></a><a class="d3-frame d3-f-hqLager hq" data-screen-link="d3-hq-lager" style="left:81.111cqw;top:135.938cqw;width:27.778cqw;height:15.625cqw"><b>HQ · Lager</b></a><a class="d3-frame d3-f-admin sub" data-screen-link="d3-admin" style="left:104.585cqw;top:62.903cqw;width:45.455cqw;height:25.568cqw"><b>Admin</b></a></div><div class="d3-veil"></div><div class="d3-legend"><b>WELTKARTE</b><span><i></i>Hauptseite</span><span><i class="s"></i>Unterseite</span><span><i class="h"></i>HQ auf dem Planeten</span></div><div class="d3-tag">RAHMEN ANKLICKEN</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d3-a-hqst" data-anno-side="right" data-anno-target=".d3-hqst" style="--anno-x:28%;--anno-y:37%">
+  <button class="anno-pin" type="button" data-anno-pin="d3-a-hqst" aria-expanded="false" aria-controls="anno-bubble-d3-a-hqst" aria-label="Frage {n}">1</button>
+  <div class="anno-bubble" id="anno-bubble-d3-a-hqst" data-anno-bubble="d3-a-hqst" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a-hqst" aria-expanded="false" aria-controls="anno-bubble-d3-a-hqst"><span class="anno-bubble-question">Statt der Raumstation führt jetzt eine Bodenstation am linken Planetenrand ins HQ; die Raumstation im Orbit bleibt Admin. Passt die Stelle der Station?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d3-a-hqst" data-annotation="d3-a-hqst" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-d3-a-hqst"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d3-tour" data-nav-label="Rundflug" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui t-c-verse" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-ui t-c-verse-news" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-news.jpg)"></div><div class="d3-ui t-c-verse-patches" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-patches.jpg)"></div><div class="d3-ui t-c-verse-starmap" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-starmap.jpg)"></div><div class="d3-ui t-c-codex" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex.jpg)"></div><div class="d3-ui t-c-codex-low" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-ui t-c-hq" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq.jpg)"></div><div class="d3-ui t-c-hq-lager" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq-lager.jpg)"></div><div class="d3-ui t-c-admin" style="background-image:url(20261109-1752-kamera-welt/assets/c-admin.jpg)"></div><div class="d3-tag">RUNDFLUG · SCHLEIFE</div>
+      </div></div>
+    </section>
+    <section id="d3-verse" data-nav-label="Verse" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse.jpg)"></div><div class="d3-tag">VERSE · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d3-news-a" data-nav-label="News · A Emblem" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-news.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse-news.jpg)"></div><div class="d3-tag">NEWS · A EMBLEM · ANFLUG</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d3-a-news-a" data-anno-side="right" data-anno-target=".d3-world" style="--anno-x:18%;--anno-y:22%">
+  <button class="anno-pin" type="button" data-anno-pin="d3-a-news-a" aria-expanded="false" aria-controls="anno-bubble-d3-a-news-a" aria-label="Frage {n}">1</button>
+  <div class="anno-bubble" id="anno-bubble-d3-a-news-a" data-anno-bubble="d3-a-news-a" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a-news-a" aria-expanded="false" aria-controls="anno-bubble-d3-a-news-a"><span class="anno-bubble-question">A: Die Kamera fährt so, dass der News-Planet genau als Emblem im Seitenkopf landet (er wird dabei kleiner, die Kamera zieht leicht zurück).</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d3-a-news-a" data-annotation="d3-a-news-a" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-d3-a-news-a"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d3-news-b" data-nav-label="News · B groß links" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-news.jpg)"><i class="d3-ui-cover" style="left:9.38%;top:11.44%;width:4.63%;height:8.22%"></i></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse-news.jpg)"></div><div class="d3-tag">NEWS · B GROSS LINKS · ANFLUG</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d3-a-news-b" data-anno-side="right" data-anno-target=".d3-world" style="--anno-x:10%;--anno-y:55%">
+  <button class="anno-pin" type="button" data-anno-pin="d3-a-news-b" aria-expanded="false" aria-controls="anno-bubble-d3-a-news-b" aria-label="Frage {n}">1</button>
+  <div class="anno-bubble" id="anno-bubble-d3-a-news-b" data-anno-bubble="d3-a-news-b" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a-news-b" aria-expanded="false" aria-controls="anno-bubble-d3-a-news-b"><span class="anno-bubble-question">B: Der Planet ragt groß links ins Bild, das Emblem im Seitenkopf entfällt. Gilt dann genauso für Patches und Galerie.</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d3-a-news-b" data-annotation="d3-a-news-b" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-d3-a-news-b"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d3-starmap" data-nav-label="Sternkarte" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-starmap.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse-starmap.jpg)"></div><div class="d3-tag">STERNKARTE · ANFLUG</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d3-a-starmap" data-anno-side="left" data-anno-target=".d3-world" style="--anno-x:50%;--anno-y:45%">
+  <button class="anno-pin" type="button" data-anno-pin="d3-a-starmap" aria-expanded="false" aria-controls="anno-bubble-d3-a-starmap" aria-label="Frage {n}">1</button>
+  <div class="anno-bubble" id="anno-bubble-d3-a-starmap" data-anno-bubble="d3-a-starmap" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a-starmap" aria-expanded="false" aria-controls="anno-bubble-d3-a-starmap"><span class="anno-bubble-question">Das Sternbild des Hubs wächst beim Anflug zur Sternkarte: Kamera auf 3×, das Sternbild blendet in die echte Karte über. Planet unten bleibt im Bild.</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d3-a-starmap" data-annotation="d3-a-starmap" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-d3-a-starmap"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d3-codex" data-nav-label="Codex" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-codex.jpg)"></div><div class="d3-tag">CODEX · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d3-codex-index" data-nav-label="Codex › Index" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-codex-low.jpg)"></div><div class="d3-tag">CODEX › INDEX · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d3-hq" data-nav-label="HQ" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage d3-calm">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-hq.jpg)"></div><div class="d3-tag">HQ · ANFLUG</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d3-a-hq-zoom" data-anno-side="right" data-anno-target=".d3-world" style="--anno-x:70%;--anno-y:40%">
+  <button class="anno-pin" type="button" data-anno-pin="d3-a-hq-zoom" aria-expanded="false" aria-controls="anno-bubble-d3-a-hq-zoom" aria-label="Frage {n}">1</button>
+  <div class="anno-bubble" id="anno-bubble-d3-a-hq-zoom" data-anno-bubble="d3-a-hq-zoom" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a-hq-zoom" aria-expanded="false" aria-controls="anno-bubble-d3-a-hq-zoom"><span class="anno-bubble-question">HQ jetzt 3,6× nah an der Stadt links, dazu ein Schleier: nur noch weiche, angedeutete Lichter. Ruhig genug, oder noch dunkler?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d3-a-hq-zoom" data-annotation="d3-a-hq-zoom" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-d3-a-hq-zoom"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d3-hq-lager" data-nav-label="HQ › Lager" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage d3-calm">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq-lager.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-hq-hangar.jpg)"></div><div class="d3-tag">HQ › LAGER · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d3-admin" data-nav-label="Admin" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-veil"></div><div class="d3-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-admin.jpg)"></div><div class="d3-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-admin.jpg)"></div><div class="d3-tag">ADMIN · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d3-pb-main" data-nav-label="Playbook · Auftritt" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-r d3-pb-main-r0" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-r d3-pb-main-r1" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-r d3-pb-main-r2" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-r d3-pb-main-r3" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-r d3-pb-main-r4" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-r d3-pb-main-r5" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-steps"><h4>Hauptseite · großer Auftritt</h4><p>Direktaufruf von /verse, /codex oder /hq · 6,6 s bis alles steht</p><ol><li><b>0,00 s</b><span>Schwarz, dann Sterne funkeln auf</span></li><li><b>0,40 s</b><span>Kamera fährt aus der Ferne an (2,6 s)</span></li><li><b>2,40 s</b><span>Kopfzeile gleitet von oben herein</span></li><li><b>3,00 s</b><span>Eyebrow, dann Titel tastet sich auf</span></li><li><b>3,80 s</b><span>Suche zieht in die Breite auf</span></li><li><b>4,40 s</b><span>Planeten-Beschriftungen nacheinander</span></li><li><b>5,20 s</b><span>Projektion baut sich auf</span></li><li><b>6,00 s</b><span>„Mehr im Verse“ pulst einmal</span></li></ol></div><div class="d3-bar"><i></i></div><div class="d3-tag">PLAYBOOK · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d3-a-pb-main" data-anno-side="right" data-anno-target=".d3-steps" style="--anno-x:60%;--anno-y:20%">
+  <button class="anno-pin" type="button" data-anno-pin="d3-a-pb-main" aria-expanded="false" aria-controls="anno-bubble-d3-a-pb-main" aria-label="Frage {n}">1</button>
+  <div class="anno-bubble" id="anno-bubble-d3-a-pb-main" data-anno-bubble="d3-a-pb-main" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a-pb-main" aria-expanded="false" aria-controls="anno-bubble-d3-a-pb-main"><span class="anno-bubble-question">Großer Auftritt nur beim Direktaufruf einer Hauptseite (ohne Unterseite in der URL), 6,6 s bis alles steht. Reihenfolge und Effekte so?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d3-a-pb-main" data-annotation="d3-a-pb-main" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-d3-a-pb-main"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d3-pb-nav" data-nav-label="Playbook · Menüwechsel" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-r d3-pb-nav-r0" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-r d3-pb-nav-r1" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-r d3-pb-nav-r2" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d3-steps"><h4>Hauptseite · Wechsel im Menü</h4><p>Codex → Verse, ohne Auftritt · 1,6 s bis alles steht</p><ol><li><b>0,00 s</b><span>Kamera schwenkt (1,1 s), Kopfzeile bleibt stehen</span></li><li><b>0,00 s</b><span>Kopfzeile bleibt</span></li><li><b>0,70 s</b><span>Titel und Suche blenden zusammen ein</span></li><li><b>0,90 s</b><span>Beschriftungen, Projektion im Abstand von 60 ms</span></li></ol></div><div class="d3-bar"><i></i></div><div class="d3-tag">PLAYBOOK · SCHLEIFE</div>
+      </div></div>
+    </section>
+    <section id="d3-pb-scroll" data-nav-label="Playbook · Scrollseite" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-world"><div class="d3-sky"></div><i class="d3-stars"></i>
+          <div class="d3-planet"><i class="d3-surface"></i><i class="d3-surface b"></i></div>
+          <div class="d3-hub"></div><i class="d3-hi d3-hi-news" style="left:103.438cqw;top:82.938cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-news.jpg)"></i><i class="d3-hi d3-hi-patches" style="left:114.625cqw;top:80cqw;width:4.625cqw;height:4.625cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-patches.jpg)"></i><i class="d3-hi d3-hi-gallery" style="left:181.5cqw;top:79.313cqw;width:6cqw;height:6cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-gallery.jpg)"></i><i class="d3-hi d3-hi-starmap" style="left:169cqw;top:76.688cqw;width:5.938cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-starmap.jpg)"></i><i class="d3-hi d3-hi-station" style="left:124.313cqw;top:73.5cqw;width:6.063cqw;height:4.375cqw;background-image:url(20261109-1752-kamera-welt/assets/hi-station.jpg)"></i>
+          <i class="d3-hqst"><i></i></i><div class="d3-holo"></div></div><div class="d3-r d3-pb-scroll-r0" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r1" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r2" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r3" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r4-0" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r4-1" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r4-2" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r4-3" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r4-4" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r4-5" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-r d3-pb-scroll-r4-6" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d3-steps"><h4>Scrollseite · Abschnitt kommt ins Bild</h4><p>Codex-Index, HQ-Lager, Mehr im Verse · 1,8 s bis alles steht</p><ol><li><b>0,00 s</b><span>Kamera neigt sich mit dem Scrollen</span></li><li><b>0,00 s</b><span>Kopfzeile bleibt</span></li><li><b>0,50 s</b><span>Abschnittskopf hebt sich 8 px an</span></li><li><b>0,60 s</b><span>Seitenleiste gleitet von links</span></li><li><b>0,70 s</b><span>Filter blenden ein</span></li><li><b>0,85 s</b><span>Zeilen nacheinander, 40 ms, ab Zeile 8 sofort</span></li></ol></div><div class="d3-bar"><i></i></div><div class="d3-tag">PLAYBOOK · SCHLEIFE</div>
+      </div></div>
+    </section>
+    <section id="d3-pb-detail" data-nav-label="Playbook · Detailseite" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-base d3-pb-detail-base" style="background-image:url(20261109-1752-kamera-welt/assets/bg-codex.jpg)"></div><div class="d3-scrim d3-pb-detail-scrim"></div><div class="d3-r d3-pb-detail-r0" style="background-image:url(20261109-1752-kamera-welt/assets/today-detail.jpg)"></div><div class="d3-r d3-pb-detail-r1 solid" style="background-image:url(20261109-1752-kamera-welt/assets/today-detail.jpg)"></div><div class="d3-r d3-pb-detail-r2 solid" style="background-image:url(20261109-1752-kamera-welt/assets/today-detail.jpg)"></div><div class="d3-r d3-pb-detail-r3 solid" style="background-image:url(20261109-1752-kamera-welt/assets/today-detail.jpg)"></div><div class="d3-r d3-pb-detail-r4 solid" style="background-image:url(20261109-1752-kamera-welt/assets/today-detail.jpg)"></div><div class="d3-steps"><h4>Detailseite · Push-in</h4><p>Schiff, Artikel, Bild, Eintrag im Lager · 1,5 s bis alles steht</p><ol><li><b>0,00 s</b><span>Kamera stößt leicht vor (Push-in 0,7 s)</span></li><li><b>0,00 s</b><span>Kopfzeile bleibt</span></li><li><b>0,35 s</b><span>Titelzeile sofort</span></li><li><b>0,50 s</b><span>Schiff/Bild zieht von 102 % auf 100 %</span></li><li><b>0,65 s</b><span>Seitenpanel gleitet von rechts</span></li><li><b>0,90 s</b><span>Werteleiste unten, Spalten nacheinander</span></li></ol></div><div class="d3-bar"><i></i></div><div class="d3-tag">PLAYBOOK · SCHLEIFE</div>
+      </div></div>
+    </section>
+    <section id="d3-pb-minor" data-nav-label="Playbook · Nebenseite" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-base d3-pb-minor-base" style="background-image:url(20261109-1752-kamera-welt/assets/bg-verse-sub.jpg)"></div><div class="d3-scrim d3-pb-minor-scrim"></div><div class="d3-r d3-pb-minor-r0" style="background-image:url(20261109-1752-kamera-welt/assets/c-settings.jpg)"></div><div class="d3-r d3-pb-minor-r1" style="background-image:url(20261109-1752-kamera-welt/assets/c-settings.jpg)"></div><div class="d3-steps"><h4>Nebenseite · ohne Kamerafahrt</h4><p>Profil, Einstellungen, Freunde, Rechtliches · 0,6 s bis alles steht</p><ol><li><b>0,00 s</b><span>Kamera bleibt, Szene dunkelt um 30 % ab</span></li><li><b>0,00 s</b><span>Kopfzeile bleibt</span></li><li><b>0,15 s</b><span>Ganzer Inhalt blendet in 160 ms ein, keine Staffel</span></li></ol></div><div class="d3-bar"><i></i></div><div class="d3-tag">PLAYBOOK · SCHLEIFE</div>
+      </div></div>
+    </section>
+    <section id="d3-pb-pop-s" data-nav-label="Popup klein" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-base d3-pb-pop-s-base" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse.jpg)"></div><div class="d3-scrim d3-pb-pop-s-scrim"></div><div class="d3-r d3-pb-pop-s-r0 solid" style="background-image:url(20261109-1752-kamera-welt/assets/pop-wish-full.jpg)"></div><div class="d3-steps"><h4>Popup klein · Wunschliste</h4><p>auch Apps-Menü, Profilmenü · 0,6 s bis alles steht</p><ol><li><b>0,00 s</b><span>Klick aufs Herz</span></li><li><b>0,05 s</b><span>Panel wächst aus dem Herz (96 % → 100 %, 140 ms)</span></li><li><b>0,20 s</b><span>Einträge stehen sofort, keine Staffel</span></li></ol></div><div class="d3-bar"><i></i></div><div class="d3-tag">PLAYBOOK · SCHLEIFE</div>
+      </div></div>
+    </section>
+    <section id="d3-pb-pop-l" data-nav-label="Popup groß" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen"><div class="d3-stage">
+        <div class="d3-base d3-pb-pop-l-base" style="background-image:url(20261109-1752-kamera-welt/assets/today-detail.jpg)"></div><div class="d3-scrim d3-pb-pop-l-scrim"></div><div class="d3-r d3-pb-pop-l-r0 solid" style="background-image:url(20261109-1752-kamera-welt/assets/pop-swap-full.jpg)"></div><div class="d3-r d3-pb-pop-l-r1 solid" style="background-image:url(20261109-1752-kamera-welt/assets/pop-swap-full.jpg)"></div><div class="d3-steps"><h4>Popup groß · Bauteil tauschen</h4><p>auch Vergleich, Teile-Infoblatt · 0,9 s bis alles steht</p><ol><li><b>0,00 s</b><span>Szene stößt 4 % vor und dunkelt ab</span></li><li><b>0,10 s</b><span>Rahmen der Projektion zuerst (120 ms)</span></li><li><b>0,22 s</b><span>Scanlinie legt den Inhalt von oben frei</span></li><li><b>0,40 s</b><span>Tabellenzeilen nacheinander, 25 ms</span></li></ol></div><div class="d3-bar"><i></i></div><div class="d3-tag">PLAYBOOK · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d3-a-pb-pop" data-anno-side="left" data-anno-target=".d3-steps" style="--anno-x:40%;--anno-y:30%">
+  <button class="anno-pin" type="button" data-anno-pin="d3-a-pb-pop" aria-expanded="false" aria-controls="anno-bubble-d3-a-pb-pop" aria-label="Frage {n}">1</button>
+  <div class="anno-bubble" id="anno-bubble-d3-a-pb-pop" data-anno-bubble="d3-a-pb-pop" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d3-a-pb-pop" aria-expanded="false" aria-controls="anno-bubble-d3-a-pb-pop"><span class="anno-bubble-question">Großes Popup als Holo-Projektion: Szene stößt vor, erst der Rahmen, dann legt eine Scanlinie den Inhalt frei. Passt das zum Bauteil-Tausch?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-d3-a-pb-pop" data-annotation="d3-a-pb-pop" data-attachable placeholder="Deine Antwort…"></textarea><div class="attach-slot" data-attach-slot="anno-d3-a-pb-pop"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+  </section>
+
+  <section data-view="analyse3" data-view-kind="analysis" data-analysis="full" data-nav-label="Analyse" hidden>
+    <section id="r3-briefing" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Fest steht aus Runde 2: Szene fährt live, Bühnenstücke an festen Orten, Push-in für Unterseiten, Ankunft beim Laden, 1,1 s, Shell-Beta, Glas nur gezielt, Scroll-Snap, Kamera neigt beim Scrollen, Messlatte 33 ms. Offen sind jetzt Auftritt, Popups, drei Orte und die Playbooks.</p>
+      <p data-briefing-why>Mit den Playbooks weiß jede Seite, in welcher Reihenfolge und mit welchem Effekt ihre Teile erscheinen; danach kann die Umsetzung starten.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"6","unit":"Playbooks","label":"Hauptseite, Menüwechsel, Scrollseite, Detailseite, Nebenseite, Popups"}'>6 Playbooks</div>
+      <a data-briefing-topic="r3-t-auftritt" data-share="35">Auftritt</a>
+      <a data-briefing-topic="r3-t-pop" data-share="25">Popups</a>
+      <a data-briefing-topic="r3-t-orte" data-share="20">Orte</a>
+      <a data-briefing-topic="r3-t-pb" data-share="20">Playbooks</a>
+      <p data-briefing-duration>≈ 6 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"12","unit":"Fragen","label":"in 4 Themen"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Auftritt","value":3},{"label":"Popups","value":3},{"label":"Orte","value":3},{"label":"Playbooks","value":3}],"unit":"Fragen"}'></div>
+          <p>Die Playbook-Screens links zeigen jeden Seitentyp mit echten Inhalten; die Zeitleiste rechts im Bild nennt Reihenfolge und Effekt. Hier geht es um die Regeln dahinter.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r3-t-auftritt" data-topic data-nav-label="Auftritt">
+      <div data-alevel="2" data-title="Auftritt">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"6,6","unit":"s","label":"großer Auftritt bis alles steht"}'></div></div>
+        <div data-slot="long"><p>Der große Auftritt ersetzt den Einstieg des Tages (heute 4,2 s laut Spec <code>verse-aufbau-ui-spec.md</code>). Die Spec wird mit der Umsetzung angepasst.</p></div>
+      </div>
+
+      <section id="r3-d-when" data-nav-label="Wann" data-decision="r3-d-when" data-decision-mode="single" data-label="Wann läuft der Auftritt" data-rec="direkt-tab" data-rec-why="So sieht man ihn, wenn man die App bewusst öffnet, aber nicht bei jedem Neuladen oder Lesezeichen auf eine Unterseite." data-applies-to="/verse, /codex, /hq" data-finding="r3-f-when">
+        <p data-applies>Gilt für: /verse, /codex, /hq</p>
+        <p data-situation>Du willst den großen Auftritt beim Aufruf einer Hauptseite ohne Unterseite in der URL, nicht bei einer Unterseite, auch wenn sie als Lesezeichen geöffnet wird.</p>
+        <h3 data-question>Wie oft läuft der große Auftritt?</h3>
+        <div data-options>
+          <label data-opt="direkt-tab" data-recommended><input type="radio" name="dm-r3-d-when" value="direkt-tab" checked><span data-opt-label>Bei jedem Direktaufruf, einmal pro Tab</span><span data-opt-consequence>Neuladen im selben Tab zeigt den kurzen Aufbau (höchstens 0,8 s).</span></label>
+          <label data-opt="direkt-immer"><input type="radio" name="dm-r3-d-when" value="direkt-immer"><span data-opt-label>Bei jedem Direktaufruf, auch beim Neuladen</span><span data-opt-consequence>Jedes Strg+R kostet 6,6 s, eine Eingabe bricht ab.</span></label>
+          <label data-opt="tag"><input type="radio" name="dm-r3-d-when" value="tag"><span data-opt-label>Einmal am Tag</span><span data-opt-consequence>Wie der heutige Einstieg, nur länger.</span></label>
+        </div>
+        <textarea data-comment="r3-d-when-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-when-none" value=""><input type="hidden" name="dm-r3-d-when-hes" value=""><input type="hidden" name="dm-r3-d-when-touched" value=""><input type="hidden" name="dm-r3-d-when-issue" value=""><input type="hidden" name="dm-r3-d-when-epic" value="">
+        <div data-alevel="3" data-title="Wann läuft der Auftritt">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4,2 → 6,6","unit":"s","label":"Einstieg heute → neu"}'></div></div>
+          <div data-slot="long"><p>Erkannt wird ein Direktaufruf am ersten Router-Ereignis der Sitzung: Ziel ist genau <code>/verse</code>, <code>/codex</code> oder <code>/hq</code>. Ein Tab merkt sich in <code>sessionStorage</code>, dass er ihn schon gezeigt hat.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-len" data-nav-label="Länge" data-decision="r3-d-len" data-decision-mode="slider" data-unit="ms" data-label="Länge des Auftritts" data-rec="6600" data-rec-why="Lang genug für Sterne, Anflug und gestaffelte Inhalte, ohne dass der Suchschlitz zu spät kommt." data-applies-to="großer Auftritt" data-finding="r3-f-len">
+        <p data-applies>Gilt für: großer Auftritt</p>
+        <p data-situation>Im Playbook „Auftritt“ steht alles nach 6,6 s; die Suche ist ab 3,8 s benutzbar.</p>
+        <h3 data-question>Wie lange dauert es, bis alles steht?</h3>
+        <div data-options><input type="range" name="dm-r3-d-len" min="4000" max="9000" step="200" value="6600"></div>
+        <textarea data-comment="r3-d-len-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-len-hes" value=""><input type="hidden" name="dm-r3-d-len-touched" value=""><input type="hidden" name="dm-r3-d-len-issue" value=""><input type="hidden" name="dm-r3-d-len-epic" value="">
+        <div data-alevel="3" data-title="Länge des Auftritts">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"3,8","unit":"s","label":"bis die Suche steht"}'></div></div>
+          <div data-slot="long"><p>Alle Zeitpunkte des Playbooks skalieren mit; die Kamerafahrt bleibt bei höchstens 2,6 s, damit sie nicht schleppt.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-skip" data-nav-label="Abbrechen" data-decision="r3-d-skip" data-decision-mode="verify" data-label="Auftritt abbrechen" data-rec="ok" data-rec-why="So gilt es heute schon für den Einstieg." data-applies-to="großer Auftritt" data-finding="r3-f-skip">
+        <p data-applies>Gilt für: großer Auftritt</p>
+        <p data-situation>Jede Eingabe (Taste, Klick, Scrollen) beendet den Auftritt innerhalb von 300 ms: alles springt an seinen Platz, die Eingabe wirkt trotzdem.</p>
+        <h3 data-question>Stimmt das so?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r3-d-skip" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Niemand wartet auf die Animation.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r3-d-skip" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r3-d-skip" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+        </div>
+        <input type="text" name="dm-r3-d-skip-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="r3-d-skip-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-skip-none" value=""><input type="hidden" name="dm-r3-d-skip-hes" value=""><input type="hidden" name="dm-r3-d-skip-touched" value=""><input type="hidden" name="dm-r3-d-skip-issue" value=""><input type="hidden" name="dm-r3-d-skip-epic" value="">
+        <div data-alevel="3" data-title="Auftritt abbrechen">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"300","unit":"ms","label":"bis alles steht nach einer Eingabe"}'></div></div>
+          <div data-slot="long"><p>Wie im heutigen Einstieg (<code>verse-aufbau-ui-spec.md</code>): jede Eingabe zählt den Tag als gesehen. Neu gilt das für Codex und HQ genauso.</p></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="r3-t-pop" data-topic data-nav-label="Popups">
+      <div data-alevel="2" data-title="Popups">
+        <div data-slot="short"><p>Kleine Popups wachsen aus ihrem Auslöser, große werden zur Holo-Projektion.</p></div>
+        <div data-slot="long"><p>Klein: Wunschliste, Apps-Menü, Profilmenü. Groß: Bauteil tauschen, Vergleich, Teile-Infoblatt. Zu sehen in den Screens „Popup klein“ und „Popup groß“.</p></div>
+      </div>
+
+      <section id="r3-d-pops" data-nav-label="Popup klein" data-decision="r3-d-pops" data-decision-mode="single" data-label="Popup klein" data-rec="grow" data-rec-why="Man sieht, woher das Panel kommt, und es steht nach 140 ms." data-applies-to="Wunschliste, Apps-Menü, Profilmenü" data-finding="r3-f-pops">
+        <p data-applies>Gilt für: Wunschliste, Apps-Menü, Profilmenü</p>
+        <p data-situation>Heute erscheinen die Kopfzeilen-Popups ohne eigene Bewegung.</p>
+        <h3 data-question>Wie öffnet sich ein kleines Popup?</h3>
+        <div data-options>
+          <label data-opt="grow" data-recommended><input type="radio" name="dm-r3-d-pops" value="grow" checked><span data-opt-label>Wächst aus seinem Auslöser</span><span data-opt-consequence>96 % → 100 % ab dem Icon, mit Einblenden, 140 ms.</span></label>
+          <label data-opt="drop"><input type="radio" name="dm-r3-d-pops" value="drop"><span data-opt-label>Gleitet von oben herab</span><span data-opt-consequence>Wie ein Menü aus der Kopfzeile, 180 ms.</span></label>
+          <label data-opt="fade"><input type="radio" name="dm-r3-d-pops" value="fade"><span data-opt-label>Blendet nur ein</span><span data-opt-consequence>Am ruhigsten, aber ohne Richtung.</span></label>
+        </div>
+        <textarea data-comment="r3-d-pops-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-pops-none" value=""><input type="hidden" name="dm-r3-d-pops-hes" value=""><input type="hidden" name="dm-r3-d-pops-touched" value=""><input type="hidden" name="dm-r3-d-pops-issue" value=""><input type="hidden" name="dm-r3-d-pops-epic" value="">
+        <div data-alevel="3" data-title="Popup klein">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"140","unit":"ms","label":"bis das Panel steht"}'></div></div>
+          <div data-slot="long"><p>Die drei Popups teilen sich den Platz in der Kopfzeile (<code>header-popout.service.ts</code>); wechselt man zwischen ihnen, schließt das alte in 100 ms, während das neue wächst.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-popl" data-nav-label="Popup groß" data-decision="r3-d-popl" data-decision-mode="single" data-label="Popup groß" data-rec="holo" data-rec-why="Passt zur Holotisch-Welt des Codex und zeigt, dass die Seite dahinter stehen bleibt." data-applies-to="Bauteil tauschen, Vergleich, Teile-Infoblatt" data-finding="r3-f-popl">
+        <p data-applies>Gilt für: Bauteil tauschen, Vergleich, Teile-Infoblatt</p>
+        <p data-situation>Heute öffnet „Bauteil tauschen“ ohne Übergang über der Schiffsseite.</p>
+        <h3 data-question>Wie öffnet sich ein großes Popup?</h3>
+        <div data-options>
+          <label data-opt="holo" data-recommended><input type="radio" name="dm-r3-d-popl" value="holo" checked><span data-opt-label>Als Holo-Projektion</span><span data-opt-consequence>Szene stößt 4 % vor, Rahmen zuerst, dann Scanlinie von oben; 400 ms.</span></label>
+          <label data-opt="scale"><input type="radio" name="dm-r3-d-popl" value="scale"><span data-opt-label>Klassisch: skaliert und blendet ein</span><span data-opt-consequence>98 % → 100 %, 220 ms, ohne Kamera.</span></label>
+          <label data-opt="side"><input type="radio" name="dm-r3-d-popl" value="side"><span data-opt-label>Gleitet von rechts als Seitenpanel</span><span data-opt-consequence>Schiff bleibt links sichtbar, Tabelle wird schmaler.</span></label>
+        </div>
+        <textarea data-comment="r3-d-popl-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-popl-none" value=""><input type="hidden" name="dm-r3-d-popl-hes" value=""><input type="hidden" name="dm-r3-d-popl-touched" value=""><input type="hidden" name="dm-r3-d-popl-issue" value=""><input type="hidden" name="dm-r3-d-popl-epic" value="">
+        <div data-alevel="3" data-title="Popup groß">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"400","unit":"ms","label":"bis der Inhalt frei ist"}'></div></div>
+          <div data-slot="long"><p>Die Dialoge laufen über <code>[scDialog]</code>; die Animation hängt dort einmal und gilt dann für jeden großen Dialog. Fokus springt erst nach der Animation hinein.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-popc" data-nav-label="Schließen" data-decision="r3-d-popc" data-decision-mode="single" data-label="Popups schließen" data-rec="reverse" data-rec-why="Man sieht, wohin es geht, und es ist schneller weg als es kam." data-applies-to="alle Popups" data-finding="r3-f-popc">
+        <p data-applies>Gilt für: alle Popups</p>
+        <p data-situation>Schließen per X, Abbrechen oder Escape; ein Klick daneben schließt nur kleine Popups.</p>
+        <h3 data-question>Wie schließt ein Popup?</h3>
+        <div data-options>
+          <label data-opt="reverse" data-recommended><input type="radio" name="dm-r3-d-popc" value="reverse" checked><span data-opt-label>Rückwärts, in 60 % der Zeit</span><span data-opt-consequence>Klein 90 ms, groß 240 ms.</span></label>
+          <label data-opt="fade"><input type="radio" name="dm-r3-d-popc" value="fade"><span data-opt-label>Nur ausblenden</span><span data-opt-consequence>120 ms für alle.</span></label>
+        </div>
+        <textarea data-comment="r3-d-popc-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-popc-none" value=""><input type="hidden" name="dm-r3-d-popc-hes" value=""><input type="hidden" name="dm-r3-d-popc-touched" value=""><input type="hidden" name="dm-r3-d-popc-issue" value=""><input type="hidden" name="dm-r3-d-popc-epic" value="">
+        <div data-alevel="3" data-title="Popups schließen">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"60","unit":"%","label":"der Öffnungszeit"}'></div></div>
+          <div data-slot="long"><p>Projektregel: ein modaler Dialog schließt nie per Klick auf den Hintergrund; das bleibt so.</p></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="r3-t-orte" data-topic data-nav-label="Orte">
+      <div data-alevel="2" data-title="Orte">
+        <div data-slot="short"><p>Drei Korrekturen aus Runde 2, je mit Screen links.</p></div>
+        <div data-slot="long"><p>News-Planet, Lage von HQ und die Sternkarte. Codex bleibt, wie er ist.</p></div>
+      </div>
+
+      <section id="r3-d-news" data-nav-label="Unterseiten-Planet" data-decision="r3-d-news" data-decision-mode="single" data-label="Unterseiten-Planet" data-rec="emblem" data-rec-why="Dein erster Vorschlag; der Planet landet genau dort, wo jede Unterseite ihr Emblem hat, und Kopf bleibt auf allen Unterseiten gleich." data-applies-to="News, Patches, Galerie" data-finding="r3-f-news">
+        <p data-applies>Gilt für: News, Patches, Galerie</p>
+        <p data-situation>Screens „News · A Emblem“ und „News · B groß links“ zeigen beide Wege.</p>
+        <h3 data-question>Wo endet der Planet auf seiner Unterseite?</h3>
+        <div data-options>
+          <label data-opt="emblem" data-recommended><input type="radio" name="dm-r3-d-news" value="emblem" checked><span data-opt-label>A: genau als Emblem im Seitenkopf</span><span data-opt-consequence>Die Kamera zieht dafür leicht zurück; das Emblem bleibt.</span></label>
+          <label data-opt="links"><input type="radio" name="dm-r3-d-news" value="links"><span data-opt-label>B: groß am linken Rand</span><span data-opt-consequence>Starker Push-in, das Emblem im Seitenkopf entfällt.</span></label>
+        </div>
+        <textarea data-comment="r3-d-news-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-news-none" value=""><input type="hidden" name="dm-r3-d-news-hes" value=""><input type="hidden" name="dm-r3-d-news-touched" value=""><input type="hidden" name="dm-r3-d-news-issue" value=""><input type="hidden" name="dm-r3-d-news-epic" value="">
+        <div data-alevel="3" data-title="Unterseiten-Planet">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"84 → 64","unit":"px","label":"Planet im Hub → Emblem"}'></div></div>
+          <div data-slot="long"><p>A: Zoom 0,76, der Planet wandert nach links oben. B: Zoom 7,9, der Planet steht mit 660 px am Rand. Für B gibt es die Planeten bereits in 4-facher Auflösung.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-hqside" data-nav-label="HQ-Seite" data-decision="r3-d-hqside" data-decision-mode="single" data-label="Lage von HQ" data-rec="links" data-rec-why="Dort liegen die Stadtlichter des echten Planeten, und die Bodenstation steht im Verse-Bild links unten." data-applies-to="HQ und seine Abschnitte" data-finding="r3-f-hqside">
+        <p data-applies>Gilt für: HQ und seine Abschnitte</p>
+        <p data-situation>Dein Wunsch: HQ eher links oder rechts auf dem Planeten, viel näher, ruhig, nur angedeutete Lichter.</p>
+        <h3 data-question>Auf welcher Seite des Planeten liegt HQ?</h3>
+        <div data-options>
+          <label data-opt="links" data-recommended><input type="radio" name="dm-r3-d-hqside" value="links" checked><span data-opt-label>Links, unter der Bodenstation</span><span data-opt-consequence>Verse → HQ ist ein Abstieg nach links unten.</span></label>
+          <label data-opt="rechts"><input type="radio" name="dm-r3-d-hqside" value="rechts"><span data-opt-label>Rechts</span><span data-opt-consequence>Verse → HQ geht nach rechts unten, Richtung Codex.</span></label>
+        </div>
+        <textarea data-comment="r3-d-hqside-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-hqside-none" value=""><input type="hidden" name="dm-r3-d-hqside-hes" value=""><input type="hidden" name="dm-r3-d-hqside-touched" value=""><input type="hidden" name="dm-r3-d-hqside-issue" value=""><input type="hidden" name="dm-r3-d-hqside-epic" value="">
+        <div data-alevel="3" data-title="Lage von HQ">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"3,6×","unit":"","label":"Zoom auf die Stadt"}'></div></div>
+          <div data-slot="long"><p>Die Stadt kommt aus dem echten Planeten der Verse-Seite (Scroll-Ansicht). Ein Schleier von 38 % hält sie ruhig hinter den vielen HQ-Elementen.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-starmap" data-nav-label="Sternkarte" data-decision="r3-d-starmap" data-decision-mode="verify" data-label="Sternkarte entsteht" data-rec="ok" data-rec-why="Entspricht deiner Notiz aus Runde 2." data-applies-to="Verse › Sternkarte" data-finding="r3-f-starmap">
+        <p data-applies>Gilt für: Verse › Sternkarte</p>
+        <p data-situation>Die Kamera fährt auf das Sternbild des Hubs (3×), es wächst und blendet in die echte Sternkarte über; der Planet bleibt unten im Bild.</p>
+        <h3 data-question>Stimmt diese Verwandlung?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r3-d-starmap" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Feinjustierung bei der Umsetzung.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r3-d-starmap" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r3-d-starmap" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+        </div>
+        <input type="text" name="dm-r3-d-starmap-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="r3-d-starmap-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-starmap-none" value=""><input type="hidden" name="dm-r3-d-starmap-hes" value=""><input type="hidden" name="dm-r3-d-starmap-touched" value=""><input type="hidden" name="dm-r3-d-starmap-issue" value=""><input type="hidden" name="dm-r3-d-starmap-epic" value="">
+        <div data-alevel="3" data-title="Sternkarte entsteht">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"83 → 327","unit":"px","label":"Sternbild Hub → Karte"}'></div></div>
+          <div data-slot="long"><p>In der Umsetzung teilen sich Hub-Sternbild und Karte ihre Sterne: die Linien wachsen nach, die Kamera liefert den Maßstab.</p></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="r3-t-pb" data-topic data-nav-label="Playbooks">
+      <div data-alevel="2" data-title="Playbooks">
+        <div data-slot="short"><p>Gemeinsame Regeln für alle Playbooks.</p></div>
+        <div data-slot="long"><p>Staffel-Abstand, einmaliges Erscheinen, und was Nebenseiten bekommen.</p></div>
+      </div>
+
+      <section id="r3-d-stagger" data-nav-label="Staffel" data-decision="r3-d-stagger" data-decision-mode="slider" data-unit="ms" data-label="Staffel-Abstand" data-rec="60" data-rec-why="Sichtbare Reihenfolge, ohne dass die letzte Kachel spürbar wartet." data-applies-to="Kacheln, Zeilen, Spalten" data-finding="r3-f-stagger">
+        <p data-applies>Gilt für: Kacheln, Zeilen, Spalten</p>
+        <p data-situation>Die Playbooks staffeln mit 40–90 ms; ab dem 8. Element kommt alles auf einmal.</p>
+        <h3 data-question>Wie groß ist der Abstand zwischen gestaffelten Elementen?</h3>
+        <div data-options><input type="range" name="dm-r3-d-stagger" min="20" max="140" step="10" value="60"></div>
+        <textarea data-comment="r3-d-stagger-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-stagger-hes" value=""><input type="hidden" name="dm-r3-d-stagger-touched" value=""><input type="hidden" name="dm-r3-d-stagger-issue" value=""><input type="hidden" name="dm-r3-d-stagger-epic" value="">
+        <div data-alevel="3" data-title="Staffel-Abstand">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"8","unit":"Elemente","label":"höchstens gestaffelt"}'></div></div>
+          <div data-slot="long"><p>Gilt für <code>.sc-enter-stagger</code>; heute 90 ms im Verse-Flug.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-once" data-nav-label="Einmal" data-decision="r3-d-once" data-decision-mode="verify" data-label="Nur einmal erscheinen" data-rec="ok" data-rec-why="Scrollt man zurück, stehen Abschnitte schon; nichts blinkt zweimal." data-applies-to="Scrollseiten" data-finding="r3-f-once">
+        <p data-applies>Gilt für: Scrollseiten</p>
+        <p data-situation>Ein Abschnitt erscheint beim ersten Eintritt ins Bild und steht danach, bis man die Seite verlässt.</p>
+        <h3 data-question>Stimmt das so?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r3-d-once" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Zurückscrollen zeigt alles sofort.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r3-d-once" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r3-d-once" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+        </div>
+        <input type="text" name="dm-r3-d-once-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="r3-d-once-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-once-none" value=""><input type="hidden" name="dm-r3-d-once-hes" value=""><input type="hidden" name="dm-r3-d-once-touched" value=""><input type="hidden" name="dm-r3-d-once-issue" value=""><input type="hidden" name="dm-r3-d-once-epic" value="">
+        <div data-alevel="3" data-title="Nur einmal erscheinen">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1×","unit":"","label":"pro Abschnitt und Besuch"}'></div></div>
+          <div data-slot="long"><p>Ein gemeinsamer IntersectionObserver statt eigener Scroll-Listener; passt zum gemeinsamen Takt aus Runde 2.</p></div>
+        </div>
+      </section>
+
+      <section id="r3-d-minor" data-nav-label="Nebenseiten" data-decision="r3-d-minor" data-decision-mode="single" data-label="Nebenseiten" data-rec="still" data-rec-why="Profil und Einstellungen sind kein Ort in der Welt; die Kamera bleibt, wo man herkam." data-applies-to="Profil, Einstellungen, Freunde, Rechtliches" data-finding="r3-f-minor">
+        <p data-applies>Gilt für: Profil, Einstellungen, Freunde, Rechtliches</p>
+        <p data-situation>Heute bekommen diese Seiten den Himmel ihres Bereichs mit Schleier.</p>
+        <h3 data-question>Was tut die Kamera auf einer Nebenseite?</h3>
+        <div data-options>
+          <label data-opt="still" data-recommended><input type="radio" name="dm-r3-d-minor" value="still" checked><span data-opt-label>Bleibt stehen, Szene dunkelt ab</span><span data-opt-consequence>Inhalt blendet in 160 ms ein, keine Staffel.</span></label>
+          <label data-opt="push"><input type="radio" name="dm-r3-d-minor" value="push"><span data-opt-label>Kleiner Push-in wie Unterseiten</span><span data-opt-consequence>Mehr Bewegung für Seiten, die man kurz besucht.</span></label>
+        </div>
+        <textarea data-comment="r3-d-minor-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r3-d-minor-none" value=""><input type="hidden" name="dm-r3-d-minor-hes" value=""><input type="hidden" name="dm-r3-d-minor-touched" value=""><input type="hidden" name="dm-r3-d-minor-issue" value=""><input type="hidden" name="dm-r3-d-minor-epic" value="">
+        <div data-alevel="3" data-title="Nebenseiten">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"160","unit":"ms","label":"Einblenden"}'></div></div>
+          <div data-slot="long"><p>Die Kamera bleibt in der Pose der letzten Hauptseite; der Schleier fährt in 300 ms auf 30 %.</p></div>
         </div>
       </section>
     </section>
@@ -7392,7 +8110,8 @@ html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
       <div class="panel-nav-scroll">
       <nav class="iteration-tabs" role="tablist" aria-label="Runden">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
-<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
+<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true" aria-controls="iter-3">Runde 3</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
@@ -21270,6 +21989,8 @@ function collectModeDecisions(scope) {
     tag.hidden = true;
     tag.appendChild(h('span'));
     inst.hereEl = tag;
+    // A click (or tap) on the tag opens the rail at the open row: focus-within expands it like hover does.
+    tag.addEventListener('click', () => { if (inst.hereRow) inst.hereRow.focus(); });
     inst.root.append(tag, nav);
     nav.addEventListener('scroll', () => placeHere(inst), { passive: true });
   }
