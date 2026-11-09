@@ -512,6 +512,19 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
               }
             }
           </div>
+          <!-- The unsaved draft lives in the card (wide screens): never over the bottom row, the strip or the legend. -->
+          @if (draftChangedCount() > 0 && !readOnly()) {
+            <sc-codex-loadout-save-bar
+              class="draft-card"
+              [changed]="draftChangedCount()"
+              [saveable]="saveableCount()"
+              [saving]="saving()"
+              [error]="saveError()"
+              [inHangar]="inHangar()"
+              (save)="saveDraft.emit()"
+              (discard)="discardDraft.emit()"
+              (addAndSave)="saveDraft.emit()" />
+          }
           <button type="button" class="pdetails" (click)="openDetailsDrawer()" [attr.aria-expanded]="detailsOpen()">
             {{ (detailsOpen() ? 'codex.holo.stage.detailsHide' : 'codex.holo.stage.detailsShow') | translate }}
           </button>
@@ -853,9 +866,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .vw-thumb:focus-visible { outline: none; }
   .vw-thumb:focus-visible .vw-ic { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   /* Views | filters: a full-height rule; the filters read as their own kind (chips with a check). */
-  .vw-sep { width: 1px; align-self: stretch; background: var(--l2); }
-  .vf { flex: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; min-width: 0; }
-  .vf-row { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; padding-bottom: 4px; min-width: 0; }
+  .vw-sep { flex: none; width: 2px; align-self: stretch; margin: 2px 6px; border-radius: 1px; background: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
+  .vf { flex: 0 1 auto; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+  .vf-row { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-start; padding-bottom: 4px; min-width: 0; }
   .vf-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 8px; border: 1px solid var(--l1); border-radius: 13px; background: none;
   color: var(--sc-fg-2); font: inherit; font-size: max(11.5px, var(--f)); white-space: nowrap; cursor: pointer; transition: color 160ms ease, border-color 160ms ease, background 160ms ease; }
   .vf-chip .ck { width: 10px; height: 10px; border: 1px solid currentColor; border-radius: 3px; flex: none; }
@@ -924,6 +937,15 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
   .draft-float { pointer-events: auto; width: min(560px, calc(100vw - 32px)); padding: 8px 12px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
+  /* Wide: the draft sits in the fixed card, above "Details"; narrow: it floats above the strip. */
+  .draft-card { flex: none; display: block; margin: 0 10px 8px; padding: 8px 10px; border: 1px solid var(--sc-accent); border-radius: 10px;
+  background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); }
+  .draft-card ::ng-deep .bar { padding: 0; margin: 0; gap: 6px 8px; border: 0; background: none; }
+  .draft-card ::ng-deep .notice { min-width: 0; flex-basis: 100%; }
+  .draft-card ::ng-deep .actions { flex-basis: 100%; }
+  .draft-card ::ng-deep :is(.discard, .save) { flex: 1; min-height: max(34px, var(--sc-tap-min, 0px)); }
+  @media (min-width: 1001px) { .draft-float { display: none; } }
+  @media (max-width: 1000px) { .draft-card { display: none; } }
   .undo-toast { pointer-events: auto;
   display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
@@ -1631,6 +1653,8 @@ export class CodexHoloStageComponent {
     effect(() => {
       if (this.chosenSurface() !== null || !this.has3d() || !this.model3dReady()) return;
       if (this.phase() !== 'done' || this.activePorts().length > 0) return;
+      // The Holotisch beta opens on Einfach whenever the hull has schema data (brief s1); 3D only without it.
+      if (this.shellBeta() && (!!this.silhouette() || this.schemaAvailable())) return;
       // A phone opens on Einfach, 3D on request: no model download on the way (d-start simple).
       if (typeof matchMedia === 'function' && matchMedia('(max-width: 640px)').matches) return;
       untracked(() => this.auto3d.set(true));
@@ -2531,6 +2555,16 @@ export class CodexHoloStageComponent {
             label: slot.name ?? slot.port,
             state: slot.draftState,
             paths: slot.draftPaths ?? [],
+          });
+        }
+        // A part swapped inside a mount (the gun in a gimbal) is a change of the mount's pin too.
+        for (const child of slot.children ?? []) {
+          if (!child.draftState) continue;
+          entries.push({
+            port: slot.rawPort ?? slot.port,
+            label: child.name ?? child.port,
+            state: child.draftState,
+            paths: child.draftPaths ?? [],
           });
         }
       }
