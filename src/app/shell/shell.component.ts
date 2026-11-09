@@ -37,6 +37,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { AppsMenuComponent } from './apps-menu.component';
 import { HeaderPopoutService } from './header-popout.service';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
+import { SlowNavigationComponent } from './slow-navigation/slow-navigation.component';
 import { MerklisteComponent } from './merkliste/merkliste.component';
 import { WishCartDialogComponent } from './cart/wish-cart-dialog.component';
 import { WishCartService } from './cart/wish-cart.service';
@@ -74,7 +75,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent, SlowNavigationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -488,6 +489,7 @@ import { avatarUrlOf } from './avatar-url';
       }
       <router-outlet (activate)="onRouteActivate()" />
     </main>
+    <sc-slow-navigation />
 
     <sc-footer [overlay]="verseOverlay()" />
 

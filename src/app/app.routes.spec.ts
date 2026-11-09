@@ -1,6 +1,8 @@
 import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, UrlTree, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { provideTranslateService } from '@ngx-translate/core';
 import { BetaService } from './core/beta.service';
 import { fpsEquipMode, routes } from './app.routes';
 
@@ -43,7 +45,7 @@ describe('codex/fps equip flow (concept 2026-10-29, b3)', () => {
 
 /**
  * Alpha cleanup (concept 2026-10-30): the old aliases are gone and fall
- * through to '**' -> verse. Pinned so none of them is quietly re-added.
+ * through to '**' (the 404 page). Pinned so none of them is quietly re-added.
  */
 describe('retired route aliases', () => {
   const retired = [
@@ -88,46 +90,65 @@ describe('apps hub routes (concept 2026-10-30)', () => {
 });
 
 /**
- * The remaining string redirects ('' and '**') are RELATIVE, and Angular keeps
- * the incoming query + fragment for a relative redirectTo (only an absolute
- * '/…' target drops them; AUD-144). Pinned with the real route entries.
+ * The '' -> verse string redirect is RELATIVE, and Angular keeps the incoming
+ * query + fragment for a relative redirectTo (only an absolute '/...' target
+ * drops them; AUD-144). Pinned with the real route entry. The wildcard is no
+ * redirect any more: it is the real 404 page (concept 2026-11-09).
  */
-describe('string redirects keep the query (AUD-144)', () => {
+describe('root redirect keeps the query (AUD-144)', () => {
   const rootRedirect = routes.find((r) => r.path === '' && typeof r.redirectTo === 'string');
-  const wildcard = routes.find((r) => r.path === '**');
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([
-          rootRedirect!,
-          { path: 'verse', children: [] },
-          wildcard!,
-        ]),
+        provideRouter([rootRedirect!, { path: 'verse', children: [] }]),
         provideLocationMocks(),
       ],
     });
   });
 
-  it('finds both redirect entries, each a relative string', () => {
-    for (const r of [rootRedirect, wildcard]) {
-      expect(r).toBeDefined();
-      expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBe(true);
-    }
+  it('finds the root redirect, a relative string', () => {
+    expect(rootRedirect).toBeDefined();
+    expect(typeof rootRedirect!.redirectTo === 'string' && !(rootRedirect!.redirectTo as string).startsWith('/')).toBe(true);
   });
 
-  const cases: [string, string][] = [
-    ['/?item=abc#x', '/verse?item=abc#x'],
-    ['/news?item=abc', '/verse?item=abc'],
-    ['/gibtsnicht?item=z', '/verse?item=z'],
-  ];
-  for (const [from, to] of cases) {
-    it(`${from} lands on ${to}`, async () => {
-      const router = TestBed.inject(Router);
-      await router.navigateByUrl(from);
-      expect(router.url).toBe(to);
+  it('lands / on /verse and keeps query and fragment', async () => {
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/?item=abc#x');
+    expect(router.url).toBe('/verse?item=abc#x');
+  });
+});
+
+describe('real 404 page', () => {
+  const wildcard = () => shellOf()?.children?.find((c) => c.path === '**');
+
+  it('is the last child of the gated shell and no redirect', () => {
+    const kids = shellOf()?.children ?? [];
+    expect(kids[kids.length - 1]).toBe(wildcard());
+    expect(wildcard()?.redirectTo).toBeUndefined();
+    expect(wildcard()?.loadComponent).toBeDefined();
+    expect(routes.some((r) => r.path === '**')).toBe(false);
+  });
+
+  it('renders the 404 component for an unknown URL, while / still redirects to /verse', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideTranslateService(),
+        provideRouter([
+          routes.find((r) => r.path === '' && typeof r.redirectTo === 'string')!,
+          { path: 'verse', children: [] },
+          { path: '**', loadComponent: wildcard()!.loadComponent! },
+        ]),
+        provideLocationMocks(),
+      ],
     });
-  }
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/gibtsnicht?item=z');
+    expect(TestBed.inject(Router).url).toBe('/gibtsnicht?item=z');
+    expect(harness.routeNativeElement?.querySelector('h1')).not.toBeNull();
+    await harness.navigateByUrl('/');
+    expect(TestBed.inject(Router).url).toBe('/verse');
+  });
 });
 
 /** HQ (concept 2026-10-08): the personal area lives under /hq, English paths since 2026-10-30. */

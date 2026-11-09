@@ -32,12 +32,12 @@ export function fpsEquipMode(): boolean {
 }
 
 /**
- * The '' → verse and '**' → verse string redirects are RELATIVE on purpose:
+ * The '' → verse string redirect is RELATIVE on purpose:
  * Angular keeps the incoming query + fragment for a relative `redirectTo`.
  * Never prefix the target with `/` — an absolute string redirect drops the
  * query. Pinned in app.routes.spec.ts (AUD-144). Old aliases (news, hangar,
  * codex/set, tools/extension, ...) are NOT bridged any more (alpha cleanup,
- * concept 2026-10-30): they fall through to '**'. The app bridges (/hangar/import, /starscape,
+ * concept 2026-10-30): they fall through to '**', the real 404 page. The app bridges (/hangar/import, /starscape,
  * /uploader/auth, /desktop/connect) went on 2026-11-08: every binary that called them talks to
  * the removed sc-companion host, so they could no longer be reached.
  */
@@ -480,6 +480,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./release-notes/release-notes.component').then((m) => m.ReleaseNotesComponent),
       },
+      {
+        // Real 404 (concept 2026-11-09): last child of the gated shell, so a signed-out
+        // visitor is sent to the login first, like for every other route here.
+        path: '**',
+        data: { layout: 'content' },
+        loadComponent: () =>
+          import('./shell/not-found-page/not-found-page.component').then((m) => m.NotFoundPageComponent),
+      },
     ],
   },
   {
@@ -495,5 +503,4 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),
   },
-  { path: '**', redirectTo: 'verse' },
 ];

@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.245.0",
+  "current": "0.245.1",
   "releases": [
+    {
+      "version": "0.245.1",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ: Lager replaces \"Bestand\" as the umbrella term; its parts are Inventar, Hangar and Sammlungen. The HQ rail entry, the search scope (\"Im Lager suchen …\") and every message follow. English uses \"Storage\" / \"Collections\"."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.245.0",
       "date": "2026-11-09",

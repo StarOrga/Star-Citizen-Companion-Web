@@ -1,4 +1,16 @@
 {
+  "notFoundPage": {
+    "srTitle": "404 – Page not found",
+    "title": "Destination off the map",
+    "lead": "This address leads nowhere:",
+    "didYouMean": "Did you mean",
+    "home": "Back to the home page"
+  },
+  "slowLoad": {
+    "title": "This is taking longer than usual",
+    "retry": "Try again",
+    "home": "To the home page"
+  },
   "handoff": {
     "title": "Continue on your phone",
     "working": "Signing you in on this device…",
