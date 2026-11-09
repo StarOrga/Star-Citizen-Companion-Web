@@ -415,5 +415,134 @@
         "answer": "shehr gut! wobei zweiteres immer das neuere sein muss, entsprechend die auswhal ddynmaisch steurn was man dor tauswählne kann"
       }
     ]
+  },
+  {
+    "iteration": 4,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T18:19:00.363Z",
+    "favorite": "d1",
+    "userPins": [
+      {
+        "id": "up-mw9ku57r5y8p",
+        "design": "d1",
+        "screen": "r4-d1-s7",
+        "x": 72.8,
+        "y": 59.4,
+        "target": "button.bz-pill \"↺ Zurück auf Werk\"",
+        "text": "sehr gut auch mit dem zurück auf werk!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kuihxvt0d",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 76.6,
+        "y": 37.2,
+        "target": "button.add \"＋ Noch eine Gladius in den Hangar\"",
+        "text": "gern dieses exemplar kopieren auch und das neue exemplar aus werk nur anzeigen wenn ich gerade nicht die aus werk angeklickt habe!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kv8d7k64x",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 71.6,
+        "y": 39.6,
+        "target": "button.add \"＋ Noch eine Gladius in den Hangar\"",
+        "text": "Hangar vs wunschliste hier drin!?",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kvgp1a17e",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 74.3,
+        "y": 20.8,
+        "target": "small \"Werksausstattung · 4.10.2\"",
+        "text": "patch macht gar keinen sinn, ist immer der akutelle hier",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kvpxvvfuf",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 73,
+        "y": 25,
+        "target": "small \"1 Teil weicht vom Werk ab\"",
+        "text": "Gern eine KI zussammenfassung mit zeichenlimit welches die version repräsentiert, aktualisiert nur bei wechsel oder schließen der seite und wenn komponenten überhaupt sich änderten, weil wir ja nicht bei jeder komponenten änderung das neugenerieren wollen!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kwx1sbdij",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 70.4,
+        "y": 23.3,
+        "target": "b \"Gladius · PvP\"",
+        "text": "Name wird und muss vom SPieler festgelegt werden gern mit KI empfefhlung bei erstellung basierend auf den änderugnefalls es wwelche schon gabe, fallls nicht dann ohne empfehlung. \nAchtung, man kann in der werks seite komponenten ändern ohne das man es abspeichert als neue austattung! für fwunschliste oder hangar - das wird zwar angeboten, muss man aber nicht, weil man ja ggf. nur etwas rumklicken will ohne verbindliche wunschlisten oder hangar übernahem !",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kz23z956w",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 79.8,
+        "y": 97.6,
+        "target": "button \"▴\"",
+        "text": "diesen pfeil finde ich auch ddoof, der sollte anders eingebaut werden ggf als balken darunter ohne die breite die den 4 themen zur verfügugn ssthet zu ebeinflussen",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l04y0x8i5",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 50.1,
+        "y": 86.9,
+        "target": "div.b3-wing.b4-row \"AkteAußen3DEinfachObenSeiteFrontInnenCoc\"",
+        "text": "akte, außen, innnen, kompnenten, irgendwie ist nicht klar, was sist ein sozusagen toggle menüansicht, was sind sozusagen filter (die kompontenent) wie hängt as hierarhcisch  zusammen Akte > Ansichten > Komponenten filter",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l1em47ojb",
+        "design": "d1",
+        "screen": "r4-d1-s4",
+        "x": 49.1,
+        "y": 30.5,
+        "target": "div.b4-main \"▤ Text zeigenLackierungStandardFrostbite\"",
+        "text": "Finde spannend ddas der ganze hitnergrund eine farbe hat, aber forsche nochmal nach cigs bilder sind wirklich einfach bilder!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l21axf4py",
+        "design": "d1",
+        "screen": "r4-d1-s4",
+        "x": 64.3,
+        "y": 58.1,
+        "target": "div.b4-einb \"Rang 9 von 26 Leichten Jägern · im Mitte\"",
+        "text": "achtung hier nix weglassen was es schon gab! wie die balken z. B. Das gern aber auch als umscvhaltbarern  toggle vom hexagon wo man zwischen hexagon und balken umschalten knann.\nAußerdem fehlt mir die vergleichsauswahl..",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l2t88f85f",
+        "design": "d1",
+        "screen": "r4-d1-s4",
+        "x": 65.6,
+        "y": 22.4,
+        "target": "div.b4-einb \"Rang 9 von 26 Leichten Jägern · im Mitte\"",
+        "text": "Rang finde ich ja viel besser als die gesamtprozentzahl mega",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "Jetzt mach nochmal ein detailgetreues, info getreueus komplett website exakt wie es später aussehen würde, dafür implementier es, ship es aber noch nicht, lade dir von vc web die daten zu einem schiff, z. B. Gladius und dann mach ein devops cocnept exakt hochauflösend und exakt korrekte information detailgetreu daraus was ich reveiwewn kann",
+        "attachments": []
+      },
+      "items": [],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": []
   }
 ]
