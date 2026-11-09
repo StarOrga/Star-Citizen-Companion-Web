@@ -191,9 +191,9 @@ describe('CodexHoloStageComponent', () => {
     });
     const pins = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.pin'));
     expect(pins.length).toBe(3);
-    expect(pins.map((p) => p.querySelector('i')!.textContent!.trim())).toEqual(['1', '2', '3']);
-    expect(pins[0].textContent).toContain('Laser Cannon');
-    expect(pins[2].textContent).toContain('FR-66');
+    expect(fixture.componentInstance.pins().map((p) => p.index)).toEqual([1, 2, 3]); // the order stays; the numbers are no longer drawn (C10)
+    expect(pins[0].getAttribute('aria-label')).toContain('Laser Cannon');
+    expect(pins[2].getAttribute('aria-label')).toContain('FR-66');
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('controller_fuel');
   });
 
