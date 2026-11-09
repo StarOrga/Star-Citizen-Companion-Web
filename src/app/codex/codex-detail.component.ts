@@ -810,6 +810,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (reverted)="onRevertPaths($event)"
             [readOnly]="draftReadOnly()"
             [savedPorts]="draftSavedPaths()"
+            [autosaving]="draftStore.autosave()"
             [sharedBanner]="sharedDraft()"
             [adoptingShared]="adoptingShared()"
             (adoptShared)="adoptSharedDraft()"
@@ -1688,7 +1689,7 @@ export class CodexDetailComponent implements OnInit {
   private readonly shipLinks = inject(ShipLinkService);
   private readonly auth = inject(AuthService);
   private readonly uexShop = inject(UexShopService);
-  private readonly draftStore = inject(CodexLoadoutDraftStore);
+  protected readonly draftStore = inject(CodexLoadoutDraftStore);
   private readonly sharedAdopter = inject(SharedLoadoutAdopter);
 
   readonly detail = signal<CodexDetail | null>(null);

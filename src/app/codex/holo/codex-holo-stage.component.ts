@@ -1177,6 +1177,8 @@ export class CodexHoloStageComponent {
   readonly readOnly = input(false);
   /** Draft paths already stored in the hangar config (e.g. after `?config=`). */
   readonly savedPorts = input<ReadonlySet<string>>(new Set());
+  /** Own exemplar with autosave on: the store shows its own "Gespeichert" toast, so no undo toast here. */
+  readonly autosaving = input(false);
   readonly sharedBanner = input<HoloSharedBanner | null>(null);
   readonly adoptingShared = input(false);
   readonly adoptShared = output<void>();
@@ -1834,7 +1836,7 @@ export class CodexHoloStageComponent {
       seenPorts = nowPorts;
       // A shared link's loadout, or a config that was just put on the table,
       // is not an edit of the reader's — nothing to undo.
-      if (added && !untracked(this.readOnly) && !untracked(this.savedPorts).has(added.port)) {
+      if (added && !untracked(this.readOnly) && !untracked(this.autosaving) && !untracked(this.savedPorts).has(added.port)) {
         this.undoToast.set(added);
         if (toastTimer) clearTimeout(toastTimer);
         toastTimer = setTimeout(() => this.undoToast.set(null), UNDO_TOAST_MS);
