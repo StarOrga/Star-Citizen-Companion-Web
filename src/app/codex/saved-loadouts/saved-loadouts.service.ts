@@ -39,10 +39,14 @@ export class SavedLoadoutsService {
 
   /** The layouts of one ship in the order they were created (the "Layout 1/2/…" switch). */
   layoutsOf(shipClassName: string): SavedLoadout[] {
+    // The list is kept newest-first, so within one millisecond the later
+    // position is the older layout.
     return this.state()
-      .filter((l) => l.shipClassName === shipClassName)
-      .slice()
-      .sort((a, b) => (a.createdAt ?? a.savedAt).localeCompare(b.createdAt ?? b.savedAt));
+      .map((l, i) => ({ l, i }))
+      .filter(({ l }) => l.shipClassName === shipClassName)
+      .sort((a, b) =>
+        (a.l.createdAt ?? a.l.savedAt).localeCompare(b.l.createdAt ?? b.l.savedAt) || b.i - a.i)
+      .map(({ l }) => l);
   }
 
   /** The saved loadouts of one ship, newest first. */
