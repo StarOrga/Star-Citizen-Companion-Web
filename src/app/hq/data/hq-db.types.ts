@@ -28,6 +28,8 @@ export interface HqSupplyRow {
   source: 'manual' | 'set' | 'search' | 'live';
   /** Migration 20261109000200: pick-up line over several places (route order = array order); null = an ordinary line. */
   gather?: HqGatherStop[] | null;
+  /** Migration 20261109000600: minimum quality 1..1000 the supply must meet; null = any. */
+  min_quality?: number | null;
   /** Exact quantity in `unit` (0.36 SCU); null = whole pieces in `qty`. Column from migration 20261106170000. */
   amount?: number | null;
   unit?: 'pcs' | 'scu' | null;

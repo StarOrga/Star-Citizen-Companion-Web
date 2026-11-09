@@ -56,6 +56,8 @@ export interface SupplyItem {
    * order is the route); each stop is ticked on its own. null = an ordinary line.
    */
   readonly gather?: readonly HqGatherStop[] | null;
+  /** Minimum quality 1..1000 the supply must meet ("Eisen Q ≥ 700", migration 20261109000600); null = any quality. */
+  readonly minQuality?: number | null;
   /** Client edit time (ISO) - the LWW key. */
   readonly updatedAt: string;
   /** Tombstone (ISO) while a deletion is on its way to the server; never listed in `items`. */
@@ -80,6 +82,8 @@ export interface SupplyMeta {
   packageId?: string | null;
   /** Makes it a gather line over these places (`stepKind` becomes `pickup`); merged into an open gather line of the same item. */
   gather?: readonly HqGatherStop[] | null;
+  /** Minimum quality 1..1000; on a merge into an open line of the same item the stricter value wins. */
+  minQuality?: number | null;
 }
 
 /** What {@link HqSuppliesService.addLine} changed: the line and its quantities before (0 / null = new). */
@@ -211,6 +215,7 @@ export class HqSuppliesService {
     const forClassName = meta.forClassName?.trim() || null;
     const packageId = meta.packageId ?? null;
     const gather = meta.gather?.length ? parseGather(meta.gather) : null;
+    const minQuality = parseMinQuality(meta.minQuality);
     // Same name (case-insensitive), same set, same origin (a blueprint's own material or a line of its
     // own), same kind of quantity and still open: raise its quantity like a cart does.
     const same = this.items().find(
@@ -227,6 +232,7 @@ export class HqSuppliesService {
         qty: clampQty(same.qty + q),
         amount: same.amount !== null && amount !== null ? roundAmount(same.amount + amount) : same.amount,
         ...(gather ? { gather: mergeGather(same.gather, gather), stepKind: 'pickup' as StepKind } : {}),
+        ...(minQuality !== null ? { minQuality: Math.max(minQuality, same.minQuality ?? 0) } : {}),
       });
       return { id: same.id, prevQty: same.qty, prevAmount: same.amount };
     }
@@ -249,6 +255,7 @@ export class HqSuppliesService {
         forClassName,
         packageId,
         gather,
+        minQuality,
         updatedAt: nowIso(),
         deletedAt: null,
         dirty: true,
@@ -256,6 +263,12 @@ export class HqSuppliesService {
       this.commit([...this.rows(), row]);
       return { id: row.id, prevQty: 0, prevAmount: null };
     }
+  }
+
+  /** Sets or clears (null) the minimum quality of a line. */
+  setMinQuality(id: string, quality: number | null): void {
+    if (!this.items().some((x) => x.id === id)) return;
+    this.patch(id, { minQuality: parseMinQuality(quality) });
   }
 
   /** Replaces a gather line's stops (reorder, edit amounts); the line closes by itself when every stop is ticked. */
@@ -587,6 +600,13 @@ function withQty(i: SupplyItem, qty: number): Partial<SupplyItem> {
   return { qty, amount: roundAmount((i.amount / i.qty) * qty) };
 }
 
+/** A whole quality 1..1000 or null (the minimum a supply line must meet, e.g. "Eisen Q ≥ 700"). */
+export function parseMinQuality(v: unknown): number | null {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) && n >= 1 && n <= 1000 ? n : null;
+}
+
 /** Adds the places of `add` to an existing gather: same place = amounts add up, new places go to the end by amount. */
 function mergeGather(have: readonly HqGatherStop[] | null | undefined, add: readonly HqGatherStop[]): HqGatherStop[] {
   const out = [...(have ?? [])];
@@ -622,6 +642,7 @@ function toRow(i: SupplyItem, uid: string): Partial<HqSupplyRow> {
     ...(i.forClassName ? { for_class_name: i.forClassName } : {}),
     ...(i.packageId ? { package_id: i.packageId } : {}),
     ...(i.gather?.length ? { gather: [...i.gather] } : {}),
+    ...(i.minQuality ? { min_quality: i.minQuality } : {}),
     deleted_at: i.deletedAt,
     updated_at: i.updatedAt,
   };
@@ -644,6 +665,7 @@ function fromRow(r: HqSupplyRow): SupplyItem {
     forClassName: r.for_class_name?.trim() || null,
     packageId: r.package_id ?? null,
     gather: parseGather(r.gather),
+    minQuality: parseMinQuality(r.min_quality),
     updatedAt: r.updated_at,
     deletedAt: r.deleted_at,
     dirty: false,
@@ -708,6 +730,7 @@ function sanitize(r: unknown, keepSync: boolean): SupplyItem | null {
     forClassName: str('forClassName'),
     packageId: str('packageId'),
     gather: parseGather(o['gather']),
+    minQuality: parseMinQuality(o['minQuality']),
     updatedAt: str('updatedAt') ?? nowIso(),
     deletedAt: keepSync ? str('deletedAt') : null,
     dirty: keepSync ? o['dirty'] === true : false,

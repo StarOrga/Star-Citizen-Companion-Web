@@ -1,4 +1,3 @@
-import { NachschubMinQualityStore } from './nachschub-min-quality';
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { humanizeClassName } from '../../codex/codex-format';
@@ -116,7 +115,6 @@ export class NachschubService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly supplies = inject(HqSuppliesService);
-  private readonly minQuality = inject(NachschubMinQualityStore);
   private readonly wish = inject(WishlistStore);
   private readonly inventory = inject(HqInventoryService);
   private readonly hangar = inject(HangarService);
@@ -513,13 +511,13 @@ export class NachschubService {
         source: 'search',
         ...(scu ? { amount: l.amount, unit: 'scu' as const } : {}),
         ...(stops ? { gather: stops, stepKind: 'pickup' as const } : {}),
+        ...(l.minQuality ? { minQuality: l.minQuality } : {}),
       });
       if (!line) {
         skipped++;
         continue;
       }
       added.push(line);
-      if (l.minQuality) this.minQuality.set(line.id, l.minQuality);
       if (line.prevQty === 0 && stock) snapshot[line.id] = this.ownedOf({ ship: false, className: l.className ?? '' });
     }
     if (!added.length) return fail('hq.nachschub.linesFull');

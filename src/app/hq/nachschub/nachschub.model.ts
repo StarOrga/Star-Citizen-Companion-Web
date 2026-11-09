@@ -73,7 +73,7 @@ export interface NachschubLineInput {
   readonly unit: 'pcs' | 'scu';
   /** Where it is picked up, in route order. Empty/absent = a plain line without a place. */
   readonly stops?: readonly HqGatherStop[];
-  /** Minimum quality 1..1000 the supply must meet ("Eisen Q ≥ 700", I15); kept per line by `NachschubMinQualityStore`. */
+  /** Minimum quality 1..1000 the supply must meet ("Eisen Q ≥ 700", I15); stored on the line (hq_supplies.min_quality). */
   readonly minQuality?: number;
 }
 
