@@ -3,7 +3,7 @@ import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { humanizeClassName } from '../../codex/codex-format';
@@ -146,10 +146,12 @@ type Cell =
       <div #grid class="grid" [class.paged]="true" [attr.aria-label]="'hq.bestand.tab.' + tab() | translate" role="list">
         @for (c of pageCells(); track cellKey(c)) {
           @if (c.kind === 'add') {
-              <button type="button" class="tile add" role="listitem" [attr.aria-label]="addLabel() | translate" (click)="add()">
-                <span class="plus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></span>
-                <span class="add-t">{{ addLabel() | translate }}</span>
-              </button>
+              <div class="cell" role="listitem">
+                <button type="button" class="tile add" [attr.aria-label]="addLabel() | translate" (click)="add()">
+                  <span class="plus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></span>
+                  <span class="add-t">{{ addLabel() | translate }}</span>
+                </button>
+              </div>
           } @else if (c.kind === 'item') {
               <div class="tile item" role="listitem" [class.focus]="focusKey() === c.tile.key">
                 <b class="nm" [scTooltip]="c.tile.name" scTooltipTier="label">{{ c.tile.name }}</b>
@@ -267,6 +269,7 @@ type Cell =
       .used-pop .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
       .used-pop small { color: var(--sc-fg-2); white-space: nowrap; }
       .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: 104px; gap: 10px; align-content: start; overflow: hidden; }
+      .cell { display: contents; }
       .tile { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--sc-border); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 5%, var(--sc-bg-1)), var(--sc-bg-1)); color: var(--sc-fg); text-decoration: none; font: inherit; text-align: start; transition: border-color 0.2s, transform 0.2s; }
       a.tile:hover, .tile.add:hover { border-color: var(--sc-accent); transform: translateY(-1px); }
       .tile.add { align-items: center; justify-content: center; border-style: dashed; border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); cursor: pointer; }
@@ -320,6 +323,7 @@ export class HqStockComponent implements OnInit {
   private readonly edge = inject(NachschubEdgeService);
   private readonly confirm = inject(ScConfirmService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly gridRef = viewChild<ElementRef<HTMLElement>>('grid');
 
   protected readonly shipTitle = humanizeClassName;
@@ -462,6 +466,13 @@ export class HqStockComponent implements OnInit {
   protected setTab(t: HqStockTab): void {
     this.tab.set(t);
     this.menuOpen.set(false);
+    // Mirror the tab into the URL so a reload or a shared link reopens it (no history entry; the fragment stays).
+    void this.router.navigate([], {
+      queryParams: { [HQ_STOCK_TAB_PARAM]: t, [HQ_STOCK_CAT_PARAM]: null, [HQ_STOCK_FOCUS_PARAM]: null },
+      queryParamsHandling: 'merge',
+      preserveFragment: true,
+      replaceUrl: true,
+    });
   }
 
   protected setCat(c: StockCategory | null): void {

@@ -153,8 +153,8 @@ const OPEN = ['M14 5h5v5M19 5l-8 8M17 14v5H5V7h5'] as const;
             <span class="full-hint" role="status">{{ 'cart.slotsFullHint' | translate }}</span>
           }
           <button type="button" scAction tier="secondary" [disabled]="picks().size === 0" (click)="picks.set(emptyPicks)"><span>{{ 'cart.clear' | translate }}</span></button>
-          <a scAction tier="primary" class="go" [class.off]="picks().size === 0" [attr.aria-disabled]="picks().size === 0 ? 'true' : null"
-             [routerLink]="['/hq']" [fragment]="'planen'" [queryParams]="pickParams()" (click)="onGo($event)">
+          <a scAction tier="primary" class="go" [class.off]="picks().size === 0" [attr.aria-disabled]="picks().size === 0 ? 'true' : null" [attr.role]="picks().size === 0 ? 'link' : null"
+             [routerLink]="picks().size === 0 ? null : ['/hq']" [fragment]="'planen'" [queryParams]="pickParams()" (click)="onGo($event)">
             <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true">@for (d of nachschubPath; track $index) { <path [attr.d]="d" /> }</svg>
             <span>{{ (ns.newBlock() ? 'cart.toExisting' : 'cart.toNachschub') | translate }}</span>
           </a>

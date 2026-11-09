@@ -2,6 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { logWarn } from '../core/log';
 import { CARD_PAYLOAD_KEYS, CodexKind, CodexListRow, CodexService } from './codex.service';
+import { CodexBuild } from './codex.types';
+import { DIFF_LOOKBACK, diffPair } from './codex-diff-pair';
+
+export { DIFF_LOOKBACK, diffPair } from './codex-diff-pair';
 
 /** PostgREST answers at most this many rows per request (project max_rows). */
 export const BUILD_DIFF_PAGE_SIZE = 1000;
@@ -57,6 +61,7 @@ export class CodexBuildDiffService {
   private readonly codex = inject(CodexService);
   private memo: { buildId: string | null; rows: Promise<CodexListRow[]> } | null = null;
   private namesMemo = new Map<string, Promise<string[]>>();
+  private pairMemo: { buildId: string | null; pair: Promise<[CodexBuild, CodexBuild] | null> } | null = null;
   /** Set once the RPC answered "not found" — later diffs skip straight to the paged path. */
   private rpcMissing = false;
 
@@ -105,15 +110,29 @@ export class CodexBuildDiffService {
     return hit;
   }
 
+  /** The current build and its diff baseline ({@link diffPair}), read once per current build. */
+  private pair(): Promise<[CodexBuild, CodexBuild] | null> {
+    const buildId = this.codex.build()?.id ?? null;
+    if (this.pairMemo?.buildId !== buildId || !this.pairMemo) {
+      const pair = this.codex.recentLiveBuilds(DIFF_LOOKBACK).then(diffPair);
+      this.pairMemo = { buildId, pair };
+      // recentLiveBuilds answers a failed read with []: no pair is not remembered, the next diff reads again.
+      void pair.then((p) => {
+        if (!p && this.pairMemo?.pair === pair) this.pairMemo = null;
+      });
+    }
+    return this.pairMemo.pair;
+  }
+
   private async changedClassNames(kind: CodexKind): Promise<string[]> {
     if (!NEW_SORT_KINDS.includes(kind)) return [];
     try {
-      const builds = await this.codex.recentLiveBuilds(2);
-      if (builds.length < 2) return [];
+      const pair = await this.pair();
+      if (!pair) return [];
       const { data, error } = await this.sb.client.rpc('codex_changed_class_names', {
         p_kind: kind,
-        p_current: builds[0].id,
-        p_previous: builds[1].id,
+        p_current: pair[0].id,
+        p_previous: pair[1].id,
       });
       if (error) throw error;
       return ((data ?? []) as string[]).filter((cn) => !!cn);
@@ -127,11 +146,11 @@ export class CodexBuildDiffService {
     const table = DIFF_TABLE[kind as keyof typeof DIFF_TABLE];
     if (!table) return [];
     try {
-      const builds = await this.codex.recentLiveBuilds(2);
-      if (builds.length < 2) return [];
-      const viaRpc = await this.addedViaRpc(kind, builds[0].id, builds[1].id);
+      const pair = await this.pair();
+      if (!pair) return [];
+      const viaRpc = await this.addedViaRpc(kind, pair[0].id, pair[1].id);
       if (viaRpc) return viaRpc;
-      const [cur, prev] = await Promise.all([this.classNames(table, builds[0].id), this.classNames(table, builds[1].id)]);
+      const [cur, prev] = await Promise.all([this.classNames(table, pair[0].id), this.classNames(table, pair[1].id)]);
       return addedClassNames(cur, prev);
     } catch (error) {
       logWarn('codex', `build diff (added ${kind}) failed`, error);
@@ -186,9 +205,9 @@ export class CodexBuildDiffService {
   /** Ships new in the current LIVE build, as list rows of the current build. */
   async addedShips(limit = ADDED_SHIPS_LIMIT): Promise<CodexListRow[]> {
     try {
-      const builds = await this.codex.recentLiveBuilds(2);
-      if (builds.length < 2) return [];
-      const [current, previous] = builds;
+      const pair = await this.pair();
+      if (!pair) return [];
+      const [current, previous] = pair;
       let added = await this.addedViaRpc('ship', current.id, previous.id);
       if (!added) {
         const [cur, prev] = await Promise.all([

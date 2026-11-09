@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { NotFoundComponent } from '../../shared/not-found/not-found.component';
+import type { PageCrumb } from '../../shared/page-header/nav-origin.service';
 import { LightboxComponent } from '../../shared/lightbox/lightbox.component';
 import { OverlayNeighbour } from '../../shared/overlay-frame/overlay-frame.component';
 import { OverlayOriginService } from '../../shared/overlay-frame/overlay-origin.service';
@@ -16,7 +19,7 @@ import { StarscapeVotesService } from '../../starscape/starscape-votes.service';
 @Component({
   selector: 'sc-verse-gallery-item',
   standalone: true,
-  imports: [TranslatePipe, LightboxComponent, ShareButtonComponent, StarscapeVoteButtonComponent],
+  imports: [TranslatePipe, NotFoundComponent, ScActionDirective, LightboxComponent, ShareButtonComponent, StarscapeVoteButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (wallpaper(); as w) {
@@ -26,14 +29,19 @@ import { StarscapeVotesService } from '../../starscape/starscape-votes.service';
       </sc-lightbox>
       <!-- The takeover covers the floating share button; it belongs to the page mode. -->
       @if (!overlaid()) { <sc-share-button [shareTitle]="w.title ?? 'Starscape'" /> }
+    } @else if (failed()) {
+      <div class="sc-card err" role="alert">
+        <span>{{ 'overlay.gallery.loadFailed' | translate }}</span>
+        <button scAction tier="secondary" type="button" (click)="retry()">{{ 'errors.retry' | translate }}</button>
+      </div>
     } @else if (missing()) {
-      <p class="miss" role="status">{{ 'overlay.gallery.missing' | translate }}</p>
+      <sc-not-found titleKey="overlay.gallery.notFoundTitle" bodyKey="overlay.gallery.missing" [back]="galleryCrumb" [level]="overlaid() ? 2 : 1" />
     }
   `,
   // overlay-size: exception — the image drives the size (sc-lightbox, centred both ways)
   styles: [`
     :host { display: block; }
-    .miss { color: var(--sc-fg-2); }
+    .err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   `],
 })
 export class VerseGalleryItemComponent {
@@ -46,6 +54,9 @@ export class VerseGalleryItemComponent {
 
   private readonly fetched = signal<Wallpaper | null>(null);
   protected readonly missing = signal(false);
+  protected readonly failed = signal(false);
+  private readonly retryTick = signal(0);
+  protected readonly galleryCrumb: PageCrumb = { labelKey: 'verse.area.gallery', link: '/verse/gallery' };
   protected readonly overlaid = this.origin.overlaid;
 
   protected readonly wallpaper = computed(
@@ -64,10 +75,14 @@ export class VerseGalleryItemComponent {
     // The image is often not on the first grid page (shared link): fetch it by id.
     effect(() => {
       const id = this.imageId();
+      this.retryTick();
       if (untracked(() => this.svc.wallpapers().some((w) => w.imageId === id))) return;
       this.missing.set(false);
-      void this.svc.loadOne(id).then((w) => {
-        this.fetched.set(w);
+      this.failed.set(false);
+      void this.svc.fetchOne(id).then((w) => {
+        if (id !== untracked(() => this.imageId())) return;
+        this.failed.set(w === 'error');
+        this.fetched.set(w === 'error' ? null : w);
         this.missing.set(!w);
       });
     });
@@ -78,6 +93,10 @@ export class VerseGalleryItemComponent {
     const i = list.findIndex((w) => w.imageId === this.imageId());
     const n = i < 0 ? undefined : list[i + step];
     return n ? { commands: ['/verse/gallery', n.imageId] } : null;
+  }
+
+  protected retry(): void {
+    this.retryTick.update((n) => n + 1);
   }
 
   protected close(): void {

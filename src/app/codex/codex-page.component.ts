@@ -39,10 +39,12 @@ export function codexPartUrl(part: CodexPart, search: string): string {
   template: `
     <div class="stage">
       <sc-codex-landing />
-      <button type="button" class="cx-more-cue" [class.gone]="part() === 'docked'" [attr.aria-hidden]="part() === 'docked' ? 'true' : null"
-              [attr.tabindex]="part() === 'docked' ? -1 : null" (click)="toMore()">
-        {{ 'codex.page.more' | translate }}<span class="chev" aria-hidden="true"></span>
-      </button>
+      <div class="cue-lane">
+        <button type="button" class="cx-more-cue" [class.gone]="part() === 'docked'" [attr.aria-hidden]="part() === 'docked' ? 'true' : null"
+                [attr.tabindex]="part() === 'docked' ? -1 : null" (click)="toMore()">
+          {{ 'codex.page.more' | translate }}<span class="chev" aria-hidden="true"></span>
+        </button>
+      </div>
     </div>
     <section #more [id]="anchor" class="more sc-below-stage" [attr.aria-label]="'codex.page.moreAria' | translate">
       <sc-codex-browse [headingLevel]="2" />
@@ -55,16 +57,34 @@ export function codexPartUrl(part: CodexPart, search: string): string {
       :host { display: block; overflow-anchor: none; }
       .stage { position: relative; min-height: 100dvh; }
       .more { scroll-margin-top: calc(var(--sc-bar-h, 56px) + 16px); min-height: calc(100dvh - var(--sc-bar-h, 56px) - 16px); }
-      /* "Mehr in Codex": the way down to the overview — the Verse cue (verse-briefing-planet.scss). */
+      /*
+       * "Mehr in Codex": the way down to the overview — the Verse cue to the pixel
+       * (verse-briefing-planet.scss .more-cue + the chevron mixin of _briefing-worlds.scss).
+       * The Verse stage is one viewport (max(520px, 100dvh minus the chrome above it)) and a
+       * size container; its cue sits max(12px, 1.4cqw) above the stage's bottom and scales
+       * with the stage width. This lane rebuilds that stage box over the Codex stage, which
+       * itself may grow taller than the viewport: same width, same height, same container.
+       */
+      .cue-lane {
+        position: absolute; inset: 0 0 auto; z-index: 6; pointer-events: none;
+        height: max(520px, calc(100vh - var(--cx-chrome, 94px)));
+        height: max(520px, calc(100dvh - var(--cx-chrome, 94px)));
+        container-type: inline-size;
+      }
       .cx-more-cue {
-        position: absolute; z-index: 6; left: 50%; bottom: calc(var(--sc-footer-h, 80px) + 44px); translate: -50% 0;
+        --cs: max(9px, 0.7cqw);
+        position: absolute; left: 50%; bottom: max(12px, 1.4cqw); translate: -50% 0; pointer-events: auto;
         display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 44px; padding: 4px 12px;
         border: 0; background: none; cursor: pointer;
-        font: 500 max(11px, 0.7rem) / 1.3 var(--sc-font-body); letter-spacing: 0.24em; text-transform: uppercase; color: var(--sc-fg-1);
+        font: 500 max(11px, 0.66cqw) / 1.3 var(--sc-font-body); letter-spacing: 0.24em; text-transform: uppercase; color: var(--sc-fg-1);
         opacity: clamp(0, 1 - var(--dock, 0) * 2.5, 1); transition: opacity 0.4s ease, visibility 0s;
       }
       .cx-more-cue.gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.4s ease, visibility 0s 0.4s; }
-      .chev { width: 9px; height: 9px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; rotate: 45deg; margin-top: -3px; transition: color 0.15s ease; }
+      .chev {
+        display: inline-block; flex: none; width: var(--cs, 9px); height: var(--cs, 9px);
+        border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; color: var(--sc-fg-1);
+        transform: rotate(45deg); transition: color 0.2s, opacity 0.25s;
+      }
       .cx-more-cue:hover .chev, .cx-more-cue:focus-visible .chev { color: var(--sc-accent); }
       .cx-more-cue:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 6px; }
       @media (max-width: 900px) { .cx-more-cue { display: none; } }
@@ -89,6 +109,31 @@ export class CodexPageComponent {
 
   constructor() {
     const destroy = inject(DestroyRef);
+    // The cue's stage box is one viewport minus the chrome above the page (topbar height
+    // differs per width, banners come and go) — measured as the Verse briefing does it
+    // and published as --cx-chrome on the host.
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const measure = (): void => {
+      // Layout offsets, not getBoundingClientRect: the route reveal moves the page with a transform.
+      let top = 0;
+      for (let el: HTMLElement | null = host; el; el = el.offsetParent as HTMLElement | null) top += el.offsetTop;
+      host.style.setProperty('--cx-chrome', `${Math.ceil(top)}px`);
+    };
+    afterNextRender(() => this.zone.runOutsideAngular(() => {
+      measure();
+      let frame = 0;
+      const later = (): void => {
+        if (!frame) frame = requestAnimationFrame(() => ((frame = 0), measure()));
+      };
+      const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(later);
+      ro?.observe(document.body);
+      window.addEventListener('resize', measure);
+      destroy.onDestroy(() => {
+        ro?.disconnect();
+        cancelAnimationFrame(frame);
+        window.removeEventListener('resize', measure);
+      });
+    }));
     afterNextRender(() => {
       const g = wirePageGlide(() => this.lower().nativeElement, this.zone, (st) => {
         this.part.set(st);

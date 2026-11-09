@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -201,15 +201,49 @@ export class HqPlanComponent {
   }
 
   protected askRemove(id: string, kind: 'remove' | 'empty'): void {
+    this.removeSlot = this.slotIndexOf(document.activeElement);
     this.removing.set({ id, kind });
+  }
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  /** Board position of the Nachschub being deleted; the slots are keyed by position, so the next one moves into it. */
+  private removeSlot = -1;
+
+  private boardSlots(): HTMLElement[] {
+    return [...this.host.nativeElement.querySelectorAll<HTMLElement>('.board > li.slot:not(.ghost)')];
+  }
+
+  private slotIndexOf(from: Element | null): number {
+    const slots = this.boardSlots();
+    const own = from?.closest('li.slot');
+    const at = own ? slots.indexOf(own as HTMLElement) : -1;
+    return at >= 0 ? at : slots.findIndex((li) => li.classList.contains('on'));
+  }
+
+  /**
+   * After a delete the trash button of the next Nachschub sits where the clicked one was (or the focus is gone with it):
+   * move focus to a safe control instead - the main button of the Nachschub now in that place, else the one before it,
+   * else the "+" of the free slot. Never onto a delete button.
+   */
+  private focusAfterRemove(at: number): void {
+    const active = document.activeElement;
+    const lost = !active || active === document.body || !!active.closest('.board .del');
+    if (!lost) return;
+    const slots = this.boardSlots();
+    const hitOf = (i: number) => (i >= 0 && slots[i]?.querySelector('.del') ? slots[i].querySelector<HTMLElement>('.hit') : null);
+    const target = hitOf(at) ?? hitOf(at - 1) ?? slots.find((li) => li.classList.contains('free'))?.querySelector<HTMLElement>('.hit') ?? null;
+    target?.focus({ preventScroll: true });
   }
 
   protected async doRemove(back: boolean): Promise<void> {
     const r = this.removing();
     this.removing.set(null);
     if (!r) return;
+    const at = this.removeSlot;
     const res = r.kind === 'remove' ? await this.ns.remove(r.id, back) : await this.ns.empty(r.id, back);
     this.announce(res);
+    // Two frames: the dialog hands focus back to its opener in one, the board re-renders in the meantime.
+    if (res.ok) requestAnimationFrame(() => requestAnimationFrame(() => this.focusAfterRemove(at)));
   }
 
   protected async reactivate(id: string): Promise<void> {
