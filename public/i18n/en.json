@@ -1196,7 +1196,13 @@
         "wishAgain": "Wish for another",
         "nameTitle": "Exemplar name",
         "nameLabel": "Name",
-        "nameSuggested": "Suggestion: “{{name}}” — take it or enter your own name."
+        "nameSuggested": "Suggestion: “{{name}}” — take it or enter your own name.",
+        "autosavedOne": "Saved · 1 change",
+        "autosavedMany": "Saved · {{n}} changes",
+        "wishWithOne": "with 1 swapped part",
+        "wishWithMany": "with {{n}} swapped parts",
+        "wishName": "Wish: {{name}}",
+        "wishLoadoutUnavailable": "On the wishlist — its loadout cannot be stored there yet."
       },
       "partType": {
         "gatling": "Gatling",

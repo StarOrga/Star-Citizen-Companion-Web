@@ -107,8 +107,29 @@ export interface HangarExemplar {
             @if (wishQty() > 0) {
               <p class="note" role="presentation">{{ 'codex.ownCard.wished' | translate: { n: wishQty() } }}</p>
             }
+            <!-- A wish that carries a loadout (D1): opened like an exemplar, its parts become the draft. -->
+            @for (w of wishes(); track w.id) {
+              <a role="menuitemradio" class="row wish" [class.on]="activeId() === w.id" [attr.aria-checked]="activeId() === w.id"
+                 [routerLink]="w.link.commands" [queryParams]="w.link.queryParams" (click)="open.set(false)">
+                <i class="radio" aria-hidden="true"></i>
+                <span class="txt">
+                  <b>{{ w.name }}</b>
+                  <small class="diff">
+                    @if (w.diffCount > 0) {
+                      <sc-holo-diff-marker />
+                      {{ (w.diffCount === 1 ? 'codex.holo.hangar.diffOne' : 'codex.holo.hangar.diffMany') | translate: { n: w.diffCount } }}
+                    } @else {
+                      {{ 'codex.holo.hangar.diffNone' | translate }}
+                    }
+                  </small>
+                </span>
+              </a>
+            }
             <button type="button" role="menuitem" class="add" [disabled]="busy()" (click)="fire(addWish, null)">
-              ♡ {{ (wishQty() > 0 ? 'codex.holo.hangar.wishAgain' : 'codex.holo.hangar.toWishlist') | translate }}</button>
+              ♡ {{ (wishQty() > 0 ? 'codex.holo.hangar.wishAgain' : 'codex.holo.hangar.toWishlist') | translate }}
+              @if (activeId() === null && werkChanged() > 0) {
+                <small class="with">{{ (werkChanged() === 1 ? 'codex.holo.hangar.wishWithOne' : 'codex.holo.hangar.wishWithMany') | translate: { n: werkChanged() } }}</small>
+              }</button>
           } @else {
             <hr />
             <a role="menuitem" class="go" routerLink="/login" (click)="open.set(false)">{{ 'codex.ownCard.signIn' | translate }} <span aria-hidden="true">›</span></a>
@@ -157,6 +178,7 @@ export interface HangarExemplar {
     .add { color: var(--sc-fg-0); }
     .add:disabled { opacity: 0.45; cursor: not-allowed; }
     .go { color: var(--sc-accent); }
+    .add .with { margin-inline-start: auto; align-self: center; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .note { margin: 0; padding: 0 10px; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .err { margin: 4px 10px 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-danger); }
     @media (pointer: coarse) { .hb { height: 48px; border-radius: 24px; } .row, .add, .go, .act { min-height: 48px; align-items: center; } }
@@ -172,6 +194,8 @@ export class CodexHoloHangarMenuComponent {
   readonly wishQty = input(0);
   readonly signedIn = input(false);
   readonly exemplars = input<readonly HangarExemplar[]>([]);
+  /** Wishes of this hull that carry a loadout (`is_wish` configs, D1), listed under Wunschliste. */
+  readonly wishes = input<readonly HangarExemplar[]>([]);
   /** The exemplar on the table; null = Werk. */
   readonly activeId = input<string | null>(null);
   readonly werkLink = input<HangarMenuLink>({ commands: [], queryParams: {} });
@@ -197,7 +221,7 @@ export class CodexHoloHangarMenuComponent {
   readonly open = signal(false);
   protected readonly active = computed(() => {
     const id = this.activeId();
-    return id ? (this.exemplars().find((e) => e.id === id) ?? null) : null;
+    return id ? (this.exemplars().find((e) => e.id === id) ?? this.wishes().find((w) => w.id === id) ?? null) : null;
   });
   protected readonly shownName = computed(() => this.active()?.name ?? null);
   protected readonly shownDiff = computed(() => this.active()?.diffCount ?? null);

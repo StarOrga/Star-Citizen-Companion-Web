@@ -841,6 +841,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [wishQty]="hangarWishQty()"
               [signedIn]="!!currentUserId()"
               [exemplars]="hangarExemplars()"
+              [wishes]="hangarWishes()"
               [activeId]="activeVariantId()"
               [werkLink]="werkLink()"
               [hangarLink]="hangarMenuLink()"
@@ -2381,7 +2382,7 @@ export class CodexDetailComponent implements OnInit {
     const out: ExemplarPartChange[] = [];
     for (const entry of loadout) {
       const port = entry.portName.toLowerCase();
-      const from = stock.get(port) ?? stock.get(port.split(/[/.>]/).pop() ?? port) ?? '';
+      const from = stock.get(port) ?? stock.get(port.replace(/\./g, '/')) ?? stock.get(port.split(/[/.>]/).pop() ?? port) ?? '';
       if (from === (entry.className ?? '').toLowerCase()) continue;
       out.push({ slot: entry.portName, from: label(from), to: label(entry.className) });
     }
@@ -2394,12 +2395,15 @@ export class CodexDetailComponent implements OnInit {
     return this.shellBeta() ? hqShipLink(hangarShipId, configId) : personalShipLink(slug, configId);
   }
 
-  readonly hangarExemplars = computed<HangarExemplar[]>(() => {
+  readonly hangarExemplars = computed<HangarExemplar[]>(() => this.menuConfigs(false));
+  /** Wishes of this hull that carry a loadout (`is_wish` configs, D1) — listed under Wunschliste, opened like an exemplar. */
+  readonly hangarWishes = computed<HangarExemplar[]>(() => this.menuConfigs(true));
+  private menuConfigs(wishes: boolean): HangarExemplar[] {
     const summaries = this.exemplarSummaries();
     const out: HangarExemplar[] = [];
     for (const ref of this.myVariants()) {
       const cfg = this.ownershipSvc.configById(ref.id);
-      if (!cfg) continue;
+      if (!cfg || !!cfg.isWish !== wishes) continue;
       out.push({
         id: ref.id,
         name: ref.name,
@@ -2409,7 +2413,7 @@ export class CodexDetailComponent implements OnInit {
       });
     }
     return out;
-  });
+  }
   /** "Werk": the HQ page without a variant, or the Codex page itself. */
   readonly werkLink = computed<HangarMenuLink>(() => {
     const id = this.hostShipId();
@@ -2568,11 +2572,38 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (!d) return;
     const s = this.ownState();
-    await this.runPath(() =>
-      s?.wished
-        ? this.itemPath.setWishQty('ship', d.classNameSlug, this.displayName(), s.wishQty + 1)
-        : this.itemPath.addWish('ship', d.classNameSlug, this.displayName()),
-    );
+    // A swapped Werk goes onto the wishlist WITH its swaps (D1); an exemplar or an untouched Werk is the hull alone.
+    const loadout = this.activeVariantId() === null ? this.draftStore.draftAsLoadout() : [];
+    await this.runPath(async () => {
+      const res = s?.wished
+        ? await this.itemPath.setWishQty('ship', d.classNameSlug, this.displayName(), s.wishQty + 1)
+        : await this.itemPath.addWish('ship', d.classNameSlug, this.displayName());
+      if (!res.ok || loadout.length === 0) return res;
+      return this.attachWishLoadout(d.classNameSlug, loadout, res);
+    });
+  }
+
+  /** The wish was written; now its loadout as an `is_wish` config on the hull's hangar row. The hull wish stands either way. */
+  private async attachWishLoadout(slug: string, loadout: ConfigLoadoutEntry[], res: PathResult): Promise<PathResult> {
+    const ship = this.hangar.shipByClassName(slug);
+    if (!ship) return res;
+    const name = this.t.instant('codex.holo.hangar.wishName', { name: this.displayName() }) as string;
+    const { config, columnMissing } = await this.hangar.createWishConfig(ship.id, name, loadout);
+    if (!config) {
+      // The database cannot keep a wish's loadout yet (migration not pushed) or the write failed: say so, never silently.
+      this.menuError.set(columnMissing ? 'codex.holo.hangar.wishLoadoutUnavailable' : (this.hangar.error() ?? 'errors.generic'));
+      return res;
+    }
+    this.ownershipSvc.invalidate();
+    const undoWish = res.undo;
+    return {
+      ...res,
+      undo: async () => {
+        await this.hangar.deleteConfig(config.id);
+        this.ownershipSvc.invalidate();
+        return undoWish ? undoWish() : { ok: true, key: res.key };
+      },
+    };
   }
 
   private async runPath(write: () => Promise<PathResult>): Promise<void> {
@@ -3751,6 +3782,15 @@ export class CodexDetailComponent implements OnInit {
   });
 
   readonly draftChangedCount = this.draftStore.draftChangedCount;
+  /**
+   * D3: on the Holotisch, the reader's own exemplar (`?v=`, not Werk, not a shared read-only link, not a config that
+   * still follows its owner) saves every swap by itself. The classic view keeps its explicit save.
+   */
+  private readonly autosaveSwitch = effect(() => {
+    const on =
+      this.holoStageOn() && this.personalMode() && !this.draftReadOnly() && !(this.activeHangarConfig()?.followsOwner ?? false);
+    untracked(() => this.draftStore.setAutosave(on));
+  });
   readonly saveableEntries = this.draftStore.saveableEntries;
   /** A shared link is on the Holotable read-only (#646). */
   readonly draftReadOnly = this.draftStore.readOnly;
