@@ -5,6 +5,7 @@ import { BetaService } from '../core/beta.service';
 import { LayoutService } from '../core/layout/layout.service';
 import { FooterComponent } from './footer.component';
 import { skipToMain } from './skip-link';
+import { SlowNavigationComponent } from './slow-navigation/slow-navigation.component';
 import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 
 /**
@@ -33,7 +34,7 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
 @Component({
   selector: 'sc-public-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, TranslatePipe, FooterComponent, FusionBarComponent],
+  imports: [RouterOutlet, RouterLink, TranslatePipe, FooterComponent, FusionBarComponent, SlowNavigationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Same layout contract as the shell (beta "shell"): one shared frame, styles.scss.
   host: { '[attr.data-layout]': 'shellOn() ? layout.layout() : null' },
@@ -56,6 +57,7 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
         <router-outlet />
       </main>
       <sc-footer />
+      <sc-slow-navigation />
     </div>
   `,
   styles: [`

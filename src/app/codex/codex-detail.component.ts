@@ -1,3 +1,5 @@
+import { ShipArrivalComponent } from './ship-arrival/ship-arrival.component';
+import { SilThumbsService } from '../shared/sil-thumb/sil-thumbs.service';
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { PageCornerService, type PageShare, type PageViewToggle } from '../shell/corners/page-corner.service';
@@ -295,7 +297,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
+  imports: [ShipArrivalComponent, CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -321,7 +323,12 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         <sc-codex-personal-uses class="personal-uses" [ownership]="myOwnership()" [personal]="personalMode()" />
       }
 
-      @if (loading() && skeletonStage()) {
+      @if (loading() && skeletonStage() && arrivalThumb(); as arrival) {
+        <!-- The loading ship's real silhouette (silhouette only, no backdrop) when the build has it. -->
+        <div class="sc-card skel-stage arrival" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
+          <sc-ship-arrival [thumb]="arrival" />
+        </div>
+      } @else if (loading() && skeletonStage()) {
         <!-- Holodeck skeleton: the page frame + header are already up; the
              stage's own lock ring and scan line run until the ship arrives and
              the real stage replaces this box in place (same min-height). -->
@@ -1869,6 +1876,13 @@ export class CodexDetailComponent implements OnInit {
   /** Kind of the request in flight, known from the route before any data arrives. */
   private readonly requestKind = signal<CodexKind | null>(null);
   /** Loading a ship in the Holotable view: the page shows the holodeck skeleton. */
+  private readonly requestClass = signal<string | null>(null);
+  private readonly silThumbs = inject(SilThumbsService);
+  /** The silhouette of the ship being loaded, once the (advisory, never awaited) batched read has answered. */
+  readonly arrivalThumb = computed(() => {
+    const cls = this.requestClass();
+    return cls && this.requestKind() === 'ship' ? this.silThumbs.thumbOf('ship', cls) : null;
+  });
   readonly skeletonStage = computed(() => this.requestKind() === 'ship' && this.holoView());
   private static readonly HOLO_VIEW_STORAGE_KEY = 'sc.codex.holoView';
   /** Wave 2 arrival animation: cut to "already arrived" on a repeat visit
@@ -2672,6 +2686,14 @@ export class CodexDetailComponent implements OnInit {
   private async load(kind: CodexKind, className: string): Promise<void> {
     const seq = ++this.loadSeq;
     this.requestKind.set(kind);
+    this.requestClass.set(className);
+    if (kind === 'ship') {
+      try {
+        this.silThumbs.request([{ kind: 'ship', className }]);
+      } catch (err) {
+        logWarn('codex-detail', 'silhouette request failed', err);
+      }
+    }
     if (kind === 'ship') this.initHoloView(className);
     else this.initItemView();
     // A new ship is a new answer to "is there a model?" — see onArtAvailable.
