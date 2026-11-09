@@ -1,0 +1,249 @@
+// Kamera-Welt popup motion (concept 20261109-1752, rounds/05 d5-pb-pop-s / d5-pb-pop-la).
+//
+// Every layer carries two unitless numbers in milliseconds: --d (delay) and --t (duration).
+// The same rule plays the enter (`.pm-in`) and its reverse (`.pm-out`): a reversed layer starts
+// after (total - d - t) and runs 60 % of the time, so what entered last leaves first and the
+// whole close takes 60 % of the open. Only transform / opacity / filter / clip-path animate.
+
+.pm-host {
+  --pm-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --pm-total: 800;
+  --pm-glow: var(--sc-accent, #4cc9f0);
+}
+.pm-small { --pm-total: 800; }
+.pm-large { --pm-total: 1960; }
+.pm-panel { --pm-total: 960; }
+
+// ---------------------------------------------------------------- layers (shared)
+.pm-layer {
+  position: absolute;
+  pointer-events: none;
+  display: block;
+}
+:is(.pm-in, .pm-out) .pm-layer,
+:is(.pm-in, .pm-out) .pm-item,
+:is(.pm-in, .pm-out) .pm-row,
+:is(.pm-in, .pm-out) .pm-foot,
+:is(.pm-in, .pm-out) .pm-plate-body {
+  animation-duration: calc(var(--t, 300) * 1ms);
+  animation-delay: calc(var(--d, 0) * 1ms);
+  animation-timing-function: var(--pm-ease);
+  animation-fill-mode: backwards;
+}
+.pm-out .pm-layer,
+.pm-out .pm-item,
+.pm-out .pm-row,
+.pm-out .pm-foot,
+.pm-out .pm-plate-body {
+  animation-direction: reverse;
+  animation-fill-mode: both;
+  animation-duration: calc(var(--t, 300) * 0.6ms);
+  animation-delay: calc((var(--pm-total) - var(--d, 0) - var(--t, 300)) * 0.6ms);
+}
+
+// ---------------------------------------------------------------- small: beam, ring, limb
+.pm-small {
+  &.pm-o-tr { --pm-ox: right; }
+  &.pm-o-tl { --pm-ox: left; }
+  &.pm-o-br { --pm-ox: right; }
+  &.pm-o-bl { --pm-ox: left; }
+}
+.pm-ring {
+  --d: 0; --t: 340;
+  width: 28px; height: 28px; margin: -14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--pm-glow);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--pm-glow) 70%, transparent), inset 0 0 8px color-mix(in srgb, var(--pm-glow) 40%, transparent);
+  top: 0;
+  opacity: 0;
+  animation-name: pm-ring;
+}
+.pm-o-tr .pm-ring, .pm-o-br .pm-ring { right: 28px; }
+.pm-o-tl .pm-ring, .pm-o-bl .pm-ring { left: 28px; }
+.pm-o-bl .pm-ring, .pm-o-br .pm-ring { top: auto; bottom: 0; }
+.pm-beam {
+  --d: 60; --t: 300;
+  left: 0; right: 0; top: -1px; height: 2px;
+  background: linear-gradient(90deg, transparent, #c9f2ff 18%, #c9f2ff 82%, transparent);
+  box-shadow: 0 0 10px var(--pm-glow), 0 0 22px color-mix(in srgb, var(--pm-glow) 55%, transparent);
+  transform-origin: var(--pm-ox, right) 50%;
+  opacity: 0;
+  animation-name: pm-beam;
+}
+.pm-limb {
+  --d: 220; --t: 420;
+  left: 0; right: 0; top: -1px; height: 18px;
+  box-sizing: border-box;
+  border-top: 1.5px solid #c9f2ff;
+  border-radius: 50% / 100% 100% 0 0;
+  box-shadow: 0 -4px 14px color-mix(in srgb, var(--pm-glow) 55%, transparent);
+  filter: drop-shadow(0 0 3px var(--pm-glow));
+  opacity: 0.5;
+  animation-name: pm-limb;
+}
+.pm-small.pm-in,
+.pm-small.pm-out {
+  --d: 220; --t: 260;
+  animation:
+    pm-unfold calc(var(--t) * 1ms) var(--pm-ease) calc(var(--d) * 1ms) backwards,
+    pm-hold calc(var(--pm-total) * 1ms) linear;
+}
+.pm-small.pm-out {
+  animation:
+    pm-unfold calc(var(--t) * 0.6ms) var(--pm-ease) calc((var(--pm-total) - var(--d) - var(--t)) * 0.6ms) reverse both,
+    pm-hold calc(var(--pm-total) * 0.6ms) linear;
+}
+.pm-item {
+  --d: calc(340 + var(--pm-i, 0) * 35); --t: 240;
+  animation-name: pm-flicker;
+  animation-timing-function: linear;
+}
+
+// ---------------------------------------------------------------- large: horizon, stars, plate
+.pm-large.pm-in,
+.pm-large.pm-out,
+.pm-panel.pm-in,
+.pm-panel.pm-out {
+  animation: pm-veil calc(350 * 1ms) linear backwards, pm-hold calc(var(--pm-total) * 1ms) linear;
+}
+.pm-large.pm-out,
+.pm-panel.pm-out {
+  animation: pm-veil calc(350 * 0.6ms) linear calc((var(--pm-total) - 350) * 0.6ms) reverse both, pm-hold calc(var(--pm-total) * 0.6ms) linear;
+}
+.pm-panel.pm-in, .pm-panel.pm-out { animation-name: pm-unfold-panel, pm-hold; }
+.pm-panel.pm-in { --d: 0; --t: 320; animation: pm-unfold-panel 320ms var(--pm-ease) backwards, pm-hold calc(var(--pm-total) * 1ms) linear; }
+.pm-panel.pm-out { --d: 0; --t: 320; animation: pm-unfold-panel calc(320 * 0.6ms) var(--pm-ease) calc((var(--pm-total) - 320) * 0.6ms) reverse both, pm-hold calc(var(--pm-total) * 0.6ms) linear; }
+
+.pm-stars {
+  --d: 150; --t: 500;
+  inset: -4%;
+  z-index: 0;
+  opacity: 0.9;
+  animation-name: pm-fade-in;
+  &::before {
+    content: '';
+    position: absolute; left: 0; top: 0; width: 1px; height: 1px; border-radius: 50%;
+    box-shadow: var(--pm-star-shadow, none);
+    // Slow drift, compositor only; the enter and the leave both ignore it.
+    animation: pm-drift 70s ease-in-out infinite alternate;
+  }
+}
+.pm-out .pm-stars::before { animation: none; }
+.pm-horizon {
+  --d: 250; --t: 1250;
+  left: -25%; width: 150%; top: 72%; height: 90%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 0%, #1c4a63 0, #0b2333 6%, #06141f 20%, #030a10 55%);
+  box-shadow:
+    0 -6px 26px rgba(110, 210, 245, 0.7),
+    0 -22px 80px color-mix(in srgb, var(--pm-glow) 35%, transparent),
+    inset 0 4px 14px rgba(170, 232, 255, 0.55);
+  opacity: 0;
+  animation-name: pm-horizon;
+}
+.pm-plate {
+  position: relative;
+  z-index: 1;
+  --d: 450; --t: 560;
+  animation-name: pm-plate;
+  animation-duration: calc(var(--t) * 1ms);
+  animation-delay: calc(var(--d) * 1ms);
+  animation-timing-function: var(--pm-ease);
+}
+.pm-out .pm-plate {
+  animation-direction: reverse;
+  animation-fill-mode: both;
+  animation-duration: calc(var(--t) * 0.6ms);
+  animation-delay: calc((var(--pm-total) - var(--d) - var(--t)) * 0.6ms);
+}
+.pm-in .pm-plate { animation-fill-mode: backwards; }
+.pm-edge {
+  --d: 700; --t: 900;
+  left: 0; right: 0; top: 0; height: 1px;
+  z-index: 3;
+  background: linear-gradient(90deg, transparent, #c9f2ff 12%, #eaffff 50%, #c9f2ff 88%, transparent);
+  box-shadow: 0 0 10px #8fe3ff, 0 -3px 22px color-mix(in srgb, var(--pm-glow) 55%, transparent);
+  animation-name: pm-edge;
+}
+.pm-plate-body {
+  --d: 800; --t: 320;
+  animation-name: pm-fade-in;
+}
+.pm-row {
+  --d: calc(1000 + var(--pm-i, 0) * 70); --t: 260;
+  animation-name: pm-row;
+}
+.pm-panel .pm-row { --d: calc(220 + var(--pm-i, 0) * 45); --t: 240; }
+.pm-foot {
+  --d: 1500; --t: 360;
+  animation-name: pm-fade-in;
+}
+
+// ---------------------------------------------------------------- keyframes
+@keyframes pm-hold { from, to { opacity: 1; } }
+@keyframes pm-fade-in { from { opacity: 0; } }
+@keyframes pm-ring {
+  0% { opacity: 0; transform: scale(0.2); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.7); }
+}
+@keyframes pm-beam {
+  0% { opacity: 1; transform: scaleX(0); }
+  65% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+@keyframes pm-limb {
+  0% { opacity: 0; transform: translateY(6px); }
+  35% { opacity: 1; transform: none; }
+  100% { opacity: 0.5; transform: none; }
+}
+@keyframes pm-unfold {
+  from { clip-path: inset(-60px -60px 100% -60px); transform: scaleY(0.82); transform-origin: 50% 0; }
+  to { clip-path: inset(-60px); transform: none; }
+}
+@keyframes pm-unfold-panel {
+  from { clip-path: inset(0 0 100% 0); transform: translateY(10px); box-shadow: inset 0 1px 0 #c9f2ff; }
+}
+@keyframes pm-flicker {
+  0% { opacity: 0; filter: brightness(2); }
+  25% { opacity: 0.9; filter: brightness(1.8); }
+  42% { opacity: 0.35; }
+  60% { opacity: 1; filter: brightness(1.4); }
+  100% { opacity: 1; filter: none; }
+}
+@keyframes pm-veil { from { background-color: transparent; -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+@keyframes pm-horizon {
+  0% { opacity: 0; transform: translateY(34vh); }
+  20% { opacity: 1; }
+  44% { opacity: 1; transform: translateY(0); }
+  62% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(34vh); }
+}
+@keyframes pm-plate {
+  0% { opacity: 0; transform: translateY(9vh) scale(0.985); }
+  35% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes pm-edge {
+  0% { opacity: 0; transform: scaleX(0.2); }
+  40% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0.75; transform: scaleX(1); }
+}
+@keyframes pm-row {
+  0% { opacity: 0; transform: translateY(6px) scale(0.985); filter: brightness(2.4); }
+  40% { opacity: 1; transform: none; filter: brightness(1.7); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+@keyframes pm-drift { to { transform: translate3d(-3vw, -1.5vh, 0); } }
+
+// ---------------------------------------------------------------- reduced motion: plain fade
+@media (prefers-reduced-motion: reduce) {
+  .pm-layer { display: none; }
+  .pm-small.pm-in, .pm-large.pm-in, .pm-panel.pm-in { animation: pm-fade-in 160ms linear; }
+  .pm-small.pm-out, .pm-large.pm-out, .pm-panel.pm-out { animation: pm-fade-in 160ms linear reverse both; }
+  .pm-in .pm-item, .pm-in .pm-row, .pm-in .pm-foot, .pm-in .pm-plate, .pm-in .pm-plate-body,
+  .pm-out .pm-item, .pm-out .pm-row, .pm-out .pm-foot, .pm-out .pm-plate, .pm-out .pm-plate-body { animation: none; }
+}
+
+.pm-panel .pm-edge { --d: 0; --t: 500; }

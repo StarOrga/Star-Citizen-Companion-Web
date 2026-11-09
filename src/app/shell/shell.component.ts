@@ -13,6 +13,7 @@ import {
   inject,
   signal,
   untracked,
+  viewChildren,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -34,6 +35,7 @@ import { ProfileService } from '../auth/profile.service';
 import { VerseApiService } from '../verse/data/verse-api.service';
 import { KartographCrestComponent } from '../verse/starmap/kartograph-crest.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { AppsMenuComponent } from './apps-menu.component';
 import { HeaderPopoutService } from './header-popout.service';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
@@ -75,7 +77,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent, SlowNavigationComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent, SlowNavigationComponent, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -299,8 +301,8 @@ import { avatarUrlOf } from './avatar-url';
             </span>
           }
 
-          @if (menuOpen()) {
-            <div class="dropdown" role="menu" (keydown)="onMenuKeydown($event)">
+          @if (menuShown()) {
+            <div class="dropdown" role="menu" scPopupMotion scPopupMotionItems=".dropdown-item" scPopupMotionOrigin="tr" (keydown)="onMenuKeydown($event)">
               <div class="dropdown-header">
                 <div class="dh-id">
                   <span class="dh-name">{{ displayName() }}</span>
@@ -1100,6 +1102,10 @@ export class ShellComponent implements AfterViewInit {
   /** The Admin hub, the first red entry of the account menu. */
   protected readonly adminHub = ADMIN_HUB;
   readonly menuOpen = signal(false);
+  /** The profile menu stays mounted while its close (the open reversed in 60 %) plays. */
+  readonly menuShown = signal(false);
+  private readonly menuMotions = viewChildren(ScPopupMotionDirective);
+  private menuHideTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly popouts = inject(HeaderPopoutService);
   /** The folded admin menu (721-1179px). */
   readonly adminMenuOpen = signal(false);
@@ -1156,6 +1162,21 @@ export class ShellComponent implements AfterViewInit {
   private topbarHeightPx: number | null = null;
 
   constructor() {
+    // Profile menu: mount on open, keep it until its reversed close has played.
+    effect(() => {
+      const open = this.menuOpen();
+      untracked(() => {
+        if (this.menuHideTimer !== null) { clearTimeout(this.menuHideTimer); this.menuHideTimer = null; }
+        if (open) {
+          if (this.menuShown()) this.menuMotions().forEach((m) => m.restart());
+          else this.menuShown.set(true);
+        } else if (this.menuShown()) {
+          const exits = this.menuMotions().map((m) => m.exit());
+          if (exits.length === 0) { this.menuShown.set(false); return; }
+          void Promise.all(exits).then(() => { if (!this.menuOpen()) this.menuShown.set(false); });
+        }
+      });
+    });
     // Another header popout (wishlist / apps) took the slot: the profile menu folds away.
     effect(() => {
       if (this.popouts.active() !== 'profile' && untracked(() => this.menuOpen())) this.menuOpen.set(false);

@@ -1,3 +1,4 @@
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -38,7 +39,7 @@ interface PinnedRef {
 @Component({
   selector: 'sc-codex-compare-tray',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (refs().length > 0) {
@@ -70,7 +71,7 @@ interface PinnedRef {
         }
 
         @if (open() && refs().length >= 2) {
-          <div class="panel">
+          <div class="panel" scPopupMotion="panel" scPopupMotionRows=".cmp tbody tr" animate.leave="pm-out">
             @if (loading()) {
               <p class="muted">{{ 'codex.results.loading' | translate }}</p>
             } @else {

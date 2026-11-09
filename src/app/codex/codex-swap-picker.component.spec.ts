@@ -173,7 +173,9 @@ describe('CodexSwapPickerComponent', () => {
     (el.querySelector('.pick-veil') as HTMLElement).click();
     expect(spy).not.toHaveBeenCalled();
     (el.querySelector('.pick-close') as HTMLElement).click();
-    expect(spy).toHaveBeenCalled();
+    // The close plays the horizon motion reversed first (60 % of the open), then tells the host.
+    expect(el.querySelector('.pick-veil')?.classList.contains('pm-out')).toBe(true);
+    await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('lists every compatible item as a row including the installed one', async () => {
@@ -338,7 +340,7 @@ describe('CodexSwapPickerComponent', () => {
     (el.querySelector('.pick-win') as HTMLElement).dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
     );
-    expect(spy).toHaveBeenCalled();
+    await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('titles a not-applicable dash cell (B-C16 medium finding)', async () => {
