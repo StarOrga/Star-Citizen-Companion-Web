@@ -46,7 +46,7 @@ export interface HangarExemplar {
         <span class="car" aria-hidden="true">▾</span>
       </button>
       @if (open()) {
-        <div class="menu" id="holo-hangar-menu" role="menu" [attr.aria-label]="'codex.holo.hangar.menuAria' | translate" (keydown)="onMenuKey($event)">
+        <div class="menu" id="holo-hangar-menu" role="menu" tabindex="-1" [attr.aria-label]="'codex.holo.hangar.menuAria' | translate" (keydown)="onMenuKey($event)">
           <div class="gh" role="presentation">{{ 'codex.holo.hangar.loadouts' | translate }}</div>
           <a role="menuitemradio" class="row" [class.on]="activeId() === null" [attr.aria-checked]="activeId() === null"
              [routerLink]="werkLink().commands" [queryParams]="werkLink().queryParams" (click)="open.set(false)">
