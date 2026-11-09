@@ -193,12 +193,19 @@ export interface SectionRailGo {
         background: var(--sc-accent); box-shadow: 0 0 8px var(--sc-accent);
       }
       :host(.inline) .label .short { display: none; }
-      @media (max-width: 1023px) {
-        /* A dialog on a phone: the icons become a row, names stay in the accessible name. */
-        :host(.inline) .rail { flex-direction: row; overflow-x: auto; scrollbar-width: none; }
-        :host(.inline) .stop:hover, :host(.inline) .stop:focus-visible { width: 36px; }
-        :host(.inline) .label { display: none; }
-        :host(.inline) .stop[aria-current]::before { left: 8px; right: 8px; top: auto; bottom: -2px; width: auto; height: 2px; }
+      @media (max-width: 720px) {
+        /* A dialog on a phone: the same pill strip the edge variant becomes. */
+        :host(.inline) { position: sticky; top: 0; z-index: 2; padding: 8px 12px; background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--sc-border); }
+        :host(.inline) .rail { flex-direction: row; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+        :host(.inline) .rail::-webkit-scrollbar { display: none; }
+        :host(.inline) .stop, :host(.inline) .stop:hover, :host(.inline) .stop:focus-visible {
+          flex: 0 0 auto; width: auto; height: auto; min-height: 40px; padding: 0 12px 0 10px; background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent); color: var(--sc-fg-1);
+        }
+        :host(.inline) .label { opacity: 1; }
+        :host(.inline) .label .full { display: none; }
+        :host(.inline) .label .short { display: inline; }
+        :host(.inline) .stop[aria-current], :host(.inline) .stop[aria-current]:hover { background: var(--sc-accent); color: var(--sc-bg-0); font-weight: 600; }
+        :host(.inline) .stop[aria-current]::before { display: none; }
       }
 
       .stop:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }

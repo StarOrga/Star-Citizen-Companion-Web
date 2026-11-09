@@ -38,6 +38,8 @@ import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { ShareButtonComponent } from '../shared/share-button/share-button.component';
+import { SectionRailComponent, SectionRailGo, SectionRailItem } from '../shared/section-rail/section-rail.component';
+import { translateTick } from '../shared/section-rail/translate-tick';
 
 type SectionId = 'stabilitaet' | 'builds' | 'prep' | 'contents' | 'fixed' | 'next';
 
@@ -123,7 +125,7 @@ function scrollBehavior(): ScrollBehavior {
   imports: [
     TranslatePipe, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
     PatchNoteDetailComponent, StabilityChipComponent, StabilityLongComponent, BuildVerdictComponent, ScDialogDirective,
-    ScTooltipDirective, ShareButtonComponent,
+    ScTooltipDirective, ShareButtonComponent, SectionRailComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -159,19 +161,8 @@ function scrollBehavior(): ScrollBehavior {
 
           <div class="body" [class.no-toc]="sections().length < 2">
             @if (sections().length >= 2) {
-              <nav class="toc" [attr.aria-label]="'news.patch.dossier.toc' | translate">
-                <ul class="toc-list">
-                  @for (s of sections(); track s) {
-                    <li>
-                      <a class="toc-link" [class.active]="active() === s" [href]="'#' + anchorId(s)"
-                         [attr.aria-current]="active() === s ? 'true' : null" (click)="onToc($event, s)">
-                        <span class="toc-marker" aria-hidden="true"></span>
-                        <span class="toc-text">{{ sectionKey(s) | translate }}</span>
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </nav>
+              <sc-section-rail class="toc" variant="inline" [items]="railItems()" [ariaLabel]="'news.patch.dossier.toc' | translate"
+                               (go)="onRailGo($event)" />
             }
 
             <div class="col">
@@ -513,18 +504,9 @@ function scrollBehavior(): ScrollBehavior {
     .muted { margin: 0 0 8px; color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
     mark { background: color-mix(in srgb, var(--sc-accent) 32%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
 
-    /* Settings-page TOC, as a pattern: quiet links, one accent marker. */
+    /* The section menu is the shared rail (icons, light bar, names on hover) — inline, because the file is a dialog. */
     .toc { padding: 16px 8px 16px 16px; border-right: 1px solid var(--sc-border); }
-    .toc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 96px; }
-    .toc-link {
-      display: flex; align-items: center; gap: 10px; padding: 8px 4px; min-height: 36px; color: var(--sc-fg-2); text-decoration: none;
-      font-family: var(--sc-font-display); font-size: max(0.66rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; border-radius: 4px;
-    }
-    .toc-marker { flex: 0 0 auto; width: 2px; align-self: stretch; border-radius: 999px; background: var(--sc-border); }
-    .toc-text { min-width: 0; overflow-wrap: anywhere; }
-    .toc-link:hover { color: var(--sc-fg-0); }
-    .toc-link.active { color: var(--sc-accent); }
-    .toc-link.active .toc-marker { background: var(--sc-accent); }
+    .toc ::ng-deep .rail { position: sticky; top: 96px; }
 
     .prep { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
     .prep li { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--sc-border); border-radius: 6px; background: var(--sc-bg-1); }
@@ -619,13 +601,9 @@ function scrollBehavior(): ScrollBehavior {
       .hero { padding: 14px 14px 10px; }
       .hero h2 { font-size: 1.3rem; }
       .body { grid-template-columns: minmax(0, 1fr); }
-      /* Phone: the TOC becomes the settings page's pinned pill row. */
-      .toc { position: sticky; top: 84px; z-index: 2; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--sc-border); background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-      .toc-list { position: static; flex-direction: row; gap: 6px; overflow-x: auto; scrollbar-width: none; }
-      .toc-list::-webkit-scrollbar { display: none; }
-      .toc-link { flex: 0 0 auto; gap: 0; padding: 9px 12px; min-height: 40px; white-space: nowrap; border-radius: 999px; background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent); color: var(--sc-fg-1); }
-      .toc-marker { display: none; }
-      .toc-link.active { background: var(--sc-accent); color: var(--sc-bg-0); }
+      /* Phone: the rail becomes the pinned pill row (the shared rail does it itself). */
+      .toc { position: sticky; top: 84px; z-index: 2; padding: 0; border-right: 0; }
+      .toc ::ng-deep .rail { position: static; }
       .sec { padding: 12px 14px 14px; scroll-margin-top: 140px; }
       .fc, .fc.open { grid-template-columns: minmax(0, 1fr); }
       .fc .img { min-height: 120px; height: 120px; }
@@ -963,6 +941,31 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     if (id === 'next' && status === 'superseded') return 'news.patch.dossier.section.nextPast';
     if (id === 'prep' && status === 'superseded') return 'news.patch.dossier.section.prepPast';
     return 'news.patch.dossier.section.' + id;
+  }
+
+  /** Icon of each section (24x24, stroked). */
+  private static readonly ICONS: Readonly<Record<SectionId, string>> = {
+    stabilitaet: 'M3 12h4l2-6 4 12 2-6h6',
+    builds: 'M4 8l8-4 8 4-8 4zM4 12l8 4 8-4M4 16l8 4 8-4',
+    prep: 'M5 7l2 2 3-3M13 7h7M5 15l2 2 3-3M13 15h7',
+    contents: 'M4 6h16M4 12h16M4 18h10',
+    fixed: 'M14 6l4 4-9 9H5v-4zM12 8l4 4',
+    next: 'M5 12h14M13 6l6 6-6 6',
+  };
+  private readonly lang = translateTick(this.t);
+
+  /** The rail's stops: the sections in the page's order, names following the language. */
+  readonly railItems = computed<SectionRailItem[]>(() => {
+    this.lang();
+    const active = this.active();
+    return this.sections().map((s) => {
+      const label = this.t.instant(this.sectionKey(s)) as string;
+      return { id: s, href: '#' + anchorId(s), label, icon: PatchDossierComponent.ICONS[s], active: active === s, current: 'location' as const };
+    });
+  });
+
+  onRailGo({ event, item }: SectionRailGo): void {
+    this.onToc(event, item.id as SectionId);
   }
 
   onToc(ev: MouseEvent, id: SectionId): void {
