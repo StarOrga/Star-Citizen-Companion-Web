@@ -143,6 +143,14 @@ const STOCK_TAB_LABEL: Readonly<Record<string, string>> = {
   sammlung: 'fusionBar.ctx.hqStockSammlung',
 };
 
+/** The chip of the Bestand page follows its tab: Alles / Sammlung name themselves, Hangar scopes to ships. */
+function stockChip(stockTab: string | null): SearchChip {
+  if (stockTab === 'hangar') return sectionChipById('hangar', 'route')!;
+  const chip = sectionChipById('stock', 'route')!;
+  const labelKey = STOCK_TAB_LABEL[stockTab ?? ''];
+  return stockTab && stockTab !== 'inventar' && labelKey ? { ...chip, labelKey } : chip;
+}
+
 export function hqContext(page: HqPageId | null, sub: string | null = null, stockTab: string | null = null): SearchContext {
   const base: SearchContext = { ...ctx('hq', ['ship'], true), ownedFirst: true };
   if (!page && sub === 'hangar') base.chips = [sectionChipById('hangar', 'route')!];
@@ -153,7 +161,7 @@ export function hqContext(page: HqPageId | null, sub: string | null = null, stoc
     case 'jetzt':
       return { ...base, key: 'hqNow', labelKey: 'fusionBar.ctx.hqNow', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition'] };
     case 'inventar':
-      return { ...base, chips: [sectionChipById('stock', 'route')!], key: 'hqStock', labelKey: STOCK_TAB_LABEL[stockTab ?? ''] ?? STOCK_TAB_LABEL['inventar'], prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
+      return { ...base, chips: [stockChip(stockTab)], key: 'hqStock', labelKey: STOCK_TAB_LABEL[stockTab ?? ''] ?? STOCK_TAB_LABEL['inventar'], prefer: ['ship', 'item'], deprioritize: ['component', 'weapon'], exclude: ['upcoming', 'manufacturer'] };
     case 'statistik':
       return { ...base, key: 'hqStats', labelKey: 'fusionBar.ctx.hqStats', prefer: ['ship'], exclude: ['upcoming', 'manufacturer', 'ammunition', 'component', 'weapon', 'item', 'blueprint'] };
     default:
