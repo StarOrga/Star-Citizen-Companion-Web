@@ -53,6 +53,14 @@ export function loadoutHash(loadout: readonly { portName: string; className: str
   return h.toString(16).padStart(16, '0');
 }
 
+/** PostgREST / Postgres codes for "the column does not exist": the summary migration is not pushed yet. */
+const MISSING_COLUMN_CODES = new Set(['42703', 'PGRST204']);
+
+export function isMissingColumnError(err: unknown): boolean {
+  const code = (err as { code?: unknown } | null)?.code;
+  return typeof code === 'string' && MISSING_COLUMN_CODES.has(code);
+}
+
 const clamp = (v: string, max: number): string => Array.from(v.replace(/\s+/g, ' ').trim()).slice(0, max).join('');
 
 /**
@@ -65,6 +73,9 @@ export class ExemplarAiService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly i18n = inject(TranslateService);
   private readonly inFlight = new Map<string, Promise<ExemplarSummaryResult>>();
+  /** The summary columns are missing on this database (migration not pushed): checked once, then no more reads,
+   * writes or function calls for the rest of the session — no repeated 400s. */
+  private columnsMissing = false;
 
   /**
    * A name suggestion for a new exemplar that differs from Werk. Returns null when nothing differs (no call is made),
@@ -94,6 +105,7 @@ export class ExemplarAiService {
 
   private async run(id: string, input: ExemplarSummaryInput, hash: string): Promise<ExemplarSummaryResult> {
     let stored = input.stored ?? null;
+    if (this.columnsMissing) return { summary: null, hash, regenerated: false, errorKey: null };
     try {
       if (!stored) stored = await this.readStored(id);
       if (stored.hash === hash) return { summary: stored.summary, hash, regenerated: false, errorKey: null };
@@ -110,6 +122,10 @@ export class ExemplarAiService {
       await this.write(id, summary, hash);
       return { summary, hash, regenerated: true, errorKey: null };
     } catch (err) {
+      if (isMissingColumnError(err)) {
+        this.columnsMissing = true;
+        return { summary: null, hash, regenerated: false, errorKey: null };
+      }
       return { summary: stored?.summary ?? null, hash, regenerated: false, errorKey: toErrorKey('hangar', 'exemplar summary', err, { id }) };
     }
   }

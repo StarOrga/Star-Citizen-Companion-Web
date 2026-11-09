@@ -3731,10 +3731,19 @@ export class CodexDetailComponent implements OnInit {
 
   // ── loadout draft write path (PR B) ─────────────────────────────────────────
 
-  /** `codex_item_ports.port_name` — the only paths a draft entry can be saved against (R2). */
+  /**
+   * The top-level ports a draft entry can be saved against (R2): every `codex_item_ports.port_name`
+   * plus every top-level port of the ship's stock loadout. The item-ports table lists only part of a
+   * ship's ports (a Gladius: weapons, racks, controllers — no power plant, cooler, shield, radar or
+   * quantum drive), but a stored config entry is a plain `portName` that `applyStoredLoadout` puts back
+   * through the same stock loadout, so those components are storable too. Nested paths
+   * (`mount.gun`) stay draft-only.
+   */
   private readonly joinablePorts = computed<ReadonlySet<string>>(() => {
     const d = this.detail();
-    return new Set((d?.ports ?? []).map((p) => p.portName).filter((p): p is string => !!p));
+    const out = new Set((d?.ports ?? []).map((p) => p.portName).filter((p): p is string => !!p));
+    for (const l of this.loadoutAll()) if (l.port) out.add(l.port);
+    return out;
   });
 
   readonly draftChangedCount = this.draftStore.draftChangedCount;
