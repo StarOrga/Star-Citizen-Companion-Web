@@ -1126,6 +1126,16 @@
         "loadError": "The shared loadout could not be loaded.",
         "exit": "Back to my loadout",
         "readOnlyHint": "Shared loadout — read-only. Create a copy to change or save it."
+      },
+      "diffMarker": "differs from stock",
+      "callout": {
+        "swap": "Swap part",
+        "aria": "{{type}}: {{name}}"
+      },
+      "table": {
+        "tagAria": "{{type}} {{size}}: {{name}}",
+        "legendDiff": "differs from stock",
+        "legendHint": "Click = pick a part"
       }
     },
     "empty": {

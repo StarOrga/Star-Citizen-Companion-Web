@@ -1126,6 +1126,16 @@
         "loadError": "Das geteilte Loadout konnte nicht geladen werden.",
         "exit": "Zurück zu meinem Loadout",
         "readOnlyHint": "Geteiltes Loadout — nur lesen. Übernimm es, um es zu ändern oder zu speichern."
+      },
+      "diffMarker": "weicht vom Werk ab",
+      "callout": {
+        "swap": "Bauteil tauschen",
+        "aria": "{{type}}: {{name}}"
+      },
+      "table": {
+        "tagAria": "{{type}} {{size}}: {{name}}",
+        "legendDiff": "weicht vom Werk ab",
+        "legendHint": "Klick = Bauteil wählen"
       }
     },
     "empty": {
