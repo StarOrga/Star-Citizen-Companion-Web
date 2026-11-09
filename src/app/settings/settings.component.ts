@@ -429,7 +429,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
       </div>
     </section>
   `,
-  styles: [PAGE_MOTION_STYLES, `
+  styles: [PAGE_MOTION_STYLES + `
     /* Settings used to cap itself at 720px while every other subpage runs the
        full shell width — it read as a broken, half-finished column (feedback
        af058ca4). It now fills the same width and spends it on a two-column
@@ -735,10 +735,11 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     .page.pm-on { --pm-delay: 0ms; --pm-step: 110ms; }
     .pm-scrim { position: fixed; inset: 0; z-index: -1; pointer-events: none; display: none; background: color-mix(in srgb, var(--sc-bg-0) 38%, transparent); }
     .pm-on .pm-scrim { display: block; animation: pm-fade 350ms ease-out backwards; }
-    .pm-on h1 { --pm-delay: 420ms; }
-    .pm-on .group-title { animation: pm-fade 420ms ease-out calc(520ms + var(--pm-g, 0) * 110ms) backwards; }
+    .pm-on h1 { --pm-delay: 600ms; }
+    .pm-on sc-section-rail { --pm-delay: 400ms; }
+    .pm-on .group-title { animation: pm-fade 420ms ease-out calc(700ms + var(--pm-g, 0) * 110ms) backwards; }
     .pm-on .grid > * {
-      animation: pm-rise 560ms var(--pm-ease) calc(640ms + (var(--pm-g, 0) + var(--pm-c, 0)) * var(--pm-step)) backwards;
+      animation: pm-rise 560ms var(--pm-ease) calc(780ms + (var(--pm-g, 0) + var(--pm-c, 0)) * var(--pm-step)) backwards;
     }
     .sections > .group:nth-child(2) { --pm-g: 2; }
     .sections > .group:nth-child(3) { --pm-g: 4; }

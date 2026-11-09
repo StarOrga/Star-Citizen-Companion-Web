@@ -19,6 +19,8 @@ export interface SectionRailItem {
   readonly current?: 'page' | 'location';
   /** Extra hint through the app tooltip (the hotkey), shown on a long hover only. */
   readonly hint?: string | null;
+  /** The key that jumps here, for assistive tech (`aria-keyshortcuts`). */
+  readonly shortcut?: string | null;
   /** A small dot on the icon (open events); the text is its accessible name. */
   readonly dot?: string | null;
 }
@@ -54,6 +56,7 @@ export interface SectionRailGo {
         <a class="stop pm-glide" [style.--pm-i]="i"
            [href]="it.href" (click)="go.emit({ event: $event, item: it })"
            [scTooltip]="it.hint ?? null" [scTooltipDisabled]="noHover"
+           [attr.aria-keyshortcuts]="it.shortcut ?? null"
            [attr.aria-current]="it.active ? (it.current ?? 'page') : null"
            [attr.aria-label]="it.ariaLabel ?? it.label">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="it.icon" /></svg>
@@ -71,6 +74,7 @@ export interface SectionRailGo {
       @media (prefers-reduced-motion: reduce) { :host-context(.pm-on) .pm-glide { animation: none; } }
       .evdot { position: absolute; top: 6px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--sc-accent); box-shadow: 0 0 0 2px var(--sc-bg-1); }
       .stop { position: relative; }
+      .stop svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       .label .short { display: none; }
 
       /* ── Phones and small windows: a strip pinned under the header, edge to edge ── */

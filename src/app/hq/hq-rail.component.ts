@@ -52,6 +52,7 @@ export class HqRailComponent {
         active: this.nav.active() === p,
         ariaLabel: this.translate.instant('hq.rail.goto', { page: name }) as string,
         current: 'page',
+        shortcut: key ? String(key) : null,
         hint: key ? (this.translate.instant('hq.hotkey', { key }) as string) : null,
         dot: p === 'planen' && this.events.hasOpen() ? (this.translate.instant('hq.events.dot') as string) : null,
       };

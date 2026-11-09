@@ -183,7 +183,7 @@ export function blueprintCategoriesForGroup(
   imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="browse" [class.pm-on]="enter()">
+    <section class="browse" [class.pm-on]="enter()" [class.pm-hold]="!go()">
       <!-- Two columns that start at the top (package B, 2026-11-06): title + area tree on the
            left, filter bar + list on the right, so the list is not pushed below the title. -->
       <div class="layout">
@@ -579,12 +579,14 @@ export function blueprintCategoriesForGroup(
       </ul>
     </ng-template>
   `,
-  styles: [PAGE_MOTION_STYLES, `
+  styles: [PAGE_MOTION_STYLES + `
     :host { display: block; }
     /* ── Index entrance (camera world S4, rounds/05 d5-pb-scroll left/rows): after the header has transformed there is a
        gap, then the sidebar and the role filters arrive, then the rows pop one by one (70 ms apart) with a light edge. The
        whole thing runs once per open (.pm-on is dropped after it); rows loaded later, filtering and scrolling never replay it. ── */
     .pm-on { --pm-side-at: 900ms; }
+    /* Held until the entrance starts: a paused animation in its delay phase keeps the hidden start frame. */
+    .pm-hold :is(.side, .filterbar, .list-head, .row) { animation-play-state: paused; }
     .pm-on .side { animation: pm-rise 560ms var(--pm-ease) var(--pm-side-at) backwards; }
     .pm-on .filterbar { animation: pm-rise 560ms var(--pm-ease) calc(var(--pm-side-at) + 140ms) backwards; }
     .pm-on .list-head { animation: pm-fade 420ms ease-out calc(var(--pm-side-at) + 260ms) backwards; }
@@ -877,11 +879,14 @@ export class CodexBrowseComponent implements OnInit {
   protected readonly ROW_POPS = 14;
   /** The entrance of the index is running (shell beta, own page, first fill); dropped once it has played. */
   private readonly entering = signal(true);
-  protected readonly enter = computed(() => this.shellOn() && this.headingLevel() === 1 && this.entering());
+  protected readonly enter = computed(() => this.shellOn() && this.entering());
+  /** The entrance has started: at once on an own page, when the list first scrolls into view as the lower half of /codex. */
+  protected readonly go = signal(false);
+  private goAt = 0;
+  private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
   /** When the first row pops, in ms after the open: later than the sidebar, but never long after the data is there. */
   protected readonly rowBase = signal(1350);
   private entryTimer: ReturnType<typeof setTimeout> | undefined;
-  private readonly openedAt = typeof performance !== 'undefined' ? performance.now() : 0;
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   readonly rsi = inject(UpcomingShipsService);
@@ -1937,10 +1942,10 @@ export class CodexBrowseComponent implements OnInit {
     // the data arrived late), and the whole motion class is dropped when the last pop has landed.
     let filled = false;
     effect(() => {
-      if (filled || this.listLength() === 0) return;
+      if (filled || !this.go() || this.listLength() === 0) return;
       filled = true;
       untracked(() => {
-        const elapsed = typeof performance !== 'undefined' ? performance.now() - this.openedAt : 0;
+        const elapsed = typeof performance !== 'undefined' ? performance.now() - this.goAt : 0;
         const base = Math.max(300, 1350 - elapsed);
         this.rowBase.set(base);
         const end = setTimeout(() => this.entering.set(false), base + this.ROW_POPS * 70 + 900);
@@ -1949,6 +1954,30 @@ export class CodexBrowseComponent implements OnInit {
     });
     inject(DestroyRef).onDestroy(() => {
       if (this.entryTimer) clearTimeout(this.entryTimer);
+    });
+    // Starts the entrance: at once when the index is its own page; as the lower half of /codex ("Mehr in Codex") when its top
+    // first comes into view, once. Sections appear once: scrolling back up and down never replays it.
+    const start = (): void => {
+      this.goAt = typeof performance !== 'undefined' ? performance.now() : 0;
+      this.go.set(true);
+    };
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (!this.enter()) return;
+      if (this.headingLevel() === 1 || typeof IntersectionObserver === 'undefined') {
+        start();
+        return;
+      }
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return;
+          io.disconnect();
+          start();
+        },
+        { rootMargin: '0px 0px -35% 0px' },
+      );
+      io.observe(this.hostEl.nativeElement);
+      destroyRef.onDestroy(() => io.disconnect());
     });
     this.fitAreaPanel();
     // Beta shell: kind switch, filter tokens, hit count and the panel footer live in the bar.
