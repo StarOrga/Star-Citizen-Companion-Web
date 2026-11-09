@@ -735,11 +735,13 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     .page.pm-on { --pm-delay: 0ms; --pm-step: 110ms; }
     .pm-scrim { position: fixed; inset: 0; z-index: -1; pointer-events: none; display: none; background: color-mix(in srgb, var(--sc-bg-0) 38%, transparent); }
     .pm-on .pm-scrim { display: block; animation: pm-fade 350ms ease-out backwards; }
-    .pm-on h1 { --pm-delay: 600ms; }
-    .pm-on sc-section-rail { --pm-delay: 400ms; }
-    .pm-on .group-title { animation: pm-fade 420ms ease-out calc(700ms + var(--pm-g, 0) * 110ms) backwards; }
+    /* rounds/05 d5-pb-minor: rail 0.2 s, title 0.45 s, cards from 0.7 s. The shell reveal no longer moves <main>,
+       so the fixed rail starts on its own beat instead of waiting for the reveal to end. */
+    .pm-on sc-section-rail { --pm-delay: 200ms; }
+    .pm-on h1 { --pm-delay: 450ms; }
+    .pm-on .group-title { animation: pm-fade 420ms ease-out calc(620ms + var(--pm-g, 0) * 110ms) backwards; }
     .pm-on .grid > * {
-      animation: pm-rise 560ms var(--pm-ease) calc(780ms + (var(--pm-g, 0) + var(--pm-c, 0)) * var(--pm-step)) backwards;
+      animation: pm-rise 560ms var(--pm-ease) calc(700ms +(var(--pm-g, 0) + var(--pm-c, 0)) * var(--pm-step)) backwards;
     }
     .sections > .group:nth-child(2) { --pm-g: 2; }
     .sections > .group:nth-child(3) { --pm-g: 4; }

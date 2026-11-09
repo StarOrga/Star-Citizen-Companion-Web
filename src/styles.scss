@@ -1856,11 +1856,13 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
   transition: opacity 220ms ease-in-out;
 }
 /* Part two: the new page's title swaps its text in place, the rest rises in
-   from 22 px (mock-sw-in, 400 ms ease-out) behind it. */
-#sc-main.switch-in:not(:has(.bstage.intro)) :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
+   from 22 px (mock-sw-in, 400 ms ease-out) behind it. A page that builds itself on a menu switch (the Verse hub's
+   own d5-pb-nav sequence, `.bstage.nav`; its entrance, `.bstage.intro`) is left alone: one sequence, never two
+   animations stacked on the same elements. */
+#sc-main.switch-in:not(:has(.bstage:is(.intro, .nav))) :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
   animation: sc-switch-in 400ms 160ms ease-out both;
 }
-#sc-main.switch-in h1 {
+#sc-main.switch-in:not(:has(.bstage:is(.intro, .nav))) h1 {
   animation: sc-switch-title 260ms ease-out both;
 }
 @keyframes sc-switch-in {

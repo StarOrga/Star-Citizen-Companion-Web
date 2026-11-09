@@ -16,7 +16,7 @@ import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { PLANET_SOURCES } from './planet/planet-assets';
-import { CALM_WAIT_MS, ENTRANCE_SEARCH_K, INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SKIP_MS, INTRO_SWITCH_MS, VerseBriefingComponent, hurry, linkKey, verseItemLink } from '../verse-briefing.component';
+import { CALM_WAIT_MS, ENTRANCE_BEATS, ENTRANCE_SEARCH_K, INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SKIP_MS, INTRO_SWITCH_MS, VerseBriefingComponent, hurry, linkKey, verseItemLink } from '../verse-briefing.component';
 import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { By } from '@angular/platform-browser';
 import { BriefingPlanetComponent } from './briefing-planet.component';
@@ -486,7 +486,7 @@ describe('Verse briefing — component', () => {
       const c = fixture.componentInstance;
       expect(c.intro).toBe('full');
       expect(stage(fixture)?.classList).toContain('intro');
-      expect(chrome.heroIntro(), 'the hub took the announced entrance over').toEqual({ k: ENTRANCE_SEARCH_K, full: true });
+      expect(chrome.heroIntro(), 'the hub took the announced entrance over').toEqual({ k: ENTRANCE_SEARCH_K, full: true, ...ENTRANCE_BEATS });
       // The app's name in the hero: no story title, no eyebrow, no chevrons yet.
       expect(title(fixture)?.querySelector('.tl.brand')).not.toBeNull();
       expect(title(fixture)?.querySelectorAll('i.ltr').length).toBeGreaterThan(0);

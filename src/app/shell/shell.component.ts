@@ -91,14 +91,17 @@ import { avatarUrlOf } from './avatar-url';
   animations: [
     // A menu switch between two main pages (beta shell) holds the new page back
     // while the scene's camera travels (delay), then lets it rise in.
+    // Under the beta shell the reveal is opacity only: a transform on <main> (even mid-animation) makes it the
+    // containing block of every position: fixed child (section rail, HQ rail), which then jumps when it ends.
+    // The pages' own entrances (page-motion) carry the rise there.
     trigger('routeReveal', [
       transition(
         ':increment',
         [
-          style({ opacity: 0, transform: 'translateY({{rise}}px) scale(0.994)' }),
-          animate('{{dur}}ms {{delay}}ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: 'none' })),
+          style({ opacity: 0, transform: '{{from}}' }),
+          animate('{{dur}}ms {{delay}}ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: '{{to}}' })),
         ],
-        { params: { delay: 0, dur: 320, rise: 10 } },
+        { params: { delay: 0, dur: 320, from: 'translateY(10px) scale(0.994)', to: 'none' } },
       ),
     ]),
   ],
@@ -1320,7 +1323,7 @@ export class ShellComponent implements AfterViewInit {
       this.switchInTimer = setTimeout(() => this.switchingIn.set(false), REVEAL_SWITCH.delay + REVEAL_SWITCH.dur);
       return;
     }
-    this.revealParams.set(REVEAL_PLAIN);
+    this.revealParams.set(this.shellOn() ? REVEAL_FRAME : REVEAL_PLAIN);
     this.reveal.update((n) => n + 1);
   }
 
@@ -1556,15 +1559,19 @@ export function isAdminNavRoute(url: string): boolean {
   return path === '/admin' || path === '/admin/hub' || path === '/admin/telemetry' || path.startsWith('/admin/telemetry/');
 }
 
-interface RevealParams {
+export interface RevealParams {
   delay: number;
   dur: number;
-  rise: number;
+  /** Start / end transform of <main>; `none` → `none` animates opacity alone. */
+  from: string;
+  to: string;
 }
-/** Reveal of an ordinary navigation. */
-const REVEAL_PLAIN: RevealParams = { delay: 0, dur: 320, rise: 10 };
-/** Reveal after a menu switch: held while the camera travels, then a longer rise. */
-const REVEAL_SWITCH: RevealParams = { delay: 420, dur: 520, rise: 22 };
+/** Reveal of an ordinary navigation (classic shell). */
+export const REVEAL_PLAIN: RevealParams = { delay: 0, dur: 320, from: 'translateY(10px) scale(0.994)', to: 'none' };
+/** Beta shell: no transform on <main>, so a fixed child (rail) never takes it as its containing block. */
+export const REVEAL_FRAME: RevealParams = { delay: 0, dur: 320, from: 'none', to: 'none' };
+/** Length of the menu-switch phase (`.switch-in` on <main>). */
+const REVEAL_SWITCH = { delay: 420, dur: 520 };
 
 /** True on exactly `/verse` (query and fragment ignored) — not on its sub-pages. */
 export function isVerseHome(url: string): boolean {

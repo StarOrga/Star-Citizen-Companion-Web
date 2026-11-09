@@ -114,8 +114,13 @@ export const INTRO_FINALE_MS = 1200;
 export const NAV_STANDS_MS = 2300;
 /** The shell's search ignites at 2.3 s * k; k = 1.05 / 2.3 puts it at 1.05 s on a menu switch. */
 export const NAV_SEARCH_K = 0.4565;
-/** The shell's search ignites at 2.3 s * k: 3.5 s on the entrance (its header follows at 2.9 s until the shell splits the two delays). */
+/** On the entrance the shell's search ignite runs at this pace (0.75 s * k open); its start is a beat of its own. */
 export const ENTRANCE_SEARCH_K = 1.52;
+/**
+ * The entrance's two shell beats (rounds/05 d5-pb-main), set apart instead of one shared factor:
+ * title 2.2 s (the hub's own scan), search usable at 3.5 s, then the header with the rest at 4.3 s.
+ */
+export const ENTRANCE_BEATS = { searchAtMs: 3500, headerAtMs: 4300 } as const;
 
 interface Gate {
   door: VerseDoor;
@@ -765,8 +770,8 @@ export class VerseBriefingComponent {
     }
     this.titleIntro.set(true);
     this.brand.set(true);
-    // Opened on the hub: the shell reveals its main header (1.9 s * k) and search field (2.3 s * k) in step with it.
-    if (this.chrome.heroIntro()?.hold) this.chrome.startHeroIntro(ENTRANCE_SEARCH_K, true);
+    // Opened on the hub: the shell reveals its search field (3.5 s) and only then its main header (4.3 s), in step with it.
+    if (this.chrome.heroIntro()?.hold) this.chrome.startHeroIntro(ENTRANCE_SEARCH_K, true, ENTRANCE_BEATS);
     // Hook for the scene camera: it dollies from depth while this attribute stands (see the handoff note).
     document.documentElement.dataset['kwEntrance'] = 'dolly';
     // The scene's camera dollies from depth (0.8 s, 2.7 s) - started after the first NavigationEnd, or the router's own move retargets it.

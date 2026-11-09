@@ -29,6 +29,21 @@ export interface HeroIntro {
    * shell at boot, before the hub's lazy chunk has arrived.
    */
   hold?: boolean;
+  /** Start of the search field's ignite in ms; default 2.3 s * k. */
+  searchAtMs?: number;
+  /** Start of the main header's entrance in ms; default 1.9 s * k. */
+  headerAtMs?: number;
+}
+
+/**
+ * The two start beats of an entrance, set apart instead of one shared factor: the full
+ * entrance (rounds/05 d5-pb-main) puts the search at 3.5 s and the header after it at 4.3 s.
+ */
+export type HeroIntroBeats = Pick<HeroIntro, 'searchAtMs' | 'headerAtMs'>;
+
+/** CSS value of a beat, or null when the stylesheet's `k`-scaled default applies. */
+export function introBeatCss(ms: number | undefined): string | null {
+  return typeof ms === 'number' ? `${Math.round(ms)}ms` : null;
 }
 
 /**
@@ -201,8 +216,8 @@ export class ShellChromeService {
   }
 
   /** The hub's title sequence starts (never call it under reduced motion). */
-  startHeroIntro(k: number, full: boolean): void {
-    this.introState.set({ k, full });
+  startHeroIntro(k: number, full: boolean, beats?: HeroIntroBeats): void {
+    this.introState.set(beats ? { k, full, ...beats } : { k, full });
   }
 
   /**

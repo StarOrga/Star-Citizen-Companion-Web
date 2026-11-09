@@ -28,7 +28,7 @@ import { isEditableTarget } from '../../codex/search/codex-search-hub.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { BrandLogoComponent, BrandNameComponent } from '../brand/brand.component';
 import { FusionSearchComponent } from './fusion-search.component';
-import { ShellChromeService } from './shell-chrome.service';
+import { ShellChromeService, introBeatCss } from './shell-chrome.service';
 import { STAGE_SLOT_MOVED } from './stage-hero.directive';
 import {
   AREA_ENTRIES,
@@ -109,6 +109,7 @@ const MAX_TOKENS = 3;
     '[class.intro-hold]': 'introHold()',
     '[class.intro-hidden]': 'introHidden()',
     '[style.--sc-intro-k]': 'introK()',
+    '[style.--sc-intro-search-at]': 'introSearchAt()',
     '[class.placed]': 'placed()',
     '[class.public]': "variant() === 'public'",
     '[class.phone]': 'phone()',
@@ -346,6 +347,8 @@ export class FusionBarComponent {
     return !!h && h.full && (h.hold === true || this.mode() !== 'stage');
   });
   readonly introK = computed(() => this.chrome.heroIntro()?.k ?? 1);
+  /** The search field's own ignite beat (null = 2.3 s * k). */
+  readonly introSearchAt = computed(() => introBeatCss(this.chrome.heroIntro()?.searchAtMs));
   /** Main page scrolled past the threshold: the staged field docked as the subheader. */
   readonly docked = signal(false);
   /** Mid-condense (0 < progress < 1): the cap travels between the stage slot and the docked bar. */
