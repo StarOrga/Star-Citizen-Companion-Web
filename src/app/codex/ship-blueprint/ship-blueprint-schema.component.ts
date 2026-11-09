@@ -4,6 +4,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { CodexHoloCalloutComponent } from '../holo/codex-holo-callout.component';
 import type { CalloutValue } from '../asset-package/asset-package-viewer.component';
+import { calloutSize } from '../asset-package/holo-overlay';
 import {
   type BlueprintViewName,
   type SchemaMarker,
@@ -96,7 +97,7 @@ export interface SchemaCallout {
               <span class="lg"><i class="sw" [class]="'sw g-' + g" aria-hidden="true"></i>{{ ('codex.shipBlueprint.group.' + g) | translate }}</span>
             }
           </span>
-          <span class="hint">{{ (markers().length ? 'codex.shipBlueprint.schema.hint' : 'codex.shipBlueprint.schema.noPositions') | translate }}</span>
+          <span class="hint">{{ (markers().length ? hintKey() : 'codex.shipBlueprint.schema.noPositions') | translate }}</span>
         </figcaption>
         @if (markers().length) {
           <ol class="hp-list" [class.sr-list]="listHidden()" [attr.aria-label]="'codex.shipBlueprint.schema.listLabel' | translate">
@@ -204,6 +205,11 @@ export class ShipBlueprintSchemaComponent {
   readonly inspect = output<string>();
 
   readonly current = computed(() => blueprintView(this.blueprint(), this.view()) ?? blueprintView(this.blueprint(), 'top'));
+  /** The caption names the view actually on the sheet (top: nose right; side: nose right, seen from port; front: seen nose-on). */
+  readonly hintKey = computed(() => {
+    const v = this.current()?.view ?? 'top';
+    return v === 'side' ? 'codex.shipBlueprint.schema.hintSide' : v === 'front' ? 'codex.shipBlueprint.schema.hintFront' : 'codex.shipBlueprint.schema.hint';
+  });
   readonly box = computed(() => {
     const v = this.current();
     return v ? viewBoxOf(v, this.radius() * 3) : '0 0 1 1';
@@ -259,31 +265,55 @@ export class ShipBlueprintSchemaComponent {
   }
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** Callout geometry in sheet px: the card beside its marker (the drawing is meet-scaled into its box). */
+  /**
+   * Callout geometry in sheet px (the drawing is meet-scaled into its box). The card stands OUTSIDE
+   * the hull where the sheet has room (above, below, left or right of it), else on the free side with
+   * the fewest hardpoints under it — it never sits on the dots it is meant to explain.
+   */
   readonly calloutBox = computed(() => {
     const c = this.callout();
     const m = c ? this.markers().find((k) => k.port === c.port) : null;
     const px = this.planPx();
-    if (!c || !m || px.w <= 0 || px.h <= 0) return null;
+    const v = this.current();
+    if (!c || !m || !v || px.w <= 0 || px.h <= 0) return null;
     const [vx, vy, vw, vh] = this.box().split(' ').map(Number);
     if (![vx, vy, vw, vh].every(Number.isFinite) || vw <= 0 || vh <= 0) return null;
     const s = Math.min(px.w / vw, px.h / vh);
-    const ax = px.left + (px.w - vw * s) / 2 + (m.x - vx) * s;
-    const ay = px.top + (px.h - vh * s) / 2 + (m.y - vy) * s;
-    const u = typeof window === 'undefined' ? 1 : Math.min(1, Math.max(0.8, 0.5 + window.innerWidth / 3840));
-    const w = 188 * u;
-    const h = 88 * u;
-    const gap = 22;
-    const right = ax < px.sheetW / 2;
-    const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
-    const x = clamp(right ? ax + gap : ax - gap - w, 0, px.sheetW - w);
-    const above = ay - gap - h >= 0;
-    const y = clamp(above ? ay - gap - h : ay + gap, 0, px.sheetH - h);
-    return {
-      ...c, x, y, ax, ay,
-      lx: right ? x : x + w,
-      ly: above ? y + h : y,
+    const ox = px.left + (px.w - vw * s) / 2;
+    const oy = px.top + (px.h - vh * s) / 2;
+    const toPx = (x: number, y: number) => ({ x: ox + (x - vx) * s, y: oy + (y - vy) * s });
+    const a = toPx(m.x, m.y);
+    const hullA = toPx(v.box.x, v.box.y);
+    const hull = { l: hullA.x, t: hullA.y, r: hullA.x + v.box.w * s, b: hullA.y + v.box.h * s };
+    const { w, h } = calloutSize(typeof window === 'undefined' ? 1920 : window.innerWidth);
+    const gap = 14;
+    const pad = 6;
+    const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), Math.max(lo, hi));
+    const cx = clamp(a.x - w / 2, 0, px.sheetW - w);
+    const cy = clamp(a.y - h / 2, 0, px.sheetH - h);
+    const candidates = [
+      { x: cx, y: hull.t - gap - h },
+      { x: cx, y: hull.b + gap },
+      { x: hull.l - gap - w, y: cy },
+      { x: hull.r + gap, y: cy },
+      { x: a.x + 22, y: a.y - 22 - h },
+      { x: a.x - 22 - w, y: a.y - 22 - h },
+      { x: a.x + 22, y: a.y + 22 },
+      { x: a.x - 22 - w, y: a.y + 22 },
+    ].map((p) => ({ x: clamp(p.x, 0, px.sheetW - w), y: clamp(p.y, 0, px.sheetH - h) }));
+    const dots = this.markers().map((k) => toPx(k.x, k.y));
+    const score = (p: { x: number; y: number }) => {
+      let covered = 0;
+      for (const d of dots) if (d.x > p.x - pad && d.x < p.x + w + pad && d.y > p.y - pad && d.y < p.y + h + pad) covered++;
+      const overHull = Math.max(0, Math.min(p.x + w, hull.r) - Math.max(p.x, hull.l)) * Math.max(0, Math.min(p.y + h, hull.b) - Math.max(p.y, hull.t));
+      const dist = Math.hypot(p.x + w / 2 - a.x, p.y + h / 2 - a.y);
+      return covered * 1e7 + overHull * 10 + dist;
     };
+    const best = candidates.reduce((b, p) => (score(p) < score(b) ? p : b));
+    // The leader ends on the card edge nearest the marker.
+    const lx = clamp(a.x, best.x, best.x + w);
+    const ly = clamp(a.y, best.y, best.y + h);
+    return { ...c, x: best.x, y: best.y, ax: a.x, ay: a.y, lx, ly };
   });
 
   /** Enter/Space on a focused marker: the same as a click. */

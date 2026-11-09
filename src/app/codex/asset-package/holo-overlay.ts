@@ -329,13 +329,17 @@ export const MARKER_RADIUS = 13;
 const CALLOUT_GAP = 12;
 
 /**
- * The callout's fixed size at a window width: 188 x 88 from 1920 up, 165 x 77
- * at 1440, never below 0.8 of it. The viewer's CSS (--co-u) computes the same;
+ * The callout's fixed size at a window width: 220 x 88 from 1920 up, 192.5 x 77
+ * at 1440, never below 0.8 of it (220 wide so three values each get their own
+ * column: "DPS 853,33 · Alpha 32 · Kadenz 1.600"). The viewer's CSS (--co-u) computes the same;
  * a host sizes its gutters with {@link calloutGutter}.
  */
+export const CALLOUT_W = 220;
+export const CALLOUT_H = 88;
+
 export function calloutSize(windowWidth: number): Size {
   const u = clamp(0.5 + windowWidth / 3840, 0.8, 1);
-  return { w: 188 * u, h: 88 * u };
+  return { w: CALLOUT_W * u, h: CALLOUT_H * u };
 }
 
 /** Gutter width that holds the callout at a window width. */

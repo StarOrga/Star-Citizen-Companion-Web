@@ -346,7 +346,7 @@ const WHEEL_LINE_PX = 33;
       .leader .tip { fill: var(--holo-mfr); }
       .leader line.solid { stroke: var(--sc-accent); stroke-width: 1.4; stroke-dasharray: none; opacity: 1; }
       .leader .ring { fill: none; stroke: var(--sc-accent); stroke-width: 1.4; opacity: 0.8; }
-      /* The shared callout card (sc-holo-callout): 188 wide at 1920, 0.8 of it at the narrowest (calloutSize). */
+      /* The shared callout card (sc-holo-callout): 220 wide at 1920, 0.8 of it at the narrowest (calloutSize). */
       .callout { --co-u: clamp(0.8px, calc(0.5px + 100vw / 3840), 1px); position: absolute; }
       .wheel-hint {
         position: absolute; left: 50%; top: var(--sc-pad-2); transform: translateX(-50%); margin: 0; pointer-events: none;

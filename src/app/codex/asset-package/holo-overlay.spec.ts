@@ -219,7 +219,7 @@ describe('usableSafeArea', () => {
 
 describe('placeCallout', () => {
   const vp = { w: 1200, h: 800 };
-  const box = { w: 188, h: 88 };
+  const box = { w: 220, h: 88 };
   const safe: SafeArea = { left: 230, right: 230, top: 0, bottom: 60 };
 
   it('stays inside the gutter on the anchor side, whatever the anchor does', () => {
@@ -249,12 +249,12 @@ describe('placeCallout', () => {
 });
 
 describe('calloutSize', () => {
-  it('is 188 x 88 at 1920 and above, scales down gently, and the gutter holds it', () => {
-    expect(calloutSize(1920)).toEqual({ w: 188, h: 88 });
-    expect(calloutSize(2560)).toEqual({ w: 188, h: 88 });
-    expect(calloutSize(1440).w).toBeCloseTo(164.5, 5);
+  it('is 220 x 88 at 1920 and above, scales down gently, and the gutter holds it', () => {
+    expect(calloutSize(1920)).toEqual({ w: 220, h: 88 });
+    expect(calloutSize(2560)).toEqual({ w: 220, h: 88 });
+    expect(calloutSize(1440).w).toBeCloseTo(192.5, 5);
     expect(calloutSize(1440).h).toBeCloseTo(77, 5);
-    expect(calloutSize(600).w).toBeCloseTo(150.4, 5);
+    expect(calloutSize(600).w).toBeCloseTo(176, 5);
     for (const w of [1024, 1366, 1440, 1920]) {
       const vp = { w: 1000, h: 700 };
       const gutter = calloutGutter(w);

@@ -258,7 +258,10 @@ export type HoloPatchSide = CodexBuild | 'active';
     }
     .build-row:disabled { opacity: 0.5; cursor: not-allowed; }
     .row-build { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .row-flag { margin-left: auto; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
+    /* The reason wraps inside the row (360 px card): a cut "steht schon auf der a…" told nothing. */
+    .build-row { flex-wrap: wrap; row-gap: 2px; }
+    .row-flag { margin-left: auto; min-width: 0; max-width: 100%; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
+      white-space: normal; overflow-wrap: anywhere; text-align: right; line-height: 1.25; }
 
     .patch-clear { align-self: flex-start; min-height: 32px; padding: 4px 10px;
       border-radius: var(--holo-r); border: 1px solid var(--sc-border); background: var(--sc-bg-0);
