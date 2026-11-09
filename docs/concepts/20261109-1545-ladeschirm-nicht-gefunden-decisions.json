@@ -1,0 +1,43 @@
+[
+  {
+    "iteration": 1,
+    "favorite": "d2",
+    "annotations": [
+      {
+        "id": "r1-d2-s1-a1",
+        "answer": "lass den weg auch die striche maß ring drum herum...."
+      },
+      {
+        "id": "r1-d2-s1-a2",
+        "answer": "reichtig cooole idee, ist perfekt!"
+      },
+      {
+        "id": "r1-d2-s2-a1",
+        "answer": "ne, das ist für mich eher eine animation für die gesamte seite im loading... wenn wir soweit sind wie hier dann gern eine zu dem was gleich angeziegt wird passende animation !"
+      },
+      {
+        "id": "r1-d2-s2-a2",
+        "answer": "weg"
+      },
+      {
+        "id": "r1-d2-s3-a1",
+        "answer": "Gern hinweis, aber knakciger! wesentlich! und finde gut das hinten es langsam weiterläuft"
+      }
+    ],
+    "screens": {
+      "d2-s4": "die seite gefällt mir noch gar nicht, für eine suche haben wir doch den subheader.Statt bekannte ziele einfach unten wie auf den anderen seiten auch verse, codex und hq\n\nIn der mitte eher weniger details aber schon gern ewesentliches , meintest du gern \n404 größer dargestellt / in szene gesetzt. Notbarke versteht man nnicht."
+    },
+    "userPins": [
+      {
+        "id": "up-mw9g2xiauj7h",
+        "design": "d2",
+        "screen": "d2-s1",
+        "x": 50.8,
+        "y": 46.5,
+        "target": "svg.d2-disk",
+        "text": "Bitte hier vor allem als basis exakt die logo animation nehmen, siehe auch vc app loading scree!",
+        "attachments": []
+      }
+    ]
+  }
+]
