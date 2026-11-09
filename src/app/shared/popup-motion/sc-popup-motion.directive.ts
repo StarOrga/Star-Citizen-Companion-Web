@@ -43,6 +43,15 @@ export class ScPopupMotionStylesComponent {}
 
 let stylesMounted = false;
 
+/** Class on <html> while a large popup is open: the shell scene pushes in ~4 % and dims (P2 "Szene stößt vor"). */
+export const SCENE_PUSHIN_CLASS = 'sc-scene-pushin';
+let pushins = 0;
+function scenePush(on: boolean): void {
+  if (typeof document === 'undefined') return;
+  pushins = Math.max(0, pushins + (on ? 1 : -1));
+  document.documentElement.classList.toggle(SCENE_PUSHIN_CLASS, pushins > 0);
+}
+
 /** Deterministic star field in viewport units (same sky every time, no Math.random in a template). */
 export function popupStarShadow(count = 90): string {
   let seed = 20261109;
@@ -100,6 +109,7 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private observer: MutationObserver | null = null;
   private exiting: Promise<void> | null = null;
+  private pushing = false;
 
   constructor() {
     if (!stylesMounted && typeof document !== 'undefined') {
@@ -118,6 +128,7 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
     const cl = this.host.classList;
     cl.add(`pm-${kind}`, 'pm-in');
     if (kind === 'small') cl.add(`pm-o-${this.scPopupMotionOrigin()}`);
+    if (kind === 'large') this.push(true);
     this.buildLayers(kind);
     this.zone.runOutsideAngular(() => {
       this.timer = setTimeout(() => this.settle(), POPUP_MOTION_TOTAL[kind] + 80);
@@ -137,6 +148,8 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
     const cl = this.host.classList;
     cl.remove('pm-in');
     cl.add('pm-out');
+    // The scene pulls back out together with the close.
+    this.push(false);
     const reduced = this.reduced();
     const ms = reduced ? POPUP_MOTION_REDUCED_MS : Math.round(POPUP_MOTION_TOTAL[this.kind] * POPUP_MOTION_CLOSE_SHARE) + 30;
     this.exiting = new Promise<void>((resolve) => {
@@ -153,6 +166,7 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
     cl.remove('pm-out');
     void this.host.offsetWidth;
     cl.add('pm-in');
+    if (this.kind === 'large') this.push(true);
     this.clearTimer();
     this.zone.runOutsideAngular(() => {
       this.timer = setTimeout(() => this.settle(), POPUP_MOTION_TOTAL[this.kind] + 80);
@@ -162,6 +176,13 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.clearTimer();
     this.observer?.disconnect();
+    this.push(false);
+  }
+
+  private push(on: boolean): void {
+    if (this.pushing === on) return;
+    this.pushing = on;
+    scenePush(on);
   }
 
   private reduced(): boolean {

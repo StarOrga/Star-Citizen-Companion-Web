@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import {
   POPUP_MOTION_CLOSE_SHARE,
   POPUP_MOTION_TOTAL,
+  SCENE_PUSHIN_CLASS,
   ScPopupMotionDirective,
   popupStarShadow,
 } from './sc-popup-motion.directive';
@@ -109,6 +110,22 @@ describe('ScPopupMotionDirective', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('large: the scene pushes in while it is open and pulls back out with the close', async () => {
+    const root = document.documentElement;
+    const f = mount();
+    await f.whenStable();
+    expect(root.classList.contains(SCENE_PUSHIN_CLASS)).toBe(true);
+    const large = f.debugElement
+      .queryAll((d) => d.nativeElement?.classList?.contains('veil'))[0]
+      .injector.get(ScPopupMotionDirective);
+    void large.exit();
+    expect(root.classList.contains(SCENE_PUSHIN_CLASS), 'the pull-out starts with the close').toBe(false);
+    large.restart();
+    expect(root.classList.contains(SCENE_PUSHIN_CLASS)).toBe(true);
+    f.destroy();
+    expect(root.classList.contains(SCENE_PUSHIN_CLASS)).toBe(false);
   });
 
   it('popupStarShadow is deterministic', () => {

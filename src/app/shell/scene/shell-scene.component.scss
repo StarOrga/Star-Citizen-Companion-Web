@@ -200,6 +200,30 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     transition: opacity var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1);
   }
 
+  // ── P2 "Szene stößt vor": while a large popup is open (html.sc-scene-pushin, set by
+  // [scPopupMotion="large"]) the scene pushes in ~4 % and dims; the close reverses it in
+  // 60 % of the time. `scale` (not `transform`) so the camera's own transform stays untouched.
+  .scene {
+    scale: 1;
+    transition: scale 560ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .scene::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #02070d;
+    opacity: 0;
+    transition: opacity 560ms ease-out;
+  }
+  :root.sc-scene-pushin & .scene {
+    scale: 1.04;
+    transition-duration: 940ms;
+  }
+  :root.sc-scene-pushin & .scene::after {
+    opacity: 0.42;
+    transition-duration: 940ms;
+  }
+
   // ── S5: the camera tilts slightly with scroll (stars slower than the page) ──
   // Scroll-driven animations run on the compositor; no scroll listener, no layout read.
   @supports (animation-timeline: scroll()) {
@@ -219,6 +243,8 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   @media (prefers-reduced-motion: reduce) {
     .o, .veil, .starmap .const, .starmap .map { transition: none !important; }
     .tilt, .hqst > i, .planet .lights { animation: none !important; }
+    .scene { scale: none !important; transition: none; }
+    .scene::after { transition-duration: 160ms !important; }
   }
   @media (prefers-reduced-motion: no-preference) {
     .scene[data-fade] { animation: none; }
