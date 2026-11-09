@@ -83,7 +83,7 @@ interface WishLine {
           } @empty {
             <p class="empty">{{ 'quick.emptyWish' | translate }}</p>
           }
-          <a class="all" [attr.href]="svc.cartHref()" (click)="onCart($event)">{{ 'quick.allWish' | translate: { n: cart.count() } }}</a>
+          <a class="all" [attr.href]="svc.cartHref()" (click)="onCart($event)">{{ (cart.count() === 1 ? 'quick.allWishOne' : 'quick.allWish') | translate: { n: cart.count() } }}</a>
         </div>
       }
     </div>

@@ -8196,6 +8196,7 @@
     "wish": "Wishlist",
     "emptyWish": "Nothing on the wishlist yet.",
     "allWish": "Whole wishlist · {{n}} items",
+    "allWishOne": "Whole wishlist · 1 item",
     "section": {
       "inventar": "Inventory",
       "hangar": "Hangar",
