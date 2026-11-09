@@ -1,0 +1,232 @@
+<!-- meta {"motto":"Ruhiges Cockpit-Display","traits":["Startprotokoll mit echten Schritten statt Ring und Balken","Platzhalter als Rahmen mit Eckwinkeln, fast keine Bewegung","404 als Pfadprüfung, die zeigt, wo die Adresse abbricht"],"icon":"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 10h8M8 14h5\"/></svg>"} -->
+<style>
+:is([data-design], .design-ov-scale) .d3{position:relative;height:100%;min-height:600px;overflow:hidden;display:flex;flex-direction:column;background:radial-gradient(ellipse 90% 55% at 50% -12%,#0f2a3b 0%,#081723 52%,#050c14 100%);color:#c6dfeb;font:13px/1.45 "Segoe UI",system-ui,sans-serif;--a:#52c1e6;--holo:#8fe3ff;--ink:#eaf7fd;--mut:#7d9cad;--dim:#4c6674;--rule:rgba(130,220,255,.14);--bk:rgba(143,227,255,.5);--fill:rgba(8,24,36,.55);--warn:#e6b552;--mono:"Cascadia Mono",Consolas,"SFMono-Regular",Menlo,ui-monospace,monospace}
+:is([data-design], .design-ov-scale) .d3 :where(button,a){font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:none;box-shadow:none;min-width:0}
+:is([data-design], .design-ov-scale) .d3 :where(h1,h2,p,ol,ul,li,kbd){margin:0;padding:0;list-style:none;font:inherit}
+:is([data-design], .design-ov-scale) .d3 svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d3 .d3-mono{font-family:var(--mono)}
+
+/* ---------- MFD frame: bracket corners, hairline, dark glass ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-f{position:relative;padding:12px 16px 14px;background:linear-gradient(var(--bk),var(--bk)) left top/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) left top/1px 12px no-repeat,linear-gradient(var(--bk),var(--bk)) right top/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) right top/1px 12px no-repeat,linear-gradient(var(--bk),var(--bk)) left bottom/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) left bottom/1px 12px no-repeat,linear-gradient(var(--bk),var(--bk)) right bottom/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) right bottom/1px 12px no-repeat,var(--fill);box-shadow:inset 0 0 0 1px rgba(130,220,255,.06)}
+:is([data-design], .design-ov-scale) .d3 .d3-lbl{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font:10px/14px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-lbl b{font-weight:600;color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-lbl em{font-style:normal;color:var(--mut)}
+
+/* skeleton: segmented display rules, no shimmer */
+:is([data-design], .design-ov-scale) .d3 .d3-sk{display:block;height:7px;background:repeating-linear-gradient(90deg,rgba(143,227,255,.17) 0 5px,transparent 5px 7px)}
+:is([data-design], .design-ov-scale) .d3 .d3-sk.lg{height:20px;background:repeating-linear-gradient(90deg,rgba(143,227,255,.13) 0 9px,transparent 9px 12px)}
+:is([data-design], .design-ov-scale) .d3 .w2{width:20%}
+:is([data-design], .design-ov-scale) .d3 .w3{width:30%}
+:is([data-design], .design-ov-scale) .d3 .w4{width:40%}
+:is([data-design], .design-ov-scale) .d3 .w5{width:50%}
+:is([data-design], .design-ov-scale) .d3 .w6{width:60%}
+:is([data-design], .design-ov-scale) .d3 .w8{width:80%}
+:is([data-design], .design-ov-scale) .d3 .d3-row{display:flex;align-items:center;gap:12px;height:24px;border-bottom:1px solid rgba(130,220,255,.06)}
+:is([data-design], .design-ov-scale) .d3 .d3-row:last-child{border-bottom:0}
+:is([data-design], .design-ov-scale) .d3 .d3-row .d3-sk:first-child{flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-row .d3-dots{flex:1;height:1px;border-bottom:1px dotted rgba(130,220,255,.16)}
+:is([data-design], .design-ov-scale) .d3 .d3-row .d3-sk:last-child{flex:none;width:48px}
+
+/* log lines */
+:is([data-design], .design-ov-scale) .d3 .d3-log{font:11.5px/1.95 var(--mono);color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-log p{display:flex;align-items:baseline;gap:10px;white-space:nowrap;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-t{color:var(--dim);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-k{color:var(--dim);flex:none;width:4.5ch;letter-spacing:.06em}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-x{color:#b9d6e4;overflow:hidden;text-overflow:ellipsis;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-lead{flex:1;min-width:16px;border-bottom:1px dotted rgba(130,220,255,.2);transform:translateY(-3px)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-ok{flex:none;color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-now{color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-hold-k{flex:none;color:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-off{opacity:.42}
+:is([data-design], .design-ov-scale) .d3 .d3-cur{display:inline-block;flex:none;width:7px;height:12px;background:var(--holo);transform:translateY(2px);animation:d3-blink 1.2s steps(1) infinite}
+
+/* segmented progress */
+:is([data-design], .design-ov-scale) .d3 .d3-seg{display:flex;gap:3px;flex:1;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-seg i{flex:1;height:6px;background:rgba(143,227,255,.1)}
+:is([data-design], .design-ov-scale) .d3 .d3-seg i.on{background:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-seg i.cur{background:var(--holo);animation:d3-cell 1.6s steps(2,jump-none) infinite}
+:is([data-design], .design-ov-scale) .d3 .d3-seg.wt i.on{background:rgba(82,193,230,.55)}
+:is([data-design], .design-ov-scale) .d3 .d3-seg.wt i.cur{background:var(--warn);animation:none}
+
+@keyframes d3-blink{50%{opacity:0}}
+@keyframes d3-cell{from{opacity:1}to{opacity:.35}}
+
+/* ---------- Screen 1 · Start ---------- */
+:is([data-design], .design-ov-scale) .d3.d3-cold{background:radial-gradient(ellipse 60% 45% at 50% 46%,#0b1d2a 0%,#060b14 62%,#050810 100%)}
+:is([data-design], .design-ov-scale) .d3 .d3-boot{flex:1;display:grid;place-items:center;padding:24px 16px}
+:is([data-design], .design-ov-scale) .d3 .d3-bootf{width:min(520px,100%);display:block;text-align:left;padding:20px 22px 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-id{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-id svg{width:38px;height:38px;color:var(--a);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-id div{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-id b{font-weight:600;font-size:13px;letter-spacing:.32em;color:var(--ink);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-id small{font:10.5px var(--mono);letter-spacing:.18em;color:var(--mut);text-transform:uppercase}
+:is([data-design], .design-ov-scale) .d3 .d3-id em{font:normal 10px var(--mono);letter-spacing:.2em;color:var(--dim);align-self:flex-start;padding:2px 6px;border:1px solid var(--rule)}
+:is([data-design], .design-ov-scale) .d3 .d3-prog{display:flex;align-items:center;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);font:10.5px var(--mono);letter-spacing:.14em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-prog b{font-weight:400;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-foot{margin-top:18px;font:10px var(--mono);letter-spacing:.24em;color:var(--dim);text-transform:uppercase;text-align:center}
+
+/* ---------- β shell (context, dimmed) ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-bar{flex:none;padding:12px max(16px,calc(50% - 640px)) 0;opacity:.6}
+:is([data-design], .design-ov-scale) .d3 .d3-cap{position:relative;display:flex;align-items:center;gap:14px;height:60px;padding:0 14px 0 10px;border-radius:20px;background:linear-gradient(180deg,#0a1d2b,#061724);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+:is([data-design], .design-ov-scale) .d3 .d3-cap::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(210,242,255,.07),transparent 55%);pointer-events:none}
+:is([data-design], .design-ov-scale) .d3 .d3-blogo{flex:none;width:44px;height:40px;display:grid;place-items:center;color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-blogo svg{width:30px;height:30px}
+:is([data-design], .design-ov-scale) .d3 .d3-plate{flex:0 1 300px;display:flex;flex-direction:column;gap:2px;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-plate b{font-weight:600;font-size:11px;letter-spacing:.28em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-plate ol{display:flex;gap:4px;font-size:12px;color:#6f8c9c;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-plate li+li::before{content:"›";margin-right:4px}
+:is([data-design], .design-ov-scale) .d3 .d3-plate .here{color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-div{flex:none;width:1px;height:28px;background:linear-gradient(180deg,transparent,rgba(160,230,255,.5),transparent)}
+:is([data-design], .design-ov-scale) .d3 .d3-kind{flex:none;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px 0 13px;border-radius:16px;border:1px solid rgba(130,220,255,.28);color:#cfe6f1;font-size:12.5px}
+:is([data-design], .design-ov-scale) .d3 .d3-kind i{font-style:normal;font-size:11px;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-kind svg{width:13px;height:13px}
+:is([data-design], .design-ov-scale) .d3 .d3-search{flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:38px;padding:0 6px 0 14px;border-radius:19px;background:rgba(0,0,0,.24);border:1px solid rgba(130,220,255,.16);color:#6f8c9c}
+:is([data-design], .design-ov-scale) .d3 .d3-search svg{width:16px;height:16px;flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-search span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+:is([data-design], .design-ov-scale) .d3 .d3-search kbd{flex:none;font:10.5px var(--mono);padding:3px 8px;border-radius:12px;background:linear-gradient(180deg,#17384c,#0b2231);color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-acc{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--ink);background:linear-gradient(160deg,#1c4a62,#0d2636);box-shadow:inset 0 0 0 1px rgba(130,220,255,.3)}
+:is([data-design], .design-ov-scale) .d3 .d3-route{display:none}
+
+/* ---------- page area ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-page{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:18px max(16px,calc(50% - 640px)) 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-strip{flex:none;display:flex;align-items:center;gap:16px;height:34px;padding:0 4px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font:11px var(--mono);letter-spacing:.08em;color:var(--mut);text-align:left;width:100%}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-tag{flex:none;color:var(--a);letter-spacing:.22em}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-path{flex:none;color:#b9d6e4;letter-spacing:.14em}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-seg{max-width:240px;margin-left:auto}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-st{flex:none;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-st b{font-weight:400;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-strip.wt .d3-tag{color:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-head{flex:none;display:flex;flex-direction:column;gap:9px}
+:is([data-design], .design-ov-scale) .d3 .d3-eye{font:10.5px var(--mono);letter-spacing:.22em;color:var(--mut);text-transform:uppercase}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.lg{width:300px}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.sm{width:200px}
+:is([data-design], .design-ov-scale) .d3 .d3-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-hero{display:flex;flex-direction:column;min-height:0}
+:is([data-design], .design-ov-scale) .d3 .d3-ret{flex:1;min-height:90px;display:grid;place-items:center;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-ret svg{width:min(400px,86%);height:auto;stroke-width:1}
+:is([data-design], .design-ov-scale) .d3 .d3-hero .d3-log{padding-top:10px;border-top:1px solid rgba(130,220,255,.08)}
+:is([data-design], .design-ov-scale) .d3 .d3-col{display:flex;flex-direction:column;gap:14px;min-height:0}
+:is([data-design], .design-ov-scale) .d3 .d3-col .d3-f{flex:1;min-height:0;overflow:hidden}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-f{display:flex;flex-direction:column;gap:9px;padding:10px 14px 12px}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-lbl{margin:0}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-sk{width:62%;height:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-diag .d3-col .d3-f{flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-diag .d3-col .d3-f:nth-child(2){flex:1;display:flex;flex-direction:column}
+:is([data-design], .design-ov-scale) .d3 .d3-all{margin-top:auto;display:flex;align-items:center;gap:6px;padding:10px 8px 0;border-top:1px solid var(--rule);color:var(--a);font-size:12.5px}
+:is([data-design], .design-ov-scale) .d3 .d3-all svg{width:14px;height:14px}
+
+/* ---------- Screen 3 · hold readout ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-hush :is(.d3-head,.d3-stage,.d3-kpi){opacity:.32}
+:is([data-design], .design-ov-scale) .d3 .d3-hold{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:min(540px,calc(100% - 32px));padding:18px 22px 20px;--bk:rgba(143,227,255,.8);--fill:linear-gradient(180deg,rgba(9,27,40,.97),rgba(6,18,28,.97));box-shadow:inset 0 0 0 1px rgba(130,220,255,.1),0 36px 90px rgba(0,0,0,.65),0 10px 24px rgba(0,0,0,.4);text-align:left}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-lbl .d3-w{display:inline-flex;align-items:center;gap:7px;color:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-lbl .d3-w::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-log{padding:4px 0 12px;border-bottom:1px solid var(--rule)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold h2{margin-top:14px;font-size:19px;font-weight:600;letter-spacing:.01em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold p.d3-say{margin-top:6px;color:#a9c4d2;max-width:46ch}
+:is([data-design], .design-ov-scale) .d3 .d3-acts{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:18px}
+:is([data-design], .design-ov-scale) .d3 .d3-pri{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px 0 16px;border-radius:20px;background:linear-gradient(180deg,#6ad0f0,#3fb0d8);color:#04131c;font-weight:600;box-shadow:0 0 0 1px rgba(200,240,255,.35) inset,0 6px 18px rgba(82,193,230,.25)}
+:is([data-design], .design-ov-scale) .d3 .d3-pri:hover{background:linear-gradient(180deg,#86dcf5,#52c1e6)}
+:is([data-design], .design-ov-scale) .d3 .d3-pri svg{width:16px;height:16px;stroke-width:2}
+:is([data-design], .design-ov-scale) .d3 .d3-pill{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border-radius:18px;border:1px solid rgba(82,193,230,.45);color:#cfe8f3;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-pill:hover{border-color:var(--a);color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-pill svg{width:15px;height:15px}
+:is([data-design], .design-ov-scale) .d3 .d3-bgnote{margin-top:14px;font:10.5px var(--mono);letter-spacing:.08em;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-bgnote b{font-weight:400;color:var(--mut)}
+
+/* ---------- Screen 4 · route diagnostic ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-diag{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-dx{display:flex;flex-direction:column;padding:16px 22px 22px;min-height:0}
+:is([data-design], .design-ov-scale) .d3 .d3-code{display:flex;align-items:baseline;gap:22px;margin-top:10px;font:200 104px/.9 var(--mono);letter-spacing:.02em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-code span{font-size:16px;font-weight:400;letter-spacing:.3em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-url{margin-top:22px;font:14px/1.2 var(--mono);color:#b9d6e4;white-space:nowrap;overflow:hidden;padding-bottom:22px}
+:is([data-design], .design-ov-scale) .d3 .d3-url .d3-host{color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-url mark{position:relative;background:none;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d3 .d3-url mark::after{content:"^^^^^^^^^";position:absolute;left:0;top:1.15em;color:var(--holo);opacity:.8}
+:is([data-design], .design-ov-scale) .d3 .d3-trace{margin-top:2px;font-size:12.5px;border-top:1px solid var(--rule);padding-top:8px}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-x{width:13ch;flex:none;color:#b9d6e4}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-k{width:auto;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-miss{flex:none;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-dx h1{margin-top:auto;padding-top:20px;font-size:24px;line-height:1.2;font-weight:600;color:var(--ink);letter-spacing:.005em}
+:is([data-design], .design-ov-scale) .d3 .d3-dx p.d3-say{margin-top:6px;color:#a9c4d2;max-width:48ch}
+:is([data-design], .design-ov-scale) .d3 .d3-field{display:flex;align-items:center;gap:10px;height:42px;padding:0 6px 0 14px;border:1px solid rgba(130,220,255,.32);background:rgba(0,0,0,.28);box-shadow:0 0 0 3px rgba(82,193,230,.07)}
+:is([data-design], .design-ov-scale) .d3 .d3-field svg{width:16px;height:16px;color:var(--a);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-field span{flex:1;min-width:0;font-family:var(--mono);color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-field span::after{content:"";display:inline-block;width:1px;height:15px;margin-left:2px;background:var(--holo);transform:translateY(3px);animation:d3-blink 1.2s steps(1) infinite}
+:is([data-design], .design-ov-scale) .d3 .d3-field kbd{flex:none;font:10.5px var(--mono);padding:4px 9px;background:linear-gradient(180deg,#17384c,#0b2231);color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-sugs{display:flex;flex-direction:column}
+:is([data-design], .design-ov-scale) .d3 .d3-sug{display:grid;grid-template-columns:minmax(0,1fr) auto 16px;align-items:center;gap:4px 14px;padding:9px 8px;border-bottom:1px solid rgba(130,220,255,.07);text-align:left}
+:is([data-design], .design-ov-scale) .d3 .d3-sug:last-child{border-bottom:0}
+:is([data-design], .design-ov-scale) .d3 .d3-sug:hover{background:rgba(82,193,230,.07)}
+:is([data-design], .design-ov-scale) .d3 .d3-sug b{font-weight:600;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-sug b small{font-weight:400;font-size:12px;color:var(--mut);margin-left:8px}
+:is([data-design], .design-ov-scale) .d3 .d3-sug code{grid-column:1;font:11px var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-sug .d3-pc{grid-row:1/3;grid-column:2;font:11px var(--mono);color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-sug svg{grid-row:1/3;grid-column:3;width:15px;height:15px;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+:is([data-design], .design-ov-scale) .d3 .d3-area{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(130,220,255,.16);text-align:left}
+:is([data-design], .design-ov-scale) .d3 .d3-area:hover{border-color:rgba(82,193,230,.6);background:rgba(82,193,230,.06)}
+:is([data-design], .design-ov-scale) .d3 .d3-area svg{width:20px;height:20px;color:var(--a);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-area span{display:flex;flex-direction:column;min-width:0;color:var(--ink);font-weight:600}
+:is([data-design], .design-ov-scale) .d3 .d3-area small{font:400 10.5px var(--mono);color:var(--dim)}
+
+@media (prefers-reduced-motion: reduce){
+:is([data-design], .design-ov-scale) .d3 *,:is([data-design], .design-ov-scale) .d3 *::after{animation:none!important}
+}
+
+/* ---------- phone ---------- */
+@container device (max-width: 520px){
+:is([data-design], .design-ov-scale) .d3 .d3-bootf{padding:16px 16px 14px}
+:is([data-design], .design-ov-scale) .d3 .d3-bootf .d3-log .d3-t{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-id b{letter-spacing:.22em;font-size:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-bar{order:9;padding:0 10px 10px;opacity:.72}
+:is([data-design], .design-ov-scale) .d3 .d3-cap{height:56px;gap:10px;padding:0 10px 0 6px}
+:is([data-design], .design-ov-scale) .d3 :is(.d3-plate,.d3-div,.d3-kind){display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-search kbd{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-route{display:block;flex:none;padding:12px 16px 0;font-size:12px;color:#6f8c9c;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is([data-design], .design-ov-scale) .d3 .d3-route b{font-weight:400;color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-page{padding:12px 16px 14px;gap:12px;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(130,220,255,.25) transparent}
+:is([data-design], .design-ov-scale) .d3 .d3-strip{order:-2}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-st{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-strip{gap:10px;font-size:10.5px}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-path{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-seg{flex:0 0 64px;max-width:none}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.lg{width:72%}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.sm{width:50%}
+:is([data-design], .design-ov-scale) .d3 .d3-stage{grid-template-columns:minmax(0,1fr);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-ret{min-height:120px}
+:is([data-design], .design-ov-scale) .d3 .d3-ret svg{width:200px}
+:is([data-design], .design-ov-scale) .d3 .d3-col .d3-f + .d3-f{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-f:nth-child(n+3){display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-hold{position:relative;left:auto;top:auto;transform:none;width:auto;order:-1;flex:none;padding:16px 16px 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-hush .d3-page{gap:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-hold h2{font-size:17px}
+:is([data-design], .design-ov-scale) .d3 .d3-acts{flex-direction:column;align-items:stretch}
+:is([data-design], .design-ov-scale) .d3 .d3-acts > *{justify-content:center;height:44px}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-log .d3-k{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-diag{grid-template-columns:minmax(0,1fr);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-dx{padding:14px 16px 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-code{font-size:64px;gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-code span{font-size:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-url{font-size:12.5px;margin-top:16px}
+:is([data-design], .design-ov-scale) .d3 .d3-url .d3-host{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-x{width:11ch}
+:is([data-design], .design-ov-scale) .d3 .d3-dx h1{font-size:20px;padding-top:16px}
+:is([data-design], .design-ov-scale) .d3 .d3-areas{grid-template-columns:minmax(0,1fr)}
+:is([data-design], .design-ov-scale) .d3 .d3-area{padding:12px;min-height:48px}
+:is([data-design], .design-ov-scale) .d3 .d3-sug{min-height:48px}
+}
+</style>
+<template data-screen="1"><div class="d3 d3-cold"><div class="d3-boot" role="status" aria-label="Verse Companion startet"><div><button type="button" class="d3-f d3-bootf" data-m="d3-boot" data-screen-link="d3-s2"><div class="d3-id"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg><div><b>VERSE COMPANION</b><small>Start · Schritt 4 von 5</small></div><em>ALPHA</em></div><div class="d3-log" data-m="d3-bootlog"><p><span class="d3-t">00.00</span><span class="d3-k">SYS</span><span class="d3-x">Oberfläche laden</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-t">00.21</span><span class="d3-k">NET</span><span class="d3-x">Verbindung prüfen</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-t">00.38</span><span class="d3-k">AUTH</span><span class="d3-x">Sitzung lesen</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-t">00.54</span><span class="d3-k">DATA</span><span class="d3-x d3-now">Codex 4.3.1-LIVE laden</span><span class="d3-lead"></span><span class="d3-cur"></span></p><p class="d3-off"><span class="d3-t">--.--</span><span class="d3-k">UI</span><span class="d3-x">Verse öffnen</span><span class="d3-lead"></span><span class="d3-ok">&nbsp;&nbsp;</span></p></div><div class="d3-prog"><span class="d3-seg"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i><i></i><i></i></span><b>04/05</b></div></button><p class="d3-foot">Star Citizen · Begleiter</p></div></div></div></template>
+<template data-screen="2"><div class="d3"><div class="d3-route">Codex › Schiffe › <b>Carrack</b></div><header class="d3-bar" data-m="d3-shell"><div class="d3-cap"><span class="d3-blogo" aria-label="Verse Companion"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg></span><div class="d3-plate"><b>VERSE COMPANION</b><ol><li>Codex</li><li>Schiffe</li><li class="here">Carrack</li></ol></div><span class="d3-div"></span><button type="button" class="d3-kind">Schiffe<i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="d3-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Schiffe, Hersteller, Komponenten …</span><kbd>Strg K</kbd></span><span class="d3-acc">JT</span></div></header><main class="d3-page"><button type="button" class="d3-strip" data-m="d3-strip" data-screen-link="d3-s3" role="status"><span class="d3-tag">[ LÄDT ]</span><span class="d3-path">CODEX / SCHIFFE / CARRACK</span><span class="d3-seg"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i><i></i></span><span class="d3-st">Schiffsdaten · <b>2/3</b> · 1,4 s</span></button><div class="d3-head"><span class="d3-eye">Codex · Schiff</span><i class="d3-sk lg"></i><i class="d3-sk sm"></i></div><div class="d3-stage"><div class="d3-f d3-hero" data-m="d3-frames"><div class="d3-lbl"><b>01 · Ansicht</b><em>wartet</em></div><div class="d3-ret"><svg viewBox="0 0 300 140" aria-hidden="true"><circle cx="150" cy="70" r="38"/><circle cx="150" cy="70" r="58" stroke-dasharray="2 6" opacity=".7"/><path d="M150 18v18M150 104v18M78 70h34M188 70h34M150 66v8M146 70h8"/><path d="M20 70h40M240 70h40M146 32h8M146 108h8" opacity=".5"/><path d="M30 20h14M30 20v10M270 20h-14M270 20v10M30 120h14M30 120v-10M270 120h-14M270 120v-10" opacity=".6"/></svg></div><div class="d3-log"><p><span class="d3-k">ROUT</span><span class="d3-x">/codex/schiffe/carrack</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">MOD</span><span class="d3-x">Codex-Modul</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">DATA</span><span class="d3-x d3-now">Schiffsdaten 4.3.1-LIVE</span><span class="d3-lead"></span><span class="d3-cur"></span></p></div></div><div class="d3-col"><div class="d3-f"><div class="d3-lbl"><b>02 · Kennwerte</b></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w2"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div><div class="d3-f"><div class="d3-lbl"><b>03 · Bewaffnung</b></div><div class="d3-row"><i class="d3-sk w5"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w5"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div></div></div><div class="d3-kpi"><div class="d3-f"><div class="d3-lbl">Länge</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Masse</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Crew</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Fracht</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">SCM</div><i class="d3-sk"></i></div></div></main></div></template>
+<template data-screen="3"><div class="d3 d3-hush"><div class="d3-route">Codex › Schiffe › <b>Carrack</b></div><header class="d3-bar"><div class="d3-cap"><span class="d3-blogo" aria-label="Verse Companion"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg></span><div class="d3-plate"><b>VERSE COMPANION</b><ol><li>Codex</li><li>Schiffe</li><li class="here">Carrack</li></ol></div><span class="d3-div"></span><button type="button" class="d3-kind">Schiffe<i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="d3-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Schiffe, Hersteller, Komponenten …</span><kbd>Strg K</kbd></span><span class="d3-acc">JT</span></div></header><main class="d3-page"><div class="d3-strip wt" role="status"><span class="d3-tag">[ WARTET ]</span><span class="d3-path">CODEX / SCHIFFE / CARRACK</span><span class="d3-seg wt"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i><i></i></span><span class="d3-st">Schiffsdaten · <b>keine Antwort</b> · 8 s</span></div><div class="d3-head"><span class="d3-eye">Codex · Schiff</span><i class="d3-sk lg"></i><i class="d3-sk sm"></i></div><div class="d3-stage"><div class="d3-f d3-hero"><div class="d3-lbl"><b>01 · Ansicht</b><em>wartet</em></div><div class="d3-ret"><svg viewBox="0 0 300 140" aria-hidden="true"><circle cx="150" cy="70" r="38"/><circle cx="150" cy="70" r="58" stroke-dasharray="2 6" opacity=".7"/><path d="M150 18v18M150 104v18M78 70h34M188 70h34M150 66v8M146 70h8"/><path d="M20 70h40M240 70h40M146 32h8M146 108h8" opacity=".5"/></svg></div></div><div class="d3-col"><div class="d3-f"><div class="d3-lbl"><b>02 · Kennwerte</b></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w2"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div><div class="d3-f"><div class="d3-lbl"><b>03 · Bewaffnung</b></div><div class="d3-row"><i class="d3-sk w5"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div></div></div><div class="d3-kpi"><div class="d3-f"><div class="d3-lbl">Länge</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Masse</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Crew</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Fracht</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">SCM</div><i class="d3-sk"></i></div></div><section class="d3-f d3-hold" data-m="d3-hold" role="status" aria-live="polite"><div class="d3-lbl"><b>Status · 00:08</b><span class="d3-w">Wartet</span></div><div class="d3-log"><p><span class="d3-k">ROUT</span><span class="d3-x">/codex/schiffe/carrack</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">MOD</span><span class="d3-x">Codex-Modul</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">DATA</span><span class="d3-x d3-now">Schiffsdaten 4.3.1-LIVE</span><span class="d3-lead"></span><span class="d3-hold-k">keine Antwort</span></p></div><h2>Das dauert länger als sonst.</h2><p class="d3-say">Der Codex antwortet gerade langsam. Die Leiste oben bleibt bedienbar – du kannst suchen oder woanders hin, ohne etwas zu verlieren.</p><div class="d3-acts"><button type="button" class="d3-pri" data-screen-link="d3-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Erneut versuchen</button><a class="d3-pill">Zur Startseite</a><a class="d3-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Status ansehen</a></div><p class="d3-bgnote" data-m="d3-bgnote">Anfrage läuft weiter · <b>die Seite erscheint von selbst</b></p></section></main></div></template>
+<template data-screen="4"><div class="d3"><div class="d3-route">Nicht gefunden · <b>/codex/schiffe/carrack-x</b></div><header class="d3-bar"><div class="d3-cap"><span class="d3-blogo" aria-label="Verse Companion"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg></span><div class="d3-plate"><b>VERSE COMPANION</b><ol><li class="here">Nicht gefunden</li></ol></div><span class="d3-div"></span><span class="d3-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Suchen im ganzen Verse …</span><kbd>Strg K</kbd></span><span class="d3-acc">JT</span></div></header><main class="d3-page"><div class="d3-diag"><section class="d3-f d3-dx" data-m="d3-trace"><div class="d3-lbl"><b>Diagnose · Route</b><em>Code 404</em></div><div class="d3-code" aria-hidden="true"><span>ROUTE</span>404</div><div class="d3-url"><span class="d3-host">versecompanion.app</span>/codex/schiffe/<mark>carrack-x</mark></div><div class="d3-log d3-trace"><p><span class="d3-x">/codex</span><span class="d3-k">Bereich</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-x">/schiffe</span><span class="d3-k">Liste · 271 Einträge</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-x d3-now">/carrack-x</span><span class="d3-k">Eintrag</span><span class="d3-lead"></span><span class="d3-miss">kein Treffer</span></p></div><h1>Diese Adresse führt nirgendwohin.</h1><p class="d3-say">Ein Tippfehler oder ein alter Link – bis /schiffe stimmt alles, nur den letzten Teil kennt der Codex nicht.</p><div class="d3-acts"><a class="d3-pri" data-screen-link="d3-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/></svg>Zur Startseite</a><a class="d3-pill">Eine Seite zurück</a></div></section><div class="d3-col"><div class="d3-f" data-m="d3-search"><div class="d3-lbl"><b>Suche</b><em>vorbelegt</em></div><div class="d3-field" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>carrack</span><kbd>Enter</kbd></div></div><div class="d3-f" data-m="d3-sugs"><div class="d3-lbl"><b>Meintest du</b><em>3 Treffer</em></div><div class="d3-sugs"><a class="d3-sug"><b>Carrack<small>Anvil Aerospace</small></b><code>/codex/schiffe/carrack</code><span class="d3-pc">96 %</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a><a class="d3-sug"><b>Carrack Expedition<small>Anvil Aerospace</small></b><code>/codex/schiffe/carrack-expedition</code><span class="d3-pc">81 %</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a><a class="d3-sug"><b>C8X Pisces Expedition<small>Anvil Aerospace</small></b><code>/codex/schiffe/c8x-pisces-expedition</code><span class="d3-pc">54 %</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a></div><a class="d3-all">Alle 271 Schiffe im Codex<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="d3-f"><div class="d3-lbl"><b>Bereiche</b></div><div class="d3-areas"><a class="d3-area"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="9.5" ry="4" transform="rotate(-20 12 12)"/></svg><span>Verse<small>/verse</small></span></a><a class="d3-area"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10M9 8h5"/></svg><span>Codex<small>/codex</small></span></a><a class="d3-area"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V9l9-5 9 5v11"/><path d="M7 20v-6h10v6M7 17h10"/></svg><span>HQ<small>/hq</small></span></a></div></div></div></div></main></div></template>
+<!-- annos [
+ {"screen":1,"side":"right","target":"[data-m=\"d3-bootlog\"]","x":62,"y":50,"q":"Vor dem App-Start gibt es keine echten Messpunkte: das Protokoll zeigt feste Startschritte, nur der Cursor in der Datenzeile blinkt (bei reduzierter Bewegung steht er still, sonst ist das Bild identisch). Passt das, oder sollen die Zeilen nacheinander erscheinen – oder nur eine ehrliche Zeile „Verse Companion startet …“?"},
+ {"screen":4,"side":"right","target":"[data-m=\"d3-trace\"]","x":30,"y":48,"q":"Die 404 prüft die Adresse Stück für Stück und zeigt mit ^^^ genau, wo sie abbricht. Ist das für Spieler der richtige Ton, oder zu technisch – dann nur die Adresse und ein Satz?"},
+ {"screen":2,"side":"bottom","target":"[data-m=\"d3-strip\"]","x":50,"y":22,"q":"Eine Statuszeile oben plus das Protokoll im Bildrahmen sagen beide, was gerade lädt. Reicht dir die Statuszeile allein, oder soll das Protokoll bleiben?"},
+ {"screen":3,"side":"left","target":"[data-m=\"d3-hold\"]","x":50,"y":48,"q":"„Wartet“ ist bernsteinfarben (Warnfarbe, kein Fehlerrot), der Rest bleibt cyan. Passt das, oder soll bis zu einem echten Fehler alles cyan bleiben?"},
+ {"screen":3,"side":"bottom","target":"[data-m=\"d3-bgnote\"]","x":50,"y":78,"q":"Die Anfrage läuft im Hintergrund weiter und die Seite erscheint von selbst. Willst du das so, oder soll nach 8 s abgebrochen werden und erst „Erneut versuchen“ neu laden?"},
+ {"screen":4,"side":"left","target":"[data-m=\"d3-sugs\"]","x":72,"y":42,"q":"„Meintest du“ zeigt eine Trefferquote in Prozent und den Pfad. Behalten, oder nur Name und Hersteller?"}
+] -->

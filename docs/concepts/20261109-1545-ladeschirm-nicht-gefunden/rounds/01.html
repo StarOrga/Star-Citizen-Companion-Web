@@ -1,0 +1,1078 @@
+<section data-iteration="1" data-iteration-template="design" data-tab-label="Runde 1" data-design-set="alternatives" data-viewports="desktop phone">
+<style>
+/* ── d1 Holo-Scan ── */
+:is([data-design], .design-ov-scale) .d1{position:relative;height:100%;min-height:600px;overflow:hidden;background:#050810;color:#cfe8f3;font:13px/1.45 "Segoe UI",system-ui,sans-serif;--a:#52c1e6;--holo:#8fe3ff;--hi:#dff6ff;--ink:#eef9fd;--mut:#7fa3b6;--dim:#4d6b7c;--mono:Consolas,"Cascadia Mono",ui-monospace,monospace;--disp:"Orbitron","Eurostile","Segoe UI",system-ui,sans-serif;--fill:linear-gradient(180deg,#0a1d2b,#061724);--edge:linear-gradient(160deg,rgba(200,236,250,.7) 0%,rgba(80,125,148,.45) 30%,rgba(30,58,74,.5) 60%,rgba(140,200,225,.55) 100%);--sheen:linear-gradient(180deg,rgba(210,242,255,.07),transparent 55%);--T:3.6s}
+:is([data-design], .design-ov-scale) .d1 :where(button,a,input){font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:none;box-shadow:none;min-width:0;outline:0;text-align:inherit}
+:is([data-design], .design-ov-scale) .d1 :where(h1,h2,p,ul,ol,li){margin:0;padding:0;list-style:none;font-weight:inherit;font-size:inherit}
+:is([data-design], .design-ov-scale) .d1 :where(a,button,input):focus-visible{outline:2px solid var(--a);outline-offset:3px}
+:is([data-design], .design-ov-scale) .d1 svg{display:block}
+:is([data-design], .design-ov-scale) .d1 .d1-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* ---------- shared backdrops ---------- */
+:is([data-design], .design-ov-scale) .d1.d1-app{background:radial-gradient(ellipse 70% 48% at 50% 0%,#10293a 0%,#081622 55%,#050b13 100%)}
+:is([data-design], .design-ov-scale) .d1 .d1-stars{position:absolute;inset:0;pointer-events:none;opacity:.55;background-image:radial-gradient(1px 1px at 12% 18%,rgba(223,246,255,.8),transparent 70%),radial-gradient(1px 1px at 27% 72%,rgba(223,246,255,.6),transparent 70%),radial-gradient(1.5px 1.5px at 41% 12%,rgba(143,227,255,.7),transparent 70%),radial-gradient(1px 1px at 63% 84%,rgba(223,246,255,.55),transparent 70%),radial-gradient(1px 1px at 78% 22%,rgba(223,246,255,.7),transparent 70%),radial-gradient(1.5px 1.5px at 88% 58%,rgba(143,227,255,.6),transparent 70%),radial-gradient(1px 1px at 7% 48%,rgba(223,246,255,.5),transparent 70%),radial-gradient(1px 1px at 52% 36%,rgba(223,246,255,.35),transparent 70%),radial-gradient(1px 1px at 94% 90%,rgba(223,246,255,.5),transparent 70%),radial-gradient(1px 1px at 34% 94%,rgba(143,227,255,.5),transparent 70%)}
+:is([data-design], .design-ov-scale) .d1 .d1-raster{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(143,227,255,.025) 0 1px,transparent 1px 4px)}
+
+/* ---------- holo ship (boot + stage) ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-ship{position:absolute}
+:is([data-design], .design-ov-scale) .d1 .d1-ship svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-ship :is(path,ellipse,circle){vector-effect:non-scaling-stroke}
+:is([data-design], .design-ov-scale) .d1 .d1-ghost{stroke:rgba(143,227,255,.24);stroke-width:1;stroke-dasharray:2 3}
+:is([data-design], .design-ov-scale) .d1 .d1-solid{stroke:var(--holo);stroke-width:1.15;filter:drop-shadow(0 0 2.5px rgba(110,210,255,.95)) drop-shadow(0 0 10px rgba(82,193,230,.35))}
+:is([data-design], .design-ov-scale) .d1 .d1-solid .d1-hull{fill:rgba(143,227,255,.08)}
+:is([data-design], .design-ov-scale) .d1 .d1-ship::after{content:"";position:absolute;inset:-4%;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(143,227,255,.06) 0 1px,transparent 1px 4px);-webkit-mask-image:radial-gradient(closest-side,#000 55%,transparent);mask-image:radial-gradient(closest-side,#000 55%,transparent)}
+:is([data-design], .design-ov-scale) .d1 .d1-scanwrap{position:absolute;top:0;bottom:0;left:-9%;right:-9%;pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-scanline{position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--hi) 18%,var(--hi) 82%,transparent);box-shadow:0 0 12px 2px rgba(110,210,255,.55)}
+:is([data-design], .design-ov-scale) .d1 .d1-scanline::before{content:"";position:absolute;left:12%;right:12%;bottom:0;height:46px;background:linear-gradient(180deg,transparent,rgba(143,227,255,.13))}
+:is([data-design], .design-ov-scale) .d1 .d1-emit{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(223,246,255,.6),rgba(82,193,230,.28) 45%,rgba(82,193,230,.05) 82%,transparent);box-shadow:0 0 0 1px rgba(143,227,255,.32),0 0 30px rgba(82,193,230,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-emit::before{content:"";position:absolute;inset:-38% -26%;border-radius:50%;border:1px solid rgba(143,227,255,.16)}
+:is([data-design], .design-ov-scale) .d1 .d1-emit::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid rgba(143,227,255,.6);animation:d1-emitping 2.6s ease-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-cone{position:absolute;background:linear-gradient(0deg,rgba(82,193,230,.2),rgba(82,193,230,.03) 72%,transparent);clip-path:polygon(0 0,100% 0,61% 100%,39% 100%);animation:d1-flick 6s linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-corner{position:absolute;width:16px;height:16px;border:1px solid rgba(143,227,255,.45);pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-c-tl{left:0;top:0;border-right:0;border-bottom:0}
+:is([data-design], .design-ov-scale) .d1 .d1-c-tr{right:0;top:0;border-left:0;border-bottom:0}
+:is([data-design], .design-ov-scale) .d1 .d1-c-bl{left:0;bottom:0;border-right:0;border-top:0}
+:is([data-design], .design-ov-scale) .d1 .d1-c-br{right:0;bottom:0;border-left:0;border-top:0}
+
+/* ---------- screen 1 · Start ---------- */
+:is([data-design], .design-ov-scale) .d1.d1-boot{background:radial-gradient(ellipse 58% 48% at 50% 44%,#0c2131 0%,#07121c 48%,#050810 100%)}
+:is([data-design], .design-ov-scale) .d1 .d1-bootc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px}
+:is([data-design], .design-ov-scale) .d1 .d1-proj{position:relative;display:block;width:min(580px,100%);aspect-ratio:580/340}
+:is([data-design], .design-ov-scale) .d1 .d1-proj .d1-ship{left:7%;right:7%;top:5%;height:60%}
+:is([data-design], .design-ov-scale) .d1 .d1-proj .d1-cone{left:12%;right:12%;top:4%;bottom:13%}
+:is([data-design], .design-ov-scale) .d1 .d1-proj .d1-emit{left:31%;right:31%;bottom:5%;height:11%}
+:is([data-design], .design-ov-scale) .d1.d1-boot .d1-solid{animation:d1-reveal 3.4s cubic-bezier(.45,0,.55,1) infinite}
+:is([data-design], .design-ov-scale) .d1.d1-boot .d1-scanwrap{animation:d1-scanmove 3.4s cubic-bezier(.45,0,.55,1) infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-ruler{position:absolute;right:-2%;top:5%;height:60%;width:10px;background:repeating-linear-gradient(180deg,rgba(143,227,255,.35) 0 1px,transparent 1px 8px);-webkit-mask-image:linear-gradient(180deg,transparent,#000 15%,#000 85%,transparent);mask-image:linear-gradient(180deg,transparent,#000 15%,#000 85%,transparent)}
+:is([data-design], .design-ov-scale) .d1 .d1-ruler-l{left:-2%;right:auto}
+:is([data-design], .design-ov-scale) .d1 .d1-mk{position:absolute;inset:0}
+:is([data-design], .design-ov-scale) .d1.d1-boot .d1-mk{animation:d1-scanmove 3.4s cubic-bezier(.45,0,.55,1) infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-mk::before{content:"";position:absolute;top:-3px;left:-4px;border:4px solid transparent;border-right:6px solid var(--hi);filter:drop-shadow(0 0 4px rgba(110,210,255,.9))}
+:is([data-design], .design-ov-scale) .d1 .d1-ruler-l .d1-mk::before{left:auto;right:-4px;border-right:4px solid transparent;border-left:6px solid var(--hi)}
+:is([data-design], .design-ov-scale) .d1 .d1-word{font:600 13px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.52em;padding-left:.52em;text-transform:uppercase;color:#d6eef8;text-shadow:0 0 16px rgba(82,193,230,.55)}
+:is([data-design], .design-ov-scale) .d1 .d1-bootline{display:flex;flex-direction:column;align-items:center;gap:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-tks{display:flex;gap:4px}
+:is([data-design], .design-ov-scale) .d1 .d1-tk{width:9px;height:3px;border-radius:1px;background:var(--a);opacity:.12;animation:d1-tick 1.9s ease-in-out infinite;animation-delay:calc(var(--i) * 85ms)}
+:is([data-design], .design-ov-scale) .d1 .d1-bootmsg{font:11px/1 Consolas,ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:#6f8fa1}
+
+/* ---------- β shell (context, dimmed) ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-shell{position:absolute;top:14px;left:0;right:0;z-index:6;display:flex;justify-content:center;padding:0 max(24px,calc(50% - 640px));opacity:.5;filter:saturate(.75)}
+:is([data-design], .design-ov-scale) .d1 .d1-cap{position:relative;flex:1;max-width:1280px;height:60px;display:flex;align-items:center;gap:14px;padding:0 12px 0 10px;border-radius:20px;background:var(--fill);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+:is([data-design], .design-ov-scale) .d1 .d1-cap::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--sheen);pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-blogo{display:grid;place-items:center;width:40px;height:40px;flex:none}
+:is([data-design], .design-ov-scale) .d1 .d1-mark{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,#c8f1ff 0 7%,#52c1e6 17%,rgba(82,193,230,.25) 42%,rgba(13,38,53,.95) 66%);box-shadow:0 0 0 1px rgba(143,227,255,.45),0 0 14px rgba(82,193,230,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-plate{display:flex;flex-direction:column;gap:2px;min-width:170px}
+:is([data-design], .design-ov-scale) .d1 .d1-plate b{font:600 10.5px/1.2 var(--disp);letter-spacing:.22em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d1 .d1-trail{display:flex;gap:6px;font-size:12px;color:var(--mut);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d1 .d1-trail li+li::before{content:"›";margin-right:6px;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d1 .d1-trail [aria-current]{color:#d7ecf5}
+:is([data-design], .design-ov-scale) .d1 .d1-div{width:1px;height:28px;flex:none;background:linear-gradient(transparent,rgba(160,230,255,.55),transparent)}
+:is([data-design], .design-ov-scale) .d1 .d1-kind{display:flex;align-items:center;gap:7px;height:34px;padding:0 10px;border-radius:17px;color:var(--ink);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d1 .d1-kind i{font-style:normal;font-size:11px;color:var(--mut);background:rgba(82,193,230,.12);border-radius:9px;padding:1px 7px}
+:is([data-design], .design-ov-scale) .d1 .d1-kind svg,:is([data-design], .design-ov-scale) .d1 .d1-search svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-search{flex:1;max-width:560px;height:38px;display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;border-radius:19px;background:rgba(3,12,19,.55);box-shadow:inset 0 0 0 1px rgba(130,220,255,.16);color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-search span{flex:1}
+:is([data-design], .design-ov-scale) .d1 kbd{font:11px/1.4 var(--mono);color:var(--mut);padding:1px 7px;border-radius:5px;background:linear-gradient(180deg,#17384c,#0b2231);box-shadow:inset 0 0 0 1px rgba(130,220,255,.18)}
+:is([data-design], .design-ov-scale) .d1 .d1-acct{margin-left:auto;flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:600 11px var(--disp);letter-spacing:.06em;color:var(--ink);background:linear-gradient(160deg,#1b4257,#0b2231);box-shadow:inset 0 0 0 1px rgba(130,220,255,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-route{display:none}
+
+/* ---------- content frame ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-main{position:absolute;inset:0;display:flex;flex-direction:column;padding:100px max(24px,calc(50% - 640px)) 28px}
+:is([data-design], .design-ov-scale) .d1 .d1-page{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:18px;overflow:hidden}
+:is([data-design], .design-ov-scale) .d1 .d1-head{display:flex;flex-direction:column;gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-title{font:600 30px/1.1 var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);text-shadow:0 0 18px rgba(82,193,230,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:18px}
+:is([data-design], .design-ov-scale) .d1 .d1-stage{position:relative;min-height:240px;border-radius:10px;overflow:hidden;background:radial-gradient(ellipse 70% 60% at 50% 72%,rgba(82,193,230,.13),transparent 70%),linear-gradient(180deg,#071521,#040b12);box-shadow:inset 0 0 0 1px rgba(130,220,255,.14)}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-corner{margin:10px}
+:is([data-design], .design-ov-scale) .d1 .d1-floor{position:absolute;left:-30%;right:-30%;bottom:0;height:48%;background-image:linear-gradient(rgba(143,227,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(143,227,255,.14) 1px,transparent 1px);background-size:40px 40px;transform:perspective(420px) rotateX(64deg);transform-origin:50% 100%;-webkit-mask-image:linear-gradient(0deg,#000 5%,transparent 90%);mask-image:linear-gradient(0deg,#000 5%,transparent 90%)}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-ship{left:12%;right:12%;top:15%;height:54%}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-cone{left:18%;right:18%;top:14%;bottom:12%}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-emit{left:36%;right:36%;bottom:7%;height:9%}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-scanwrap{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-page .d1-solid{animation:d1-shipscan var(--T) linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-chip{position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:8px;padding:5px 11px;border-radius:12px;background:rgba(3,12,19,.72);box-shadow:inset 0 0 0 1px rgba(130,220,255,.22);font:11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--holo);z-index:2}
+:is([data-design], .design-ov-scale) .d1 .d1-chip i{width:6px;height:6px;border-radius:50%;background:var(--holo);box-shadow:0 0 8px var(--holo);animation:d1-blink 1.2s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-readout{position:absolute;right:16px;top:14px;text-align:right;font:11px/1.5 var(--mono);letter-spacing:.1em;color:var(--dim);z-index:2}
+:is([data-design], .design-ov-scale) .d1 .d1-readout b{display:block;font-weight:400;color:var(--mut)}
+
+/* skeleton blocks: wire outline, light up as the sweep passes (--y = vertical position 0..1) */
+:is([data-design], .design-ov-scale) .d1 .d1-sk{position:relative;border:1px dashed rgba(143,227,255,.22);border-radius:6px;background:rgba(82,193,230,.025)}
+:is([data-design], .design-ov-scale) .d1 .d1-sk::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;background:linear-gradient(90deg,rgba(143,227,255,.17),rgba(143,227,255,.04) 75%);box-shadow:inset 0 0 0 1px rgba(170,235,255,.55),0 0 18px rgba(82,193,230,.16);opacity:.12;animation:d1-pass var(--T) linear infinite;animation-delay:calc((var(--y,0) - 1) * var(--T))}
+:is([data-design], .design-ov-scale) .d1 .d1-ln{display:block;height:8px;border-radius:4px;background:rgba(143,227,255,.13)}
+:is([data-design], .design-ov-scale) .d1 .d1-lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d1 .d1-eyesk{display:flex;gap:8px;align-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-eyesk .d1-sk{height:12px;border-radius:6px}
+:is([data-design], .design-ov-scale) .d1 .d1-facts{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:min-content;gap:10px;align-content:start}
+:is([data-design], .design-ov-scale) .d1 .d1-fact{height:62px;padding:11px 12px;display:flex;flex-direction:column;justify-content:space-between}
+:is([data-design], .design-ov-scale) .d1 .d1-desc{grid-column:span 2;padding:12px;display:flex;flex-direction:column;gap:9px}
+:is([data-design], .design-ov-scale) .d1 .d1-tabs{display:flex;gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-tabs .d1-sk{height:32px;padding:0 16px;border-radius:16px;display:flex;align-items:center;color:var(--dim);font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-rows{display:grid;gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-row{height:36px;display:flex;align-items:center;gap:14px;padding:0 14px}
+:is([data-design], .design-ov-scale) .d1 .d1-sweep{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none;z-index:3;animation:d1-sweep var(--T) linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-sweep i{position:absolute;left:0;right:0;top:-80px;height:80px;background:linear-gradient(180deg,transparent,rgba(82,193,230,.05) 60%,rgba(143,227,255,.16));border-bottom:1px solid rgba(223,246,255,.85);box-shadow:0 1px 14px rgba(110,210,255,.7)}
+
+/* ---------- screen 3 · Lädt zu lange ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-stall{opacity:.5;filter:saturate(.7)}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-sweep{transform:translateY(47%);animation:d1-park 3.2s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-sk::after{animation:none;opacity:.08}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-solid{animation:none;clip-path:inset(0 0 30% 0);opacity:.6}
+:is([data-design], .design-ov-scale) .d1 .d1-hint{position:absolute;left:50%;top:54%;z-index:5;transform:translate(-50%,-50%);width:min(460px,calc(100% - 32px));display:flex;flex-direction:column;gap:16px;padding:22px 24px 18px;border:1px solid transparent;border-radius:12px;background:var(--fill) padding-box,var(--edge) border-box;box-shadow:0 36px 90px rgba(0,0,0,.75),0 10px 24px rgba(0,0,0,.45),0 0 44px rgba(82,193,230,.1)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--sheen);pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-top{display:flex;gap:16px;align-items:flex-start}
+:is([data-design], .design-ov-scale) .d1 .d1-sig{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--holo);background:radial-gradient(closest-side,rgba(82,193,230,.18),rgba(82,193,230,.03));box-shadow:inset 0 0 0 1px rgba(143,227,255,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-sig svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+:is([data-design], .design-ov-scale) .d1 .d1-sig path{animation:d1-arc 2.4s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-sig .d1-a2{animation-delay:.3s}
+:is([data-design], .design-ov-scale) .d1 .d1-sig .d1-a3{animation-delay:.6s;stroke-dasharray:2 4}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-tx{display:flex;flex-direction:column;gap:5px;min-width:0}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-eye{font:11px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint h2{font:600 17px/1.25 var(--disp);letter-spacing:.05em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint p{color:#a9c7d6}
+:is([data-design], .design-ov-scale) .d1 .d1-acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-foot{display:flex;align-items:center;gap:8px;padding-top:12px;border-top:1px solid rgba(130,220,255,.12);font:11px/1.3 var(--mono);letter-spacing:.08em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-foot i{width:6px;height:6px;border-radius:50%;background:var(--holo);box-shadow:0 0 8px var(--holo);animation:d1-blink 2s ease-in-out infinite}
+
+/* ---------- actions ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-primary{position:relative;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;border-radius:20px;background:linear-gradient(180deg,#86dbf4,#45b5dc);color:#03121b;font-weight:600;letter-spacing:.02em;box-shadow:inset 0 0 0 1px rgba(223,246,255,.55),0 6px 20px rgba(82,193,230,.32)}
+:is([data-design], .design-ov-scale) .d1 .d1-primary:hover{background:linear-gradient(180deg,#9fe5f8,#56c2e6)}
+:is([data-design], .design-ov-scale) .d1 .d1-primary svg,:is([data-design], .design-ov-scale) .d1 .d1-pill svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-pill{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border-radius:18px;color:#d2e9f3;background:rgba(82,193,230,.05);box-shadow:inset 0 0 0 1px rgba(130,220,255,.32)}
+:is([data-design], .design-ov-scale) .d1 .d1-pill:hover{box-shadow:inset 0 0 0 1px rgba(143,227,255,.7);color:var(--ink)}
+
+/* ---------- screen 4 · Nicht gefunden ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-nf{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:44px;align-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-nf-txt{display:flex;flex-direction:column;gap:16px;max-width:480px}
+:is([data-design], .design-ov-scale) .d1 .d1-eye{font:12px/1.3 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-h1{font:600 36px/1.1 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-shadow:0 0 22px rgba(82,193,230,.38)}
+:is([data-design], .design-ov-scale) .d1 .d1-url{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+:is([data-design], .design-ov-scale) .d1 .d1-url small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-url code{font:14px/1.3 var(--mono);padding:8px 12px;border-radius:6px;background:rgba(3,12,19,.6);box-shadow:inset 0 0 0 1px rgba(130,220,255,.2);color:var(--holo);max-width:100%;overflow-wrap:anywhere}
+:is([data-design], .design-ov-scale) .d1 .d1-url mark{color:#b4cfdc;background:repeating-linear-gradient(135deg,rgba(143,227,255,.13) 0 3px,transparent 3px 7px);border-bottom:1px dashed rgba(143,227,255,.65);padding:0 2px}
+:is([data-design], .design-ov-scale) .d1 .d1-txt{color:#a9c7d6;max-width:44ch}
+:is([data-design], .design-ov-scale) .d1 .d1-txt b{color:var(--ink);font-weight:600}
+:is([data-design], .design-ov-scale) .d1 .d1-find{display:flex;align-items:center;gap:10px;height:46px;padding:0 8px 0 15px;border:1px solid transparent;border-radius:23px;background:var(--fill) padding-box,var(--edge) border-box;box-shadow:0 0 14px rgba(82,193,230,.08),0 14px 34px rgba(0,0,0,.45);color:var(--mut);cursor:text}
+:is([data-design], .design-ov-scale) .d1 .d1-find svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+:is([data-design], .design-ov-scale) .d1 .d1-find input{flex:1;height:100%;color:var(--ink);font-size:14px;cursor:text}
+:is([data-design], .design-ov-scale) .d1 .d1-find:focus-within{box-shadow:0 0 0 1px rgba(130,220,255,.35),0 0 22px rgba(82,193,230,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-find:focus-within input{outline:0}
+:is([data-design], .design-ov-scale) .d1 .d1-areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas a{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:8px;background:rgba(82,193,230,.035);box-shadow:inset 0 0 0 1px rgba(130,220,255,.14)}
+:is([data-design], .design-ov-scale) .d1 .d1-areas a:hover{box-shadow:inset 0 0 0 1px rgba(143,227,255,.5);background:rgba(82,193,230,.07)}
+:is([data-design], .design-ov-scale) .d1 .d1-areas b{display:flex;align-items:center;gap:7px;color:var(--ink);font-weight:600}
+:is([data-design], .design-ov-scale) .d1 .d1-areas svg{width:15px;height:15px;fill:none;stroke:var(--a);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-areas small{font-size:11.5px;color:var(--mut)}
+
+:is([data-design], .design-ov-scale) .d1 .d1-map{position:relative;height:100%;min-height:420px;display:grid;place-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-scope,:is([data-design], .design-ov-scale) .d1 .d1-near{width:min(100%,440px);aspect-ratio:1}
+:is([data-design], .design-ov-scale) .d1 .d1-scope{position:relative}
+:is([data-design], .design-ov-scale) .d1 .d1-disc{position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,rgba(82,193,230,.12),rgba(82,193,230,.03) 70%,transparent),linear-gradient(rgba(143,227,255,.08) 1px,transparent 1px) 50% 50%/22px 22px,linear-gradient(90deg,rgba(143,227,255,.08) 1px,transparent 1px) 50% 50%/22px 22px;-webkit-mask-image:radial-gradient(closest-side,#000 86%,transparent 100%);mask-image:radial-gradient(closest-side,#000 86%,transparent 100%)}
+:is([data-design], .design-ov-scale) .d1 .d1-scope svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke:rgba(143,227,255,.16);stroke-width:.5}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-r0{stroke:rgba(143,227,255,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-tkr{stroke:rgba(143,227,255,.35);stroke-width:3}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-cross{stroke-dasharray:1 2}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-links path{stroke:rgba(143,227,255,.42);stroke-dasharray:2 2}
+:is([data-design], .design-ov-scale) .d1 .d1-scope text{fill:#5f7f91;stroke:none;font:5px Consolas,ui-monospace,monospace;text-anchor:middle;letter-spacing:.3px}
+:is([data-design], .design-ov-scale) .d1 .d1-beam{position:absolute;inset:1%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg 288deg,rgba(143,227,255,.04) 300deg,rgba(143,227,255,.2) 355deg,rgba(223,246,255,.75) 359.4deg,transparent 360deg);animation:d1-rot 5s linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-void{position:absolute;left:50%;top:50%;width:62px;height:62px;transform:translate(-50%,-50%)}
+:is([data-design], .design-ov-scale) .d1 .d1-void::before{content:"";position:absolute;inset:0;border-radius:50%;border:1px dashed rgba(223,246,255,.6)}
+:is([data-design], .design-ov-scale) .d1 .d1-void svg{position:absolute;inset:0;width:100%;height:100%;stroke:var(--hi);stroke-width:1.2;fill:none}
+:is([data-design], .design-ov-scale) .d1 .d1-ping{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(143,227,255,.7);animation:d1-ping 2.5s ease-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-ping+.d1-ping{animation-delay:1.25s}
+:is([data-design], .design-ov-scale) .d1 .d1-void-l{position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);white-space:nowrap;text-align:center;font:11px/1.45 var(--mono);letter-spacing:.06em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-void-l b{display:block;font-weight:400;color:var(--hi)}
+:is([data-design], .design-ov-scale) .d1 .d1-coord{position:absolute;right:0;bottom:7%;text-align:right;font:11px/1.6 var(--mono);letter-spacing:.1em;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d1 .d1-coord b{display:block;font-weight:400;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-near{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+:is([data-design], .design-ov-scale) .d1 .d1-nearh{position:absolute;left:-6%;top:-4%;font:11px/1.3 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-node{position:absolute;left:var(--x);top:var(--y);display:flex;align-items:center;gap:9px;transform:translate(-9px,-50%);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d1 .d1-flip{flex-direction:row-reverse;transform:translate(calc(-100% + 9px),-50%)}
+:is([data-design], .design-ov-scale) .d1 .d1-flip .d1-nl{align-items:flex-end;text-align:right}
+:is([data-design], .design-ov-scale) .d1 .d1-blip{position:relative;flex:none;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(143,227,255,.5);animation:d1-blip 5s linear infinite;animation-delay:calc((var(--a) / 360 - 1) * 5s)}
+:is([data-design], .design-ov-scale) .d1 .d1-blip::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--holo);box-shadow:0 0 8px var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl{display:flex;flex-direction:column;gap:1px;padding:7px 11px;border-radius:8px;background:rgba(6,23,36,.85);box-shadow:inset 0 0 0 1px rgba(130,220,255,.22),0 8px 20px rgba(0,0,0,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl b{font-size:13px;font-weight:600;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl code{font:11px/1.35 var(--mono);color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl em{font:normal 11px/1.35 var(--mono);color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-node:hover .d1-nl{box-shadow:inset 0 0 0 1px rgba(143,227,255,.65),0 8px 20px rgba(0,0,0,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-best .d1-nl{box-shadow:inset 0 0 0 1px rgba(143,227,255,.5),0 0 22px rgba(82,193,230,.18),0 8px 20px rgba(0,0,0,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-best .d1-blip{box-shadow:inset 0 0 0 1px var(--hi),0 0 12px rgba(110,210,255,.6)}
+
+/* ---------- keyframes ---------- */
+@keyframes d1-reveal{0%{clip-path:inset(0 0 100% 0);opacity:1}62%{clip-path:inset(0 0 0 0);opacity:1}84%{clip-path:inset(0 0 0 0);opacity:1}100%{clip-path:inset(0 0 0 0);opacity:0}}
+@keyframes d1-scanmove{0%{transform:translateY(0);opacity:0}5%{opacity:1}62%{transform:translateY(100%);opacity:1}70%,100%{transform:translateY(100%);opacity:0}}
+@keyframes d1-shipscan{0%{clip-path:inset(0 0 0 0);opacity:.3}25.9%{clip-path:inset(0 0 0 0);opacity:0}26%{clip-path:inset(0 0 100% 0);opacity:1}52%{clip-path:inset(0 0 0 0);opacity:1}70%{opacity:.75}100%{clip-path:inset(0 0 0 0);opacity:.3}}
+@keyframes d1-sweep{0%{transform:translateY(0);opacity:0}4%{opacity:1}94%{opacity:1}100%{transform:translateY(100%);opacity:0}}
+@keyframes d1-pass{0%{opacity:1}3%{opacity:.4}6%{opacity:.9}30%{opacity:.35}100%{opacity:.1}}
+@keyframes d1-park{0%,100%{opacity:.35}50%{opacity:.85}}
+@keyframes d1-emitping{0%{transform:scale(1);opacity:.75}100%{transform:scale(2.3);opacity:0}}
+@keyframes d1-flick{0%,41%,43%,77%,100%{opacity:1}42%{opacity:.6}78%{opacity:.8}}
+@keyframes d1-tick{0%,100%{opacity:.12}30%{opacity:1;box-shadow:0 0 8px rgba(82,193,230,.8)}60%{opacity:.22}}
+@keyframes d1-blink{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes d1-arc{0%,100%{opacity:.3}40%{opacity:1}}
+@keyframes d1-rot{to{transform:rotate(360deg)}}
+@keyframes d1-ping{0%{transform:scale(.45);opacity:.9}100%{transform:scale(2.7);opacity:0}}
+@keyframes d1-blip{0%{transform:scale(1.5);box-shadow:inset 0 0 0 1px var(--hi),0 0 16px rgba(110,210,255,.9)}18%,100%{transform:scale(1)}}
+
+/* ---------- phone ---------- */
+@container device (max-width: 520px){
+:is([data-design], .design-ov-scale) .d1 .d1-bootc{gap:22px}
+:is([data-design], .design-ov-scale) .d1 .d1-word{font-size:12px;letter-spacing:.38em;padding-left:.38em}
+:is([data-design], .design-ov-scale) .d1 .d1-bootmsg{font-size:12px;letter-spacing:.12em}
+:is([data-design], .design-ov-scale) .d1 .d1-shell{top:auto;bottom:12px;padding:0 12px}
+:is([data-design], .design-ov-scale) .d1 .d1-cap{height:56px;gap:8px;padding:0 8px 0 6px}
+:is([data-design], .design-ov-scale) .d1 :is(.d1-plate,.d1-div,.d1-kind,.d1-cap .d1-acct,.d1-search kbd){display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-search{max-width:none;height:40px}
+:is([data-design], .design-ov-scale) .d1 .d1-route{position:absolute;top:0;left:0;right:0;z-index:6;height:46px;display:flex;align-items:center;gap:10px;padding:0 16px;opacity:.6;background:linear-gradient(180deg,rgba(5,12,20,.92),rgba(5,12,20,0))}
+:is([data-design], .design-ov-scale) .d1 .d1-route .d1-trail{flex:1;min-width:0;overflow:hidden}
+:is([data-design], .design-ov-scale) .d1 .d1-route .d1-acct{width:30px;height:30px;font-size:10px}
+:is([data-design], .design-ov-scale) .d1 .d1-main{padding:58px 16px 84px}
+:is([data-design], .design-ov-scale) .d1 .d1-title{font-size:22px}
+:is([data-design], .design-ov-scale) .d1 .d1-grid{grid-template-columns:1fr;grid-template-rows:auto auto;flex:none;gap:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-stage{min-height:0;height:210px}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-ship{left:6%;right:6%;top:18%;height:50%}
+:is([data-design], .design-ov-scale) .d1 .d1-readout{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-fact{height:56px}
+:is([data-design], .design-ov-scale) .d1 .d1-desc{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-tabs .d1-sk:nth-child(n+4){display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-lbl,:is([data-design], .design-ov-scale) .d1 .d1-chip{font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-hint{top:50%;padding:20px 18px 16px}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-top{gap:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-sig{width:44px;height:44px}
+:is([data-design], .design-ov-scale) .d1 .d1-acts .d1-primary{flex:1 1 100%;justify-content:center}
+:is([data-design], .design-ov-scale) .d1 .d1-acts .d1-pill{flex:1;justify-content:center;min-height:44px}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-foot{font-size:12px;letter-spacing:.04em}
+:is([data-design], .design-ov-scale) .d1 .d1-scroll{overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(130,220,255,.25) transparent}
+:is([data-design], .design-ov-scale) .d1 .d1-nf{display:flex;flex-direction:column;gap:14px;align-items:stretch;flex:none}
+:is([data-design], .design-ov-scale) .d1 .d1-nf-txt{display:contents}
+:is([data-design], .design-ov-scale) .d1 .d1-eye{order:1;font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-h1{order:2;font-size:24px}
+:is([data-design], .design-ov-scale) .d1 .d1-url{order:3}
+:is([data-design], .design-ov-scale) .d1 .d1-url small{font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-txt{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-map{order:4;min-height:0;height:auto;display:flex;flex-direction:column;align-items:stretch;gap:10px}
+:is([data-design], .design-ov-scale) .d1 .d1-scope{width:168px;align-self:center}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-links,:is([data-design], .design-ov-scale) .d1 .d1-scope text,:is([data-design], .design-ov-scale) .d1 .d1-coord,:is([data-design], .design-ov-scale) .d1 .d1-void-l{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-void{width:44px;height:44px}
+:is([data-design], .design-ov-scale) .d1 .d1-near{position:static;transform:none;width:auto;aspect-ratio:auto;display:flex;flex-direction:column;gap:6px}
+:is([data-design], .design-ov-scale) .d1 .d1-nearh{position:static;font-size:12px;margin-bottom:2px}
+:is([data-design], .design-ov-scale) .d1 .d1-node{position:static;transform:none;white-space:normal;flex-direction:row}
+:is([data-design], .design-ov-scale) .d1 .d1-flip .d1-nl{align-items:baseline;text-align:left}
+:is([data-design], .design-ov-scale) .d1 .d1-nl{flex:1;flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:10px;min-height:44px;padding:8px 12px;box-sizing:border-box}
+:is([data-design], .design-ov-scale) .d1 .d1-nl code,:is([data-design], .design-ov-scale) .d1 .d1-nl em{font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-nl em{margin-left:auto}
+:is([data-design], .design-ov-scale) .d1 .d1-find{order:5}
+:is([data-design], .design-ov-scale) .d1 .d1-nf .d1-acts{order:6}
+:is([data-design], .design-ov-scale) .d1 .d1-nf .d1-primary{flex:1;justify-content:center;height:46px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas{order:7;gap:6px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas a{align-items:center;min-height:44px;justify-content:center;padding:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas small{display:none}
+}
+
+/* ---------- reduced motion: one still frame ---------- */
+@media (prefers-reduced-motion: reduce){
+:is([data-design], .design-ov-scale) .d1 *,:is([data-design], .design-ov-scale) .d1 *::before,:is([data-design], .design-ov-scale) .d1 *::after{animation:none !important}
+:is([data-design], .design-ov-scale) .d1 .d1-solid{clip-path:none;opacity:1}
+:is([data-design], .design-ov-scale) .d1 .d1-scanwrap,:is([data-design], .design-ov-scale) .d1 .d1-mk{transform:translateY(62%)}
+:is([data-design], .design-ov-scale) .d1 .d1-sweep{transform:translateY(62%);opacity:.55}
+:is([data-design], .design-ov-scale) .d1 .d1-sk::after{opacity:.3}
+:is([data-design], .design-ov-scale) .d1 .d1-tk{opacity:.55}
+:is([data-design], .design-ov-scale) .d1 .d1-beam{transform:rotate(40deg)}
+:is([data-design], .design-ov-scale) .d1 .d1-ping{transform:scale(1.6);opacity:.35}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-solid{clip-path:inset(0 0 30% 0);opacity:.6}
+}
+/* ── d2 Quantum-Sprung ── */
+/* ---------- root + reset ---------- */
+:is([data-design], .design-ov-scale) .d2{position:relative;height:100%;min-height:600px;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box;background:radial-gradient(120% 70% at 50% -12%,#12324a 0%,#0a1d2b 42%,#060f17 78%,#04090f 100%);color:#c9dbe6;font:13px/1.45 "Segoe UI",system-ui,sans-serif;--a:#52c1e6;--holo:#8fe3ff;--hi:#dff6ff;--ink:#e8ebed;--fg1:#9fb3c8;--fg2:#84a0b6;--rule:rgba(130,220,255,.14);--disp:"Orbitron","Segoe UI",system-ui,sans-serif;--mono:Consolas,"Cascadia Mono",ui-monospace,monospace}
+:is([data-design], .design-ov-scale) .d2 *{box-sizing:border-box}
+:is([data-design], .design-ov-scale) .d2 :where(button,a){font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:none;box-shadow:none;min-width:0}
+:is([data-design], .design-ov-scale) .d2 :where(h1,h2,h3,p,ul,ol,li){margin:0;padding:0;list-style:none;font-weight:inherit;font-size:inherit}
+:is([data-design], .design-ov-scale) .d2 svg{display:block}
+:is([data-design], .design-ov-scale) .d2 .d2-ic{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d2 :where(a,button):focus-visible{outline:2px solid var(--holo);outline-offset:2px;border-radius:10px}
+
+/* ---------- sky (static starfield of the shell scene) ---------- */
+:is([data-design], .design-ov-scale) .d2 .d2-sky{position:absolute;inset:0;pointer-events:none;opacity:.7;background-image:radial-gradient(1.2px 1.2px at 8% 22%,rgba(223,246,255,.8),transparent 60%),radial-gradient(1px 1px at 17% 64%,rgba(223,246,255,.55),transparent 60%),radial-gradient(1.4px 1.4px at 26% 38%,rgba(143,227,255,.7),transparent 60%),radial-gradient(1px 1px at 33% 86%,rgba(223,246,255,.5),transparent 60%),radial-gradient(1px 1px at 41% 12%,rgba(223,246,255,.6),transparent 60%),radial-gradient(1.3px 1.3px at 52% 72%,rgba(223,246,255,.55),transparent 60%),radial-gradient(1px 1px at 58% 30%,rgba(143,227,255,.6),transparent 60%),radial-gradient(1.2px 1.2px at 66% 54%,rgba(223,246,255,.5),transparent 60%),radial-gradient(1px 1px at 72% 16%,rgba(223,246,255,.7),transparent 60%),radial-gradient(1.5px 1.5px at 79% 82%,rgba(143,227,255,.6),transparent 60%),radial-gradient(1px 1px at 86% 42%,rgba(223,246,255,.55),transparent 60%),radial-gradient(1.2px 1.2px at 93% 66%,rgba(223,246,255,.6),transparent 60%),radial-gradient(1px 1px at 4% 92%,rgba(223,246,255,.45),transparent 60%),radial-gradient(1px 1px at 97% 8%,rgba(223,246,255,.5),transparent 60%),radial-gradient(1px 1px at 47% 50%,rgba(223,246,255,.35),transparent 60%),radial-gradient(1px 1px at 63% 94%,rgba(223,246,255,.4),transparent 60%)}
+
+/* ---------- warp: star streaks out of one vanishing point ---------- */
+:is([data-design], .design-ov-scale) .d2 .d2-warp{position:absolute;left:50%;top:46%;width:0;height:0;pointer-events:none}
+:is([data-design], .design-ov-scale) .d2 .d2-warp i{position:absolute;left:0;top:-.75px;width:var(--w,130px);height:1.5px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(143,227,255,.18) 35%,var(--hi));transform-origin:0 50%;opacity:0;animation:d2-streak var(--t,1.65s) cubic-bezier(.55,0,1,.45) var(--d,0s) infinite;--w:130px;--t:1.65s;--far:600px}
+:is([data-design], .design-ov-scale) .d2 .d2-warp i:nth-child(3n){--w:190px;--t:1.95s}
+:is([data-design], .design-ov-scale) .d2 .d2-warp i:nth-child(3n+1){--w:84px;--t:1.4s}
+:is([data-design], .design-ov-scale) .d2 .d2-warp i:nth-child(4n){height:1px;background:linear-gradient(90deg,transparent,rgba(82,193,230,.75))}
+:is([data-design], .design-ov-scale) .d2 .d2-warp i:nth-child(5n){--far:440px}
+:is([data-design], .design-ov-scale) .d2 .d2-warp.d2-back{transform:rotate(6deg) scale(.82);opacity:.45}
+:is([data-design], .design-ov-scale) .d2 .d2-warp.d2-back i{animation-duration:2.6s}
+@keyframes d2-streak{0%{transform:rotate(var(--r)) translateX(34px) scaleX(.04);opacity:0}14%{opacity:.95}100%{transform:rotate(var(--r)) translateX(var(--far)) scaleX(1);opacity:0}}
+
+/* tunnel rings rushing past */
+:is([data-design], .design-ov-scale) .d2 .d2-tun{position:absolute;left:50%;top:46%;width:0;height:0;pointer-events:none}
+:is([data-design], .design-ov-scale) .d2 .d2-tun b{position:absolute;left:-210px;top:-210px;width:420px;height:420px;border-radius:50%;border:1px solid rgba(143,227,255,.32);box-shadow:inset 0 0 40px rgba(82,193,230,.12),0 0 24px rgba(82,193,230,.08);opacity:0;animation:d2-ring 3.2s cubic-bezier(.6,0,1,.6) var(--d,0s) infinite}
+@keyframes d2-ring{0%{transform:scale(.06);opacity:0}30%{opacity:.55}100%{transform:scale(2.5);opacity:0}}
+
+/* ---------- screen 1: boot ---------- */
+:is([data-design], .design-ov-scale) .d2.d2-s1{background:radial-gradient(circle at 50% 46%,rgba(82,193,230,.16) 0,rgba(82,193,230,.05) 22%,transparent 46%),radial-gradient(140% 90% at 50% 46%,#07101b 0%,#050810 60%,#030509 100%)}
+:is([data-design], .design-ov-scale) .d2 .d2-vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at 50% 46%,transparent 55%,rgba(2,4,8,.85) 100%)}
+:is([data-design], .design-ov-scale) .d2 .d2-core{position:absolute;left:50%;top:46%;width:240px;height:240px;transform:translate(-50%,-50%);display:grid;place-items:center;border-radius:50%}
+:is([data-design], .design-ov-scale) .d2 .d2-core:focus-visible{border-radius:50%}
+:is([data-design], .design-ov-scale) .d2 .d2-gauge{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+:is([data-design], .design-ov-scale) .d2 .d2-gauge circle{fill:none}
+:is([data-design], .design-ov-scale) .d2 .d2-ticks{stroke:rgba(143,227,255,.26);stroke-width:7;stroke-dasharray:1.4 8.37}
+:is([data-design], .design-ov-scale) .d2 .d2-track{stroke:rgba(82,193,230,.13);stroke-width:3}
+:is([data-design], .design-ov-scale) .d2 .d2-arc{stroke:#8fe3ff;stroke-width:3;stroke-linecap:round;stroke-dasharray:628.3;stroke-dashoffset:628.3;filter:drop-shadow(0 0 5px rgba(82,193,230,.95));animation:d2-spool 8s cubic-bezier(.15,.75,.25,1) .2s forwards}
+@keyframes d2-spool{to{stroke-dashoffset:58}}
+:is([data-design], .design-ov-scale) .d2 .d2-rot{stroke:rgba(143,227,255,.38);stroke-width:1;stroke-dasharray:2 7;transform-origin:120px 120px;animation:d2-spin 16s linear infinite}
+@keyframes d2-spin{to{transform:rotate(360deg)}}
+:is([data-design], .design-ov-scale) .d2 .d2-mark{position:relative;width:118px;height:118px;border-radius:50%;background:radial-gradient(circle,#d4f1fa 0,#7dd5f0 8%,rgba(82,193,230,.55) 22%,rgba(82,193,230,.14) 47%,transparent 70%);animation:d2-throb 2.6s ease-in-out infinite}
+@keyframes d2-throb{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.06);filter:brightness(1.18)}}
+:is([data-design], .design-ov-scale) .d2 .d2-disk{position:absolute;inset:-6px;width:calc(100% + 12px);height:calc(100% + 12px);overflow:visible}
+:is([data-design], .design-ov-scale) .d2 .d2-disk ellipse{fill:none;stroke:rgba(82,193,230,.3);stroke-width:.7}
+:is([data-design], .design-ov-scale) .d2 .d2-disk .d2-orb{stroke:#8fe3ff;stroke-width:3;stroke-linecap:round;stroke-dasharray:6 241.7;filter:drop-shadow(0 0 3px #52c1e6);animation:d2-orbit 3.2s linear infinite}
+:is([data-design], .design-ov-scale) .d2 .d2-disk .d2-orb.d2-orb2{stroke-width:2;stroke-dasharray:4 190;animation-duration:2.4s;animation-delay:-1s}
+@keyframes d2-orbit{to{stroke-dashoffset:-247.7}}
+:is([data-design], .design-ov-scale) .d2 .d2-bootx{position:absolute;left:0;right:0;top:calc(46% + 150px);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:0 16px}
+:is([data-design], .design-ov-scale) .d2 .d2-word{font-family:var(--disp);font-size:12px;font-weight:600;letter-spacing:.44em;text-transform:uppercase;color:#a9bdcc;padding-left:.44em}
+:is([data-design], .design-ov-scale) .d2 .d2-stat{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-stat i{width:6px;height:6px;border-radius:50%;background:var(--holo);box-shadow:0 0 8px var(--a);animation:d2-blink 1.4s ease-in-out infinite}
+@keyframes d2-blink{0%,100%{opacity:.25}50%{opacity:1}}
+
+/* ---------- shell capsule (context, dimmed) ---------- */
+:is([data-design], .design-ov-scale) .d2 .d2-bar{position:relative;z-index:5;padding:14px 24px 0;display:flex;justify-content:center}
+:is([data-design], .design-ov-scale) .d2 .d2-cap{position:relative;display:flex;align-items:center;width:100%;max-width:1180px;height:60px;padding:0 16px;border-radius:20px;background:linear-gradient(180deg,#0a1d2b,#061724);box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:.6;filter:saturate(.7)}
+:is([data-design], .design-ov-scale) .d2 .d2-cap::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(210,242,255,.07),transparent 55%);pointer-events:none}
+:is([data-design], .design-ov-scale) .d2 .d2-blogo{flex:none;width:44px;height:40px;display:grid;place-items:center}
+:is([data-design], .design-ov-scale) .d2 .d2-bmark{position:relative;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle,#c6ecf8 0,#7dd5f0 10%,rgba(82,193,230,.45) 30%,rgba(13,38,53,.9) 62%,transparent 72%);box-shadow:0 0 10px rgba(82,193,230,.45)}
+:is([data-design], .design-ov-scale) .d2 .d2-bmark::after{content:"";position:absolute;left:-4px;right:-4px;top:50%;height:8px;margin-top:-4px;border-radius:50%;border:1px solid rgba(143,227,255,.6);transform:rotate(-20deg)}
+:is([data-design], .design-ov-scale) .d2 .d2-plate{flex:0 1 320px;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;padding:0 8px 0 4px}
+:is([data-design], .design-ov-scale) .d2 .d2-plate b{font-family:var(--disp);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d2 .d2-trail{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg2);white-space:nowrap;overflow:hidden}
+:is([data-design], .design-ov-scale) .d2 .d2-trail a{color:var(--fg1)}
+:is([data-design], .design-ov-scale) .d2 .d2-trail .d2-here{color:var(--ink)}
+:is([data-design], .design-ov-scale) .d2 .d2-kind{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px 0 13px;margin-right:12px;border-radius:999px;background:rgba(82,193,230,.1);color:var(--ink);font-size:12.5px}
+:is([data-design], .design-ov-scale) .d2 .d2-kind .d2-ic{width:13px;height:13px}
+:is([data-design], .design-ov-scale) .d2 .d2-search{flex:1 1 auto;display:flex;align-items:center;gap:9px;height:44px;min-width:0;padding:0 8px 0 15px;border-radius:16px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(82,193,230,.22);color:var(--fg2);white-space:nowrap;overflow:hidden}
+:is([data-design], .design-ov-scale) .d2 .d2-search span:first-of-type{flex:1;overflow:hidden;text-overflow:ellipsis}
+:is([data-design], .design-ov-scale) .d2 .d2-kbd{flex:none;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:5px;background:linear-gradient(180deg,#17384c,#0b2231);color:var(--fg1)}
+:is([data-design], .design-ov-scale) .d2 .d2-fbtn{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;margin-left:12px;border-radius:999px;background:rgba(82,193,230,.06);color:var(--fg1)}
+:is([data-design], .design-ov-scale) .d2 .d2-acct{flex:none;width:34px;height:34px;margin-left:12px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(160deg,#1c4a64,#0d2635);color:var(--ink);font-size:11px;font-weight:600;box-shadow:inset 0 0 0 1px rgba(143,227,255,.3)}
+:is([data-design], .design-ov-scale) .d2 .d2-fab{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-route{display:none}
+
+/* ---------- page frame ---------- */
+:is([data-design], .design-ov-scale) .d2 .d2-page{position:relative;z-index:2;flex:1;min-height:0;display:flex;flex-direction:column;gap:16px;width:100%;max-width:1180px;margin:0 auto;padding:22px 24px}
+:is([data-design], .design-ov-scale) .d2 .d2-ph{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+:is([data-design], .design-ov-scale) .d2 .d2-tt{display:flex;flex-direction:column;gap:8px;min-width:0}
+:is([data-design], .design-ov-scale) .d2 .d2-crumbs{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-crumbs a{color:var(--a)}
+:is([data-design], .design-ov-scale) .d2 .d2-crumbs a:hover{color:var(--hi)}
+
+/* skeleton with a comet sheen instead of a flat shimmer */
+:is([data-design], .design-ov-scale) .d2 .d2-sk{display:block;position:relative;overflow:hidden;height:10px;border-radius:5px;background:rgba(143,227,255,.08)}
+:is([data-design], .design-ov-scale) .d2 .d2-sk::after{content:"";position:absolute;top:0;bottom:0;left:0;width:46%;background:linear-gradient(90deg,transparent,rgba(223,246,255,.1) 60%,rgba(223,246,255,.34) 92%,transparent);transform:translateX(-130%) skewX(-18deg);animation:d2-sheen 1.9s cubic-bezier(.7,0,.3,1) var(--sd,0s) infinite}
+@keyframes d2-sheen{0%{transform:translateX(-130%) skewX(-18deg)}62%,100%{transform:translateX(340%) skewX(-18deg)}}
+:is([data-design], .design-ov-scale) .d2 .d2-sk.d2-skh1{height:30px;width:300px;max-width:100%;border-radius:7px}
+:is([data-design], .design-ov-scale) .d2 .d2-sk.d2-ey{height:11px;width:150px}
+:is([data-design], .design-ov-scale) .d2 .d2-sk.d2-in{display:inline-block;height:9px;width:64px;vertical-align:middle}
+
+/* spool: three real phases + segmented gauge */
+:is([data-design], .design-ov-scale) .d2 .d2-spool{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+:is([data-design], .design-ov-scale) .d2 .d2-steps{display:flex;gap:16px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-steps li{display:inline-flex;align-items:center;gap:6px}
+:is([data-design], .design-ov-scale) .d2 .d2-steps li::before{content:"";width:6px;height:6px;border-radius:50%;border:1px solid currentColor}
+:is([data-design], .design-ov-scale) .d2 .d2-steps li.d2-ok{color:var(--a)}
+:is([data-design], .design-ov-scale) .d2 .d2-steps li.d2-ok::before{background:var(--a);border-color:var(--a)}
+:is([data-design], .design-ov-scale) .d2 .d2-steps li.d2-on{color:var(--ink)}
+:is([data-design], .design-ov-scale) .d2 .d2-steps li.d2-on::before{border-color:var(--holo);box-shadow:0 0 8px var(--a);animation:d2-blink 1.2s ease-in-out infinite;background:var(--holo)}
+:is([data-design], .design-ov-scale) .d2 .d2-segs{display:flex;gap:3px;padding-right:2px}
+:is([data-design], .design-ov-scale) .d2 .d2-segs i{width:9px;height:12px;border-radius:2px;background:rgba(143,227,255,.1);transform:skewX(-22deg)}
+:is([data-design], .design-ov-scale) .d2 .d2-segs i.d2-l{background:var(--a);box-shadow:0 0 8px rgba(82,193,230,.55)}
+:is([data-design], .design-ov-scale) .d2 .d2-segs i.d2-p{animation:d2-seg 1.1s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d2 .d2-segs i.d2-p + i.d2-p{animation-delay:.18s}
+@keyframes d2-seg{0%,100%{background:rgba(143,227,255,.12);box-shadow:none}50%{background:var(--holo);box-shadow:0 0 10px rgba(143,227,255,.7)}}
+:is([data-design], .design-ov-scale) .d2 .d2-spool small{font-family:var(--mono);font-size:11px;color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-spool small b{color:var(--holo);font-weight:400}
+
+/* stage */
+:is([data-design], .design-ov-scale) .d2 .d2-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px}
+:is([data-design], .design-ov-scale) .d2 .d2-hero{position:relative;overflow:hidden;min-height:260px;border-radius:14px;background:radial-gradient(ellipse 55% 55% at 50% 50%,rgba(82,193,230,.15),transparent 70%),linear-gradient(180deg,#081a27,#050d14);box-shadow:inset 0 0 0 1px var(--rule);cursor:pointer}
+:is([data-design], .design-ov-scale) .d2 .d2-hero .d2-warp,:is([data-design], .design-ov-scale) .d2 .d2-hero .d2-tun{top:50%;transform:scale(.78)}
+:is([data-design], .design-ov-scale) .d2 .d2-exit{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--hi);box-shadow:0 0 18px 6px rgba(143,227,255,.5),0 0 70px 24px rgba(82,193,230,.22);animation:d2-throb 1.6s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d2 .d2-dest{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--fg2);background:linear-gradient(0deg,rgba(4,10,16,.75),transparent)}
+:is([data-design], .design-ov-scale) .d2 .d2-dest b{color:var(--holo);font-weight:400}
+:is([data-design], .design-ov-scale) .d2 .d2-ghost{position:absolute;left:0;right:0;top:calc(50% + 34px);text-align:center;font-family:var(--disp);font-size:13px;letter-spacing:.6em;padding-left:.6em;text-transform:uppercase;color:rgba(223,246,255,.32);animation:d2-near 2.4s ease-in-out infinite}
+@keyframes d2-near{0%,100%{opacity:.35;letter-spacing:.6em}50%{opacity:.8;letter-spacing:.5em}}
+:is([data-design], .design-ov-scale) .d2 .d2-side{display:flex;flex-direction:column;gap:12px;min-height:0}
+:is([data-design], .design-ov-scale) .d2 .d2-card{position:relative;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;background:linear-gradient(180deg,rgba(16,50,70,.55),rgba(8,24,36,.55));box-shadow:inset 0 0 0 1px var(--rule);animation:d2-arrive .95s cubic-bezier(.16,.9,.24,1) var(--d,0s) both}
+@keyframes d2-arrive{0%{opacity:0;transform:perspective(900px) translateZ(-180px);filter:blur(5px)}60%{filter:blur(0)}100%{opacity:1;transform:none}}
+:is([data-design], .design-ov-scale) .d2 .d2-card h3{font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--a)}
+:is([data-design], .design-ov-scale) .d2 .d2-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+:is([data-design], .design-ov-scale) .d2 .d2-facts .d2-card{gap:8px;padding:10px 12px}
+:is([data-design], .design-ov-scale) .d2 .d2-facts small,:is([data-design], .design-ov-scale) .d2 .d2-kpis small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-side .d2-grow{flex:1}
+:is([data-design], .design-ov-scale) .d2 .d2-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+:is([data-design], .design-ov-scale) .d2 .d2-kpis .d2-card{padding:9px 12px;gap:7px}
+
+/* ---------- screen 3: still spooling ---------- */
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-warp i{animation-duration:4.6s}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-tun b{animation-duration:7s}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-hero .d2-warp,:is([data-design], .design-ov-scale) .d2.d2-slow .d2-hero .d2-tun,:is([data-design], .design-ov-scale) .d2.d2-slow .d2-exit{opacity:.55}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-hero{cursor:default}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-side,:is([data-design], .design-ov-scale) .d2.d2-slow .d2-kpis{opacity:.55}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-sk::after{animation-duration:3.6s}
+:is([data-design], .design-ov-scale) .d2 .d2-hold{position:absolute;inset:0;margin:auto;height:fit-content;z-index:3;width:min(450px,calc(100% - 32px));padding:20px 22px;display:flex;flex-direction:column;gap:12px;border:1px solid transparent;border-radius:14px;background:linear-gradient(180deg,rgba(10,29,43,.94),rgba(6,23,36,.96)) padding-box,linear-gradient(160deg,rgba(200,236,250,.7) 0%,rgba(80,125,148,.45) 30%,rgba(30,58,74,.5) 60%,rgba(140,200,225,.55) 100%) border-box;box-shadow:0 36px 90px rgba(0,0,0,.6),0 10px 24px rgba(0,0,0,.4),0 0 34px rgba(82,193,230,.12);animation:d2-arrive .7s cubic-bezier(.16,.9,.24,1) both}
+:is([data-design], .design-ov-scale) .d2 .d2-hold-top{display:flex;align-items:center;gap:12px}
+:is([data-design], .design-ov-scale) .d2 .d2-mini{position:relative;flex:none;width:46px;height:46px}
+:is([data-design], .design-ov-scale) .d2 .d2-mini svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+:is([data-design], .design-ov-scale) .d2 .d2-mini circle{fill:none}
+:is([data-design], .design-ov-scale) .d2 .d2-mini .d2-t{stroke:rgba(82,193,230,.15);stroke-width:3}
+:is([data-design], .design-ov-scale) .d2 .d2-mini .d2-f{stroke:var(--holo);stroke-width:3;stroke-linecap:round;stroke-dasharray:113.1;stroke-dashoffset:34;filter:drop-shadow(0 0 4px rgba(82,193,230,.9));animation:d2-hum 2.8s ease-in-out infinite}
+@keyframes d2-hum{0%,100%{stroke-dashoffset:38;opacity:.75}50%{stroke-dashoffset:30;opacity:1}}
+:is([data-design], .design-ov-scale) .d2 .d2-mini i{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--hi);box-shadow:0 0 10px var(--a)}
+:is([data-design], .design-ov-scale) .d2 .d2-eyb{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d2 .d2-h2{font-family:var(--disp);font-size:17px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);line-height:1.25}
+:is([data-design], .design-ov-scale) .d2 .d2-hold p{color:var(--fg1);font-size:13px}
+:is([data-design], .design-ov-scale) .d2 .d2-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+
+/* actions */
+:is([data-design], .design-ov-scale) .d2 .d2-pri{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px 0 15px;border-radius:999px;background:linear-gradient(180deg,#86daf4,#45b4dc);color:#03141d;font-weight:600;font-size:13px;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(223,246,255,.5),0 6px 22px rgba(82,193,230,.32);transition:box-shadow .16s ease,filter .16s ease}
+:is([data-design], .design-ov-scale) .d2 .d2-pri:hover{filter:brightness(1.08);box-shadow:inset 0 0 0 1px rgba(223,246,255,.7),0 6px 28px rgba(82,193,230,.5)}
+:is([data-design], .design-ov-scale) .d2 .d2-pill{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(82,193,230,.45);color:#cfe8f3;white-space:nowrap;transition:box-shadow .16s ease,color .16s ease,background .16s ease}
+:is([data-design], .design-ov-scale) .d2 .d2-pill:hover{box-shadow:inset 0 0 0 1px var(--a);color:var(--ink);background:rgba(82,193,230,.08)}
+
+/* ---------- screen 4: target outside the map ---------- */
+:is([data-design], .design-ov-scale) .d2 .d2-nf{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+:is([data-design], .design-ov-scale) .d2 .d2-nf-main{display:flex;flex-direction:column;justify-content:center;gap:14px;min-width:0}
+:is([data-design], .design-ov-scale) .d2 .d2-h1{font-family:var(--disp);font-size:28px;line-height:1.15;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d2 .d2-lead{max-width:46ch;color:var(--fg1);font-size:14px}
+:is([data-design], .design-ov-scale) .d2 .d2-url{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;max-width:100%;padding:7px 12px;border-radius:8px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px var(--rule);font-family:var(--mono);font-size:12.5px;color:var(--fg1);white-space:nowrap;overflow:hidden}
+:is([data-design], .design-ov-scale) .d2 .d2-url small{font-family:"Segoe UI",system-ui,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-url code{font:inherit;overflow:hidden;text-overflow:ellipsis}
+:is([data-design], .design-ov-scale) .d2 .d2-url mark{background:none;color:var(--hi);border-bottom:1px dashed var(--holo)}
+:is([data-design], .design-ov-scale) .d2 .d2-sug{display:flex;flex-direction:column;gap:6px;max-width:520px}
+:is([data-design], .design-ov-scale) .d2 .d2-sug h3,:is([data-design], .design-ov-scale) .d2 .d2-areas-h{font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-sug a{display:flex;align-items:center;gap:12px;min-height:42px;padding:6px 12px;border-radius:10px;background:rgba(10,32,46,.45);box-shadow:inset 0 0 0 1px var(--rule);transition:box-shadow .16s ease,background .16s ease}
+:is([data-design], .design-ov-scale) .d2 .d2-sug a:hover{box-shadow:inset 0 0 0 1px rgba(82,193,230,.55);background:rgba(82,193,230,.08)}
+:is([data-design], .design-ov-scale) .d2 .d2-sug a > span{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;overflow:hidden;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d2 .d2-sug b{color:var(--ink);font-weight:600}
+:is([data-design], .design-ov-scale) .d2 .d2-sug code{font-family:var(--mono);font-size:11.5px;color:var(--fg2);overflow:hidden;text-overflow:ellipsis}
+:is([data-design], .design-ov-scale) .d2 .d2-sug em{flex:none;font-style:normal;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--holo);padding:2px 8px;border-radius:999px;background:rgba(82,193,230,.12)}
+:is([data-design], .design-ov-scale) .d2 .d2-sug .d2-ic{color:var(--a)}
+:is([data-design], .design-ov-scale) .d2 .d2-find{display:flex;align-items:center;gap:9px;height:42px;max-width:520px;padding:0 6px 0 14px;border-radius:16px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(82,193,230,.3);color:var(--fg2)}
+:is([data-design], .design-ov-scale) .d2 .d2-find .d2-val{flex:1;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d2 .d2-find .d2-val::after{content:"";display:inline-block;width:1px;height:15px;margin-left:2px;vertical-align:-3px;background:var(--holo);animation:d2-blink 1.1s steps(2) infinite}
+
+:is([data-design], .design-ov-scale) .d2 .d2-scene{position:relative;min-height:300px;border-radius:16px;overflow:hidden;background:radial-gradient(ellipse 60% 55% at 62% 40%,rgba(82,193,230,.09),transparent 70%)}
+:is([data-design], .design-ov-scale) .d2 .d2-scene .d2-sky{opacity:.9}
+:is([data-design], .design-ov-scale) .d2 .d2-scene .d2-warp{left:62%;top:40%;transform:scale(.7)}
+:is([data-design], .design-ov-scale) .d2 .d2-once i{animation-iteration-count:1;animation-duration:1.3s;animation-delay:calc(var(--d) * -0.3);animation-fill-mode:both}
+:is([data-design], .design-ov-scale) .d2 .d2-path{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+:is([data-design], .design-ov-scale) .d2 .d2-path path{fill:none;stroke:rgba(143,227,255,.55);stroke-width:1.4;stroke-dasharray:2 7;stroke-linecap:round;vector-effect:non-scaling-stroke;animation:d2-flow 1.6s linear infinite}
+:is([data-design], .design-ov-scale) .d2 .d2-path path.d2-glow{stroke:rgba(82,193,230,.12);stroke-width:6;stroke-dasharray:none;animation:none}
+@keyframes d2-flow{to{stroke-dashoffset:-18}}
+:is([data-design], .design-ov-scale) .d2 .d2-beacon{position:absolute;left:62%;top:40%;width:0;height:0}
+:is([data-design], .design-ov-scale) .d2 .d2-pulse b{position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;border:1px solid rgba(143,227,255,.7);opacity:0;animation:d2-ping 3.6s ease-out var(--d,0s) infinite}
+@keyframes d2-ping{0%{transform:scale(.4);opacity:.9}100%{transform:scale(5.5);opacity:0}}
+:is([data-design], .design-ov-scale) .d2 .d2-buoy{position:absolute;left:-22px;top:-40px;width:44px;height:66px;animation:d2-drift 9s ease-in-out infinite alternate;transform-origin:50% 60%}
+@keyframes d2-drift{0%{transform:translate(-5px,-6px) rotate(-7deg)}100%{transform:translate(6px,7px) rotate(6deg)}}
+:is([data-design], .design-ov-scale) .d2 .d2-buoy svg{width:100%;height:100%;overflow:visible}
+:is([data-design], .design-ov-scale) .d2 .d2-buoy .d2-hull{fill:#0c2433;stroke:rgba(143,227,255,.75);stroke-width:1.2}
+:is([data-design], .design-ov-scale) .d2 .d2-buoy .d2-line{fill:none;stroke:rgba(143,227,255,.6);stroke-width:1}
+:is([data-design], .design-ov-scale) .d2 .d2-buoy .d2-lamp{fill:#dff6ff;filter:drop-shadow(0 0 4px #8fe3ff) drop-shadow(0 0 10px #52c1e6);animation:d2-blink 2.2s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d2 .d2-read{position:absolute;left:calc(62% + 44px);top:calc(40% - 52px);padding-left:10px;border-left:1px solid rgba(143,227,255,.35);font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--fg2);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d2 .d2-read b{color:var(--holo);font-weight:400;letter-spacing:.1em}
+:is([data-design], .design-ov-scale) .d2 .d2-way{position:absolute;left:14%;top:84%;display:flex;align-items:center;gap:10px;transform:translate(-11px,-11px);color:var(--a);font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d2 .d2-way i{width:22px;height:22px;border-radius:50%;border:1px solid var(--a);display:grid;place-items:center;box-shadow:0 0 12px rgba(82,193,230,.35)}
+:is([data-design], .design-ov-scale) .d2 .d2-way i::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--a)}
+:is([data-design], .design-ov-scale) .d2 .d2-way:hover{color:var(--hi)}
+:is([data-design], .design-ov-scale) .d2 .d2-areas-wrap{display:flex;flex-direction:column;gap:8px}
+:is([data-design], .design-ov-scale) .d2 .d2-areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+:is([data-design], .design-ov-scale) .d2 .d2-area{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,rgba(16,50,70,.5),rgba(8,24,36,.5));box-shadow:inset 0 0 0 1px var(--rule);transition:box-shadow .16s ease,transform .16s ease}
+:is([data-design], .design-ov-scale) .d2 .d2-area:hover{box-shadow:inset 0 0 0 1px rgba(82,193,230,.55),0 0 22px rgba(82,193,230,.12);transform:translateY(-1px)}
+:is([data-design], .design-ov-scale) .d2 .d2-area > i{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--a);background:radial-gradient(circle,rgba(82,193,230,.18),rgba(82,193,230,.04));box-shadow:inset 0 0 0 1px rgba(82,193,230,.35)}
+:is([data-design], .design-ov-scale) .d2 .d2-area > span{display:flex;flex-direction:column;gap:1px;min-width:0}
+:is([data-design], .design-ov-scale) .d2 .d2-area b{font-family:var(--disp);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d2 .d2-area small{font-size:12px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- reduced motion: still frames ---------- */
+@media (prefers-reduced-motion: reduce){
+:is([data-design], .design-ov-scale) .d2 .d2-warp i{animation:none;opacity:.5;transform:rotate(var(--r)) translateX(calc(var(--far) * .34)) scaleX(.55)}
+:is([data-design], .design-ov-scale) .d2 .d2-once{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-tun b{animation:none;opacity:.22;transform:scale(var(--k,1))}
+:is([data-design], .design-ov-scale) .d2 .d2-arc{animation:none;stroke-dashoffset:157}
+:is([data-design], .design-ov-scale) .d2 :is(.d2-rot,.d2-mark,.d2-orb,.d2-stat i,.d2-steps li,.d2-segs i,.d2-exit,.d2-ghost,.d2-mini .d2-f,.d2-pulse b,.d2-buoy,.d2-buoy .d2-lamp,.d2-path path,.d2-find .d2-val::after){animation:none}
+:is([data-design], .design-ov-scale) .d2 .d2-segs i.d2-p{background:rgba(143,227,255,.45)}
+:is([data-design], .design-ov-scale) .d2 .d2-pulse b:first-child{opacity:.5;transform:scale(1.8)}
+:is([data-design], .design-ov-scale) .d2 .d2-sk::after{display:none}
+:is([data-design], .design-ov-scale) .d2 :is(.d2-card,.d2-hold){animation:none}
+}
+
+/* ---------- phone ---------- */
+@container device (max-width: 520px){
+:is([data-design], .design-ov-scale) .d2 .d2-core{transform:translate(-50%,-50%) scale(.8)}
+:is([data-design], .design-ov-scale) .d2 .d2-bootx{top:calc(46% + 122px)}
+:is([data-design], .design-ov-scale) .d2 .d2-warp i{--far:430px}
+:is([data-design], .design-ov-scale) .d2 .d2-bar{position:absolute;left:0;right:0;bottom:12px;z-index:6;padding:0 64px 0 12px}
+:is([data-design], .design-ov-scale) .d2 .d2-cap{height:56px;padding:0 8px;max-width:none}
+:is([data-design], .design-ov-scale) .d2 :is(.d2-plate,.d2-kind,.d2-kbd,.d2-fbtn span){display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-blogo{width:36px}
+:is([data-design], .design-ov-scale) .d2 .d2-search{height:40px;padding-left:12px}
+:is([data-design], .design-ov-scale) .d2 .d2-fbtn{margin-left:8px;padding:0 10px}
+:is([data-design], .design-ov-scale) .d2 .d2-acct{margin-left:8px}
+:is([data-design], .design-ov-scale) .d2 .d2-fab{position:absolute;right:12px;bottom:18px;z-index:6;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#0f2c3e,#081a27);color:var(--fg1);box-shadow:inset 0 0 0 1px rgba(143,227,255,.25),0 8px 20px rgba(0,0,0,.4);opacity:.6}
+:is([data-design], .design-ov-scale) .d2 .d2-route{position:relative;z-index:5;display:block;padding:14px 16px 0;font-family:var(--disp);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);opacity:.6}
+:is([data-design], .design-ov-scale) .d2 .d2-page{padding:12px 16px 84px;gap:12px}
+:is([data-design], .design-ov-scale) .d2 .d2-ph{flex-direction:column;align-items:stretch;gap:12px}
+:is([data-design], .design-ov-scale) .d2 .d2-sk.d2-skh1{height:24px;width:220px}
+:is([data-design], .design-ov-scale) .d2 .d2-spool{align-items:flex-start}
+:is([data-design], .design-ov-scale) .d2 .d2-steps{gap:12px}
+:is([data-design], .design-ov-scale) .d2 .d2-segs i{width:8px}
+:is([data-design], .design-ov-scale) .d2 .d2-stage{grid-template-columns:1fr;grid-template-rows:minmax(200px,1fr) auto}
+:is([data-design], .design-ov-scale) .d2 .d2-hero{min-height:200px}
+:is([data-design], .design-ov-scale) .d2 .d2-side .d2-more,:is([data-design], .design-ov-scale) .d2 .d2-kpis{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-dest span:last-child{display:none}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-side{display:none}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-stage{grid-template-rows:1fr}
+:is([data-design], .design-ov-scale) .d2.d2-slow .d2-hero{min-height:380px}
+:is([data-design], .design-ov-scale) .d2 .d2-hold{width:calc(100% - 20px);padding:16px}
+:is([data-design], .design-ov-scale) .d2 .d2-h2{font-size:15px}
+:is([data-design], .design-ov-scale) .d2 .d2-hold .d2-pri{width:100%;justify-content:center}
+:is([data-design], .design-ov-scale) .d2 .d2-nf{grid-template-columns:1fr;gap:12px}
+:is([data-design], .design-ov-scale) .d2 .d2-scene{order:-1;min-height:0;height:150px}
+:is([data-design], .design-ov-scale) .d2 .d2-read{left:calc(62% + 34px);top:calc(40% - 30px);font-size:10.5px;line-height:1.55}
+:is([data-design], .design-ov-scale) .d2 .d2-read{left:auto;right:calc(38% + 34px);text-align:right;padding:0 10px 0 0;border-left:0;border-right:1px solid rgba(143,227,255,.35)}
+:is([data-design], .design-ov-scale) .d2 .d2-read span:last-child{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-sk.d2-tail{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-buoy{transform:scale(.8)}
+:is([data-design], .design-ov-scale) .d2 .d2-nf-main{justify-content:flex-start;gap:10px}
+:is([data-design], .design-ov-scale) .d2 .d2-h1{font-size:20px}
+:is([data-design], .design-ov-scale) .d2 .d2-lead{font-size:12.5px}
+:is([data-design], .design-ov-scale) .d2 .d2-url small,:is([data-design], .design-ov-scale) .d2 .d2-find,:is([data-design], .design-ov-scale) .d2 .d2-sug code{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-nf-main .d2-acts .d2-pri{width:100%;justify-content:center;height:44px}
+:is([data-design], .design-ov-scale) .d2 .d2-nf-main .d2-acts .d2-pill{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-sug a{min-height:44px}
+:is([data-design], .design-ov-scale) .d2 .d2-areas{gap:8px}
+:is([data-design], .design-ov-scale) .d2 .d2-area{flex-direction:column;gap:6px;padding:10px 6px;text-align:center}
+:is([data-design], .design-ov-scale) .d2 .d2-area small{display:none}
+:is([data-design], .design-ov-scale) .d2 .d2-area b{font-size:11px}
+}
+/* ── d3 Ruhiges MFD ── */
+:is([data-design], .design-ov-scale) .d3{position:relative;height:100%;min-height:600px;overflow:hidden;display:flex;flex-direction:column;background:radial-gradient(ellipse 90% 55% at 50% -12%,#0f2a3b 0%,#081723 52%,#050c14 100%);color:#c6dfeb;font:13px/1.45 "Segoe UI",system-ui,sans-serif;--a:#52c1e6;--holo:#8fe3ff;--ink:#eaf7fd;--mut:#7d9cad;--dim:#4c6674;--rule:rgba(130,220,255,.14);--bk:rgba(143,227,255,.5);--fill:rgba(8,24,36,.55);--warn:#e6b552;--mono:"Cascadia Mono",Consolas,"SFMono-Regular",Menlo,ui-monospace,monospace}
+:is([data-design], .design-ov-scale) .d3 :where(button,a){font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:none;box-shadow:none;min-width:0}
+:is([data-design], .design-ov-scale) .d3 :where(h1,h2,p,ol,ul,li,kbd){margin:0;padding:0;list-style:none;font:inherit}
+:is([data-design], .design-ov-scale) .d3 svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d3 .d3-mono{font-family:var(--mono)}
+
+/* ---------- MFD frame: bracket corners, hairline, dark glass ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-f{position:relative;padding:12px 16px 14px;background:linear-gradient(var(--bk),var(--bk)) left top/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) left top/1px 12px no-repeat,linear-gradient(var(--bk),var(--bk)) right top/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) right top/1px 12px no-repeat,linear-gradient(var(--bk),var(--bk)) left bottom/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) left bottom/1px 12px no-repeat,linear-gradient(var(--bk),var(--bk)) right bottom/12px 1px no-repeat,linear-gradient(var(--bk),var(--bk)) right bottom/1px 12px no-repeat,var(--fill);box-shadow:inset 0 0 0 1px rgba(130,220,255,.06)}
+:is([data-design], .design-ov-scale) .d3 .d3-lbl{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;font:10px/14px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-lbl b{font-weight:600;color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-lbl em{font-style:normal;color:var(--mut)}
+
+/* skeleton: segmented display rules, no shimmer */
+:is([data-design], .design-ov-scale) .d3 .d3-sk{display:block;height:7px;background:repeating-linear-gradient(90deg,rgba(143,227,255,.17) 0 5px,transparent 5px 7px)}
+:is([data-design], .design-ov-scale) .d3 .d3-sk.lg{height:20px;background:repeating-linear-gradient(90deg,rgba(143,227,255,.13) 0 9px,transparent 9px 12px)}
+:is([data-design], .design-ov-scale) .d3 .w2{width:20%}
+:is([data-design], .design-ov-scale) .d3 .w3{width:30%}
+:is([data-design], .design-ov-scale) .d3 .w4{width:40%}
+:is([data-design], .design-ov-scale) .d3 .w5{width:50%}
+:is([data-design], .design-ov-scale) .d3 .w6{width:60%}
+:is([data-design], .design-ov-scale) .d3 .w8{width:80%}
+:is([data-design], .design-ov-scale) .d3 .d3-row{display:flex;align-items:center;gap:12px;height:24px;border-bottom:1px solid rgba(130,220,255,.06)}
+:is([data-design], .design-ov-scale) .d3 .d3-row:last-child{border-bottom:0}
+:is([data-design], .design-ov-scale) .d3 .d3-row .d3-sk:first-child{flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-row .d3-dots{flex:1;height:1px;border-bottom:1px dotted rgba(130,220,255,.16)}
+:is([data-design], .design-ov-scale) .d3 .d3-row .d3-sk:last-child{flex:none;width:48px}
+
+/* log lines */
+:is([data-design], .design-ov-scale) .d3 .d3-log{font:11.5px/1.95 var(--mono);color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-log p{display:flex;align-items:baseline;gap:10px;white-space:nowrap;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-t{color:var(--dim);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-k{color:var(--dim);flex:none;width:4.5ch;letter-spacing:.06em}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-x{color:#b9d6e4;overflow:hidden;text-overflow:ellipsis;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-lead{flex:1;min-width:16px;border-bottom:1px dotted rgba(130,220,255,.2);transform:translateY(-3px)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-ok{flex:none;color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-now{color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-hold-k{flex:none;color:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-log .d3-off{opacity:.42}
+:is([data-design], .design-ov-scale) .d3 .d3-cur{display:inline-block;flex:none;width:7px;height:12px;background:var(--holo);transform:translateY(2px);animation:d3-blink 1.2s steps(1) infinite}
+
+/* segmented progress */
+:is([data-design], .design-ov-scale) .d3 .d3-seg{display:flex;gap:3px;flex:1;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-seg i{flex:1;height:6px;background:rgba(143,227,255,.1)}
+:is([data-design], .design-ov-scale) .d3 .d3-seg i.on{background:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-seg i.cur{background:var(--holo);animation:d3-cell 1.6s steps(2,jump-none) infinite}
+:is([data-design], .design-ov-scale) .d3 .d3-seg.wt i.on{background:rgba(82,193,230,.55)}
+:is([data-design], .design-ov-scale) .d3 .d3-seg.wt i.cur{background:var(--warn);animation:none}
+
+@keyframes d3-blink{50%{opacity:0}}
+@keyframes d3-cell{from{opacity:1}to{opacity:.35}}
+
+/* ---------- Screen 1 · Start ---------- */
+:is([data-design], .design-ov-scale) .d3.d3-cold{background:radial-gradient(ellipse 60% 45% at 50% 46%,#0b1d2a 0%,#060b14 62%,#050810 100%)}
+:is([data-design], .design-ov-scale) .d3 .d3-boot{flex:1;display:grid;place-items:center;padding:24px 16px}
+:is([data-design], .design-ov-scale) .d3 .d3-bootf{width:min(520px,100%);display:block;text-align:left;padding:20px 22px 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-id{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-id svg{width:38px;height:38px;color:var(--a);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-id div{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-id b{font-weight:600;font-size:13px;letter-spacing:.32em;color:var(--ink);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-id small{font:10.5px var(--mono);letter-spacing:.18em;color:var(--mut);text-transform:uppercase}
+:is([data-design], .design-ov-scale) .d3 .d3-id em{font:normal 10px var(--mono);letter-spacing:.2em;color:var(--dim);align-self:flex-start;padding:2px 6px;border:1px solid var(--rule)}
+:is([data-design], .design-ov-scale) .d3 .d3-prog{display:flex;align-items:center;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);font:10.5px var(--mono);letter-spacing:.14em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-prog b{font-weight:400;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-foot{margin-top:18px;font:10px var(--mono);letter-spacing:.24em;color:var(--dim);text-transform:uppercase;text-align:center}
+
+/* ---------- β shell (context, dimmed) ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-bar{flex:none;padding:12px max(16px,calc(50% - 640px)) 0;opacity:.6}
+:is([data-design], .design-ov-scale) .d3 .d3-cap{position:relative;display:flex;align-items:center;gap:14px;height:60px;padding:0 14px 0 10px;border-radius:20px;background:linear-gradient(180deg,#0a1d2b,#061724);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+:is([data-design], .design-ov-scale) .d3 .d3-cap::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(210,242,255,.07),transparent 55%);pointer-events:none}
+:is([data-design], .design-ov-scale) .d3 .d3-blogo{flex:none;width:44px;height:40px;display:grid;place-items:center;color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-blogo svg{width:30px;height:30px}
+:is([data-design], .design-ov-scale) .d3 .d3-plate{flex:0 1 300px;display:flex;flex-direction:column;gap:2px;min-width:0}
+:is([data-design], .design-ov-scale) .d3 .d3-plate b{font-weight:600;font-size:11px;letter-spacing:.28em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-plate ol{display:flex;gap:4px;font-size:12px;color:#6f8c9c;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-plate li+li::before{content:"›";margin-right:4px}
+:is([data-design], .design-ov-scale) .d3 .d3-plate .here{color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-div{flex:none;width:1px;height:28px;background:linear-gradient(180deg,transparent,rgba(160,230,255,.5),transparent)}
+:is([data-design], .design-ov-scale) .d3 .d3-kind{flex:none;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px 0 13px;border-radius:16px;border:1px solid rgba(130,220,255,.28);color:#cfe6f1;font-size:12.5px}
+:is([data-design], .design-ov-scale) .d3 .d3-kind i{font-style:normal;font-size:11px;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-kind svg{width:13px;height:13px}
+:is([data-design], .design-ov-scale) .d3 .d3-search{flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:38px;padding:0 6px 0 14px;border-radius:19px;background:rgba(0,0,0,.24);border:1px solid rgba(130,220,255,.16);color:#6f8c9c}
+:is([data-design], .design-ov-scale) .d3 .d3-search svg{width:16px;height:16px;flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-search span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+:is([data-design], .design-ov-scale) .d3 .d3-search kbd{flex:none;font:10.5px var(--mono);padding:3px 8px;border-radius:12px;background:linear-gradient(180deg,#17384c,#0b2231);color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-acc{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--ink);background:linear-gradient(160deg,#1c4a62,#0d2636);box-shadow:inset 0 0 0 1px rgba(130,220,255,.3)}
+:is([data-design], .design-ov-scale) .d3 .d3-route{display:none}
+
+/* ---------- page area ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-page{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:18px max(16px,calc(50% - 640px)) 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-strip{flex:none;display:flex;align-items:center;gap:16px;height:34px;padding:0 4px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);font:11px var(--mono);letter-spacing:.08em;color:var(--mut);text-align:left;width:100%}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-tag{flex:none;color:var(--a);letter-spacing:.22em}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-path{flex:none;color:#b9d6e4;letter-spacing:.14em}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-seg{max-width:240px;margin-left:auto}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-st{flex:none;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-st b{font-weight:400;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-strip.wt .d3-tag{color:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-head{flex:none;display:flex;flex-direction:column;gap:9px}
+:is([data-design], .design-ov-scale) .d3 .d3-eye{font:10.5px var(--mono);letter-spacing:.22em;color:var(--mut);text-transform:uppercase}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.lg{width:300px}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.sm{width:200px}
+:is([data-design], .design-ov-scale) .d3 .d3-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-hero{display:flex;flex-direction:column;min-height:0}
+:is([data-design], .design-ov-scale) .d3 .d3-ret{flex:1;min-height:90px;display:grid;place-items:center;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-ret svg{width:min(400px,86%);height:auto;stroke-width:1}
+:is([data-design], .design-ov-scale) .d3 .d3-hero .d3-log{padding-top:10px;border-top:1px solid rgba(130,220,255,.08)}
+:is([data-design], .design-ov-scale) .d3 .d3-col{display:flex;flex-direction:column;gap:14px;min-height:0}
+:is([data-design], .design-ov-scale) .d3 .d3-col .d3-f{flex:1;min-height:0;overflow:hidden}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-f{display:flex;flex-direction:column;gap:9px;padding:10px 14px 12px}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-lbl{margin:0}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-sk{width:62%;height:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-diag .d3-col .d3-f{flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-diag .d3-col .d3-f:nth-child(2){flex:1;display:flex;flex-direction:column}
+:is([data-design], .design-ov-scale) .d3 .d3-all{margin-top:auto;display:flex;align-items:center;gap:6px;padding:10px 8px 0;border-top:1px solid var(--rule);color:var(--a);font-size:12.5px}
+:is([data-design], .design-ov-scale) .d3 .d3-all svg{width:14px;height:14px}
+
+/* ---------- Screen 3 · hold readout ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-hush :is(.d3-head,.d3-stage,.d3-kpi){opacity:.32}
+:is([data-design], .design-ov-scale) .d3 .d3-hold{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:min(540px,calc(100% - 32px));padding:18px 22px 20px;--bk:rgba(143,227,255,.8);--fill:linear-gradient(180deg,rgba(9,27,40,.97),rgba(6,18,28,.97));box-shadow:inset 0 0 0 1px rgba(130,220,255,.1),0 36px 90px rgba(0,0,0,.65),0 10px 24px rgba(0,0,0,.4);text-align:left}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-lbl .d3-w{display:inline-flex;align-items:center;gap:7px;color:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-lbl .d3-w::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--warn)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-log{padding:4px 0 12px;border-bottom:1px solid var(--rule)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold h2{margin-top:14px;font-size:19px;font-weight:600;letter-spacing:.01em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-hold p.d3-say{margin-top:6px;color:#a9c4d2;max-width:46ch}
+:is([data-design], .design-ov-scale) .d3 .d3-acts{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:18px}
+:is([data-design], .design-ov-scale) .d3 .d3-pri{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px 0 16px;border-radius:20px;background:linear-gradient(180deg,#6ad0f0,#3fb0d8);color:#04131c;font-weight:600;box-shadow:0 0 0 1px rgba(200,240,255,.35) inset,0 6px 18px rgba(82,193,230,.25)}
+:is([data-design], .design-ov-scale) .d3 .d3-pri:hover{background:linear-gradient(180deg,#86dcf5,#52c1e6)}
+:is([data-design], .design-ov-scale) .d3 .d3-pri svg{width:16px;height:16px;stroke-width:2}
+:is([data-design], .design-ov-scale) .d3 .d3-pill{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border-radius:18px;border:1px solid rgba(82,193,230,.45);color:#cfe8f3;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-pill:hover{border-color:var(--a);color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-pill svg{width:15px;height:15px}
+:is([data-design], .design-ov-scale) .d3 .d3-bgnote{margin-top:14px;font:10.5px var(--mono);letter-spacing:.08em;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-bgnote b{font-weight:400;color:var(--mut)}
+
+/* ---------- Screen 4 · route diagnostic ---------- */
+:is([data-design], .design-ov-scale) .d3 .d3-diag{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-dx{display:flex;flex-direction:column;padding:16px 22px 22px;min-height:0}
+:is([data-design], .design-ov-scale) .d3 .d3-code{display:flex;align-items:baseline;gap:22px;margin-top:10px;font:200 104px/.9 var(--mono);letter-spacing:.02em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-code span{font-size:16px;font-weight:400;letter-spacing:.3em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-url{margin-top:22px;font:14px/1.2 var(--mono);color:#b9d6e4;white-space:nowrap;overflow:hidden;padding-bottom:22px}
+:is([data-design], .design-ov-scale) .d3 .d3-url .d3-host{color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-url mark{position:relative;background:none;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d3 .d3-url mark::after{content:"^^^^^^^^^";position:absolute;left:0;top:1.15em;color:var(--holo);opacity:.8}
+:is([data-design], .design-ov-scale) .d3 .d3-trace{margin-top:2px;font-size:12.5px;border-top:1px solid var(--rule);padding-top:8px}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-x{width:13ch;flex:none;color:#b9d6e4}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-k{width:auto;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-miss{flex:none;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-dx h1{margin-top:auto;padding-top:20px;font-size:24px;line-height:1.2;font-weight:600;color:var(--ink);letter-spacing:.005em}
+:is([data-design], .design-ov-scale) .d3 .d3-dx p.d3-say{margin-top:6px;color:#a9c4d2;max-width:48ch}
+:is([data-design], .design-ov-scale) .d3 .d3-field{display:flex;align-items:center;gap:10px;height:42px;padding:0 6px 0 14px;border:1px solid rgba(130,220,255,.32);background:rgba(0,0,0,.28);box-shadow:0 0 0 3px rgba(82,193,230,.07)}
+:is([data-design], .design-ov-scale) .d3 .d3-field svg{width:16px;height:16px;color:var(--a);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-field span{flex:1;min-width:0;font-family:var(--mono);color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-field span::after{content:"";display:inline-block;width:1px;height:15px;margin-left:2px;background:var(--holo);transform:translateY(3px);animation:d3-blink 1.2s steps(1) infinite}
+:is([data-design], .design-ov-scale) .d3 .d3-field kbd{flex:none;font:10.5px var(--mono);padding:4px 9px;background:linear-gradient(180deg,#17384c,#0b2231);color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-sugs{display:flex;flex-direction:column}
+:is([data-design], .design-ov-scale) .d3 .d3-sug{display:grid;grid-template-columns:minmax(0,1fr) auto 16px;align-items:center;gap:4px 14px;padding:9px 8px;border-bottom:1px solid rgba(130,220,255,.07);text-align:left}
+:is([data-design], .design-ov-scale) .d3 .d3-sug:last-child{border-bottom:0}
+:is([data-design], .design-ov-scale) .d3 .d3-sug:hover{background:rgba(82,193,230,.07)}
+:is([data-design], .design-ov-scale) .d3 .d3-sug b{font-weight:600;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d3 .d3-sug b small{font-weight:400;font-size:12px;color:var(--mut);margin-left:8px}
+:is([data-design], .design-ov-scale) .d3 .d3-sug code{grid-column:1;font:11px var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-sug .d3-pc{grid-row:1/3;grid-column:2;font:11px var(--mono);color:var(--a)}
+:is([data-design], .design-ov-scale) .d3 .d3-sug svg{grid-row:1/3;grid-column:3;width:15px;height:15px;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d3 .d3-areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+:is([data-design], .design-ov-scale) .d3 .d3-area{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(130,220,255,.16);text-align:left}
+:is([data-design], .design-ov-scale) .d3 .d3-area:hover{border-color:rgba(82,193,230,.6);background:rgba(82,193,230,.06)}
+:is([data-design], .design-ov-scale) .d3 .d3-area svg{width:20px;height:20px;color:var(--a);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-area span{display:flex;flex-direction:column;min-width:0;color:var(--ink);font-weight:600}
+:is([data-design], .design-ov-scale) .d3 .d3-area small{font:400 10.5px var(--mono);color:var(--dim)}
+
+@media (prefers-reduced-motion: reduce){
+:is([data-design], .design-ov-scale) .d3 *,:is([data-design], .design-ov-scale) .d3 *::after{animation:none!important}
+}
+
+/* ---------- phone ---------- */
+@container device (max-width: 520px){
+:is([data-design], .design-ov-scale) .d3 .d3-bootf{padding:16px 16px 14px}
+:is([data-design], .design-ov-scale) .d3 .d3-bootf .d3-log .d3-t{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-id b{letter-spacing:.22em;font-size:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-bar{order:9;padding:0 10px 10px;opacity:.72}
+:is([data-design], .design-ov-scale) .d3 .d3-cap{height:56px;gap:10px;padding:0 10px 0 6px}
+:is([data-design], .design-ov-scale) .d3 :is(.d3-plate,.d3-div,.d3-kind){display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-search kbd{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-route{display:block;flex:none;padding:12px 16px 0;font-size:12px;color:#6f8c9c;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is([data-design], .design-ov-scale) .d3 .d3-route b{font-weight:400;color:#a9c4d2}
+:is([data-design], .design-ov-scale) .d3 .d3-page{padding:12px 16px 14px;gap:12px;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(130,220,255,.25) transparent}
+:is([data-design], .design-ov-scale) .d3 .d3-strip{order:-2}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-st{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is([data-design], .design-ov-scale) .d3 .d3-strip{gap:10px;font-size:10.5px}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-path{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-strip .d3-seg{flex:0 0 64px;max-width:none}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.lg{width:72%}
+:is([data-design], .design-ov-scale) .d3 .d3-head .d3-sk.sm{width:50%}
+:is([data-design], .design-ov-scale) .d3 .d3-stage{grid-template-columns:minmax(0,1fr);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-ret{min-height:120px}
+:is([data-design], .design-ov-scale) .d3 .d3-ret svg{width:200px}
+:is([data-design], .design-ov-scale) .d3 .d3-col .d3-f + .d3-f{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-kpi .d3-f:nth-child(n+3){display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-hold{position:relative;left:auto;top:auto;transform:none;width:auto;order:-1;flex:none;padding:16px 16px 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-hush .d3-page{gap:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-hold h2{font-size:17px}
+:is([data-design], .design-ov-scale) .d3 .d3-acts{flex-direction:column;align-items:stretch}
+:is([data-design], .design-ov-scale) .d3 .d3-acts > *{justify-content:center;height:44px}
+:is([data-design], .design-ov-scale) .d3 .d3-hold .d3-log .d3-k{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-diag{grid-template-columns:minmax(0,1fr);flex:none}
+:is([data-design], .design-ov-scale) .d3 .d3-dx{padding:14px 16px 18px}
+:is([data-design], .design-ov-scale) .d3 .d3-code{font-size:64px;gap:14px}
+:is([data-design], .design-ov-scale) .d3 .d3-code span{font-size:12px}
+:is([data-design], .design-ov-scale) .d3 .d3-url{font-size:12.5px;margin-top:16px}
+:is([data-design], .design-ov-scale) .d3 .d3-url .d3-host{display:none}
+:is([data-design], .design-ov-scale) .d3 .d3-trace .d3-x{width:11ch}
+:is([data-design], .design-ov-scale) .d3 .d3-dx h1{font-size:20px;padding-top:16px}
+:is([data-design], .design-ov-scale) .d3 .d3-areas{grid-template-columns:minmax(0,1fr)}
+:is([data-design], .design-ov-scale) .d3 .d3-area{padding:12px;min-height:48px}
+:is([data-design], .design-ov-scale) .d3 .d3-sug{min-height:48px}
+}
+</style>
+<header class="iteration-intro">
+  <h2>Runde 1 · Ladeschirm &amp; Nicht gefunden</h2>
+  <p>Heute: ein schlichter Boot-Splash (Ring, Schriftzug, Balken) und gar keine 404-Seite — eine unbekannte Adresse landet still auf /verse. Drei Richtungen im Beta-Look, jede in denselben vier Zuständen: Start, Seite lädt, Lädt zu lange, Nicht gefunden. Klick im Mock weiter, ☆ markiert deinen Favoriten.</p>
+</header>
+<section data-design="d1" data-nav-label="Holo-Scan" data-design-active="true" data-screen-fit="full" data-design-motto="Holo-Scan" data-design-traits="Ladeanzeige als Scan: eine Scanlinie streicht über den Inhalt, jeder Platzhalter materialisiert beim Überstreichen|Ein Drahtgitter-Schiff auf dem Holoprojektor verbindet Startbild und Seitenwechsel zu einer Geschichte|404 als unkartierter Sektor: Radar über leerem Holo-Raster, Vorschläge als nahe Sektoren mit Abstand in Zeichen" data-design-icon="&lt;svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.8&quot;&gt;&lt;path d=&quot;M12 3 4 7.5v9L12 21l8-4.5v-9z&quot;/&gt;&lt;path d=&quot;M4 7.5 12 12l8-4.5M12 12v9&quot;/&gt;&lt;path d=&quot;M2 13h20&quot; stroke-dasharray=&quot;2 2&quot;/&gt;&lt;/svg&gt;" data-design-color="#8fe3ff">
+  <section id="d1-s1" data-nav-label="Start" data-screen data-screen-active="true"><div class="d1 d1-boot" role="status" aria-label="Verse Companion wird gestartet">
+<span class="d1-stars" aria-hidden="true"></span>
+<span class="d1-raster" aria-hidden="true"></span>
+<div class="d1-bootc">
+<button type="button" class="d1-proj" data-m="d1-proj" data-screen-link="d1-s2" aria-label="Verse Companion lädt">
+<span class="d1-cone" aria-hidden="true"></span>
+<span class="d1-corner d1-c-tl" aria-hidden="true"></span><span class="d1-corner d1-c-tr" aria-hidden="true"></span><span class="d1-corner d1-c-bl" aria-hidden="true"></span><span class="d1-corner d1-c-br" aria-hidden="true"></span>
+<span class="d1-ruler d1-ruler-l" aria-hidden="true"><span class="d1-mk"></span></span>
+<span class="d1-ruler" aria-hidden="true"><span class="d1-mk"></span></span>
+<span class="d1-ship" aria-hidden="true">
+<svg class="d1-ghost" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<svg class="d1-solid" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<span class="d1-scanwrap"><i class="d1-scanline"></i></span>
+</span>
+<span class="d1-emit" aria-hidden="true"></span>
+</button>
+<div class="d1-word" data-m="d1-word">Verse Companion</div>
+<div class="d1-bootline" data-m="d1-bootline">
+<span class="d1-tks" aria-hidden="true"><i class="d1-tk" style="--i:0"></i><i class="d1-tk" style="--i:1"></i><i class="d1-tk" style="--i:2"></i><i class="d1-tk" style="--i:3"></i><i class="d1-tk" style="--i:4"></i><i class="d1-tk" style="--i:5"></i><i class="d1-tk" style="--i:6"></i><i class="d1-tk" style="--i:7"></i><i class="d1-tk" style="--i:8"></i><i class="d1-tk" style="--i:9"></i><i class="d1-tk" style="--i:10"></i><i class="d1-tk" style="--i:11"></i><i class="d1-tk" style="--i:12"></i><i class="d1-tk" style="--i:13"></i></span>
+<span class="d1-bootmsg">Projektion wird aufgebaut</span>
+</div>
+</div>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d1-s1-a1" data-anno-side="bottom" data-anno-target="[data-m=&quot;d1-proj&quot;]" style="--anno-x:50%;--anno-y:42%"><button class="anno-pin" type="button" data-anno-pin="r1-d1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s1-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d1-s1-a1" data-anno-bubble="r1-d1-s1-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d1-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s1-a1"><span class="anno-bubble-question">Beim Start wird ein Drahtgitter-Schiff Zeile für Zeile auf den Holoprojektor gescannt. Passt das als erstes Bild, oder soll statt des Schiffs das Verse-Companion-Zeichen als Hologramm entstehen?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d1-s1-a1" data-annotation="r1-d1-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d1-s1-a1"></div></div></div></div></div></section>
+  <section id="d1-s2" data-nav-label="Seite lädt" data-screen hidden><div class="d1 d1-app">
+<span class="d1-stars" aria-hidden="true"></span>
+<div class="d1-route" aria-hidden="true"><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol><span class="d1-acct">JT</span></div>
+<header class="d1-shell" data-m="d1-shell">
+<div class="d1-cap">
+<a class="d1-blogo" aria-label="Verse Companion – zum Verse"><span class="d1-mark"></span></a>
+<div class="d1-plate"><b>Verse Companion</b><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol></div>
+<span class="d1-div" aria-hidden="true"></span>
+<button type="button" class="d1-kind">Schiffe <i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div class="d1-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Im Codex suchen …</span><kbd>Strg K</kbd></div>
+<span class="d1-acct">JT</span>
+</div>
+</header>
+<main class="d1-main" aria-busy="true">
+<div class="d1-page" data-m="d1-scan">
+<div class="d1-head">
+<div class="d1-eyesk"><span class="d1-sk" style="--y:.01;width:110px"></span><span class="d1-sk" style="--y:.01;width:64px"></span></div>
+<h1 class="d1-title" data-m="d1-title">Carrack</h1>
+<span class="d1-sk" style="--y:.09;width:min(380px,80%);height:12px;border-radius:6px"></span>
+</div>
+<div class="d1-grid">
+<div class="d1-stage" data-m="d1-stage">
+<span class="d1-floor" aria-hidden="true"></span>
+<span class="d1-cone" aria-hidden="true"></span>
+<span class="d1-corner d1-c-tl" aria-hidden="true"></span><span class="d1-corner d1-c-tr" aria-hidden="true"></span><span class="d1-corner d1-c-bl" aria-hidden="true"></span><span class="d1-corner d1-c-br" aria-hidden="true"></span>
+<span class="d1-ship" aria-hidden="true">
+<svg class="d1-ghost" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<svg class="d1-solid" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+</span>
+<span class="d1-emit" aria-hidden="true"></span>
+<span class="d1-readout" aria-hidden="true"><b>Holotisch</b>Raster 0,4 m</span>
+<span class="d1-chip" role="status"><i aria-hidden="true"></i>Scanne Codex-Daten</span>
+</div>
+<div class="d1-facts">
+<div class="d1-sk d1-fact" style="--y:.16"><span class="d1-lbl">Länge</span><span class="d1-ln" style="width:58%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.16"><span class="d1-lbl">Besatzung</span><span class="d1-ln" style="width:40%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.27"><span class="d1-lbl">Fracht</span><span class="d1-ln" style="width:52%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.27"><span class="d1-lbl">Quantum</span><span class="d1-ln" style="width:66%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.38"><span class="d1-lbl">Rolle</span><span class="d1-ln" style="width:72%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.38"><span class="d1-lbl">Preis</span><span class="d1-ln" style="width:48%"></span></div>
+<div class="d1-sk d1-desc" style="--y:.5"><span class="d1-ln" style="width:94%"></span><span class="d1-ln" style="width:88%"></span><span class="d1-ln" style="width:91%"></span><span class="d1-ln" style="width:60%"></span></div>
+</div>
+</div>
+<div class="d1-tabs"><span class="d1-sk" style="--y:.7">Übersicht</span><span class="d1-sk" style="--y:.7">Ausrüstung</span><span class="d1-sk" style="--y:.7">Varianten</span><span class="d1-sk" style="--y:.7">Preise</span></div>
+<div class="d1-rows">
+<div class="d1-sk d1-row" style="--y:.78"><span class="d1-ln" style="width:22%"></span><span class="d1-ln" style="width:36%"></span><span class="d1-ln" style="width:12%;margin-left:auto"></span></div>
+<div class="d1-sk d1-row" style="--y:.85"><span class="d1-ln" style="width:28%"></span><span class="d1-ln" style="width:30%"></span><span class="d1-ln" style="width:10%;margin-left:auto"></span></div>
+<div class="d1-sk d1-row" style="--y:.92"><span class="d1-ln" style="width:18%"></span><span class="d1-ln" style="width:40%"></span><span class="d1-ln" style="width:14%;margin-left:auto"></span></div>
+</div>
+<span class="d1-sweep" aria-hidden="true"><i></i></span>
+</div>
+</main>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d1-s2-a1" data-anno-side="right" data-anno-target="[data-m=&quot;d1-scan&quot;]" style="--anno-x:72%;--anno-y:58%"><button class="anno-pin" type="button" data-anno-pin="r1-d1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s2-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d1-s2-a1" data-anno-bubble="r1-d1-s2-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d1-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s2-a1"><span class="anno-bubble-question">Eine Scanlinie streicht über den ganzen Inhaltsbereich und jeder Platzhalter leuchtet beim Überstreichen kurz auf. Passt die Stärke, oder soll nur die Holo-Bühne scannen und der Rest als ruhiges Skelett warten?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d1-s2-a1" data-annotation="r1-d1-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d1-s2-a1"></div></div></div></div><div class="anno" data-anno="r1-d1-s2-a2" data-anno-side="bottom" data-anno-target="[data-m=&quot;d1-title&quot;]" style="--anno-x:12%;--anno-y:24%"><button class="anno-pin" type="button" data-anno-pin="r1-d1-s2-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s2-a2" aria-label="{{anno.pin_label}}">2</button><div class="anno-bubble" id="anno-bubble-r1-d1-s2-a2" data-anno-bubble="r1-d1-s2-a2" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d1-s2-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s2-a2"><span class="anno-bubble-question">Der Schiffsname steht sofort scharf im Titel, weil er aus dem Link bekannt ist – nur die Daten materialisieren. Passt das, oder soll auch der Titel erst gescannt werden?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d1-s2-a2" data-annotation="r1-d1-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d1-s2-a2"></div></div></div></div></div></section>
+  <section id="d1-s3" data-nav-label="Lädt zu lange" data-screen hidden><div class="d1 d1-app">
+<span class="d1-stars" aria-hidden="true"></span>
+<div class="d1-route" aria-hidden="true"><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol><span class="d1-acct">JT</span></div>
+<header class="d1-shell">
+<div class="d1-cap">
+<a class="d1-blogo" aria-label="Verse Companion – zum Verse"><span class="d1-mark"></span></a>
+<div class="d1-plate"><b>Verse Companion</b><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol></div>
+<span class="d1-div" aria-hidden="true"></span>
+<button type="button" class="d1-kind">Schiffe <i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div class="d1-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Im Codex suchen …</span><kbd>Strg K</kbd></div>
+<span class="d1-acct">JT</span>
+</div>
+</header>
+<main class="d1-main" aria-busy="true">
+<div class="d1-page d1-stall" aria-hidden="true">
+<div class="d1-head">
+<div class="d1-eyesk"><span class="d1-sk" style="width:110px"></span><span class="d1-sk" style="width:64px"></span></div>
+<h1 class="d1-title">Carrack</h1>
+<span class="d1-sk" style="width:min(380px,80%);height:12px;border-radius:6px"></span>
+</div>
+<div class="d1-grid">
+<div class="d1-stage">
+<span class="d1-floor"></span>
+<span class="d1-corner d1-c-tl"></span><span class="d1-corner d1-c-tr"></span><span class="d1-corner d1-c-bl"></span><span class="d1-corner d1-c-br"></span>
+<span class="d1-ship">
+<svg class="d1-ghost" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<svg class="d1-solid" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+</span>
+<span class="d1-emit"></span>
+<span class="d1-chip"><i></i>Warte auf Antwort</span>
+</div>
+<div class="d1-facts">
+<div class="d1-sk d1-fact"><span class="d1-lbl">Länge</span><span class="d1-ln" style="width:58%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Besatzung</span><span class="d1-ln" style="width:40%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Fracht</span><span class="d1-ln" style="width:52%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Quantum</span><span class="d1-ln" style="width:66%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Rolle</span><span class="d1-ln" style="width:72%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Preis</span><span class="d1-ln" style="width:48%"></span></div>
+<div class="d1-sk d1-desc"><span class="d1-ln" style="width:94%"></span><span class="d1-ln" style="width:88%"></span><span class="d1-ln" style="width:91%"></span><span class="d1-ln" style="width:60%"></span></div>
+</div>
+</div>
+<div class="d1-tabs"><span class="d1-sk">Übersicht</span><span class="d1-sk">Ausrüstung</span><span class="d1-sk">Varianten</span><span class="d1-sk">Preise</span></div>
+<div class="d1-rows">
+<div class="d1-sk d1-row"><span class="d1-ln" style="width:22%"></span><span class="d1-ln" style="width:36%"></span></div>
+<div class="d1-sk d1-row"><span class="d1-ln" style="width:28%"></span><span class="d1-ln" style="width:30%"></span></div>
+<div class="d1-sk d1-row"><span class="d1-ln" style="width:18%"></span><span class="d1-ln" style="width:40%"></span></div>
+</div>
+<span class="d1-sweep"><i></i></span>
+</div>
+<section class="d1-hint" role="status" aria-live="polite" data-m="d1-hint">
+<div class="d1-hint-top">
+<span class="d1-sig" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="32" r="2.6" fill="currentColor" stroke="none"/><path class="d1-a1" d="M17.5 25.5a9.2 9.2 0 0 1 13 0"/><path class="d1-a2" d="M12.5 20.5a16.3 16.3 0 0 1 23 0"/><path class="d1-a3" d="M7.5 15.5a23.3 23.3 0 0 1 33 0"/></svg></span>
+<div class="d1-hint-tx">
+<span class="d1-hint-eye">Scan läuft seit 8 s</span>
+<h2>Das dauert länger als sonst</h2>
+<p>Der Codex antwortet gerade langsam. Wir scannen im Hintergrund weiter – oder du stößt den Scan neu an.</p>
+</div>
+</div>
+<div class="d1-acts">
+<button type="button" class="d1-primary" data-m="d1-retry" data-screen-link="d1-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Erneut versuchen</button>
+<a class="d1-pill">Zur Startseite</a>
+<a class="d1-pill">Dienststatus</a>
+</div>
+<div class="d1-hint-foot"><i aria-hidden="true"></i>Verbindung steht · Codex 4.3.1</div>
+</section>
+</main>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d1-s3-a1" data-anno-side="top" data-anno-target="[data-m=&quot;d1-hint&quot;]" style="--anno-x:50%;--anno-y:56%"><button class="anno-pin" type="button" data-anno-pin="r1-d1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s3-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d1-s3-a1" data-anno-bubble="r1-d1-s3-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d1-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s3-a1"><span class="anno-bubble-question">Nach 8 s parkt die Scanlinie, das halb gescannte Schiff bleibt stehen und eine ruhige Glaskarte in Cyan erscheint. Passt der ruhige Ton, oder soll hier schon Amber (--sc-warning) andeuten, dass etwas hakt?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d1-s3-a1" data-annotation="r1-d1-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d1-s3-a1"></div></div></div></div></div></section>
+  <section id="d1-s4" data-nav-label="Nicht gefunden" data-screen hidden><div class="d1 d1-app">
+<span class="d1-stars" aria-hidden="true"></span>
+<div class="d1-route" aria-hidden="true"><ol class="d1-trail"><li aria-current="page">Nicht gefunden</li></ol><span class="d1-acct">JT</span></div>
+<header class="d1-shell">
+<div class="d1-cap">
+<a class="d1-blogo" aria-label="Verse Companion – zum Verse"><span class="d1-mark"></span></a>
+<div class="d1-plate"><b>Verse Companion</b><ol class="d1-trail"><li aria-current="page">Nicht gefunden</li></ol></div>
+<span class="d1-div" aria-hidden="true"></span>
+<div class="d1-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Suchen …</span><kbd>Strg K</kbd></div>
+<span class="d1-acct">JT</span>
+</div>
+</header>
+<main class="d1-main d1-scroll">
+<div class="d1-nf">
+<section class="d1-nf-txt">
+<p class="d1-eye">Fehler 404 · Nicht gefunden</p>
+<h1 class="d1-h1">Sektor nicht kartiert</h1>
+<div class="d1-url" data-m="d1-url"><small>Gescannte Adresse</small><code>/codex/schiffe/<mark>carrack-x</mark></code></div>
+<p class="d1-txt"><b>Codex</b> und <b>Schiffe</b> sind kartiert – zu „carrack-x“ hat der Scanner keinen Eintrag gefunden. Vielleicht ein Tippfehler oder ein umbenanntes Schiff.</p>
+<label class="d1-find" data-m="d1-find"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" value="carrack" aria-label="Im Codex suchen"><kbd>Enter</kbd></label>
+<div class="d1-acts"><a class="d1-primary" data-m="d1-home" data-screen-link="d1-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h11v-9"/></svg>Zur Startseite</a></div>
+<nav class="d1-areas" aria-label="Hauptbereiche" data-m="d1-areas">
+<a><b><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="11" ry="3.6"/></svg>Verse</b><small>News &amp; Patches</small></a>
+<a><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5z"/><path d="M9 11h6M9 15h6"/></svg>Codex</b><small>Schiffe, Waffen, Orte</small></a>
+<a><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V9l9-5 9 5v11"/><path d="M8 20v-6h8v6"/></svg>HQ</b><small>Hangar &amp; Bestand</small></a>
+</nav>
+</section>
+<div class="d1-map" data-m="d1-radar">
+<div class="d1-scope" aria-hidden="true">
+<span class="d1-disc"></span>
+<svg viewBox="0 0 200 200"><circle class="d1-r0" cx="100" cy="100" r="99"/><circle cx="100" cy="100" r="75"/><circle cx="100" cy="100" r="50"/><circle cx="100" cy="100" r="25"/><circle class="d1-tkr" cx="100" cy="100" r="94" stroke-dasharray="0.8 4.12"/><path class="d1-cross" d="M100 1 V199 M1 100 H199"/><g class="d1-links"><path d="M100 100 L136 80"/><path d="M100 100 L48 52"/><path d="M100 100 L132 148"/></g><text x="100" y="11">000</text><text x="191" y="102">090</text><text x="100" y="194">180</text><text x="9" y="102">270</text></svg>
+<span class="d1-beam"></span>
+<span class="d1-void"><span class="d1-ping"></span><span class="d1-ping"></span><svg viewBox="0 0 62 62"><path d="M31 18v8M31 36v8M18 31h8M36 31h8"/></svg><span class="d1-void-l"><b>carrack-x</b>keine Signatur</span></span>
+</div>
+<div class="d1-coord" aria-hidden="true"><b>Sektor 7C · 3A</b>/codex/schiffe</div>
+<nav class="d1-near" aria-label="Meintest du" data-m="d1-near">
+<h2 class="d1-nearh">Meintest du …</h2>
+<a class="d1-node d1-best" style="--x:68%;--y:40%;--a:61"><span class="d1-blip" aria-hidden="true"></span><span class="d1-nl"><b>Carrack</b><code>/codex/schiffe/carrack</code><em>2 Zeichen entfernt</em></span></a>
+<a class="d1-node d1-flip" style="--x:24%;--y:26%;--a:313"><span class="d1-blip" aria-hidden="true"></span><span class="d1-nl"><b>Carrack Expedition</b><code>/codex/schiffe/carrack-expedition</code><em>11 Zeichen entfernt</em></span></a>
+<a class="d1-node" style="--x:66%;--y:74%;--a:146"><span class="d1-blip" aria-hidden="true"></span><span class="d1-nl"><b>Carrack W/C8X</b><code>/codex/schiffe/carrack-wc8x</code><em>4 Zeichen entfernt</em></span></a>
+</nav>
+</div>
+</div>
+</main>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d1-s4-a1" data-anno-side="left" data-anno-target="[data-m=&quot;d1-near&quot;]" style="--anno-x:74%;--anno-y:40%"><button class="anno-pin" type="button" data-anno-pin="r1-d1-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s4-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d1-s4-a1" data-anno-bubble="r1-d1-s4-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d1-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s4-a1"><span class="anno-bubble-question">„Meintest du“ zeigt bekannte Sektoren auf dem Radar, mit dem Abstand in Zeichen zur getippten Adresse; der Strahl lässt sie beim Überstreichen aufleuchten. Passt diese Karten-Idee, oder lieber eine schlichte Liste neben der Suche?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d1-s4-a1" data-annotation="r1-d1-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d1-s4-a1"></div></div></div></div><div class="anno" data-anno="r1-d1-s4-a2" data-anno-side="bottom" data-anno-target="[data-m=&quot;d1-radar&quot;]" style="--anno-x:70%;--anno-y:62%"><button class="anno-pin" type="button" data-anno-pin="r1-d1-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s4-a2" aria-label="{{anno.pin_label}}">2</button><div class="anno-bubble" id="anno-bubble-r1-d1-s4-a2" data-anno-bubble="r1-d1-s4-a2" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d1-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d1-s4-a2"><span class="anno-bubble-question">Bei reduzierter Bewegung steht alles still: Schiff voll materialisiert, Scanlinie ruht bei 62 %, Radarstrahl steht bei 40°, kein Ping. Reicht dieses Standbild, oder soll die Linie dann ganz verschwinden?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d1-s4-a2" data-annotation="r1-d1-s4-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d1-s4-a2"></div></div></div></div></div></section>
+</section>
+<section data-design="d2" data-nav-label="Quantum-Sprung" hidden data-screen-fit="full" data-design-motto="Quantum-Sprung" data-design-traits="Sternenstreifen und Quantum-Tunnel statt Scan-Linie oder Boot-Log|Spool-Anzeige mit drei echten Phasen (Route · Daten · Ankunft) als Fortschritt|404 als treibende Notbake mit gestrichelter Route zurück ins Verse" data-design-icon="&lt;svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.8&quot; stroke-linecap=&quot;round&quot;&gt;&lt;circle cx=&quot;12&quot; cy=&quot;12&quot; r=&quot;2.6&quot;/&gt;&lt;path d=&quot;M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4M5.3 5.3l2.6 2.6M16.1 16.1l2.6 2.6M18.7 5.3l-2.6 2.6M7.9 16.1l-2.6 2.6&quot;/&gt;&lt;/svg&gt;" data-design-color="#b48cff">
+  <section id="d2-s1" data-nav-label="Start" data-screen data-screen-active="true"><div class="d2 d2-s1" role="status" aria-label="Verse Companion lädt">
+<div class="d2-sky"></div>
+<div class="d2-tun"><b style="--d:0s;--k:.35"></b><b style="--d:-.64s;--k:.6"></b><b style="--d:-1.28s;--k:.9"></b><b style="--d:-1.92s;--k:1.3"></b><b style="--d:-2.56s;--k:1.8"></b></div>
+<div class="d2-warp d2-back"><i style="--r:0deg;--d:-.1s"></i><i style="--r:12deg;--d:-1.3s"></i><i style="--r:25deg;--d:-.6s"></i><i style="--r:37deg;--d:-1.7s"></i><i style="--r:49deg;--d:-.3s"></i><i style="--r:62deg;--d:-1.1s"></i><i style="--r:73deg;--d:-.8s"></i><i style="--r:86deg;--d:-1.9s"></i><i style="--r:97deg;--d:-.45s"></i><i style="--r:109deg;--d:-1.45s"></i><i style="--r:121deg;--d:-.2s"></i><i style="--r:134deg;--d:-1s"></i><i style="--r:146deg;--d:-1.6s"></i><i style="--r:158deg;--d:-.7s"></i><i style="--r:169deg;--d:-1.25s"></i><i style="--r:182deg;--d:-.05s"></i><i style="--r:194deg;--d:-.95s"></i><i style="--r:205deg;--d:-1.75s"></i><i style="--r:217deg;--d:-.35s"></i><i style="--r:230deg;--d:-1.4s"></i><i style="--r:241deg;--d:-.85s"></i><i style="--r:254deg;--d:-1.55s"></i><i style="--r:266deg;--d:-.25s"></i><i style="--r:278deg;--d:-1.15s"></i><i style="--r:289deg;--d:-.6s"></i><i style="--r:301deg;--d:-1.85s"></i><i style="--r:313deg;--d:-.5s"></i><i style="--r:325deg;--d:-1.2s"></i><i style="--r:337deg;--d:-.9s"></i><i style="--r:349deg;--d:-1.65s"></i></div>
+<div class="d2-warp" data-m="d2-warp"><i style="--r:4deg;--d:-.9s"></i><i style="--r:16deg;--d:-.2s"></i><i style="--r:29deg;--d:-1.5s"></i><i style="--r:41deg;--d:-.65s"></i><i style="--r:55deg;--d:-1.8s"></i><i style="--r:66deg;--d:-.4s"></i><i style="--r:79deg;--d:-1.2s"></i><i style="--r:91deg;--d:-.1s"></i><i style="--r:103deg;--d:-1.05s"></i><i style="--r:115deg;--d:-1.7s"></i><i style="--r:128deg;--d:-.55s"></i><i style="--r:140deg;--d:-1.35s"></i><i style="--r:151deg;--d:-.3s"></i><i style="--r:163deg;--d:-1.9s"></i><i style="--r:176deg;--d:-.75s"></i><i style="--r:188deg;--d:-1.45s"></i><i style="--r:199deg;--d:-.15s"></i><i style="--r:211deg;--d:-1.1s"></i><i style="--r:224deg;--d:-.5s"></i><i style="--r:236deg;--d:-1.6s"></i><i style="--r:247deg;--d:-.95s"></i><i style="--r:260deg;--d:-.05s"></i><i style="--r:271deg;--d:-1.3s"></i><i style="--r:284deg;--d:-.7s"></i><i style="--r:295deg;--d:-1.75s"></i><i style="--r:307deg;--d:-.35s"></i><i style="--r:319deg;--d:-1.15s"></i><i style="--r:331deg;--d:-.6s"></i><i style="--r:343deg;--d:-1.5s"></i><i style="--r:355deg;--d:-.25s"></i></div>
+<div class="d2-vig"></div>
+<button type="button" class="d2-core" data-screen-link="d2-s2" data-m="d2-gauge" aria-label="Verse Companion lädt">
+<svg class="d2-gauge" viewBox="0 0 240 240" aria-hidden="true"><circle class="d2-ticks" cx="120" cy="120" r="112"/><circle class="d2-track" cx="120" cy="120" r="100"/><circle class="d2-arc" cx="120" cy="120" r="100"/><circle class="d2-rot" cx="120" cy="120" r="88"/></svg>
+<span class="d2-mark"><svg class="d2-disk" viewBox="0 0 130 130" aria-hidden="true"><ellipse cx="65" cy="65" rx="62" ry="16" transform="rotate(-20 65 65)"/><ellipse cx="65" cy="65" rx="50" ry="13" transform="rotate(-20 65 65)"/><ellipse class="d2-orb" cx="65" cy="65" rx="54" ry="14" transform="rotate(-20 65 65)"/><ellipse class="d2-orb d2-orb2" cx="65" cy="65" rx="42" ry="11" transform="rotate(-20 65 65)"/></svg></span>
+</button>
+<div class="d2-bootx"><span class="d2-word">Verse Companion</span><span class="d2-stat"><i></i>Quantum-Antrieb spult auf</span></div>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d2-s1-a1" data-anno-side="right" data-anno-target="[data-m=&quot;d2-gauge&quot;]" style="--anno-x:58%;--anno-y:40%"><button class="anno-pin" type="button" data-anno-pin="r1-d2-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s1-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d2-s1-a1" data-anno-bubble="r1-d2-s1-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d2-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s1-a1"><span class="anno-bubble-question">Der Spool-Bogen läuft ohne echten Fortschritt auf gut 90 % zu und wartet dort, bis die App da ist. Passt das, oder soll er nur kreisen, damit er nichts verspricht?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d2-s1-a1" data-annotation="r1-d2-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d2-s1-a1"></div></div></div></div><div class="anno" data-anno="r1-d2-s1-a2" data-anno-side="bottom" data-anno-target="[data-m=&quot;d2-warp&quot;]" style="--anno-x:20%;--anno-y:24%"><button class="anno-pin" type="button" data-anno-pin="r1-d2-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s1-a2" aria-label="{{anno.pin_label}}">2</button><div class="anno-bubble" id="anno-bubble-r1-d2-s1-a2" data-anno-bubble="r1-d2-s1-a2" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d2-s1-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s1-a2"><span class="anno-bubble-question">Sternenstreifen über das ganze Fenster (bei reduzierter Bewegung ein stehender Strahlenkranz mit Bogen bei drei Vierteln). Passt die Stärke, oder lieber nur ein schmaler Tunnel um das Zeichen?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d2-s1-a2" data-annotation="r1-d2-s1-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d2-s1-a2"></div></div></div></div></div></section>
+  <section id="d2-s2" data-nav-label="Seite lädt" data-screen hidden><div class="d2 d2-s2">
+<div class="d2-sky"></div>
+<div class="d2-route">Codex · Schiffe</div>
+<header class="d2-bar"><div class="d2-cap" data-m="d2-shell"><a class="d2-blogo" aria-label="Verse Companion – Startseite"><span class="d2-bmark"></span></a><div class="d2-plate"><b>Verse Companion</b><nav class="d2-trail" aria-label="Pfad"><a>Codex</a><span>›</span><a>Schiffe</a><span>›</span><span class="d2-sk d2-in"></span></nav></div><button type="button" class="d2-kind">Schiffe <svg class="d2-ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div class="d2-search"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4"/></svg><span>Schiffe durchsuchen …</span><span class="d2-kbd">Strg K</span></div><button type="button" class="d2-fbtn"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>Filter</span></button><span class="d2-acct">JT</span></div></header>
+<span class="d2-fab"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg></span>
+<main class="d2-page" aria-busy="true">
+<div class="d2-ph"><div class="d2-tt"><nav class="d2-crumbs" aria-label="Pfad"><a>Codex</a><span>›</span><a>Schiffe</a><span>›</span><span class="d2-sk d2-in"></span></nav><span class="d2-sk d2-ey" style="--sd:-.2s"></span><span class="d2-sk d2-skh1" style="--sd:-.4s"></span></div>
+<div class="d2-spool" data-m="d2-spool" role="status"><ol class="d2-steps"><li class="d2-ok">Route</li><li class="d2-on">Daten</li><li>Ankunft</li></ol><div class="d2-segs" aria-hidden="true"><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-p"></i><i class="d2-p"></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+<div class="d2-stage">
+<div class="d2-hero" data-screen-link="d2-s3" data-m="d2-hero">
+<div class="d2-tun"><b style="--d:0s;--k:.35"></b><b style="--d:-.8s;--k:.6"></b><b style="--d:-1.6s;--k:.9"></b><b style="--d:-2.4s;--k:1.3"></b></div>
+<div class="d2-warp"><i style="--r:0deg;--d:-.1s"></i><i style="--r:12deg;--d:-1.3s"></i><i style="--r:25deg;--d:-.6s"></i><i style="--r:37deg;--d:-1.7s"></i><i style="--r:49deg;--d:-.3s"></i><i style="--r:62deg;--d:-1.1s"></i><i style="--r:73deg;--d:-.8s"></i><i style="--r:86deg;--d:-1.9s"></i><i style="--r:97deg;--d:-.45s"></i><i style="--r:109deg;--d:-1.45s"></i><i style="--r:121deg;--d:-.2s"></i><i style="--r:134deg;--d:-1s"></i><i style="--r:146deg;--d:-1.6s"></i><i style="--r:158deg;--d:-.7s"></i><i style="--r:169deg;--d:-1.25s"></i><i style="--r:182deg;--d:-.05s"></i><i style="--r:194deg;--d:-.95s"></i><i style="--r:205deg;--d:-1.75s"></i><i style="--r:217deg;--d:-.35s"></i><i style="--r:230deg;--d:-1.4s"></i><i style="--r:241deg;--d:-.85s"></i><i style="--r:254deg;--d:-1.55s"></i><i style="--r:266deg;--d:-.25s"></i><i style="--r:278deg;--d:-1.15s"></i><i style="--r:289deg;--d:-.6s"></i><i style="--r:301deg;--d:-1.85s"></i><i style="--r:313deg;--d:-.5s"></i><i style="--r:325deg;--d:-1.2s"></i><i style="--r:337deg;--d:-.9s"></i><i style="--r:349deg;--d:-1.65s"></i></div>
+<span class="d2-exit"></span><span class="d2-ghost">Carrack</span>
+<div class="d2-dest"><span>Sprungziel <b>/codex/schiffe/carrack</b></span><span>Codex 4.3.1</span></div>
+</div>
+<div class="d2-side">
+<div class="d2-facts"><div class="d2-card" style="--d:.15s"><small>Besatzung</small><span class="d2-sk" style="width:55%"></span></div><div class="d2-card" style="--d:.25s"><small>Länge</small><span class="d2-sk" style="width:62%;--sd:-.3s"></span></div><div class="d2-card" style="--d:.35s"><small>Fracht</small><span class="d2-sk" style="width:48%;--sd:-.6s"></span></div><div class="d2-card" style="--d:.45s"><small>Preis</small><span class="d2-sk" style="width:70%;--sd:-.9s"></span></div></div>
+<div class="d2-card d2-grow" style="--d:.55s"><h3>Übersicht</h3><span class="d2-sk" style="width:92%"></span><span class="d2-sk" style="width:76%;--sd:-.25s"></span><span class="d2-sk" style="width:84%;--sd:-.5s"></span><span class="d2-sk" style="width:58%;--sd:-.75s"></span><span class="d2-sk" style="width:88%;--sd:-1s"></span><span class="d2-sk" style="width:71%;--sd:-1.25s"></span><span class="d2-sk" style="width:80%;--sd:-1.5s"></span><span class="d2-sk d2-tail" style="width:44%;--sd:-1.75s"></span></div>
+<div class="d2-card d2-more" style="--d:.65s"><h3>Wo zu kaufen</h3><span class="d2-sk" style="width:66%"></span><span class="d2-sk" style="width:80%;--sd:-.4s"></span></div>
+</div>
+</div>
+<div class="d2-kpis"><div class="d2-card" style="--d:.7s"><small>Einsatz</small><span class="d2-sk" style="width:70%"></span></div><div class="d2-card" style="--d:.76s"><small>Offensive</small><span class="d2-sk" style="width:55%;--sd:-.2s"></span></div><div class="d2-card" style="--d:.82s"><small>Verteidigung</small><span class="d2-sk" style="width:60%;--sd:-.4s"></span></div><div class="d2-card" style="--d:.88s"><small>Bewegung</small><span class="d2-sk" style="width:65%;--sd:-.6s"></span></div><div class="d2-card" style="--d:.94s"><small>Signatur</small><span class="d2-sk" style="width:50%;--sd:-.8s"></span></div></div>
+</main>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d2-s2-a1" data-anno-side="bottom" data-anno-target="[data-m=&quot;d2-hero&quot;]" style="--anno-x:34%;--anno-y:55%"><button class="anno-pin" type="button" data-anno-pin="r1-d2-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s2-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d2-s2-a1" data-anno-bubble="r1-d2-s2-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d2-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s2-a1"><span class="anno-bubble-question">Der Sprungtunnel steht dort, wo gleich das Bild landet, die Kacheln fliegen nacheinander aus der Tiefe ein. Passt das für jede Detailseite, oder nur für Codex-Seiten mit Bild?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d2-s2-a1" data-annotation="r1-d2-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d2-s2-a1"></div></div></div></div><div class="anno" data-anno="r1-d2-s2-a2" data-anno-side="left" data-anno-target="[data-m=&quot;d2-spool&quot;]" style="--anno-x:84%;--anno-y:22%"><button class="anno-pin" type="button" data-anno-pin="r1-d2-s2-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s2-a2" aria-label="{{anno.pin_label}}">2</button><div class="anno-bubble" id="anno-bubble-r1-d2-s2-a2" data-anno-bubble="r1-d2-s2-a2" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d2-s2-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s2-a2"><span class="anno-bubble-question">Drei echte Phasen (Route · Daten · Ankunft) statt Prozentzahl. Reicht dir das als Fortschritt, oder soll die Leiste ganz weg?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d2-s2-a2" data-annotation="r1-d2-s2-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d2-s2-a2"></div></div></div></div></div></section>
+  <section id="d2-s3" data-nav-label="Lädt zu lange" data-screen hidden><div class="d2 d2-s3 d2-slow">
+<div class="d2-sky"></div>
+<div class="d2-route">Codex · Schiffe</div>
+<header class="d2-bar"><div class="d2-cap"><a class="d2-blogo" aria-label="Verse Companion – Startseite"><span class="d2-bmark"></span></a><div class="d2-plate"><b>Verse Companion</b><nav class="d2-trail" aria-label="Pfad"><a>Codex</a><span>›</span><a>Schiffe</a><span>›</span><span class="d2-sk d2-in"></span></nav></div><button type="button" class="d2-kind">Schiffe <svg class="d2-ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div class="d2-search"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4"/></svg><span>Schiffe durchsuchen …</span><span class="d2-kbd">Strg K</span></div><button type="button" class="d2-fbtn"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>Filter</span></button><span class="d2-acct">JT</span></div></header>
+<span class="d2-fab"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg></span>
+<main class="d2-page" aria-busy="true">
+<div class="d2-ph"><div class="d2-tt"><nav class="d2-crumbs" aria-label="Pfad"><a>Codex</a><span>›</span><a>Schiffe</a><span>›</span><span class="d2-sk d2-in"></span></nav><span class="d2-sk d2-ey" style="--sd:-.2s"></span><span class="d2-sk d2-skh1" style="--sd:-.4s"></span></div>
+<div class="d2-spool"><ol class="d2-steps"><li class="d2-ok">Route</li><li class="d2-on">Daten</li><li>Ankunft</li></ol><div class="d2-segs" aria-hidden="true"><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-l"></i><i class="d2-p"></i><i class="d2-p"></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>wartet seit <b>8 s</b></small></div></div>
+<div class="d2-stage">
+<div class="d2-hero">
+<div class="d2-tun"><b style="--d:0s;--k:.35"></b><b style="--d:-1.75s;--k:.6"></b><b style="--d:-3.5s;--k:.9"></b><b style="--d:-5.25s;--k:1.3"></b></div>
+<div class="d2-warp"><i style="--r:0deg;--d:-.3s"></i><i style="--r:12deg;--d:-3.2s"></i><i style="--r:25deg;--d:-1.6s"></i><i style="--r:37deg;--d:-4.1s"></i><i style="--r:49deg;--d:-.9s"></i><i style="--r:62deg;--d:-2.7s"></i><i style="--r:73deg;--d:-2s"></i><i style="--r:86deg;--d:-4.4s"></i><i style="--r:97deg;--d:-1.2s"></i><i style="--r:109deg;--d:-3.5s"></i><i style="--r:121deg;--d:-.5s"></i><i style="--r:134deg;--d:-2.4s"></i><i style="--r:146deg;--d:-3.8s"></i><i style="--r:158deg;--d:-1.8s"></i><i style="--r:169deg;--d:-3s"></i><i style="--r:182deg;--d:-.1s"></i><i style="--r:194deg;--d:-2.2s"></i><i style="--r:205deg;--d:-4.2s"></i><i style="--r:217deg;--d:-.8s"></i><i style="--r:230deg;--d:-3.3s"></i><i style="--r:241deg;--d:-2.1s"></i><i style="--r:254deg;--d:-3.7s"></i><i style="--r:266deg;--d:-.6s"></i><i style="--r:278deg;--d:-2.8s"></i><i style="--r:289deg;--d:-1.5s"></i><i style="--r:301deg;--d:-4.3s"></i><i style="--r:313deg;--d:-1.2s"></i><i style="--r:325deg;--d:-2.9s"></i><i style="--r:337deg;--d:-2.2s"></i><i style="--r:349deg;--d:-3.9s"></i></div>
+<span class="d2-exit"></span>
+<div class="d2-hold" role="status" data-m="d2-hold">
+<div class="d2-hold-top"><span class="d2-mini"><svg viewBox="0 0 46 46" aria-hidden="true"><circle class="d2-t" cx="23" cy="23" r="18"/><circle class="d2-f" cx="23" cy="23" r="18"/></svg><i></i></span><span class="d2-eyb">Seit 8 s · Codex antwortet langsam</span></div>
+<h2 class="d2-h2">Quantum-Antrieb spult noch</h2>
+<p>Die Verbindung steht, die Daten kommen nur langsamer als sonst. Wir warten weiter – oder du setzt neu an.</p>
+<div class="d2-acts"><button type="button" class="d2-pri" data-screen-link="d2-s2"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg>Erneut versuchen</button><a class="d2-pill"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>Zur Startseite</a><a class="d2-pill"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Status</a></div>
+</div>
+</div>
+<div class="d2-side">
+<div class="d2-facts"><div class="d2-card" style="--d:0s"><small>Besatzung</small><span class="d2-sk" style="width:55%"></span></div><div class="d2-card" style="--d:0s"><small>Länge</small><span class="d2-sk" style="width:62%;--sd:-.3s"></span></div><div class="d2-card" style="--d:0s"><small>Fracht</small><span class="d2-sk" style="width:48%;--sd:-.6s"></span></div><div class="d2-card" style="--d:0s"><small>Preis</small><span class="d2-sk" style="width:70%;--sd:-.9s"></span></div></div>
+<div class="d2-card d2-grow" style="--d:0s"><h3>Übersicht</h3><span class="d2-sk" style="width:92%"></span><span class="d2-sk" style="width:76%;--sd:-.25s"></span><span class="d2-sk" style="width:84%;--sd:-.5s"></span><span class="d2-sk" style="width:58%;--sd:-.75s"></span><span class="d2-sk" style="width:88%;--sd:-1s"></span><span class="d2-sk" style="width:71%;--sd:-1.25s"></span><span class="d2-sk" style="width:80%;--sd:-1.5s"></span><span class="d2-sk d2-tail" style="width:44%;--sd:-1.75s"></span></div>
+<div class="d2-card d2-more" style="--d:0s"><h3>Wo zu kaufen</h3><span class="d2-sk" style="width:66%"></span><span class="d2-sk" style="width:80%;--sd:-.4s"></span></div>
+</div>
+</div>
+<div class="d2-kpis"><div class="d2-card" style="--d:0s"><small>Einsatz</small><span class="d2-sk" style="width:70%"></span></div><div class="d2-card" style="--d:0s"><small>Offensive</small><span class="d2-sk" style="width:55%;--sd:-.2s"></span></div><div class="d2-card" style="--d:0s"><small>Verteidigung</small><span class="d2-sk" style="width:60%;--sd:-.4s"></span></div><div class="d2-card" style="--d:0s"><small>Bewegung</small><span class="d2-sk" style="width:65%;--sd:-.6s"></span></div><div class="d2-card" style="--d:0s"><small>Signatur</small><span class="d2-sk" style="width:50%;--sd:-.8s"></span></div></div>
+</main>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d2-s3-a1" data-anno-side="right" data-anno-target="[data-m=&quot;d2-hold&quot;]" style="--anno-x:40%;--anno-y:52%"><button class="anno-pin" type="button" data-anno-pin="r1-d2-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s3-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d2-s3-a1" data-anno-bubble="r1-d2-s3-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d2-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s3-a1"><span class="anno-bubble-question">Nach 8 s legt sich der Hinweis über den Tunnel, der Tunnel läuft langsamer weiter. Passen die 8 s, oder früher bzw. später?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d2-s3-a1" data-annotation="r1-d2-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d2-s3-a1"></div></div></div></div></div></section>
+  <section id="d2-s4" data-nav-label="Nicht gefunden" data-screen hidden><div class="d2 d2-s4">
+<div class="d2-sky"></div>
+<div class="d2-route">Nicht gefunden</div>
+<header class="d2-bar"><div class="d2-cap"><a class="d2-blogo" aria-label="Verse Companion – Startseite"><span class="d2-bmark"></span></a><div class="d2-plate"><b>Verse Companion</b><nav class="d2-trail" aria-label="Pfad"><span class="d2-here">Nicht gefunden</span></nav></div><button type="button" class="d2-kind">Alle <svg class="d2-ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div class="d2-search"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4"/></svg><span>Schiffe, Waffen, Orte …</span><span class="d2-kbd">Strg K</span></div><button type="button" class="d2-fbtn"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>Filter</span></button><span class="d2-acct">JT</span></div></header>
+<span class="d2-fab"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg></span>
+<main class="d2-page">
+<div class="d2-nf">
+<div class="d2-nf-main">
+<span class="d2-eyb">404 · Sprung ohne Ziel</span>
+<h1 class="d2-h1">Ziel außerhalb der Karte</h1>
+<p class="d2-lead">Der Sprung hat dich ins Leere gesetzt: Unter dieser Adresse liegt nichts. Vielleicht ein Tippfehler oder ein alter Link.</p>
+<span class="d2-url"><small>Adresse</small><code>/codex/schiffe/carrack<mark>-x</mark></code></span>
+<div class="d2-acts"><a class="d2-pri" data-screen-link="d2-s2"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/></svg>Zurück zur Startseite</a><a class="d2-pill"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Eine Seite zurück</a></div>
+<div class="d2-sug" data-m="d2-sug"><h3>Meintest du …</h3>
+<a><span><b>Anvil Carrack</b><code>/codex/schiffe/carrack</code></span><em>nächstes Ziel</em><svg class="d2-ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+<a><span><b>Anvil Carrack Expedition</b><code>/codex/schiffe/carrack-expedition</code></span><svg class="d2-ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+<a><span><b>Anvil C8X Pisces Expedition</b><code>/codex/schiffe/c8x-pisces-expedition</code></span><svg class="d2-ic" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+</div>
+<div class="d2-find"><svg class="d2-ic" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4"/></svg><span class="d2-val">carrack x</span><span class="d2-kbd">Enter</span></div>
+</div>
+<div class="d2-scene" aria-hidden="true">
+<div class="d2-sky"></div>
+<div class="d2-warp d2-once"><i style="--r:0deg;--d:-.1s"></i><i style="--r:12deg;--d:-1.3s"></i><i style="--r:25deg;--d:-.6s"></i><i style="--r:37deg;--d:-1.7s"></i><i style="--r:49deg;--d:-.3s"></i><i style="--r:62deg;--d:-1.1s"></i><i style="--r:73deg;--d:-.8s"></i><i style="--r:86deg;--d:-1.9s"></i><i style="--r:97deg;--d:-.45s"></i><i style="--r:109deg;--d:-1.45s"></i><i style="--r:121deg;--d:-.2s"></i><i style="--r:134deg;--d:-1s"></i><i style="--r:146deg;--d:-1.6s"></i><i style="--r:158deg;--d:-.7s"></i><i style="--r:169deg;--d:-1.25s"></i><i style="--r:182deg;--d:-.05s"></i><i style="--r:194deg;--d:-.95s"></i><i style="--r:205deg;--d:-1.75s"></i><i style="--r:217deg;--d:-.35s"></i><i style="--r:230deg;--d:-1.4s"></i><i style="--r:241deg;--d:-.85s"></i><i style="--r:254deg;--d:-1.55s"></i><i style="--r:266deg;--d:-.25s"></i><i style="--r:278deg;--d:-1.15s"></i></div>
+<svg class="d2-path" viewBox="0 0 500 400" preserveAspectRatio="none"><path class="d2-glow" d="M310 160 C 250 250, 170 240, 70 336"/><path d="M310 160 C 250 250, 170 240, 70 336"/></svg>
+<div class="d2-beacon" data-m="d2-beacon"><span class="d2-pulse"><b style="--d:0s"></b><b style="--d:-1.2s"></b><b style="--d:-2.4s"></b></span><span class="d2-buoy"><svg viewBox="0 0 44 66"><path class="d2-line" d="M22 4v12"/><path class="d2-hull" d="M22 16l12 8v18l-12 8-12-8V24z"/><path class="d2-line" d="M10 33h24M22 16v34"/><path class="d2-line" d="M16 50l-4 12M28 50l4 12"/><circle class="d2-lamp" cx="22" cy="4" r="3"/></svg></span></div>
+<div class="d2-read"><b>NOTBAKE · 404</b><br><span>X 404,0 · Y — · Z —</span><br><span>kein Sektor zugeordnet</span></div>
+<a class="d2-way"><i></i>Route → Verse</a>
+</div>
+</div>
+<div class="d2-areas-wrap"><span class="d2-areas-h">Bekannte Ziele</span>
+<div class="d2-areas"><a class="d2-area"><i><svg class="d2-ic" viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/><path d="M2.5 15.5c3.5 2 15.5-1.5 19-6"/></svg></i><span><b>Verse</b><small>Start, News und Patch-Lage</small></span></a><a class="d2-area"><i><svg class="d2-ic" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></svg></i><span><b>Codex</b><small>Schiffe, Waffen, Bauteile</small></span></a><a class="d2-area"><i><svg class="d2-ic" viewBox="0 0 24 24"><path d="M3 20V10l9-6 9 6v10M9 20v-6h6v6"/></svg></i><span><b>HQ</b><small>Hangar, Bestand, Org</small></span></a></div>
+</div>
+</main>
+</div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d2-s4-a1" data-anno-side="left" data-anno-target="[data-m=&quot;d2-beacon&quot;]" style="--anno-x:72%;--anno-y:38%"><button class="anno-pin" type="button" data-anno-pin="r1-d2-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s4-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d2-s4-a1" data-anno-bubble="r1-d2-s4-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d2-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s4-a1"><span class="anno-bubble-question">Treibende Notbake mit gestrichelter Route zurück ins Verse. Passt der Ton für eine 404, oder ist dir das schon zu verspielt?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d2-s4-a1" data-annotation="r1-d2-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d2-s4-a1"></div></div></div></div><div class="anno" data-anno="r1-d2-s4-a2" data-anno-side="right" data-anno-target="[data-m=&quot;d2-sug&quot;]" style="--anno-x:24%;--anno-y:66%"><button class="anno-pin" type="button" data-anno-pin="r1-d2-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s4-a2" aria-label="{{anno.pin_label}}">2</button><div class="anno-bubble" id="anno-bubble-r1-d2-s4-a2" data-anno-bubble="r1-d2-s4-a2" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d2-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d2-s4-a2"><span class="anno-bubble-question">„Meintest du …“ zeigt die drei nächsten Codex-Treffer zur Adresse. Passt das, oder lieber nur das Suchfeld mit Live-Treffern?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d2-s4-a2" data-annotation="r1-d2-s4-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d2-s4-a2"></div></div></div></div></div></section>
+</section>
+<section data-design="d3" data-nav-label="Ruhiges MFD" hidden data-screen-fit="full" data-design-motto="Ruhiges Cockpit-Display" data-design-traits="Startprotokoll mit echten Schritten statt Ring und Balken|Platzhalter als Rahmen mit Eckwinkeln, fast keine Bewegung|404 als Pfadprüfung, die zeigt, wo die Adresse abbricht" data-design-icon="&lt;svg viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.8&quot;&gt;&lt;path d=&quot;M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 10h8M8 14h5&quot;/&gt;&lt;/svg&gt;" data-design-color="#e6b552">
+  <section id="d3-s1" data-nav-label="Start" data-screen data-screen-active="true"><div class="d3 d3-cold"><div class="d3-boot" role="status" aria-label="Verse Companion startet"><div><button type="button" class="d3-f d3-bootf" data-m="d3-boot" data-screen-link="d3-s2"><div class="d3-id"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg><div><b>VERSE COMPANION</b><small>Start · Schritt 4 von 5</small></div><em>ALPHA</em></div><div class="d3-log" data-m="d3-bootlog"><p><span class="d3-t">00.00</span><span class="d3-k">SYS</span><span class="d3-x">Oberfläche laden</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-t">00.21</span><span class="d3-k">NET</span><span class="d3-x">Verbindung prüfen</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-t">00.38</span><span class="d3-k">AUTH</span><span class="d3-x">Sitzung lesen</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-t">00.54</span><span class="d3-k">DATA</span><span class="d3-x d3-now">Codex 4.3.1-LIVE laden</span><span class="d3-lead"></span><span class="d3-cur"></span></p><p class="d3-off"><span class="d3-t">--.--</span><span class="d3-k">UI</span><span class="d3-x">Verse öffnen</span><span class="d3-lead"></span><span class="d3-ok">&nbsp;&nbsp;</span></p></div><div class="d3-prog"><span class="d3-seg"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i><i></i><i></i></span><b>04/05</b></div></button><p class="d3-foot">Star Citizen · Begleiter</p></div></div></div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d3-s1-a1" data-anno-side="right" data-anno-target="[data-m=&quot;d3-bootlog&quot;]" style="--anno-x:62%;--anno-y:50%"><button class="anno-pin" type="button" data-anno-pin="r1-d3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s1-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d3-s1-a1" data-anno-bubble="r1-d3-s1-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d3-s1-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s1-a1"><span class="anno-bubble-question">Vor dem App-Start gibt es keine echten Messpunkte: das Protokoll zeigt feste Startschritte, nur der Cursor in der Datenzeile blinkt (bei reduzierter Bewegung steht er still, sonst ist das Bild identisch). Passt das, oder sollen die Zeilen nacheinander erscheinen – oder nur eine ehrliche Zeile „Verse Companion startet …“?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d3-s1-a1" data-annotation="r1-d3-s1-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d3-s1-a1"></div></div></div></div></div></section>
+  <section id="d3-s2" data-nav-label="Seite lädt" data-screen hidden><div class="d3"><div class="d3-route">Codex › Schiffe › <b>Carrack</b></div><header class="d3-bar" data-m="d3-shell"><div class="d3-cap"><span class="d3-blogo" aria-label="Verse Companion"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg></span><div class="d3-plate"><b>VERSE COMPANION</b><ol><li>Codex</li><li>Schiffe</li><li class="here">Carrack</li></ol></div><span class="d3-div"></span><button type="button" class="d3-kind">Schiffe<i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="d3-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Schiffe, Hersteller, Komponenten …</span><kbd>Strg K</kbd></span><span class="d3-acc">JT</span></div></header><main class="d3-page"><button type="button" class="d3-strip" data-m="d3-strip" data-screen-link="d3-s3" role="status"><span class="d3-tag">[ LÄDT ]</span><span class="d3-path">CODEX / SCHIFFE / CARRACK</span><span class="d3-seg"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i><i></i></span><span class="d3-st">Schiffsdaten · <b>2/3</b> · 1,4 s</span></button><div class="d3-head"><span class="d3-eye">Codex · Schiff</span><i class="d3-sk lg"></i><i class="d3-sk sm"></i></div><div class="d3-stage"><div class="d3-f d3-hero" data-m="d3-frames"><div class="d3-lbl"><b>01 · Ansicht</b><em>wartet</em></div><div class="d3-ret"><svg viewBox="0 0 300 140" aria-hidden="true"><circle cx="150" cy="70" r="38"/><circle cx="150" cy="70" r="58" stroke-dasharray="2 6" opacity=".7"/><path d="M150 18v18M150 104v18M78 70h34M188 70h34M150 66v8M146 70h8"/><path d="M20 70h40M240 70h40M146 32h8M146 108h8" opacity=".5"/><path d="M30 20h14M30 20v10M270 20h-14M270 20v10M30 120h14M30 120v-10M270 120h-14M270 120v-10" opacity=".6"/></svg></div><div class="d3-log"><p><span class="d3-k">ROUT</span><span class="d3-x">/codex/schiffe/carrack</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">MOD</span><span class="d3-x">Codex-Modul</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">DATA</span><span class="d3-x d3-now">Schiffsdaten 4.3.1-LIVE</span><span class="d3-lead"></span><span class="d3-cur"></span></p></div></div><div class="d3-col"><div class="d3-f"><div class="d3-lbl"><b>02 · Kennwerte</b></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w2"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div><div class="d3-f"><div class="d3-lbl"><b>03 · Bewaffnung</b></div><div class="d3-row"><i class="d3-sk w5"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w5"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div></div></div><div class="d3-kpi"><div class="d3-f"><div class="d3-lbl">Länge</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Masse</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Crew</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Fracht</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">SCM</div><i class="d3-sk"></i></div></div></main></div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d3-s2-a1" data-anno-side="bottom" data-anno-target="[data-m=&quot;d3-strip&quot;]" style="--anno-x:50%;--anno-y:22%"><button class="anno-pin" type="button" data-anno-pin="r1-d3-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s2-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d3-s2-a1" data-anno-bubble="r1-d3-s2-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d3-s2-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s2-a1"><span class="anno-bubble-question">Eine Statuszeile oben plus das Protokoll im Bildrahmen sagen beide, was gerade lädt. Reicht dir die Statuszeile allein, oder soll das Protokoll bleiben?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d3-s2-a1" data-annotation="r1-d3-s2-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d3-s2-a1"></div></div></div></div></div></section>
+  <section id="d3-s3" data-nav-label="Lädt zu lange" data-screen hidden><div class="d3 d3-hush"><div class="d3-route">Codex › Schiffe › <b>Carrack</b></div><header class="d3-bar"><div class="d3-cap"><span class="d3-blogo" aria-label="Verse Companion"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg></span><div class="d3-plate"><b>VERSE COMPANION</b><ol><li>Codex</li><li>Schiffe</li><li class="here">Carrack</li></ol></div><span class="d3-div"></span><button type="button" class="d3-kind">Schiffe<i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="d3-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Schiffe, Hersteller, Komponenten …</span><kbd>Strg K</kbd></span><span class="d3-acc">JT</span></div></header><main class="d3-page"><div class="d3-strip wt" role="status"><span class="d3-tag">[ WARTET ]</span><span class="d3-path">CODEX / SCHIFFE / CARRACK</span><span class="d3-seg wt"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="cur"></i><i></i><i></i><i></i></span><span class="d3-st">Schiffsdaten · <b>keine Antwort</b> · 8 s</span></div><div class="d3-head"><span class="d3-eye">Codex · Schiff</span><i class="d3-sk lg"></i><i class="d3-sk sm"></i></div><div class="d3-stage"><div class="d3-f d3-hero"><div class="d3-lbl"><b>01 · Ansicht</b><em>wartet</em></div><div class="d3-ret"><svg viewBox="0 0 300 140" aria-hidden="true"><circle cx="150" cy="70" r="38"/><circle cx="150" cy="70" r="58" stroke-dasharray="2 6" opacity=".7"/><path d="M150 18v18M150 104v18M78 70h34M188 70h34M150 66v8M146 70h8"/><path d="M20 70h40M240 70h40M146 32h8M146 108h8" opacity=".5"/></svg></div></div><div class="d3-col"><div class="d3-f"><div class="d3-lbl"><b>02 · Kennwerte</b></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w2"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w3"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div><div class="d3-f"><div class="d3-lbl"><b>03 · Bewaffnung</b></div><div class="d3-row"><i class="d3-sk w5"></i><span class="d3-dots"></span><i class="d3-sk"></i></div><div class="d3-row"><i class="d3-sk w4"></i><span class="d3-dots"></span><i class="d3-sk"></i></div></div></div></div><div class="d3-kpi"><div class="d3-f"><div class="d3-lbl">Länge</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Masse</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Crew</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">Fracht</div><i class="d3-sk"></i></div><div class="d3-f"><div class="d3-lbl">SCM</div><i class="d3-sk"></i></div></div><section class="d3-f d3-hold" data-m="d3-hold" role="status" aria-live="polite"><div class="d3-lbl"><b>Status · 00:08</b><span class="d3-w">Wartet</span></div><div class="d3-log"><p><span class="d3-k">ROUT</span><span class="d3-x">/codex/schiffe/carrack</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">MOD</span><span class="d3-x">Codex-Modul</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-k">DATA</span><span class="d3-x d3-now">Schiffsdaten 4.3.1-LIVE</span><span class="d3-lead"></span><span class="d3-hold-k">keine Antwort</span></p></div><h2>Das dauert länger als sonst.</h2><p class="d3-say">Der Codex antwortet gerade langsam. Die Leiste oben bleibt bedienbar – du kannst suchen oder woanders hin, ohne etwas zu verlieren.</p><div class="d3-acts"><button type="button" class="d3-pri" data-screen-link="d3-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Erneut versuchen</button><a class="d3-pill">Zur Startseite</a><a class="d3-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Status ansehen</a></div><p class="d3-bgnote" data-m="d3-bgnote">Anfrage läuft weiter · <b>die Seite erscheint von selbst</b></p></section></main></div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d3-s3-a1" data-anno-side="left" data-anno-target="[data-m=&quot;d3-hold&quot;]" style="--anno-x:50%;--anno-y:48%"><button class="anno-pin" type="button" data-anno-pin="r1-d3-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s3-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d3-s3-a1" data-anno-bubble="r1-d3-s3-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d3-s3-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s3-a1"><span class="anno-bubble-question">„Wartet“ ist bernsteinfarben (Warnfarbe, kein Fehlerrot), der Rest bleibt cyan. Passt das, oder soll bis zu einem echten Fehler alles cyan bleiben?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d3-s3-a1" data-annotation="r1-d3-s3-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d3-s3-a1"></div></div></div></div><div class="anno" data-anno="r1-d3-s3-a2" data-anno-side="bottom" data-anno-target="[data-m=&quot;d3-bgnote&quot;]" style="--anno-x:50%;--anno-y:78%"><button class="anno-pin" type="button" data-anno-pin="r1-d3-s3-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s3-a2" aria-label="{{anno.pin_label}}">2</button><div class="anno-bubble" id="anno-bubble-r1-d3-s3-a2" data-anno-bubble="r1-d3-s3-a2" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d3-s3-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s3-a2"><span class="anno-bubble-question">Die Anfrage läuft im Hintergrund weiter und die Seite erscheint von selbst. Willst du das so, oder soll nach 8 s abgebrochen werden und erst „Erneut versuchen“ neu laden?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d3-s3-a2" data-annotation="r1-d3-s3-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d3-s3-a2"></div></div></div></div></div></section>
+  <section id="d3-s4" data-nav-label="Nicht gefunden" data-screen hidden><div class="d3"><div class="d3-route">Nicht gefunden · <b>/codex/schiffe/carrack-x</b></div><header class="d3-bar"><div class="d3-cap"><span class="d3-blogo" aria-label="Verse Companion"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.5" opacity=".3"/><circle cx="16" cy="16" r="8.5"/><circle cx="16" cy="16" r="2.6" fill="currentColor" stroke="none"/><path d="M16 1.5v4M16 26.5v4M1.5 16h4M26.5 16h4" opacity=".55"/></svg></span><div class="d3-plate"><b>VERSE COMPANION</b><ol><li class="here">Nicht gefunden</li></ol></div><span class="d3-div"></span><span class="d3-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Suchen im ganzen Verse …</span><kbd>Strg K</kbd></span><span class="d3-acc">JT</span></div></header><main class="d3-page"><div class="d3-diag"><section class="d3-f d3-dx" data-m="d3-trace"><div class="d3-lbl"><b>Diagnose · Route</b><em>Code 404</em></div><div class="d3-code" aria-hidden="true"><span>ROUTE</span>404</div><div class="d3-url"><span class="d3-host">versecompanion.app</span>/codex/schiffe/<mark>carrack-x</mark></div><div class="d3-log d3-trace"><p><span class="d3-x">/codex</span><span class="d3-k">Bereich</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-x">/schiffe</span><span class="d3-k">Liste · 271 Einträge</span><span class="d3-lead"></span><span class="d3-ok">ok</span></p><p><span class="d3-x d3-now">/carrack-x</span><span class="d3-k">Eintrag</span><span class="d3-lead"></span><span class="d3-miss">kein Treffer</span></p></div><h1>Diese Adresse führt nirgendwohin.</h1><p class="d3-say">Ein Tippfehler oder ein alter Link – bis /schiffe stimmt alles, nur den letzten Teil kennt der Codex nicht.</p><div class="d3-acts"><a class="d3-pri" data-screen-link="d3-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/></svg>Zur Startseite</a><a class="d3-pill">Eine Seite zurück</a></div></section><div class="d3-col"><div class="d3-f" data-m="d3-search"><div class="d3-lbl"><b>Suche</b><em>vorbelegt</em></div><div class="d3-field" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>carrack</span><kbd>Enter</kbd></div></div><div class="d3-f" data-m="d3-sugs"><div class="d3-lbl"><b>Meintest du</b><em>3 Treffer</em></div><div class="d3-sugs"><a class="d3-sug"><b>Carrack<small>Anvil Aerospace</small></b><code>/codex/schiffe/carrack</code><span class="d3-pc">96 %</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a><a class="d3-sug"><b>Carrack Expedition<small>Anvil Aerospace</small></b><code>/codex/schiffe/carrack-expedition</code><span class="d3-pc">81 %</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a><a class="d3-sug"><b>C8X Pisces Expedition<small>Anvil Aerospace</small></b><code>/codex/schiffe/c8x-pisces-expedition</code><span class="d3-pc">54 %</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a></div><a class="d3-all">Alle 271 Schiffe im Codex<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="d3-f"><div class="d3-lbl"><b>Bereiche</b></div><div class="d3-areas"><a class="d3-area"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="9.5" ry="4" transform="rotate(-20 12 12)"/></svg><span>Verse<small>/verse</small></span></a><a class="d3-area"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10M9 8h5"/></svg><span>Codex<small>/codex</small></span></a><a class="d3-area"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V9l9-5 9 5v11"/><path d="M7 20v-6h10v6M7 17h10"/></svg><span>HQ<small>/hq</small></span></a></div></div></div></div></main></div><div class="anno-layer" data-anno-layer><div class="anno" data-anno="r1-d3-s4-a1" data-anno-side="right" data-anno-target="[data-m=&quot;d3-trace&quot;]" style="--anno-x:30%;--anno-y:48%"><button class="anno-pin" type="button" data-anno-pin="r1-d3-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s4-a1" aria-label="{{anno.pin_label}}">1</button><div class="anno-bubble" id="anno-bubble-r1-d3-s4-a1" data-anno-bubble="r1-d3-s4-a1" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d3-s4-a1" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s4-a1"><span class="anno-bubble-question">Die 404 prüft die Adresse Stück für Stück und zeigt mit ^^^ genau, wo sie abbricht. Ist das für Spieler der richtige Ton, oder zu technisch – dann nur die Adresse und ein Satz?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d3-s4-a1" data-annotation="r1-d3-s4-a1" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d3-s4-a1"></div></div></div></div><div class="anno" data-anno="r1-d3-s4-a2" data-anno-side="left" data-anno-target="[data-m=&quot;d3-sugs&quot;]" style="--anno-x:72%;--anno-y:42%"><button class="anno-pin" type="button" data-anno-pin="r1-d3-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s4-a2" aria-label="{{anno.pin_label}}">2</button><div class="anno-bubble" id="anno-bubble-r1-d3-s4-a2" data-anno-bubble="r1-d3-s4-a2" data-open="false"><button type="button" class="anno-bubble-summary" data-anno-summary="r1-d3-s4-a2" aria-expanded="false" aria-controls="anno-bubble-r1-d3-s4-a2"><span class="anno-bubble-question">„Meintest du“ zeigt eine Trefferquote in Prozent und den Pfad. Behalten, oder nur Name und Hersteller?</span></button><div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-r1-d3-s4-a2" data-annotation="r1-d3-s4-a2" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-r1-d3-s4-a2"></div></div></div></div></div></section>
+</section>
+</section>

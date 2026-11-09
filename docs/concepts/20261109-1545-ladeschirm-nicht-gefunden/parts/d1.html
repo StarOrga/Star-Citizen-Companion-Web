@@ -1,0 +1,479 @@
+<!-- meta {"motto":"Holo-Scan","traits":["Ladeanzeige als Scan: eine Scanlinie streicht über den Inhalt, jeder Platzhalter materialisiert beim Überstreichen","Ein Drahtgitter-Schiff auf dem Holoprojektor verbindet Startbild und Seitenwechsel zu einer Geschichte","404 als unkartierter Sektor: Radar über leerem Holo-Raster, Vorschläge als nahe Sektoren mit Abstand in Zeichen"],"icon":"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M12 3 4 7.5v9L12 21l8-4.5v-9z\"/><path d=\"M4 7.5 12 12l8-4.5M12 12v9\"/><path d=\"M2 13h20\" stroke-dasharray=\"2 2\"/></svg>"} -->
+<style>
+:is([data-design], .design-ov-scale) .d1{position:relative;height:100%;min-height:600px;overflow:hidden;background:#050810;color:#cfe8f3;font:13px/1.45 "Segoe UI",system-ui,sans-serif;--a:#52c1e6;--holo:#8fe3ff;--hi:#dff6ff;--ink:#eef9fd;--mut:#7fa3b6;--dim:#4d6b7c;--mono:Consolas,"Cascadia Mono",ui-monospace,monospace;--disp:"Orbitron","Eurostile","Segoe UI",system-ui,sans-serif;--fill:linear-gradient(180deg,#0a1d2b,#061724);--edge:linear-gradient(160deg,rgba(200,236,250,.7) 0%,rgba(80,125,148,.45) 30%,rgba(30,58,74,.5) 60%,rgba(140,200,225,.55) 100%);--sheen:linear-gradient(180deg,rgba(210,242,255,.07),transparent 55%);--T:3.6s}
+:is([data-design], .design-ov-scale) .d1 :where(button,a,input){font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:none;box-shadow:none;min-width:0;outline:0;text-align:inherit}
+:is([data-design], .design-ov-scale) .d1 :where(h1,h2,p,ul,ol,li){margin:0;padding:0;list-style:none;font-weight:inherit;font-size:inherit}
+:is([data-design], .design-ov-scale) .d1 :where(a,button,input):focus-visible{outline:2px solid var(--a);outline-offset:3px}
+:is([data-design], .design-ov-scale) .d1 svg{display:block}
+:is([data-design], .design-ov-scale) .d1 .d1-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* ---------- shared backdrops ---------- */
+:is([data-design], .design-ov-scale) .d1.d1-app{background:radial-gradient(ellipse 70% 48% at 50% 0%,#10293a 0%,#081622 55%,#050b13 100%)}
+:is([data-design], .design-ov-scale) .d1 .d1-stars{position:absolute;inset:0;pointer-events:none;opacity:.55;background-image:radial-gradient(1px 1px at 12% 18%,rgba(223,246,255,.8),transparent 70%),radial-gradient(1px 1px at 27% 72%,rgba(223,246,255,.6),transparent 70%),radial-gradient(1.5px 1.5px at 41% 12%,rgba(143,227,255,.7),transparent 70%),radial-gradient(1px 1px at 63% 84%,rgba(223,246,255,.55),transparent 70%),radial-gradient(1px 1px at 78% 22%,rgba(223,246,255,.7),transparent 70%),radial-gradient(1.5px 1.5px at 88% 58%,rgba(143,227,255,.6),transparent 70%),radial-gradient(1px 1px at 7% 48%,rgba(223,246,255,.5),transparent 70%),radial-gradient(1px 1px at 52% 36%,rgba(223,246,255,.35),transparent 70%),radial-gradient(1px 1px at 94% 90%,rgba(223,246,255,.5),transparent 70%),radial-gradient(1px 1px at 34% 94%,rgba(143,227,255,.5),transparent 70%)}
+:is([data-design], .design-ov-scale) .d1 .d1-raster{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(143,227,255,.025) 0 1px,transparent 1px 4px)}
+
+/* ---------- holo ship (boot + stage) ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-ship{position:absolute}
+:is([data-design], .design-ov-scale) .d1 .d1-ship svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-ship :is(path,ellipse,circle){vector-effect:non-scaling-stroke}
+:is([data-design], .design-ov-scale) .d1 .d1-ghost{stroke:rgba(143,227,255,.24);stroke-width:1;stroke-dasharray:2 3}
+:is([data-design], .design-ov-scale) .d1 .d1-solid{stroke:var(--holo);stroke-width:1.15;filter:drop-shadow(0 0 2.5px rgba(110,210,255,.95)) drop-shadow(0 0 10px rgba(82,193,230,.35))}
+:is([data-design], .design-ov-scale) .d1 .d1-solid .d1-hull{fill:rgba(143,227,255,.08)}
+:is([data-design], .design-ov-scale) .d1 .d1-ship::after{content:"";position:absolute;inset:-4%;pointer-events:none;background:repeating-linear-gradient(180deg,rgba(143,227,255,.06) 0 1px,transparent 1px 4px);-webkit-mask-image:radial-gradient(closest-side,#000 55%,transparent);mask-image:radial-gradient(closest-side,#000 55%,transparent)}
+:is([data-design], .design-ov-scale) .d1 .d1-scanwrap{position:absolute;top:0;bottom:0;left:-9%;right:-9%;pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-scanline{position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--hi) 18%,var(--hi) 82%,transparent);box-shadow:0 0 12px 2px rgba(110,210,255,.55)}
+:is([data-design], .design-ov-scale) .d1 .d1-scanline::before{content:"";position:absolute;left:12%;right:12%;bottom:0;height:46px;background:linear-gradient(180deg,transparent,rgba(143,227,255,.13))}
+:is([data-design], .design-ov-scale) .d1 .d1-emit{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(223,246,255,.6),rgba(82,193,230,.28) 45%,rgba(82,193,230,.05) 82%,transparent);box-shadow:0 0 0 1px rgba(143,227,255,.32),0 0 30px rgba(82,193,230,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-emit::before{content:"";position:absolute;inset:-38% -26%;border-radius:50%;border:1px solid rgba(143,227,255,.16)}
+:is([data-design], .design-ov-scale) .d1 .d1-emit::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid rgba(143,227,255,.6);animation:d1-emitping 2.6s ease-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-cone{position:absolute;background:linear-gradient(0deg,rgba(82,193,230,.2),rgba(82,193,230,.03) 72%,transparent);clip-path:polygon(0 0,100% 0,61% 100%,39% 100%);animation:d1-flick 6s linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-corner{position:absolute;width:16px;height:16px;border:1px solid rgba(143,227,255,.45);pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-c-tl{left:0;top:0;border-right:0;border-bottom:0}
+:is([data-design], .design-ov-scale) .d1 .d1-c-tr{right:0;top:0;border-left:0;border-bottom:0}
+:is([data-design], .design-ov-scale) .d1 .d1-c-bl{left:0;bottom:0;border-right:0;border-top:0}
+:is([data-design], .design-ov-scale) .d1 .d1-c-br{right:0;bottom:0;border-left:0;border-top:0}
+
+/* ---------- screen 1 · Start ---------- */
+:is([data-design], .design-ov-scale) .d1.d1-boot{background:radial-gradient(ellipse 58% 48% at 50% 44%,#0c2131 0%,#07121c 48%,#050810 100%)}
+:is([data-design], .design-ov-scale) .d1 .d1-bootc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px}
+:is([data-design], .design-ov-scale) .d1 .d1-proj{position:relative;display:block;width:min(580px,100%);aspect-ratio:580/340}
+:is([data-design], .design-ov-scale) .d1 .d1-proj .d1-ship{left:7%;right:7%;top:5%;height:60%}
+:is([data-design], .design-ov-scale) .d1 .d1-proj .d1-cone{left:12%;right:12%;top:4%;bottom:13%}
+:is([data-design], .design-ov-scale) .d1 .d1-proj .d1-emit{left:31%;right:31%;bottom:5%;height:11%}
+:is([data-design], .design-ov-scale) .d1.d1-boot .d1-solid{animation:d1-reveal 3.4s cubic-bezier(.45,0,.55,1) infinite}
+:is([data-design], .design-ov-scale) .d1.d1-boot .d1-scanwrap{animation:d1-scanmove 3.4s cubic-bezier(.45,0,.55,1) infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-ruler{position:absolute;right:-2%;top:5%;height:60%;width:10px;background:repeating-linear-gradient(180deg,rgba(143,227,255,.35) 0 1px,transparent 1px 8px);-webkit-mask-image:linear-gradient(180deg,transparent,#000 15%,#000 85%,transparent);mask-image:linear-gradient(180deg,transparent,#000 15%,#000 85%,transparent)}
+:is([data-design], .design-ov-scale) .d1 .d1-ruler-l{left:-2%;right:auto}
+:is([data-design], .design-ov-scale) .d1 .d1-mk{position:absolute;inset:0}
+:is([data-design], .design-ov-scale) .d1.d1-boot .d1-mk{animation:d1-scanmove 3.4s cubic-bezier(.45,0,.55,1) infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-mk::before{content:"";position:absolute;top:-3px;left:-4px;border:4px solid transparent;border-right:6px solid var(--hi);filter:drop-shadow(0 0 4px rgba(110,210,255,.9))}
+:is([data-design], .design-ov-scale) .d1 .d1-ruler-l .d1-mk::before{left:auto;right:-4px;border-right:4px solid transparent;border-left:6px solid var(--hi)}
+:is([data-design], .design-ov-scale) .d1 .d1-word{font:600 13px/1 "Segoe UI",system-ui,sans-serif;letter-spacing:.52em;padding-left:.52em;text-transform:uppercase;color:#d6eef8;text-shadow:0 0 16px rgba(82,193,230,.55)}
+:is([data-design], .design-ov-scale) .d1 .d1-bootline{display:flex;flex-direction:column;align-items:center;gap:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-tks{display:flex;gap:4px}
+:is([data-design], .design-ov-scale) .d1 .d1-tk{width:9px;height:3px;border-radius:1px;background:var(--a);opacity:.12;animation:d1-tick 1.9s ease-in-out infinite;animation-delay:calc(var(--i) * 85ms)}
+:is([data-design], .design-ov-scale) .d1 .d1-bootmsg{font:11px/1 Consolas,ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:#6f8fa1}
+
+/* ---------- β shell (context, dimmed) ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-shell{position:absolute;top:14px;left:0;right:0;z-index:6;display:flex;justify-content:center;padding:0 max(24px,calc(50% - 640px));opacity:.5;filter:saturate(.75)}
+:is([data-design], .design-ov-scale) .d1 .d1-cap{position:relative;flex:1;max-width:1280px;height:60px;display:flex;align-items:center;gap:14px;padding:0 12px 0 10px;border-radius:20px;background:var(--fill);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+:is([data-design], .design-ov-scale) .d1 .d1-cap::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--sheen);pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-blogo{display:grid;place-items:center;width:40px;height:40px;flex:none}
+:is([data-design], .design-ov-scale) .d1 .d1-mark{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,#c8f1ff 0 7%,#52c1e6 17%,rgba(82,193,230,.25) 42%,rgba(13,38,53,.95) 66%);box-shadow:0 0 0 1px rgba(143,227,255,.45),0 0 14px rgba(82,193,230,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-plate{display:flex;flex-direction:column;gap:2px;min-width:170px}
+:is([data-design], .design-ov-scale) .d1 .d1-plate b{font:600 10.5px/1.2 var(--disp);letter-spacing:.22em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d1 .d1-trail{display:flex;gap:6px;font-size:12px;color:var(--mut);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d1 .d1-trail li+li::before{content:"›";margin-right:6px;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d1 .d1-trail [aria-current]{color:#d7ecf5}
+:is([data-design], .design-ov-scale) .d1 .d1-div{width:1px;height:28px;flex:none;background:linear-gradient(transparent,rgba(160,230,255,.55),transparent)}
+:is([data-design], .design-ov-scale) .d1 .d1-kind{display:flex;align-items:center;gap:7px;height:34px;padding:0 10px;border-radius:17px;color:var(--ink);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d1 .d1-kind i{font-style:normal;font-size:11px;color:var(--mut);background:rgba(82,193,230,.12);border-radius:9px;padding:1px 7px}
+:is([data-design], .design-ov-scale) .d1 .d1-kind svg,:is([data-design], .design-ov-scale) .d1 .d1-search svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-search{flex:1;max-width:560px;height:38px;display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;border-radius:19px;background:rgba(3,12,19,.55);box-shadow:inset 0 0 0 1px rgba(130,220,255,.16);color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-search span{flex:1}
+:is([data-design], .design-ov-scale) .d1 kbd{font:11px/1.4 var(--mono);color:var(--mut);padding:1px 7px;border-radius:5px;background:linear-gradient(180deg,#17384c,#0b2231);box-shadow:inset 0 0 0 1px rgba(130,220,255,.18)}
+:is([data-design], .design-ov-scale) .d1 .d1-acct{margin-left:auto;flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:600 11px var(--disp);letter-spacing:.06em;color:var(--ink);background:linear-gradient(160deg,#1b4257,#0b2231);box-shadow:inset 0 0 0 1px rgba(130,220,255,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-route{display:none}
+
+/* ---------- content frame ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-main{position:absolute;inset:0;display:flex;flex-direction:column;padding:100px max(24px,calc(50% - 640px)) 28px}
+:is([data-design], .design-ov-scale) .d1 .d1-page{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:18px;overflow:hidden}
+:is([data-design], .design-ov-scale) .d1 .d1-head{display:flex;flex-direction:column;gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-title{font:600 30px/1.1 var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);text-shadow:0 0 18px rgba(82,193,230,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:18px}
+:is([data-design], .design-ov-scale) .d1 .d1-stage{position:relative;min-height:240px;border-radius:10px;overflow:hidden;background:radial-gradient(ellipse 70% 60% at 50% 72%,rgba(82,193,230,.13),transparent 70%),linear-gradient(180deg,#071521,#040b12);box-shadow:inset 0 0 0 1px rgba(130,220,255,.14)}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-corner{margin:10px}
+:is([data-design], .design-ov-scale) .d1 .d1-floor{position:absolute;left:-30%;right:-30%;bottom:0;height:48%;background-image:linear-gradient(rgba(143,227,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(143,227,255,.14) 1px,transparent 1px);background-size:40px 40px;transform:perspective(420px) rotateX(64deg);transform-origin:50% 100%;-webkit-mask-image:linear-gradient(0deg,#000 5%,transparent 90%);mask-image:linear-gradient(0deg,#000 5%,transparent 90%)}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-ship{left:12%;right:12%;top:15%;height:54%}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-cone{left:18%;right:18%;top:14%;bottom:12%}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-emit{left:36%;right:36%;bottom:7%;height:9%}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-scanwrap{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-page .d1-solid{animation:d1-shipscan var(--T) linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-chip{position:absolute;left:14px;bottom:12px;display:flex;align-items:center;gap:8px;padding:5px 11px;border-radius:12px;background:rgba(3,12,19,.72);box-shadow:inset 0 0 0 1px rgba(130,220,255,.22);font:11px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--holo);z-index:2}
+:is([data-design], .design-ov-scale) .d1 .d1-chip i{width:6px;height:6px;border-radius:50%;background:var(--holo);box-shadow:0 0 8px var(--holo);animation:d1-blink 1.2s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-readout{position:absolute;right:16px;top:14px;text-align:right;font:11px/1.5 var(--mono);letter-spacing:.1em;color:var(--dim);z-index:2}
+:is([data-design], .design-ov-scale) .d1 .d1-readout b{display:block;font-weight:400;color:var(--mut)}
+
+/* skeleton blocks: wire outline, light up as the sweep passes (--y = vertical position 0..1) */
+:is([data-design], .design-ov-scale) .d1 .d1-sk{position:relative;border:1px dashed rgba(143,227,255,.22);border-radius:6px;background:rgba(82,193,230,.025)}
+:is([data-design], .design-ov-scale) .d1 .d1-sk::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;background:linear-gradient(90deg,rgba(143,227,255,.17),rgba(143,227,255,.04) 75%);box-shadow:inset 0 0 0 1px rgba(170,235,255,.55),0 0 18px rgba(82,193,230,.16);opacity:.12;animation:d1-pass var(--T) linear infinite;animation-delay:calc((var(--y,0) - 1) * var(--T))}
+:is([data-design], .design-ov-scale) .d1 .d1-ln{display:block;height:8px;border-radius:4px;background:rgba(143,227,255,.13)}
+:is([data-design], .design-ov-scale) .d1 .d1-lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d1 .d1-eyesk{display:flex;gap:8px;align-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-eyesk .d1-sk{height:12px;border-radius:6px}
+:is([data-design], .design-ov-scale) .d1 .d1-facts{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:min-content;gap:10px;align-content:start}
+:is([data-design], .design-ov-scale) .d1 .d1-fact{height:62px;padding:11px 12px;display:flex;flex-direction:column;justify-content:space-between}
+:is([data-design], .design-ov-scale) .d1 .d1-desc{grid-column:span 2;padding:12px;display:flex;flex-direction:column;gap:9px}
+:is([data-design], .design-ov-scale) .d1 .d1-tabs{display:flex;gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-tabs .d1-sk{height:32px;padding:0 16px;border-radius:16px;display:flex;align-items:center;color:var(--dim);font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-rows{display:grid;gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-row{height:36px;display:flex;align-items:center;gap:14px;padding:0 14px}
+:is([data-design], .design-ov-scale) .d1 .d1-sweep{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none;z-index:3;animation:d1-sweep var(--T) linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-sweep i{position:absolute;left:0;right:0;top:-80px;height:80px;background:linear-gradient(180deg,transparent,rgba(82,193,230,.05) 60%,rgba(143,227,255,.16));border-bottom:1px solid rgba(223,246,255,.85);box-shadow:0 1px 14px rgba(110,210,255,.7)}
+
+/* ---------- screen 3 · Lädt zu lange ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-stall{opacity:.5;filter:saturate(.7)}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-sweep{transform:translateY(47%);animation:d1-park 3.2s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-sk::after{animation:none;opacity:.08}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-solid{animation:none;clip-path:inset(0 0 30% 0);opacity:.6}
+:is([data-design], .design-ov-scale) .d1 .d1-hint{position:absolute;left:50%;top:54%;z-index:5;transform:translate(-50%,-50%);width:min(460px,calc(100% - 32px));display:flex;flex-direction:column;gap:16px;padding:22px 24px 18px;border:1px solid transparent;border-radius:12px;background:var(--fill) padding-box,var(--edge) border-box;box-shadow:0 36px 90px rgba(0,0,0,.75),0 10px 24px rgba(0,0,0,.45),0 0 44px rgba(82,193,230,.1)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--sheen);pointer-events:none}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-top{display:flex;gap:16px;align-items:flex-start}
+:is([data-design], .design-ov-scale) .d1 .d1-sig{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--holo);background:radial-gradient(closest-side,rgba(82,193,230,.18),rgba(82,193,230,.03));box-shadow:inset 0 0 0 1px rgba(143,227,255,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-sig svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+:is([data-design], .design-ov-scale) .d1 .d1-sig path{animation:d1-arc 2.4s ease-in-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-sig .d1-a2{animation-delay:.3s}
+:is([data-design], .design-ov-scale) .d1 .d1-sig .d1-a3{animation-delay:.6s;stroke-dasharray:2 4}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-tx{display:flex;flex-direction:column;gap:5px;min-width:0}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-eye{font:11px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint h2{font:600 17px/1.25 var(--disp);letter-spacing:.05em;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint p{color:#a9c7d6}
+:is([data-design], .design-ov-scale) .d1 .d1-acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-foot{display:flex;align-items:center;gap:8px;padding-top:12px;border-top:1px solid rgba(130,220,255,.12);font:11px/1.3 var(--mono);letter-spacing:.08em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-foot i{width:6px;height:6px;border-radius:50%;background:var(--holo);box-shadow:0 0 8px var(--holo);animation:d1-blink 2s ease-in-out infinite}
+
+/* ---------- actions ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-primary{position:relative;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;border-radius:20px;background:linear-gradient(180deg,#86dbf4,#45b5dc);color:#03121b;font-weight:600;letter-spacing:.02em;box-shadow:inset 0 0 0 1px rgba(223,246,255,.55),0 6px 20px rgba(82,193,230,.32)}
+:is([data-design], .design-ov-scale) .d1 .d1-primary:hover{background:linear-gradient(180deg,#9fe5f8,#56c2e6)}
+:is([data-design], .design-ov-scale) .d1 .d1-primary svg,:is([data-design], .design-ov-scale) .d1 .d1-pill svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-pill{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border-radius:18px;color:#d2e9f3;background:rgba(82,193,230,.05);box-shadow:inset 0 0 0 1px rgba(130,220,255,.32)}
+:is([data-design], .design-ov-scale) .d1 .d1-pill:hover{box-shadow:inset 0 0 0 1px rgba(143,227,255,.7);color:var(--ink)}
+
+/* ---------- screen 4 · Nicht gefunden ---------- */
+:is([data-design], .design-ov-scale) .d1 .d1-nf{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:44px;align-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-nf-txt{display:flex;flex-direction:column;gap:16px;max-width:480px}
+:is([data-design], .design-ov-scale) .d1 .d1-eye{font:12px/1.3 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-h1{font:600 36px/1.1 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-shadow:0 0 22px rgba(82,193,230,.38)}
+:is([data-design], .design-ov-scale) .d1 .d1-url{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+:is([data-design], .design-ov-scale) .d1 .d1-url small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-url code{font:14px/1.3 var(--mono);padding:8px 12px;border-radius:6px;background:rgba(3,12,19,.6);box-shadow:inset 0 0 0 1px rgba(130,220,255,.2);color:var(--holo);max-width:100%;overflow-wrap:anywhere}
+:is([data-design], .design-ov-scale) .d1 .d1-url mark{color:#b4cfdc;background:repeating-linear-gradient(135deg,rgba(143,227,255,.13) 0 3px,transparent 3px 7px);border-bottom:1px dashed rgba(143,227,255,.65);padding:0 2px}
+:is([data-design], .design-ov-scale) .d1 .d1-txt{color:#a9c7d6;max-width:44ch}
+:is([data-design], .design-ov-scale) .d1 .d1-txt b{color:var(--ink);font-weight:600}
+:is([data-design], .design-ov-scale) .d1 .d1-find{display:flex;align-items:center;gap:10px;height:46px;padding:0 8px 0 15px;border:1px solid transparent;border-radius:23px;background:var(--fill) padding-box,var(--edge) border-box;box-shadow:0 0 14px rgba(82,193,230,.08),0 14px 34px rgba(0,0,0,.45);color:var(--mut);cursor:text}
+:is([data-design], .design-ov-scale) .d1 .d1-find svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+:is([data-design], .design-ov-scale) .d1 .d1-find input{flex:1;height:100%;color:var(--ink);font-size:14px;cursor:text}
+:is([data-design], .design-ov-scale) .d1 .d1-find:focus-within{box-shadow:0 0 0 1px rgba(130,220,255,.35),0 0 22px rgba(82,193,230,.3)}
+:is([data-design], .design-ov-scale) .d1 .d1-find:focus-within input{outline:0}
+:is([data-design], .design-ov-scale) .d1 .d1-areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas a{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:8px;background:rgba(82,193,230,.035);box-shadow:inset 0 0 0 1px rgba(130,220,255,.14)}
+:is([data-design], .design-ov-scale) .d1 .d1-areas a:hover{box-shadow:inset 0 0 0 1px rgba(143,227,255,.5);background:rgba(82,193,230,.07)}
+:is([data-design], .design-ov-scale) .d1 .d1-areas b{display:flex;align-items:center;gap:7px;color:var(--ink);font-weight:600}
+:is([data-design], .design-ov-scale) .d1 .d1-areas svg{width:15px;height:15px;fill:none;stroke:var(--a);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+:is([data-design], .design-ov-scale) .d1 .d1-areas small{font-size:11.5px;color:var(--mut)}
+
+:is([data-design], .design-ov-scale) .d1 .d1-map{position:relative;height:100%;min-height:420px;display:grid;place-items:center}
+:is([data-design], .design-ov-scale) .d1 .d1-scope,:is([data-design], .design-ov-scale) .d1 .d1-near{width:min(100%,440px);aspect-ratio:1}
+:is([data-design], .design-ov-scale) .d1 .d1-scope{position:relative}
+:is([data-design], .design-ov-scale) .d1 .d1-disc{position:absolute;inset:0;border-radius:50%;background:radial-gradient(closest-side,rgba(82,193,230,.12),rgba(82,193,230,.03) 70%,transparent),linear-gradient(rgba(143,227,255,.08) 1px,transparent 1px) 50% 50%/22px 22px,linear-gradient(90deg,rgba(143,227,255,.08) 1px,transparent 1px) 50% 50%/22px 22px;-webkit-mask-image:radial-gradient(closest-side,#000 86%,transparent 100%);mask-image:radial-gradient(closest-side,#000 86%,transparent 100%)}
+:is([data-design], .design-ov-scale) .d1 .d1-scope svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;fill:none;stroke:rgba(143,227,255,.16);stroke-width:.5}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-r0{stroke:rgba(143,227,255,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-tkr{stroke:rgba(143,227,255,.35);stroke-width:3}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-cross{stroke-dasharray:1 2}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-links path{stroke:rgba(143,227,255,.42);stroke-dasharray:2 2}
+:is([data-design], .design-ov-scale) .d1 .d1-scope text{fill:#5f7f91;stroke:none;font:5px Consolas,ui-monospace,monospace;text-anchor:middle;letter-spacing:.3px}
+:is([data-design], .design-ov-scale) .d1 .d1-beam{position:absolute;inset:1%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg 288deg,rgba(143,227,255,.04) 300deg,rgba(143,227,255,.2) 355deg,rgba(223,246,255,.75) 359.4deg,transparent 360deg);animation:d1-rot 5s linear infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-void{position:absolute;left:50%;top:50%;width:62px;height:62px;transform:translate(-50%,-50%)}
+:is([data-design], .design-ov-scale) .d1 .d1-void::before{content:"";position:absolute;inset:0;border-radius:50%;border:1px dashed rgba(223,246,255,.6)}
+:is([data-design], .design-ov-scale) .d1 .d1-void svg{position:absolute;inset:0;width:100%;height:100%;stroke:var(--hi);stroke-width:1.2;fill:none}
+:is([data-design], .design-ov-scale) .d1 .d1-ping{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(143,227,255,.7);animation:d1-ping 2.5s ease-out infinite}
+:is([data-design], .design-ov-scale) .d1 .d1-ping+.d1-ping{animation-delay:1.25s}
+:is([data-design], .design-ov-scale) .d1 .d1-void-l{position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);white-space:nowrap;text-align:center;font:11px/1.45 var(--mono);letter-spacing:.06em;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-void-l b{display:block;font-weight:400;color:var(--hi)}
+:is([data-design], .design-ov-scale) .d1 .d1-coord{position:absolute;right:0;bottom:7%;text-align:right;font:11px/1.6 var(--mono);letter-spacing:.1em;color:var(--dim)}
+:is([data-design], .design-ov-scale) .d1 .d1-coord b{display:block;font-weight:400;color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-near{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+:is([data-design], .design-ov-scale) .d1 .d1-nearh{position:absolute;left:-6%;top:-4%;font:11px/1.3 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-node{position:absolute;left:var(--x);top:var(--y);display:flex;align-items:center;gap:9px;transform:translate(-9px,-50%);white-space:nowrap}
+:is([data-design], .design-ov-scale) .d1 .d1-flip{flex-direction:row-reverse;transform:translate(calc(-100% + 9px),-50%)}
+:is([data-design], .design-ov-scale) .d1 .d1-flip .d1-nl{align-items:flex-end;text-align:right}
+:is([data-design], .design-ov-scale) .d1 .d1-blip{position:relative;flex:none;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(143,227,255,.5);animation:d1-blip 5s linear infinite;animation-delay:calc((var(--a) / 360 - 1) * 5s)}
+:is([data-design], .design-ov-scale) .d1 .d1-blip::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--holo);box-shadow:0 0 8px var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl{display:flex;flex-direction:column;gap:1px;padding:7px 11px;border-radius:8px;background:rgba(6,23,36,.85);box-shadow:inset 0 0 0 1px rgba(130,220,255,.22),0 8px 20px rgba(0,0,0,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl b{font-size:13px;font-weight:600;color:var(--ink)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl code{font:11px/1.35 var(--mono);color:var(--mut)}
+:is([data-design], .design-ov-scale) .d1 .d1-nl em{font:normal 11px/1.35 var(--mono);color:var(--holo)}
+:is([data-design], .design-ov-scale) .d1 .d1-node:hover .d1-nl{box-shadow:inset 0 0 0 1px rgba(143,227,255,.65),0 8px 20px rgba(0,0,0,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-best .d1-nl{box-shadow:inset 0 0 0 1px rgba(143,227,255,.5),0 0 22px rgba(82,193,230,.18),0 8px 20px rgba(0,0,0,.4)}
+:is([data-design], .design-ov-scale) .d1 .d1-best .d1-blip{box-shadow:inset 0 0 0 1px var(--hi),0 0 12px rgba(110,210,255,.6)}
+
+/* ---------- keyframes ---------- */
+@keyframes d1-reveal{0%{clip-path:inset(0 0 100% 0);opacity:1}62%{clip-path:inset(0 0 0 0);opacity:1}84%{clip-path:inset(0 0 0 0);opacity:1}100%{clip-path:inset(0 0 0 0);opacity:0}}
+@keyframes d1-scanmove{0%{transform:translateY(0);opacity:0}5%{opacity:1}62%{transform:translateY(100%);opacity:1}70%,100%{transform:translateY(100%);opacity:0}}
+@keyframes d1-shipscan{0%{clip-path:inset(0 0 0 0);opacity:.3}25.9%{clip-path:inset(0 0 0 0);opacity:0}26%{clip-path:inset(0 0 100% 0);opacity:1}52%{clip-path:inset(0 0 0 0);opacity:1}70%{opacity:.75}100%{clip-path:inset(0 0 0 0);opacity:.3}}
+@keyframes d1-sweep{0%{transform:translateY(0);opacity:0}4%{opacity:1}94%{opacity:1}100%{transform:translateY(100%);opacity:0}}
+@keyframes d1-pass{0%{opacity:1}3%{opacity:.4}6%{opacity:.9}30%{opacity:.35}100%{opacity:.1}}
+@keyframes d1-park{0%,100%{opacity:.35}50%{opacity:.85}}
+@keyframes d1-emitping{0%{transform:scale(1);opacity:.75}100%{transform:scale(2.3);opacity:0}}
+@keyframes d1-flick{0%,41%,43%,77%,100%{opacity:1}42%{opacity:.6}78%{opacity:.8}}
+@keyframes d1-tick{0%,100%{opacity:.12}30%{opacity:1;box-shadow:0 0 8px rgba(82,193,230,.8)}60%{opacity:.22}}
+@keyframes d1-blink{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes d1-arc{0%,100%{opacity:.3}40%{opacity:1}}
+@keyframes d1-rot{to{transform:rotate(360deg)}}
+@keyframes d1-ping{0%{transform:scale(.45);opacity:.9}100%{transform:scale(2.7);opacity:0}}
+@keyframes d1-blip{0%{transform:scale(1.5);box-shadow:inset 0 0 0 1px var(--hi),0 0 16px rgba(110,210,255,.9)}18%,100%{transform:scale(1)}}
+
+/* ---------- phone ---------- */
+@container device (max-width: 520px){
+:is([data-design], .design-ov-scale) .d1 .d1-bootc{gap:22px}
+:is([data-design], .design-ov-scale) .d1 .d1-word{font-size:12px;letter-spacing:.38em;padding-left:.38em}
+:is([data-design], .design-ov-scale) .d1 .d1-bootmsg{font-size:12px;letter-spacing:.12em}
+:is([data-design], .design-ov-scale) .d1 .d1-shell{top:auto;bottom:12px;padding:0 12px}
+:is([data-design], .design-ov-scale) .d1 .d1-cap{height:56px;gap:8px;padding:0 8px 0 6px}
+:is([data-design], .design-ov-scale) .d1 :is(.d1-plate,.d1-div,.d1-kind,.d1-cap .d1-acct,.d1-search kbd){display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-search{max-width:none;height:40px}
+:is([data-design], .design-ov-scale) .d1 .d1-route{position:absolute;top:0;left:0;right:0;z-index:6;height:46px;display:flex;align-items:center;gap:10px;padding:0 16px;opacity:.6;background:linear-gradient(180deg,rgba(5,12,20,.92),rgba(5,12,20,0))}
+:is([data-design], .design-ov-scale) .d1 .d1-route .d1-trail{flex:1;min-width:0;overflow:hidden}
+:is([data-design], .design-ov-scale) .d1 .d1-route .d1-acct{width:30px;height:30px;font-size:10px}
+:is([data-design], .design-ov-scale) .d1 .d1-main{padding:58px 16px 84px}
+:is([data-design], .design-ov-scale) .d1 .d1-title{font-size:22px}
+:is([data-design], .design-ov-scale) .d1 .d1-grid{grid-template-columns:1fr;grid-template-rows:auto auto;flex:none;gap:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-stage{min-height:0;height:210px}
+:is([data-design], .design-ov-scale) .d1 .d1-stage .d1-ship{left:6%;right:6%;top:18%;height:50%}
+:is([data-design], .design-ov-scale) .d1 .d1-readout{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-fact{height:56px}
+:is([data-design], .design-ov-scale) .d1 .d1-desc{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-tabs .d1-sk:nth-child(n+4){display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-lbl,:is([data-design], .design-ov-scale) .d1 .d1-chip{font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-hint{top:50%;padding:20px 18px 16px}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-top{gap:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-sig{width:44px;height:44px}
+:is([data-design], .design-ov-scale) .d1 .d1-acts .d1-primary{flex:1 1 100%;justify-content:center}
+:is([data-design], .design-ov-scale) .d1 .d1-acts .d1-pill{flex:1;justify-content:center;min-height:44px}
+:is([data-design], .design-ov-scale) .d1 .d1-hint-foot{font-size:12px;letter-spacing:.04em}
+:is([data-design], .design-ov-scale) .d1 .d1-scroll{overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(130,220,255,.25) transparent}
+:is([data-design], .design-ov-scale) .d1 .d1-nf{display:flex;flex-direction:column;gap:14px;align-items:stretch;flex:none}
+:is([data-design], .design-ov-scale) .d1 .d1-nf-txt{display:contents}
+:is([data-design], .design-ov-scale) .d1 .d1-eye{order:1;font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-h1{order:2;font-size:24px}
+:is([data-design], .design-ov-scale) .d1 .d1-url{order:3}
+:is([data-design], .design-ov-scale) .d1 .d1-url small{font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-txt{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-map{order:4;min-height:0;height:auto;display:flex;flex-direction:column;align-items:stretch;gap:10px}
+:is([data-design], .design-ov-scale) .d1 .d1-scope{width:168px;align-self:center}
+:is([data-design], .design-ov-scale) .d1 .d1-scope .d1-links,:is([data-design], .design-ov-scale) .d1 .d1-scope text,:is([data-design], .design-ov-scale) .d1 .d1-coord,:is([data-design], .design-ov-scale) .d1 .d1-void-l{display:none}
+:is([data-design], .design-ov-scale) .d1 .d1-void{width:44px;height:44px}
+:is([data-design], .design-ov-scale) .d1 .d1-near{position:static;transform:none;width:auto;aspect-ratio:auto;display:flex;flex-direction:column;gap:6px}
+:is([data-design], .design-ov-scale) .d1 .d1-nearh{position:static;font-size:12px;margin-bottom:2px}
+:is([data-design], .design-ov-scale) .d1 .d1-node{position:static;transform:none;white-space:normal;flex-direction:row}
+:is([data-design], .design-ov-scale) .d1 .d1-flip .d1-nl{align-items:baseline;text-align:left}
+:is([data-design], .design-ov-scale) .d1 .d1-nl{flex:1;flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:10px;min-height:44px;padding:8px 12px;box-sizing:border-box}
+:is([data-design], .design-ov-scale) .d1 .d1-nl code,:is([data-design], .design-ov-scale) .d1 .d1-nl em{font-size:12px}
+:is([data-design], .design-ov-scale) .d1 .d1-nl em{margin-left:auto}
+:is([data-design], .design-ov-scale) .d1 .d1-find{order:5}
+:is([data-design], .design-ov-scale) .d1 .d1-nf .d1-acts{order:6}
+:is([data-design], .design-ov-scale) .d1 .d1-nf .d1-primary{flex:1;justify-content:center;height:46px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas{order:7;gap:6px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas a{align-items:center;min-height:44px;justify-content:center;padding:8px}
+:is([data-design], .design-ov-scale) .d1 .d1-areas small{display:none}
+}
+
+/* ---------- reduced motion: one still frame ---------- */
+@media (prefers-reduced-motion: reduce){
+:is([data-design], .design-ov-scale) .d1 *,:is([data-design], .design-ov-scale) .d1 *::before,:is([data-design], .design-ov-scale) .d1 *::after{animation:none !important}
+:is([data-design], .design-ov-scale) .d1 .d1-solid{clip-path:none;opacity:1}
+:is([data-design], .design-ov-scale) .d1 .d1-scanwrap,:is([data-design], .design-ov-scale) .d1 .d1-mk{transform:translateY(62%)}
+:is([data-design], .design-ov-scale) .d1 .d1-sweep{transform:translateY(62%);opacity:.55}
+:is([data-design], .design-ov-scale) .d1 .d1-sk::after{opacity:.3}
+:is([data-design], .design-ov-scale) .d1 .d1-tk{opacity:.55}
+:is([data-design], .design-ov-scale) .d1 .d1-beam{transform:rotate(40deg)}
+:is([data-design], .design-ov-scale) .d1 .d1-ping{transform:scale(1.6);opacity:.35}
+:is([data-design], .design-ov-scale) .d1 .d1-stall .d1-solid{clip-path:inset(0 0 30% 0);opacity:.6}
+}
+</style>
+<template data-screen="1"><div class="d1 d1-boot" role="status" aria-label="Verse Companion wird gestartet">
+<span class="d1-stars" aria-hidden="true"></span>
+<span class="d1-raster" aria-hidden="true"></span>
+<div class="d1-bootc">
+<button type="button" class="d1-proj" data-m="d1-proj" data-screen-link="d1-s2" aria-label="Verse Companion lädt">
+<span class="d1-cone" aria-hidden="true"></span>
+<span class="d1-corner d1-c-tl" aria-hidden="true"></span><span class="d1-corner d1-c-tr" aria-hidden="true"></span><span class="d1-corner d1-c-bl" aria-hidden="true"></span><span class="d1-corner d1-c-br" aria-hidden="true"></span>
+<span class="d1-ruler d1-ruler-l" aria-hidden="true"><span class="d1-mk"></span></span>
+<span class="d1-ruler" aria-hidden="true"><span class="d1-mk"></span></span>
+<span class="d1-ship" aria-hidden="true">
+<svg class="d1-ghost" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<svg class="d1-solid" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<span class="d1-scanwrap"><i class="d1-scanline"></i></span>
+</span>
+<span class="d1-emit" aria-hidden="true"></span>
+</button>
+<div class="d1-word" data-m="d1-word">Verse Companion</div>
+<div class="d1-bootline" data-m="d1-bootline">
+<span class="d1-tks" aria-hidden="true"><i class="d1-tk" style="--i:0"></i><i class="d1-tk" style="--i:1"></i><i class="d1-tk" style="--i:2"></i><i class="d1-tk" style="--i:3"></i><i class="d1-tk" style="--i:4"></i><i class="d1-tk" style="--i:5"></i><i class="d1-tk" style="--i:6"></i><i class="d1-tk" style="--i:7"></i><i class="d1-tk" style="--i:8"></i><i class="d1-tk" style="--i:9"></i><i class="d1-tk" style="--i:10"></i><i class="d1-tk" style="--i:11"></i><i class="d1-tk" style="--i:12"></i><i class="d1-tk" style="--i:13"></i></span>
+<span class="d1-bootmsg">Projektion wird aufgebaut</span>
+</div>
+</div>
+</div></template>
+<template data-screen="2"><div class="d1 d1-app">
+<span class="d1-stars" aria-hidden="true"></span>
+<div class="d1-route" aria-hidden="true"><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol><span class="d1-acct">JT</span></div>
+<header class="d1-shell" data-m="d1-shell">
+<div class="d1-cap">
+<a class="d1-blogo" aria-label="Verse Companion – zum Verse"><span class="d1-mark"></span></a>
+<div class="d1-plate"><b>Verse Companion</b><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol></div>
+<span class="d1-div" aria-hidden="true"></span>
+<button type="button" class="d1-kind">Schiffe <i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div class="d1-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Im Codex suchen …</span><kbd>Strg K</kbd></div>
+<span class="d1-acct">JT</span>
+</div>
+</header>
+<main class="d1-main" aria-busy="true">
+<div class="d1-page" data-m="d1-scan">
+<div class="d1-head">
+<div class="d1-eyesk"><span class="d1-sk" style="--y:.01;width:110px"></span><span class="d1-sk" style="--y:.01;width:64px"></span></div>
+<h1 class="d1-title" data-m="d1-title">Carrack</h1>
+<span class="d1-sk" style="--y:.09;width:min(380px,80%);height:12px;border-radius:6px"></span>
+</div>
+<div class="d1-grid">
+<div class="d1-stage" data-m="d1-stage">
+<span class="d1-floor" aria-hidden="true"></span>
+<span class="d1-cone" aria-hidden="true"></span>
+<span class="d1-corner d1-c-tl" aria-hidden="true"></span><span class="d1-corner d1-c-tr" aria-hidden="true"></span><span class="d1-corner d1-c-bl" aria-hidden="true"></span><span class="d1-corner d1-c-br" aria-hidden="true"></span>
+<span class="d1-ship" aria-hidden="true">
+<svg class="d1-ghost" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<svg class="d1-solid" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+</span>
+<span class="d1-emit" aria-hidden="true"></span>
+<span class="d1-readout" aria-hidden="true"><b>Holotisch</b>Raster 0,4 m</span>
+<span class="d1-chip" role="status"><i aria-hidden="true"></i>Scanne Codex-Daten</span>
+</div>
+<div class="d1-facts">
+<div class="d1-sk d1-fact" style="--y:.16"><span class="d1-lbl">Länge</span><span class="d1-ln" style="width:58%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.16"><span class="d1-lbl">Besatzung</span><span class="d1-ln" style="width:40%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.27"><span class="d1-lbl">Fracht</span><span class="d1-ln" style="width:52%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.27"><span class="d1-lbl">Quantum</span><span class="d1-ln" style="width:66%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.38"><span class="d1-lbl">Rolle</span><span class="d1-ln" style="width:72%"></span></div>
+<div class="d1-sk d1-fact" style="--y:.38"><span class="d1-lbl">Preis</span><span class="d1-ln" style="width:48%"></span></div>
+<div class="d1-sk d1-desc" style="--y:.5"><span class="d1-ln" style="width:94%"></span><span class="d1-ln" style="width:88%"></span><span class="d1-ln" style="width:91%"></span><span class="d1-ln" style="width:60%"></span></div>
+</div>
+</div>
+<div class="d1-tabs"><span class="d1-sk" style="--y:.7">Übersicht</span><span class="d1-sk" style="--y:.7">Ausrüstung</span><span class="d1-sk" style="--y:.7">Varianten</span><span class="d1-sk" style="--y:.7">Preise</span></div>
+<div class="d1-rows">
+<div class="d1-sk d1-row" style="--y:.78"><span class="d1-ln" style="width:22%"></span><span class="d1-ln" style="width:36%"></span><span class="d1-ln" style="width:12%;margin-left:auto"></span></div>
+<div class="d1-sk d1-row" style="--y:.85"><span class="d1-ln" style="width:28%"></span><span class="d1-ln" style="width:30%"></span><span class="d1-ln" style="width:10%;margin-left:auto"></span></div>
+<div class="d1-sk d1-row" style="--y:.92"><span class="d1-ln" style="width:18%"></span><span class="d1-ln" style="width:40%"></span><span class="d1-ln" style="width:14%;margin-left:auto"></span></div>
+</div>
+<span class="d1-sweep" aria-hidden="true"><i></i></span>
+</div>
+</main>
+</div></template>
+<template data-screen="3"><div class="d1 d1-app">
+<span class="d1-stars" aria-hidden="true"></span>
+<div class="d1-route" aria-hidden="true"><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol><span class="d1-acct">JT</span></div>
+<header class="d1-shell">
+<div class="d1-cap">
+<a class="d1-blogo" aria-label="Verse Companion – zum Verse"><span class="d1-mark"></span></a>
+<div class="d1-plate"><b>Verse Companion</b><ol class="d1-trail"><li><a>Codex</a></li><li><a>Schiffe</a></li><li aria-current="page">Carrack</li></ol></div>
+<span class="d1-div" aria-hidden="true"></span>
+<button type="button" class="d1-kind">Schiffe <i>271</i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div class="d1-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Im Codex suchen …</span><kbd>Strg K</kbd></div>
+<span class="d1-acct">JT</span>
+</div>
+</header>
+<main class="d1-main" aria-busy="true">
+<div class="d1-page d1-stall" aria-hidden="true">
+<div class="d1-head">
+<div class="d1-eyesk"><span class="d1-sk" style="width:110px"></span><span class="d1-sk" style="width:64px"></span></div>
+<h1 class="d1-title">Carrack</h1>
+<span class="d1-sk" style="width:min(380px,80%);height:12px;border-radius:6px"></span>
+</div>
+<div class="d1-grid">
+<div class="d1-stage">
+<span class="d1-floor"></span>
+<span class="d1-corner d1-c-tl"></span><span class="d1-corner d1-c-tr"></span><span class="d1-corner d1-c-bl"></span><span class="d1-corner d1-c-br"></span>
+<span class="d1-ship">
+<svg class="d1-ghost" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+<svg class="d1-solid" viewBox="0 20 400 150"><path class="d1-hull" d="M28 104 L64 84 L128 72 L236 66 L312 78 L366 96 L384 106 L362 114 L300 128 L230 138 L130 136 L64 124 Z"/><path d="M40 104 L382 106 M128 72 L132 136 M182 68 L186 137 M236 66 L240 138 M290 74 L296 130"/><path d="M64 84 Q210 98 366 96 M64 124 Q210 114 362 114"/><path d="M128 72 L150 52 L262 50 L312 78 M150 52 L156 70 M206 51 L208 68 M262 50 L268 68"/><path d="M312 78 L332 72 L366 96 M332 82 L356 94 L340 96 Z"/><path d="M28 90 L8 87 L8 101 L28 100 M28 108 L8 108 L8 122 L28 119"/><ellipse cx="8" cy="94" rx="3" ry="7"/><ellipse cx="8" cy="115" rx="3" ry="7"/><path d="M150 136 L162 154 L252 154 L262 138 M176 154 L182 163 L234 163 L240 154"/><path d="M206 51 L206 30 M199 36 L213 36"/><circle cx="100" cy="88" r="3"/><circle cx="280" cy="76" r="3"/></svg>
+</span>
+<span class="d1-emit"></span>
+<span class="d1-chip"><i></i>Warte auf Antwort</span>
+</div>
+<div class="d1-facts">
+<div class="d1-sk d1-fact"><span class="d1-lbl">Länge</span><span class="d1-ln" style="width:58%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Besatzung</span><span class="d1-ln" style="width:40%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Fracht</span><span class="d1-ln" style="width:52%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Quantum</span><span class="d1-ln" style="width:66%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Rolle</span><span class="d1-ln" style="width:72%"></span></div>
+<div class="d1-sk d1-fact"><span class="d1-lbl">Preis</span><span class="d1-ln" style="width:48%"></span></div>
+<div class="d1-sk d1-desc"><span class="d1-ln" style="width:94%"></span><span class="d1-ln" style="width:88%"></span><span class="d1-ln" style="width:91%"></span><span class="d1-ln" style="width:60%"></span></div>
+</div>
+</div>
+<div class="d1-tabs"><span class="d1-sk">Übersicht</span><span class="d1-sk">Ausrüstung</span><span class="d1-sk">Varianten</span><span class="d1-sk">Preise</span></div>
+<div class="d1-rows">
+<div class="d1-sk d1-row"><span class="d1-ln" style="width:22%"></span><span class="d1-ln" style="width:36%"></span></div>
+<div class="d1-sk d1-row"><span class="d1-ln" style="width:28%"></span><span class="d1-ln" style="width:30%"></span></div>
+<div class="d1-sk d1-row"><span class="d1-ln" style="width:18%"></span><span class="d1-ln" style="width:40%"></span></div>
+</div>
+<span class="d1-sweep"><i></i></span>
+</div>
+<section class="d1-hint" role="status" aria-live="polite" data-m="d1-hint">
+<div class="d1-hint-top">
+<span class="d1-sig" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="32" r="2.6" fill="currentColor" stroke="none"/><path class="d1-a1" d="M17.5 25.5a9.2 9.2 0 0 1 13 0"/><path class="d1-a2" d="M12.5 20.5a16.3 16.3 0 0 1 23 0"/><path class="d1-a3" d="M7.5 15.5a23.3 23.3 0 0 1 33 0"/></svg></span>
+<div class="d1-hint-tx">
+<span class="d1-hint-eye">Scan läuft seit 8 s</span>
+<h2>Das dauert länger als sonst</h2>
+<p>Der Codex antwortet gerade langsam. Wir scannen im Hintergrund weiter – oder du stößt den Scan neu an.</p>
+</div>
+</div>
+<div class="d1-acts">
+<button type="button" class="d1-primary" data-m="d1-retry" data-screen-link="d1-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Erneut versuchen</button>
+<a class="d1-pill">Zur Startseite</a>
+<a class="d1-pill">Dienststatus</a>
+</div>
+<div class="d1-hint-foot"><i aria-hidden="true"></i>Verbindung steht · Codex 4.3.1</div>
+</section>
+</main>
+</div></template>
+<template data-screen="4"><div class="d1 d1-app">
+<span class="d1-stars" aria-hidden="true"></span>
+<div class="d1-route" aria-hidden="true"><ol class="d1-trail"><li aria-current="page">Nicht gefunden</li></ol><span class="d1-acct">JT</span></div>
+<header class="d1-shell">
+<div class="d1-cap">
+<a class="d1-blogo" aria-label="Verse Companion – zum Verse"><span class="d1-mark"></span></a>
+<div class="d1-plate"><b>Verse Companion</b><ol class="d1-trail"><li aria-current="page">Nicht gefunden</li></ol></div>
+<span class="d1-div" aria-hidden="true"></span>
+<div class="d1-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Suchen …</span><kbd>Strg K</kbd></div>
+<span class="d1-acct">JT</span>
+</div>
+</header>
+<main class="d1-main d1-scroll">
+<div class="d1-nf">
+<section class="d1-nf-txt">
+<p class="d1-eye">Fehler 404 · Nicht gefunden</p>
+<h1 class="d1-h1">Sektor nicht kartiert</h1>
+<div class="d1-url" data-m="d1-url"><small>Gescannte Adresse</small><code>/codex/schiffe/<mark>carrack-x</mark></code></div>
+<p class="d1-txt"><b>Codex</b> und <b>Schiffe</b> sind kartiert – zu „carrack-x“ hat der Scanner keinen Eintrag gefunden. Vielleicht ein Tippfehler oder ein umbenanntes Schiff.</p>
+<label class="d1-find" data-m="d1-find"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" value="carrack" aria-label="Im Codex suchen"><kbd>Enter</kbd></label>
+<div class="d1-acts"><a class="d1-primary" data-m="d1-home" data-screen-link="d1-s2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9h11v-9"/></svg>Zur Startseite</a></div>
+<nav class="d1-areas" aria-label="Hauptbereiche" data-m="d1-areas">
+<a><b><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="11" ry="3.6"/></svg>Verse</b><small>News &amp; Patches</small></a>
+<a><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5z"/><path d="M9 11h6M9 15h6"/></svg>Codex</b><small>Schiffe, Waffen, Orte</small></a>
+<a><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V9l9-5 9 5v11"/><path d="M8 20v-6h8v6"/></svg>HQ</b><small>Hangar &amp; Bestand</small></a>
+</nav>
+</section>
+<div class="d1-map" data-m="d1-radar">
+<div class="d1-scope" aria-hidden="true">
+<span class="d1-disc"></span>
+<svg viewBox="0 0 200 200"><circle class="d1-r0" cx="100" cy="100" r="99"/><circle cx="100" cy="100" r="75"/><circle cx="100" cy="100" r="50"/><circle cx="100" cy="100" r="25"/><circle class="d1-tkr" cx="100" cy="100" r="94" stroke-dasharray="0.8 4.12"/><path class="d1-cross" d="M100 1 V199 M1 100 H199"/><g class="d1-links"><path d="M100 100 L136 80"/><path d="M100 100 L48 52"/><path d="M100 100 L132 148"/></g><text x="100" y="11">000</text><text x="191" y="102">090</text><text x="100" y="194">180</text><text x="9" y="102">270</text></svg>
+<span class="d1-beam"></span>
+<span class="d1-void"><span class="d1-ping"></span><span class="d1-ping"></span><svg viewBox="0 0 62 62"><path d="M31 18v8M31 36v8M18 31h8M36 31h8"/></svg><span class="d1-void-l"><b>carrack-x</b>keine Signatur</span></span>
+</div>
+<div class="d1-coord" aria-hidden="true"><b>Sektor 7C · 3A</b>/codex/schiffe</div>
+<nav class="d1-near" aria-label="Meintest du" data-m="d1-near">
+<h2 class="d1-nearh">Meintest du …</h2>
+<a class="d1-node d1-best" style="--x:68%;--y:40%;--a:61"><span class="d1-blip" aria-hidden="true"></span><span class="d1-nl"><b>Carrack</b><code>/codex/schiffe/carrack</code><em>2 Zeichen entfernt</em></span></a>
+<a class="d1-node d1-flip" style="--x:24%;--y:26%;--a:313"><span class="d1-blip" aria-hidden="true"></span><span class="d1-nl"><b>Carrack Expedition</b><code>/codex/schiffe/carrack-expedition</code><em>11 Zeichen entfernt</em></span></a>
+<a class="d1-node" style="--x:66%;--y:74%;--a:146"><span class="d1-blip" aria-hidden="true"></span><span class="d1-nl"><b>Carrack W/C8X</b><code>/codex/schiffe/carrack-wc8x</code><em>4 Zeichen entfernt</em></span></a>
+</nav>
+</div>
+</div>
+</main>
+</div></template>
+<!-- annos [
+ {"screen":2,"side":"right","target":"[data-m=\"d1-scan\"]","x":72,"y":58,"q":"Eine Scanlinie streicht über den ganzen Inhaltsbereich und jeder Platzhalter leuchtet beim Überstreichen kurz auf. Passt die Stärke, oder soll nur die Holo-Bühne scannen und der Rest als ruhiges Skelett warten?"},
+ {"screen":1,"side":"bottom","target":"[data-m=\"d1-proj\"]","x":50,"y":42,"q":"Beim Start wird ein Drahtgitter-Schiff Zeile für Zeile auf den Holoprojektor gescannt. Passt das als erstes Bild, oder soll statt des Schiffs das Verse-Companion-Zeichen als Hologramm entstehen?"},
+ {"screen":4,"side":"left","target":"[data-m=\"d1-near\"]","x":74,"y":40,"q":"„Meintest du“ zeigt bekannte Sektoren auf dem Radar, mit dem Abstand in Zeichen zur getippten Adresse; der Strahl lässt sie beim Überstreichen aufleuchten. Passt diese Karten-Idee, oder lieber eine schlichte Liste neben der Suche?"},
+ {"screen":3,"side":"top","target":"[data-m=\"d1-hint\"]","x":50,"y":56,"q":"Nach 8 s parkt die Scanlinie, das halb gescannte Schiff bleibt stehen und eine ruhige Glaskarte in Cyan erscheint. Passt der ruhige Ton, oder soll hier schon Amber (--sc-warning) andeuten, dass etwas hakt?"},
+ {"screen":2,"side":"bottom","target":"[data-m=\"d1-title\"]","x":12,"y":24,"q":"Der Schiffsname steht sofort scharf im Titel, weil er aus dem Link bekannt ist – nur die Daten materialisieren. Passt das, oder soll auch der Titel erst gescannt werden?"},
+ {"screen":4,"side":"bottom","target":"[data-m=\"d1-radar\"]","x":70,"y":62,"q":"Bei reduzierter Bewegung steht alles still: Schiff voll materialisiert, Scanlinie ruht bei 62 %, Radarstrahl steht bei 40°, kein Ping. Reicht dieses Standbild, oder soll die Linie dann ganz verschwinden?"}
+] -->
