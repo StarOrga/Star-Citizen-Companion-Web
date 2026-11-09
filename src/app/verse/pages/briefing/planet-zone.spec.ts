@@ -291,7 +291,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
 
   it('transmits News → Patches → Galerie: charge, build, write, pull back, hold', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
-    fixture.componentInstance.holoStands.set(false);
+    fixture.componentInstance.stands.set(true);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const holo = (): HTMLElement => el.querySelector<HTMLElement>('a.holo')!;
