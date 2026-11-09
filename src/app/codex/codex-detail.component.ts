@@ -5096,10 +5096,15 @@ const AKTE_FACT_KEYS = ['codex.hull.crew', 'codex.hull.dimensions', 'codex.hull.
 
 /**
  * A livery's tile label from its ship_skins name: "Gladius Frostbite Camo Livery" → "Frostbite Camo",
- * "Gladius (Standard)" → "Standard", "Gladius Gladius Rp" → "Gladius Rp". Never empty.
+ * "Gladius (Standard)" → "Standard", "Gladius Gladius Rp" → "Gladius RP". Never empty.
+ * A name the uploader title-cased from a skin id ("gladius_rp" → "Rp") gets its acronyms
+ * back: a vowelless word of two or three letters is an abbreviation, never a word.
  */
 export function cleanLiveryName(raw: string, shipName: string): string {
-  let s = (raw ?? '').replace(/\s+/g, ' ').trim();
+  let s = (raw ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b[A-Za-z][b-df-hj-np-tv-xzB-DF-HJ-NP-TV-XZ]{1,2}\b/g, (w) => (/[aeiouy]/i.test(w) ? w : w.toUpperCase()));
   const paren = /^.*\(([^)]+)\)$/.exec(s);
   if (paren) return paren[1].trim();
   s = s.replace(/\s+(Livery|Paint|Skin)$/i, '');

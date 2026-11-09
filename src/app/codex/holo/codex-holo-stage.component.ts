@@ -797,7 +797,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .ptab:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   .tcount { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-accent); }
   .ptab.on .tcount { color: var(--sc-fg-0); }
-  .pbody { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 16px; animation: rise var(--rise-dur, 300ms) var(--e-out) var(--rise-delay, 60ms) backwards;
+  .pbody { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 12px 16px; animation: rise var(--rise-dur, 300ms) var(--e-out) var(--rise-delay, 60ms) backwards;
   transition: opacity var(--holo-t-fast) var(--e-io); }
   .ph-reveal .pbody { --rise-dur: 560ms; --rise-delay: 260ms; }
   .holo-stage:not(.first):is(.ph-wait, .ph-hero) :is(.holo-below, .pbody) { opacity: 0.35; }
@@ -825,7 +825,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   }
   .cohort-link { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); text-decoration: none; text-align: center; transition: color 160ms ease; }
   .cohort-link:hover { color: var(--sc-accent); }
-  .patchdiff { display: grid; gap: 8px; min-width: 0; }
+  /* The patch Δ fits the fixed card: no column wider than the card, the card scrolls inside (C18). */
+  .patchdiff { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; overflow-x: auto; }
+  .patchdiff ::ng-deep .delta-table thead th { letter-spacing: 0.02em; }
   .patchdiff ::ng-deep .delta-table { font-size: max(11px, var(--f)); }
   .patchdiff ::ng-deep .delta-table th, .patchdiff ::ng-deep .delta-table td { padding: 4px 3px; }
   .patchdiff ::ng-deep .delta-head { flex-wrap: wrap; }
