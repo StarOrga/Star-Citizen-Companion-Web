@@ -269,7 +269,9 @@ type Cell =
       .used-pop .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
       .used-pop small { color: var(--sc-fg-2); white-space: nowrap; }
       .grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: 104px; gap: 10px; align-content: start; overflow: hidden; }
-      .cell { display: contents; }
+      /* The add tile's listitem wrapper fills the grid cell (display: contents would drop its role in some browsers). */
+      .cell { display: flex; min-width: 0; }
+      .cell > .tile { flex: 1; min-width: 0; }
       .tile { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--sc-border); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 5%, var(--sc-bg-1)), var(--sc-bg-1)); color: var(--sc-fg); text-decoration: none; font: inherit; text-align: start; transition: border-color 0.2s, transform 0.2s; }
       a.tile:hover, .tile.add:hover { border-color: var(--sc-accent); transform: translateY(-1px); }
       .tile.add { align-items: center; justify-content: center; border-style: dashed; border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); cursor: pointer; }

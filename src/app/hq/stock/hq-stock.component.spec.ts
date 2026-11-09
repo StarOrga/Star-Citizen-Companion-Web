@@ -104,6 +104,10 @@ describe('HqStockComponent', () => {
     expect(add.getAttribute('role')).toBeNull();
     expect(add.parentElement?.getAttribute('role')).toBe('listitem');
     expect(add.parentElement?.parentElement?.getAttribute('role')).toBe('list');
+    // The wrapper keeps a box of its own (display: contents can drop the listitem role) and the tile fills it.
+    expect(getComputedStyle(add.parentElement!).display).not.toBe('contents');
+    const sibling = el.querySelector<HTMLElement>('.grid > .tile:not(.add)');
+    if (sibling) expect(Math.round(add.getBoundingClientRect().height)).toBe(Math.round(sibling.getBoundingClientRect().height));
   });
 
   it('AUD-L16: switching the tab writes ?bestand= into the URL (replace, fragment kept) and the param restores the tab', async () => {

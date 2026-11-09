@@ -11,6 +11,7 @@ import { ModalInertService } from './modal-inert.service';
     <header class="shell-top"><button class="fab">FAB</button></header>
     <main class="page"><button class="page-btn">Page</button></main>
     <div class="live" role="status">toast</div>
+    <aside class="tray"><button class="tray-btn">Undo</button><div class="tray-live" aria-live="polite">saved</div></aside>
     @if (a()) {
       <div class="scrim">
         <div class="dlg-a" role="dialog" aria-modal="true" scDialog>
@@ -73,6 +74,17 @@ describe('modal background inert', () => {
     expect(inert('.scrim')).toBe(false);
     expect(inert('.dlg-a')).toBe(false);
     expect(inert('.live')).toBe(false);
+    host.a.set(false);
+    await flush();
+    expect(fixture.nativeElement.querySelectorAll('[inert]').length).toBe(0);
+  });
+
+  it('keeps a live region nested in an outside region announcing: its container is not inert, its other children are', async () => {
+    host.a.set(true);
+    await flush();
+    expect(inert('.tray')).toBe(false);
+    expect(inert('.tray-live')).toBe(false);
+    expect(inert('.tray-btn')).toBe(true);
     host.a.set(false);
     await flush();
     expect(fixture.nativeElement.querySelectorAll('[inert]').length).toBe(0);
