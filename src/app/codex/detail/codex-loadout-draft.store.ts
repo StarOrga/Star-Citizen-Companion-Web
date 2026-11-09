@@ -1,7 +1,9 @@
-import { Injectable, Signal, computed, inject, signal } from '@angular/core';
+import { Injectable, OnDestroy, Signal, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { HangarService } from '../../hangar/hangar.service';
 import type { ConfigLoadoutEntry, HangarShipConfig } from '../../hangar/hangar.types';
 import type { ShipPayload } from '../codex.types';
@@ -29,8 +31,9 @@ import {
   serializeLocalDraft,
   setDraftValueForPaths,
   topSegment,
-  touchedTopPorts,
+  touchedSavePaths,
 } from '../codex-loadout-draft';
+import type { SaveableEntry } from '../codex-loadout-draft';
 import type { SwapPick } from '../codex-swap-picker.component';
 import { CodexHoloForkGuard } from '../holo/codex-holo-fork-guard';
 import { stockLoadoutClassNames } from '../stock-loadout';
@@ -54,6 +57,16 @@ export interface ReadOnlyDraftSource {
   configName: string;
 }
 
+/** Debounce of the exemplar autosave (D3): a burst of swaps within it is one save and one toast. */
+export const AUTOSAVE_DEBOUNCE_MS = 1800;
+
+interface SaveSnapshot {
+  shipClass: string;
+  targetId: string;
+  entries: SaveableEntry[];
+  touched: Set<string>;
+}
+
 const NO_DETAIL = signal<CodexDetail | null>(null);
 const NO_ENTITIES = signal(new Map<string, ResolvedEntity>());
 const NO_LOADOUT = signal<LoadoutItem[]>([]);
@@ -74,13 +87,14 @@ const NO_PORTS = signal<ReadonlySet<string>>(new Set());
  * in codex-loadout-draft.ts so the app/spec logic never drifts.
  */
 @Injectable()
-export class CodexLoadoutDraftStore {
+export class CodexLoadoutDraftStore implements OnDestroy {
   private readonly svc = inject(CodexService);
   private readonly hangar = inject(HangarService);
   private readonly forkGuard = inject(CodexHoloForkGuard);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly t = inject(TranslateService);
+  private readonly undoToast = inject(UndoToastService);
 
   private src: LoadoutDraftSources = {
     detail: NO_DETAIL,
@@ -121,6 +135,12 @@ export class CodexLoadoutDraftStore {
   /** The config a save writes to when the page was opened on one (`?config=`,
    * #646) — otherwise the ship's active config, as before. */
   private targetConfigId: string | null = null;
+  private readonly autosaveOnState = signal(false);
+  /** Swaps on the own exemplar save themselves (D3) — the save bar steps aside unless a save failed. */
+  readonly autosave = this.autosaveOnState.asReadonly();
+  private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly autosavePaths = new Set<string>();
+  private autosaveToast: { n: number; restore: ConfigLoadoutEntry[] } | null = null;
 
   readonly draftChangedCount = computed(() => draftChangedCount(this.draftState()));
   readonly saveableEntries = computed(() =>
@@ -134,6 +154,7 @@ export class CodexLoadoutDraftStore {
 
   /** A new entity loads: every trace of the previous draft goes. */
   reset(): void {
+    this.flushAutosave();
     this.draftState.set(EMPTY_DRAFT);
     this.draftPayloadsState.set(new Map());
     this.draftAmmoPayloadsState.set(new Map());
@@ -161,9 +182,11 @@ export class CodexLoadoutDraftStore {
     entries: readonly ConfigLoadoutEntry[],
     opts: { readOnly?: ReadOnlyDraftSource; configId?: string } = {},
   ): void {
+    this.flushAutosave();
     const draft = new Map<string, string | null>();
     for (const e of entries) {
-      if (!e?.portName || isNestedPath(e.portName) || !e.className) continue;
+      // Nested entries (`mount.gun`, D2) come back like top-level ones: stockValueForPath knows both.
+      if (!e?.portName || !e.className) continue;
       if (e.className !== this.stockValueForPath(e.portName)) draft.set(e.portName, e.className);
     }
     this.draftState.set(draft);
@@ -206,6 +229,7 @@ export class CodexLoadoutDraftStore {
     });
     if (pick.className) void this.hydrateDraftClass(pick.className);
     this.persistDraftMirror();
+    this.scheduleAutosave(paths);
   }
 
   /** Revert the row's own draft entries (the ↺ button). */
@@ -213,6 +237,7 @@ export class CodexLoadoutDraftStore {
     if (paths.length === 0 || this.readOnly()) return;
     this.draftState.update((d) => deleteDraftPaths(d, paths));
     this.persistDraftMirror();
+    this.scheduleAutosave(paths);
   }
 
   /** The STOCK value at a dotted path — top-level className, or a carried sub-port's. */
@@ -282,27 +307,50 @@ export class CodexLoadoutDraftStore {
   /**
    * Write the draft into the personal variant the page shows (`?v=`). Codex
    * mode (no variant) never saves — the page offers "In dein HQ übernehmen"
-   * (`adoptToHq`) instead. Never a from-scratch array: only OUR joinable,
-   * top-level paths are upserted/removed; every other row the config already
-   * carries — including ones the hangar editor wrote — survives untouched.
+   * (`adoptToHq`) instead. Never a from-scratch array: only OUR joinable
+   * paths (top-level and nested, D2) are upserted/removed; every other row the
+   * config already carries — including ones the hangar editor wrote — survives
+   * untouched.
    */
   async saveLoadoutDraft(): Promise<HangarShipConfig | null> {
+    if (this.saveableEntries().length === 0) return null;
+    this.cancelAutosaveTimer();
+    const extra = [...this.autosavePaths];
+    this.autosavePaths.clear();
+    return (await this.saveSnapshot(this.snapshot(extra)))?.updated ?? null;
+  }
+
+  /**
+   * Everything a save needs from the draft, read synchronously — so a flush
+   * right before a reset still writes what was shown. `extra`: paths changed
+   * since the last save that the draft may no longer mention (a revert back to
+   * Werk deletes the draft entry, but the stored row must go too).
+   */
+  private snapshot(extra: readonly string[] = []): SaveSnapshot | null {
     const d = this.src.detail();
-    if (d?.kind !== 'ship' || this.saveableEntries().length === 0 || this.readOnly()) return null;
     const targetId = this.targetConfigId;
-    if (!targetId) return null;
+    if (d?.kind !== 'ship' || !targetId || this.readOnly()) return null;
+    const entries = this.saveableEntries();
+    const touched = touchedSavePaths(this.draftState(), this.src.joinablePorts());
+    for (const p of extra) touched.add(p);
+    if (entries.length === 0 && touched.size === 0) return null;
+    return { shipClass: d.classNameSlug, targetId, entries, touched };
+  }
+
+  private async saveSnapshot(snap: SaveSnapshot | null): Promise<{ updated: HangarShipConfig; previous: ConfigLoadoutEntry[] } | null> {
+    if (!snap) return null;
     this.savingState.set(true);
     this.saveErrorState.set(null);
     try {
-      const ship = this.hangar.shipByClassName(d.classNameSlug);
+      const ship = this.hangar.shipByClassName(snap.shipClass);
       const configs = ship ? await this.hangar.listConfigs(ship.id) : [];
-      const target = configs.find((c) => c.id === targetId) ?? null;
+      const target = configs.find((c) => c.id === snap.targetId) ?? null;
       if (!target) {
         this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
         return null;
       }
-      const touched = touchedTopPorts(this.draftState(), this.src.joinablePorts());
-      const merged = mergeSavedLoadout(target.loadout, this.saveableEntries(), touched);
+      const previous = [...(target.loadout ?? [])];
+      const merged = mergeSavedLoadout(previous, snap.entries, snap.touched);
       // Wave 2.5 (fork guard, wave2-patch-share.md §D): a config the viewer
       // only FOLLOWS may never be edited directly — offer the one-time fork
       // before this write, abort silently on decline.
@@ -313,22 +361,129 @@ export class CodexLoadoutDraftStore {
           ? await this.hangar.forkFollowedLoadout(target.id, { loadout: merged })
           : await this.hangar.updateConfig(target.id, { loadout: merged });
       if (!updated) {
-        this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
+        this.saveErrorState.set(this.t.instant(this.hangar.error?.() ?? 'codex.loadout.saveErrorGeneric') as string);
         return null;
       }
-      this.targetConfigId = updated.id;
-      this.savedPathsState.set(new Set(this.saveableEntries().map((e) => e.portName)));
+      if (this.targetConfigId === snap.targetId) {
+        this.targetConfigId = updated.id;
+        this.savedPathsState.set(new Set(snap.entries.map((e) => e.portName)));
+      }
       // The share popover snapshots the page's active config — hand it the
       // config that was just written, not the one loaded at page open.
       this.src.onSaved(updated);
-      return updated;
+      return { updated, previous };
     } catch (error) {
       logWarn('codex', 'loadout save failed', error);
-      this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
+      this.saveErrorState.set(this.t.instant(toErrorKey('codex', 'saveLoadout', error)) as string);
       return null;
     } finally {
       this.savingState.set(false);
     }
+  }
+
+  // ── autosave on an own exemplar (concept holotisch-feinschliff D3) ──────
+
+  /**
+   * On: the table shows the reader's OWN exemplar (the page decides — not
+   * Werk, not a shared read-only link, not a followed config) and every swap /
+   * revert is written by itself, debounced so a burst of swaps is one save,
+   * confirmed by ONE undo toast. Off (Werk, the sandbox): nothing saves unless
+   * the reader asks.
+   */
+  setAutosave(on: boolean): void {
+    if (this.autosaveOnState() === on) return;
+    if (!on) this.flushAutosave();
+    this.autosaveOnState.set(on);
+  }
+
+  /** A swap / revert happened: (re)arm the debounce, remember which paths changed. */
+  private scheduleAutosave(paths: readonly string[]): void {
+    if (!this.autosaveOnState() || this.readOnly() || !this.targetConfigId || paths.length === 0) return;
+    for (const p of paths) this.autosavePaths.add(p);
+    this.cancelAutosaveTimer();
+    this.autosaveTimer = setTimeout(() => {
+      this.autosaveTimer = null;
+      this.startAutosave();
+    }, AUTOSAVE_DEBOUNCE_MS);
+  }
+
+  /** A pending autosave is written NOW (new loadout on the table, page left) — with the draft as it is at this moment. */
+  flushAutosave(): void {
+    if (this.autosaveTimer === null) return;
+    this.cancelAutosaveTimer();
+    this.startAutosave();
+  }
+
+  private cancelAutosaveTimer(): void {
+    if (this.autosaveTimer !== null) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
+  }
+
+  private startAutosave(): void {
+    const changed = this.autosavePaths.size;
+    const snap = this.snapshot([...this.autosavePaths]);
+    this.autosavePaths.clear();
+    if (snap && changed > 0) void this.runAutosave(snap, changed);
+  }
+
+  private async runAutosave(snap: SaveSnapshot, changed: number): Promise<void> {
+    // One toast for a run of saves: while the last one is still showing, its
+    // count grows and its undo goes back to the loadout before the FIRST save.
+    const live = this.autosaveToast;
+    const result = await this.saveSnapshot(snap);
+    if (!result) return; // saveError carries the failure — the save bar shows it
+    const n = (live?.n ?? 0) + changed;
+    const toast = { n, restore: live?.restore ?? result.previous };
+    this.autosaveToast = toast;
+    this.undoToast.offer({
+      messageKey: n === 1 ? 'codex.holo.hangar.autosavedOne' : 'codex.holo.hangar.autosavedMany',
+      messageParams: { n },
+      commit: () => {
+        if (this.autosaveToast === toast) this.autosaveToast = null;
+      },
+      onUndo: () => {
+        if (this.autosaveToast === toast) this.autosaveToast = null;
+        void this.undoAutosave(result.updated.id, toast.restore);
+      },
+    });
+  }
+
+  /** "Rückgängig" on the autosave toast: the config gets its earlier loadout back and the table shows it. */
+  private async undoAutosave(configId: string, loadout: ConfigLoadoutEntry[]): Promise<void> {
+    this.cancelAutosaveTimer();
+    this.autosavePaths.clear();
+    this.savingState.set(true);
+    this.saveErrorState.set(null);
+    try {
+      const back = await this.hangar.updateConfig(configId, { loadout });
+      if (!back) {
+        this.saveErrorState.set(this.t.instant(this.hangar.error?.() ?? 'codex.loadout.saveErrorGeneric') as string);
+        return;
+      }
+      this.src.onSaved(back);
+      if (this.targetConfigId === configId) this.applyStoredLoadout(back.loadout, { configId });
+    } catch (error) {
+      logWarn('codex', 'autosave undo failed', error);
+      this.saveErrorState.set(this.t.instant(toErrorKey('codex', 'undoAutosave', error)) as string);
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  /**
+   * The draft as a stored loadout of its own (D1: "Auf die Wunschliste" from a
+   * swapped Werk keeps the swaps): the saveable entries, top-level and nested.
+   */
+  draftAsLoadout(): ConfigLoadoutEntry[] {
+    if (this.readOnly()) return [];
+    return mergeSavedLoadout([], this.saveableEntries(), touchedSavePaths(this.draftState(), this.src.joinablePorts()));
+  }
+
+  ngOnDestroy(): void {
+    // Leaving the page inside the debounce window still writes the last swaps.
+    this.flushAutosave();
   }
 
   /**
@@ -349,7 +504,7 @@ export class CodexLoadoutDraftStore {
         this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
         return null;
       }
-      const touched = touchedTopPorts(this.draftState(), this.src.joinablePorts());
+      const touched = touchedSavePaths(this.draftState(), this.src.joinablePorts());
       const loadout = this.readOnly() ? [] : mergeSavedLoadout([], this.saveableEntries(), touched);
       const created = await this.hangar.createConfig(
         ship.id,
@@ -373,6 +528,9 @@ export class CodexLoadoutDraftStore {
   }
 
   discardLoadoutDraft(): void {
+    // Discarding drops the pending swaps too — they were never meant to be kept.
+    this.cancelAutosaveTimer();
+    this.autosavePaths.clear();
     const target = this.targetConfigId;
     this.reset();
     this.targetConfigId = target;
@@ -446,6 +604,7 @@ export class CodexLoadoutDraftStore {
   applySavedDraft(entries: readonly [string, string | null][], sourceBuildId: string): boolean {
     const buildId = this.svc.build()?.id;
     if (!buildId || this.readOnly() || entries.length === 0) return false;
+    this.flushAutosave();
     this.saveErrorState.set(null);
     this.savedPathsState.set(new Set());
     // Saved against THIS build, every class was picked from it: hydrate them

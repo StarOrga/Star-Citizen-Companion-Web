@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
+import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
 
 /**
  * ENTWURFSLEISTE — the draft half of the mission bar's right side (MASTER §5),
@@ -32,7 +33,7 @@ import { DesktopCapabilityService } from '../core/desktop-capability.service';
   imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (changed() > 0) {
+    @if (changed() > 0 && !autosaveCovers()) {
       <div class="bar sc-card">
         <!-- The three parts the concept draws, and nothing else. -->
         <div class="lead">
@@ -118,6 +119,16 @@ export class CodexLoadoutSaveBarComponent {
   readonly save = output<void>();
   readonly discard = output<void>();
   readonly addAndSave = output<void>();
+
+  /** The page's draft store (absent outside a codex detail page). */
+  private readonly draftStore = inject(CodexLoadoutDraftStore, { optional: true });
+  /**
+   * On an own exemplar every swap saves itself (D3, the toast confirms it): the bar has nothing to offer and steps
+   * aside — unless a save failed (the error and the retry show here) or part of the draft cannot be saved.
+   */
+  protected readonly autosaveCovers = computed(
+    () => !!this.draftStore?.autosave() && !this.error() && this.saveable() >= this.changed(),
+  );
 
   /** The one place the app asks whether a hover tooltip can be reached. */
   private readonly capability = inject(DesktopCapabilityService);

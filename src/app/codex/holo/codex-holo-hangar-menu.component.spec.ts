@@ -45,6 +45,26 @@ describe('CodexHoloHangarMenuComponent', () => {
     expect(rows[2].querySelector('.sum')).toBeNull();
   });
 
+  it('lists a wish with its loadout under Wunschliste with its diff count, and selects it like an exemplar (D1)', () => {
+    fixture.componentRef.setInput('wishes', [ex('wish-1', 2)]);
+    fixture.componentRef.setInput('activeId', 'wish-1');
+    open();
+    const wish = q('a.row.wish');
+    expect(wish).not.toBeNull();
+    expect(wish!.getAttribute('href')).toContain('?v=wish-1');
+    expect(wish!.getAttribute('aria-checked')).toBe('true');
+    expect(wish!.querySelector('sc-holo-diff-marker')).not.toBeNull();
+    expect(q('.hb .ex')!.textContent).toContain('Gladius · wish-1');
+  });
+
+  it('on a swapped Werk the wish button says the swaps go with it', () => {
+    fixture.componentRef.setInput('activeId', null);
+    fixture.componentRef.setInput('werkChanged', 2);
+    open();
+    const wishBtn = all('button.add').find((b) => (b.textContent ?? '').includes('codex.holo.hangar.toWishlist'));
+    expect(wishBtn?.querySelector('.with')?.textContent).toContain('codex.holo.hangar.wishWithMany');
+  });
+
   it('on Werk offers saving as an exemplar, never "new exemplar from Werk"', () => {
     fixture.componentRef.setInput('activeId', null);
     open();

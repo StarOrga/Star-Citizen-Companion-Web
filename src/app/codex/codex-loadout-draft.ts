@@ -76,10 +76,13 @@ export interface SaveableEntry {
 }
 
 /**
- * R2: only TOP-LEVEL, non-emptied entries whose path is itself a joinable
- * `codex_item_ports.port_name` may ever be persisted. A nested `mount.gun`
- * path or an emptied top-level slot has nowhere to live in the current schema
- * and stays draft-only (06-fallen.md Falle 1, "nur oberste Ebene").
+ * R2: only non-emptied entries whose TOP segment is a joinable
+ * `codex_item_ports.port_name` may be persisted. A nested path (`mount.gun`,
+ * a gun inside a gimbal) is stored with its full dotted path as `portName`
+ * (concept holotisch-feinschliff D2): an older reader that only knows
+ * top-level ports never matches it and skips it, so existing rows and older
+ * clients stay compatible. An emptied slot still has nowhere to live and stays
+ * draft-only.
  */
 export function selectSaveableEntries(
   draft: DraftMap,
@@ -88,36 +91,41 @@ export function selectSaveableEntries(
 ): SaveableEntry[] {
   const out: SaveableEntry[] = [];
   for (const [path, value] of draft) {
-    if (isNestedPath(path) || value === null) continue;
-    if (!joinablePorts.has(path)) continue;
+    if (value === null) continue;
+    if (!joinablePorts.has(topSegment(path))) continue;
     out.push({ portName: path, className: value, kind: kindOf(value) });
   }
   return out;
 }
 
 /**
- * R1: never write a from-scratch array. `touchedTopPorts` is every top-level,
- * joinable path the draft currently mentions (saveable AND emptied/reverted) —
+ * R1: never write a from-scratch array. `touched` is every path the draft
+ * currently mentions under a joinable top port (see {@link touchedSavePaths}):
  * anything the user touched this session that is no longer a saveable
  * className must be REMOVED from the stored config, not left behind as a
- * stale override. Everything else in the existing config (rows written by the
+ * stale override. A stored nested entry whose PARENT port was touched goes
+ * too unless the draft still carries it - it described the gimbal that was
+ * swapped away. Everything else in the existing config (rows written by the
  * hangar editor, or by an earlier codex session against a different port) is
  * preserved untouched.
  */
 export function mergeSavedLoadout(
   existing: readonly ConfigLoadoutEntry[],
   saveable: readonly SaveableEntry[],
-  touchedTopPorts: ReadonlySet<string>,
+  touched: ReadonlySet<string>,
 ): ConfigLoadoutEntry[] {
-  const kept = existing.filter((e) => !touchedTopPorts.has(e.portName));
+  const kept = existing.filter((e) => {
+    if (!e?.portName || touched.has(e.portName)) return false;
+    return !(isNestedPath(e.portName) && touched.has(topSegment(e.portName)));
+  });
   return [...kept, ...saveable.map((e) => ({ portName: e.portName, className: e.className, kind: e.kind }))];
 }
 
-/** Every top-level, joinable path the draft currently mentions (see above). */
-export function touchedTopPorts(draft: DraftMap, joinablePorts: ReadonlySet<string>): Set<string> {
+/** Every path - top-level or nested - the draft mentions under a joinable top port (see above). */
+export function touchedSavePaths(draft: DraftMap, joinablePorts: ReadonlySet<string>): Set<string> {
   const out = new Set<string>();
   for (const path of draft.keys()) {
-    if (!isNestedPath(path) && joinablePorts.has(path)) out.add(path);
+    if (joinablePorts.has(topSegment(path))) out.add(path);
   }
   return out;
 }

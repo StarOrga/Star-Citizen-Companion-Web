@@ -1199,7 +1199,13 @@
         "wishAgain": "Noch eine wünschen",
         "nameTitle": "Name des Exemplars",
         "nameLabel": "Name",
-        "nameSuggested": "Vorschlag: „{{name}}“ — du kannst ihn übernehmen oder einen eigenen Namen eingeben."
+        "nameSuggested": "Vorschlag: „{{name}}“ — du kannst ihn übernehmen oder einen eigenen Namen eingeben.",
+        "autosavedOne": "Gespeichert · 1 Änderung",
+        "autosavedMany": "Gespeichert · {{n}} Änderungen",
+        "wishWithOne": "mit 1 getauschten Teil",
+        "wishWithMany": "mit {{n}} getauschten Teilen",
+        "wishName": "Wunsch: {{name}}",
+        "wishLoadoutUnavailable": "Auf der Wunschliste — die Ausstattung kann dort noch nicht gespeichert werden."
       },
       "partType": {
         "gatling": "Gatling",
