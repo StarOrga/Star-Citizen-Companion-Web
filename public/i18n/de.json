@@ -8192,16 +8192,10 @@
     }
   },
   "quick": {
-    "title": "Schnellzugriff",
-    "recent": "Zuletzt geöffnet",
-    "more": "Mehr anzeigen",
-    "less": "Weniger anzeigen",
-    "emptyRecent": "Noch nichts geöffnet.",
+    "toNachschub": "In einen Nachschub: {{name}}",
     "wish": "Wunschliste",
-    "lastAdded": "zuletzt hinzugefügt",
     "emptyWish": "Noch nichts auf der Wunschliste.",
     "allWish": "Ganze Wunschliste · {{n}} Positionen",
-    "emptyContext": "Hier noch nichts.",
     "section": {
       "inventar": "Inventar",
       "hangar": "Hangar",
@@ -8219,9 +8213,7 @@
       "item": "Gegenstände",
       "blueprint": "Blaupausen",
       "news": "News"
-    },
-    "recentNeedsConsent": "Geöffnete Seiten merkt sich dieses Gerät nur mit der Einwilligung „Präferenzen“.",
-    "recentConsentLink": "Einstellungen öffnen"
+    }
   },
   "cart": {
     "title": "Wunschliste",

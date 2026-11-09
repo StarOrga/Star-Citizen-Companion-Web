@@ -4,13 +4,17 @@ import {
   ElementRef,
   HostListener,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { HeaderPopoutService } from './header-popout.service';
 import { environment } from '../../environments/environment';
 import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
@@ -58,19 +62,19 @@ export interface AppEntry {
 @Component({
   selector: 'sc-apps-menu',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (offered()) {
       <div class="apps">
         <button #trigger type="button" class="trigger" [class.on]="open()" (click)="toggle($event)"
-                aria-haspopup="true" [attr.aria-expanded]="open()" [attr.aria-controls]="open() ? panelId : null">
+                aria-haspopup="true" [attr.aria-expanded]="open()" [attr.aria-controls]="open() ? panelId : null"
+                [attr.aria-label]="'appsMenu.trigger' | translate" [scTooltip]="open() ? null : ('appsMenu.trigger' | translate)" scTooltipTier="label">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <circle cx="6" cy="6" r="1.8" /><circle cx="12" cy="6" r="1.8" /><circle cx="18" cy="6" r="1.8" />
             <circle cx="6" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="18" cy="12" r="1.8" />
             <circle cx="6" cy="18" r="1.8" /><circle cx="12" cy="18" r="1.8" /><circle cx="18" cy="18" r="1.8" />
           </svg>
-          <span class="label">{{ 'appsMenu.trigger' | translate }}</span>
         </button>
         @if (open()) {
           <div class="pop" [id]="panelId" role="group" [attr.aria-label]="'appsMenu.aria' | translate">
@@ -109,15 +113,14 @@ export interface AppEntry {
   styles: [`
     :host { display: inline-flex; }
     .apps { position: relative; }
+    /* The header's one icon-button style (same as the wishlist trigger): square, bordered, icon only. */
     .trigger {
-      display: inline-flex; align-items: center; gap: 7px; height: var(--sc-head-item-h, 40px); padding: 0 12px;
-      border-radius: calc(var(--sc-head-item-h, 40px) / 2); border: 1px solid var(--sc-border); background: var(--sc-bg-1);
-      color: var(--sc-fg-1); font-family: var(--sc-font-display); font-size: 12px;
-      letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
-      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6); transition: border-color 0.18s ease, color 0.18s ease;
+      display: grid; place-items: center; width: var(--sc-head-item-h, 40px); height: var(--sc-head-item-h, 40px); padding: 0;
+      border-radius: 8px; border: 1px solid var(--sc-border); background: transparent; color: var(--sc-accent); cursor: pointer;
     }
-    .trigger svg { width: 16px; height: 16px; }
-    .trigger:hover, .trigger.on { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .trigger svg { width: 22px; height: 22px; }
+    .trigger:hover, .trigger.on { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+    .trigger.on { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc-accent) 18%, transparent); }
     .trigger:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .pop {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
@@ -153,8 +156,9 @@ export interface AppEntry {
       margin: 4px 0 0; padding: 8px 10px 4px; border-top: 1px solid var(--sc-border);
       font-size: 0.72rem; line-height: 1.4; color: var(--sc-fg-2);
     }
-    @media (max-width: 720px) { .label { display: none; } .trigger { padding: 0 11px; } }
-    @media (pointer: coarse) { .trigger { min-height: 48px; } .entry { min-height: 48px; } }
+    /* Phones: the Apps button leaves the header (desktop apps are not installable there). */
+    @media (max-width: 749px) { :host { display: none; } }
+    @media (pointer: coarse) { .trigger { width: 48px; height: 48px; } .entry { min-height: 48px; } }
   `],
 })
 export class AppsMenuComponent {
@@ -162,6 +166,7 @@ export class AppsMenuComponent {
   private readonly device = inject(DesktopCapabilityService);
   private readonly releases = inject(DesktopReleaseService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly popouts = inject(HeaderPopoutService);
 
   readonly panelId = `apps-menu-${++uid}`;
   readonly open = signal(false);
@@ -175,6 +180,13 @@ export class AppsMenuComponent {
 
   private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
   readonly offered = computed(() => this.device.canInstall());
+
+  constructor() {
+    // Another header popout took the slot: this one folds away.
+    effect(() => {
+      if (this.popouts.active() !== 'apps' && untracked(() => this.open())) this.open.set(false);
+    });
+  }
 
   /**
    * The apps this role sees, each as ONE stable download. SCC App points at its
@@ -227,12 +239,17 @@ export class AppsMenuComponent {
     ev.stopPropagation();
     const next = !this.open();
     this.open.set(next);
-    if (next) void this.load();
+    if (next) {
+      this.popouts.claim('apps');
+      void this.load();
+    } else {
+      this.popouts.release('apps');
+    }
   }
 
   /** Only a plain left click folds the menu away (modified clicks open a new tab). */
   onPick(ev: MouseEvent): void {
-    if (isPlainLeftClick(ev)) this.open.set(false);
+    if (isPlainLeftClick(ev)) this.closeMenu();
   }
 
   private async load(): Promise<void> {
@@ -262,15 +279,20 @@ export class AppsMenuComponent {
     }
   }
 
+  private closeMenu(): void {
+    this.open.set(false);
+    this.popouts.release('apps');
+  }
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(ev: MouseEvent): void {
-    if (this.open() && !this.host.nativeElement.contains(ev.target as Node)) this.open.set(false);
+    if (this.open() && !this.host.nativeElement.contains(ev.target as Node)) this.closeMenu();
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (!this.open()) return;
-    this.open.set(false);
+    this.closeMenu();
     this.trigger()?.nativeElement.focus();
   }
 }

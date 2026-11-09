@@ -151,9 +151,23 @@ describe('ShellComponent - elevated-access marking in the account menu', () => {
       expect(item, href).toBeTruthy();
       expect(item!.classList, href).not.toContain('elevated');
     }
-    const signOut = items(el).find((b) => (b.textContent ?? '').includes('nav.signOut'));
+    // Sign-out is a tertiary icon button right of the name/email header, not a menu row.
+    expect(items(el).some((b) => (b.textContent ?? '').includes('nav.signOut'))).toBe(false);
+    const signOut = el.querySelector<HTMLButtonElement>('.dropdown-header .dh-signout');
     expect(signOut).toBeTruthy();
-    expect(signOut!.classList).not.toContain('elevated');
+    expect(signOut!.classList).toContain('sc-action--tertiary');
+    expect(signOut!.getAttribute('aria-label')).toBe('nav.signOut');
+  });
+
+  it('orders the menu: Social, Einstellungen - divider - Admin, Integrationen - divider - Ansehen als', () => {
+    const el = setup({ targets: ['collaborator', 'viewer', 'anon'], active: false, admin: true });
+    const seq = Array.from(el.querySelectorAll<HTMLElement>('.dropdown > a.dropdown-item, .dropdown > button.dropdown-item, .dropdown > hr, .dropdown > .dropdown-sep'))
+      .map((n) => (n.tagName === 'HR' ? '|' : n.classList.contains('dropdown-sep') ? '|' : (n.getAttribute('href') ?? n.textContent!.trim())));
+    expect(seq).toEqual([
+      '/social', '/settings',
+      '|', '/admin/api-tokens', // the hub entry needs the beta shell, off in this spec
+      '|', 'nav.viewAs.collaborator', 'nav.viewAs.viewer', 'nav.viewAs.anon',
+    ]);
   });
 
   it('shows no elevated surface at all for a plain viewer', () => {
