@@ -905,7 +905,6 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     clearInterval(this.clockTimer);
     if (this.flashTimer !== null) clearTimeout(this.flashTimer);
     if (this.cardFlashTimer !== null) clearTimeout(this.cardFlashTimer);
-    const panel = this.host.nativeElement.querySelector<HTMLElement>('.panel');
     this.scrollListener?.();
   }
 

@@ -35,3 +35,11 @@ Source: concepts `20261106-1513-verse-aufbau` and `20261109-1752-kamera-welt` (r
 ## Measured
 
 - Sporadic long frames when the app opens on `/verse`, some runs none at all: work in the GPU process (ANGLE worker tasks, raster flushes) while the main thread is free. Dropping the blur from the arrivals brought no provable gain in 14 alternating runs on a loaded machine, so the blur stays.
+
+## Kamera-Welt: what keeps the camera smooth (2026-11-09)
+
+- **Glass only on the header, menus and dialogs.** `backdrop-filter` re-blurs whatever moves under it on every frame — over a scrolling page or a flying camera that is the most expensive thing on screen. Cards, lists, panels, toasts, pills, rails and stage chrome carry a fixed, darker tone instead (the blur's average over the dark scene); the header (`.topbar`, `.public-topbar`), popovers/menus and every dialog scrim keep their glass.
+- **One scroll tick.** Every scroll-linked reader subscribes to `onScrollTick` (`src/app/core/scroll-tick.ts`): one passive capture listener outside the zone, one animation frame per scroll burst, all `read`s before all `write`s. A new scroll listener goes through it, never its own `addEventListener('scroll')`. Specs call `flushScrollTick()` after dispatching a scroll.
+- **The fusion bar measures a morph once.** `measureCondense` caches the slot's page position and the cap's offsets per morph and re-measures only on resize, a moved slot, a reflow or a new anchor; per frame it only subtracts `scrollY`.
+- **The live planet parks while a pose hides it** (`[paused]` on `sc-briefing-planet`, set by the shell scene once the fade-out flight is over); it already stopped off screen and without focus.
+- Measurements and the method: `docs/concepts/20261109-1752-kamera-welt/perf-report.md`.
