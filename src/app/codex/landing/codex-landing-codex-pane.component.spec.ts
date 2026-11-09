@@ -40,7 +40,12 @@ describe('visibleEntries', () => {
 });
 
 describe('withEarlierPatches (#318)', () => {
-  type R = { id: string; isNew?: boolean; patch?: string; head?: string };
+  interface R {
+    id: string;
+    isNew?: boolean;
+    patch?: string;
+    head?: string;
+  }
   const head = (patch: string): R => ({ id: 'h' + patch, head: patch });
   const ids = (rows: R[]) => rows.map((r) => r.id);
 
