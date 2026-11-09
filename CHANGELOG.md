@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.240.1] - 2026-11-09
+
+### Fixed
+- HQ Planen: "In einen Nachschub" from the cart on another page opens the Nachschub flow again instead of failing.
+- HQ Nachschub flow: "Kaufen" / "Abbauen" set the way of a material line (clicking the active one no longer flips it); a refused rename shows its error; an event chosen while editing binds the Nachschub to that event.
+- HQ: Einsätze of a deleted Nachschub no longer linger on the Start tile or get ticked by the live agent.
+- HQ events: a claim whose Bestand write fails stays open with an error; ended events leave long-open tabs; the end-of-event archive runs per account and after a failed load.
+- HQ Bestand: handing out a reservation larger than what is left no longer fails silently.
+- HQ texts: the Start "Jetzt" tile names event steps, the Jetzt log shows German dates and names common game events, the new-Nachschub dialog shows the same slot number as the board.
+- "Auf dem Handy weitermachen": the connected-phone hint and the sign-out confirmation show text instead of raw keys.
+- HQ person stage: the "Waffen" archive link opens the weapons list instead of Verse.
+- Covered controls: HQ content no longer sits under the page rail (1024–1439 px) or the app-status chip on phones; the beta switch stays below dialogs; the wishlist cart footer keeps clear of the feedback button on phones.
+- Footer: the fan-site notice closes on Escape and on a click beside it.
+- Wishlist: a removal is saved when the tab is hidden or closed inside the undo window.
+
 ## [0.240.0] - 2026-11-09
 
 ### Changed
