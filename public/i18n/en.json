@@ -927,7 +927,6 @@
         "detailHide": "Detail ▴",
         "allValues": "All values ▾",
         "allValuesHide": "All values ▴",
-        "journal": "Change journal",
         "journalChanged": "Changed: {{label}}",
         "undo": "Undo",
         "detailsShow": "Details ▾",
@@ -949,9 +948,7 @@
         "portsCount": "{{n}} ports",
         "legendConfigurable": "configurable",
         "legendMissiles": "missiles",
-        "legendHint": "Hover = short values · click = inspector",
         "inspectorEmptyTitle": "No hardpoint selected",
-        "inspectorEmptyBody": "Click a pin — or press “1” to “{{n}}”.",
         "emptyBay": "Empty bay",
         "journalEmpty": "Nothing yet — factory loadout.",
         "allPorts": "All {{n}} ports",
@@ -987,7 +984,6 @@
         "backToParts": "All parts",
         "backHint": "Back to the list (Esc)",
         "partsTotal": "{{n}} parts",
-        "partsInstalled": "{{n}} fitted",
         "partSize": "Size",
         "partGrade": "Grade",
         "iconWishlist": "Wishlist",
@@ -1000,8 +996,6 @@
         "previewBuy": "Where to buy",
         "previewAlternatives": "Alternatives",
         "previewOpen": "Open detail page",
-        "patchDiff": "Patch comparison",
-        "patchDiffHint": "Pick another patch in the patch menu above and this shows what changed on this ship.",
         "viewAkte": "File",
         "view3dUnavailable": "There is no 3D model for this ship yet.",
         "viewsAria": "View",
@@ -1048,10 +1042,8 @@
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
-          "comparing": "Comparing with {{patch}}",
           "hotkeyHint": "Compare with another patch"
         },
-        "popTitle": "Choose a patch",
         "loading": "Loading …",
         "empty": "No further patches available.",
         "notFinalised": "Not finalised",
@@ -1085,7 +1077,23 @@
         },
         "deltaShow": "Show changes",
         "deltaHide": "Hide changes",
-        "current": "active"
+        "current": "current",
+        "hint": "Pick an older patch on the left and this shows what changed on this ship.",
+        "fromAria": "From {{patch}} — pick a patch",
+        "toAria": "To {{patch}} — pick a patch",
+        "fromTitle": "From patch",
+        "toTitle": "To patch",
+        "pickFrom": "Pick a patch",
+        "orderHint": "The right side is always the newer patch. Pick older ones on the left under “from”.",
+        "onOtherSide": "already on the other side",
+        "newerThan": "not older than {{patch}}",
+        "olderThan": "not newer than {{patch}}",
+        "changedOn": "What changed on the {{name}}",
+        "channel": {
+          "LIVE": "Live",
+          "PTU": "PTU",
+          "EPTU": "EPTU"
+        }
       },
       "share": {
         "copyLink": "Copy link",
@@ -1138,6 +1146,23 @@
         "tagAria": "{{type}} {{size}}: {{name}}",
         "legendDiff": "differs from stock",
         "legendHint": "Click = pick a part"
+      },
+      "card": {
+        "rank": "Rank {{n}} of {{m}}",
+        "overallTip": "Overall: better than {{pct}} % of the group",
+        "compareWith": "Compare with",
+        "scopeOff": "{{name}} · no data",
+        "shapeAria": "How the ranking is drawn",
+        "shapeHex": "Hexagon",
+        "shapeBars": "Bars",
+        "changesAria": "Kind of changes",
+        "changesMine": "Your changes",
+        "changesPatch": "Patch comparison",
+        "changesHead": "Swapped against the stock loadout",
+        "backToWerk": "Back to stock"
+      },
+      "inspector": {
+        "diffLegend": "differs from stock"
       }
     },
     "empty": {

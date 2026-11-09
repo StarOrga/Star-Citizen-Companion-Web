@@ -11,6 +11,7 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   output,
   signal,
   untracked,
@@ -82,6 +83,7 @@ import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
 import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { ScSegmentedComponent, ScSegmentOption } from '../../shared/segmented-control.component';
 import { HoloHotkeyAction, HoloSurface, holoHotkeyFor, holoHotkeyLabel, nextHoloSurface } from './codex-holo-hotkeys';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 import { type BlueprintViewName, blueprintView } from '../ship-blueprint/ship-blueprint.model';
@@ -246,6 +248,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   selector: 'sc-codex-holo-stage',
   standalone: true,
   imports: [FeedbackSpotDirective,
+    ScSegmentedComponent,
     NgTemplateOutlet,
     TranslatePipe,
     RouterLink,
@@ -343,6 +346,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             [attr.inert]="activeView() === 'akte' ? '' : null"
             [pins]="tablePins()"
             [labelPins]="labelPins()"
+            [partFilter]="partFilter()"
+            [diffPorts]="changedPorts()"
+            (portSwap)="onPortSwap($event)"
             [schemaView]="schemaView()"
             [orbit]="pinRing()"
             [silhouette]="silhouette()"
@@ -397,11 +403,20 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
           <div class="pbody" id="holo-tabpanel" role="tabpanel" tabindex="-1" [attr.aria-labelledby]="'holo-tab-' + panelTab()">
             <!-- slot: the patch choice (C18) — moved out of the head into the Änderungen tab.
                  Stays alive across tab switches (its comparison feeds the strip's ghosts and the pins). -->
+            @if (panelTab() === 'changes') {
+              <!-- C17: what the reader changed vs. what a patch changed — a segment switch, not an action. -->
+              <sc-segmented class="compact chg-sw"
+                [options]="changeViews"
+                [value]="changeView()"
+                [ariaLabel]="'codex.holo.card.changesAria' | translate"
+                (valueChange)="changeView.set($event === 'patch' ? 'patch' : 'mine')" />
+            }
             @if (buildRef(); as ab) {
-              <div class="patch-slot" [hidden]="panelTab() !== 'changes'">
+              <div class="patch-slot" [hidden]="panelTab() !== 'changes' || changeView() !== 'patch'">
                 <sc-codex-holo-patch
                   [hotkey]="hkLabel.patch"
-                  [dockDelta]="true"
+                  [shipName]="displayName()"
+                  [autoCompare]="panelTab() === 'changes' && changeView() === 'patch'"
                   [className]="detail().classNameSlug"
                   [channel]="channel()"
                   [activeBuild]="ab"
@@ -432,6 +447,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
                     [modelPorts]="modelPortSet()"
                     [allParts]="hotspotScope() === 'all'"
                     [packageRows]="packageRows()"
+                    [changedPorts]="changedPorts()"
                     (closed)="closeInspector()"
                     (pinInspect)="inspectPin($event)"
                     (hovered)="hovered.emit($event)"
@@ -444,14 +460,10 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
                 }
                 @case ('rank') {
                   <div class="rankbody" [scFeedbackSpot]="'codex.holo.stage.einordnung'">
-                    <div class="rh">
-                      @if (rankResult()?.overall != null) {
-                        <strong>{{ rankResult()!.bandKey! | translate }}</strong>
-                        <span>{{ rankResult()!.overall }} %</span>
-                      } @else {
-                        <strong>{{ roleName() ?? (rankClassLabel() | translate) }}</strong>
-                      }
-                    </div>
+                    <!-- With a ranking the card itself opens with "Rang N von M" (C15). -->
+                    @if ((rankResult()?.overall ?? null) === null) {
+                      <div class="rh"><strong>{{ roleName() ?? (rankClassLabel() | translate) }}</strong></div>
+                    }
                     <div class="statics">
                       @for (k of staticKeys; track k) {
                         <div tabindex="0" [scTooltip]="staticChipTitle(k)" scTooltipTier="label">
@@ -485,16 +497,17 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
                   </div>
                 }
                 @case ('changes') {
-                  <sc-codex-holo-changes [journal]="journal()" [readOnly]="readOnly()" (reverted)="reverted.emit($event)">
+                  @if (changeView() === 'mine') {
+                    <sc-codex-holo-changes [journal]="journal()" [readOnly]="readOnly()" (reverted)="reverted.emit($event)" />
+                  } @else {
                     <div class="patchdiff">
                       @if (patchDeltaBody(); as tpl) {
                         <ng-container [ngTemplateOutlet]="tpl" />
                       } @else {
-                        <div class="sub"><span>{{ 'codex.holo.stage.patchDiff' | translate }}</span><i></i></div>
-                        <p class="patchhint">{{ 'codex.holo.stage.patchDiffHint' | translate }}</p>
+                        <p class="patchhint">{{ 'codex.holo.patch.hint' | translate }}</p>
                       }
                     </div>
-                  </sc-codex-holo-changes>
+                  }
                 }
               }
             }
@@ -793,8 +806,6 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .statics .v { font-family: var(--m); font-size: 12.5px; color: var(--sc-fg-0); white-space: nowrap; }
   /* Touch: the focusable chips carry the tooltip, so they are tap targets. */
   @media (pointer: coarse) { .statics div { min-width: var(--sc-tap-min); min-height: var(--sc-tap-min); align-content: center; } }
-  .sub { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); display: flex; align-items: center; gap: 8px; }
-  .sub i { flex: 1; height: 1px; background: var(--hair); }
   /* Touch: the focusable title reaches the tap minimum. */
   @media (pointer: coarse) {
     .ht-name { min-height: var(--sc-tap-min); line-height: var(--sc-tap-min); }
@@ -858,6 +869,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   @media (pointer: coarse) { .vf-chip { height: var(--sc-tap-min, 44px); } }
   /* The fixed card's patch slot (C18): only on the Änderungen tab. */
   .patch-slot { margin-bottom: 10px; }
+  .chg-sw { display: block; margin-bottom: 10px; }
+  .chg-sw ::ng-deep .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; }
   .patch-slot[hidden] { display: none; }
   /* On a desktop the panel's part list replaces the dense key under the table: one list, not two. */
   @media (min-width: 1001px) { .holo-stage ::ng-deep .pin-key { display: none; } }
@@ -1404,6 +1417,14 @@ export class CodexHoloStageComponent {
   readonly patchGhosts = signal<HoloPatchKpiGhosts | null>(null);
   readonly patchPortPins = signal<Readonly<Record<string, PortPinBadge>> | null>(null);
   readonly patchComparisonBuild = signal<CodexBuild | null>(null);
+  /** Änderungen sub-view (C17): an exemplar opens on the reader's own changes, the Werk on the patch comparison. */
+  readonly changeViews: readonly ScSegmentOption[] = [
+    { value: 'mine', labelKey: 'codex.holo.card.changesMine' },
+    { value: 'patch', labelKey: 'codex.holo.card.changesPatch' },
+  ];
+  readonly changeView = linkedSignal<'mine' | 'patch'>(() => (this.inHangar() ? 'mine' : 'patch'));
+  /** Ports whose part differs from the Werk — the ◆ marker in the Bauteile list (C19). */
+  readonly changedPorts = computed<ReadonlySet<string>>(() => new Set(this.journal().map((e) => e.port)));
 
   /** 3D model availability, answered by the skin catalog (never by a mounted
    * viewer, which would only exist once the user is already in 3D). */
@@ -1794,6 +1815,7 @@ export class CodexHoloStageComponent {
       case 'patch':
         // The patch choice sits in the Änderungen tab (C18): the key opens that tab with it.
         this.panelTab.set('changes');
+        this.changeView.set('patch');
         this.patchChooser()?.toggle();
         break;
       case 'view':
@@ -2270,6 +2292,14 @@ export class CodexHoloStageComponent {
     if (it) this.swapRequested.emit(partFocusOf(it, this.inspectedSection()).target);
   }
 
+  /** A table callout's swap icon (schema views): inspect that port, then swap it. */
+  onPortSwap(port: string): void {
+    if (this.readOnly() || this.inspectorIsRawPort()) return;
+    if (this.inspectedPort() !== port) this.inspectPin(port);
+    const it = this.inspectorTarget();
+    if (it) this.swapRequested.emit(partFocusOf(it, this.inspectedSection()).target);
+  }
+
   /** A row under "Alle Teile". */
   onRowPick(r: PlacementRow): void {
     this.onPartSelected({ id: r.p.id, portName: r.p.portName, itemClass: r.p.itemClass, swappable: false });
@@ -2286,7 +2316,10 @@ export class CodexHoloStageComponent {
   onPatchCompared(build: CodexBuild | null): void {
     const had = this.patchComparisonBuild();
     this.patchComparisonBuild.set(build);
-    if (build && build !== had) this.panelTab.set('changes');
+    if (build && build !== had) {
+      this.panelTab.set('changes');
+      this.changeView.set('patch');
+    }
   }
 
   /** The tabs are one control: arrows, Home and End walk them, focus follows. */

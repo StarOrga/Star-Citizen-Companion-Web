@@ -578,8 +578,24 @@ describe('CodexHoloStageComponent one panel (concept glas3)', () => {
     expect(el.querySelector('.rankbody')).toBeNull();
     (el.querySelector('#holo-tab-changes') as HTMLButtonElement).click();
     f.detectChanges();
-    expect(el.querySelector('sc-codex-holo-changes')).not.toBeNull();
     expect(c.panelTabIndex()).toBe(2);
+    // C17: the Werk opens on the patch comparison, "Deine Anpassungen" one switch away.
+    expect(c.changeView()).toBe('patch');
+    expect(el.querySelector('.chg-sw')).not.toBeNull();
+    expect(el.querySelector('sc-codex-holo-changes')).toBeNull();
+    c.changeView.set('mine');
+    f.detectChanges();
+    expect(el.querySelector('sc-codex-holo-changes')).not.toBeNull();
+  });
+
+  it('opens Änderungen on "Deine Anpassungen" while an exemplar is shown (C17)', async () => {
+    const f = await setup();
+    f.componentRef.setInput('inHangar', true);
+    f.detectChanges();
+    expect(f.componentInstance.changeView()).toBe('mine');
+    f.componentRef.setInput('inHangar', false);
+    f.detectChanges();
+    expect(f.componentInstance.changeView()).toBe('patch');
   });
 
   it('the tabs are one control for the keyboard', async () => {

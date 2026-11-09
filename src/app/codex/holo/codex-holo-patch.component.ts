@@ -18,12 +18,11 @@ import { NgTemplateOutlet } from '@angular/common';
 // own per-detail logic — see wave2-patch-share.md for the exact host signals
 // to adapt it from.
 import { toErrorKey } from '../../core/describe-error';
-import { ChangeDetectionStrategy, Component, ElementRef, TemplateRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { ChangeDetectionStrategy, Component, ElementRef, TemplateRef, HostListener, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { LocaleService } from '../../core/locale/locale.service';
 import { formatScDate } from '../../core/locale/date-format';
-import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { CodexService } from '../codex.service';
 import { CodexBuild, isReExtractPending } from '../codex.types';
 import { CodexDetail } from '../codex.service';
@@ -61,207 +60,188 @@ export interface HoloPatchComparisonSide {
   occupants: PortOccupantMap;
 }
 
+/** One side of the comparison line: a listed build, or the build on the table. */
+export type HoloPatchSide = CodexBuild | 'active';
+
 @Component({
   selector: 'sc-codex-holo-patch',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, CodexHoloPatchDeltaComponent, ScTooltipDirective, NgTemplateOutlet],
+  imports: [TranslatePipe, CodexHoloPatchDeltaComponent, ScTooltipDirective, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="holo-patch">
-      <button
-        #trigger
-        type="button"
-        class="patch-trigger mono"
-        [class.on]="open()"
-        [class.active]="!!selected()"
-        (click)="toggle()"
-        [attr.aria-expanded]="open()"
-        aria-haspopup="listbox"
-        [attr.aria-controls]="panelId"
-        [attr.aria-keyshortcuts]="hotkey()"
-        [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate"
-      >
-        <em class="pl">{{ 'codex.head.patch' | translate }}</em>
-        <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
-        @if (hotkey(); as hk) { <kbd class="hk" aria-hidden="true">{{ hk }}</kbd> }
-        <span class="chev" [class.on]="open()" aria-hidden="true">▾</span>
-      </button>
-
-      @if (open()) {
-        <div #pop class="patch-pop" [id]="panelId" role="dialog" tabindex="-1"
-             animate.enter="pp-enter" animate.leave="pp-leave"
-             [attr.aria-label]="'codex.holo.patch.popTitle' | translate">
-          <span class="pop-label">{{ 'codex.holo.patch.popTitle' | translate }}</span>
-
-          @if (loading()) {
-            <p class="pop-state">{{ 'codex.holo.patch.loading' | translate }}</p>
-          } @else if (loadFailed()) {
-            <div class="pop-err" role="alert">
-              <p class="pop-state err">{{ 'codex.error.title' | translate }}</p>
-              <button type="button" class="patch-clear" (click)="retryBuilds()">{{ 'codex.error.retry' | translate }}</button>
-            </div>
-          } @else if (builds().length === 0) {
-            <p class="pop-state">{{ 'codex.holo.patch.empty' | translate }}</p>
+    <!-- One line (r4 d1 s6, C18): "4.10.1 [Live] ▾ → 4.10.2 [Live] ● aktuell ▾".
+         The right side is always the newer patch; each list disables what would break that. -->
+    <div class="pline">
+      <span class="pw">
+        <button #trigger type="button" class="patch-trigger pv mono" [class.on]="openSide() === 'from'"
+                (click)="toggle()" aria-haspopup="listbox" [attr.aria-expanded]="openSide() === 'from'"
+                [attr.aria-controls]="panelId" [attr.aria-keyshortcuts]="hotkey()"
+                [attr.aria-label]="'codex.holo.patch.fromAria' | translate: { patch: fromLabel() }"
+                [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate">
+          @if (from(); as f) {
+            {{ sideVersion(f) }} <em class="ch">{{ channelLabel(sideChannel(f)) }}</em>
+            @if (sideCurrent(f)) { <span class="cur">{{ 'codex.holo.patch.current' | translate }}</span> }
           } @else {
-            <ul class="build-list" role="listbox">
-              @for (b of builds(); track b.id) {
-                <li>
-                  <!-- The build on the table is listed (it anchors the list)
-                       but cannot be compared with itself. -->
-                  <button
-                    type="button"
-                    role="option"
-                    class="build-row"
-                    [class.selected]="selected()?.id === b.id"
-                    [class.current]="isActive(b)"
-                    [class.nodata]="!isFinalised(b)"
-                    [attr.aria-selected]="selected()?.id === b.id"
-                    [disabled]="!isFinalised(b) || isActive(b)"
-                    [attr.aria-disabled]="!isFinalised(b) || isActive(b)"
-                    [scTooltip]="rowTitle(b)" scTooltipTier="label"
-                    [style.--r]="$index"
-                    (click)="pick(b)"
-                  >
+            <span class="ph">{{ 'codex.holo.patch.pickFrom' | translate }}</span>
+          }
+          @if (hotkey(); as hk) { <kbd class="hk" aria-hidden="true">{{ hk }}</kbd> }
+          <span class="car" aria-hidden="true">{{ openSide() === 'from' ? '▴' : '▾' }}</span>
+        </button>
+        @if (openSide() === 'from') { <ng-container *ngTemplateOutlet="list; context: { side: 'from' }" /> }
+      </span>
+      <span class="ar" aria-hidden="true">→</span>
+      <span class="pw">
+        <button type="button" class="pv pv-to mono" [class.on]="openSide() === 'to'"
+                (click)="toggleTo()" aria-haspopup="listbox" [attr.aria-expanded]="openSide() === 'to'"
+                [attr.aria-controls]="panelId"
+                [attr.aria-label]="'codex.holo.patch.toAria' | translate: { patch: sideVersion(to()) }">
+          {{ sideVersion(to()) }} <em class="ch">{{ channelLabel(sideChannel(to())) }}</em>
+          @if (sideCurrent(to())) { <span class="cur">{{ 'codex.holo.patch.current' | translate }}</span> }
+          <span class="car" aria-hidden="true">{{ openSide() === 'to' ? '▴' : '▾' }}</span>
+        </button>
+        @if (openSide() === 'to') { <ng-container *ngTemplateOutlet="list; context: { side: 'to' }" /> }
+      </span>
+    </div>
+
+    <ng-template #list let-side="side">
+      <div #pop class="patch-pop" [id]="panelId" role="dialog" tabindex="-1"
+           animate.enter="pp-enter" animate.leave="pp-leave"
+           [attr.aria-label]="(side === 'from' ? 'codex.holo.patch.fromTitle' : 'codex.holo.patch.toTitle') | translate">
+        @if (loading()) {
+          <p class="pop-state">{{ 'codex.holo.patch.loading' | translate }}</p>
+        } @else if (loadFailed()) {
+          <div class="pop-err" role="alert">
+            <p class="pop-state err">{{ 'codex.error.title' | translate }}</p>
+            <button type="button" class="patch-clear" (click)="retryBuilds()">{{ 'codex.error.retry' | translate }}</button>
+          </div>
+        } @else if (builds().length === 0) {
+          <p class="pop-state">{{ 'codex.holo.patch.empty' | translate }}</p>
+        } @else {
+          <ul class="build-list" role="listbox" [attr.aria-describedby]="panelId + '-why'">
+            @for (b of builds(); track b.id) {
+              <li>
+                <span class="row-wrap" [scTooltip]="blockReason(b, side) ?? rowTitle(b)" scTooltipTier="label">
+                  <button type="button" role="option" class="build-row"
+                          [class.selected]="isPicked(b, side)"
+                          [class.dis]="!!blockReason(b, side)"
+                          [attr.aria-selected]="isPicked(b, side)"
+                          [disabled]="!!blockReason(b, side)"
+                          [attr.aria-disabled]="!!blockReason(b, side)"
+                          [style.--r]="$index"
+                          (click)="side === 'from' ? pickFrom(b) : pickTo(b)">
                     <span class="row-ver mono">{{ b.patchVersion }}</span>
                     @if (ambiguous(b)) { <span class="row-build mono">{{ b.buildNumber }}</span> }
-                    @if (isActive(b)) {
-                      <span class="row-flag cur">{{ 'codex.holo.patch.current' | translate }}</span>
-                    } @else if (!isFinalised(b)) {
-                      <span class="row-flag">{{ 'codex.holo.patch.notFinalised' | translate }}</span>
-                    } @else if (b.extractedAt) {
-                      <span class="row-date">{{ b.extractedAt | scDate }}</span>
-                    }
+                    <em class="ch">{{ channelLabel(b.channel) }}</em>
+                    @if (b.isCurrent) { <span class="cur">{{ 'codex.holo.patch.current' | translate }}</span> }
+                    @if (blockReason(b, side); as why) { <small class="row-flag">{{ why }}</small> }
                   </button>
-                </li>
-              }
-            </ul>
-            @if (selected()) {
-              <button type="button" class="patch-clear" (click)="clear()">
-                {{ 'codex.holo.patch.clear' | translate }}
-              </button>
+                </span>
+              </li>
             }
+          </ul>
+          <p class="pop-why" [id]="panelId + '-why'">{{ 'codex.holo.patch.orderHint' | translate }}</p>
+          @if (selected()) {
+            <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
+          }
+        }
+      </div>
+    </ng-template>
+
+    @if (compareLoading()) {
+      <p class="delta-state">{{ 'codex.holo.patch.comparing' | translate }}</p>
+    }
+    @if (compareError(); as e) {
+      <p class="delta-state err" role="alert">{{ e | translate }}</p>
+    }
+
+    <!-- The comparison's body, for the host that docks it below its switch. -->
+    <ng-template #deltaBody>
+      @if (perspectives(); as groups) {
+        <div class="delta-head">
+          <span class="pop-label">{{ 'codex.holo.patch.changedOn' | translate: { name: shipName() } }}</span>
+          <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
+        </div>
+        <div class="delta-view">
+          @for (g of groups; track g.perspective) {
+            <sc-codex-holo-patch-delta [group]="g" />
           }
         </div>
-      }
-
-      @if (compareLoading()) {
-        <p class="delta-state">{{ 'codex.holo.patch.comparing' | translate }}</p>
-      }
-      @if (compareError(); as e) {
-        <p class="delta-state err" role="alert">{{ e | translate }}</p>
-      }
-
-      <!-- The Δ tables live in an anchored panel, never in the top bar's
-           flow (wave 5 A2.6) — the bar keeps its height, the table keeps
-           its ghosts/pins, and the panel can be dismissed and reopened. -->
-      @if (!dockDelta()) {
-      @if (selected() && !deltaOpen()) {
-        <button #deltaReopen type="button" class="delta-reopen" (click)="deltaOpen.set(true)" [attr.aria-expanded]="false">
-          Δ {{ 'codex.holo.patch.deltaShow' | translate }}
-        </button>
-      }
-      @if (perspectives()) {
-        @if (deltaOpen()) {
-          <div #deltaPanel class="delta-panel" role="region" tabindex="-1" animate.enter="pp-enter" animate.leave="pp-leave" [attr.aria-label]="'codex.holo.patch.trigger.comparing' | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() }">
-            <ng-container [ngTemplateOutlet]="deltaBody" [ngTemplateOutletContext]="{ docked: false }" />
+        @if (roles.isCollaborator()) {
+          <div class="admin-schema-row" role="note">
+            <span class="sc-sr-only">{{ 'codex.holo.patch.adminOnly' | translate }}</span>
+            <dl>
+              <dt>{{ 'codex.holo.patch.schema.version' | translate }}</dt>
+              <dd>{{ selected()?.schemaVersion }}</dd>
+              <dt>{{ 'codex.holo.patch.schema.extractedAt' | translate }}</dt>
+              <dd>{{ selected()?.extractedAt ?? '—' }}</dd>
+              <dt>{{ 'codex.holo.patch.schema.entityCount' | translate }}</dt>
+              <dd>{{ entityCount(selected()) ?? '—' }}</dd>
+              @if (reExtractPending()) {
+                <dt>{{ 'codex.holo.patch.schema.reExtractPending' | translate }}</dt>
+                <dd>{{ 'codex.holo.patch.schema.reExtractPendingYes' | translate }}</dd>
+              }
+            </dl>
           </div>
         }
       }
-      }
-
-      <!-- The comparison's body: in its anchored panel, or wherever a host docks it. -->
-      <ng-template #deltaBody let-docked="docked">
-        @if (perspectives(); as groups) {
-            <div class="delta-head">
-              <span class="pop-label">{{ 'codex.holo.patch.trigger.comparing' | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
-              <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
-              @if (!docked) { <button type="button" class="delta-close" (click)="deltaOpen.set(false)" [attr.aria-label]="'codex.holo.patch.deltaHide' | translate" [scTooltip]="'codex.holo.patch.deltaHide' | translate">✕</button> }
-            </div>
-            <div class="delta-view">
-              @for (g of groups; track g.perspective) {
-                <sc-codex-holo-patch-delta [group]="g" />
-              }
-            </div>
-            @if (roles.isCollaborator()) {
-              <div class="admin-schema-row" role="note">
-          <span class="sc-sr-only">{{ 'codex.holo.patch.adminOnly' | translate }}</span>
-          <dl>
-            <dt>{{ 'codex.holo.patch.schema.version' | translate }}</dt>
-            <dd>{{ selected()?.schemaVersion }}</dd>
-            <dt>{{ 'codex.holo.patch.schema.extractedAt' | translate }}</dt>
-            <dd>{{ selected()?.extractedAt ?? '—' }}</dd>
-            <dt>{{ 'codex.holo.patch.schema.entityCount' | translate }}</dt>
-            <dd>{{ entityCount(selected()) ?? '—' }}</dd>
-            @if (reExtractPending()) {
-              <dt>{{ 'codex.holo.patch.schema.reExtractPending' | translate }}</dt>
-              <dd>{{ 'codex.holo.patch.schema.reExtractPendingYes' | translate }}</dd>
-            }
-          </dl>
-              </div>
-            }
-        }
-      </ng-template>
-    </div>
+    </ng-template>
   `,
   styles: [`
     :host { display: block; position: relative; }
     .mono { font-family: var(--font-monospace, 'Share Tech Mono', monospace); font-variant-numeric: tabular-nums; }
-    .holo-patch { position: relative; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-
-    /* The same 40px rhythm as the search field it shares the top bar with. */
-    .patch-trigger {
-      display: inline-flex; align-items: center; gap: 8px;
-      min-height: max(32px, var(--sc-tap-min, 0px)); padding: 3px 11px;
-      border: 1px solid var(--border-default, color-mix(in srgb, var(--sc-accent) 30%, transparent)); border-radius: 4px;
-      background: var(--surface-input, var(--sc-bg-0)); color: var(--sc-fg-1);
-      font: inherit; font-size: max(0.78rem, var(--sc-fs-floor));
-      cursor: pointer; transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+    .pline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+    .pw { position: relative; display: inline-flex; }
+    .ar { color: var(--sc-fg-2); }
+    .pv {
+      display: inline-flex; align-items: center; gap: 6px;
+      min-height: max(32px, var(--sc-tap-min, 0px)); padding: 3px 10px;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, var(--sc-border)); border-radius: 4px;
+      background: var(--sc-bg-0); color: var(--sc-fg-0);
+      font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer;
+      transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
     }
-    .patch-trigger:hover, .patch-trigger:focus-visible, .patch-trigger.on {
-      outline: none; color: var(--sc-fg-0);
-      border-color: color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border));
-    }
-    .patch-trigger:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--sc-accent); }
-    .patch-trigger.active { border-color: var(--sc-accent); color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
-    .pl { font-style: normal; color: var(--sc-fg-2); font-family: var(--sc-font-body, inherit); }
-    /* In the head strip (concept codex-kopf-besitz C1) the trigger is the strip's first segment: no frame of its own. */
-    :host-context(.sc-head-strip) .patch-trigger { min-height: 100%; border: 0; border-radius: 9px 0 0 9px; background: transparent; padding: 0 12px; }
-    :host-context(.sc-head-strip) .patch-trigger:hover, :host-context(.sc-head-strip) .patch-trigger.on { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
-    :host-context(.sc-head-strip) .patch-trigger.active { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
-    :host-context(.sc-head-strip) { display: flex; }
-    :host-context(.sc-head-strip) .holo-patch { align-self: stretch; }
-    .chev { font-size: 0.62rem; transition: transform 0.2s ease; }
-    .chev.on { transform: rotate(180deg); }
+    .pv:hover, .pv.on { border-color: color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border)); }
+    .pv.on { background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
+    .pv:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--sc-accent); }
+    .ph { font-family: var(--sc-font-body, inherit); color: var(--sc-fg-2); }
+    /* The channel as a small tag, never "-LIVE" glued to the number. */
+    .ch { font-style: normal; font-family: var(--sc-font-body, inherit); font-size: max(0.64rem, var(--sc-fs-floor));
+      padding: 1px 5px; border-radius: 3px; border: 1px solid var(--sc-border); color: var(--sc-fg-1); letter-spacing: 0.04em; }
+    .cur { display: inline-flex; align-items: center; gap: 4px; font-family: var(--sc-font-body, inherit);
+      font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-accent); }
+    .cur::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent); }
+    .car { font-size: 0.62rem; color: var(--sc-fg-2); }
 
-    /* Anchored to the trigger's RIGHT edge: the trigger sits at the right end
-       of the top bar, a left-anchored popover ran off the viewport. */
     .patch-pop {
-      position: absolute; top: calc(100% + 8px); right: 0; z-index: 80;
-      width: min(320px, calc(100vw - 32px));
-      display: flex; flex-direction: column; gap: 8px;
-      padding: 12px 14px; border-radius: var(--holo-r);
+      position: absolute; top: calc(100% + 6px); left: 0; z-index: 80;
+      width: min(280px, calc(100vw - 32px));
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 8px; border-radius: var(--holo-r);
       background: var(--sc-bg-1);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
-      transform-origin: calc(100% - 24px) 0;
+      transform-origin: 24px 0;
     }
+    .pv-to + .patch-pop { left: auto; right: 0; transform-origin: calc(100% - 24px) 0; }
     .pp-enter { animation: pp-in var(--holo-t-base) var(--holo-e-out); }
     .pp-leave { animation: pp-out var(--holo-t-fast) var(--holo-e-io) forwards; }
     @keyframes pp-in { from { opacity: 0; transform: translateY(calc(-1 * var(--holo-rise))) scale(0.97); } }
     @keyframes pp-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
     .patch-pop:focus { outline: none; }
     .pop-label { font-family: var(--sc-font-display); font-size: max(0.66rem, var(--sc-fs-floor));
-      letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); }
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
     .pop-state { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .pop-state.err, .delta-state.err { color: var(--sc-danger); }
     .pop-err { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+    .pop-why { margin: 2px 4px 0; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
-    .build-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .build-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
+    .row-wrap { display: block; }
     .build-row {
       width: 100%; display: flex; align-items: center; gap: 8px;
-      min-height: max(40px, var(--sc-tap-min, 0px)); padding: 7px 9px; border-radius: 4px;
+      min-height: max(36px, var(--sc-tap-min, 0px)); padding: 6px 9px; border-radius: 4px;
       border: 1px solid transparent; background: transparent; color: var(--sc-fg-1);
-      font: inherit; cursor: pointer; text-align: left;
+      font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer; text-align: left;
       transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
       animation: row-in 260ms var(--holo-e-out) backwards; animation-delay: calc(min(var(--r, 0), 10) * 22ms);
     }
@@ -272,49 +252,26 @@ export interface HoloPatchComparisonSide {
       color: var(--sc-fg-0);
     }
     .build-row:disabled { opacity: 0.5; cursor: not-allowed; }
-    .build-row.current:disabled { opacity: 1; cursor: default; color: var(--sc-fg-0); }
     .row-build { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .row-flag { margin-left: auto; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-warning); }
-    .row-flag.cur { color: var(--sc-accent); font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.14em; }
-    .row-date { margin-left: auto; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
+    .row-flag { margin-left: auto; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
 
-    .patch-clear { align-self: flex-start; min-height: 40px; padding: 5px 10px;
+    .patch-clear { align-self: flex-start; min-height: 32px; padding: 4px 10px;
       border-radius: var(--holo-r); border: 1px solid var(--sc-border); background: var(--sc-bg-0);
-      color: var(--sc-fg-2); font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
+      color: var(--sc-fg-2); font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; }
     /* Clearing a comparison is not destructive — accent, never danger. */
     .patch-clear:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
 
-    .delta-state { margin: 0; white-space: nowrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .delta-state { margin: 6px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     /* Hotkey badge (#644): discreet, hidden on touch. */
     .hk { padding: 0 4px; border: 1px solid var(--sc-border); border-radius: 2px; font-family: var(--font-monospace, monospace); font-size: 9px;
-      color: var(--sc-fg-2); opacity: 0.6; }
-    .patch-trigger:hover .hk, .patch-trigger:focus-visible .hk { opacity: 1; }
+      color: var(--sc-fg-2); opacity: 0; transition: opacity 0.16s ease; }
+    .pv:hover .hk, .pv:focus-visible .hk { opacity: 1; }
     @media (hover: none), (pointer: coarse) { .hk { display: none; } }
-    .delta-reopen { min-height: max(40px, var(--sc-tap-min, 0px)); padding: 4px 10px; border-radius: 4px;
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); background: var(--sc-bg-1); color: var(--sc-accent);
-      font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; white-space: nowrap; transition: border-color 0.16s ease, color 0.16s ease; }
-    .delta-reopen:hover, .delta-reopen:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .delta-reopen:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .delta-panel {
-      position: absolute; top: calc(100% + 8px); right: 0; z-index: 70;
-      width: min(420px, calc(100vw - 32px)); max-height: min(70vh, 640px); overflow: auto;
-      display: flex; flex-direction: column; gap: 8px;
-      padding: 12px 14px; border-radius: var(--holo-r);
-      background: var(--sc-bg-1);
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
-      transform-origin: calc(100% - 24px) 0;
-    }
-    .delta-panel:focus { outline: none; }
-    .delta-panel:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .delta-head { display: flex; align-items: center; gap: 8px; }
     .delta-head .pop-label { flex: 1; min-width: 0; }
-    .delta-head .patch-clear { min-height: 32px; padding: 3px 8px; }
-    .delta-close { background: none; border: none; color: var(--sc-fg-2); cursor: pointer; min-height: 32px; min-width: 32px; font: inherit; }
-    .delta-close:hover { color: var(--sc-fg-0); }
     .delta-view { display: flex; flex-direction: column; gap: 6px; }
 
-    /* --sc-accent-hot: admin/collaborator-only info, marked in words too. */
+    /* Collaborator-only info: the copper marks it, the words stay for assistive tech. */
     .admin-schema-row {
       margin-top: 10px; padding: 8px 10px; border-radius: var(--holo-r);
       border: 1px solid color-mix(in srgb, var(--sc-accent-collab) 45%, var(--sc-border));
@@ -334,52 +291,56 @@ export class CodexHoloPatchComponent {
   readonly activeOccupants = input.required<PortOccupantMap>();
   readonly resolveComparisonSide =
     input.required<(detail: CodexDetail) => HoloPatchComparisonSide | Promise<HoloPatchComparisonSide>>();
+  /** The ship's name for "Was sich an der Gladius geändert hat". */
+  readonly shipName = input('');
+  /** The comparison is on screen: once the list is read, pick the patch before the table's on its own. */
+  readonly autoCompare = input(false);
 
   /** Ghost values + delta chips for the KPI band cells; `null` = comparison cleared. */
   readonly kpiGhosts = output<HoloPatchKpiGhosts | null>();
   /** Pin badges per port, keyed by port name; `null` = comparison cleared. */
   readonly portPins = output<Readonly<Record<string, PortPinBadge>> | null>();
-  /** The picked comparison build, or `null` once cleared. */
+  /** The build compared with the table's, or `null` once cleared (or when neither side is the table's). */
   readonly comparisonBuild = output<CodexBuild | null>();
 
   private readonly svc = inject(CodexService);
   readonly roles = inject(RoleService);
   private readonly locale = inject(LocaleService);
+  private readonly i18n = inject(TranslateService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly panelId = 'codex-holo-patch-pop';
   /** The holodeck's key for this chooser (#644) — shown as a <kbd> in the trigger. */
   readonly hotkey = input<string | null>(null);
-  readonly open = signal(false);
+  /** Which of the two lists is open. */
+  readonly openSide = signal<'from' | 'to' | null>(null);
+  readonly open = computed(() => this.openSide() !== null);
   readonly loading = signal(false);
   readonly compareLoading = signal(false);
+  /** The channel's builds, newest first (`created_at` desc) — the order IS the age. */
   readonly builds = signal<CodexBuild[]>([]);
   /** The build list could not be read — not the same as "no other patches". */
   readonly loadFailed = signal(false);
   /** i18n key of a failed comparison (never raw text). */
   readonly compareError = signal<string | null>(null);
+  /** Left ("von"), null until picked; right ("bis"), the table's build by default. */
+  readonly from = signal<HoloPatchSide | null>(null);
+  readonly to = signal<HoloPatchSide>('active');
+  /** The compared build that is not the table's (the admin row's subject). */
   readonly selected = signal<CodexBuild | null>(null);
   readonly perspectives = signal<ReturnType<typeof buildPerspectiveDeltas> | null>(null);
-  /** The Δ panel under the trigger — opens with a pick, dismissable, reopenable. */
-  readonly deltaOpen = signal(false);
-  /** Dock the comparison in a host instead of the anchored panel: the host renders {@link deltaBody}. */
-  readonly dockDelta = input(false);
   /** The comparison's body, for the host that docks it. */
   readonly deltaBody = viewChild<TemplateRef<unknown>>('deltaBody');
-  private readonly deltaPanel = viewChild<ElementRef<HTMLElement>>('deltaPanel');
-  private readonly deltaReopen = viewChild<ElementRef<HTMLElement>>('deltaReopen');
   private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
-  private readonly focusEffect = effect(() => {
-    // Keyboard users follow the panel: focus moves in when it opens and back
-    // to the reopen control (or the trigger) when it closes.
-    const open = this.deltaOpen();
-    const panel = this.deltaPanel()?.nativeElement;
-    const back = this.deltaReopen()?.nativeElement ?? this.trigger()?.nativeElement;
-    if (open && panel) panel.focus({ preventScroll: true });
-    else if (!open && back && this.selected()) back.focus({ preventScroll: true });
-  });
+  /** Cleared by hand: the auto pick stays off until the ship changes. */
+  private userCleared = false;
+  private compareSeq = 0;
 
   readonly reExtractPending = computed(() => isReExtractPending(this.selected()?.schemaVersion ?? null));
+  readonly fromLabel = computed(() => {
+    const f = this.from();
+    return f ? this.sideVersion(f) : '—';
+  });
 
   constructor() {
     // Reset the whole picked comparison whenever the ship or channel changes
@@ -387,8 +348,17 @@ export class CodexHoloPatchComponent {
     effect(() => {
       this.className();
       this.channel();
-      this.clear();
-      this.builds.set([]);
+      untracked(() => {
+        this.userCleared = false;
+        this.clear();
+        this.userCleared = false;
+        this.builds.set([]);
+      });
+    });
+    // Patch-Vergleich on screen with nothing picked: compare with the patch before.
+    effect(() => {
+      if (!this.autoCompare() || this.from() || this.compareLoading()) return;
+      untracked(() => void this.autoPick());
     });
   }
 
@@ -396,7 +366,7 @@ export class CodexHoloPatchComponent {
     return (totalRecordCount(b.entityCounts) ?? 0) > 0 && b.schemaVersion > 0;
   }
 
-  /** The build the table shows right now — listed, never comparable with itself. */
+  /** The build the table shows right now. */
   isActive(b: CodexBuild): boolean {
     return b.id === this.activeBuild().id;
   }
@@ -416,22 +386,88 @@ export class CodexHoloPatchComponent {
     return b.extractedAt ? `${b.patchVersion} · ${this.stamp(b.extractedAt)}` : null;
   }
 
+  /** The listed build of the table, when the list carries it. */
+  private activeListed(): CodexBuild | null {
+    return this.builds().find((b) => this.isActive(b)) ?? null;
+  }
+
+  sideVersion(s: HoloPatchSide): string {
+    return s === 'active' ? this.activeBuild().patchVersion : s.patchVersion;
+  }
+
+  sideChannel(s: HoloPatchSide): string {
+    return s === 'active' ? this.activeListed()?.channel ?? this.channel() : s.channel;
+  }
+
+  sideCurrent(s: HoloPatchSide): boolean {
+    return s === 'active' ? !!this.activeListed()?.isCurrent : s.isCurrent;
+  }
+
+  /** "LIVE" → "Live", "PTU" stays — a small tag, never glued to the number. */
+  channelLabel(ch: string | null | undefined): string {
+    const c = (ch ?? '').toUpperCase();
+    if (!c) return '';
+    const key = `codex.holo.patch.channel.${c}`;
+    const t = this.i18n.instant(key);
+    return t && t !== key ? t : c;
+  }
+
+  /** Age rank: 0 = newest. The table's build missing from the list counts as the newest. */
+  private age(s: HoloPatchSide): number {
+    const id = s === 'active' ? this.activeBuild().id : s.id;
+    return this.builds().findIndex((b) => b.id === id);
+  }
+
+  private sameSide(b: CodexBuild, s: HoloPatchSide | null): boolean {
+    if (!s) return false;
+    return s === 'active' ? this.isActive(b) : s.id === b.id;
+  }
+
+  isPicked(b: CodexBuild, side: 'from' | 'to'): boolean {
+    return this.sameSide(b, side === 'from' ? this.from() : this.to());
+  }
+
+  /** Why `b` cannot go on `side` (the reason tooltip), or null when it can. */
+  blockReason(b: CodexBuild, side: 'from' | 'to'): string | null {
+    if (!this.isFinalised(b)) return this.i18n.instant('codex.holo.patch.notFinalised');
+    const t = (key: string, patch: string) => this.i18n.instant(key, { patch });
+    const ageB = this.builds().indexOf(b);
+    if (side === 'from') {
+      const other = this.to();
+      if (this.sameSide(b, other)) return t('codex.holo.patch.onOtherSide', this.sideVersion(other));
+      return ageB <= this.age(other) ? t('codex.holo.patch.newerThan', this.sideVersion(other)) : null;
+    }
+    const other = this.from();
+    if (!other) return null;
+    if (this.sameSide(b, other)) return t('codex.holo.patch.onOtherSide', this.sideVersion(other));
+    return ageB >= this.age(other) ? t('codex.holo.patch.olderThan', this.sideVersion(other)) : null;
+  }
+
   /** Localised date + time for a build stamp — never the raw ISO string (AUD-188). */
   private stamp(iso: string): string {
     return formatScDate(iso, { language: this.locale.language(), region: this.locale.region(), style: 'datetime' });
   }
 
+  /** Opens the left ("von") list — the P key and the left trigger. */
   toggle(): void {
-    if (this.open()) {
+    this.openList('from');
+  }
+
+  toggleTo(): void {
+    this.openList('to');
+  }
+
+  private openList(side: 'from' | 'to'): void {
+    if (this.openSide() === side) {
       this.close();
       return;
     }
-    this.open.set(true);
+    this.openSide.set(side);
     void this.loadOnce();
   }
 
   close(): void {
-    this.open.set(false);
+    this.openSide.set(null);
   }
 
   /** The popover's retry after a failed build list. */
@@ -441,7 +477,7 @@ export class CodexHoloPatchComponent {
   }
 
   private async loadOnce(): Promise<void> {
-    if (this.builds().length > 0) return;
+    if (this.builds().length > 0 || this.loading()) return;
     this.loading.set(true);
     this.loadFailed.set(false);
     try {
@@ -453,54 +489,106 @@ export class CodexHoloPatchComponent {
     }
   }
 
+  private async autoPick(): Promise<void> {
+    if (this.userCleared) return;
+    await this.loadOnce();
+    if (this.from() || this.userCleared || !this.autoCompare()) return;
+    const prev = this.builds().find((b) => !this.blockReason(b, 'from'));
+    if (prev) await this.pickFrom(prev);
+  }
+
+  /** Compare `build` with the table's: the older one goes left, the newer right. */
   async pick(build: CodexBuild): Promise<void> {
-    if (!this.isFinalised(build)) return;
+    if (!this.isFinalised(build) || this.isActive(build)) return;
+    const newer = this.age(build) >= 0 && this.age(build) < this.age('active');
+    this.from.set(newer ? 'active' : build);
+    this.to.set(newer ? build : 'active');
+    await this.run();
+  }
+
+  async pickFrom(build: CodexBuild): Promise<void> {
+    if (this.blockReason(build, 'from')) return;
+    this.from.set(this.isActive(build) ? 'active' : build);
+    await this.run();
+  }
+
+  async pickTo(build: CodexBuild): Promise<void> {
+    if (this.blockReason(build, 'to')) return;
+    this.to.set(this.isActive(build) ? 'active' : build);
+    if (this.from()) await this.run();
+    else this.close();
+  }
+
+  private async sideData(s: HoloPatchSide): Promise<HoloPatchComparisonSide | null> {
+    if (s === 'active') return { kpiSheet: this.activeKpiSheet(), occupants: this.activeOccupants() };
+    const detail = await this.svc.shipDetailForBuild(this.className(), s.id);
+    return detail ? this.resolveComparisonSide()(detail) : null;
+  }
+
+  private async run(): Promise<void> {
+    const from = this.from();
+    const to = this.to();
     this.close();
+    if (!from) return;
+    const seq = ++this.compareSeq;
     this.compareLoading.set(true);
     this.compareError.set(null);
     try {
-      const detail = await this.svc.shipDetailForBuild(this.className(), build.id);
-      if (!detail) {
+      const [a, b] = await Promise.all([this.sideData(from), this.sideData(to)]);
+      if (seq !== this.compareSeq) return;
+      if (!a || !b) {
         this.clear();
         return;
       }
-      const side = await this.resolveComparisonSide()(detail);
-      const toRef: BuildRef = { id: build.id, patchVersion: build.patchVersion };
-      const kpiCells = compareKpiSheets(this.activeKpiSheet(), side.kpiSheet);
-      const portDeltas = comparePortOccupants(this.activeOccupants(), side.occupants);
-
-      const pins: Record<string, PortPinBadge> = {};
-      for (const d of portDeltas) {
-        pins[d.portName] = {
-          portName: d.portName,
-          fromClassName: d.fromClassName,
-          toClassName: d.toClassName,
-          // Port present in the active ("from") side but absent as a KEY on
-          // the comparison ("to") side = the port itself doesn't exist on
-          // that build, not merely an empty bay (wave1-redteam note).
-          unresolved: d.portName in this.activeOccupants() && !(d.portName in side.occupants),
-        };
+      // Old → new: the delta reads the way the line does.
+      this.perspectives.set(buildPerspectiveDeltas(compareKpiSheets(a.kpiSheet, b.kpiSheet)));
+      // Ghosts and pins on the table only make sense against the table's own build.
+      const other = from === 'active' ? to : to === 'active' ? from : null;
+      const otherSide = from === 'active' ? b : a;
+      this.selected.set(other !== 'active' ? other : null);
+      if (other && other !== 'active') {
+        const pins: Record<string, PortPinBadge> = {};
+        for (const d of comparePortOccupants(this.activeOccupants(), otherSide.occupants)) {
+          pins[d.portName] = {
+            portName: d.portName,
+            fromClassName: d.fromClassName,
+            toClassName: d.toClassName,
+            // Port present on the table's side but absent as a KEY on the other
+            // side = the port itself doesn't exist on that build (wave1-redteam note).
+            unresolved: d.portName in this.activeOccupants() && !(d.portName in otherSide.occupants),
+          };
+        }
+        this.kpiGhosts.emit({
+          toBuild: { id: other.id, patchVersion: other.patchVersion },
+          cells: compareKpiSheets(this.activeKpiSheet(), otherSide.kpiSheet),
+        });
+        this.portPins.emit(pins);
+        this.comparisonBuild.emit(other);
+      } else {
+        this.selected.set(from !== 'active' ? from : null);
+        this.kpiGhosts.emit(null);
+        this.portPins.emit(null);
+        this.comparisonBuild.emit(null);
       }
-
-      this.selected.set(build);
-      this.perspectives.set(buildPerspectiveDeltas(kpiCells));
-      this.deltaOpen.set(true);
-      this.kpiGhosts.emit({ toBuild: toRef, cells: kpiCells });
-      this.portPins.emit(pins);
-      this.comparisonBuild.emit(build);
     } catch (err) {
       // A click handler must not end in an unhandled rejection.
-      this.compareError.set(toErrorKey('codex', 'compare', err, { buildId: build.id }));
+      const id = from !== 'active' ? from.id : to !== 'active' ? to.id : this.activeBuild().id;
+      this.compareError.set(toErrorKey('codex', 'compare', err, { buildId: id }));
       this.clear();
     } finally {
-      this.compareLoading.set(false);
+      if (seq === this.compareSeq) this.compareLoading.set(false);
     }
   }
 
+  /** Ends the comparison (by hand: the auto pick stays off until the ship changes). */
   clear(): void {
+    this.userCleared = true;
+    this.compareSeq++;
+    this.compareLoading.set(false);
+    this.from.set(null);
+    this.to.set('active');
     this.selected.set(null);
     this.perspectives.set(null);
-    this.deltaOpen.set(false);
     this.kpiGhosts.emit(null);
     this.portPins.emit(null);
     this.comparisonBuild.emit(null);
@@ -508,20 +596,15 @@ export class CodexHoloPatchComponent {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.open()) {
-      this.close();
-      return;
-    }
-    // The Δ panel closes like the picker; the comparison itself stays
-    // active (ghosts, pins) until "Vergleich beenden".
-    this.deltaOpen.set(false);
+    if (!this.open()) return;
+    this.close();
+    this.trigger()?.nativeElement.focus({ preventScroll: true });
   }
 
   @HostListener('document:pointerdown', ['$event'])
   onOutside(ev: Event): void {
-    if (!this.open() && !this.deltaOpen()) return;
+    if (!this.open()) return;
     if (this.host.nativeElement.contains(ev.target as Node)) return;
     this.close();
-    this.deltaOpen.set(false);
   }
 }
