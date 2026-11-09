@@ -1,5 +1,6 @@
 import { NgZone, Signal, signal } from '@angular/core';
 import { TX_DOORS } from './briefing-transmit.component';
+import { setSnapTravelPx } from '../../../shared/snap-travel';
 
 /**
  * The scroll from the stage down to the hub (β shell): the page has two parts,
@@ -125,6 +126,7 @@ export function wireSnap(
     root.style.removeProperty('scroll-snap-type');
     for (const el of marked) el.style.removeProperty('scroll-snap-align');
     marked = [];
+    setSnapTravelPx(null);
   };
   const apply = (): void => {
     clear();
@@ -135,6 +137,9 @@ export function wireSnap(
       return;
     }
     for (const el of marked) el.style.setProperty('scroll-snap-align', 'start');
+    // The first snap step (stage → lower part): the header morph spans exactly this travel.
+    const travel = Math.round(marked[1].getBoundingClientRect().top + window.scrollY - (marked[0].getBoundingClientRect().top + window.scrollY));
+    setSnapTravelPx(travel);
     const end = opts.end?.();
     if (end && !marked.includes(end)) {
       end.style.setProperty('scroll-snap-align', 'end');

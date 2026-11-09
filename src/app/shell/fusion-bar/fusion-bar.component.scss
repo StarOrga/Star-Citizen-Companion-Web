@@ -131,7 +131,7 @@
   pointer-events: none;
   background: var(--sc-sub-sheen);
 }
-.cap > :not(.skin, .trace, .bloom, .head, .echo) {
+.cap > :not(.skin, .trace, .capline, .bloom, .head, .echo) {
   position: relative;
   z-index: 2;
 }
@@ -184,8 +184,31 @@
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
-:host(.morph) .trace {
-  animation: sub-trace 1.05s ease-out both;
+// Docking lands (rounds/05 d5-pb-scroll `-cap`): ONE capsule light opens from the centre round
+// the whole bar, glows inside and out, and fades — clip-path and opacity only. The conic
+// trace stays for the stage entrance; on the morph it no longer runs beside the capsule.
+.capline {
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+  border: 1px solid color-mix(in srgb, var(--sc-sub-trace-hi) 70%, transparent);
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--sc-accent) 75%, transparent),
+    inset 0 0 10px color-mix(in srgb, var(--sc-accent) 35%, transparent);
+}
+:host(.morph) .capline {
+  animation: sub-capsule 0.8s cubic-bezier(0.55, 0, 0.2, 1) both;
+}
+@keyframes sub-capsule {
+  0% { opacity: 0; clip-path: inset(-24px 50% -24px 50%); }
+  12% { opacity: 1; }
+  44% { opacity: 1; clip-path: inset(-24px -24px -24px -24px); }
+  100% { opacity: 0; clip-path: inset(-24px -24px -24px -24px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :host(.morph) .capline { animation: none; }
 }
 // Stage entrance (r8, 8 s loop): one trace turn from 14 % to 30 %, settled at 38 %.
 :host(.entering[data-mode='stage']) .trace {
@@ -454,24 +477,30 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   // or neither, for a few frames (S2).
   transition: none;
 }
+// Between the stage slot and the docked rect, without a layout change per frame (G4): the cap
+// keeps its docked layout (full frame width, logo slot, plate, divider in place) and only
+// compositor properties follow the scroll. Its visible width is a clip from the right
+// (--_cut: what is still missing to the frame width), the translate puts the visible part's
+// centre on the travel line from the slot to the docked rect, and the search slides left over
+// the (still transparent) logo slot and plate by --_lead, so its text starts where the staged
+// field's did. The corners round from the staged pill to the docked 20 px.
 :host(.condensing) .cap {
-  // Between the stage slot and the docked rect: width and travel follow the scroll.
-  width: calc(var(--_st-w, 0px) * (1 - var(--sc-dock-p, 1)) + var(--_frame-w) * var(--sc-dock-p, 1));
+  --_q: calc(1 - var(--sc-dock-p, 1));
+  --_cut: max(0px, calc((var(--_frame-w) - var(--_st-w, 0px)) * var(--_q)));
+  clip-path: inset(0 var(--_cut) 0 0 round calc(20px * var(--sc-dock-p, 1) + var(--_cap-h) / 2 * var(--_q)));
   transform: translate(
-    calc(var(--_dx, 0px) * (1 - var(--sc-dock-p, 1))),
-    calc(var(--_dy, 0px) * (1 - var(--sc-dock-p, 1)))
+    calc(var(--_dx, 0px) * var(--_q) + var(--_cut) / 2),
+    calc(var(--_dy, 0px) * var(--_q))
   );
 }
-:host(.condensing) .blogo {
-  width: calc(44px * var(--sc-dock-p, 1));
+:host(.condensing) .cap > .search {
+  transform: translateX(calc(var(--_lead, 0px) * -1 * var(--_q)));
 }
 :host(.condensing) .plate {
-  max-width: calc(var(--_plate, 310px) * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
-  overflow: hidden;
+  transform: translateX(calc(var(--_lead, 0px) * -0.5 * var(--_q)));
 }
 :host(.condensing) .div {
-  margin: 0 calc(var(--sc-space-4) * var(--sc-dock-p, 1)) 0 calc(var(--sc-space-2) * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
 }
 // The hit count fades in as the field arrives (S1).
@@ -483,9 +512,16 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   :host(.condensing) .route {
     opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.2) * 2), 1);
   }
-  // The phone bar sits at the bottom: the cap keeps its own (auto) width while it travels.
+  // The phone bar sits at the bottom: the cap keeps its own (auto) width while it travels,
+  // no clip, no slide of the search (it flies down into the thumb bar as it is).
   :host(.condensing) .cap {
     width: auto;
+    --_cut: 0px;
+    clip-path: none;
+  }
+  :host(.condensing) .cap > .search,
+  :host(.condensing) .plate {
+    transform: none;
   }
   :host(.condensing) .blogo {
     width: calc(36px * var(--sc-dock-p, 1));

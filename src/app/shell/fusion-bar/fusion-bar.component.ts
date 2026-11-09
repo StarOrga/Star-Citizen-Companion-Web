@@ -29,6 +29,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { BrandLogoComponent, BrandNameComponent } from '../brand/brand.component';
 import { FusionSearchComponent } from './fusion-search.component';
 import { ShellChromeService, introBeatCss } from './shell-chrome.service';
+import { snapTravelPx } from '../../shared/snap-travel';
 import { STAGE_SLOT_MOVED } from './stage-hero.directive';
 import {
   AREA_ENTRIES,
@@ -130,6 +131,7 @@ const MAX_TOKENS = 3;
     <div class="cap" [class.open]="panelShown()">
       <span class="skin" aria-hidden="true"></span>
       <span class="trace" aria-hidden="true"></span>
+      <span class="capline" aria-hidden="true"></span>
       <!-- Menu switch main → main: a white light head sweeps along the bar (concept r1 d1-s2). -->
       <span class="head" aria-hidden="true"></span>
       @if (mode() === 'stage') {
@@ -621,7 +623,7 @@ export class FusionBarComponent {
         this.tracker.reset(y);
         return;
       }
-      if (!this.searchOpen()) this.condense(reducedMotion() ? (nextStageDocked(this.docked(), y) ? 1 : 0) : dockProgress(y));
+      if (!this.searchOpen()) this.condense(reducedMotion() ? (nextStageDocked(this.docked(), y) ? 1 : 0) : dockProgress(y, snapTravelPx()));
       this.tracker.reset(y);
       return;
     }
@@ -679,6 +681,11 @@ export class FusionBarComponent {
     const dockedTop = h.top + cap.offsetTop;
     setVar(el, '--_dx', `${Math.round(a.left + a.width / 2 - dockedCx)}px`);
     setVar(el, '--_dy', `${Math.round(a.top - dockedTop)}px`);
+    // How far the docked search starts right of the cap's first slot (logo, plate, divider): it
+    // slides left by this while staged, so the cap's layout never changes during the morph.
+    const search = cap.querySelector<HTMLElement>(':scope > .search');
+    const first = cap.querySelector<HTMLElement>(':scope > .blogo');
+    setVar(el, '--_lead', `${search && first ? Math.max(0, Math.round(search.offsetLeft - first.offsetLeft)) : 0}px`);
   }
 
   /** Transitions off for the next two frames (bar + header), so a state change jumps. */
