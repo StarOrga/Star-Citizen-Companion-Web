@@ -1,3 +1,7 @@
+import { TestBed } from '@angular/core/testing';
+import { provideTranslateService } from '@ngx-translate/core';
+import { SupabaseClientProvider } from '../../core/supabase.client';
+import { NachschubNamingService } from './nachschub-naming';
 import { fallbackEinsatzName, fallbackNachschubName } from './nachschub-fallback-names';
 
 describe('nachschub-naming fallbacks', () => {
@@ -18,15 +22,43 @@ describe('nachschub-naming fallbacks', () => {
     expect(Array.from(long).length).toBeLessThanOrEqual(28);
   });
 
-  it('Einsatz: verb of the most frequent step kind plus its first label, within 40', () => {
-    const verb = (k: string) => ({ mine: 'abbauen', buy: 'kaufen' })[k] ?? k;
+  it('Einsatz: the most frequent step kind phrased with its first label, within 40', () => {
+    const verb = (k: string, label: string) => `${label} ${({ mine: 'abbauen', buy: 'kaufen' } as Record<string, string>)[k] ?? k}`;
     const name = fallbackEinsatzName(
       [{ kind: 'buy', label: 'Medpens' }, { kind: 'mine', label: 'Titan-Erz' }, { kind: 'mine', label: 'Quantanium' }],
       verb,
       'Neuer Einsatz',
     );
-    expect(name).toBe('abbauen Titan-Erz');
+    expect(name).toBe('Titan-Erz abbauen');
     expect(fallbackEinsatzName([], verb, 'Neuer Einsatz')).toBe('Neuer Einsatz');
     expect(Array.from(fallbackEinsatzName([{ kind: 'buy', label: 'x'.repeat(100) }], verb, 'd')).length).toBeLessThanOrEqual(40);
+  });
+});
+
+describe('NachschubNamingService', () => {
+  function mount() {
+    const invoke = vi.fn().mockResolvedValue({ data: { status: 'no_key' }, error: null });
+    TestBed.configureTestingModule({
+      providers: [provideTranslateService(), { provide: SupabaseClientProvider, useValue: { client: { functions: { invoke } } } }],
+    });
+    return { svc: TestBed.inject(NachschubNamingService), invoke };
+  }
+
+  it('names an item-less Nachschub after its event, without asking the model', async () => {
+    const { svc, invoke } = mount();
+    expect(await svc.nachschubName([], 'Day of the Vara 2956')).toBe('Day of the Vara 2956');
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('never falls back to the generic new-Nachschub label', async () => {
+    const { svc } = mount();
+    const name = await svc.nachschubName([]);
+    expect(name).toBe('hq.nachschub.dayName');
+    expect(name).not.toContain('newName');
+  });
+
+  it('uses the rule-based name when the model gives none', async () => {
+    const { svc } = mount();
+    expect(await svc.nachschubName([{ name: 'Rattler II', qty: 4 }], 'Event')).toBe('Rattler II');
   });
 });

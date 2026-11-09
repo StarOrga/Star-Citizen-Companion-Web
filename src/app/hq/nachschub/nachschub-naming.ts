@@ -14,16 +14,28 @@ export class NachschubNamingService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly i18n = inject(TranslateService);
 
-  async nachschubName(items: readonly NameItem[]): Promise<string> {
-    const fallback = fallbackNachschubName(items, this.i18n.instant('hq.nachschub.newName'));
+  /**
+   * A name from what the Nachschub holds. With nothing to name it by, the event it serves names it, else the day it
+   * was made: never the generic "Neuer Nachschub", which reads like the action, not like this one Nachschub.
+   */
+  async nachschubName(items: readonly NameItem[], eventName?: string | null): Promise<string> {
+    const event = eventName?.trim();
+    if (!items.some((i) => i.name.trim())) return clampName(event || this.dayName(), NACHSCHUB_NAME_MAX);
+    const fallback = fallbackNachschubName(items, event || this.dayName());
     return (await this.ask('nachschub', items, NACHSCHUB_NAME_MAX)) ?? fallback;
   }
 
   async einsatzName(steps: readonly StepLike[]): Promise<string> {
-    const verb = (k: string): string => this.i18n.instant(`hq.nachschub.verb.${k}`);
-    const fallback = fallbackEinsatzName(steps, verb, this.i18n.instant('hq.nachschub.newEinsatz'));
-    const items = steps.map((s) => ({ name: `${verb(s.kind)} ${s.label}`.trim(), qty: 1 }));
+    const phrase = (kind: string, label: string): string => this.i18n.instant(`hq.nachschub.act.${kind}`, { label });
+    const fallback = fallbackEinsatzName(steps, phrase, this.i18n.instant('hq.nachschub.newEinsatz'));
+    const items = steps.map((s) => ({ name: phrase(s.kind, s.label).trim(), qty: 1 }));
     return (await this.ask('einsatz', items, EINSATZ_NAME_MAX)) ?? fallback;
+  }
+
+  private dayName(): string {
+    const lang = this.i18n.getCurrentLang() === 'en' ? 'en' : 'de';
+    const date = new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'short' }).format(new Date());
+    return this.i18n.instant('hq.nachschub.dayName', { date });
   }
 
   private async ask(kind: 'nachschub' | 'einsatz', items: readonly NameItem[], max: number): Promise<string | null> {

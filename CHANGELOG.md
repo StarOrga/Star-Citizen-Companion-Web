@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.241.3] - 2026-11-09
+
+### Changed
+- Development: the Codex landing's data-sheet fit (#320) is tested at four real window sizes instead of forced landing heights.
+
+## [0.241.2] - 2026-11-09
+
+### Fixed
+- HQ "App starten": a browser that has seen the app waits 15 s for it before saying it got no word, so a slow start no longer shows "Die App hat nicht reagiert"; the hint can be closed while waiting.
+- HQ page rail: hovering a page shows its name as plain text instead of a pill; the bar on the left marks the current page.
+- HQ Nachschub: a new Nachschub is never named "Neuer Nachschub" — an event-only one takes the event's name, otherwise "Vorrat vom <Datum>"; Einsatz names read naturally ("Titan-Erz abbauen") and suggested names avoid lists and colon forms.
+
 ## [0.241.1] - 2026-11-09
 
 ### Changed

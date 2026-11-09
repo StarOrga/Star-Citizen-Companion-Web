@@ -6,7 +6,7 @@ import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from './hq-page-nav.ser
 
 /**
  * The left-edge quick-scroll rail (concept D4): the five HQ pages as slim vertical real
- * anchors at the page edge, outside the content column; the label shows on hover and focus, the
+ * anchors at the page edge, outside the content column; the label shows as plain text on hover and focus, the
  * page in view carries `aria-current`. Desktop only (≥ 1024px) — narrower viewports get the
  * bottom bar ({@link HqPageBarComponent}). The page's hotkey never shows at rest: a long hover says
  * it (info tier), the label stays as it is.
@@ -63,16 +63,17 @@ import { HQ_PAGE_ICONS, HqPageNavService, hqPageHotkey } from './hq-page-nav.ser
         color: var(--sc-fg-2);
         text-decoration: none;
         white-space: nowrap;
-        transition: width 0.2s ease, color 0.2s, background-color 0.2s, border-color 0.2s;
+        transition: width 0.2s ease, color 0.2s;
       }
       .stop svg { flex: none; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
       .label { font-size: max(0.8rem, var(--sc-fs-floor)); letter-spacing: 0.06em; opacity: 0; transition: opacity 0.15s; }
+      /* Hover and focus name the page as plain text beside the icon, no pill around it: the bar on the left already
+         marks where the reader is. The shadow keeps the label legible where it crosses the page behind it. */
       .stop:hover, .stop:focus-visible {
         width: 128px;
         color: var(--sc-fg);
-        background: color-mix(in srgb, var(--sc-bg-1) 82%, transparent);
-        border-color: var(--sc-border);
       }
+      .label { text-shadow: 0 0 6px var(--sc-bg-0), 0 0 2px var(--sc-bg-0); }
       .stop:hover .label, .stop:focus-visible .label { opacity: 1; }
       .stop:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .stop[aria-current='page'] { color: var(--sc-accent); }

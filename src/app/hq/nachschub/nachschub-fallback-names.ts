@@ -27,15 +27,19 @@ export interface StepLike {
 }
 
 /**
- * Rule-based Einsatz name (what you DO): the verb of the most frequent step kind plus the first label of that
- * kind ("Titan-Erz abbauen" style via `verb`). Within {@link EINSATZ_NAME_MAX}.
+ * Rule-based Einsatz name (what you DO): the most frequent step kind phrased with the first label of that kind,
+ * `phrase` builds the natural form ("Titan-Erz abbauen", "Mine Titanium ore"). Within {@link EINSATZ_NAME_MAX}.
  */
-export function fallbackEinsatzName(steps: readonly StepLike[], verb: (kind: string) => string, defaultName: string): string {
+export function fallbackEinsatzName(
+  steps: readonly StepLike[],
+  phrase: (kind: string, label: string) => string,
+  defaultName: string,
+): string {
   if (!steps.length) return clampName(defaultName, EINSATZ_NAME_MAX);
   const counts = new Map<string, number>();
   for (const s of steps) counts.set(s.kind, (counts.get(s.kind) ?? 0) + 1);
   let best = steps[0].kind;
   for (const [k, n] of counts) if (n > (counts.get(best) ?? 0)) best = k;
   const label = steps.find((s) => s.kind === best)?.label ?? '';
-  return clampName(`${verb(best)} ${label}`.trim(), EINSATZ_NAME_MAX);
+  return clampName(phrase(best, label).trim(), EINSATZ_NAME_MAX);
 }
