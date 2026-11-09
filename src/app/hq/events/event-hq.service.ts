@@ -90,7 +90,7 @@ export class EventHqService {
     void Promise.all([this.sheets.load(), this.states.load(), this.ns.ensureLoaded()]).then(() => {
       if (this.ensured !== uid) return;
       // load() swallows errors: a failed load must not consume the end pass - the next ensure() retries it.
-      if (this.sheets.loaded() && this.states.loaded() && !this.error()) this.endsReady.set(uid);
+      if (this.sheets.loaded() && this.states.loaded() && this.ns.loaded() && !this.error()) this.endsReady.set(uid);
       else this.ensured = null;
     });
   }
