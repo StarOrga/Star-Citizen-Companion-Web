@@ -18,8 +18,9 @@
 --       (SECURITY DEFINER, are_friends() re-checked on every read).
 --   D3  hq_inventory_removals: one row per MANUAL removal so "zuletzt aufgebraucht" can list the last ten removals.
 --
--- Alpha data policy (documented drop): hq_inventory_items.reservations (jsonb) is DROPPED after its entries were copied
--- into hq_inventory_reservations (friend_id null, quality null, `at` becomes created_at). No other column or key changes.
+-- hq_inventory_items.reservations (jsonb) is COPIED into hq_inventory_reservations (friend_id null, quality null, `at`
+-- becomes created_at) and no longer read by the app. The column itself stays until a later ship drops it: the live
+-- frontend still reads it until the new build is in production (ship rule 10, deploy-surfaces.md). No key changes.
 --
 -- Expiry: reads filter `expires_at is null or expires_at > now()` (RLS + RPC), and pg_cron job hq-reservations-expire
 -- deletes expired rows hourly. cron.schedule is called directly, never create extension.
@@ -82,8 +83,7 @@ begin
   end if;
 end $$;
 
-alter table public.hq_inventory_items drop constraint if exists hq_inv_item_reservations_shape;
-alter table public.hq_inventory_items drop column if exists reservations;
+-- The jsonb column stays for the old frontend (see header); a later migration drops it once this build is live.
 
 -- ---------------------------------------------------------------------------
 -- D1: the stacks child table
@@ -191,9 +191,10 @@ begin
     new.location := old.location;
     new.name := old.name;
     -- Another friend or another amount is news for the friend again.
+    -- Only the friend (via hq_reservations_mark_seen) may set the seen stamp; any other write keeps the old one.
     if new.friend_id is distinct from old.friend_id or new.amount <> old.amount then
       new.friend_seen_at := null;
-    else
+    elsif auth.uid() is distinct from old.friend_id then
       new.friend_seen_at := old.friend_seen_at;
     end if;
   else
