@@ -2592,7 +2592,9 @@ export class CodexDetailComponent implements OnInit {
     if (!config) {
       // The database cannot keep a wish's loadout yet (migration not pushed) or the write failed: say so, never silently.
       this.menuError.set(columnMissing ? 'codex.holo.hangar.wishLoadoutUnavailable' : (this.hangar.error() ?? 'errors.generic'));
-      return res;
+      const undoHull = res.undo;
+      // Taking the wish back also takes back the note about its loadout.
+      return undoHull ? { ...res, undo: () => { this.menuError.set(null); return undoHull(); } } : res;
     }
     this.ownershipSvc.invalidate();
     const undoWish = res.undo;
