@@ -92,5 +92,130 @@
       "views": {}
     },
     "annotations": []
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T17:16:08.603Z",
+    "favorite": "d2",
+    "userPins": [
+      {
+        "id": "up-mw9ioi3sfcqy",
+        "design": "d2",
+        "screen": "r2-d2-s1",
+        "x": 29,
+        "y": 82.7,
+        "target": "span.gl \"Außen\"",
+        "text": "Lass uns den bereich + rechts den dreier bereich von der einordnung bis änderungen andockbar machen an die hover eliste unten, so integriert es sich schon!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9ipk434kp5",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 70.7,
+        "y": 21,
+        "target": "span.bz-sel \"von 4.10.1-LIVE ▾\"",
+        "text": "ja aber bitte nicht so -live sondern ein ordnetnliches label und bitte beides in einer zeile und Aktuellena uch irgendwie markieren",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9iqmozqtji",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 67.3,
+        "y": 17.5,
+        "target": "div.bz-sh \"Patch-Vergleich\"",
+        "text": "wir sollten hier eine utnerkategorie machen  meine änderungen (besser ausgedrückt) vs patch verglech wobei standardmäßig meine änderungen ausgewählt ist außer, wenn ich mir die standard werk version anschaue, dann patch vergleich !",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9iryoyptf3",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 72.7,
+        "y": 9.3,
+        "target": "a.bz-chip \"Gladius Pirate\"",
+        "text": "Dieser Varianten, können wir die nicht eher links unter der Gladius schreiben wenn sie existieren!? und dort eher zur auswahl ala variante Standard vs die anderen!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9isu3gvghx",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 31,
+        "y": 11.9,
+        "target": "div.bz-filt \"WaffenRaketenKomponentenSonstigesAlle Te\"",
+        "text": "Das eher links unten hin über das neue filmstreifen pnael",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9ite2o5r9q",
+        "design": "d2",
+        "screen": "r2-d2-s5",
+        "x": 45,
+        "y": 59.7,
+        "target": "div.bz-akte \"Akte · Aegis GladiusBei der Gladius hand\"",
+        "text": "sher gut, hier gern im bakcground das rsi bild und irgendwie das hier einklappbar / auzsblendbar wenn mna nur das bild anshen will... pj",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9itxe4mhul",
+        "design": "d2",
+        "screen": "r2-d2-s5",
+        "x": 22.8,
+        "y": 37.3,
+        "target": "h4 \"Akte · Aegis Gladius\"",
+        "text": "akte brauchen wir hier nicht nochmal erwähnen",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9iuhvmlcfr",
+        "design": "d2",
+        "screen": "r2-d2-s6",
+        "x": 40.1,
+        "y": 56.8,
+        "target": "div.bz-surface \"LackierungStandardWerk · gezeigtFrostbit\"",
+        "text": "Können wir die lakierungen nicht uach in die akte bringen ?!",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-r2-d2-s1-a1",
+          "text": "Das finde ich eine super idee! Aber bitte links akte angefangen und dabei in der akte zusätzlich als background das offizielle sc  bild wenn fverüfgbar !",
+          "attachments": []
+        },
+        {
+          "id": "anno-r2-d2-s7-a1",
+          "text": "aber ich kann auc h merhrere mein exemplar haben mit verschiedenen konfigurationen",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": [
+      {
+        "id": "r2-d2-s1-a1",
+        "screen": "r2-d2-s1",
+        "design": "d2",
+        "question": "Jede Ansicht als Vorschaubild mit Namen darunter, in drei Gruppen. Sind acht Bilder unten am Tisch zu viel, oder genau richtig?",
+        "answer": "Das finde ich eine super idee! Aber bitte links akte angefangen und dabei in der akte zusätzlich als background das offizielle sc  bild wenn fverüfgbar !"
+      },
+      {
+        "id": "r2-d2-s7-a1",
+        "screen": "r2-d2-s7",
+        "design": "d2",
+        "question": "Besitz als Abzeichen in der Tischecke, der Schalter Werk/Mein Exemplar gleich daneben. Gehört der Schalter dorthin?",
+        "answer": "aber ich kann auc h merhrere mein exemplar haben mit verschiedenen konfigurationen"
+      }
+    ]
   }
 ]
