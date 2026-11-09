@@ -19,6 +19,7 @@ import { isPlainLeftClick } from '../../core/modified-click.util';
 import type { PortPinBadge } from './codex-holo-patch.component';
 import { PinGroup, StagePin } from './codex-holo-model';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { HoloDiffMarkerComponent } from './holo-diff-marker';
 
 /** The part the panel talks about: what a pilot asks about, the gun rather than its mount. */
 export interface PartFocus {
@@ -97,7 +98,7 @@ function chipSize(pin: StagePin): number | null {
 @Component({
   selector: 'sc-codex-holo-inspector',
   standalone: true,
-  imports: [TranslatePipe, ScTooltipDirective, RouterLink, ItemPathComponent],
+  imports: [TranslatePipe, ScTooltipDirective, RouterLink, ItemPathComponent, HoloDiffMarkerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as it) {
@@ -107,10 +108,9 @@ function chipSize(pin: StagePin): number | null {
         <div class="inspector" role="region" [attr.aria-label]="'codex.holo.stage.tab.parts' | translate">
           <div class="insp-top">
             <button type="button" class="back inspector-close" (click)="closed.emit()" [scTooltip]="'codex.holo.stage.backHint' | translate" scTooltipTier="label">‹ {{ 'codex.holo.stage.backToParts' | translate }}</button>
-            @if (index() > 0) { <span class="n">{{ index() }} / {{ total() }}</span> }
           </div>
           <div class="pn">
-            <h2>{{ part.name ? itemName(part.name) : ((it.slot.emptyLabelKey ?? 'codex.holo.stage.emptyBay') | translate) }}</h2>
+            <h2>@if (isChanged(inspectedPort())) { <sc-holo-diff-marker class="dm" /> }{{ part.name ? itemName(part.name) : ((it.slot.emptyLabelKey ?? 'codex.holo.stage.emptyBay') | translate) }}</h2>
             <small>{{ partMeta(part) }}</small>
           </div>
           @if (patchPin(); as pin) {
@@ -229,7 +229,7 @@ function chipSize(pin: StagePin): number | null {
         <p class="plist-head"><b>{{ 'codex.holo.stage.partsTotal' | translate: { n: packageRows().length } }}</b></p>
         @for (g of rowGroups(); track g.group) {
           <div class="pgroup">
-            <span class="pg-head"><b>{{ ('codex.assetPackage.groups.' + g.group) | translate }}</b> · {{ g.rows.length }}</span>
+            <span class="pg-head"><b>{{ ('codex.assetPackage.groups.' + g.group) | translate }}</b></span>
             <div class="pchips">
               @for (r of g.rows; track r.p.id) {
                 <span class="pline" [class.off]="!r.visible">
@@ -263,11 +263,13 @@ function chipSize(pin: StagePin): number | null {
       <div class="plist" role="region" [attr.aria-label]="'codex.holo.stage.tab.parts' | translate">
         <p class="plist-head">
           <b>{{ 'codex.holo.stage.partsTotal' | translate: { n: total() } }}</b>
-          <small class="plist-hint">{{ 'codex.holo.stage.inspectorEmptyBody' | translate: { n: hotkeyPinCount() } }}</small>
+          @if (changedPorts().size > 0) {
+            <small class="plist-legend"><sc-holo-diff-marker />{{ 'codex.holo.inspector.diffLegend' | translate }}</small>
+          }
         </p>
         @for (g of pinGroups(); track g.key) {
           <div class="pgroup">
-            <span class="pg-head"><b>{{ g.labelKey | translate }}</b> · {{ 'codex.holo.stage.partsInstalled' | translate: { n: installedCount(g) } }}</span>
+            <span class="pg-head"><b>{{ g.labelKey | translate }}</b></span>
             <div class="pchips">
               @for (pin of g.pins; track pin.portName) {
                 @if (pinHref(pin); as href) {
@@ -282,7 +284,7 @@ function chipSize(pin: StagePin): number | null {
                      (focus)="hovered.emit([pin.portName])"
                      (blur)="hovered.emit(null)"
                      (click)="pickPin($event, pin.portName)">
-                    @if (sizeOf(pin) !== null) { <i>S{{ sizeOf(pin) }}</i> }<span class="pname">{{ pin.label }}</span>
+                    @if (isChanged(pin.portName)) { <sc-holo-diff-marker class="dm" /> }@if (sizeOf(pin) !== null) { <i>S{{ sizeOf(pin) }}</i> }<span class="pname">{{ pin.label }}</span>
                   </a>
                 } @else {
                   <button type="button" class="part"
@@ -296,7 +298,7 @@ function chipSize(pin: StagePin): number | null {
                           (focus)="hovered.emit([pin.portName])"
                           (blur)="hovered.emit(null)"
                           (click)="pinInspect.emit(pin.portName)">
-                    @if (sizeOf(pin) !== null) { <i>S{{ sizeOf(pin) }}</i> }<span class="pname">{{ pin.label }}</span>
+                    @if (isChanged(pin.portName)) { <sc-holo-diff-marker class="dm" /> }@if (sizeOf(pin) !== null) { <i>S{{ sizeOf(pin) }}</i> }<span class="pname">{{ pin.label }}</span>
                   </button>
                 }
               }
@@ -335,7 +337,6 @@ function chipSize(pin: StagePin): number | null {
       min-height: var(--sc-tap-min, 26px); transition: background 160ms ease; }
     .back:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .back:focus-visible, .lnk:focus-visible, .swap:focus-visible, .act button:focus-visible, .more:focus-visible, .part:focus-visible, .eye:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .n { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-fg-2); }
     .pn { display: grid; gap: 1px; min-width: 0; }
     .pn h2 { margin: 0; font-family: var(--sc-font-body); font-size: 19px; font-weight: 600; color: var(--sc-fg-0); overflow-wrap: anywhere; line-height: 1.2; }
     .pn small { font-size: max(12px, var(--f)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
@@ -388,8 +389,8 @@ function chipSize(pin: StagePin): number | null {
     @keyframes list-in { from { opacity: 0; } }
     .plist-head { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: max(13px, var(--f)); color: var(--sc-fg-0); }
     .plist-head b { font-weight: 600; white-space: nowrap; }
-    .plist-hint { font-size: max(10px, var(--f)); color: var(--sc-fg-2); text-align: end; }
-    @media (hover: none), (pointer: coarse) { .plist-hint { display: none; } }
+    .plist-legend { display: inline-flex; align-items: center; gap: 6px; font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); white-space: nowrap; }
+    .dm { margin-inline-end: 6px; vertical-align: middle; }
     .pgroup { display: grid; gap: 3px; min-width: 0; }
     .pg-head { font-family: inherit; text-transform: none; font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); }
     .pg-head b { font-family: var(--d); text-transform: uppercase; font-weight: 500; font-size: max(10px, var(--f)); letter-spacing: 0.09em; color: var(--sc-fg-1); }
@@ -434,7 +435,8 @@ export class CodexHoloInspectorComponent {
   readonly index = input(0);
   readonly total = input(0);
   readonly pinGroups = input<readonly PinGroup[]>([]);
-  readonly hotkeyPinCount = input(0);
+  /** Ports whose part differs from the Werk loadout — the ◆ marker (C19). */
+  readonly changedPorts = input<ReadonlySet<string>>(new Set());
   readonly activePorts = input<readonly string[]>([]);
   /** A shared link's loadout is on the table (#646): no swap, undo or save. */
   readonly readOnly = input(false);
@@ -570,8 +572,8 @@ export class CodexHoloInspectorComponent {
     return formatEquippedStat(stat);
   }
 
-  installedCount(g: PinGroup): number {
-    return g.pins.filter((p) => !!p.slot?.className).length;
+  isChanged(port: string | null): boolean {
+    return !!port && this.changedPorts().has(port);
   }
 
   isQuiet(port: string): boolean {
