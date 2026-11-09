@@ -141,6 +141,40 @@ describe('Codex landing pane', () => {
     expect(host.querySelector('.ph')!.textContent).toContain('neu in');
   });
 
+  it('lists every completely new entry first, each with a "neu" tag, then the updated ones (#328)', () => {
+    const ships = entries(3, 'S', 'Ship').map((e, i) => ({ ...e, ...(i === 2 ? { isNew: true } : { updated: true }) }));
+    const guns = entries(2, 'W', 'Gun').map((e, i) => ({ ...e, ...(i === 0 ? { isNew: true } : { updated: true }) }));
+    const tools = entries(1, 'T', 'Tool').map((e) => ({ ...e, isNew: true }));
+    mount(
+      [
+        { category: 'ship', entries: ships },
+        { category: 'fpsWeapon', entries: guns },
+        { category: 'tool', entries: tools },
+      ],
+      'fpsWeapon',
+      null,
+    );
+    settle();
+    expect(rowsShown()).toEqual(['Gun 0', 'Tool 0', 'Ship 2', 'Gun 1', 'Ship 0', 'Ship 1']);
+    const rows = Array.from(host.querySelectorAll<HTMLElement>('.new li:not(.cut)'));
+    const fresh = rows.map((li) => !!li.querySelector('.upd.fresh'));
+    expect(fresh).toEqual([true, true, true, false, false, false]);
+    rows.slice(0, 3).forEach((li) => expect(li.querySelector('.upd.fresh')!.textContent!.trim()).toBe('neu'));
+  });
+
+  it('the more link names new & updated entries; in discovery mode it only says "weitere"', () => {
+    mount([{ category: 'tool', entries: entries(40) }], 'tool', item('tool', 'E0'));
+    settle();
+    expect(host.querySelector('a.more')!.textContent).toContain('neue & aktualisierte');
+    host.remove();
+    TestBed.resetTestingModule();
+    mount([{ category: 'ship', entries: entries(40), discover: true }], 'ship', item('ship', 'E0'));
+    settle();
+    const more = host.querySelector('a.more')!.textContent!;
+    expect(more).toContain('weitere');
+    expect(more).not.toContain('neue');
+  });
+
   it("a category with only discovery picks shows the others' news, not its picks", () => {
     mount(
       [
