@@ -992,8 +992,25 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   .ks-label {
     display: none;
   }
-  .blogo {
-    width: 36px;
+  // The logo stays on top, in the route line (.rlogo); the thumb bar holds search and filters.
+  .blogo,
+  :host(.condensing) .blogo {
+    display: none;
+  }
+  .rlogo {
+    flex: none;
+    align-self: center;
+    display: flex;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+  .rlogo sc-brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+  .route .cat {
+    align-self: center;
   }
   // Under the thumb: logo · field · compact filter button. The kind switch and the
   // tokens live in the panel (its kind row, its columns); the field keeps its width.

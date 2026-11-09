@@ -296,6 +296,10 @@ const MAX_TOKENS = 3;
     @if (phone() && variant() === 'app' && mode() !== 'stage') {
       <!-- Phone: the route line alone at the top; the bar itself sits at the thumb. -->
       <div class="route">
+        <!-- The logo stays on top with the route (S3); the thumb bar carries search and filters only. -->
+        <a class="rlogo" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate" (click)="onNav($event, '/verse')">
+          <sc-brand-logo />
+        </a>
         @if (trailLast(); as last) {
           <span class="cat">{{ last.label ?? (last.labelKey! | translate: (last.labelParams ?? undefined)) }}</span>
         } @else {
