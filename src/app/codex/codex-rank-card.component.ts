@@ -118,8 +118,8 @@ function readShapePref(): 'hex' | 'bars' {
           <p class="holo-rank" tabindex="0"
              [scTooltip]="result()!.overall !== null ? ('codex.holo.card.overallTip' | translate: { pct: result()!.overall }) : null" scTooltipTier="label">
             <b>{{ 'codex.holo.card.rank' | translate: { n: result()!.rank, m: result()!.cohortSize } }}</b>
-            <span class="grp">· {{ activeScopeLabel() }}</span>
-            @if (result()!.bandKey; as band) { <span class="band">· {{ band | translate }}</span> }
+            <span class="sep" aria-hidden="true">·</span><span class="grp">{{ activeScopeLabel() }}</span>
+            @if (result()!.bandKey; as band) { <span class="sep" aria-hidden="true">·</span><span class="band">{{ band | translate }}</span> }
           </p>
         }
         <div class="holo-ctrl">
@@ -524,6 +524,8 @@ function readShapePref(): 'hex' | 'bars' {
     :host(.holo) .holo-rank { margin: 0; text-align: center; font-size: max(12px, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     :host(.holo) .holo-rank b { color: var(--sc-fg-0); font-weight: 600; }
     :host(.holo) .holo-rank .band { color: var(--sc-fg-2); }
+    /* " · " between the parts: the template's whitespace is stripped, the margin carries the space. */
+    :host(.holo) .holo-rank .sep { margin-inline: 0.4em; color: var(--sc-fg-2); }
     :host(.holo) .holo-rank:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     :host(.holo) .holo-ctrl { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; }
     :host(.holo) .hc-label { font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }

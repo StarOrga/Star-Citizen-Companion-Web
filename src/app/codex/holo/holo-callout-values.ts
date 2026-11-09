@@ -18,7 +18,53 @@ const LEAD: Readonly<Record<string, readonly string[]>> = {
   default: ['health', 'powerDraw', 'powerOutput'],
 };
 
-const suffix = (key: string): string => key.slice(key.lastIndexOf('.') + 1);
+export const statSuffix = (key: string): string => key.slice(key.lastIndexOf('.') + 1);
+const suffix = statSuffix;
+
+/** i18n key of a callout value's short label (`codex.holo.statShort.*`): "Alpha", "Energie", "EM" — the full label would be cut. */
+export function shortStatKey(labelKey: string): string {
+  return `codex.holo.statShort.${statSuffix(labelKey)}`;
+}
+
+/** A component block holds exactly one item type: the type the callout names. */
+const SECTION_TYPE: Readonly<Partial<Record<ShipModuleSection, string>>> = {
+  shields: 'shield',
+  powerPlants: 'powerPlant',
+  coolers: 'cooler',
+  quantum: 'quantumDrive',
+  radar: 'radar',
+  lifeSupport: 'lifeSupport',
+  missiles: 'missileRack',
+  countermeasures: 'countermeasure',
+};
+
+/** The weapon's class from its class name (`BEHR_BallisticGatling_S3` → gatling), damage type first where it names one. */
+function weaponTypeOf(className: string): string | null {
+  const c = className.toLowerCase();
+  if (c.includes('gatling')) return 'gatling';
+  if (c.includes('scatter')) return 'scattergun';
+  if (c.includes('massdriver')) return 'massDriver';
+  if (c.includes('railgun')) return 'railgun';
+  if (c.includes('tractor')) return 'tractorBeam';
+  const dmg = c.includes('laser') ? 'laser' : c.includes('ballistic') ? 'ballistic' : c.includes('distortion') ? 'distortion' : null;
+  if (c.includes('repeater')) return dmg ? `${dmg}Repeater` : 'repeater';
+  if (c.includes('cannon')) return dmg ? `${dmg}Cannon` : 'cannon';
+  return null;
+}
+
+/**
+ * The TYPE a callout and a hull tag name (C9/C10): the weapon class of the gun a
+ * weapon slot holds ("Gatling", "Laserkanone"), the item type of a component
+ * ("Kühler", "Schild"). Null = unknown — the caller falls back to the category.
+ */
+export function partTypeKey(section: ShipModuleSection | null, className: string | null): string | null {
+  if (section === 'weapons' || section === 'remoteTurrets') {
+    const t = className ? weaponTypeOf(className) : null;
+    return t ? `codex.holo.partType.${t}` : null;
+  }
+  const t = section ? SECTION_TYPE[section] : undefined;
+  return t ? `codex.holo.partType.${t}` : null;
+}
 
 /**
  * The three values of a callout: the stats a type of component is known for

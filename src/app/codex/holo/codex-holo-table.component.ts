@@ -17,7 +17,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { CodexHoloCalloutComponent } from './codex-holo-callout.component';
 import { HoloDiffMarkerComponent } from './holo-diff-marker';
-import { calloutValuesOf } from './holo-callout-values';
+import { calloutValuesOf, partTypeKey, shortStatKey } from './holo-callout-values';
 import { partFocusOf } from './codex-holo-inspector.component';
 import { displayItemName } from '../codex-format';
 import { isConfigurableSection } from '../ship-module-sections';
@@ -351,14 +351,14 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
               <path [attr.d]="l.path" pathLength="1" [style.--i]="l.index"
                     [class.gold]="pinByPort().get(l.portName)?.tone === 'gold'"
                     [class.est]="!pinByPort().get(l.portName)?.resolved"
-                    [class.active]="lit(l.portName)" [class.sel]="inspectedPort() === l.portName" />
+                    [class.active]="lit(l.portName)" [class.sel]="inspectedPort() === l.portName" [class.under]="!!leaderCard()?.covered?.has(l.portName)" />
             }
           </svg>
           <ol class="leader-labels" animate.leave="surface-leave" [attr.aria-label]="'codex.holo.stage.pinLabels' | translate">
             @for (l of lay.labels; track l.portName) {
               @if (pinByPort().get(l.portName); as pin) {
                 <li>
-                  <button type="button" class="ll" [class.r]="l.side === 'right'" [class.q]="isQuiet(l.portName)"
+                  <button type="button" class="ll" [class.r]="l.side === 'right'" [class.q]="isQuiet(l.portName)" [class.under]="!!leaderCard()?.covered?.has(l.portName)"
                           [class.gold]="pin.tone === 'gold'"
                           [class.est]="!pin.resolved"
                           [class.active]="lit(l.portName)"
@@ -450,6 +450,8 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     @media (min-width: 1001px) { .silhouette-frame { min-height: 0; } }
     /* Not what the picked Einsatz is about: quiet, still reachable. */
     .pin.q, .ll.q { opacity: 0.35; }
+    /* Under the open callout: the tag steps aside (C10). */
+    .ll.under, .leaders path.under { opacity: 0; visibility: hidden; pointer-events: none; }
     .pin.q:is(:hover, :focus-visible, .active, .sel), .ll.q:is(:hover, :focus-visible, .active, .sel) { opacity: 1; }
     .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
     /* Parallax (concept cine-parallax / cx-parallax): the layers sit at three
@@ -779,17 +781,26 @@ export class CodexHoloTableComponent {
 
   private readonly i18n = inject(TranslateService);
 
-  /** The tag of a part (C10): its type from the port category, then its size — no numbers beyond that. */
+  /** The tag of a part (C10): its TYPE ("Gatling", "Kühler"; the port category when unknown), then its size — no numbers beyond that. */
   readonly tags = computed(() => {
     const map = new Map<string, { type: string; text: string }>();
     for (const p of [...(this.labelPins() ?? []), ...this.pins()]) {
       if (map.has(p.portName)) continue;
-      const type = this.i18n.instant(p.section ? `codex.moduleSection.${p.section}` : 'codex.holo.stage.pinGroupOther');
+      const held = p.section === 'weapons' || p.section === 'remoteTurrets' ? p.slot?.children?.find((c) => !!c.name) : undefined;
+      const typeKey = partTypeKey(p.section, held?.className ?? p.slot?.className ?? null);
+      const type = this.i18n.instant(typeKey ?? (p.section ? `codex.moduleSection.${p.section}` : 'codex.holo.stage.pinGroupOther'));
       const size = sizeOfPin(p);
       map.set(p.portName, { type, text: size != null ? `${type} S${size}` : type });
     }
     return map;
   });
+
+  /** A callout value's short label ("Alpha", "EM"); the full label where no short one exists. */
+  private shortLabel(labelKey: string): string {
+    const key = shortStatKey(labelKey);
+    const short = this.i18n.instant(key);
+    return short && short !== key ? short : this.i18n.instant(labelKey);
+  }
 
   tagOf(pin: StagePin): { type: string; text: string } {
     return this.tags().get(pin.portName) ?? { type: pin.label, text: pin.label };
@@ -816,7 +827,7 @@ export class CodexHoloTableComponent {
     return {
       type: this.tagOf(pin).type,
       title: part.name ? displayItemName(part.name) : pin.label,
-      values: calloutValuesOf(pin.section, part.stats, part.size, part.grade, (k) => t.instant(k), t.instant('codex.holo.stage.partSize'), t.instant('codex.holo.stage.partGrade')),
+      values: calloutValuesOf(pin.section, part.stats, part.size, part.grade, (k) => this.shortLabel(k), t.instant('codex.holo.stage.partSize'), t.instant('codex.holo.stage.partGrade')),
       swappable: !!pin.section && isConfigurableSection(pin.section),
       diff: this.diffPorts().has(port),
     };
@@ -1081,11 +1092,17 @@ export class CodexHoloTableComponent {
     const w = 188 * Math.min(1, Math.max(0.8, 0.5 + (typeof window === 'undefined' ? 1920 : window.innerWidth) / 3840));
     const h = 88 * (w / 188);
     const inner = l.side === 'left' ? l.rect.x + l.rect.w : l.rect.x;
-    const left = l.side === 'left' ? inner - w : inner;
-    return {
-      pin,
-      left: Math.min(Math.max(0, left), Math.max(0, this.frameW() - w)),
-      top: Math.min(Math.max(0, l.rect.y + l.rect.h / 2 - h / 2), Math.max(0, this.frameH() - h)),
-    };
+    const left = Math.min(Math.max(0, l.side === 'left' ? inner - w : inner), Math.max(0, this.frameW() - w));
+    const top = Math.min(Math.max(0, l.rect.y + l.rect.h / 2 - h / 2), Math.max(0, this.frameH() - h));
+    // The tags the full callout lies over step aside (C10): they hide while it is open.
+    const covered = new Set<string>();
+    for (const o of lay.labels) {
+      if (o.portName === port) continue;
+      const overX = o.rect.x < left + w && o.rect.x + o.rect.w > left;
+      // `h` is the callout's reserved box; its drawn card ends a few px earlier — a tag that only grazes it stays.
+      const overY = o.rect.y < top + h - 6 && o.rect.y + o.rect.h > top + 6;
+      if (overX && overY) covered.add(o.portName);
+    }
+    return { pin, left, top, covered };
   });
 }

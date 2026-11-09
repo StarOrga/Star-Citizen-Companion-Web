@@ -4562,14 +4562,14 @@ export class CodexDetailComponent implements OnInit {
   private childrenFor(
     className: string | null,
     carried: ReadonlyMap<string, string>,
+    /** The mount's raw port — set for configurable blocks, whose sub-slots can carry nested drafts. */
+    parentPort: string | null = null,
   ): LayoutChild[] {
     if (!className) return [];
     const payload = this.loadoutPayloads().get(className)?.payload as
       | { itemPorts?: ItemPort[] }
       | undefined;
     const resolved = this.loadoutEntities();
-    const payloads = this.loadoutPayloads();
-    const ammo = this.ammoPayloads();
     const slots = carriedSlots(
       payload?.itemPorts,
       carried,
@@ -4584,15 +4584,36 @@ export class CodexDetailComponent implements OnInit {
     // The gun in the gimbal is the weapon this ship shoots with, so it gets the
     // same identity and stat run a top-level occupant does — the concept draws
     // it as a full row, not as a name under a mount (part-06.html:320-324).
+    const draft = parentPort ? this.draft() : null;
     return slots.map((slot) => {
+      // A nested draft (`mount.gun`): the swapped occupant replaces the stock one in this
+      // sub-slot, so every reader of the children (callout, inspector, Anpassungen) sees it.
+      const kids = slot.rawPorts.length > 0 ? slot.rawPorts : [slot.port];
+      const draftPaths = draft ? kids.map((k) => `${parentPort}.${k}`).filter((p) => draft.has(p)) : [];
+      if (draftPaths.length > 0) {
+        const path = draftPaths[0];
+        const stock = slot.className ? this.childItemOf(slot.className) : { kind: null, payload: null, ammoPayload: undefined };
+        const o = this.draftOverlayFor(path, draft!.get(path), stock);
+        const pending = o.state === 'pending';
+        return {
+          ...slot,
+          className: o.className,
+          kind: o.kind,
+          name: o.name,
+          size: o.size ?? slot.size,
+          grade: o.grade,
+          manufacturerCode: o.manufacturerCode,
+          damageChannels: damageChannelsOf(o.item.payload, o.item.ammoPayload),
+          stats: pending ? [] : equippedStats(o.item),
+          statsMissing: pending ? false : weaponStatsUnavailable(o.item),
+          statsNoteKey: pending ? null : equippedStatsNoteKey(o.item),
+          draftState: o.state,
+          draftPaths,
+        };
+      }
       if (!slot.className) return slot;
       const hit = resolved.get(slot.className);
-      const payloadHit = payloads.get(slot.className);
-      const item = {
-        kind: payloadHit?.kind ?? hit?.kind ?? null,
-        payload: payloadHit?.payload ?? null,
-        ammoPayload: ammo.get(ammoClassNameFor(slot.className, payloadHit?.payload) ?? ''),
-      };
+      const item = this.childItemOf(slot.className);
       return {
         ...slot,
         grade: hit?.grade ?? null,
@@ -4603,6 +4624,17 @@ export class CodexDetailComponent implements OnInit {
         statsNoteKey: equippedStatsNoteKey(item),
       };
     });
+  }
+
+  /** The stock item of a carried class, resolved like a top-level occupant. */
+  private childItemOf(className: string): { kind: CodexKind | null; payload: unknown; ammoPayload: unknown } {
+    const hit = this.loadoutEntities().get(className);
+    const payloadHit = this.loadoutPayloads().get(className);
+    return {
+      kind: payloadHit?.kind ?? hit?.kind ?? null,
+      payload: payloadHit?.payload ?? null,
+      ammoPayload: this.ammoPayloads().get(ammoClassNameFor(className, payloadHit?.payload) ?? ''),
+    };
   }
 
   /**
@@ -4663,7 +4695,7 @@ export class CodexDetailComponent implements OnInit {
       if (fixedRest && !r.item.className && !showEmpty) continue;
       const l = r.item;
       const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
-      const children = fixedRest ? [] : this.childrenFor(l.className, l.carried);
+      const children = fixedRest ? [] : this.childrenFor(l.className, l.carried, configurable ? l.port : null);
       const fit = l.className ? undefined : this.emptyFits().get(l.port);
       // Grouping stays anchored to the STOCK identity, computed BEFORE any
       // draft overlay below — a per-slot draft edit can never split or
@@ -4673,7 +4705,8 @@ export class CodexDetailComponent implements OnInit {
       // itself (feedback #235), so two racks loaded with the same missile
       // must still fold together even if the extract names the sub-ports'
       // occupant class per side.
-      const variantKey = children
+      const stockKids = children.some((c) => !!c.draftState) ? this.childrenFor(l.className, l.carried) : children;
+      const variantKey = stockKids
         .map((c) => `${classNamePositionFamily(c.className)}:${c.count}`)
         .join(',');
       // Grouped by the occupant's POSITION FAMILY, not its raw class name —
@@ -5063,10 +5096,15 @@ const AKTE_FACT_KEYS = ['codex.hull.crew', 'codex.hull.dimensions', 'codex.hull.
 
 /**
  * A livery's tile label from its ship_skins name: "Gladius Frostbite Camo Livery" → "Frostbite Camo",
- * "Gladius (Standard)" → "Standard", "Gladius Gladius Rp" → "Gladius Rp". Never empty.
+ * "Gladius (Standard)" → "Standard", "Gladius Gladius Rp" → "Gladius RP". Never empty.
+ * A name the uploader title-cased from a skin id ("gladius_rp" → "Rp") gets its acronyms
+ * back: a vowelless word of two or three letters is an abbreviation, never a word.
  */
 export function cleanLiveryName(raw: string, shipName: string): string {
-  let s = (raw ?? '').replace(/\s+/g, ' ').trim();
+  let s = (raw ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b[A-Za-z][b-df-hj-np-tv-xzB-DF-HJ-NP-TV-XZ]{1,2}\b/g, (w) => (/[aeiouy]/i.test(w) ? w : w.toUpperCase()));
   const paren = /^.*\(([^)]+)\)$/.exec(s);
   if (paren) return paren[1].trim();
   s = s.replace(/\s+(Livery|Paint|Skin)$/i, '');

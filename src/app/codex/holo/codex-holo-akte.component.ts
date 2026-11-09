@@ -23,6 +23,26 @@ export interface AkteEdition {
   readonly label: string;
 }
 
+/** A leading "Label: value" line of a CIG description ("Hersteller: Aegis Dynamics", "Focus: Light Fighter"). */
+const META_LINE = /^[ \t]*[^\s:][^:\n]{0,30}:[ \t]*[^\n]{0,60}\n+/;
+
+/**
+ * The Akte's prose (C20): CIG descriptions open with data lines — maker, focus, item type —
+ * that the facts already show. Those leading "Label: value" lines go; the prose stays. A text
+ * that is nothing but such lines is kept as it is.
+ */
+export function akteProse(raw: string): string {
+  const all = (raw ?? '').replace(/\r\n?/g, '\n').trim();
+  let s = all;
+  for (let i = 0; i < 6; i++) {
+    const m = META_LINE.exec(s);
+    if (!m) break;
+    s = s.slice(m[0].length);
+  }
+  // Only data lines, or the last one without a line end: nothing to strip them from.
+  return META_LINE.exec(s + '\n') && !s.includes('\n') && s.length <= 92 ? all : s.trim() || all;
+}
+
 /** Id of the factory paint in ship_skins: the official RSI image belongs to it. */
 export const AKTE_STANDARD_LIVERY = 'standard';
 
@@ -41,7 +61,7 @@ export const AKTE_STANDARD_LIVERY = 'standard';
   template: `
     <div class="ak-bg" [class.holo]="!imageSrc()">
       @if (imageSrc(); as src) {
-        <img class="ak-img" [class.icon]="!showsOfficial()" [src]="src" alt="" (error)="onImageError()" />
+        <img class="ak-img" [src]="src" alt="" (error)="onImageError()" />
       }
     </div>
     <div class="ak-card" [class.shut]="!textOpen()">
@@ -50,7 +70,7 @@ export const AKTE_STANDARD_LIVERY = 'standard';
       </button>
       @if (textOpen()) {
         <div class="ak-txt" tabindex="0" [attr.aria-label]="'codex.holo.akte.descriptionAria' | translate">
-          @if (description()) { <p>{{ description() }}</p> } @else { <p class="muted">{{ 'codex.holo.akte.noDescription' | translate }}</p> }
+          @if (text()) { <p>{{ text() }}</p> } @else { <p class="muted">{{ 'codex.holo.akte.noDescription' | translate }}</p> }
         </div>
         @if (facts().length) {
           <dl class="ak-facts">
@@ -94,9 +114,8 @@ export const AKTE_STANDARD_LIVERY = 'standard';
     .ak-bg.holo { background:
       radial-gradient(ellipse 55% 45% at 60% 55%, color-mix(in srgb, var(--sc-accent) 16%, transparent), transparent 70%),
       repeating-linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 5%, transparent) 0 1px, transparent 1px 4px); }
-    /* The CIG/RSI image is a plain image: shown as it is, cover. A livery icon render keeps its proportions. */
+    /* The CIG/RSI image is a plain image: shown as it is, cover — a livery render the same way, under the same card. */
     .ak-img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .ak-img.icon { object-fit: contain; padding: 4% 4% 4% 42%; box-sizing: border-box; }
     .ak-card { position: relative; z-index: 1; box-sizing: border-box; width: min(500px, 100%); height: var(--holo-card-h, min(100%, 540px));
       display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 12px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 38%, transparent); border-radius: 14px;
@@ -110,10 +129,11 @@ export const AKTE_STANDARD_LIVERY = 'standard';
     .ak-txt { flex: 1; min-height: 0; overflow: auto; padding-top: 28px; }
     .ak-txt p { margin: 0; color: var(--sc-fg-0); font-size: max(13.5px, var(--sc-fs-floor)); line-height: 1.55; max-width: var(--sc-measure, 68ch); }
     .ak-txt p.muted { color: var(--sc-fg-2); }
-    .ak-facts { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px 12px; margin: 0; padding-top: 9px; border-top: 1px solid var(--sc-border); font-size: max(12px, var(--sc-fs-floor)); }
-    .ak-facts div { display: contents; }
-    .ak-facts dt { color: var(--sc-fg-2); }
-    .ak-facts dd { margin: 0; min-width: 0; color: var(--sc-fg-0); font-family: var(--sc-font-mono, monospace); font-weight: 600; overflow-wrap: anywhere; }
+    /* Label above value, two to a row: every value keeps one line ("Aegis Dynamics", "19,69 × 17,4 × 5,14 m"). */
+    .ak-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; margin: 0; padding-top: 9px; border-top: 1px solid var(--sc-border); }
+    .ak-facts div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .ak-facts dt { color: var(--sc-fg-2); font-size: max(10.5px, var(--sc-fs-floor)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ak-facts dd { margin: 0; min-width: 0; color: var(--sc-fg-0); font-family: var(--sc-font-mono, monospace); font-weight: 600; font-size: max(12px, var(--sc-fs-floor)); white-space: nowrap; }
     .ak-foot { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; padding-top: 8px; border-top: 1px solid var(--sc-border); }
     .shut .ak-foot { border-top: 0; padding-top: 0; padding-inline-end: 132px; }
     .ak-sws { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 6px; min-width: 0; }
@@ -133,7 +153,7 @@ export const AKTE_STANDARD_LIVERY = 'standard';
       border: 1px solid var(--sc-border); color: var(--sc-fg-1); text-decoration: none; font-size: max(12px, var(--sc-fs-floor)); white-space: nowrap; }
     .ak-rsi:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     @media (pointer: coarse) { .ak-tg { height: 48px; border-radius: 24px; } .ak-rsi { min-height: 48px; } .ak-sw { min-height: 48px; } }
-    @media (max-width: 640px) { .ak-facts { grid-template-columns: auto minmax(0, 1fr); } }
+    @media (max-width: 640px) { .ak-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ak-facts dd { white-space: normal; } }
   `],
 })
 export class CodexHoloAkteComponent {
@@ -151,6 +171,8 @@ export class CodexHoloAkteComponent {
   readonly rsiHref = input('https://robertsspaceindustries.com/en/pledge/ships');
 
   protected readonly standardId = AKTE_STANDARD_LIVERY;
+  /** The description without its leading data lines (maker and focus are facts already). */
+  protected readonly text = computed(() => akteProse(this.description()));
   readonly textOpen = signal(true);
   readonly activeLivery = signal<string>(AKTE_STANDARD_LIVERY);
   private readonly failed = signal(0);

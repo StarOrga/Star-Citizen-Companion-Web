@@ -79,7 +79,10 @@ export type HoloPatchSide = CodexBuild | 'active';
                 [attr.aria-label]="'codex.holo.patch.fromAria' | translate: { patch: fromLabel() }"
                 [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate">
           @if (from(); as f) {
-            {{ sideVersion(f) }} <em class="ch">{{ channelLabel(sideChannel(f)) }}</em>
+            {{ sideVersion(f) }}
+            <!-- Two extracts of one patch (4.10.2 → 4.10.2): the build tells them apart. -->
+            @if (f !== 'active' && f.patchVersion === sideVersion(to())) { <small class="bn">#{{ f.buildNumber.slice(-4) }}</small> }
+            <em class="ch">{{ channelLabel(sideChannel(f)) }}</em>
             @if (sideCurrent(f)) { <span class="cur">{{ 'codex.holo.patch.current' | translate }}</span> }
           } @else {
             <span class="ph">{{ 'codex.holo.patch.pickFrom' | translate }}</span>
@@ -189,15 +192,16 @@ export type HoloPatchSide = CodexBuild | 'active';
   styles: [`
     :host { display: block; position: relative; }
     .mono { font-family: var(--font-monospace, 'Share Tech Mono', monospace); font-variant-numeric: tabular-nums; }
-    .pline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
-    .pw { position: relative; display: inline-flex; }
-    .ar { color: var(--sc-fg-2); }
+    /* One line in the 358 px card (C18): compact pickers, the channel as a tag inside, nothing wraps. */
+    .pline { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; min-width: 0; }
+    .pw { position: relative; display: inline-flex; min-width: 0; }
+    .ar { flex: none; color: var(--sc-fg-2); }
     .pv {
-      display: inline-flex; align-items: center; gap: 6px;
-      min-height: max(32px, var(--sc-tap-min, 0px)); padding: 3px 10px;
+      display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+      min-height: max(30px, var(--sc-tap-min, 0px)); padding: 2px 7px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, var(--sc-border)); border-radius: 4px;
       background: var(--sc-bg-0); color: var(--sc-fg-0);
-      font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer;
+      font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer;
       transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
     }
     .pv:hover, .pv.on { border-color: color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border)); }
@@ -211,6 +215,7 @@ export type HoloPatchSide = CodexBuild | 'active';
       font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-accent); }
     .cur::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent); }
     .car { font-size: 0.62rem; color: var(--sc-fg-2); }
+    .bn { font-size: max(0.62rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .patch-pop {
       position: absolute; top: calc(100% + 6px); left: 0; z-index: 80;
@@ -263,11 +268,13 @@ export type HoloPatchSide = CodexBuild | 'active';
 
     .delta-state { margin: 6px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     /* Hotkey badge (#644): discreet, hidden on touch. */
-    .hk { padding: 0 4px; border: 1px solid var(--sc-border); border-radius: 2px; font-family: var(--font-monospace, monospace); font-size: 9px;
+    /* Out of the flow: the hidden hint never widens the picker. */
+    .hk { position: absolute; top: -9px; right: -4px; background: var(--sc-bg-0); padding: 0 4px; border: 1px solid var(--sc-border); border-radius: 2px; font-family: var(--font-monospace, monospace); font-size: 9px;
       color: var(--sc-fg-2); opacity: 0; transition: opacity 0.16s ease; }
     .pv:hover .hk, .pv:focus-visible .hk { opacity: 1; }
     @media (hover: none), (pointer: coarse) { .hk { display: none; } }
-    .delta-head { display: flex; align-items: center; gap: 8px; }
+    .delta-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+    .delta-head .patch-clear { flex: none; }
     .delta-head .pop-label { flex: 1; min-width: 0; }
     .delta-view { display: flex; flex-direction: column; gap: 6px; }
 
@@ -493,7 +500,10 @@ export class CodexHoloPatchComponent {
     if (this.userCleared) return;
     await this.loadOnce();
     if (this.from() || this.userCleared || !this.autoCompare()) return;
-    const prev = this.builds().find((b) => !this.blockReason(b, 'from'));
+    // "From" = the previous PATCH: a re-extract of the table's own patch (4.10.2 again) is skipped when an older patch exists.
+    const open = this.builds().filter((b) => !this.blockReason(b, 'from'));
+    const toVersion = this.sideVersion(this.to());
+    const prev = open.find((b) => b.patchVersion !== toVersion) ?? open[0];
     if (prev) await this.pickFrom(prev);
   }
 
