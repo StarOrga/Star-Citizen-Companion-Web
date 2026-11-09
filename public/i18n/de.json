@@ -1702,7 +1702,7 @@
     "picker": {
       "title": "Bauteil wählen — {{port}} · S{{size}}",
       "installed": "eingebaut: {{name}}",
-      "hint": "Klick neben das Fenster, um zurückzukommen",
+      "hint": "Mit ✕ oder Esc zurück",
       "close": "Schließen",
       "searchPlaceholder": "Suchen … Name, Hersteller, Schadensart",
       "searchLabel": "Bauteile durchsuchen",

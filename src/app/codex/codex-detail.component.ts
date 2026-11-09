@@ -3367,9 +3367,8 @@ export class CodexDetailComponent implements OnInit {
   readonly draftReadOnly = this.draftStore.readOnly;
   readonly draftSavedPaths = this.draftStore.savedPaths;
 
-  /** "Übernehmen" / "Slot leeren" from the picker — closes it, then drafts every covered path. */
+  /** "Übernehmen" / "Slot leeren" from the picker — drafts every covered path; the picker closes itself through its reverse motion and then emits `closed`. */
   onSwapPicked(pick: SwapPick): void {
-    this.swapTarget.set(null);
     this.draftStore.applySwap(pick);
   }
 
