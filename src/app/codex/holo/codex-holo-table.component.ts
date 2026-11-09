@@ -959,9 +959,12 @@ export class CodexHoloTableComponent {
       };
       measure();
       if (typeof ResizeObserver !== 'function') return;
-      const ro = new ResizeObserver(measure);
+      // In the next frame: the size moves the callout and the tags, a write inside the callback is a
+      // "ResizeObserver loop" (seen as an unhandled error after an exemplar was removed).
+      let raf = 0;
+      const ro = new ResizeObserver(() => { raf ||= requestAnimationFrame(() => { raf = 0; measure(); }); });
       ro.observe(frame);
-      destroyRef.onDestroy(() => ro.disconnect());
+      destroyRef.onDestroy(() => { ro.disconnect(); cancelAnimationFrame(raf); });
     });
     afterNextRender(() => {
       const frame = this.frameRef()?.nativeElement;

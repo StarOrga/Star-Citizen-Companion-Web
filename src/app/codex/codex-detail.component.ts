@@ -2524,7 +2524,11 @@ export class CodexDetailComponent implements OnInit {
     }, 'deleteConfig');
     if (done && this.activeVariantId() === id) {
       const w = this.werkLink();
-      void this.router.navigate(w.commands as unknown[], { queryParams: w.queryParams, queryParamsHandling: 'merge' });
+      // 'merge' alone kept `?v=` of the removed exemplar on the HQ page (its Werk link carries no `v: null`).
+      void this.router.navigate(w.commands as unknown[], {
+        queryParams: { ...w.queryParams, [HQ_VARIANT_PARAM]: null, loadout: null },
+        queryParamsHandling: 'merge',
+      });
     }
   }
 

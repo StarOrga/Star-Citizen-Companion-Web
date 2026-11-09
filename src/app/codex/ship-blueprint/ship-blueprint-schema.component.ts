@@ -237,6 +237,7 @@ export class ShipBlueprintSchemaComponent {
       if (typeof ResizeObserver !== 'function') return;
       let ro: ResizeObserver | null = null;
       let watched: SVGSVGElement | null = null;
+      let raf = 0;
       const measure = () => {
         const el = watched;
         const sheet = el?.parentElement;
@@ -252,7 +253,8 @@ export class ShipBlueprintSchemaComponent {
         ro?.disconnect();
         watched = el;
         if (!el) return;
-        ro = new ResizeObserver(measure);
+        // Next frame: the measured box moves the callout, a write inside the callback is a ResizeObserver loop.
+        ro = new ResizeObserver(() => { raf ||= requestAnimationFrame(() => { raf = 0; measure(); }); });
         ro.observe(el);
         if (el.parentElement) ro.observe(el.parentElement);
         measure();
@@ -260,7 +262,7 @@ export class ShipBlueprintSchemaComponent {
       const mo = new MutationObserver(attach);
       mo.observe(this.host.nativeElement, { childList: true, subtree: true });
       attach();
-      destroyRef.onDestroy(() => { mo.disconnect(); ro?.disconnect(); });
+      destroyRef.onDestroy(() => { mo.disconnect(); ro?.disconnect(); cancelAnimationFrame(raf); });
     });
   }
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);

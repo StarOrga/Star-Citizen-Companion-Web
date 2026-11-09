@@ -691,11 +691,16 @@ export class CodexHoloStripComponent {
       this.destroyRef.onDestroy(() => clearTimeout(late));
       const onResize = () => this.measureFabClearance();
       window.addEventListener('resize', onResize, { passive: true });
-      const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;
+      // Next frame, not inside the observer callback: the clearance changes layout (ResizeObserver loop).
+      let raf = 0;
+      const ro = typeof ResizeObserver === 'function'
+        ? new ResizeObserver(() => { raf ||= requestAnimationFrame(() => { raf = 0; onResize(); }); })
+        : null;
       ro?.observe(this.host.nativeElement);
       this.destroyRef.onDestroy(() => {
         window.removeEventListener('resize', onResize);
         ro?.disconnect();
+        cancelAnimationFrame(raf);
       });
     });
     this.destroyRef.onDestroy(() => {
