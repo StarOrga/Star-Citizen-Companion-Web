@@ -680,7 +680,11 @@ export class FusionBarComponent {
     const dockedCx = h.left + cap.offsetLeft + cap.offsetWidth / 2;
     const dockedTop = h.top + cap.offsetTop;
     setVar(el, '--_dx', `${Math.round(a.left + a.width / 2 - dockedCx)}px`);
-    setVar(el, '--_dy', `${Math.round(a.top - dockedTop)}px`);
+    // Over a whole snap step the slot scrolls out of view long before the morph lands: the
+    // cap then starts where the slot stands at rest and travels in one straight line up into
+    // the bar (rounds/05 d5-pb-scroll), instead of riding the slot off screen and coming back.
+    const slotTop = snapTravelPx() ? a.top + window.scrollY : a.top;
+    setVar(el, '--_dy', `${Math.round(slotTop - dockedTop)}px`);
     // How far the docked search starts right of the cap's first slot (logo, plate, divider): it
     // slides left by this while staged, so the cap's layout never changes during the morph.
     const search = cap.querySelector<HTMLElement>(':scope > .search');
