@@ -1,0 +1,618 @@
+<section data-iteration="2" data-iteration-template="design" data-tab-label="Runde 2">
+<style>
+
+.d1-kw-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 600px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d1-kw-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; background: #02070d; font-family: Inter, system-ui, "Segoe UI", sans-serif; }
+.d1-kw-world { position: absolute; left: 0; top: 0; width: 350cqw; height: 262.5cqw; transform-origin: 0 0; will-change: transform; }
+.d1-kw-sky { position: absolute; inset: 0; background: url(20261109-1752-kamera-welt/assets/sky.jpg) center / cover no-repeat, #041320; }
+.d1-kw-stars { position: absolute; left: 0; top: 0; width: 1px; height: 1px; border-radius: 50%; box-shadow: 0cqw 241.688cqw 0 0.037cqw #ffffff,73.688cqw 191.438cqw 0 0.037cqw #ffffff,115.25cqw 197.438cqw 0 0.037cqw #ffffff,190cqw 179.688cqw 0 0.037cqw #ffffff,285.875cqw 63.5cqw 0 0.037cqw #ffffff,247.75cqw 183.25cqw 0 0.037cqw #ffffff,239.375cqw 122.813cqw 0 0.081cqw #ffe7c4,282.563cqw 32.25cqw 0 0.037cqw #ffffff,323.125cqw 180.75cqw 0 0.037cqw #ffffff,202.125cqw 239.375cqw 0 0.081cqw #cfe8ff,130.313cqw 88.063cqw 0 0.037cqw #cfe8ff,116.313cqw 40.063cqw 0 0.037cqw #ffffff,149.938cqw 77.375cqw 0 0.081cqw #ffe7c4,195.063cqw 191.438cqw 0 0.081cqw #cfe8ff,20.5cqw 71.813cqw 0 0.037cqw #ffffff,178.063cqw 110.625cqw 0 0.037cqw #ffffff,318.125cqw 14.375cqw 0 0.037cqw #ffffff,120.438cqw 174.438cqw 0 0.081cqw #ffe7c4,180.188cqw 43.438cqw 0 0.037cqw #ffffff,99.25cqw 95.688cqw 0 0.037cqw #ffffff,116.375cqw 139.563cqw 0 0.037cqw #ffffff,81.625cqw 237.938cqw 0 0.037cqw #ffffff,302.063cqw 166.75cqw 0 0.037cqw #ffffff,180.688cqw 132.563cqw 0 0.037cqw #ffffff,328.875cqw 104.125cqw 0 0.037cqw #ffffff,87.875cqw 154.063cqw 0 0.037cqw #ffffff,115.688cqw 102.75cqw 0 0.037cqw #ffffff,307.125cqw 29.188cqw 0 0.037cqw #cfe8ff,27.188cqw 106.813cqw 0 0.037cqw #ffffff,27.25cqw 261.5cqw 0 0.037cqw #ffffff,221.313cqw 37.875cqw 0 0.037cqw #ffffff,207.5cqw 36.188cqw 0 0.081cqw #ffe7c4,309.625cqw 233.75cqw 0 0.081cqw #cfe8ff,317.688cqw 199.813cqw 0 0.037cqw #ffffff,3.688cqw 65.188cqw 0 0.037cqw #ffffff,0.563cqw 161.938cqw 0 0.037cqw #ffffff,259.375cqw 128.438cqw 0 0.037cqw #ffffff,83.313cqw 231.563cqw 0 0.037cqw #ffffff,130.875cqw 234.75cqw 0 0.037cqw #ffffff,171.25cqw 0.75cqw 0 0.081cqw #cfe8ff,222.938cqw 242.063cqw 0 0.037cqw #ffffff,315cqw 49.375cqw 0 0.081cqw #ffe7c4,197.875cqw 178.313cqw 0 0.037cqw #ffffff,78cqw 54.875cqw 0 0.037cqw #ffffff,18.313cqw 202cqw 0 0.037cqw #ffffff,249.938cqw 130.75cqw 0 0.037cqw #ffffff,38.625cqw 241.25cqw 0 0.037cqw #ffffff,240.75cqw 234.438cqw 0 0.037cqw #ffffff,309.125cqw 226.125cqw 0 0.081cqw #ffe7c4,334cqw 200.813cqw 0 0.037cqw #ffffff,86.875cqw 191cqw 0 0.081cqw #cfe8ff,139.375cqw 61.625cqw 0 0.037cqw #ffffff,310.438cqw 146.688cqw 0 0.037cqw #ffffff,217.5cqw 192.938cqw 0 0.037cqw #ffffff,253.813cqw 111cqw 0 0.037cqw #ffffff,109.125cqw 258.688cqw 0 0.081cqw #ffe7c4,221.313cqw 228.938cqw 0 0.081cqw #cfe8ff,69.813cqw 169.375cqw 0 0.037cqw #ffffff,174.125cqw 146.313cqw 0 0.037cqw #ffffff,331cqw 126.563cqw 0 0.037cqw #ffffff,156.313cqw 43.625cqw 0 0.037cqw #ffffff,182.625cqw 147.375cqw 0 0.037cqw #ffffff,265cqw 95.125cqw 0 0.037cqw #ffffff,9.125cqw 78.438cqw 0 0.037cqw #ffffff,70.938cqw 189.75cqw 0 0.037cqw #ffffff,82.5cqw 173.125cqw 0 0.037cqw #ffffff,26.375cqw 202.875cqw 0 0.037cqw #cfe8ff,320.438cqw 238.875cqw 0 0.037cqw #ffffff,335.625cqw 6.625cqw 0 0.037cqw #ffffff,210.375cqw 190.063cqw 0 0.081cqw #cfe8ff,12.938cqw 35.688cqw 0 0.037cqw #ffffff,37.875cqw 22.25cqw 0 0.037cqw #ffffff,211.75cqw 248.25cqw 0 0.037cqw #ffffff,46.75cqw 53.063cqw 0 0.037cqw #ffffff,85.125cqw 119.813cqw 0 0.081cqw #ffe7c4,147.938cqw 176.875cqw 0 0.037cqw #ffffff,138.938cqw 109.313cqw 0 0.037cqw #ffffff,80.563cqw 212cqw 0 0.081cqw #ffe7c4,53.375cqw 242.938cqw 0 0.037cqw #ffffff,42.75cqw 55.188cqw 0 0.037cqw #ffffff,59.688cqw 20.5cqw 0 0.037cqw #ffffff,226.313cqw 146cqw 0 0.037cqw #ffffff,347.813cqw 19.75cqw 0 0.037cqw #ffffff,110.063cqw 1.063cqw 0 0.037cqw #ffffff,144.688cqw 24cqw 0 0.037cqw #ffffff,323.438cqw 204.063cqw 0 0.037cqw #ffffff,152.875cqw 224.438cqw 0 0.081cqw #ffe7c4,280.313cqw 173.75cqw 0 0.037cqw #ffffff,121.813cqw 106.813cqw 0 0.037cqw #ffffff,173.188cqw 148.938cqw 0 0.037cqw #ffffff,232.813cqw 166.125cqw 0 0.037cqw #ffffff,309.563cqw 221.875cqw 0 0.081cqw #ffe7c4,153.313cqw 127.875cqw 0 0.081cqw #ffe7c4,341.313cqw 93.938cqw 0 0.037cqw #ffffff,119.938cqw 231.688cqw 0 0.037cqw #ffffff,258.313cqw 250.75cqw 0 0.037cqw #ffffff,72.5cqw 62.5cqw 0 0.037cqw #ffffff,36.438cqw 240.313cqw 0 0.037cqw #cfe8ff,222.313cqw 186.75cqw 0 0.037cqw #ffffff,155.063cqw 228.938cqw 0 0.037cqw #ffffff,305.813cqw 71cqw 0 0.037cqw #ffffff,151.875cqw 103.688cqw 0 0.037cqw #ffffff,206.188cqw 60.75cqw 0 0.081cqw #cfe8ff,287.75cqw 88.75cqw 0 0.037cqw #ffffff,307.063cqw 30.438cqw 0 0.037cqw #ffffff,322.313cqw 0.375cqw 0 0.037cqw #ffffff,139.063cqw 5.688cqw 0 0.037cqw #ffffff,314.25cqw 45.438cqw 0 0.037cqw #ffffff,331.563cqw 183.688cqw 0 0.037cqw #ffffff,40.875cqw 164.5cqw 0 0.037cqw #ffffff,284.188cqw 155.313cqw 0 0.037cqw #ffffff,44.813cqw 86.938cqw 0 0.037cqw #ffffff,334.25cqw 143.813cqw 0 0.037cqw #ffffff,272.125cqw 184.375cqw 0 0.037cqw #ffffff,209.125cqw 26.313cqw 0 0.037cqw #ffffff,214.625cqw 59.063cqw 0 0.037cqw #ffffff,87.813cqw 58.563cqw 0 0.037cqw #ffffff,220.313cqw 213.375cqw 0 0.037cqw #ffffff,316.938cqw 13.875cqw 0 0.037cqw #ffffff,142.375cqw 207.875cqw 0 0.037cqw #ffffff,281.625cqw 27.5cqw 0 0.081cqw #cfe8ff,175.313cqw 216cqw 0 0.037cqw #ffffff,303.188cqw 207.563cqw 0 0.037cqw #ffffff,317.75cqw 225.25cqw 0 0.037cqw #ffffff,251.875cqw 40.563cqw 0 0.037cqw #ffffff,332cqw 250.625cqw 0 0.037cqw #ffffff,26.938cqw 68.75cqw 0 0.081cqw #ffe7c4,304.438cqw 251.125cqw 0 0.037cqw #ffffff,69.375cqw 7.813cqw 0 0.037cqw #ffffff,195.813cqw 37.188cqw 0 0.037cqw #ffffff,168.313cqw 59.5cqw 0 0.037cqw #ffffff,15.563cqw 24.563cqw 0 0.037cqw #ffffff,163.813cqw 212.125cqw 0 0.037cqw #ffffff,178.75cqw 183.875cqw 0 0.037cqw #ffffff,214.688cqw 253.375cqw 0 0.037cqw #ffffff,336.688cqw 186.75cqw 0 0.037cqw #ffffff,280.938cqw 44.938cqw 0 0.037cqw #ffffff,254.313cqw 169.75cqw 0 0.037cqw #ffffff,190.688cqw 101.563cqw 0 0.037cqw #ffffff,42.688cqw 17.438cqw 0 0.037cqw #ffffff,124cqw 90.438cqw 0 0.037cqw #ffffff,224cqw 32.938cqw 0 0.037cqw #ffffff,0.563cqw 219.375cqw 0 0.081cqw #cfe8ff,15.563cqw 201.625cqw 0 0.037cqw #ffffff,140.813cqw 238.375cqw 0 0.037cqw #ffffff,4.063cqw 260.75cqw 0 0.037cqw #ffffff,225cqw 112.25cqw 0 0.037cqw #ffffff,60.438cqw 198.25cqw 0 0.037cqw #ffffff,87.188cqw 225.125cqw 0 0.037cqw #cfe8ff,111.25cqw 120.563cqw 0 0.037cqw #ffffff,88.625cqw 231.375cqw 0 0.081cqw #cfe8ff,237.375cqw 130.875cqw 0 0.081cqw #cfe8ff,286.938cqw 213.438cqw 0 0.037cqw #ffffff,339.625cqw 181.5cqw 0 0.037cqw #ffffff,249.25cqw 85.125cqw 0 0.081cqw #cfe8ff,57.063cqw 221.875cqw 0 0.037cqw #ffffff,285.625cqw 122.563cqw 0 0.037cqw #ffffff,290.063cqw 11.188cqw 0 0.037cqw #ffffff,68.438cqw 6.125cqw 0 0.037cqw #ffffff,284.188cqw 164.625cqw 0 0.081cqw #cfe8ff,302.938cqw 213.5cqw 0 0.037cqw #ffffff,196.875cqw 120.688cqw 0 0.037cqw #ffffff,188.375cqw 197.188cqw 0 0.037cqw #ffffff,134.313cqw 131.188cqw 0 0.037cqw #ffffff,246.188cqw 202.563cqw 0 0.037cqw #ffffff,89.125cqw 161.188cqw 0 0.037cqw #ffffff,328.375cqw 149.188cqw 0 0.037cqw #ffffff,210.063cqw 150.563cqw 0 0.037cqw #ffffff,199.875cqw 42.375cqw 0 0.037cqw #ffffff,41.438cqw 87.563cqw 0 0.037cqw #ffffff,306.125cqw 169.063cqw 0 0.037cqw #ffffff,121.563cqw 104.5cqw 0 0.037cqw #ffffff,54.188cqw 13.938cqw 0 0.037cqw #ffffff,131.563cqw 24cqw 0 0.037cqw #ffffff,141.25cqw 120.063cqw 0 0.037cqw #ffffff,294.063cqw 72cqw 0 0.037cqw #ffffff,42.5cqw 53.25cqw 0 0.037cqw #ffffff,69.875cqw 159.5cqw 0 0.037cqw #ffffff,263.875cqw 206cqw 0 0.037cqw #ffffff,303.438cqw 179.625cqw 0 0.037cqw #ffffff,218.375cqw 193.25cqw 0 0.081cqw #cfe8ff,203cqw 253.875cqw 0 0.037cqw #ffffff,348.188cqw 9.813cqw 0 0.037cqw #ffffff,107.688cqw 224.75cqw 0 0.081cqw #cfe8ff,253.188cqw 143.5cqw 0 0.037cqw #ffffff,187.125cqw 203.813cqw 0 0.037cqw #ffffff,284.125cqw 179.313cqw 0 0.037cqw #ffffff,332.875cqw 80.5cqw 0 0.037cqw #ffffff,257.188cqw 135.125cqw 0 0.037cqw #ffffff,242.25cqw 178.938cqw 0 0.037cqw #ffffff,247.188cqw 257.5cqw 0 0.037cqw #cfe8ff,237.938cqw 148.875cqw 0 0.037cqw #ffffff,220.5cqw 148.938cqw 0 0.037cqw #ffffff,7.938cqw 226.5cqw 0 0.037cqw #ffffff,341.688cqw 80.813cqw 0 0.037cqw #ffffff,328.375cqw 149.875cqw 0 0.037cqw #ffffff,69.313cqw 63.5cqw 0 0.037cqw #ffffff,151.375cqw 12.438cqw 0 0.037cqw #ffffff,273.313cqw 220.625cqw 0 0.037cqw #ffffff,107.125cqw 161.313cqw 0 0.037cqw #ffffff,111.063cqw 76.125cqw 0 0.037cqw #ffffff,129.313cqw 113.438cqw 0 0.037cqw #ffffff,176.438cqw 142.688cqw 0 0.037cqw #ffffff,218.063cqw 235.688cqw 0 0.081cqw #ffe7c4,161.875cqw 218.5cqw 0 0.081cqw #ffe7c4,227cqw 106.188cqw 0 0.037cqw #ffffff,18.438cqw 75.188cqw 0 0.037cqw #ffffff,294.25cqw 29.313cqw 0 0.037cqw #ffffff,233.25cqw 58.125cqw 0 0.037cqw #ffffff,49.375cqw 199.563cqw 0 0.037cqw #ffffff,218.563cqw 198.375cqw 0 0.037cqw #ffffff,288.75cqw 239.188cqw 0 0.037cqw #ffffff,333.813cqw 19.063cqw 0 0.037cqw #ffffff,13.563cqw 258.063cqw 0 0.037cqw #ffffff,96.813cqw 137.375cqw 0 0.037cqw #cfe8ff,247.75cqw 207.563cqw 0 0.037cqw #ffffff,40.063cqw 161.875cqw 0 0.037cqw #ffffff,30.75cqw 75.5cqw 0 0.037cqw #ffffff,269.563cqw 177.375cqw 0 0.037cqw #ffffff,54.875cqw 244.25cqw 0 0.081cqw #ffe7c4,216.438cqw 189.438cqw 0 0.037cqw #ffffff,311.25cqw 41.875cqw 0 0.037cqw #ffffff,243.938cqw 110.563cqw 0 0.037cqw #ffffff,344.75cqw 117.563cqw 0 0.037cqw #ffffff,231.25cqw 26.813cqw 0 0.037cqw #ffffff,64.563cqw 219.938cqw 0 0.037cqw #ffffff,348.563cqw 142.063cqw 0 0.037cqw #ffffff,167.5cqw 133.313cqw 0 0.037cqw #ffffff,189.625cqw 214.938cqw 0 0.037cqw #ffffff,74cqw 17.563cqw 0 0.037cqw #ffffff,152.5cqw 34.125cqw 0 0.037cqw #cfe8ff,7.188cqw 239.625cqw 0 0.037cqw #ffffff,311.438cqw 175.688cqw 0 0.037cqw #ffffff,294.375cqw 72.25cqw 0 0.037cqw #ffffff,163.063cqw 0.313cqw 0 0.037cqw #ffffff,31.188cqw 15.375cqw 0 0.037cqw #ffffff,41.813cqw 58.188cqw 0 0.037cqw #ffffff,229.063cqw 64.188cqw 0 0.037cqw #ffffff,250.625cqw 196.938cqw 0 0.037cqw #ffffff,302cqw 47.313cqw 0 0.037cqw #ffffff,191.375cqw 106.125cqw 0 0.037cqw #ffffff,142.375cqw 144.625cqw 0 0.081cqw #cfe8ff,298.438cqw 107.063cqw 0 0.037cqw #ffffff,340.625cqw 194.063cqw 0 0.081cqw #ffe7c4,83.563cqw 252.188cqw 0 0.081cqw #ffe7c4,249.688cqw 149.063cqw 0 0.037cqw #ffffff,313.063cqw 47.875cqw 0 0.037cqw #ffffff,154.625cqw 202.25cqw 0 0.037cqw #ffffff,242.188cqw 160.625cqw 0 0.037cqw #ffffff,103.813cqw 199.5cqw 0 0.037cqw #ffffff,11.813cqw 144.813cqw 0 0.081cqw #ffe7c4,4cqw 250cqw 0 0.037cqw #ffffff,191.688cqw 225.938cqw 0 0.081cqw #cfe8ff,321.063cqw 14.563cqw 0 0.037cqw #ffffff,127.125cqw 183.5cqw 0 0.037cqw #ffffff,144.188cqw 20.875cqw 0 0.037cqw #ffffff,129.375cqw 82.75cqw 0 0.037cqw #ffffff,4.313cqw 104.188cqw 0 0.037cqw #ffffff,280.438cqw 215.375cqw 0 0.037cqw #ffffff,155cqw 150.063cqw 0 0.037cqw #ffffff,47.375cqw 30.75cqw 0 0.037cqw #ffffff,15.688cqw 72.625cqw 0 0.037cqw #ffffff,65.063cqw 254.375cqw 0 0.081cqw #cfe8ff,195.688cqw 41.563cqw 0 0.037cqw #ffffff,245.313cqw 74.438cqw 0 0.037cqw #ffffff,108cqw 102.438cqw 0 0.037cqw #ffffff,2.5cqw 57.688cqw 0 0.037cqw #ffffff,229.438cqw 8.25cqw 0 0.081cqw #ffe7c4,30.25cqw 28.375cqw 0 0.037cqw #ffffff,239.125cqw 178.438cqw 0 0.037cqw #ffffff,329.063cqw 15.5cqw 0 0.037cqw #ffffff,57.938cqw 96.25cqw 0 0.037cqw #ffffff,70.688cqw 8.5cqw 0 0.037cqw #ffffff,178.5cqw 254.813cqw 0 0.037cqw #ffffff,180.5cqw 165.125cqw 0 0.037cqw #ffffff,321.125cqw 177.188cqw 0 0.037cqw #ffffff,328.375cqw 181.5cqw 0 0.037cqw #ffffff,134.938cqw 117.188cqw 0 0.037cqw #ffffff,52.125cqw 106.375cqw 0 0.037cqw #ffffff,224.813cqw 178.063cqw 0 0.037cqw #cfe8ff,298.25cqw 141.188cqw 0 0.037cqw #ffffff,120.25cqw 252cqw 0 0.037cqw #ffffff,257.875cqw 218.188cqw 0 0.037cqw #ffffff,268.938cqw 94.75cqw 0 0.037cqw #ffffff,5.063cqw 147cqw 0 0.037cqw #ffffff,180.125cqw 128.75cqw 0 0.037cqw #ffffff,54.313cqw 130.625cqw 0 0.037cqw #ffffff,185.438cqw 26.5cqw 0 0.037cqw #ffffff,269.563cqw 147.563cqw 0 0.037cqw #cfe8ff,300.063cqw 175.563cqw 0 0.037cqw #ffffff,292cqw 101.5cqw 0 0.081cqw #cfe8ff,130.938cqw 98.125cqw 0 0.037cqw #ffffff,28.688cqw 26.188cqw 0 0.037cqw #ffffff,202.125cqw 177.5cqw 0 0.037cqw #ffffff,2.188cqw 10.875cqw 0 0.037cqw #ffffff,338.75cqw 232.688cqw 0 0.037cqw #cfe8ff,330.75cqw 193.375cqw 0 0.037cqw #ffffff,216.938cqw 17.625cqw 0 0.037cqw #ffffff,165.688cqw 137.938cqw 0 0.037cqw #ffffff,207.625cqw 168.438cqw 0 0.037cqw #ffffff,254.25cqw 89.313cqw 0 0.081cqw #cfe8ff,5cqw 10.688cqw 0 0.037cqw #ffffff,343.188cqw 53.25cqw 0 0.037cqw #ffffff,75.5cqw 10.25cqw 0 0.037cqw #ffffff,235.813cqw 161.625cqw 0 0.037cqw #ffffff,297.125cqw 9.688cqw 0 0.037cqw #cfe8ff,304.75cqw 116.125cqw 0 0.037cqw #ffffff,72.188cqw 167.375cqw 0 0.037cqw #ffffff,101.875cqw 173.75cqw 0 0.037cqw #ffffff,197.438cqw 243.188cqw 0 0.037cqw #ffffff,318.125cqw 64.125cqw 0 0.037cqw #ffffff,11.938cqw 234.75cqw 0 0.037cqw #ffffff,89.25cqw 161.063cqw 0 0.037cqw #ffffff,180.938cqw 109.5cqw 0 0.081cqw #ffe7c4,287.25cqw 251.438cqw 0 0.081cqw #cfe8ff,17.938cqw 70.438cqw 0 0.037cqw #ffffff,188.563cqw 33.063cqw 0 0.037cqw #ffffff,84.5cqw 103.625cqw 0 0.037cqw #ffffff,294.188cqw 92.75cqw 0 0.037cqw #ffffff,60cqw 62.5cqw 0 0.037cqw #ffffff,321cqw 192.188cqw 0 0.037cqw #ffffff,291.75cqw 18.125cqw 0 0.037cqw #ffffff,306cqw 34.75cqw 0 0.037cqw #ffffff,126.938cqw 203.188cqw 0 0.037cqw #ffffff,333.063cqw 10.125cqw 0 0.037cqw #ffffff,300.875cqw 221.25cqw 0 0.037cqw #ffffff,39.625cqw 131.563cqw 0 0.037cqw #ffffff,260.438cqw 170.375cqw 0 0.037cqw #ffffff,29.5cqw 25.375cqw 0 0.037cqw #ffffff,327.813cqw 173.875cqw 0 0.037cqw #cfe8ff,319.188cqw 224.313cqw 0 0.037cqw #ffffff,115.688cqw 179.375cqw 0 0.037cqw #ffffff,254.375cqw 133.688cqw 0 0.037cqw #ffffff,245.938cqw 154.875cqw 0 0.037cqw #ffffff,308.813cqw 191.313cqw 0 0.037cqw #ffffff,130.625cqw 36.938cqw 0 0.081cqw #cfe8ff,75.875cqw 95.188cqw 0 0.081cqw #cfe8ff,245.563cqw 194.5cqw 0 0.037cqw #ffffff,235cqw 212.438cqw 0 0.037cqw #ffffff,256.375cqw 105.313cqw 0 0.037cqw #ffffff,7.125cqw 59.313cqw 0 0.037cqw #ffffff,344.938cqw 156.438cqw 0 0.037cqw #ffffff,12.25cqw 110.188cqw 0 0.037cqw #ffffff,334.75cqw 25.813cqw 0 0.037cqw #ffffff,224.938cqw 73.688cqw 0 0.081cqw #ffe7c4,55.688cqw 60.625cqw 0 0.037cqw #cfe8ff,143.688cqw 258.688cqw 0 0.037cqw #ffffff,14.563cqw 215.313cqw 0 0.037cqw #ffffff,130.188cqw 238.125cqw 0 0.037cqw #ffffff,248.563cqw 176.625cqw 0 0.037cqw #ffffff,311.375cqw 191.625cqw 0 0.037cqw #ffffff,182.625cqw 12.875cqw 0 0.037cqw #ffffff,123.438cqw 189.125cqw 0 0.037cqw #ffffff,4.813cqw 251.938cqw 0 0.081cqw #cfe8ff,270.313cqw 134.688cqw 0 0.037cqw #ffffff,187.375cqw 179.875cqw 0 0.037cqw #cfe8ff,112.5cqw 179.125cqw 0 0.081cqw #ffe7c4,247.438cqw 194.375cqw 0 0.037cqw #cfe8ff,245.375cqw 226.813cqw 0 0.037cqw #ffffff,187.813cqw 107.25cqw 0 0.081cqw #ffe7c4,55.25cqw 194cqw 0 0.037cqw #ffffff,184.375cqw 120.125cqw 0 0.037cqw #ffffff,232.563cqw 17.5cqw 0 0.037cqw #ffffff,35cqw 11.688cqw 0 0.037cqw #ffffff,198.063cqw 183.625cqw 0 0.037cqw #cfe8ff,71.938cqw 14.563cqw 0 0.037cqw #ffffff,21.25cqw 235.563cqw 0 0.037cqw #cfe8ff,190.375cqw 247.688cqw 0 0.081cqw #ffe7c4,298.438cqw 49.813cqw 0 0.037cqw #ffffff,179.313cqw 260.188cqw 0 0.037cqw #ffffff,299.438cqw 39.938cqw 0 0.081cqw #ffe7c4,144.375cqw 129.938cqw 0 0.037cqw #ffffff,81.063cqw 132.625cqw 0 0.037cqw #ffffff,302.375cqw 98.25cqw 0 0.037cqw #ffffff,280.938cqw 130.563cqw 0 0.081cqw #ffe7c4,232.563cqw 119.938cqw 0 0.037cqw #ffffff,121.938cqw 82.938cqw 0 0.037cqw #ffffff,173cqw 93.188cqw 0 0.037cqw #ffffff,279.563cqw 141.25cqw 0 0.081cqw #cfe8ff,44.688cqw 61.875cqw 0 0.037cqw #cfe8ff,92.688cqw 152.875cqw 0 0.037cqw #ffffff,236.938cqw 132.625cqw 0 0.037cqw #ffffff,43.563cqw 105.125cqw 0 0.037cqw #ffffff,263.938cqw 28.875cqw 0 0.037cqw #cfe8ff,50.625cqw 238.188cqw 0 0.037cqw #ffffff,208.063cqw 140.5cqw 0 0.037cqw #ffffff,197.625cqw 0.875cqw 0 0.037cqw #ffffff,318.313cqw 118.938cqw 0 0.037cqw #ffffff,174.688cqw 12.5cqw 0 0.037cqw #ffffff,155.438cqw 254.813cqw 0 0.037cqw #ffffff,134.063cqw 55.688cqw 0 0.037cqw #ffffff,152.25cqw 200.438cqw 0 0.037cqw #ffffff,343.75cqw 53.063cqw 0 0.037cqw #ffffff,308.5cqw 161.625cqw 0 0.081cqw #ffe7c4,291.563cqw 231.563cqw 0 0.037cqw #ffffff,88.813cqw 130.375cqw 0 0.037cqw #ffffff,259.938cqw 168.688cqw 0 0.037cqw #ffffff,275.688cqw 149.438cqw 0 0.081cqw #ffe7c4,23.75cqw 220.813cqw 0 0.037cqw #ffffff,213.25cqw 83.625cqw 0 0.037cqw #ffffff,282.813cqw 259.438cqw 0 0.037cqw #ffffff,207.375cqw 208.563cqw 0 0.037cqw #ffffff,205.25cqw 98.75cqw 0 0.081cqw #cfe8ff,240.125cqw 234.938cqw 0 0.037cqw #ffffff,264.75cqw 215.563cqw 0 0.037cqw #ffffff,244.125cqw 220.625cqw 0 0.037cqw #ffffff,6.5cqw 33.563cqw 0 0.037cqw #ffffff,208cqw 2.875cqw 0 0.037cqw #ffffff,303.938cqw 139.375cqw 0 0.037cqw #ffffff,208.063cqw 166.813cqw 0 0.037cqw #ffffff,195cqw 69.875cqw 0 0.037cqw #ffffff,128.813cqw 151.5cqw 0 0.037cqw #ffffff,284.813cqw 47.75cqw 0 0.081cqw #cfe8ff,159cqw 130.25cqw 0 0.081cqw #ffe7c4,223.5cqw 221.75cqw 0 0.037cqw #ffffff,337.375cqw 26.438cqw 0 0.037cqw #ffffff,134.813cqw 54.125cqw 0 0.037cqw #ffffff,188.375cqw 185.25cqw 0 0.037cqw #ffffff,312.063cqw 102.625cqw 0 0.037cqw #ffffff,277.25cqw 181.875cqw 0 0.037cqw #ffffff,307.5cqw 37cqw 0 0.037cqw #ffffff,300.125cqw 186.438cqw 0 0.037cqw #ffffff,124.375cqw 212.875cqw 0 0.037cqw #ffffff,94.688cqw 170.375cqw 0 0.037cqw #ffffff,208cqw 77.375cqw 0 0.081cqw #cfe8ff,335.625cqw 54.938cqw 0 0.037cqw #cfe8ff,333.563cqw 227.063cqw 0 0.037cqw #ffffff,76.563cqw 33.5cqw 0 0.037cqw #ffffff,242.313cqw 242.563cqw 0 0.037cqw #ffffff,301.125cqw 130.063cqw 0 0.037cqw #ffffff,13.813cqw 113cqw 0 0.037cqw #ffffff,0.688cqw 103.563cqw 0 0.037cqw #ffffff,106.063cqw 116.938cqw 0 0.037cqw #ffffff,80.438cqw 1.438cqw 0 0.081cqw #ffe7c4,277.875cqw 185.938cqw 0 0.081cqw #ffe7c4,137.5cqw 52cqw 0 0.037cqw #ffffff,16.625cqw 192.5cqw 0 0.081cqw #ffe7c4,347.75cqw 50.25cqw 0 0.037cqw #ffffff,201.625cqw 103.188cqw 0 0.037cqw #ffffff,279.938cqw 200cqw 0 0.037cqw #ffffff,10.25cqw 156.563cqw 0 0.037cqw #ffffff,89.625cqw 243.438cqw 0 0.037cqw #ffffff,309.188cqw 7cqw 0 0.037cqw #ffffff,233.25cqw 190.063cqw 0 0.037cqw #ffffff,119.188cqw 197.125cqw 0 0.037cqw #ffffff,319.375cqw 35.125cqw 0 0.037cqw #ffffff,6.25cqw 54.75cqw 0 0.037cqw #ffffff,286.813cqw 25cqw 0 0.081cqw #cfe8ff,160.563cqw 79.125cqw 0 0.037cqw #ffffff,104.125cqw 208.625cqw 0 0.037cqw #ffffff,120.75cqw 106.188cqw 0 0.037cqw #ffffff,69.938cqw 72.188cqw 0 0.081cqw #ffe7c4,342.688cqw 29.563cqw 0 0.037cqw #ffffff,195.813cqw 166.438cqw 0 0.037cqw #ffffff,28.625cqw 243.375cqw 0 0.037cqw #ffffff,96.875cqw 209cqw 0 0.081cqw #ffe7c4,36.063cqw 189.813cqw 0 0.037cqw #cfe8ff,147.563cqw 85.938cqw 0 0.037cqw #ffffff,330.813cqw 222.25cqw 0 0.081cqw #cfe8ff,311.75cqw 85.313cqw 0 0.037cqw #ffffff,40.5cqw 111.813cqw 0 0.037cqw #ffffff,3.375cqw 257.313cqw 0 0.037cqw #cfe8ff,304.5cqw 242.625cqw 0 0.037cqw #ffffff,227.625cqw 155.875cqw 0 0.037cqw #cfe8ff,71.188cqw 30.313cqw 0 0.081cqw #ffe7c4,344.188cqw 212.813cqw 0 0.037cqw #ffffff,337.938cqw 115.563cqw 0 0.037cqw #ffffff,226cqw 70cqw 0 0.081cqw #ffe7c4,77.625cqw 4.125cqw 0 0.037cqw #ffffff,136.625cqw 182cqw 0 0.037cqw #ffffff,244.875cqw 186.188cqw 0 0.037cqw #ffffff,274.25cqw 51.938cqw 0 0.037cqw #ffffff,285.688cqw 117.25cqw 0 0.037cqw #ffffff,9.375cqw 61.438cqw 0 0.037cqw #ffffff,135.25cqw 177.938cqw 0 0.037cqw #ffffff,217.813cqw 69.25cqw 0 0.037cqw #ffffff,86cqw 172.063cqw 0 0.037cqw #ffffff,40.563cqw 9.063cqw 0 0.037cqw #ffffff,207.875cqw 46.313cqw 0 0.037cqw #ffffff,149.563cqw 50.5cqw 0 0.037cqw #ffffff,55.25cqw 200.438cqw 0 0.037cqw #ffffff,324.75cqw 196.063cqw 0 0.037cqw #ffffff,58.438cqw 55.188cqw 0 0.037cqw #ffffff,71.563cqw 103.063cqw 0 0.037cqw #cfe8ff,72.813cqw 107.438cqw 0 0.037cqw #ffffff,194.688cqw 21.375cqw 0 0.037cqw #cfe8ff,105.813cqw 71.75cqw 0 0.037cqw #ffffff,72.5cqw 155.063cqw 0 0.037cqw #ffffff,279cqw 201.938cqw 0 0.037cqw #ffffff,38.375cqw 47.75cqw 0 0.037cqw #ffffff,316.625cqw 197.5cqw 0 0.037cqw #ffffff,306.938cqw 252.188cqw 0 0.081cqw #ffe7c4,294.375cqw 179.563cqw 0 0.037cqw #ffffff,224.25cqw 216.75cqw 0 0.037cqw #ffffff,298.75cqw 40.688cqw 0 0.037cqw #ffffff,103.75cqw 90.5cqw 0 0.037cqw #ffffff,101.938cqw 20.875cqw 0 0.037cqw #ffffff,65.25cqw 192.25cqw 0 0.037cqw #ffffff,168.125cqw 226.625cqw 0 0.037cqw #ffffff,59.875cqw 250.813cqw 0 0.081cqw #cfe8ff,343.625cqw 87.938cqw 0 0.037cqw #ffffff,168.125cqw 36.75cqw 0 0.037cqw #ffffff,230cqw 128.5cqw 0 0.037cqw #ffffff,92.313cqw 90.75cqw 0 0.037cqw #ffffff,282.875cqw 114.938cqw 0 0.037cqw #ffffff,269.188cqw 19.75cqw 0 0.037cqw #ffffff,97.688cqw 3.063cqw 0 0.037cqw #cfe8ff,247.125cqw 60cqw 0 0.037cqw #ffffff,155.688cqw 41.438cqw 0 0.081cqw #cfe8ff,285.313cqw 76.938cqw 0 0.037cqw #ffffff,173.938cqw 142.438cqw 0 0.037cqw #ffffff,273.688cqw 16.438cqw 0 0.037cqw #ffffff,342.375cqw 221.688cqw 0 0.037cqw #ffffff,336.563cqw 182cqw 0 0.081cqw #cfe8ff,106.688cqw 82.438cqw 0 0.081cqw #ffe7c4,111.25cqw 167.375cqw 0 0.081cqw #ffe7c4,290.125cqw 164.125cqw 0 0.037cqw #ffffff,76.5cqw 247.5cqw 0 0.037cqw #ffffff,0.063cqw 129.063cqw 0 0.037cqw #ffffff,251.063cqw 71.688cqw 0 0.037cqw #ffffff; opacity: .75; }
+.d1-kw-planet { position: absolute; left: 69.688cqw; top: 85.75cqw; width: 160cqw; height: 160cqw; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 50% 2%, #17394c 0, #0d2535 4%, #081926 9%, #05121c 18%, #040d15 36%, #030a10 70%);
+  box-shadow: 0 -0.188cqw 1.625cqw rgba(82,193,230,.32), inset 0 0.25cqw 1.125cqw rgba(150,225,255,.22); }
+.d1-kw-surface { position: absolute; left: -12.5cqw; right: -12.5cqw; top: 18.75cqw; bottom: 0; background: url(20261109-1752-kamera-welt/assets/verse-low-stage.jpg) 0 0 / 100cqw 56.25cqw repeat; mix-blend-mode: lighten; opacity: .95;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 16.25cqw); mask-image: linear-gradient(180deg, transparent 0, #000 16.25cqw); }
+.d1-kw-surface.b { background-position: 50cqw 28.125cqw; transform: scaleX(-1); opacity: .7; }
+.d1-kw-hub { position: absolute; left: 100cqw; top: 50cqw; width: 100cqw; height: 56.25cqw; background: url(20261109-1752-kamera-welt/assets/verse-stage.jpg) 0 0 / 100cqw auto no-repeat; mix-blend-mode: lighten; }
+.d1-kw-holo { position: absolute; left: 225cqw; top: 37.5cqw; width: 100cqw; height: 56.25cqw; background: url(20261109-1752-kamera-welt/assets/codex-stage.jpg) 0 0 / 100% 100% no-repeat; mix-blend-mode: lighten; }
+.d1-kw-ui { position: absolute; inset: 0; z-index: 2; background: center / 100% 100% no-repeat; mix-blend-mode: lighten; pointer-events: none; }
+.d1-kw-today { position: absolute; left: 1.4cqw; bottom: 1.4cqw; z-index: 4; width: 19cqw; aspect-ratio: 16 / 9; border: 1px solid rgba(255,255,255,.28); border-radius: .5cqw; background: center / cover no-repeat; box-shadow: 0 .6cqw 2cqw rgba(0,0,0,.6); }
+.d1-kw-today::before { content: 'HEUTE'; position: absolute; left: .5cqw; top: .4cqw; padding: .15cqw .45cqw; border-radius: .3cqw; background: rgba(2,7,13,.82); font: 600 .78cqw/1.2 Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #f3c88c; }
+.d1-kw-tag { position: absolute; right: 1.4cqw; bottom: 1.4cqw; z-index: 4; padding: .3cqw .7cqw; border-radius: .3cqw; background: rgba(2,7,13,.78); font: 600 .9cqw/1.2 Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #8fb2c6; }
+/* World map: every page as a camera frame. */
+.d1-kw-frame { position: absolute; z-index: 3; box-sizing: border-box; border: 0.5cqw solid rgba(76,201,240,.75); border-radius: 1cqw; background: rgba(76,201,240,.05); text-decoration: none; cursor: pointer; }
+.d1-kw-frame:hover { border-color: #4cc9f0; background: rgba(76,201,240,.14); }
+.d1-kw-frame b { position: absolute; left: 1.125cqw; top: 0.625cqw; font: 600 4cqw/1.1 Orbitron, Inter, sans-serif; letter-spacing: .08em; color: #dff4ff; text-shadow: 0 0 1.125cqw #000, 0 0 0.375cqw #000; white-space: nowrap; }
+.d1-kw-frame.sub { border-style: dashed; border-color: rgba(243,200,140,.8); }
+.d1-kw-frame.sub b { font-size: 2.625cqw; color: #ffe2b8; }
+.d1-kw-frame.hq { border-color: rgba(255,184,107,.9); }
+.d1-kw-legend { position: absolute; left: 1.4cqw; top: 1.2cqw; z-index: 4; display: grid; gap: .4cqw; padding: .8cqw 1cqw; border-radius: .5cqw; background: rgba(2,7,13,.8); font: 500 .95cqw/1.3 Inter, sans-serif; color: #b9d3e1; }
+.d1-kw-legend i { display: inline-block; width: 1.8cqw; height: 1cqw; margin-right: .6cqw; vertical-align: -.1cqw; border: 2px solid rgba(76,201,240,.8); border-radius: .2cqw; }
+.d1-kw-legend i.s { border-style: dashed; border-color: rgba(243,200,140,.85); }
+.d1-kw-legend i.h { border-color: rgba(255,184,107,.9); }
+.d1-kw-legend b { font: 600 .82cqw Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #4cc9f0; }
+@media (prefers-reduced-motion: reduce) { .d1-kw-stage * { animation-duration: 0s !important; } }
+@keyframes d1-kw-verse-cam { 0%, 14% { transform: scale(0.2778) translate(5cqw, 3.75cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1) translate(-100cqw, -50cqw); } }
+@keyframes d1-kw-verse-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-verse .d1-kw-world { transform: scale(1) translate(-100cqw, -50cqw); animation: d1-kw-verse-cam 7s infinite; }
+#d1-kw-verse .d1-kw-ui { animation: d1-kw-verse-ui 7s infinite; }
+@keyframes d1-kw-news-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(2.4) translate(-85.604cqw, -74.219cqw); } }
+@keyframes d1-kw-news-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-news .d1-kw-world { transform: scale(2.4) translate(-85.604cqw, -74.219cqw); animation: d1-kw-news-cam 7s infinite; }
+#d1-kw-news .d1-kw-ui { animation: d1-kw-news-ui 7s infinite; }
+@keyframes d1-kw-starmap-cam { 0%, 14% { transform: scale(2.4) translate(-85.604cqw, -74.219cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(2.4) translate(-151.104cqw, -67.156cqw); } }
+@keyframes d1-kw-starmap-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-starmap .d1-kw-world { transform: scale(2.4) translate(-151.104cqw, -67.156cqw); animation: d1-kw-starmap-cam 7s infinite; }
+#d1-kw-starmap .d1-kw-ui { animation: d1-kw-starmap-ui 7s infinite; }
+@keyframes d1-kw-mehr-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1) translate(-100cqw, -101.625cqw); } }
+@keyframes d1-kw-mehr-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-mehr .d1-kw-world { transform: scale(1) translate(-100cqw, -101.625cqw); animation: d1-kw-mehr-cam 7s infinite; }
+#d1-kw-mehr .d1-kw-ui { animation: d1-kw-mehr-ui 7s infinite; }
+@keyframes d1-kw-codex-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1) translate(-225cqw, -37.5cqw); } }
+@keyframes d1-kw-codex-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-codex .d1-kw-world { transform: scale(1) translate(-225cqw, -37.5cqw); animation: d1-kw-codex-cam 7s infinite; }
+#d1-kw-codex .d1-kw-ui { animation: d1-kw-codex-ui 7s infinite; }
+@keyframes d1-kw-codex-index-cam { 0%, 14% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); } }
+@keyframes d1-kw-codex-index-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-codex-index .d1-kw-world { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); animation: d1-kw-codex-index-cam 7s infinite; }
+#d1-kw-codex-index .d1-kw-ui { animation: d1-kw-codex-index-ui 7s infinite; }
+@keyframes d1-kw-hq-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1.6) translate(-118.438cqw, -104.422cqw); } }
+@keyframes d1-kw-hq-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-hq .d1-kw-world { transform: scale(1.6) translate(-118.438cqw, -104.422cqw); animation: d1-kw-hq-cam 7s infinite; }
+#d1-kw-hq .d1-kw-ui { animation: d1-kw-hq-ui 7s infinite; }
+@keyframes d1-kw-hq-lager-cam { 0%, 14% { transform: scale(1.6) translate(-118.438cqw, -104.422cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(1.6) translate(-118.438cqw, -139.547cqw); } }
+@keyframes d1-kw-hq-lager-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-hq-lager .d1-kw-world { transform: scale(1.6) translate(-118.438cqw, -139.547cqw); animation: d1-kw-hq-lager-cam 7s infinite; }
+#d1-kw-hq-lager .d1-kw-ui { animation: d1-kw-hq-lager-ui 7s infinite; }
+@keyframes d1-kw-admin-cam { 0%, 14% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 29.7%, 100% { transform: scale(2.2) translate(-104.585cqw, -62.903cqw); } }
+@keyframes d1-kw-admin-ui { 0%, 25.7% { opacity: 0; } 33.7%, 100% { opacity: 1; } }
+#d1-kw-admin .d1-kw-world { transform: scale(2.2) translate(-104.585cqw, -62.903cqw); animation: d1-kw-admin-cam 7s infinite; }
+#d1-kw-admin .d1-kw-ui { animation: d1-kw-admin-ui 7s infinite; }
+#d1-kw-map .d1-kw-world { transform: scale(0.2778) translate(5cqw, 3.75cqw); }
+@keyframes d1-kw-tour-cam { 0%, 3.49% { transform: scale(0.2778) translate(5cqw, 3.75cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 6.43%, 9.92% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 12.87%, 16.35% { transform: scale(2.4) translate(-85.604cqw, -74.219cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 19.3%, 22.79% { transform: scale(2.4) translate(-96.104cqw, -70.594cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 25.74%, 29.22% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 32.17%, 35.66% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 38.61%, 42.09% { transform: scale(1.2) translate(-233.021cqw, -87.813cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 45.04%, 48.53% { transform: scale(1) translate(-225cqw, -37.5cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 51.47%, 54.96% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 57.91%, 61.39% { transform: scale(1) translate(-100cqw, -101.625cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 64.34%, 67.83% { transform: scale(1.6) translate(-118.438cqw, -104.422cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 70.78%, 74.26% { transform: scale(1.6) translate(-118.438cqw, -139.547cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 77.21%, 80.7% { transform: scale(1.6) translate(-118.438cqw, -104.422cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 83.65%, 87.13% { transform: scale(2.2) translate(-104.585cqw, -62.903cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 90.08%, 93.57% { transform: scale(1) translate(-100cqw, -50cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } 96.51%, 100% { transform: scale(0.2778) translate(5cqw, 3.75cqw); animation-timing-function: cubic-bezier(.65,0,.25,1); } }
+#d1-kw-tour .d1-kw-world { animation: d1-kw-tour-cam 37.3s infinite; transform: scale(0.2778) translate(5cqw, 3.75cqw); }
+@keyframes d1-kw-tour-c-verse { 0% { opacity: 0; } 5.5% { opacity: 0; } 6.57%, 9.79% { opacity: 1; } 10.72% { opacity: 0; } 24.8% { opacity: 0; } 25.87%, 29.09% { opacity: 1; } 30.03% { opacity: 0; } 50.54% { opacity: 0; } 51.61%, 54.83% { opacity: 1; } 55.76% { opacity: 0; } 89.14% { opacity: 0; } 90.21%, 93.43% { opacity: 1; } 94.37% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-verse { animation: d1-kw-tour-c-verse 37.3s infinite; opacity: 0; }
+@keyframes d1-kw-tour-c-verse-news { 0% { opacity: 0; } 11.93% { opacity: 0; } 13%, 16.22% { opacity: 1; } 17.16% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-verse-news { animation: d1-kw-tour-c-verse-news 37.3s infinite; opacity: 0; }
+@keyframes d1-kw-tour-c-verse-patches { 0% { opacity: 0; } 18.36% { opacity: 0; } 19.44%, 22.65% { opacity: 1; } 23.59% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-verse-patches { animation: d1-kw-tour-c-verse-patches 37.3s infinite; opacity: 0; }
+@keyframes d1-kw-tour-c-codex { 0% { opacity: 0; } 31.23% { opacity: 0; } 32.31%, 35.52% { opacity: 1; } 36.46% { opacity: 0; } 44.1% { opacity: 0; } 45.17%, 48.39% { opacity: 1; } 49.33% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-codex { animation: d1-kw-tour-c-codex 37.3s infinite; opacity: 0; }
+@keyframes d1-kw-tour-c-codex-low { 0% { opacity: 0; } 37.67% { opacity: 0; } 38.74%, 41.96% { opacity: 1; } 42.9% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-codex-low { animation: d1-kw-tour-c-codex-low 37.3s infinite; opacity: 0; }
+@keyframes d1-kw-tour-c-hq { 0% { opacity: 0; } 63.4% { opacity: 0; } 64.48%, 67.69% { opacity: 1; } 68.63% { opacity: 0; } 76.27% { opacity: 0; } 77.35%, 80.56% { opacity: 1; } 81.5% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-hq { animation: d1-kw-tour-c-hq 37.3s infinite; opacity: 0; }
+@keyframes d1-kw-tour-c-hq-lager { 0% { opacity: 0; } 69.84% { opacity: 0; } 70.91%, 74.13% { opacity: 1; } 75.07% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-hq-lager { animation: d1-kw-tour-c-hq-lager 37.3s infinite; opacity: 0; }
+@keyframes d1-kw-tour-c-admin { 0% { opacity: 0; } 82.71% { opacity: 0; } 83.78%, 87% { opacity: 1; } 87.94% { opacity: 0; } 100% { opacity: 0; } }
+#d1-kw-tour .d1-kw-ui.t-c-admin { animation: d1-kw-tour-c-admin 37.3s infinite; opacity: 0; }
+
+</style>
+  <section data-design="welt" data-nav-label="Eine Welt" data-design-active="true">
+
+    <section id="d1-kw-map" data-nav-label="Weltkarte" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div><a class="d1-kw-frame d1-kw-f-verse " data-screen-link="d1-kw-verse" style="left:100cqw;top:50cqw;width:100cqw;height:56.25cqw"><b>Verse</b></a><a class="d1-kw-frame d1-kw-f-news sub" data-screen-link="d1-kw-news" style="left:85.604cqw;top:74.219cqw;width:41.667cqw;height:23.438cqw"><b>News</b></a><a class="d1-kw-frame d1-kw-f-patches sub" data-screen-link="d1-kw-news" style="left:96.104cqw;top:70.594cqw;width:41.667cqw;height:23.438cqw"><b>Patches</b></a><a class="d1-kw-frame d1-kw-f-gallery sub" data-screen-link="d1-kw-verse" style="left:163.667cqw;top:70.594cqw;width:41.667cqw;height:23.438cqw"><b>Galerie</b></a><a class="d1-kw-frame d1-kw-f-starmap sub" data-screen-link="d1-kw-starmap" style="left:151.104cqw;top:67.156cqw;width:41.667cqw;height:23.438cqw"><b>Sternkarte</b></a><a class="d1-kw-frame d1-kw-f-mehr sub" data-screen-link="d1-kw-mehr" style="left:100cqw;top:101.625cqw;width:100cqw;height:56.25cqw"><b>Mehr im Verse</b></a><a class="d1-kw-frame d1-kw-f-codex " data-screen-link="d1-kw-codex" style="left:225cqw;top:37.5cqw;width:100cqw;height:56.25cqw"><b>Codex</b></a><a class="d1-kw-frame d1-kw-f-codexIndex sub" data-screen-link="d1-kw-codex-index" style="left:233.021cqw;top:87.813cqw;width:83.333cqw;height:46.875cqw"><b>Codex-Index</b></a><a class="d1-kw-frame d1-kw-f-hq hq" data-screen-link="d1-kw-hq" style="left:118.438cqw;top:104.422cqw;width:62.5cqw;height:35.156cqw"><b>HQ</b></a><a class="d1-kw-frame d1-kw-f-hqLager hq" data-screen-link="d1-kw-hq-lager" style="left:118.438cqw;top:139.547cqw;width:62.5cqw;height:35.156cqw"><b>HQ · Lager</b></a><a class="d1-kw-frame d1-kw-f-admin sub" data-screen-link="d1-kw-admin" style="left:104.585cqw;top:62.903cqw;width:45.455cqw;height:25.568cqw"><b>Admin</b></a></div>
+        <div class="d1-kw-legend"><b>WELTKARTE</b><span><i></i>Hauptseite</span><span><i class="s"></i>Unterseite (Push-in)</span><span><i class="h"></i>HQ auf dem Planeten</span></div>
+        <div class="d1-kw-tag">RAHMEN ANKLICKEN</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d1-kw-a-hq" data-anno-side="top" data-anno-target=".d1-kw-f-hq" style="--anno-x:42%;--anno-y:66%">
+  <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-hq" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-kw-a-hq" data-anno-bubble="d1-kw-a-hq" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-hq" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq"><span class="anno-bubble-question">HQ liegt jetzt ganz auf dem Planeten: unter dem Verse, auf der Nachtseite mit den Stadtlichtern. Scrollen im HQ fährt weiter über die Oberfläche (Lager darunter). Stimmt dieser Ort?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq" data-annotation="d1-kw-a-hq" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="d1-kw-a-admin" data-anno-side="right" data-anno-target=".d1-kw-f-admin" style="--anno-x:36%;--anno-y:31%">
+  <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-admin" aria-expanded="false" aria-controls="anno-bubble-kw-a-admin" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-kw-a-admin" data-anno-bubble="d1-kw-a-admin" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-admin" aria-expanded="false" aria-controls="anno-bubble-kw-a-admin"><span class="anno-bubble-question">Die Raumstation im Verse-Orbit führt heute ins HQ. Mit HQ auf dem Planeten wird sie zur Kommandozentrale (Admin). Passt das, oder soll Admin woanders liegen?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-admin" data-annotation="d1-kw-a-admin" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-admin"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="d1-kw-a-codex" data-anno-side="left" data-anno-target=".d1-kw-f-codex" style="--anno-x:72%;--anno-y:22%">
+  <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-codex" aria-expanded="false" aria-controls="anno-bubble-kw-a-codex" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-kw-a-codex" data-anno-bubble="d1-kw-a-codex" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-codex" aria-expanded="false" aria-controls="anno-bubble-kw-a-codex"><span class="anno-bubble-question">Codex liegt rechts oben im All, um den Holotisch herum; der Index ist ein Push-in auf die Tischplatte. Rechts vom Verse, oder lieber an einer anderen Stelle der Welt?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-codex" data-annotation="d1-kw-a-codex" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-codex"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d1-kw-tour" data-nav-label="Rundflug" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui t-c-verse" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d1-kw-ui t-c-verse-news" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-news.jpg)"></div><div class="d1-kw-ui t-c-verse-patches" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-patches.jpg)"></div><div class="d1-kw-ui t-c-codex" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex.jpg)"></div><div class="d1-kw-ui t-c-codex-low" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d1-kw-ui t-c-hq" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq.jpg)"></div><div class="d1-kw-ui t-c-hq-lager" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq-lager.jpg)"></div><div class="d1-kw-ui t-c-admin" style="background-image:url(20261109-1752-kamera-welt/assets/c-admin.jpg)"></div>
+        <div class="d1-kw-tag">RUNDFLUG · SCHLEIFE</div>
+      </div></div>
+    </section>
+    <section id="d1-kw-verse" data-nav-label="Verse" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse.jpg)"></div>
+        <div class="d1-kw-tag">VERSE · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d1-kw-news" data-nav-label="Verse › News" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-news.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse-news.jpg)"></div>
+        <div class="d1-kw-tag">VERSE › NEWS · ANFLUG</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d1-kw-a-news" data-anno-side="right" data-anno-target=".d1-kw-world" style="--anno-x:30%;--anno-y:50%">
+  <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-news" aria-expanded="false" aria-controls="anno-bubble-kw-a-news" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-kw-a-news" data-anno-bubble="d1-kw-a-news" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-news" aria-expanded="false" aria-controls="anno-bubble-kw-a-news"><span class="anno-bubble-question">Unterseiten sind ein Push-in (2,4×) auf ihren Planeten: hinter News steht der News-Planet groß im Bild, ein Wechsel zu Patches ist ein kurzer Schwenk daneben. Zu nah, zu weit?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-news" data-annotation="d1-kw-a-news" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-news"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d1-kw-starmap" data-nav-label="Verse › Sternkarte" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-verse-starmap.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse-starmap.jpg)"></div>
+        <div class="d1-kw-tag">VERSE › STERNKARTE · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d1-kw-mehr" data-nav-label="Verse › Mehr" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-verse-low.jpg)"></div>
+        <div class="d1-kw-tag">VERSE › MEHR · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d1-kw-codex" data-nav-label="Codex" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-codex.jpg)"></div>
+        <div class="d1-kw-tag">CODEX · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d1-kw-codex-index" data-nav-label="Codex › Index" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-codex-low.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-codex-low.jpg)"></div>
+        <div class="d1-kw-tag">CODEX › INDEX · ANFLUG</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d1-kw-a-cxi" data-anno-side="left" data-anno-target=".d1-kw-world" style="--anno-x:50%;--anno-y:72%">
+  <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-cxi" aria-expanded="false" aria-controls="anno-bubble-kw-a-cxi" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-kw-a-cxi" data-anno-bubble="d1-kw-a-cxi" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-cxi" aria-expanded="false" aria-controls="anno-bubble-kw-a-cxi"><span class="anno-bubble-question">Codex-Index: beim Scrollen neigt sich die Kamera unter den Holotisch, die Platte bleibt oben am Rand im Bild, die Liste steht im freien All. So, oder lieber direkt über der leuchtenden Platte?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-cxi" data-annotation="d1-kw-a-cxi" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-cxi"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d1-kw-hq" data-nav-label="HQ" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-hq.jpg)"></div>
+        <div class="d1-kw-tag">HQ · ANFLUG</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="d1-kw-a-hq-hor" data-anno-side="right" data-anno-target=".d1-kw-ui" style="--anno-x:70%;--anno-y:18%">
+  <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-hq-hor" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-hor" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-kw-a-hq-hor" data-anno-bubble="d1-kw-a-hq-hor" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-hq-hor" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-hor"><span class="anno-bubble-question">Im HQ ist kein Horizont mehr zu sehen, nur Oberfläche und Stadtlichter. Soll oben ein Streifen Atmosphäre bleiben, damit man den Planeten als Planeten erkennt?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq-hor" data-annotation="d1-kw-a-hq-hor" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq-hor"></div></div>
+  </div>
+</div>
+<div class="anno" data-anno="d1-kw-a-hq-lights" data-anno-side="left" data-anno-target=".d1-kw-world" style="--anno-x:26%;--anno-y:62%">
+  <button class="anno-pin" type="button" data-anno-pin="d1-kw-a-hq-lights" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-lights" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-kw-a-hq-lights" data-anno-bubble="d1-kw-a-hq-lights" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="d1-kw-a-hq-lights" aria-expanded="false" aria-controls="anno-bubble-kw-a-hq-lights"><span class="anno-bubble-question">Die Stadtlichter kommen aus dem echten Planeten (Scroll-Ansicht von /verse), hier 1,6× nah. Wird das als „auf dem Planeten“ lesbar, oder braucht HQ mehr Boden-Details?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kw-a-hq-lights" data-annotation="d1-kw-a-hq-lights" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kw-a-hq-lights"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+    <section id="d1-kw-hq-lager" data-nav-label="HQ › Lager" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-hq-lager.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-hq-hangar.jpg)"></div>
+        <div class="d1-kw-tag">HQ › LAGER · ANFLUG</div>
+      </div></div>
+    </section>
+    <section id="d1-kw-admin" data-nav-label="Admin" data-screen hidden data-screen-fit="full">
+      <div class="d1-kw-screen"><div class="d1-kw-stage">
+        <div class="d1-kw-world"><div class="d1-kw-sky"></div><i class="d1-kw-stars"></i>
+          <div class="d1-kw-planet"><i class="d1-kw-surface"></i><i class="d1-kw-surface b"></i></div>
+          <div class="d1-kw-hub"></div><div class="d1-kw-holo"></div></div>
+        <div class="d1-kw-ui" style="background-image:url(20261109-1752-kamera-welt/assets/c-admin.jpg)"></div><div class="d1-kw-today" style="background-image:url(20261109-1752-kamera-welt/assets/today-admin.jpg)"></div>
+        <div class="d1-kw-tag">ADMIN · ANFLUG</div>
+      </div></div>
+    </section>
+  </section>
+
+  <section data-view="analyse2" data-view-kind="analysis" data-analysis="full" data-nav-label="Analyse" hidden>
+    <section id="r2-briefing" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Unverändert aus Runde 1, dort noch offen: die Hintergrund-Szene (Shell-Beta) kennt schon Kamera-Posen für Verse, Codex und HQ. Trotzdem bricht die Welt an sieben Stellen: Seitenwechsel blenden oder schneiden, statt die Kamera zu bewegen.</p>
+      <p data-briefing-why>Erst wenn jeder Wechsel eine Kamerafahrt durch dieselbe Szene ist, wirkt die App wie ein Ort. Danach folgt der Performance-Durchgang, damit Fahrt und Scrollen ohne Ruckler laufen.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"7 → 0","unit":"Brüche","label":"Stellen, an denen der Hintergrund wechselt statt fährt"}'>7 → 0 Brüche</div>
+      <a data-briefing-topic="r2-t-welt" data-share="50">Eine Welt</a>
+      <a data-briefing-topic="r2-t-regeln" data-share="15">Regeln</a>
+      <a data-briefing-topic="r2-t-perf" data-share="35">Ruckler</a>
+      <p data-briefing-duration>≈ 7 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"7","unit":"Brüche","label":"heute"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Verse-Flüge (View Transition)","value":3},{"label":"Unterseiten-Schnitt","value":1},{"label":"Überblendungen in den Posen","value":2},{"label":"Planet nur in der Seite","value":1}],"unit":"Stellen"}'></div>
+          <p>Drei Brüche kommen von den Verse-Flügen: die View Transition nimmt den ganzen Bildschirm samt Hintergrund als Bild auf und zoomt ihn ×3 mit Unschärfe weg, dann blendet die neue Seite über Schwarz ein. Unterseiten schneiden hart und legen einen Schleier auf. HQ blendet den Himmel auf 45 % ab, Codex blendet den Holo-Schein ein. Der Verse-Planet gehört zur Seite und verschwindet beim Verlassen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="r2-t-welt" data-topic data-nav-label="Eine Welt">
+      <div data-alevel="2" data-title="Eine Welt">
+        <div data-slot="short"><p>Hintergrund und Bühnenstücke werden eine Szene, durch die nur die Kamera fährt.</p></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Hub ↔ Unterseite (Verse)","value":3},{"label":"Hauptseite → Unterseite","value":1},{"label":"Hauptseite ↔ Hauptseite","value":2},{"label":"Verse verlassen","value":1}],"unit":"Brüche"}'></div>
+          <p>Fünf Fragen legen fest, wie die Kamera fährt und was dabei im Bild bleibt. Die Varianten links zeigen, wie weit und wie lange.</p>
+        </div>
+      </div>
+
+      <section id="r2-d-snapshot" data-nav-label="Hintergrund im Flug" data-decision="r2-d-snapshot" data-decision-mode="single" data-label="Hintergrund im Flug" data-rec="live" data-rec-why="Nur so bleibt der Sternenhimmel echt und fährt mit der Kamera, statt als Bild weggezoomt zu werden." data-applies-to="alle Verse-Flüge (Hub ↔ News, Patches, Galerie, Sternkarte)" data-finding="r2-f-snapshot">
+        <p data-applies>Gilt für: alle Verse-Flüge</p>
+        <p data-situation>Die Verse-Flüge nutzen eine View Transition auf der ganzen Seite. Der feste Hintergrund liegt mit im Bild und wird ×3 vergrößert, unscharf und dann über Schwarz (#02070d) ersetzt.</p>
+        <h3 data-question>Was passiert mit dem Hintergrund, während Verse zur Unterseite fliegt?</h3>
+        <p data-stakes>Ob der Himmel beim Flug springt oder durchgehend fährt.</p>
+        <div data-options>
+          <label data-opt="live" data-recommended>
+            <input type="radio" name="dm-r2-d-snapshot" value="live" checked>
+            <span data-opt-label>Szene aus dem Bild nehmen, Kamera fährt live</span>
+            <span data-opt-consequence>Die Szene bekommt einen eigenen Namen ohne Animation, nur die Inhalte fliegen; die Kamera fährt dazu echt mit.</span>
+          </label>
+          <label data-opt="ohne-vt">
+            <input type="radio" name="dm-r2-d-snapshot" value="ohne-vt">
+            <span data-opt-label>View Transitions ganz ersetzen</span>
+            <span data-opt-consequence>Inhalte animieren sich selbst; mehr Umbau, aber ein Weg für alle Wechsel.</span>
+          </label>
+          <label data-opt="bleibt">
+            <input type="radio" name="dm-r2-d-snapshot" value="bleibt">
+            <span data-opt-label>Flüge so lassen</span>
+            <span data-opt-consequence>Der Hintergrund zoomt weiter mit weg und wird ersetzt.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-snapshot-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-snapshot-none" value=""><input type="hidden" name="dm-r2-d-snapshot-hes" value=""><input type="hidden" name="dm-r2-d-snapshot-touched" value=""><input type="hidden" name="dm-r2-d-snapshot-issue" value=""><input type="hidden" name="dm-r2-d-snapshot-epic" value="">
+        <div data-alevel="3" data-title="Hintergrund im Flug">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"×3","unit":"Zoom","label":"des Hintergrunds beim Abtauchen"}'></div></div>
+          <div data-slot="long">
+            <div data-viz="bar" data-viz-spec='{"value":3,"max":3,"label":"Verse-Flugrichtungen mit Hintergrund-Bruch (down, up, side)","unit":""}'></div>
+            <p>In <code>verse-flight.ts</code> startet <code>startViewTransition</code> ohne eigenen Namen für die Szene. <code>styles.scss</code> animiert <code>::view-transition-old(root)</code> mit Zoom und Unschärfe und setzt <code>::view-transition { background: #02070d }</code>. Bekommt <code>sc-shell-scene</code> einen eigenen <code>view-transition-name</code>, bleibt sie außerhalb.</p>
+          </div>
+          <div data-example><pre>html[data-verse-flight='down']::view-transition-old(root) {
+  transform-origin: var(--vf-ox) var(--vf-oy);
+  animation: sc-flight-dive 700ms …;   /* zoomt den Himmel mit */
+}
+html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
+        </div>
+      </section>
+
+      <section id="r2-d-setpieces" data-nav-label="Bühnenstücke" data-decision="r2-d-setpieces" data-decision-mode="single" data-label="Bühnenstücke" data-rec="welt" data-rec-why="Dann sieht man beim Schwenk den Planeten wegziehen und den Holotisch hereinkommen, statt sie ein- und auszublenden." data-applies-to="Verse-Planet, Codex-Holo-Schein, HQ-Nachtseite" data-finding="r2-f-setpieces">
+        <p data-applies>Gilt für: Verse-Planet, Codex-Holo-Schein, HQ-Nachtseite</p>
+        <p data-situation>Der Verse-Planet gehört zur Hub-Seite, Codex und HQ blenden ihre Stücke per Deckkraft ein. Beim Wechsel verschwinden sie, statt aus dem Bild zu ziehen.</p>
+        <h3 data-question>Wo stehen Planet, Holotisch-Schein und Nachtseite?</h3>
+        <p data-stakes>Ob ein Bereichswechsel wie ein Schwenk oder wie eine Überblendung aussieht.</p>
+        <div data-options>
+          <label data-opt="welt" data-recommended>
+            <input type="radio" name="dm-r2-d-setpieces" value="welt" checked>
+            <span data-opt-label>An festen Orten in der einen Szene</span>
+            <span data-opt-consequence>Planet unten mittig, Holotisch rechts, Nachtseite darunter; die Kamera schwenkt zu ihnen.</span>
+          </label>
+          <label data-opt="seite">
+            <input type="radio" name="dm-r2-d-setpieces" value="seite">
+            <span data-opt-label>Bleiben in ihren Seiten</span>
+            <span data-opt-consequence>Die Szene zeigt nur Himmel; die Stücke kommen und gehen mit der Seite.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-setpieces-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-setpieces-none" value=""><input type="hidden" name="dm-r2-d-setpieces-hes" value=""><input type="hidden" name="dm-r2-d-setpieces-touched" value=""><input type="hidden" name="dm-r2-d-setpieces-issue" value=""><input type="hidden" name="dm-r2-d-setpieces-epic" value="">
+        <div data-alevel="3" data-title="Bühnenstücke">
+          <div data-slot="short"><p>3 Bühnenstücke, 2 davon nur per Deckkraft.</p></div>
+          <div data-slot="long">
+            <p>Der Live-Planet (<code>sc-briefing-planet</code>, WebGL) bleibt als Darstellung der Hub-Seite, aber sein Platz wird eine Weltposition: beim Verlassen zieht er mit der Kamera aus dem Bild, statt zu verschwinden. Codex-Schein und HQ-Boden stehen in <code>shell-scene.component.scss</code> heute als <code>opacity: var(--pose-…)</code>; sie werden feste Orte, zu denen nur noch <code>transform</code> fährt.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="r2-d-sub" data-nav-label="Unterseiten" data-decision="r2-d-sub" data-decision-mode="single" data-label="Unterseiten" data-rec="push" data-rec-why="Eine kleine Fahrt zur geklickten Kachel hält die Welt; der Schnitt mit Schleier ist der einzige Sprung, den jeder Klick sieht." data-applies-to="jede Seite unter Verse, Codex und HQ" data-finding="r2-f-sub">
+        <p data-applies>Gilt für: jede Seite unter Verse, Codex und HQ</p>
+        <p data-situation>Heute schneidet ein Klick auf eine Unterseite hart und legt einen Schleier (22 %) über den Himmel; zurück hebt er ihn wieder ab.</p>
+        <h3 data-question>Wie geht die Kamera mit auf eine Unterseite?</h3>
+        <p data-stakes>Ob jeder Listen- und Detailklick in derselben Welt bleibt.</p>
+        <div data-options>
+          <label data-opt="push" data-recommended>
+            <input type="radio" name="dm-r2-d-sub" value="push" checked>
+            <span data-opt-label>Kleiner Push-in zum geklickten Element</span>
+            <span data-opt-consequence>Kamera zoomt leicht in Richtung Klick, zurück zieht sie heraus; der Schleier wird mitgefahren statt gesetzt.</span>
+          </label>
+          <label data-opt="still">
+            <input type="radio" name="dm-r2-d-sub" value="still">
+            <span data-opt-label>Kamera steht, nur der Inhalt wechselt</span>
+            <span data-opt-consequence>Kein Sprung mehr, aber auch kein Gefühl von Tiefe.</span>
+          </label>
+          <label data-opt="heute">
+            <input type="radio" name="dm-r2-d-sub" value="heute">
+            <span data-opt-label>Schnitt mit Schleier wie heute</span>
+            <span data-opt-consequence>Der Hintergrund springt bei jedem Unterseiten-Klick.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-sub-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-sub-none" value=""><input type="hidden" name="dm-r2-d-sub-hes" value=""><input type="hidden" name="dm-r2-d-sub-touched" value=""><input type="hidden" name="dm-r2-d-sub-issue" value=""><input type="hidden" name="dm-r2-d-sub-epic" value="">
+        <div data-alevel="3" data-title="Unterseiten">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0 ms","unit":"","label":"Übergang heute (Modus still)"}'></div></div>
+          <div data-slot="long">
+            <p><code>sceneStep()</code> in <code>scene.model.ts</code> liefert für jedes Ziel, das keine Hauptseite ist, <code>mode: 'still'</code>, und die Szene schaltet alle Transitionen ab. Neu: eine Unterpose je Bereich (Push-in mit Ursprung am Klickpunkt), die wie die Hauptposen per Transition angefahren wird.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="r2-d-first" data-nav-label="Erster Aufruf" data-decision="r2-d-first" data-decision-mode="single" data-label="Erster Aufruf" data-rec="ankunft" data-rec-why="Die Ankunft läuft innerhalb der bestehenden Einstiege und macht den Ort von Anfang an räumlich." data-applies-to="erster Aufruf und Neuladen von /verse, /codex, /hq" data-finding="r2-f-first">
+        <p data-applies>Gilt für: erster Aufruf und Neuladen der drei Hauptseiten</p>
+        <p data-situation>Fest steht: der Verse-Einstieg des Tages (4,2 s) und der kurze Neuladen-Einstieg bleiben. Heute steht der Himmel beim Laden sofort, Codex und HQ haben keine Ankunft.</p>
+        <h3 data-question>Wie kommt die Kamera beim Laden einer Hauptseite an?</h3>
+        <p data-stakes>Erster Eindruck, und ob Codex und HQ gleich wie Verse ankommen.</p>
+        <div data-options>
+          <label data-opt="ankunft" data-recommended>
+            <input type="radio" name="dm-r2-d-first" value="ankunft" checked>
+            <span data-opt-label>Kamera fährt aus der Ferne an, dann die Inhalte</span>
+            <span data-opt-consequence>Leichter Dolly-in auf die Pose des Bereichs, innerhalb der bestehenden Einstiegszeiten.</span>
+          </label>
+          <label data-opt="nur-verse">
+            <input type="radio" name="dm-r2-d-first" value="nur-verse">
+            <span data-opt-label>Ankunft nur beim ersten Verse-Besuch</span>
+            <span data-opt-consequence>Codex und HQ stehen beim Laden sofort.</span>
+          </label>
+          <label data-opt="steht">
+            <input type="radio" name="dm-r2-d-first" value="steht">
+            <span data-opt-label>Szene steht beim Laden sofort</span>
+            <span data-opt-consequence>Nur die Inhalte bauen sich auf.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-first-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-first-none" value=""><input type="hidden" name="dm-r2-d-first-hes" value=""><input type="hidden" name="dm-r2-d-first-touched" value=""><input type="hidden" name="dm-r2-d-first-issue" value=""><input type="hidden" name="dm-r2-d-first-epic" value="">
+        <div data-alevel="3" data-title="Erster Aufruf">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4,2","unit":"s","label":"Verse-Einstieg des Tages, bleibt"}'></div></div>
+          <div data-slot="long">
+            <p>Die Ankunft ist nur eine Startpose (Kamera weiter weg) beim ersten Bild, aus der die Szene in ihre Pose fährt. Sie läuft parallel zu Sternen und Namen und verlängert keinen Einstieg; jede Eingabe beendet sie wie den Einstieg (innerhalb 300 ms).</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="r2-d-dur" data-nav-label="Flugdauer" data-decision="r2-d-dur" data-decision-mode="slider" data-unit="ms" data-label="Flugdauer" data-rec="1100" data-rec-why="Heute 0,9–1,6 s je nach Strecke; 1,1 s als Grundwert hält Verse ↔ Codex flüssig, ohne dass ein Menüklick träge wirkt." data-applies-to="Fahrt zwischen zwei Hauptseiten" data-finding="r2-f-dur">
+        <p data-applies>Gilt für: Fahrt zwischen zwei Hauptseiten</p>
+        <p data-situation>Heute 900 ms plus ein Streckenanteil, höchstens 1600 ms; Unterseiten bekommen etwa die Hälfte.</p>
+        <h3 data-question>Wie lange dauert die kürzeste Kamerafahrt zwischen Hauptseiten?</h3>
+        <div data-options>
+          <input type="range" name="dm-r2-d-dur" min="500" max="1600" step="50" value="1100">
+        </div>
+        <textarea data-comment="r2-d-dur-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-dur-hes" value=""><input type="hidden" name="dm-r2-d-dur-touched" value=""><input type="hidden" name="dm-r2-d-dur-issue" value=""><input type="hidden" name="dm-r2-d-dur-epic" value="">
+        <div data-alevel="3" data-title="Flugdauer">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"900–1600","unit":"ms","label":"heute (flightMs)"}'></div></div>
+          <div data-slot="long"><p><code>flightMs()</code> rechnet 900 ms + Abstand × 200, gedeckelt bei 1600 ms. Der Regler setzt den Grundwert; der Deckel wächst mit (+500 ms).</p></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="r2-t-regeln" data-topic data-nav-label="Regeln">
+      <div data-alevel="2" data-title="Regeln">
+        <div data-slot="short"><p>Was für jede Fahrt gilt: wo sie läuft, wer sie abschaltet, was ein Doppelklick tut.</p></div>
+        <div data-slot="long"><p>Drei Regeln, die keine Variante ändert. Zwei davon gelten heute schon und werden nur bestätigt.</p></div>
+      </div>
+
+      <section id="r2-d-scope" data-nav-label="Geltung" data-decision="r2-d-scope" data-decision-mode="single" data-label="Geltung" data-rec="beta" data-rec-why="Die Szene ist Teil der neuen Shell; sie ohne die Shell freizuschalten wäre ein zweiter Umbau, kein Feinschliff." data-applies-to="wer die Kamera-Welt sieht" data-finding="r2-f-scope">
+        <p data-applies>Gilt für: wer die Kamera-Welt sieht</p>
+        <p data-situation>Die Szene läuft nur mit der Shell-Beta (Standard: aus), die Verse-Flüge nur mit der Verse-Beta (Standard: aus).</p>
+        <h3 data-question>Wer bekommt die Kamera-Welt?</h3>
+        <div data-options>
+          <label data-opt="beta" data-recommended>
+            <input type="radio" name="dm-r2-d-scope" value="beta" checked>
+            <span data-opt-label>Weiter nur in der Shell-Beta</span>
+            <span data-opt-consequence>Kein Risiko für alle anderen; Freigabe später mit der Shell.</span>
+          </label>
+          <label data-opt="alle">
+            <input type="radio" name="dm-r2-d-scope" value="alle">
+            <span data-opt-label>Szene auch ohne Shell-Beta zeigen</span>
+            <span data-opt-consequence>Jeder sieht die Welt; die alte Shell braucht dafür eigene Anpassungen.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-scope-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-scope-none" value=""><input type="hidden" name="dm-r2-d-scope-hes" value=""><input type="hidden" name="dm-r2-d-scope-touched" value=""><input type="hidden" name="dm-r2-d-scope-issue" value=""><input type="hidden" name="dm-r2-d-scope-epic" value="">
+        <div data-alevel="3" data-title="Geltung">
+          <div data-slot="short"><p><code>BETA_DEFAULTS</code>: verse aus, codex an, shell aus.</p></div>
+          <div data-slot="long"><p><code>ShellSceneComponent</code> rendert nur mit <code>isEnabled('shell')</code>; ohne die Beta hat die Seite einen einfarbigen Hintergrund, durch den keine Kamera fahren kann.</p></div>
+        </div>
+      </section>
+
+      <section id="r2-d-reduced" data-nav-label="Weniger Bewegung" data-decision="r2-d-reduced" data-decision-mode="verify" data-label="Weniger Bewegung" data-rec="ok" data-rec-why="So gilt es heute schon und erfüllt die Systemeinstellung." data-applies-to="Systemeinstellung „Bewegung reduzieren“" data-finding="r2-f-reduced">
+        <p data-applies>Gilt für: Systemeinstellung „Bewegung reduzieren“</p>
+        <p data-situation>Mit „Bewegung reduzieren“ wird aus jeder Fahrt eine kurze Überblendung (420 ms), der Push-in entfällt.</p>
+        <h3 data-question>Stimmt das so für alle neuen Fahrten?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-reduced" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Überblendung statt Fahrt, auch für Unterseiten und Ankunft.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r2-d-reduced" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r2-d-reduced" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+        </div>
+        <input type="text" name="dm-r2-d-reduced-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="r2-d-reduced-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-reduced-none" value=""><input type="hidden" name="dm-r2-d-reduced-hes" value=""><input type="hidden" name="dm-r2-d-reduced-touched" value=""><input type="hidden" name="dm-r2-d-reduced-issue" value=""><input type="hidden" name="dm-r2-d-reduced-epic" value="">
+        <div data-alevel="3" data-title="Weniger Bewegung">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"420","unit":"ms","label":"Überblendung (SCENE_FADE_MS)"}'></div></div>
+          <div data-slot="long"><p><code>sceneStep()</code> gibt bei reduzierter Bewegung <code>mode: 'fade'</code>; die Verse-Flüge starten gar nicht. Das bleibt die Regel.</p></div>
+        </div>
+      </section>
+
+      <section id="r2-d-retarget" data-nav-label="Klick im Flug" data-decision="r2-d-retarget" data-decision-mode="verify" data-label="Klick im Flug" data-rec="ok" data-rec-why="Die Szene macht das heute schon für Hauptseiten; neu gilt es auch für Unterseiten und Verse-Flüge." data-applies-to="ein Klick, während die Kamera noch fährt" data-finding="r2-f-retarget">
+        <p data-applies>Gilt für: ein Klick, während die Kamera noch fährt</p>
+        <p data-situation>Ein neuer Klick mitten in der Fahrt lenkt die Kamera von ihrer aktuellen Stelle zum neuen Ziel um, ohne Sprung zurück.</p>
+        <h3 data-question>Stimmt das als Regel für jede Fahrt?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-retarget" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Kein Wechsel wartet auf das Ende einer Fahrt.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r2-d-retarget" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r2-d-retarget" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+        </div>
+        <input type="text" name="dm-r2-d-retarget-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="r2-d-retarget-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-retarget-none" value=""><input type="hidden" name="dm-r2-d-retarget-hes" value=""><input type="hidden" name="dm-r2-d-retarget-touched" value=""><input type="hidden" name="dm-r2-d-retarget-issue" value=""><input type="hidden" name="dm-r2-d-retarget-epic" value="">
+        <div data-alevel="3" data-title="Klick im Flug">
+          <div data-slot="short"><p>Heute: Hauptseiten ja, Verse-Flüge nein (<code>running</code> blockiert).</p></div>
+          <div data-slot="long"><p><code>VerseFlight.begin()</code> verweigert einen zweiten Flug, solange einer läuft (<code>this.running</code>). Mit der live fahrenden Szene kann die Kamera umlenken, der Inhalt springt dann ans neue Ziel.</p></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="r2-t-perf" data-topic data-nav-label="Ruckler">
+      <div data-alevel="2" data-title="Ruckler">
+        <div data-slot="short"><p>Der Performance-Durchgang am Ende der Umsetzung: Glas, Scrollen, Messlatte.</p></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"backdrop-filter (Glas)","value":55},{"label":"Scroll-Listener","value":17}],"unit":"Stellen"}'></div>
+          <p>Glas-Unschärfe über einem bewegten Hintergrund muss bei jedem Bild neu gerechnet werden, während der Fahrt und beim Scrollen. Dazu kommen 17 einzelne Scroll-Listener und das Skript-Gleiten von Bühne zu unterem Teil.</p>
+        </div>
+      </div>
+
+      <section id="r2-d-glass" data-nav-label="Glas-Unschärfe" data-decision="r2-d-glass" data-decision-mode="single" data-label="Glas-Unschärfe" data-rec="gezielt" data-rec-why="Listen-Karten sind die vielen, Kopfzeile und Dialoge die wenigen; dort bleibt der Glaseffekt sichtbar, wo er wirkt." data-applies-to="alle Flächen mit backdrop-filter" data-finding="r2-f-glass">
+        <p data-applies>Gilt für: alle Flächen mit Glas-Unschärfe</p>
+        <p data-situation>55 Stellen nutzen <code>backdrop-filter</code>. Über der fahrenden Szene rechnet der Browser jede davon bei jedem Bild neu.</p>
+        <h3 data-question>Wo bleibt die Glas-Unschärfe?</h3>
+        <p data-stakes>Ruckler bei Fahrt und Scrollen gegen den Glas-Look.</p>
+        <div data-options>
+          <label data-opt="gezielt" data-recommended>
+            <input type="radio" name="dm-r2-d-glass" value="gezielt" checked>
+            <span data-opt-label>Nur Kopfzeile, Menüs und Dialoge</span>
+            <span data-opt-consequence>Karten und Listen bekommen einen festen dunklen Ton, der gleich aussieht.</span>
+          </label>
+          <label data-opt="pause">
+            <input type="radio" name="dm-r2-d-glass" value="pause">
+            <span data-opt-label>Überall behalten, während der Fahrt aussetzen</span>
+            <span data-opt-consequence>Glas bleibt, aber flackert beim Ein- und Ausschalten; Scrollen bleibt teuer.</span>
+          </label>
+          <label data-opt="alle">
+            <input type="radio" name="dm-r2-d-glass" value="alle">
+            <span data-opt-label>Überall behalten</span>
+            <span data-opt-consequence>Ruckler auf schwächeren Rechnern bleiben.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-glass-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-glass-none" value=""><input type="hidden" name="dm-r2-d-glass-hes" value=""><input type="hidden" name="dm-r2-d-glass-touched" value=""><input type="hidden" name="dm-r2-d-glass-issue" value=""><input type="hidden" name="dm-r2-d-glass-epic" value="">
+        <div data-alevel="3" data-title="Glas-Unschärfe">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"55","unit":"Stellen","label":"backdrop-filter in src/app"}'></div></div>
+          <div data-slot="long">
+            <div data-viz="bars" data-viz-spec='{"items":[{"label":"news-list","value":4},{"label":"lightbox","value":3},{"label":"shell, quick-search, footer","value":6},{"label":"übrige","value":42}],"unit":""}'></div>
+            <p>Meist sind es kleine Unschärfen hinter Karten und Chips. Auf dem dunklen Himmel sieht ein fester Ton mit 88 % Deckkraft fast gleich aus und kostet nichts.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="r2-d-glide" data-nav-label="Bühne → unterer Teil" data-decision="r2-d-glide" data-decision-mode="single" data-label="Bühne → unterer Teil" data-rec="snap" data-rec-why="Natives Einrasten läuft im Compositor und kann nicht mit dem Hauptthread um Bilder kämpfen." data-applies-to="Verse-Hub und Codex: Wechsel von Bühne zu unterem Teil" data-finding="r2-f-glide">
+        <p data-applies>Gilt für: Verse-Hub und Codex, Bühne zum unteren Teil</p>
+        <p data-situation>Ein Scroll auf der Bühne gleitet per Skript bis zum unteren Teil (<code>page-glide.ts</code>, <code>briefing-dock.ts</code>). Das Verhalten bleibt, die Frage ist nur wie.</p>
+        <h3 data-question>Womit gleitet die Seite von der Bühne zum unteren Teil?</h3>
+        <div data-options>
+          <label data-opt="snap" data-recommended>
+            <input type="radio" name="dm-r2-d-glide" value="snap" checked>
+            <span data-opt-label>Mit nativem Einrasten (CSS scroll-snap)</span>
+            <span data-opt-consequence>Gleiches Verhalten, ohne Skript im Bild; die Gleitkurve bestimmt dann der Browser.</span>
+          </label>
+          <label data-opt="skript">
+            <input type="radio" name="dm-r2-d-glide" value="skript">
+            <span data-opt-label>Skript behalten, nur entlasten</span>
+            <span data-opt-consequence>Eigene Kurve bleibt; Ruckler nur weniger, nicht weg.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-glide-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-glide-none" value=""><input type="hidden" name="dm-r2-d-glide-hes" value=""><input type="hidden" name="dm-r2-d-glide-touched" value=""><input type="hidden" name="dm-r2-d-glide-issue" value=""><input type="hidden" name="dm-r2-d-glide-epic" value="">
+        <div data-alevel="3" data-title="Bühne → unterer Teil">
+          <div data-slot="short"><p>2 Seiten mit Skript-Gleiten: Verse-Hub, Codex.</p></div>
+          <div data-slot="long"><p>Beim Skript-Gleiten setzt JavaScript jedes Bild die Scrollposition; jede andere Arbeit im selben Bild (Planet, Szene, Listener) lässt es stocken. Mit <code>scroll-snap-type: y mandatory</code> nur zwischen Bühne und unterem Teil übernimmt der Browser die Fahrt.</p></div>
+        </div>
+      </section>
+
+      <section id="r2-d-scrollcam" data-nav-label="Kamera beim Scrollen" data-decision="r2-d-scrollcam" data-decision-mode="yesnoalt" data-label="Kamera beim Scrollen" data-rec="yes" data-rec-why="Eine kleine Neigung mit dem Scrollen macht die Welt räumlich; per scroll-timeline läuft sie ohne Skript und ruckelt nicht." data-applies-to="alle Seiten der Shell-Beta" data-finding="r2-f-scrollcam">
+        <p data-applies>Gilt für: alle Seiten mit der Szene</p>
+        <p data-situation>Beim Scrollen steht der Hintergrund heute still, die Seite gleitet darüber.</p>
+        <h3 data-question>Soll sich die Kamera beim Scrollen leicht mitneigen (höchstens 3 % der Höhe)?</h3>
+        <div data-options>
+          <label data-opt="yes" data-recommended><input type="radio" name="dm-r2-d-scrollcam" value="yes" checked><span data-opt-label>Ja, leicht mitneigen</span><span data-opt-consequence>Sterne wandern etwas langsamer als die Seite; läuft im Compositor.</span></label>
+          <label data-opt="no"><input type="radio" name="dm-r2-d-scrollcam" value="no"><span data-opt-label>Nein, Hintergrund steht</span><span data-opt-consequence>Wie heute.</span></label>
+          <label data-opt="alt"><input type="radio" name="dm-r2-d-scrollcam" value="alt"><span data-opt-label>Anders</span><span data-opt-consequence>Eigene Antwort unten.</span></label>
+        </div>
+        <input type="text" name="dm-r2-d-scrollcam-alt" value="" placeholder="Deine Antwort">
+        <textarea data-comment="r2-d-scrollcam-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-scrollcam-none" value=""><input type="hidden" name="dm-r2-d-scrollcam-hes" value=""><input type="hidden" name="dm-r2-d-scrollcam-touched" value=""><input type="hidden" name="dm-r2-d-scrollcam-issue" value=""><input type="hidden" name="dm-r2-d-scrollcam-epic" value="">
+        <div data-alevel="3" data-title="Kamera beim Scrollen">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≤ 3","unit":"%","label":"Neigung der Szene über die ganze Seite"}'></div></div>
+          <div data-slot="long"><p><code>animation-timeline: scroll()</code> auf der Himmelsebene, nur <code>transform</code>. Kein Scroll-Listener, kein Skript; ohne Unterstützung im Browser steht der Himmel wie heute.</p></div>
+        </div>
+      </section>
+
+      <section id="r2-d-listeners" data-nav-label="Scroll-Listener" data-decision="r2-d-listeners" data-decision-mode="verify" data-label="Scroll-Listener" data-rec="ok" data-rec-why="Ein gemeinsamer Takt liest Layout einmal pro Bild statt 17-mal." data-applies-to="alle Komponenten mit eigenem Scroll-Listener" data-finding="r2-f-listeners">
+        <p data-applies>Gilt für: alle Komponenten mit eigenem Scroll-Listener</p>
+        <p data-situation>17 Komponenten hören einzeln auf Scroll und lesen Layout. Sie werden zu einem gemeinsamen Takt pro Bild zusammengelegt, ohne dass sich ihr Verhalten ändert.</p>
+        <h3 data-question>Ist das als reiner Umbau ohne sichtbare Änderung in Ordnung?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-r2-d-listeners" value="ok" checked><span data-opt-label>Ja, so umbauen</span><span data-opt-consequence>Gleiches Verhalten, weniger Arbeit pro Bild.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-r2-d-listeners" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was ausgenommen wird.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-r2-d-listeners" value="wrong"><span data-opt-label>Nein</span><span data-opt-consequence>Bitte unten begründen.</span></label>
+        </div>
+        <input type="text" name="dm-r2-d-listeners-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="r2-d-listeners-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-listeners-none" value=""><input type="hidden" name="dm-r2-d-listeners-hes" value=""><input type="hidden" name="dm-r2-d-listeners-touched" value=""><input type="hidden" name="dm-r2-d-listeners-issue" value=""><input type="hidden" name="dm-r2-d-listeners-epic" value="">
+        <div data-alevel="3" data-title="Scroll-Listener">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"17","unit":"Listener","label":"auf window/document scroll"}'></div></div>
+          <div data-slot="long"><p>Darunter <code>briefing-planet</code>, <code>briefing-dock</code>, <code>fusion-bar</code>, <code>hq-page-bar</code>, <code>hq-pages</code>, <code>codex-holo-stage</code>, <code>codex-browse</code>. Jeder liest <code>getBoundingClientRect</code> oder <code>scrollY</code>; zusammen erzwingen sie mehrfaches Layout im selben Bild.</p></div>
+        </div>
+      </section>
+
+      <section id="r2-d-budget" data-nav-label="Messlatte" data-decision="r2-d-budget" data-decision-mode="single" data-label="Messlatte" data-rec="messen" data-rec-why="Ruckler sind auf dieser Maschine nur mit echter GPU messbar; eine Zahl macht den Durchgang prüfbar." data-applies-to="Abschluss des Performance-Durchgangs" data-finding="r2-f-budget">
+        <p data-applies>Gilt für: Abschluss des Performance-Durchgangs</p>
+        <p data-situation>Frühere Messungen zeigten lange Bilder im GPU-Prozess bei freiem Hauptthread; ohne echte GPU und Zahl ist „ruckelfrei“ nicht prüfbar.</p>
+        <h3 data-question>Woran gilt der Durchgang als bestanden?</h3>
+        <div data-options>
+          <label data-opt="messen" data-recommended>
+            <input type="radio" name="dm-r2-d-budget" value="messen" checked>
+            <span data-opt-label>Kein Bild über 33 ms bei Fahrt und Scrollen</span>
+            <span data-opt-consequence>Gemessen mit echter GPU auf 60 Hz und 144 Hz, vorher und nachher im Bericht.</span>
+          </label>
+          <label data-opt="auge">
+            <input type="radio" name="dm-r2-d-budget" value="auge">
+            <span data-opt-label>Nach Augenmaß auf deinem Rechner</span>
+            <span data-opt-consequence>Schneller, aber nicht wiederholbar.</span>
+          </label>
+        </div>
+        <textarea data-comment="r2-d-budget-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-r2-d-budget-none" value=""><input type="hidden" name="dm-r2-d-budget-hes" value=""><input type="hidden" name="dm-r2-d-budget-touched" value=""><input type="hidden" name="dm-r2-d-budget-issue" value=""><input type="hidden" name="dm-r2-d-budget-epic" value="">
+        <div data-alevel="3" data-title="Messlatte">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"33","unit":"ms","label":"längstes erlaubtes Bild"}'></div></div>
+          <div data-slot="long"><p>Gemessen werden je zehn Fahrten Verse ↔ Codex, Verse ↔ HQ, Hub ↔ News und ein Scroll über Codex-Liste und HQ. Rechner im Leerlauf, Fenster sichtbar, Shader vorgewärmt.</p></div>
+        </div>
+      </section>
+    </section>
+  </section>
+
+</section>
