@@ -181,5 +181,224 @@
    }
   ],
   "response": "Round 3: HQ on the planet left limb at 3.6x with a calm veil, ground station as HQ door, orbit station stays Admin; straight Verse arrival; News A (planet becomes emblem) vs B (large left); starmap grows from the hub constellation; 7 playbooks (entrance 6.6 s, menu switch, scroll page, detail, minor page, small and large popups); new analysis on entrance, popups, places, playbook rules. All 13 technical decisions of round 2 accepted as recommended."
+ },
+ {
+  "iteration": 3,
+  "action": "iterate",
+  "general": "irgendwas ist hier falsch, ich sehe zwei backgroudn riesen planeten!",
+  "items": [
+   {
+    "id": "anno-d3-a-hqst",
+    "text": "passt!",
+    "attachments": []
+   },
+   {
+    "id": "r3-d-when-note",
+    "text": "genau, aber das ziel muss in dem tab versecompanion-alpha.vercel.app sein ohne /verse oder so, nur dann der cinmeatische große auftritt",
+    "attachments": []
+   },
+   {
+    "id": "r3-d-len-note",
+    "text": "das darf ruhig auch länger dauern, keine minuten, aber das was laut online recherhce deine agents denken was ein cinematischer fast schon ttrailer artigver effekt dauert !",
+    "attachments": []
+   },
+   {
+    "id": "r3-d-popl-note",
+    "text": "da kreativer werden !",
+    "attachments": []
+   },
+   {
+    "id": "r3-d-hqside-note",
+    "text": "hq eher rechts, gleich wie im menüauswhal platziert ;) Dabei aber auf dem planeten backgorudn groß rechte hälfte (mus snicht genau die hälfte sein, aber kamera seitig versetzt eher nach rechts). Achte aber darauf wo du das hq bei den vielen elmenten platzierst !",
+    "attachments": []
+   },
+   {
+    "id": "r3-d-stagger-note",
+    "text": "siehe meine notizen, check das, das will ich nicht exakt bestimmen",
+    "attachments": []
+   },
+   {
+    "id": "r3-d-minor-note",
+    "text": "siehe meine anderen notizen",
+    "attachments": []
+   },
+   {
+    "id": "d3-verse",
+    "text": "den schwenk bei verse finde ich nicht so pralle...",
+    "attachments": []
+   },
+   {
+    "id": "d3-news-b",
+    "text": "warum zwei bewegungen zum planeten, finde das mit den zwei andere richtugne nbewgungen irgendwie immer doof... (das finde ich generell doof mit den richtungswechseln!) Gern bestimmte kamera tricks und co, dezente führungen aber nicht dieses ich fahre komplett wo anders hin und dkehrer danmn zu einer anderen richtung um (außer wenn man natürlich währendndesssen einen andnerne menüpunkt odder so geklickt hatt usw.)\naber das mit dem großen planeten finde ich shcon besser, wobei man dann auf dem gleichen bild nicht dieandere planeten sehen sollte - weder background planet noch andere planeten von galerie und patches und co:!",
+    "attachments": []
+   },
+   {
+    "id": "d3-codex",
+    "text": "mega!",
+    "attachments": []
+   },
+   {
+    "id": "d3-hq",
+    "text": "mega",
+    "attachments": []
+   },
+   {
+    "id": "d3-hq-lager",
+    "text": "mega",
+    "attachments": []
+   },
+   {
+    "id": "d3-admin",
+    "text": "hier sollte auch nur die raumstation, gern in groß im background sein! kein anderer planet sichtbar!",
+    "attachments": []
+   }
+  ],
+  "userPins": [
+   {
+    "screen": "d3-map",
+    "target": "a.d3-frame.d3-f-hqLager \"HQ · Lager\"",
+    "text": "wir haben ja noch weitere hq unterseiten, aber die gern dann einfach darunter, passt"
+   },
+   {
+    "screen": "d3-pb-main",
+    "target": "div.d3-hub",
+    "text": "ich finde erst muss der hero titel erscheinen, richtig in szene gesetzt schön animativ, dann darunter die suchleiste.\nSo ist klar was man macht, dann die ganzen unwichitggen elemnete inkl. patches.\nUnd mit versatz fängt der erste planet an seine news unten zu projezieren!\nAueßrdem bitte die namen der planetchen weg lassen und nur bei ohover over anzeigen, wie bei der sonne und co auch!"
+   },
+   {
+    "screen": "d3-pb-nav",
+    "target": "span \"Kamera schwenkt (1,1 s), Kopfzeile bleib\"",
+    "text": "das finde ich ok"
+   },
+   {
+    "screen": "d3-pb-nav",
+    "target": "span \"Titel und Suche blenden zusammen ein\"",
+    "text": "Das sollte so sein, wie beim erstbesucht, alsod die hero oben von patches, titel und suche"
+   },
+   {
+    "screen": "d3-pb-nav",
+    "target": "span \"Beschriftungen, Projektion im Abstand vo\"",
+    "text": "der rest kommt mir zuuu prompt und zu einfallslos danach"
+   },
+   {
+    "screen": "d3-pb-scroll",
+    "target": "ol \"0,00 sKamera neigt sich mit dem Scrollen\"",
+    "text": "Ne, die kopfzeile sollte transofmreiren! Und erst mit abstand danach das darunter kommen!"
+   },
+   {
+    "screen": "d3-pb-scroll",
+    "target": "span \"Zeilen nacheinander, 40 ms, ab Zeile 8 s\"",
+    "text": "die kommen zu schnell direkt auf... die mit kurztdelay dann aufploppen lassen nacheinander schnell wie jetzt, aber schöner bitte!"
+   },
+   {
+    "screen": "d3-pb-scroll",
+    "target": "span \"Seitenleiste gleitet von links\"",
+    "text": "Erst kopf transfomriert sich, dann kommt seitenleiste  und rolle usw rein und dann erst die big list !"
+   },
+   {
+    "screen": "d3-pb-detail",
+    "target": "span \"Seitenpanel gleitet von rechts\"",
+    "text": "Ja das ganze andocken finde ich gut! aber noch nciht gut genug polished von der animation her"
+   },
+   {
+    "screen": "d3-pb-minor",
+    "target": "span \"Ganzer Inhalt blendet in 160 ms ein, kei\"",
+    "text": "gern leicht spektakullärere arber dacord, das kommt recht ratz fat rein"
+   },
+   {
+    "screen": "d3-pb-minor",
+    "target": "div.d3-r.d3-pb-minor-r1",
+    "text": "bitte die menüleiste hier so transofmrieren wie bei hq wo sie am bildschirmrand hängt, bitte genauso und auch mit icons usw... das ist der neue style"
+   },
+   {
+    "screen": "d3-pb-pop-s",
+    "target": "ol \"0,00 sKlick aufs Herz0,05 sPanel wächst \"",
+    "text": "viel zu boring viel zu unintegrativ viel zu wenig spacig"
+   },
+   {
+    "screen": "d3-pb-pop-s",
+    "target": "div.d3-scrim.d3-pb-pop-s-scrim",
+    "text": "das gilt auch als popup auch wenn automatische s"
+   },
+   {
+    "screen": "d3-pb-pop-l",
+    "target": "span \"Tabellenzeilen nacheinander, 25 ms\"",
+    "text": "Gute idee, gern noch etwas spaciger davor und dann dieser aufbau erst alles und die liste dann ziele für zeile schnell wie bei codex index"
+   }
+  ],
+  "decisions": [
+   {
+    "id": "r3-d-when",
+    "value": "direkt-tab",
+    "note": "genau, aber das ziel muss in dem tab versecompanion-alpha.vercel.app sein ohne /verse oder so, nur dann der cinmeatische große auftritt",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-len",
+    "value": 6600,
+    "note": "das darf ruhig auch länger dauern, keine minuten, aber das was laut online recherhce deine agents denken was ein cinematischer fast schon ttrailer artigver effekt dauert !",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-skip",
+    "value": "ok",
+    "note": "",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-pops",
+    "value": "grow",
+    "note": "",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-popl",
+    "value": "holo",
+    "note": "da kreativer werden !",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-popc",
+    "value": "reverse",
+    "note": "",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-news",
+    "value": "links",
+    "note": "",
+    "deviates": true
+   },
+   {
+    "id": "r3-d-hqside",
+    "value": "rechts",
+    "note": "hq eher rechts, gleich wie im menüauswhal platziert ;) Dabei aber auf dem planeten backgorudn groß rechte hälfte (mus snicht genau die hälfte sein, aber kamera seitig versetzt eher nach rechts). Achte aber darauf wo du das hq bei den vielen elmenten platzierst !",
+    "deviates": true
+   },
+   {
+    "id": "r3-d-starmap",
+    "value": "ok",
+    "note": "",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-stagger",
+    "value": 60,
+    "note": "siehe meine notizen, check das, das will ich nicht exakt bestimmen",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-once",
+    "value": "ok",
+    "note": "",
+    "deviates": false
+   },
+   {
+    "id": "r3-d-minor",
+    "value": "",
+    "note": "siehe meine anderen notizen",
+    "deviates": true
+   }
+  ],
+  "response": "Round 4: straight fixed-point camera paths, per-pose object isolation (News B, Admin station only), HQ on the right hemisphere with ground station right, research-based 7 s entrance, reworked playbooks (entrance order, menu switch, header transform on scroll, detail docking, settings rail, spacey small/large popups), 5 final questions."
  }
 ]
