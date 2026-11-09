@@ -62,6 +62,8 @@ const STARSCAPE_FALLBACK_URL =
   `,
   styles: [`
     :host { display: contents; }
+    /* Phones: no desktop-app notice. */
+    @media (max-width: 749px) { :host { display: none; } }
     .toast {
       position: fixed; z-index: 1440;
       inset-inline-end: var(--sc-fab-gutter, 16px);

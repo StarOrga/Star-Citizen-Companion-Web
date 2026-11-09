@@ -140,7 +140,7 @@ type Step = 1 | 2;
                   @let rs = rewardsOf(o);
                   <article class="evcard" [class.on]="eventPicks().has(o.event.id)">
                     <header>
-                      <sc-tristate variant="checkbox" [label]="o.event.name" [value]="eventPicks().has(o.event.id) ? 1 : 0" (toggled)="toggleEvent(o.event.id)" />
+                      <sc-tristate variant="checkbox" [label]="o.event.name" [value]="eventShare(o)" (toggled)="toggleEvent(o)" />
                       <h4>{{ o.event.name }}</h4>
                       <small><sc-hq-event-end [end]="o.end" /></small>
                     </header>
@@ -882,11 +882,24 @@ export class HqNachschubFlowComponent {
     return purposesOf(d).join(', ');
   }
 
-  protected toggleEvent(id: string): void {
+  /** Parent tristate of an event card: share of its rewards picked; an event without rewards is 0 / 1. */
+  protected eventShare(o: Parameters<typeof rewardsOf>[0]): number {
+    const picked = this.eventPicks().get(o.event.id);
+    const rs = rewardsOf(o);
+    if (!rs.length) return picked ? 1 : 0;
+    if (!picked) return 0;
+    const n = rs.filter((r) => picked.has(r.id)).length;
+    return n / rs.length;
+  }
+
+  /** Ticking the event selects all its rewards, unticking clears them (same as the wishlist groups). */
+  protected toggleEvent(o: Parameters<typeof rewardsOf>[0]): void {
+    const id = o.event.id;
+    const all = this.eventShare(o) === 1;
     this.eventPicks.update((m) => {
       const next = new Map(m);
-      if (next.has(id)) next.delete(id);
-      else next.set(id, new Set());
+      if (all) next.delete(id);
+      else next.set(id, new Set(rewardsOf(o).map((r) => r.id)));
       return next;
     });
   }

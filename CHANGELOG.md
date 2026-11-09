@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.245.0] - 2026-11-09
+
+### Added
+- Header wishlist popout: up to 7 positions with quantity stepper, move into a Nachschub and remove, then the whole wishlist.
+
+### Changed
+- Apps and profile buttons share the wishlist's icon style; opening one header popout closes the others.
+- Profile menu: sign-out as an icon next to name and email; order Social, Einstellungen, Admin, Integrationen, Ansehen als.
+- Phones no longer show the Apps button or app launch/status surfaces in HQ.
+- Admin hub and HQ overview heroes no longer show a subtitle line.
+
+### Fixed
+- Nachschub events: ticking an event selects all its rewards.
+- HQ Statistik no longer scrolls past its content.
+
 ## [0.244.1] - 2026-11-09
 
 ### Changed
