@@ -1,13 +1,11 @@
 @use './starfield' as stars;
 
-// The background scene: one fixed layer behind the page. Poses per main area
-// are plain CSS state on .scene[data-scene]; the camera moves through CSS
-// transitions, so any pose reaches any other (all six directed routes) from
-// wherever the camera currently stands. data-mode="still" cuts (sub-page
-// target, first paint), "fade" dissolves (reduced motion).
-//
-// No planet and no grid lines here: the Verse hub draws the one planet itself,
-// and a ruled plane read as a checkerboard behind the cinematic stages.
+// The background scene (concept 2026-11-09 Kamera-Welt, rounds/05 `.d5-world`):
+// one world laid out in vw like the mock, one camera. The camera transform is
+// written by SceneCameraService (inline transform at rest, a Web Animation in
+// flight — straight path, eased in-out cubic); this sheet only draws the
+// world and fades the objects a pose does not show over the flight
+// (--o-<object>, --scene-move from the component).
 //
 // Not encapsulated: the scene must clear the body's own background (html
 // keeps --sc-bg-0, the canvas), or the opaque body would paint over this
@@ -17,7 +15,6 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
 .sc-shell-scene {
   & {
     --scene-move: 1100ms;
-    --scene-ease: cubic-bezier(0.65, 0, 0.25, 1);
     position: fixed;
     inset: 0;
     z-index: -1;
@@ -28,11 +25,11 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
   &:empty { display: none; }
 
   .scene { position: absolute; inset: 0; background: #02070d; }
-  .sky, .plane { position: absolute; inset: 0; }
+  .tilt { position: absolute; inset: 0; }
 
-  // ── Sky ────────────────────────────────────────────────────────────────
-  // Wide enough that the Codex pan (-16vw) never shows the sky's right edge.
-  .sky { inset: -8% -24% -8% -8%; }
+  // ── Sky (far layer) ────────────────────────────────────────────────────
+  // Generous bleed: the damped camera shifts it by up to ~16vw and zooms it 1.2×.
+  .sky { position: absolute; inset: -24vw; transform-origin: 50% 50%; will-change: transform; }
   .neb {
     position: absolute;
     inset: 0;
@@ -57,7 +54,6 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     opacity: 0.7;
     @include stars.field-image(56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
   }
-
   // A few stars light up once each at random spots (star-sparkle.ts).
   .spark {
     position: absolute;
@@ -70,11 +66,123 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
     pointer-events: none;
   }
 
-  // ── Codex holo glow (off to the right until the camera turns) ──────────
-  // Soft light only, the colour of the holotable — the Codex stage draws its
-  // own hologram, the backdrop just carries its glow out to the edges.
-  .plane { left: 30%; }
-  .plane > i {
+  // ── The world (near layer) ─────────────────────────────────────────────
+  .world {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 350vw;
+    height: 262.5vw;
+    transform-origin: 0 0;
+    transform: scale(1) translate(-100vw, -50vw);
+    will-change: transform;
+  }
+  .o {
+    position: absolute;
+    display: block;
+    transition: opacity var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  // Rectangles = WORLD_RECTS in scene.model.ts.
+  .planet {
+    left: 69.688vw; top: 85.75vw; width: 160vw; height: 160vw;
+    border-radius: 50%;
+    overflow: hidden;
+    opacity: var(--o-planet, 0);
+    background: radial-gradient(circle at 50% 2%, #17394c 0, #0d2535 4%, #081926 9%, #05121c 18%, #040d15 36%, #030a10 70%);
+    box-shadow: 0 -0.188vw 1.625vw rgba(82, 193, 230, 0.32), inset 0 0.25vw 1.125vw rgba(150, 225, 255, 0.22);
+  }
+  .planet > i { position: absolute; display: block; }
+  // The night side's faint relief, so the zoomed-in HQ view is not a flat fill.
+  .planet .night {
+    inset: 12% 0 0 0;
+    background:
+      radial-gradient(ellipse 30% 8% at 30% 20%, rgba(76, 201, 240, 0.05), transparent 70%),
+      radial-gradient(ellipse 26% 9% at 66% 26%, rgba(76, 201, 240, 0.04), transparent 70%),
+      radial-gradient(ellipse 40% 10% at 50% 40%, rgba(20, 70, 110, 0.12), transparent 75%);
+  }
+  // HQ: a calm hint of a city on the right half (world ≈ 163–191 × 120–136 vw, the HQ pose).
+  .planet .lights {
+    left: 57%; top: 20%; width: 22%; height: 13%;
+    background:
+      radial-gradient(18% 10% at 22% 38%, rgba(255, 184, 107, 0.16), transparent 70%),
+      radial-gradient(4% 2% at 23% 38%, rgba(255, 206, 150, 0.32), transparent 70%),
+      radial-gradient(22% 12% at 58% 64%, rgba(255, 184, 107, 0.11), transparent 70%),
+      radial-gradient(3% 1.6% at 60% 63%, rgba(255, 206, 150, 0.26), transparent 70%),
+      radial-gradient(16% 9% at 84% 30%, rgba(255, 184, 107, 0.1), transparent 70%);
+  }
+  .scene[data-pose^='hq'] .planet .lights { animation: sc-scene-city 9s ease-in-out infinite; }
+
+  // HQ ground station on the right limb (mock .d5-o-hqst).
+  .hqst { left: 172.375vw; top: 89.125vw; width: 2.75vw; height: 1.375vw; opacity: var(--o-hqst, 0); }
+  .hqst::before {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 0.75vw;
+    border-radius: 1.375vw 1.375vw 0.188vw 0.188vw;
+    background: linear-gradient(180deg, #ffd9a8, #a86a2c);
+    box-shadow: 0 0 0.625vw rgba(255, 184, 107, 0.9), 0 0 1.875vw rgba(255, 184, 107, 0.45);
+  }
+  .hqst::after {
+    content: ''; position: absolute; left: 50%; top: -1.125vw; width: 0.125vw; height: 1.25vw; translate: -50% 0;
+    background: linear-gradient(180deg, rgba(255, 214, 160, 0), #ffd6a0);
+  }
+  .hqst > i {
+    position: absolute; left: 50%; top: -1.375vw; width: 0.375vw; height: 0.375vw; translate: -50% 0;
+    border-radius: 50%; background: #fff3e0; box-shadow: 0 0 0.5vw #ffb86b;
+    animation: sc-scene-beacon 2.4s ease-in-out infinite;
+  }
+
+  // The hub's planets as world objects (Crusader = News, ArcCorp = Patches, microTech = Galerie).
+  .pl { border-radius: 50%; }
+  .news {
+    left: 103.438vw; top: 82.938vw; width: 6vw; height: 6vw; opacity: var(--o-news, 0);
+    background: radial-gradient(circle at 34% 30%, #f6d2c2 0, #d99782 18%, #a5604e 42%, #4a2621 72%, #140a09 100%);
+    box-shadow: 0 0 1.2vw rgba(233, 180, 160, 0.28);
+  }
+  .patches {
+    left: 114.625vw; top: 80vw; width: 4.625vw; height: 4.625vw; opacity: var(--o-patches, 0);
+    background: radial-gradient(circle at 34% 30%, #ffe2b0 0, #e3a85a 20%, #a86a2c 46%, #4a2b10 74%, #120a04 100%);
+    box-shadow: 0 0 1vw rgba(243, 200, 140, 0.26);
+  }
+  .gallery {
+    left: 181.5vw; top: 79.313vw; width: 6vw; height: 6vw; opacity: var(--o-gallery, 0);
+    background: radial-gradient(circle at 34% 30%, #f2fbff 0, #bfe6f7 20%, #78b4d2 46%, #2c5670 74%, #0a1822 100%);
+    box-shadow: 0 0 1.2vw rgba(170, 222, 255, 0.28);
+  }
+  // Sternkarte: the constellation morphs into the star map at its pose (mock d5-starmap-morph).
+  .starmap { left: 169vw; top: 76.688vw; width: 5.938vw; height: 4.375vw; opacity: var(--o-starmap, 0); }
+  .starmap .const { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity calc(var(--scene-move) * 0.25) ease 0s; }
+  .starmap .const polyline { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 70%, transparent); stroke-width: 0.8; }
+  .starmap .const circle { fill: #dff4ff; }
+  .starmap .map {
+    position: absolute; inset: -60% -80%; display: block; opacity: 0;
+    transition: opacity calc(var(--scene-move) * 0.3) ease 0s;
+    background:
+      radial-gradient(circle, color-mix(in srgb, var(--sc-accent) 55%, transparent) 0 0.06vw, transparent 0.07vw) 0 0 / 1.1vw 1.1vw,
+      radial-gradient(ellipse 50% 50% at 50% 50%, color-mix(in srgb, var(--sc-accent) 8%, transparent), transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 72%);
+    mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 72%);
+  }
+  .scene[data-pose='starmap'] .starmap .const { opacity: 0; transition-delay: calc(var(--scene-move) * 0.7); }
+  .scene[data-pose='starmap'] .starmap .map { opacity: 1; transition-delay: calc(var(--scene-move) * 0.7); }
+
+  // Admin station in orbit above the limb.
+  .station { left: 124.313vw; top: 73.5vw; width: 6.063vw; height: 4.375vw; opacity: var(--o-station, 0); }
+  .station::before {
+    content: ''; position: absolute; left: 18%; top: 22%; width: 64%; height: 56%; border-radius: 50%;
+    border: 0.12vw solid rgba(190, 236, 255, 0.85);
+    box-shadow: 0 0 0.6vw rgba(76, 201, 240, 0.55), inset 0 0 0.4vw rgba(76, 201, 240, 0.4);
+  }
+  .station::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 47%; height: 0.14vw;
+    background: linear-gradient(90deg, transparent, #9fe6ff 18%, #e6f8ff 50%, #9fe6ff 82%, transparent);
+  }
+  .station > i {
+    position: absolute; left: 42%; top: 36%; width: 16%; height: 28%; border-radius: 0.1vw;
+    background: linear-gradient(180deg, #e6f8ff, #4c8fb0); box-shadow: 0 0 0.5vw #4cc9f0;
+  }
+
+  // Codex: the holo glow the camera turns towards (the Codex stage draws its own hologram).
+  .holo { left: 225vw; top: 37.5vw; width: 100vw; height: 56.25vw; opacity: var(--o-holo, 0); }
+  .holo > i {
     position: absolute;
     inset: 0;
     background:
@@ -83,95 +191,37 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
       radial-gradient(ellipse 60% 18% at 50% 92%, color-mix(in srgb, var(--sc-accent) 6%, transparent), transparent 75%);
   }
 
-  // ── Night surface (HQ): the camera has dived towards the ground ────────
-  // A dark ground rising from below with faint, clustered city lights; no
-  // planet outline and no survey grid.
-  .detail {
+  // The veil is carried over the flight, never set (r2).
+  .veil {
     position: absolute;
     inset: 0;
-    opacity: var(--pose-detail, 0);
-    background:
-      radial-gradient(ellipse 120% 26% at 50% 34%, rgba(76, 201, 240, 0.05), transparent 72%),
-      linear-gradient(180deg, transparent 0%, rgba(4, 11, 18, 0.72) 36%, #040b12 72%);
-  }
-  .detail > i { position: absolute; inset: 0; }
-  // Soft glows like the hub's night side — no tiled dots, which read as a grid.
-  .detail .lights {
-    background:
-      radial-gradient(7vw 2vw at 18% 62%, rgba(255, 184, 107, 0.13), transparent 70%),
-      radial-gradient(1.6vw 0.6vw at 19% 62%, rgba(255, 206, 150, 0.22), transparent 70%),
-      radial-gradient(9vw 2.4vw at 38% 78%, rgba(255, 184, 107, 0.1), transparent 70%),
-      radial-gradient(6vw 1.8vw at 61% 68%, rgba(255, 184, 107, 0.12), transparent 70%),
-      radial-gradient(1.4vw 0.5vw at 62% 68%, rgba(255, 206, 150, 0.2), transparent 70%),
-      radial-gradient(8vw 2.2vw at 84% 82%, rgba(255, 184, 107, 0.1), transparent 70%),
-      radial-gradient(5vw 1.5vw at 80% 58%, rgba(255, 184, 107, 0.09), transparent 70%);
-  }
-  // Only where the night surface shows: at opacity 0 it blended a window-sized layer for nothing.
-  .scene[data-scene='hq']:not([data-sub]) .detail .lights {
-    animation: sc-scene-city 9s ease-in-out infinite;
-  }
-  .dim { position: absolute; inset: 0; background: #02070d; opacity: var(--pose-dim, 0); }
-  .ground {
-    position: absolute;
-    inset: 55% 0 0 0;
-    opacity: var(--pose-ground, 0);
-    background: linear-gradient(180deg, transparent, #02070d 70%);
+    background: #02070d;
+    opacity: var(--scene-veil, 0);
+    transition: opacity var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1);
   }
 
-  // ── Motion: every pose change is a transition from the current visual state ──
-  // The pose arrives as custom properties on .scene (scene.model.ts POSES); the
-  // flight length as --scene-move. A new pose mid-flight restarts the transition
-  // from the computed (current) value, so an interrupted flight never jumps.
-  .sky { transform: var(--pose-sky, none); opacity: var(--pose-sky-o, 1); }
-  .plane { transform: translateX(calc((1 - var(--pose-plane, 0)) * 24vw)); opacity: var(--pose-plane, 0); }
-  .sky, .plane, .detail, .ground, .dim, .halo {
-    transition: transform var(--scene-move) var(--scene-ease), opacity var(--scene-move) var(--scene-ease);
+  // ── S5: the camera tilts slightly with scroll (stars slower than the page) ──
+  // Scroll-driven animations run on the compositor; no scroll listener, no layout read.
+  @supports (animation-timeline: scroll()) {
+    .tilt {
+      animation: sc-scene-tilt-far linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 150vh;
+    }
+    .tilt.near { animation-name: sc-scene-tilt-near; }
   }
 
-  // ── Sub-pages: neutral deep space ──────────────────────────────────────
-  // Lists, forms and detail pages keep their area's sky (no jump when they
-  // open) but none of its set pieces, under a light veil, so every sub-page
-  // stands on the same calm backdrop.
-  .scene[data-sub] {
-    .sky { opacity: 1; }
-    .plane, .detail, .ground { opacity: 0; }
-    .dim { opacity: max(var(--pose-dim, 0), 0.22); }
-  }
-
-  // ── Verse subpages: a faint halo in the page's planet colour ───────────
-  // It stands behind the head's emblem (top left of the page frame).
-  .halo {
-    position: absolute;
-    left: calc(max(0px, (100vw - var(--sc-page-max, 1280px)) / 2) + var(--sc-page-gutter, 28px) + 32px);
-    top: calc(var(--sc-bar-h, 56px) + 96px);
-    width: 0;
-    height: 0;
-    opacity: 0;
-  }
-  .halo::before {
-    content: '';
-    position: absolute;
-    left: -36vmax;
-    top: -36vmax;
-    width: 72vmax;
-    height: 72vmax;
-    border-radius: 50%;
-    background: radial-gradient(closest-side, var(--halo, transparent), transparent);
-  }
-  .scene[data-world] .halo { opacity: 1; }
-  .scene[data-world='news'] { --halo: rgba(233, 180, 160, 0.1); }
-  .scene[data-world='patches'] { --halo: rgba(243, 200, 140, 0.09); }
-  .scene[data-world='gallery'] { --halo: rgba(170, 222, 255, 0.1); }
-  .scene[data-world='starmap'] { --halo: color-mix(in srgb, var(--sc-accent) 11%, transparent); }
-
-  // Cut: a sub-page target or the first paint takes the pose without motion.
-  [data-mode='still'] *, [data-mode='fade'] * { transition: none !important; }
-  // Dissolve (reduced motion): the new pose fades in; two names so it restarts.
-  .scene[data-mode='fade'][data-fade='0'] { animation: sc-scene-fade-a 420ms ease-out both; }
-  .scene[data-mode='fade'][data-fade='1'] { animation: sc-scene-fade-b 420ms ease-out both; }
+  // Reduced motion: the camera jumps (SceneCameraService), the scene crossfades in 420 ms.
+  .scene[data-fade='0'] { animation: sc-scene-fade-a 420ms ease-out both; }
+  .scene[data-fade='1'] { animation: sc-scene-fade-b 420ms ease-out both; }
+  .scene:not([data-fade]) { animation: none; }
 
   @media (prefers-reduced-motion: reduce) {
-    .scene * { transition: none !important; animation: none !important; }
+    .o, .veil, .starmap .const, .starmap .map { transition: none !important; }
+    .tilt, .hqst > i, .planet .lights { animation: none !important; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .scene[data-fade] { animation: none; }
   }
 }
 
@@ -182,5 +232,8 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
 body:has(.brief-world) { overflow: clip; }
 
 @keyframes sc-scene-city { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+@keyframes sc-scene-beacon { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 @keyframes sc-scene-fade-a { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sc-scene-fade-b { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sc-scene-tilt-far { to { transform: translateY(-3vh); } }
+@keyframes sc-scene-tilt-near { to { transform: translateY(-7vh) scale(1.015); } }

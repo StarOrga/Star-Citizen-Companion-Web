@@ -1732,18 +1732,30 @@ button {
 
 /* Deep space behind the flight, where neither page covers the view. */
 html[data-verse-flight]::view-transition { background: #02070d; }
-html[data-verse-flight='side']::view-transition-old(root) { animation: sc-flight-away-up 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
-html[data-verse-flight='side']::view-transition-new(root) { animation: sc-flight-fade-in 420ms ease-out 240ms both; }
-html[data-verse-flight='down']::view-transition-old(root) {
-  transform-origin: var(--vf-ox) var(--vf-oy);
-  animation: sc-flight-dive 700ms var(--vf-cam) both;
+/* Shell scene (beta shell, concept 2026-11-09 Kamera-Welt C2): the background
+   scene is taken out of every snapshot. The root drops its name, so nothing but
+   the page content (#sc-main, named vf-page) is captured; the scene, header and
+   menus stay live underneath the transition and the camera keeps moving
+   (SceneCameraService) while only the content flies. No backdrop over it. */
+html[data-sc-scene][data-verse-flight] { view-transition-name: none; }
+html[data-sc-scene][data-verse-flight] #sc-main { view-transition-name: vf-page; }
+html[data-sc-scene][data-verse-flight]::view-transition { background: none; }
+@each $vf in root, vf-page {
+  html[data-verse-flight='side']::view-transition-old(#{$vf}) { animation: sc-flight-away-up 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+  html[data-verse-flight='side']::view-transition-new(#{$vf}) { animation: sc-flight-fade-in 420ms ease-out 240ms both; }
+  html[data-verse-flight='down']::view-transition-old(#{$vf}) {
+    transform-origin: var(--vf-ox) var(--vf-oy);
+    animation: sc-flight-dive 700ms var(--vf-cam) both;
+  }
+  html[data-verse-flight='down']::view-transition-new(#{$vf}) { animation: sc-flight-hold-in 1800ms linear both; }
+  html[data-verse-flight='up']::view-transition-old(#{$vf}) { animation: sc-flight-sink 520ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+  html[data-verse-flight='up']::view-transition-new(#{$vf}) {
+    transform-origin: var(--vf-ox) var(--vf-oy);
+    animation: sc-flight-pull-out 1500ms var(--vf-cam) both;
+  }
 }
-html[data-verse-flight='down']::view-transition-new(root) { animation: sc-flight-hold-in 1800ms linear both; }
-html[data-verse-flight='up']::view-transition-old(root) { animation: sc-flight-sink 520ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
-html[data-verse-flight='up']::view-transition-new(root) {
-  transform-origin: var(--vf-ox) var(--vf-oy);
-  animation: sc-flight-pull-out 1500ms var(--vf-cam) both;
-}
+/* The content group itself stays put (the page frame does not move); only its images fly. */
+html[data-sc-scene][data-verse-flight]::view-transition-group(vf-page) { animation: none; }
 /* Star streaks radiate from the tile while the old page dives (own layer, only in the old state). */
 .sc-flight-streaks {
   position: fixed;
