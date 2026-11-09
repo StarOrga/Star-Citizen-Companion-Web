@@ -546,8 +546,11 @@ describe('StarscapeComponent', () => {
       expect(svc.load).toHaveBeenCalledTimes(1);
       // The button stays as the fallback.
       expect(f.nativeElement.querySelector('button.more')).not.toBeNull();
+      const marker = observers[observers.length - 1];
       f.destroy();
-      expect(observers.every((o) => vi.mocked(o.disconnect).mock.calls.length > 0)).toBe(true);
+      // Only the scroll marker's own observer: the skeleton tiles' page-wide observer (scNeuroField's registry) lives
+      // for the whole page by design and lands in this mock only when this test happens to run first (random order).
+      expect(vi.mocked(marker.disconnect)).toHaveBeenCalled();
     } finally {
       window.IntersectionObserver = Original;
     }
