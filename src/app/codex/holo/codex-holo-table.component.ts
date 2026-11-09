@@ -317,6 +317,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
               [attr.aria-pressed]="inspectedPort() === pin.portName"
               [attr.tabindex]="leader() ? -1 : null"
               [attr.aria-hidden]="leader() ? 'true' : null"
+              [attr.data-port]="pin.portName"
               [attr.aria-label]="tagAria(pin)"
               [scTooltip]="pin.label + (pin.resolved ? '' : ' · ' + ('codex.holo.pinUnresolved' | translate))"
               scTooltipTier="label"

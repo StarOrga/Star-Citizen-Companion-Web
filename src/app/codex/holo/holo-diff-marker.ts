@@ -14,10 +14,11 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
   standalone: true,
   imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'holo-diff-marker', '[scTooltip]': "'codex.holo.diffMarker' | translate", scTooltipTier: 'label' },
-  template: `<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0.5 9.5 5 5 9.5 0.5 5z" /></svg><span class="sc-sr-only">{{ 'codex.holo.diffMarker' | translate }}</span>`,
+  host: { class: 'holo-diff-marker' },
+  template: `<span class="dm" [scTooltip]="'codex.holo.diffMarker' | translate" scTooltipTier="label"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0.5 9.5 5 5 9.5 0.5 5z" /></svg><span class="sc-sr-only">{{ 'codex.holo.diffMarker' | translate }}</span></span>`,
   styles: [`
     :host { display: inline-flex; align-items: center; vertical-align: middle; flex: none; color: var(--sc-accent); line-height: 1; }
+    .dm { display: inline-flex; align-items: center; }
     svg { width: 0.7em; height: 0.7em; min-width: 7px; min-height: 7px; fill: currentColor; display: block; }
   `],
 })
