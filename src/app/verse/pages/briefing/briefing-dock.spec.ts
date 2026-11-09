@@ -1,4 +1,4 @@
-import { dockEase, dockProgress, dockState, glideEase, glideTarget, keyDirection, labelMove, planetMove } from './briefing-dock';
+import { dockEase, dockProgress, dockState, glideEase, glideTarget, keyDirection, labelMove, planetMove, wireSnap } from './briefing-dock';
 
 describe('briefing-dock', () => {
   it('maps the scroll range to 0…1 and the states', () => {
@@ -52,5 +52,29 @@ describe('briefing-dock', () => {
     expect(keyDirection({ key: 'Home', shiftKey: false })).toBe(-1);
     expect(keyDirection({ key: ' ', shiftKey: true })).toBe(-1);
     expect(keyDirection({ key: 'a', shiftKey: false })).toBe(0);
+  });
+
+  it('makes the stage and the lower part native scroll-snap areas and releases them again', () => {
+    const a = document.createElement('div');
+    const b = document.createElement('div');
+    const release = wireSnap(() => [a, b]);
+    const wide = matchMedia('(min-width: 901px)').matches;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (wide && !reduce) {
+      expect(document.documentElement.style.scrollSnapType).toContain('y');
+      expect(a.style.scrollSnapAlign).toContain('start');
+      expect(b.style.scrollSnapAlign).toContain('start');
+    } else {
+      expect(document.documentElement.style.scrollSnapType).toBe('');
+    }
+    release();
+    expect(document.documentElement.style.scrollSnapType).toBe('');
+    expect(a.style.scrollSnapAlign).toBe('');
+  });
+
+  it('does not snap a page with fewer than two areas', () => {
+    const release = wireSnap(() => [document.createElement('div'), null]);
+    expect(document.documentElement.style.scrollSnapType).toBe('');
+    release();
   });
 });
