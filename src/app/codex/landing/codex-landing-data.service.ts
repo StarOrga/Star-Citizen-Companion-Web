@@ -63,6 +63,9 @@ const FULL_LIST_LIMIT = 1000;
  */
 export const TOOL_ATTACH_TYPES: readonly string[] = ['TractorBeam', 'TowingBeam', 'SalvageHead'];
 
+/** Entries of a category with nothing new that the list offers to discover (the pane shows as many as fit). */
+const DISCOVER_ENTRIES = 16;
+
 const KIND_OF: Record<LandingCategory, CodexKind> = {
   ship: 'ship',
   fpsWeapon: 'weapon',
@@ -422,6 +425,14 @@ export class CodexLandingDataService {
 
   private async loadPool(category: LandingCategory): Promise<CategoryPool> {
     const rows = dedupeByName((await this.candidates(category)).filter((r) => !r.isVariant));
+    const kind = KIND_OF[category];
+    // The patch's own record first (it survives a re-upload of the same patch); a kind
+    // it holds nothing for falls back to the two-build diff below.
+    const news = await this.diff.patchNewsMemo(kind);
+    if (news.added.length || news.changed.length) {
+      const addedIds = new Set(news.added);
+      return freshPool(rows, rows.filter((r) => addedIds.has(r.classNameSlug)), news.changed);
+    }
     if (category === 'ship') {
       const addedNames = new Set((await this.diff.addedShipsMemo()).map(nameKey));
       const added = rows.filter((r) => addedNames.has(nameKey(r)));
@@ -429,7 +440,6 @@ export class CodexLandingDataService {
     }
     // The whole-build diff, not one capped read of the previous build: past its
     // 1000 rows everything else used to count as new ("2284 neu").
-    const kind = KIND_OF[category];
     const addedNames = new Set(await this.diff.addedClassNamesMemo(kind));
     const added = rows.filter((r) => addedNames.has(r.classNameSlug));
     return freshPool(rows, added, await this.diff.changedClassNamesMemo(kind));
@@ -550,15 +560,18 @@ export class CodexLandingDataService {
         try {
           // One quiet retry, as for the rotation: the catalog read is heavy, and an odd
           // timeout used to empty the category here while the rotation recovered (#318).
-          const { fresh, updated } = await this.pool(category).catch(
+          const { rows, fresh, updated, added } = await this.pool(category).catch(
             () => new Promise<void>((r) => setTimeout(r, 700)).then(() => this.pool(category)),
           );
-          const ready: LandingCodexEntry[] = fresh.map((r) => ({
+          // Nothing new: the list shows entries of the category to discover instead of an empty middle.
+          const discover = fresh.length === 0;
+          const ready: LandingCodexEntry[] = (discover ? rows.slice(0, DISCOVER_ENTRIES) : fresh).map((r) => ({
             id: r.classNameSlug,
             name: r.nameLocalized ?? r.classNameSlug,
             route: ['/codex', KIND_OF[category], r.classNameSlug],
             announced: false,
             ...(updated.has(r.classNameSlug) ? { updated: true } : {}),
+            ...(added.has(r.classNameSlug) ? { isNew: true } : {}),
           }));
           let announced: LandingCodexEntry[] = [];
           if (category === 'ship') {
@@ -572,6 +585,7 @@ export class CodexLandingDataService {
           return {
             category,
             count: fresh.length,
+            ...(discover ? { discover: true } : {}),
             entries: [...ready, ...announced.slice(0, ANNOUNCED_IN_LIST)],
             announced: announced.length,
           };

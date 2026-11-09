@@ -111,8 +111,19 @@ Branches that match no item are never touched.
 | Board or PAT down during a tick | gate `error` | retried each tick, toast after 10 errors; the panel ages to red | no |
 | Board or PAT down during the postflight | SQL error | `run.json` stays, the next tick repeats it | no |
 | `end-run` lost | gate says `running`, holder is our last session | released by the next tick | no |
-| Two ticks overlap | tick lock and `IgnoreNew` | the second one exits | no |
+| Two ticks overlap | `IgnoreNew`, a tick lock and a run file both created with an exclusive create | the second one exits; a supervisor that loses the run lock removes only its own run file | no |
+| Gate call hangs (`gate error: timeout after 120s`) | the gate's SQL fetch has a 30 s cap; the watcher retries `check`/`heartbeat` once | a stalled socket after wake-up ends as a readable error, not `exit null`; the log line names timeout, signal or stderr tail | no |
+| Merged but production lags | `settleLive`: no successful Production deployment of the merge or of a descendant | the item stays `shipped` with `live_at` empty: the admin board shows "⏳ deploy pending", the author still sees "in progress"; `live_at` is stamped when the deploy turns green | no |
 | Deploy never turns green | `verify-ship-live` fails for 60 min | posts the ⏳ or ❌ reply | no |
+
+**Merged vs online.** `status = 'shipped'` is set at the merge (the queues key on it). `admin_feedback.live_at`
+is set by the watcher once the Production deployment of the merge commit, or of any later commit,
+succeeded (`gh api repos/{owner}/{repo}/deployments?environment=Production` + statuses). The author-facing
+`my_feedback.author_status` is `done` only with `live_at` set, so the "done" notification means online.
+A re-ship (shipped → in_progress → shipped) clears `live_at` by trigger. Older shipped rows were
+backfilled as live. Cause history of `gate error: exit null` (12 times 2026-11-06 to 2026-11-08): the gate's
+`fetch` had no timeout, a dead connection after the PC woke hung until the watcher's 120 s kill, and the old
+log line dropped the signal and the empty stderr.
 
 **What this cannot cover:** nothing runs while the PC is off or nobody is logged
 in, because Credential Manager and the Claude login need the user session. The

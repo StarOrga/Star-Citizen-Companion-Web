@@ -2,6 +2,7 @@ import {
   LIVE_PRESENCE_MAX_AGE_MS,
   SHIP_DESTROYED_MAX_AGE_MS,
   disconnectedInSession,
+  eventLabel,
   formatLocationName,
   isGameLive,
   lastDestroyedAt,
@@ -137,5 +138,19 @@ describe('presenceAt', () => {
     expect(presenceAt({ presence: { at: '2026-11-05T12:00:00.000Z' } })).toBe('2026-11-05T12:00:00.000Z');
     expect(presenceAt({ location: 'x' })).toBeNull();
     expect(presenceAt(null)).toBeNull();
+  });
+});
+
+describe('eventLabel', () => {
+  it('gives the newer live-event types their own label key', () => {
+    for (const type of ['contract.accepted', 'jurisdiction.changed', 'armistice.exited', 'session.quit', 'qt.target', 'mobiglas.app', 'disconnect']) {
+      expect(eventLabel({ type, data: {} }).key).toBe('hq.log.event.' + type);
+    }
+  });
+
+  it('keeps the raw fallback (naming the type) for a still-unknown type', () => {
+    const l = eventLabel({ type: 'something.new', data: {} });
+    expect(l.key).toBe('hq.log.event.other');
+    expect(l.params['type']).toBe('something.new');
   });
 });

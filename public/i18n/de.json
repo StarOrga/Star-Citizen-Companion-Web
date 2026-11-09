@@ -13,6 +13,8 @@
       "confirm": "Konto wechseln"
     },
     "revoke": "Abmelden",
+    "revokeNote": "Ein abgemeldetes Handy verliert den Zugriff spätestens nach einer Stunde.",
+    "revokeDone": "Handy abgemeldet. Es verliert den Zugriff spätestens nach einer Stunde.",
     "errors": {
       "invalidCode": "Dieser Link ist abgelaufen oder wurde schon benutzt. Erzeuge am Computer einen neuen.",
       "rateLimit": "Zu viele Versuche. Bitte warte ein paar Minuten und versuche es erneut.",
@@ -228,6 +230,7 @@
     "landing": {
       "hero": {
         "eyebrow": "{{category}} · neu in {{patch}}",
+        "eyebrowPatch": "{{category}} · {{patch}}",
         "title": "Alles über jedes Schiff.",
         "eyebrowIdle": "Codex"
       },
@@ -469,6 +472,7 @@
         "label": "Codex: neu in diesem Patch",
         "title": "Codex · neu in {{patch}}",
         "titleNoPatch": "Codex · neu",
+        "titleDiscover": "Codex · {{patch}}",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
         "categories": "Kategorien",
@@ -476,7 +480,8 @@
         "more": "+ {{count}} weitere",
         "all": "Alle {{category}}",
         "held": "gehalten",
-        "updated": "aktualisiert"
+        "updated": "aktualisiert",
+        "new": "neu"
       }
     },
     "index": {
@@ -2577,8 +2582,10 @@
       "patch": "Patch",
       "variant": "Variante",
       "variantAria": "Variante wählen, gerade: {{name}}",
+      "shown": "Gezeigt:",
       "own": {
         "hangar": "Im Hangar",
+        "hangarN": "{{n}}× im Hangar",
         "inventar": "Im Inventar · {{n}}×",
         "sammlung": "In der Sammlung"
       },
@@ -4613,6 +4620,8 @@
   },
   "adminFeedback": {
     "title": "Feedback-Board",
+    "deployLag": "Deploy ausstehend",
+    "deployLagHint": "Gemergt, aber Production trägt die Änderung noch nicht. Sie erscheint, sobald der Vercel-Deploy durch ist.",
     "subtitle": "Schreib, was besser werden kann — die Abendroutine nimmt offene Punkte auf, shippt sie und markiert sie hier.",
     "heartbeat": {
       "online": "Dev-PC erreichbar",
@@ -6159,7 +6168,8 @@
           "refine": "{{label}} raffinieren",
           "craft": "{{label}} craften",
           "transport": "{{label}} transportieren",
-          "pickup": "{{label}} abholen"
+          "pickup": "{{label}} abholen",
+          "event": "Event: {{label}}"
         }
       },
       "planen": {
@@ -6210,10 +6220,12 @@
           "complete": "Raffinerie fertig: {{count}} Aufträge ({{location}})"
         },
         "contract": {
-          "completed": "Mission abgeschlossen: {{name}}"
+          "completed": "Mission abgeschlossen: {{name}}",
+          "accepted": "Mission angenommen"
         },
         "qt": {
-          "arrived": "Quantum-Sprung beendet"
+          "arrived": "Quantum-Sprung beendet",
+          "target": "Quantum-Ziel gesetzt"
         },
         "hangar": {
           "ready": "Hangar bereit"
@@ -6222,6 +6234,19 @@
           "opened": "Inventar geöffnet ({{location}})"
         },
         "other": "Ereignis: {{type}}",
+        "armistice": {
+          "exited": "Waffenstillstandszone verlassen"
+        },
+        "jurisdiction": {
+          "changed": "Rechtsgebiet gewechselt"
+        },
+        "session": {
+          "quit": "Spiel beendet"
+        },
+        "mobiglas": {
+          "app": "mobiGlas-App geöffnet"
+        },
+        "disconnect": "Verbindung getrennt",
         "blueprint": {
           "received": "Blaupause erhalten: {{name}}"
         }

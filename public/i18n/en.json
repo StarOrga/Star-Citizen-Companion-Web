@@ -13,6 +13,8 @@
       "confirm": "Switch account"
     },
     "revoke": "Sign out",
+    "revokeNote": "A signed-out phone loses access within one hour at the latest.",
+    "revokeDone": "Phone signed out. It loses access within one hour at the latest.",
     "errors": {
       "invalidCode": "This link has expired or was already used. Create a new one on your computer.",
       "rateLimit": "Too many attempts. Please wait a few minutes and try again.",
@@ -228,6 +230,7 @@
     "landing": {
       "hero": {
         "eyebrow": "{{category}} · new in {{patch}}",
+        "eyebrowPatch": "{{category}} · {{patch}}",
         "title": "Everything about every ship.",
         "eyebrowIdle": "Codex"
       },
@@ -469,6 +472,7 @@
         "label": "Codex: new in this patch",
         "title": "Codex · new in {{patch}}",
         "titleNoPatch": "Codex · new",
+        "titleDiscover": "Codex · {{patch}}",
         "announced": "announced",
         "onTable": "on the table",
         "categories": "Categories",
@@ -476,7 +480,8 @@
         "more": "+ {{count}} more",
         "all": "All {{category}}",
         "held": "held",
-        "updated": "updated"
+        "updated": "updated",
+        "new": "new"
       }
     },
     "index": {
@@ -2577,8 +2582,10 @@
       "patch": "Patch",
       "variant": "Variant",
       "variantAria": "Choose a variant, now: {{name}}",
+      "shown": "Showing:",
       "own": {
         "hangar": "In hangar",
+        "hangarN": "{{n}}× in hangar",
         "inventar": "In inventory · {{n}}×",
         "sammlung": "In collection"
       },
@@ -4613,6 +4620,8 @@
   },
   "adminFeedback": {
     "title": "Feedback Board",
+    "deployLag": "Deploy pending",
+    "deployLagHint": "Merged, but production does not carry the change yet. It appears as soon as the Vercel deploy finishes.",
     "subtitle": "Post what could be better — the nightly routine picks up open items, ships them, and marks them here.",
     "heartbeat": {
       "online": "Dev PC reachable",
@@ -6159,7 +6168,8 @@
           "refine": "Refine {{label}}",
           "craft": "Craft {{label}}",
           "transport": "Transport {{label}}",
-          "pickup": "Pick up {{label}}"
+          "pickup": "Pick up {{label}}",
+          "event": "Event: {{label}}"
         }
       },
       "planen": {
@@ -6210,10 +6220,12 @@
           "complete": "Refinery done: {{count}} orders ({{location}})"
         },
         "contract": {
-          "completed": "Mission completed: {{name}}"
+          "completed": "Mission completed: {{name}}",
+          "accepted": "Mission accepted"
         },
         "qt": {
-          "arrived": "Quantum jump finished"
+          "arrived": "Quantum jump finished",
+          "target": "Quantum target set"
         },
         "hangar": {
           "ready": "Hangar ready"
@@ -6222,6 +6234,19 @@
           "opened": "Inventory opened ({{location}})"
         },
         "other": "Event: {{type}}",
+        "armistice": {
+          "exited": "Left armistice zone"
+        },
+        "jurisdiction": {
+          "changed": "Jurisdiction changed"
+        },
+        "session": {
+          "quit": "Game quit"
+        },
+        "mobiglas": {
+          "app": "mobiGlas app opened"
+        },
+        "disconnect": "Disconnected",
         "blueprint": {
           "received": "Blueprint received: {{name}}"
         }

@@ -25,7 +25,8 @@ export function buildClaims(t: Pick<TranslateService, 'instant'>, category: Land
   const statics = Array.from({ length: STATIC_CLAIMS }, (_, i) => k(`s${i + 1}`));
   const news = facts.news;
   const patch = facts.patch;
-  const names = (news?.entries ?? []).filter((e) => !e.announced).map((e) => e.name);
+  // Only entries that really are new: no discovery picks, no merely changed or announced ones.
+  const names = news?.discover ? [] : (news?.entries ?? []).filter((e) => !e.announced && !(e.updated && !e.isNew)).map((e) => e.name);
   const data: string[] = [];
   if (news && patch && news.count > 0) data.push(k('count', { count: news.count, patch }));
   if (names[0]) data.push(k('name', { name: names[0], patch: patch ?? '' }));

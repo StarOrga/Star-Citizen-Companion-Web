@@ -6,7 +6,7 @@
           <span class="slide" [animate.enter]="still() ? 'cut' : 'roll-in'" [animate.leave]="still() ? 'cut' : 'roll-out'">
             @if (c) {
               @if (codex()?.patch; as patch) {
-                {{ 'codex.landing.hero.eyebrow' | translate: { category: ('codex.landing.categories.' + c | translate), patch } }}
+                {{ eyebrowKey() | translate: { category: ('codex.landing.categories.' + c | translate), patch } }}
               } @else {
                 {{ 'codex.landing.categories.' + c | translate }}
               }

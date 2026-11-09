@@ -24,7 +24,7 @@ interface Pending extends UndoOffer {
  * inside the window cancels it, so nothing has to be taken back on the server
  * and a one-try action (the constellation guess) cannot leak its answer.
  * One offer at a time — a newer one commits the pending one first. Leaving
- * the page (pagehide) commits a pending offer on a best-effort basis; if that
+ * the page (pagehide, or the tab turning hidden) commits a pending offer on a best-effort basis; if that
  * request does not make it out, nothing was written and the action is simply
  * still open on the next visit.
  */
@@ -44,8 +44,15 @@ export class UndoToastService {
   constructor() {
     const win = inject(DOCUMENT).defaultView;
     const onLeave = (): void => this.flush();
+    // pagehide alone is late (and never fires for a backgrounded phone tab): the tab turning hidden commits too.
+    const doc = inject(DOCUMENT);
+    const onHidden = (): void => { if (doc.visibilityState === 'hidden') this.flush(); };
     win?.addEventListener('pagehide', onLeave);
-    inject(DestroyRef).onDestroy(() => win?.removeEventListener('pagehide', onLeave));
+    doc.addEventListener('visibilitychange', onHidden);
+    inject(DestroyRef).onDestroy(() => {
+      win?.removeEventListener('pagehide', onLeave);
+      doc.removeEventListener('visibilitychange', onHidden);
+    });
   }
 
   offer(o: UndoOffer): void {

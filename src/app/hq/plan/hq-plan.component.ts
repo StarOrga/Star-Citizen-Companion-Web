@@ -124,6 +124,11 @@ export class HqPlanComponent {
   private readonly pickRouter = inject(Router);
   protected readonly flowPicks = signal<readonly { key: string; qty: number }[]>([]);
 
+  /**
+   * The picks wait for the Nachschub list: whether a slot is free decides new vs. add-to-existing. Declared BEFORE
+   * `listParam`: the query map emits synchronously while the fields initialise (a cart hand-off from another page).
+   */
+  private readonly pendingPick = signal(false);
   /** `/hq?list=wish#planen` (the item path's anchors): open the popup on that tab. */
   private readonly listParam = this.listRoute.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
     const tab = hqListTabOf(q.get(HQ_LIST_PARAM));
@@ -137,8 +142,6 @@ export class HqPlanComponent {
       this.pendingPick.set(true);
     }
   });
-  /** The picks wait for the Nachschub list: whether a slot is free decides new vs. add-to-existing. */
-  private readonly pendingPick = signal(false);
   private readonly openPick = effect(() => {
     if (!this.pendingPick() || (!this.ns.loaded() && !this.ns.error())) return;
     untracked(() => {

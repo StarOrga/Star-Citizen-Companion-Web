@@ -256,6 +256,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
                 </linearGradient>
               </defs>
               <path class="hull" [attr.d]="s.path" fill-rule="evenodd" [attr.fill]="'url(#' + hullFillId + ')'" />
+              @if (s.edges) { <path class="hull-edges" [attr.d]="s.edges" fill="none" /> }
             </svg>
           } @else {
             <!-- No traced silhouette for this hull (wave 5 A3.2): the default
@@ -479,6 +480,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     /* One filter for the whole hull, on the svg (the scan clips a composited
        layer, never re-rasterises two filters per frame). */
     .silhouette { filter: drop-shadow(0 0 4px var(--a55)) drop-shadow(0 0 14px var(--a28)); will-change: transform; }
+    .silhouette .hull-edges { stroke: var(--sc-accent); stroke-width: 1; opacity: 0.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
     .silhouette .hull { stroke: var(--sc-accent); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
     /* The light behind the hull breathes slowly once it stands — an instrument
        at rest, never a blink. Its own layer: the loop changes one opacity. */

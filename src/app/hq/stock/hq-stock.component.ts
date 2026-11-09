@@ -1,4 +1,5 @@
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
@@ -118,7 +119,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
   selector: 'sc-hq-stock',
   standalone: true,
   imports: [
-    TranslatePipe, DatePipe, NgTemplateOutlet, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent,
+    TranslatePipe, ScDatePipe, NgTemplateOutlet, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent,
     HqBlueprintPickerComponent, HqCrateComponent, HqPlaceSelectComponent, ScSelectComponent, HqStockLogComponent, HqStockTableComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -421,7 +422,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
                   {{ shipWhere(c.ship) }}
                   @if (variantCount(c.ship); as n) { · {{ 'hq.bestand.deck.variants' | translate: { n } }} }
                   @if (hangar.isFlagship(c.ship.shipClassName)) { · {{ 'hangar.flagship.mark' | translate }} }
-                  @if (destroyedAt(c.ship.shipClassName); as at) { · {{ 'hq.stock.destroyed' | translate: { at: (at | date: 'short') } }} }
+                  @if (destroyedAt(c.ship.shipClassName); as at) { · {{ 'hq.stock.destroyed' | translate: { at: (at | scDate: 'datetime') } }} }
                 </small>
                 <ng-container *ngTemplateOutlet="wishRow; context: { $implicit: shipTarget(c.ship) }" />
               </div>

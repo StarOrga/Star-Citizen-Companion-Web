@@ -10,7 +10,6 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RouterLink } from '@angular/router';
@@ -55,7 +54,6 @@ const UPCOMING = 4;
   imports: [
     ScPopoverDismissDirective,
     TranslatePipe,
-    DatePipe,
     ScDatePipe,
     RouterLink,
     ScActionDirective,
@@ -234,7 +232,7 @@ const UPCOMING = 4;
               <ul>
                 @for (ev of preview(); track ev.id; let first = $first) {
                   <li [attr.data-log-first]="first ? '' : null" [class.undone]="ev.undone">
-                    <time class="mono muted" [attr.datetime]="ev.at">{{ ev.at | date: 'shortTime' }}</time>
+                    <time class="mono muted" [attr.datetime]="ev.at">{{ ev.at | scDate: 'time' }}</time>
                     <span class="text">{{ label(ev).key | translate: label(ev).params }}</span>
                     @if (ev.undone) {
                       <span class="muted">{{ 'hq.log.undone' | translate }}</span>

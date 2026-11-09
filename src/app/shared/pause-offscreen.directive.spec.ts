@@ -11,9 +11,9 @@ class HostComponent {
   readonly top = signal(0);
 }
 
-/** Waits (up to 1 s) until the observer delivered the expected state. */
+/** Waits (up to 5 s - an IntersectionObserver callback is late on a loaded machine) until the observer delivered the expected state. */
 async function settle(el: HTMLElement, offscreen: boolean): Promise<void> {
-  for (let i = 0; i < 50 && el.hasAttribute(OFFSCREEN_ATTR) !== offscreen; i++) await new Promise((r) => setTimeout(r, 20));
+  for (let i = 0; i < 250 && el.hasAttribute(OFFSCREEN_ATTR) !== offscreen; i++) await new Promise((r) => setTimeout(r, 20));
 }
 
 describe('PauseOffscreenDirective', () => {
@@ -34,5 +34,5 @@ describe('PauseOffscreenDirective', () => {
     await settle(box, false);
     expect(box.hasAttribute(OFFSCREEN_ATTR)).toBe(false);
     fixture.destroy();
-  });
+  }, 20_000);
 });

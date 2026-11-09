@@ -1904,3 +1904,72 @@ describe('listSelect and slim list rows', () => {
     expect(res.rows[0].payload).toEqual({ name: { en: 'Alpha', de: 'Alpha' }, manufacturer: { name: { en: 'ACME' } } });
   });
 });
+
+/**
+ * `edges` comes with migration 20261108222000. Until it is deployed the view
+ * answers 42703 for the whole select — the read must retry without it once and
+ * keep every silhouette, never turn the missing column into "no outline".
+ */
+describe('CodexService silhouettes before the edges column exists', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  function edgesProvider(selects: string[]): SupabaseClientProvider {
+    const row = {
+      kind: 'component', class_name: 'COOL_A', channel: 'LIVE', patch_version: '4.9.0', build_number: 'desktop',
+      view_box: '0 0 1000 1000', path: 'M 0 0 L 10 0 L 10 10 Z', bbox: { x: 0, y: 0, w: 10, h: 10 },
+      anchors: [], unresolved: [], meta: {}, generated_at: null,
+    };
+    const from = (table: string) => {
+      let cols = '';
+      const answer = () => {
+        if (table === 'codex_builds') {
+          return { data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.9.0', build_number: 'desktop', is_current: true }, error: null };
+        }
+        if (table === 'codex_silhouettes' && cols.includes('edges')) {
+          return { data: null, error: { code: '42703', message: 'column codex_silhouettes.edges does not exist' } };
+        }
+        return { data: table === 'codex_silhouettes' ? [row] : [], error: null };
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chain: any = {
+        select: (c: string) => {
+          cols = c;
+          if (table === 'codex_silhouettes') selects.push(c);
+          return chain;
+        },
+        eq: () => chain,
+        in: () => chain,
+        order: () => chain,
+        limit: () => chain,
+        maybeSingle: () => {
+          const a = answer();
+          return Promise.resolve(Array.isArray(a.data) ? { data: a.data[0] ?? null, error: a.error } : a);
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        then: (onOk: any, onErr: any) => Promise.resolve(answer()).then(onOk, onErr),
+      };
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  it('retries without edges once, keeps the outline and stops asking for the column', async () => {
+    const selects: string[] = [];
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: edgesProvider(selects) }],
+    });
+    const svc = TestBed.inject(CodexService);
+    svc.build.set({ id: BUILD_ID, channel: 'LIVE', patch_version: '4.9.0', build_number: 'desktop', is_current: true } as never);
+
+    const one = await svc.silhouette('component', 'COOL_A');
+    expect(one).not.toBeNull();
+    expect(one!.edges ?? null).toBeNull();
+    expect(selects.length).toBe(2);
+    expect(selects[0]).toContain('edges');
+    expect(selects[1]).not.toContain('edges');
+
+    await svc.silhouettes('component', ['COOL_B']);
+    expect(selects.length).toBe(3);
+    expect(selects[2]).not.toContain('edges');
+  });
+});

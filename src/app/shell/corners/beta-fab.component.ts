@@ -56,7 +56,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
        upward. Phone: above the share button's lane (--sc-beta-fab-bottom). */
     .wrap {
       --_d: max(44px, var(--sc-tap-min, 44px));
-      position: fixed; z-index: 160;
+      position: fixed; z-index: 59; /* above the page furniture (<= 55), below every modal band layer (>= 60): a dialog and its scrim cover it */
       inset-inline-end: calc(max(var(--sc-fab-inset, 24px), env(safe-area-inset-right, 0px)) + (var(--sc-fab-size, 56px) - var(--_d)) / 2);
       /* The view toggle FAB (ship pages) takes the first lane above the launcher; β stacks on it. */
       bottom: calc(var(--sc-fab-clear-block, 96px) + var(--sc-view-fab-lane, 0px));

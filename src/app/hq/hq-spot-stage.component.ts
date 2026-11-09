@@ -92,7 +92,7 @@ import { hqHangar, hqLocker, hqSet } from './hq-routes';
           <a class="archive-line__link" routerLink="/codex/index" [queryParams]="{ kind: 'armor' }">
             {{ 'codex.landing.archive.armor' | translate }}
           </a>
-          <a class="archive-line__link" routerLink="/codex/fps" [queryParams]="{ cat: 'weapon' }">
+          <a class="archive-line__link" routerLink="/codex/index" [queryParams]="{ kind: 'weapon', wg: 'fps' }">
             {{ 'codex.landing.archive.weapons' | translate }}
           </a>
         </nav>

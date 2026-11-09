@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -200,8 +201,28 @@ def _gltf_to_cry(p: Tuple[float, float, float]) -> Tuple[float, float, float]:
     return (x, -z, y)
 
 
-def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
-    """Every triangle of every mesh-carrying node, in WORLD (model) space,
+# Nodes that are never part of the visible body: physics / collision / occlusion
+# proxies and the lower LOD copies a cga sometimes carries next to LOD0. Matched
+# on the node's own name or any ancestor's (a `$physics_proxy0` group hides its
+# children). A hull that would lose EVERY triangle to this keeps them all.
+_HIDDEN_NODE_RE = re.compile(
+    r"(proxy|physic|collision|collider|occlu|nodraw|no_draw|(^|[_\W])phys([_\W]|$)|(^|[_\W])col([_\W]|\d|$)"
+    r"|(^|[_\W])lod[1-9]\d*([_\W]|$))",
+    re.IGNORECASE,
+)
+
+
+def is_hidden_node_name(name: Optional[str]) -> bool:
+    return bool(name) and _HIDDEN_NODE_RE.search(name) is not None
+
+
+def world_triangles_from_glb(gltf: dict, binary: bytes, drop_hidden: bool = True) -> List[Triangle]:
+    """`_collect_triangles` without the stats — see there."""
+    return _collect_triangles(gltf, binary, drop_hidden)[0]
+
+
+def _collect_triangles(gltf: dict, binary: bytes, drop_hidden: bool = True) -> Tuple[List[Triangle], int]:
+    """``(triangles, dropped_primitives)``: every triangle of every mesh-carrying node, in WORLD (model) space,
     converted to CryEngine axes (+X right, +Y nose, +Z up) — see
     `_gltf_to_cry`.
 
@@ -209,21 +230,35 @@ def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
     `glb_materials._global_matrices`, re-derived here rather than importing a
     private helper across modules) so a hull's wings/engines/turrets — each
     its own node — land in their correct place, exactly like the web glb.
+
+    ``drop_hidden`` skips physics/proxy/collision nodes (by node or ancestor
+    name) and primitives whose material is a proxy/nodraw one, so an invisible
+    hull box never fills the outline (S1). Everything is kept when the filter
+    would leave nothing.
     """
+    from .glb_materials import is_hidden_material
+
     nodes = gltf.get("nodes", [])
     scenes = gltf.get("scenes") or [{}]
     world: Dict[int, List[float]] = {}
-    stack = [(i, list(_IDENTITY)) for i in scenes[gltf.get("scene", 0)].get("nodes", [])]
+    stack = [(i, list(_IDENTITY), False) for i in scenes[gltf.get("scene", 0)].get("nodes", [])]
     seen = set()
+    hidden_nodes = set()
     while stack:
-        idx, parent = stack.pop()
+        idx, parent, parent_hidden = stack.pop()
         if idx in seen or idx >= len(nodes):
             continue
         seen.add(idx)
         m = _mat_mul(parent, _local_matrix(nodes[idx]))
         world[idx] = m
+        hidden = parent_hidden or is_hidden_node_name(nodes[idx].get("name"))
+        if hidden:
+            hidden_nodes.add(idx)
         for child in nodes[idx].get("children", []):
-            stack.append((child, m))
+            stack.append((child, m, hidden))
+    materials = gltf.get("materials", [])
+    hidden_mats = {i for i, mat in enumerate(materials) if is_hidden_material(mat.get("name", ""))}
+    mesh_names = {i: mesh.get("name") for i, mesh in enumerate(gltf.get("meshes", []))}
 
     import numpy as np
 
@@ -233,14 +268,19 @@ def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
     # values are bit-identical to the per-vertex Python code this replaced.
     verts_cache: Dict[Tuple[int, int], List[Tuple[float, float, float]]] = {}
     triangles: List[Triangle] = []
+    dropped = 0
     for idx, node in enumerate(nodes):
         mesh_idx = node.get("mesh")
         if mesh_idx is None or idx not in world:
             continue
         m = world[idx]
         mesh = gltf["meshes"][mesh_idx]
+        node_hidden = idx in hidden_nodes or is_hidden_node_name(mesh_names.get(mesh_idx))
         for prim in mesh.get("primitives", []):
             if prim.get("mode", 4) != 4:  # TRIANGLES only
+                continue
+            if drop_hidden and (node_hidden or prim.get("material") in hidden_mats):
+                dropped += 1
                 continue
             pos_idx = prim.get("attributes", {}).get("POSITION")
             if pos_idx is None:
@@ -264,7 +304,9 @@ def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
             tri = indices[: (len(indices) // 3) * 3].reshape(-1, 3)
             tri = tri[(tri < n_verts).all(axis=1)]  # out-of-range triangles are skipped
             triangles.extend((verts[a], verts[b], verts[c]) for a, b, c in tri.tolist())
-    return triangles
+    if drop_hidden and dropped and not triangles:
+        return _collect_triangles(gltf, binary, drop_hidden=False)[0], 0
+    return triangles, dropped
 
 
 def algo_tag(recipe: str = "") -> str:
@@ -295,6 +337,8 @@ class MeshSource:
     mesh: bytes
     cgam: Optional[bytes]
     key: str
+    # Not a ship: view + tolerance + inner edges differ (`build_silhouette(item=)`).
+    item: bool = False
 
 
 @dataclass
@@ -364,16 +408,16 @@ class SilhouetteExporter:
         with timed("silhouette.p4k_read"):
             return self.p4k.open(info).read()
 
-    def source(self, mesh_path: str, tolerance_m: float) -> MeshSource:
+    def source(self, mesh_path: str, tolerance_m: float, item: bool = False) -> MeshSource:
         """Read a mesh (+ its `.cgam`) once and derive its cache key."""
         mesh = self._read(mesh_path)
         try:
             cgam: Optional[bytes] = self._read(mesh_path[:-4] + ".cgam")
         except FileNotFoundError:
             cgam = None
-        return MeshSource(mesh_path, mesh, cgam, self._key(mesh, cgam, tolerance_m))
+        return MeshSource(mesh_path, mesh, cgam, self._key(mesh, cgam, tolerance_m, item), item)
 
-    def _key(self, mesh: bytes, cgam: Optional[bytes], tolerance_m: float) -> str:
+    def _key(self, mesh: bytes, cgam: Optional[bytes], tolerance_m: float, item: bool = False) -> str:
         """Should-fix "cache key" (wave1-redteam.md): the ``.cga`` bytes alone
         are not enough — a ``.cgam`` (the streamable geometry payload a
         ``.cga`` often defers to) or a tuning-constant change (mask size,
@@ -386,6 +430,8 @@ class SilhouetteExporter:
         if cgam is not None:
             h.update(cgam)
         h.update(f"{MASK_SIZE}|{VIEWBOX}|{MIN_HOLE_AREA_PX}|{CHAIKIN_ITERATIONS}|{tolerance_m}".encode("utf-8"))
+        if item:  # a ship keeps its pre-item key; an item blob is a different artifact
+            h.update(b"|item")
         return h.hexdigest()
 
     # ---- cache --------------------------------------------------------------
@@ -438,7 +484,8 @@ class SilhouetteExporter:
         triangles = self._triangles(src, mesh_id)
         if not triangles:
             raise SilhouetteSkip(SKIP_EMPTY, "converted mesh has no triangles")
-        silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=self.cfg.on_log)
+        silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=self.cfg.on_log,
+                                      item=src.item)
         # Should-fix "runtime" (wave1-redteam.md): the wall-clock cost of the
         # expensive part per mesh, so a real run's timing is provable.
         self.cfg.on_log("info", f"silhouette {mesh_id}: {time.monotonic() - t0:.2f}s "
@@ -502,17 +549,18 @@ class SilhouetteExporter:
     def read_mesh_bytes(self, mesh_path: str) -> bytes:
         return self._read(mesh_path)
 
-    def is_cached(self, mesh_path: str, mesh_bytes: bytes, tolerance_m: float) -> bool:
+    def is_cached(self, mesh_path: str, mesh_bytes: bytes, tolerance_m: float, item: bool = False) -> bool:
         """Whether this mesh already has a cached `silhouette` blob."""
         try:
             cgam: Optional[bytes] = self._read(mesh_path[:-4] + ".cgam")
         except FileNotFoundError:
             cgam = None
-        return self._cache_path(self._key(mesh_bytes, cgam, tolerance_m)).exists()
+        return self._cache_path(self._key(mesh_bytes, cgam, tolerance_m, item)).exists()
 
-    def silhouette_for_mesh(self, mesh_path: str, mesh_id: str, tolerance_m: float) -> Optional[Dict[str, Any]]:
+    def silhouette_for_mesh(self, mesh_path: str, mesh_id: str, tolerance_m: float,
+                            item: bool = False) -> Optional[Dict[str, Any]]:
         """The ``silhouette`` sub-object for one mesh, from the cache or freshly built."""
-        src = self.source(mesh_path, tolerance_m)
+        src = self.source(mesh_path, tolerance_m, item)
         return self.cached(src) or self.compute(src, mesh_id, tolerance_m)
 
     def export_entity(
@@ -526,7 +574,7 @@ class SilhouetteExporter:
         """The full §C1 contract row for one entity, or None (no mesh / no
         usable geometry — never a placeholder)."""
         try:
-            silhouette = self.silhouette_for_mesh(mesh_path, mesh_id, tolerance_m)
+            silhouette = self.silhouette_for_mesh(mesh_path, mesh_id, tolerance_m, kind != "ship")
         except (FileNotFoundError, SilhouetteSkip):
             return None
         if silhouette is None:

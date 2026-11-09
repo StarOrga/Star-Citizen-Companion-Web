@@ -213,3 +213,52 @@ export function shouldNotify(state, kind, now, windowMs = 6 * 3_600_000) {
   const last = state.notified?.[kind];
   return last == null || now - last >= windowMs;
 }
+
+/**
+ * Why a `spawnSync` child of the watcher gave no answer. `exit null` alone cost days of guessing
+ * (12 gate errors since 2026-11-06): a null status is a kill, not an exit, and the cause is in
+ * `error` (ETIMEDOUT), `signal` or nowhere at all.
+ */
+export function describeSpawnFailure(r, timeoutMs) {
+  const tail = String(r?.stderr ?? '').trim().split(/\r?\n/).filter(Boolean).slice(-3).join(' | ').slice(-160);
+  let cause;
+  if (r?.error?.code === 'ETIMEDOUT') cause = `timeout after ${Math.round(timeoutMs / 1000)}s`;
+  else if (r?.error) cause = `spawn ${r.error.code ?? r.error.message}`;
+  else if (r?.signal) cause = `killed by ${r.signal}`;
+  else cause = `exit ${r?.status}`;
+  return `${cause}${tail ? ` — stderr: ${tail}` : ' — stderr empty'}`;
+}
+/** A kill (no exit status) is a hang or a signal, not a verdict of the gate: worth one more try for a read-only call. */
+export const isHang = (r) => r?.status === null || r?.status === undefined;
+
+/**
+ * Per-fetch cap inside the gate. Below the watcher's 120 s kill, so a stalled socket (the PC just
+ * woke, the TCP connection is dead) ends as a readable `SQL timeout` instead of a silent `exit null`.
+ */
+export const GATE_FETCH_TIMEOUT_MS = 30_000;
+
+/**
+ * Is the merge `sha` online? `successes` are the successful Production deployments, newest first
+ * ({ sha }). A deploy of a later commit carries the change too, which is what a skipped build looks
+ * like at the Hobby rate limit: `isAncestor(sha, deploySha)` answers that.
+ */
+export function productionLive(sha, successes, isAncestor) {
+  if (!sha) return { live: false, via: null };
+  for (const d of successes ?? []) {
+    if (d.sha === sha || isAncestor(sha, d.sha)) return { live: true, via: d.sha };
+  }
+  return { live: false, via: null };
+}
+
+/** `ship_ref` is a PR url ⇒ the merge must be deployed; an issue or nothing has no deploy to wait for. */
+export const needsDeployCheck = (shipRef) => Boolean(shipRef && /\/pull\/\d+/.test(shipRef));
+
+/**
+ * A tick claims the run file with an exclusive create, so two ticks that passed the gate check
+ * together cannot both start a run. `fileExists` is the state of the file at that moment: an
+ * unreadable or half-written file counts as a run, never as none.
+ */
+export const runClaimVerdict = (fileExists) => (fileExists ? 'taken' : 'free');
+
+/** The stand-down of a supervisor that lost the lock may only remove its own run file. */
+export const mayRemoveRunFile = (fileSid, mySid) => fileSid === mySid || fileSid == null;

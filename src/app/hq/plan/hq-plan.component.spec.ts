@@ -1,8 +1,9 @@
 import { ItemPathService } from '../../hq/data/item-path.service';
 import { fakeItemPath } from '../../shared/item-path/item-path.testing';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
-import { Router, type Routes, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, type Routes, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
@@ -87,6 +88,35 @@ describe('HqPlanComponent', () => {
       expect(title?.textContent).toContain('hq.flow.titleEdit');
       expect(title?.querySelector('small')).toBeNull();
     });
+  });
+
+  it('AUD-L01: /hq?pick=… already on the route at creation does not throw and opens the flow once the list is loaded', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ItemPathService, useValue: fakeItemPath() },
+        provideRouter([]),
+        provideTranslateService(),
+        fakeSupabase().provider,
+        { provide: AuthService, useValue: { user: signal(null) } },
+        { provide: HangarService, useValue: { ships: signal([]), roleLoadouts: signal([]) } },
+        { provide: HqOwnershipService, useValue: { configs: signal([]), ensureLoaded: () => Promise.resolve() } },
+        // the query map emits synchronously on subscribe, i.e. while the component's fields initialise
+        { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap({ pick: 'item:medpen~2' })) } },
+      ],
+    });
+    let f!: ReturnType<typeof TestBed.createComponent<HqPlanComponent>>;
+    expect(() => {
+      f = TestBed.createComponent(HqPlanComponent);
+      f.detectChanges();
+    }).not.toThrow();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('sc-hq-nachschub-flow')).toBeNull(); // still waiting for the list
+    f.componentInstance['ns'].loaded.set(true);
+    TestBed.flushEffects();
+    f.detectChanges();
+    expect(el.querySelector('sc-hq-nachschub-flow')).not.toBeNull();
+    expect(f.componentInstance['flowPicks']()).toEqual([{ key: 'item:medpen', qty: 2 }]);
   });
 
   it('the archive opens from the end of the board', () => {

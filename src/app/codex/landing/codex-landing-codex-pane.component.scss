@@ -22,6 +22,7 @@
 // the list; on a capped pane only the middle gives, no scrollbar.
 .body {
   flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: 16px 0 14px 18px;
+  container: cx-pane / inline-size;
   background: repeating-linear-gradient(180deg, rgba(150, 230, 255, 0.035) 0 1px, transparent 1px 4px);
 }
 .ph {
@@ -30,6 +31,8 @@
 }
 // Category bar: icons in a row; the active tab also shows its name, the others name in a tooltip.
 // Wraps instead of clipping: the active tab keeps its full name, the others drop to the next line when the pane is narrow.
+// Below the width the names need (a 1280px window), the active tab drops its name instead: icons stay on one row,
+// the category stays named in the foot link „Alle …“ and in the tab's aria-label.
 .tabs { flex: 0 0 auto; margin: 0 0 6px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 1px; min-width: 0; }
 .tab-li { position: relative; display: flex; min-width: 0; flex: 0 0 auto; }
 .tab-li.on { flex: 1 0 auto; }
@@ -46,6 +49,11 @@
 .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab.on .nm { overflow: visible; text-overflow: clip; }
 .tab.on { justify-content: flex-start; color: #fff; text-shadow: 0 0 10px rgba(130, 220, 255, 0.6); }
+@container cx-pane (max-width: 230px) {
+  .tab-li.on { flex: 0 0 auto; }
+  .tab.on { justify-content: center; }
+  .tab.on .nm { display: none; }
+}
 .tab.on .gl { opacity: 1; text-shadow: 0 0 8px #8fe3ff; }
 .tab-li.flashing > .tab { animation: row-flash 1.4s ease-out 0.9s both; }
 .tab.held { animation: breathe 2.4s ease-in-out infinite; }
@@ -59,13 +67,13 @@
 }
 :host(.paused) .prog { animation-play-state: paused; }
 .tab.held ~ .prog { animation: none; transform: scaleX(1); }
+// The list takes the height between tabs and foot; the rows that fit are counted from it (no scrolling, no wheel).
+// As tall as its rows (#318), shrinking when the pane hits its cap; rows past the counted capacity stay
+// laid out but invisible (.cut), so hiding them never changes the height the count was taken from.
 .open { flex: 0 1 auto; min-height: 0; overflow: hidden; margin: 4px 0 8px; animation: open 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
 .new { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
 .new li { flex: 0 0 auto; display: flex; align-items: stretch; border-radius: 2px; transition: background 0.15s ease, opacity 0.15s ease; }
-// The wheel: the outer rows fade, as if they turned away.
-.new li.far { opacity: 0.55; }
-.new li.far:hover, .new li.far:focus-within { opacity: 1; }
-.new.spins { cursor: ns-resize; }
+.new li.cut { visibility: hidden; }
 .new li:hover { background: rgba(82, 193, 230, 0.06); }
 .new a {
   display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 4px 8px; border-radius: 2px; text-decoration: none;
@@ -77,13 +85,13 @@
 .new a.go { flex: 0 0 auto; justify-content: center; min-width: 32px; padding: 4px; color: var(--sc-fg-2); }
 .new a.go i { font-style: normal; }
 .new a.go:hover, .new a.go:focus-visible { color: var(--sc-accent); }
-// One line per row: the wheel's height never depends on a name.
+// One line per row: a row's height never depends on a name.
 .new a .nm { flex: 1 1 auto; }
 // Every row names its category with the tab's glyph; the active category's rows stand brighter.
 .new .cat { flex: 0 0 14px; font-style: normal; font-size: 12px; text-align: center; color: var(--holo, #8fe3ff); opacity: 0.45; }
 .new li.own .cat { opacity: 0.9; }
 .new a.ent:hover, .new a:focus-visible { color: var(--sc-fg-0); background: rgba(82, 193, 230, 0.08); }
-// Inside the row: the wheel's box clips what stands outside it.
+// Inside the row: the list's box clips what stands outside it.
 .new a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
 .new li.table { background: rgba(82, 193, 230, 0.14); box-shadow: inset 2px 0 0 #c8f2ff; }
 .new li.table a.ent { color: #fff; }
@@ -93,9 +101,12 @@
   flex: 0 0 auto; padding: 1px 7px; border: 1px solid color-mix(in srgb, var(--sc-warning) 55%, transparent); border-radius: 999px;
   font-style: normal; font-size: max(9.5px, 0.58rem); letter-spacing: 0.06em; color: var(--sc-warning); white-space: nowrap;
 }
+.upd.fresh { color: var(--sc-accent); }
 .upd {
   flex: 0 0 auto; font-style: normal; font-size: max(9.5px, 0.58rem); letter-spacing: 0.06em; color: var(--sc-fg-2); white-space: nowrap;
 }
+// The "+ N weitere" place stays reserved, so the list's height does not jump when the link comes and goes.
+.more-slot { min-height: 28px; }
 // Under the list; on a capped pane at its bottom.
 .foot { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; margin-top: auto; }
 .more {
@@ -140,7 +151,7 @@
 // Touch screens: readable labels and 48px rows (mobile gate).
 @media (pointer: coarse) {
   .ph, .keys, .here, .soon, .upd, .more, .new a, .tab, .all { font-size: 12px; }
-  .tab, .new a, .more, .all, .keys { min-height: 48px; }
+  .tab, .new a, .more, .all, .keys, .more-slot { min-height: 48px; }
   .tab { min-width: 48px; padding: 0 4px; }
   .tab .nm { font-size: 11px; }
   .new a.go { min-width: 48px; }
@@ -148,4 +159,8 @@
 @media (max-width: 720px) {
   .edge { display: none; }
   .body { padding: 8px 0; overflow: visible; }
+  // The pane grows with its content here: a fixed row count instead of a measured height.
+  .open { flex: 0 0 auto; }
+  .new li.cut { display: none; }
+  .more-slot { min-height: 0; }
 }

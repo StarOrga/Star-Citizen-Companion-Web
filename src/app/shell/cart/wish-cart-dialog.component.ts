@@ -231,6 +231,9 @@ const OPEN = ['M14 5h5v5M19 5l-8 8M17 14v5H5V7h5'] as const;
         .group { flex-basis: 100%; }
         .s-row { grid-template-columns: 1fr; }
       }
+      /* Phone: the feedback launcher stays above the sheet (it must stay reachable), so the footer keeps its lane free. */
+      @media (max-width: 640px) { .dlg-foot { padding-inline-end: var(--sc-fab-clear-inline); } }
+      @media (min-width: 641px) and (max-width: 720px) { .dlg-foot { padding-inline-end: calc(var(--sc-fab-clear-inline) - var(--sc-space-4, 16px)); } }
       @media (pointer: coarse), (max-width: 749px) {
         .step button { width: 44px; height: 44px; }
         .chk { width: 24px; height: 24px; }
