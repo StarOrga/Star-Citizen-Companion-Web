@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input
 import { TranslatePipe } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
-import { SccAppLauncherService } from '../desktop/scc-app-launcher.service';
+import { SCC_LAUNCH_GRACE_MS, SCC_LAUNCH_WAIT_MS, SccAppLauncherService } from '../desktop/scc-app-launcher.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
@@ -50,9 +50,7 @@ const STARTED_HINT_MS = 6000;
             } @else if (status() === 'noResponse') {
               <a class="sc-btn" [href]="url" rel="noopener noreferrer">{{ 'hq.app.download' | translate }}</a>
             }
-            @if (status() !== 'starting') {
-              <button type="button" class="sc-btn" (click)="dismiss()">{{ 'hq.app.close' | translate }}</button>
-            }
+            <button type="button" class="sc-btn" (click)="dismiss()">{{ 'hq.app.close' | translate }}</button>
           </div>
         }
       </div>
@@ -103,6 +101,8 @@ export class HqAppLaunchComponent {
   });
 
   private hideTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Bumped by every start and close, so a late answer of an attempt the reader closed changes nothing. */
+  private run = 0;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.hideTimer));
@@ -125,11 +125,16 @@ export class HqAppLaunchComponent {
   async start(): Promise<void> {
     if (this.status() === 'starting') return;
     clearTimeout(this.hideTimer);
+    const run = ++this.run;
     this.status.set('starting');
-    if (await this.launcher.launch()) {
+    // Seen here before: no download hangs on the answer, so give a cold start time to come to the front.
+    const known = this.launcher.launchedBefore();
+    const answered = await this.launcher.launch(known ? SCC_LAUNCH_GRACE_MS : SCC_LAUNCH_WAIT_MS);
+    if (run !== this.run) return;
+    if (answered) {
       this.status.set('started');
       this.hideTimer = setTimeout(() => this.status.set('idle'), STARTED_HINT_MS);
-    } else if (this.launcher.launchedBefore()) {
+    } else if (known) {
       this.status.set('noResponse');
     } else {
       this.launcher.downloadInstaller();
@@ -139,6 +144,7 @@ export class HqAppLaunchComponent {
 
   dismiss(): void {
     clearTimeout(this.hideTimer);
+    this.run++;
     this.status.set('idle');
   }
 }

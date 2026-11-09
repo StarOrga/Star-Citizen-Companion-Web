@@ -5750,16 +5750,16 @@
     "nachschub": {
       "slotsFull": "Alle 7 Nachschub-Plätze sind belegt. Schließe einen Nachschub ab oder lösche einen, dann ist ein Platz frei.",
       "nothingPicked": "Wähle mindestens einen Gegenstand von der Wunschliste.",
-      "newName": "Neuer Nachschub",
+      "dayName": "Vorrat vom {{date}}",
       "newEinsatz": "Neuer Einsatz",
-      "verb": {
-        "buy": "Kaufen:",
-        "mission": "Mission:",
-        "mine": "Abbauen:",
-        "refine": "Raffinieren:",
-        "craft": "Herstellen:",
-        "transport": "Transport:",
-        "pickup": "Abholen:"
+      "act": {
+        "buy": "{{label}} kaufen",
+        "mission": "Mission: {{label}}",
+        "mine": "{{label}} abbauen",
+        "refine": "{{label}} raffinieren",
+        "craft": "{{label}} herstellen",
+        "transport": "{{label}} transportieren",
+        "pickup": "{{label}} abholen"
       },
       "done": {
         "created": "„{{name}}“ ist angelegt.",
@@ -6369,7 +6369,7 @@
       "starting": "App wird gestartet …",
       "started": "App startet. Melde dich dort an, dann kommen deine Daten hierher.",
       "downloading": "App nicht gefunden: Der Download läuft jetzt (rund 500 MB). Führe danach das Setup aus.",
-      "noResponse": "Die App hat nicht reagiert. Starte sie von Hand oder lade sie neu herunter.",
+      "noResponse": "Keine Rückmeldung von der App. Läuft sie schon, ist alles gut – sonst starte sie von Hand oder lade sie neu herunter.",
       "retry": "Schon installiert? Erneut starten",
       "download": "App downloaden",
       "downloadCta": "App downloaden",

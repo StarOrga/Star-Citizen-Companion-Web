@@ -24,13 +24,13 @@ The scheme keeps its pre-rename name on purpose (Verse Companion rename, stage 2
 
 ## How the website reads the result
 
-A browser does not report whether a scheme has a handler. The website waits 2.5 s for a focus change, caused by the browser's "open this app?" prompt or by the app itself.
+A browser does not report whether a scheme has a handler. The website waits for a focus change, caused by the browser's "open this app?" prompt or by the app itself: 2.5 s while the app never answered in this browser (a download hangs on the result), 15 s once it did (nothing hangs on it, and a browser that always allows the app shows no prompt, so only the app's own window can take the focus, after its cold start).
 
 | Result | Website |
 | --- | --- |
 | Focus changed | Says the app is starting and remembers this for the browser |
 | No change, and the app never answered in this browser | Starts the installer download and says so |
-| No change, but the app answered here before | Starts nothing and offers the download |
+| No change, but the app answered here before | Starts nothing, says it got no word (the app may still be running: it may not take the focus) and offers the download |
 
 The memory in this browser (`sc.sccApp.launchedBefore`) is set when the app answers a launch and when the website sees the game running on the account through the app's live signal.
 

@@ -60,4 +60,11 @@ describe('buildPrompt', () => {
     assert.ok(/no mention of AI/.test(p));
     assert.ok(buildPrompt({ kind: 'einsatz', locale: 'en', items: [{ name: 'a', qty: 1 }] }).includes('40'));
   });
+
+  it('rules out the generic words and the list form, and keeps quantities out of an Einsatz', () => {
+    const n = buildPrompt({ kind: 'nachschub', locale: 'de', items: [{ name: 'Medpen', qty: 2 }, { name: 'Gallant', qty: 1 }] });
+    assert.ok(n.includes('"Nachschub"') && n.includes('"neu"') && /not a list/.test(n));
+    const e = buildPrompt({ kind: 'einsatz', locale: 'de', items: [{ name: 'Titan-Erz abbauen', qty: 1 }] });
+    assert.ok(e.includes('- Titan-Erz abbauen') && !e.includes('1x'));
+  });
 });
