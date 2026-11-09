@@ -54,7 +54,8 @@ export class ModalInertService {
     const top = [...this.stack].reverse().find((h) => h.isConnected);
     if (!top) return;
     let node: HTMLElement = top;
-    while (node.parentElement) {
+    // Up to <body>, not past it: <head> is no content and stays untouched.
+    while (node.parentElement && node !== node.ownerDocument.body) {
       const parent: HTMLElement = node.parentElement;
       for (const sib of Array.from(parent.children)) {
         if (sib === node || sib.classList.contains('cdk-focus-trap-anchor') || SKIP_TAGS.has(sib.tagName) || isLiveRegion(sib)) continue;
