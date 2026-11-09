@@ -292,6 +292,7 @@ describe('CodexLoadoutDraftStore', () => {
     hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [], isActive: true }]);
     store.applyStoredLoadout([], { configId: 'c1' });
     store.applySwap(nestedPick('NESTED_GUN'));
+    await new Promise((r) => setTimeout(r)); // hydration names the kind
     await store.saveLoadoutDraft();
     expect(hangar.updateConfig).toHaveBeenCalledWith('c1', {
       loadout: [{ portName: `${PORT}.gun`, className: 'NESTED_GUN', kind: 'weapon' }],
