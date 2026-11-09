@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.247.0",
+  "current": "0.247.1",
   "releases": [
+    {
+      "version": "0.247.1",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing: the Codex list on the left and the Datenblatt on the right now always share the hologram box, so both side panes are the same size and the Datenblatt frame fills its pane."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.247.0",
       "date": "2026-11-09",
