@@ -1,7 +1,59 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.244.1",
+  "current": "0.245.0",
   "releases": [
+    {
+      "version": "0.245.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Header wishlist popout: up to 7 positions with quantity stepper, move into a Nachschub and remove, then the whole wishlist."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Apps and profile buttons share the wishlist's icon style; opening one header popout closes the others."
+            },
+            {
+              "title": "",
+              "text": "Profile menu: sign-out as an icon next to name and email; order Social, Einstellungen, Admin, Integrationen, Ansehen als."
+            },
+            {
+              "title": "",
+              "text": "Phones no longer show the Apps button or app launch/status surfaces in HQ."
+            },
+            {
+              "title": "",
+              "text": "Admin hub and HQ overview heroes no longer show a subtitle line."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Nachschub events: ticking an event selects all its rewards."
+            },
+            {
+              "title": "",
+              "text": "HQ Statistik no longer scrolls past its content."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.244.1",
       "date": "2026-11-09",
