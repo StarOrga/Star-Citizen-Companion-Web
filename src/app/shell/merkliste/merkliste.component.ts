@@ -146,7 +146,7 @@ interface WishLine {
         .trigger { width: 48px; height: 48px; }
         .all { min-height: 48px; }
         .qrow { grid-template-columns: minmax(0, 1fr) auto 48px 48px; min-height: 56px; }
-        .step button { width: 44px; height: 44px; }
+        .step button { width: 48px; height: 48px; }
       }
     `,
   ],
