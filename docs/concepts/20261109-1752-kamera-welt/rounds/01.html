@@ -1,0 +1,841 @@
+<section data-iteration="1" data-iteration-template="design" data-design-set="alternatives" data-tab-label="Runde 1">
+<style>
+
+@keyframes d1-cam-codex { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.65,0,.25,1); } 38.3%, 60% { transform: translate(-46%, 0%) scale(1); animation-timing-function: cubic-bezier(.65,0,.25,1); } 78.3%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d1-far-codex { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.65,0,.25,1); } 38.3%, 60% { transform: translate(-16.1%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.65,0,.25,1); } 78.3%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d1-ua-codex { 0%, 20% { opacity: 1; transform: none; } 27.3%, 71.0% { opacity: 0; transform: none; } 78.3%, 100% { opacity: 1; transform: none; } }
+@keyframes d1-ub-codex { 0%, 31.0% { opacity: 0; transform: none; } 38.3%, 60% { opacity: 1; transform: none; } 67.3%, 100% { opacity: 0; transform: none; } }
+@keyframes d1-cam-hq { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.65,0,.25,1); } 38.3%, 60% { transform: translate(0%, -40%) scale(1.25); animation-timing-function: cubic-bezier(.65,0,.25,1); } 78.3%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d1-far-hq { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.65,0,.25,1); } 38.3%, 60% { transform: translate(0.0%, -14.0%) scale(1.087); animation-timing-function: cubic-bezier(.65,0,.25,1); } 78.3%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d1-ua-hq { 0%, 20% { opacity: 1; transform: none; } 27.3%, 71.0% { opacity: 0; transform: none; } 78.3%, 100% { opacity: 1; transform: none; } }
+@keyframes d1-ub-hq { 0%, 31.0% { opacity: 0; transform: none; } 38.3%, 60% { opacity: 1; transform: none; } 67.3%, 100% { opacity: 0; transform: none; } }
+@keyframes d1-cam-sub { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.65,0,.25,1); } 38.3%, 60% { transform: translate(-4%, -3%) scale(1.08); animation-timing-function: cubic-bezier(.65,0,.25,1); } 78.3%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d1-far-sub { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.65,0,.25,1); } 38.3%, 60% { transform: translate(-1.4%, -1.0%) scale(1.028); animation-timing-function: cubic-bezier(.65,0,.25,1); } 78.3%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d1-ua-sub { 0%, 20% { opacity: 1; transform: none; } 27.3%, 71.0% { opacity: 0; transform: none; } 78.3%, 100% { opacity: 1; transform: none; } }
+@keyframes d1-ub-sub { 0%, 31.0% { opacity: 0; transform: none; } 38.3%, 60% { opacity: 1; transform: none; } 67.3%, 100% { opacity: 0; transform: none; } }
+@keyframes d1-cam-load { 0% { transform: translate(0%, 0%) scale(1.4); opacity: 0; } 4% { opacity: 1; } 29.3% { transform: translate(0%, 0%) scale(1); } 100% { transform: translate(0%, 0%) scale(1); opacity: 1; } }
+@keyframes d1-far-load { 0% { transform: translate(0.0%, 0.0%) scale(1.140); opacity: 0; } 4% { opacity: 1; } 29.3% { transform: translate(0.0%, 0.0%) scale(1.000); } 100% { transform: translate(0.0%, 0.0%) scale(1.000); opacity: 1; } }
+@keyframes d1-ua-load { 0%, 22.0% { opacity: 0; transform: translateY(10px); } 36.7%, 100% { opacity: 1; transform: none; } }
+
+.d1-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 600px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d1-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; background: #02070d; color: #dbeaf3; font-family: Inter, system-ui, "Segoe UI", sans-serif; }
+.d1-far, .d1-world { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 50% 50%; will-change: transform; }
+.d1-far { inset: -30%; width: auto; height: auto; background:
+  radial-gradient(ellipse 22% 16% at 30% 34%, rgba(46,120,190,.34), transparent 70%),
+  radial-gradient(ellipse 20% 14% at 66% 26%, rgba(124,74,170,.28), transparent 72%),
+  radial-gradient(ellipse 16% 10% at 80% 40%, rgba(255,150,90,.14), transparent 70%),
+  radial-gradient(ellipse 30% 18% at 52% 66%, rgba(20,70,110,.3), transparent 75%),
+  linear-gradient(180deg, #02070d 0%, #041320 60%, #061827 100%); }
+.d1-far::after { content: ''; position: absolute; inset: 0; opacity: .7; background-image:
+  radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 27% 41%, #cfe8ff, transparent), radial-gradient(1.4px 1.4px at 38% 9%, #fff, transparent),
+  radial-gradient(1px 1px at 46% 52%, #cfe8ff, transparent), radial-gradient(1px 1px at 58% 22%, #fff, transparent), radial-gradient(1.4px 1.4px at 66% 44%, #ffe7c4, transparent),
+  radial-gradient(1px 1px at 74% 12%, #fff, transparent), radial-gradient(1px 1px at 91% 37%, #cfe8ff, transparent), radial-gradient(1px 1px at 5% 49%, #fff, transparent),
+  radial-gradient(1px 1px at 18% 72%, #cfe8ff, transparent), radial-gradient(1.4px 1.4px at 79% 66%, #fff, transparent), radial-gradient(1px 1px at 34% 84%, #fff, transparent),
+  radial-gradient(1px 1px at 62% 88%, #cfe8ff, transparent), radial-gradient(1px 1px at 88% 80%, #fff, transparent), radial-gradient(1px 1px at 50% 30%, #fff, transparent); }
+/* Set pieces at fixed world positions: the planet under Verse, the holo glow right (Codex), the night surface below (HQ). */
+.d1-planet { position: absolute; left: 50%; top: 62%; width: 120cqw; aspect-ratio: 1; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(circle at 50% 2%, #1d4a62 0, #0f2c3e 6%, #081a27 14%, #040d15 34%, #030a10 70%);
+  box-shadow: 0 -.2cqw 1.6cqw rgba(82,193,230,.35), inset 0 .3cqw 1.2cqw rgba(150,225,255,.25); }
+.d1-holo { position: absolute; left: 73.0%; top: 18%; width: 46cqw; height: 34cqw; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(76,201,240,.26), rgba(76,201,240,.06) 50%, transparent 72%); }
+.d1-holo::before { content: ''; position: absolute; left: 22%; right: 22%; top: 58%; height: 3.2cqw; border-radius: 50%; border: 1px solid rgba(120,220,255,.5); box-shadow: 0 0 2cqw rgba(76,201,240,.35); }
+.d1-ground { position: absolute; left: -40%; right: -40%; top: 86.0%; height: 90%; background:
+  radial-gradient(7cqw 2cqw at 30% 30%, rgba(255,184,107,.32), transparent 70%), radial-gradient(9cqw 2.4cqw at 48% 46%, rgba(255,184,107,.24), transparent 70%),
+  radial-gradient(6cqw 1.8cqw at 64% 34%, rgba(255,184,107,.3), transparent 70%), radial-gradient(8cqw 2.2cqw at 76% 56%, rgba(255,184,107,.22), transparent 70%),
+  radial-gradient(1.4cqw .5cqw at 64% 34%, rgba(255,214,160,.6), transparent 70%), radial-gradient(1.6cqw .6cqw at 30% 30%, rgba(255,214,160,.55), transparent 70%),
+  linear-gradient(180deg, rgba(4,11,18,0) 0%, #06131d 18%, #040b12 60%); }
+/* HUD: header stays put; page content per pose. */
+.d1-bar { position: absolute; left: 0; right: 0; top: 0; height: 6.4cqw; display: flex; align-items: center; gap: 3cqw; padding: 0 3cqw; z-index: 3;
+  font: 600 1.15cqw/1 Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #8fb2c6; background: linear-gradient(180deg, rgba(2,7,13,.85), rgba(2,7,13,0)); }
+.d1-bar a { color: inherit; text-decoration: none; cursor: pointer; padding: .6cqw .4cqw; }
+.d1-bar a.on { color: #4cc9f0; text-shadow: 0 0 .8cqw rgba(76,201,240,.6); }
+.d1-brand { color: #dbeaf3; margin-right: auto; }
+.d1-ui { position: absolute; inset: 7.5cqw 6cqw 4cqw; z-index: 2; pointer-events: none; }
+.d1-ui > * { pointer-events: auto; }
+.d1-pg { position: absolute; inset: 0; }
+.d1-kick { font: 600 1.05cqw Orbitron, Inter, sans-serif; letter-spacing: .2em; color: #4cc9f0; }
+.d1-h { font: 700 3.4cqw/1.1 Orbitron, Inter, sans-serif; margin: .6cqw 0 1.6cqw; color: #eaf6fc; }
+.d1-row { display: flex; gap: 1.6cqw; }
+.d1-tile { display: block; width: 15cqw; height: 9cqw; border-radius: .8cqw; border: 1px solid rgba(120,200,240,.28); background: rgba(6,20,32,.62); padding: 1cqw; box-sizing: border-box;
+  font: 600 1cqw Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #a8c6d6; text-decoration: none; cursor: pointer; }
+.d1-tile i { display: block; height: .5cqw; border-radius: 1cqw; background: rgba(168,198,214,.25); margin-top: 1cqw; width: 70%; }
+.d1-tile i + i { width: 46%; margin-top: .6cqw; }
+.d1-tile:hover { border-color: rgba(76,201,240,.7); }
+.d1-list { display: grid; gap: .9cqw; width: 44cqw; }
+.d1-list i { display: block; height: 3.2cqw; border-radius: .6cqw; background: rgba(6,20,32,.66); border: 1px solid rgba(120,200,240,.18); }
+.d1-crumb { font: 500 1cqw Inter, sans-serif; color: #7f9fb2; }
+.d1-crumb a { color: #4cc9f0; cursor: pointer; text-decoration: none; }
+.d1-tag { position: absolute; right: 1.6cqw; bottom: 1.4cqw; z-index: 4; font: 600 .95cqw Orbitron, Inter, sans-serif; letter-spacing: .16em; color: #6f8ea0; }
+
+.d1-s-codex .d1-world { animation: d1-cam-codex 6s infinite; }
+.d1-s-codex .d1-far { animation: d1-far-codex 6s infinite; }
+.d1-s-codex .d1-pa { animation: d1-ua-codex 6s infinite; }
+.d1-s-codex .d1-pb { animation: d1-ub-codex 6s infinite; }
+.d1-s-hq .d1-world { animation: d1-cam-hq 6s infinite; }
+.d1-s-hq .d1-far { animation: d1-far-hq 6s infinite; }
+.d1-s-hq .d1-pa { animation: d1-ua-hq 6s infinite; }
+.d1-s-hq .d1-pb { animation: d1-ub-hq 6s infinite; }
+.d1-s-sub .d1-world { animation: d1-cam-sub 6s infinite; }
+.d1-s-sub .d1-far { animation: d1-far-sub 6s infinite; }
+.d1-s-sub .d1-pa { animation: d1-ua-sub 6s infinite; }
+.d1-s-sub .d1-pb { animation: d1-ub-sub 6s infinite; }
+.d1-s-load .d1-world { animation: d1-cam-load 5s infinite; }
+.d1-s-load .d1-far { animation: d1-far-load 5s infinite; }
+.d1-s-load .d1-pa { animation: d1-ua-load 5s infinite; }
+.d1-s-load .d1-pb { animation: d1-ub-load 6s infinite; }
+/* Content rides with the camera: page B sits at its world position inside the world layer. */
+.d1-world .d1-pg { position: absolute; width: 100%; height: 100%; }
+@media (prefers-reduced-motion: reduce) { .d1-stage * { animation-duration: 0s !important; } }
+
+
+@keyframes d2-cam-codex { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 31.6% { transform: translate(-23%, 0%) scale(0.85); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 43.3%, 60% { transform: translate(-46%, 0%) scale(1); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 71.7% { transform: translate(-23%, 0%) scale(0.85); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 83.3%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d2-far-codex { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 31.6% { transform: translate(-4.6%, 0.0%) scale(0.970); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 43.3%, 60% { transform: translate(-9.2%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 71.7% { transform: translate(-4.6%, 0.0%) scale(0.970); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 83.3%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d2-ua-codex { 0%, 20% { opacity: 1; transform: none; } 29.3%, 74.0% { opacity: 0; transform: scale(.98); } 83.3%, 100% { opacity: 1; transform: none; } }
+@keyframes d2-ub-codex { 0%, 34.0% { opacity: 0; transform: scale(1.02); } 43.3%, 60% { opacity: 1; transform: none; } 69.3%, 100% { opacity: 0; transform: scale(1.02); } }
+@keyframes d2-cam-hq { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 31.6% { transform: translate(0%, -23%) scale(0.85); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 43.3%, 60% { transform: translate(0%, -46%) scale(1.6); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 71.7% { transform: translate(0%, -23%) scale(0.85); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 83.3%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d2-far-hq { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 31.6% { transform: translate(0.0%, -4.6%) scale(0.970); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 43.3%, 60% { transform: translate(0.0%, -9.2%) scale(1.120); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 71.7% { transform: translate(0.0%, -4.6%) scale(0.970); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 83.3%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d2-ua-hq { 0%, 20% { opacity: 1; transform: none; } 29.3%, 74.0% { opacity: 0; transform: scale(.98); } 83.3%, 100% { opacity: 1; transform: none; } }
+@keyframes d2-ub-hq { 0%, 34.0% { opacity: 0; transform: scale(1.02); } 43.3%, 60% { opacity: 1; transform: none; } 69.3%, 100% { opacity: 0; transform: scale(1.02); } }
+@keyframes d2-cam-sub { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 43.3%, 60% { transform: translate(-6%, -4%) scale(1.14); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 83.3%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d2-far-sub { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 43.3%, 60% { transform: translate(-1.2%, -0.8%) scale(1.028); animation-timing-function: cubic-bezier(.45,.05,.3,1); } 83.3%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d2-ua-sub { 0%, 20% { opacity: 1; transform: none; } 29.3%, 74.0% { opacity: 0; transform: scale(.98); } 83.3%, 100% { opacity: 1; transform: none; } }
+@keyframes d2-ub-sub { 0%, 34.0% { opacity: 0; transform: scale(1.02); } 43.3%, 60% { opacity: 1; transform: none; } 69.3%, 100% { opacity: 0; transform: scale(1.02); } }
+@keyframes d2-cam-load { 0% { transform: translate(0%, 0%) scale(1.4); opacity: 0; } 4% { opacity: 1; } 37.3% { transform: translate(0%, 0%) scale(1); } 100% { transform: translate(0%, 0%) scale(1); opacity: 1; } }
+@keyframes d2-far-load { 0% { transform: translate(0.0%, 0.0%) scale(1.080); opacity: 0; } 4% { opacity: 1; } 37.3% { transform: translate(0.0%, 0.0%) scale(1.000); } 100% { transform: translate(0.0%, 0.0%) scale(1.000); opacity: 1; } }
+@keyframes d2-ua-load { 0%, 28.0% { opacity: 0; transform: translateY(10px); } 46.7%, 100% { opacity: 1; transform: none; } }
+
+.d2-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 600px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d2-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; background: #02070d; color: #dbeaf3; font-family: Inter, system-ui, "Segoe UI", sans-serif; }
+.d2-far, .d2-world { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 50% 50%; will-change: transform; }
+.d2-far { inset: -30%; width: auto; height: auto; background:
+  radial-gradient(ellipse 22% 16% at 30% 34%, rgba(46,120,190,.34), transparent 70%),
+  radial-gradient(ellipse 20% 14% at 66% 26%, rgba(124,74,170,.28), transparent 72%),
+  radial-gradient(ellipse 16% 10% at 80% 40%, rgba(255,150,90,.14), transparent 70%),
+  radial-gradient(ellipse 30% 18% at 52% 66%, rgba(20,70,110,.3), transparent 75%),
+  linear-gradient(180deg, #02070d 0%, #041320 60%, #061827 100%); }
+.d2-far::after { content: ''; position: absolute; inset: 0; opacity: .7; background-image:
+  radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 27% 41%, #cfe8ff, transparent), radial-gradient(1.4px 1.4px at 38% 9%, #fff, transparent),
+  radial-gradient(1px 1px at 46% 52%, #cfe8ff, transparent), radial-gradient(1px 1px at 58% 22%, #fff, transparent), radial-gradient(1.4px 1.4px at 66% 44%, #ffe7c4, transparent),
+  radial-gradient(1px 1px at 74% 12%, #fff, transparent), radial-gradient(1px 1px at 91% 37%, #cfe8ff, transparent), radial-gradient(1px 1px at 5% 49%, #fff, transparent),
+  radial-gradient(1px 1px at 18% 72%, #cfe8ff, transparent), radial-gradient(1.4px 1.4px at 79% 66%, #fff, transparent), radial-gradient(1px 1px at 34% 84%, #fff, transparent),
+  radial-gradient(1px 1px at 62% 88%, #cfe8ff, transparent), radial-gradient(1px 1px at 88% 80%, #fff, transparent), radial-gradient(1px 1px at 50% 30%, #fff, transparent); }
+/* Set pieces at fixed world positions: the planet under Verse, the holo glow right (Codex), the night surface below (HQ). */
+.d2-planet { position: absolute; left: 50%; top: 62%; width: 120cqw; aspect-ratio: 1; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(circle at 50% 2%, #1d4a62 0, #0f2c3e 6%, #081a27 14%, #040d15 34%, #030a10 70%);
+  box-shadow: 0 -.2cqw 1.6cqw rgba(82,193,230,.35), inset 0 .3cqw 1.2cqw rgba(150,225,255,.25); }
+.d2-holo { position: absolute; left: 73.0%; top: 18%; width: 46cqw; height: 34cqw; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(76,201,240,.26), rgba(76,201,240,.06) 50%, transparent 72%); }
+.d2-holo::before { content: ''; position: absolute; left: 22%; right: 22%; top: 58%; height: 3.2cqw; border-radius: 50%; border: 1px solid rgba(120,220,255,.5); box-shadow: 0 0 2cqw rgba(76,201,240,.35); }
+.d2-ground { position: absolute; left: -40%; right: -40%; top: 81.9%; height: 90%; background:
+  radial-gradient(7cqw 2cqw at 30% 30%, rgba(255,184,107,.32), transparent 70%), radial-gradient(9cqw 2.4cqw at 48% 46%, rgba(255,184,107,.24), transparent 70%),
+  radial-gradient(6cqw 1.8cqw at 64% 34%, rgba(255,184,107,.3), transparent 70%), radial-gradient(8cqw 2.2cqw at 76% 56%, rgba(255,184,107,.22), transparent 70%),
+  radial-gradient(1.4cqw .5cqw at 64% 34%, rgba(255,214,160,.6), transparent 70%), radial-gradient(1.6cqw .6cqw at 30% 30%, rgba(255,214,160,.55), transparent 70%),
+  linear-gradient(180deg, rgba(4,11,18,0) 0%, #06131d 18%, #040b12 60%); }
+/* HUD: header stays put; page content per pose. */
+.d2-bar { position: absolute; left: 0; right: 0; top: 0; height: 6.4cqw; display: flex; align-items: center; gap: 3cqw; padding: 0 3cqw; z-index: 3;
+  font: 600 1.15cqw/1 Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #8fb2c6; background: linear-gradient(180deg, rgba(2,7,13,.85), rgba(2,7,13,0)); }
+.d2-bar a { color: inherit; text-decoration: none; cursor: pointer; padding: .6cqw .4cqw; }
+.d2-bar a.on { color: #4cc9f0; text-shadow: 0 0 .8cqw rgba(76,201,240,.6); }
+.d2-brand { color: #dbeaf3; margin-right: auto; }
+.d2-ui { position: absolute; inset: 7.5cqw 6cqw 4cqw; z-index: 2; pointer-events: none; }
+.d2-ui > * { pointer-events: auto; }
+.d2-pg { position: absolute; inset: 0; }
+.d2-kick { font: 600 1.05cqw Orbitron, Inter, sans-serif; letter-spacing: .2em; color: #4cc9f0; }
+.d2-h { font: 700 3.4cqw/1.1 Orbitron, Inter, sans-serif; margin: .6cqw 0 1.6cqw; color: #eaf6fc; }
+.d2-row { display: flex; gap: 1.6cqw; }
+.d2-tile { display: block; width: 15cqw; height: 9cqw; border-radius: .8cqw; border: 1px solid rgba(120,200,240,.28); background: rgba(6,20,32,.62); padding: 1cqw; box-sizing: border-box;
+  font: 600 1cqw Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #a8c6d6; text-decoration: none; cursor: pointer; }
+.d2-tile i { display: block; height: .5cqw; border-radius: 1cqw; background: rgba(168,198,214,.25); margin-top: 1cqw; width: 70%; }
+.d2-tile i + i { width: 46%; margin-top: .6cqw; }
+.d2-tile:hover { border-color: rgba(76,201,240,.7); }
+.d2-list { display: grid; gap: .9cqw; width: 44cqw; }
+.d2-list i { display: block; height: 3.2cqw; border-radius: .6cqw; background: rgba(6,20,32,.66); border: 1px solid rgba(120,200,240,.18); }
+.d2-crumb { font: 500 1cqw Inter, sans-serif; color: #7f9fb2; }
+.d2-crumb a { color: #4cc9f0; cursor: pointer; text-decoration: none; }
+.d2-tag { position: absolute; right: 1.6cqw; bottom: 1.4cqw; z-index: 4; font: 600 .95cqw Orbitron, Inter, sans-serif; letter-spacing: .16em; color: #6f8ea0; }
+
+.d2-s-codex .d2-world { animation: d2-cam-codex 6s infinite; }
+.d2-s-codex .d2-far { animation: d2-far-codex 6s infinite; }
+.d2-s-codex .d2-pa { animation: d2-ua-codex 6s infinite; }
+.d2-s-codex .d2-pb { animation: d2-ub-codex 6s infinite; }
+.d2-s-hq .d2-world { animation: d2-cam-hq 6s infinite; }
+.d2-s-hq .d2-far { animation: d2-far-hq 6s infinite; }
+.d2-s-hq .d2-pa { animation: d2-ua-hq 6s infinite; }
+.d2-s-hq .d2-pb { animation: d2-ub-hq 6s infinite; }
+.d2-s-sub .d2-world { animation: d2-cam-sub 6s infinite; }
+.d2-s-sub .d2-far { animation: d2-far-sub 6s infinite; }
+.d2-s-sub .d2-pa { animation: d2-ua-sub 6s infinite; }
+.d2-s-sub .d2-pb { animation: d2-ub-sub 6s infinite; }
+.d2-s-load .d2-world { animation: d2-cam-load 5s infinite; }
+.d2-s-load .d2-far { animation: d2-far-load 5s infinite; }
+.d2-s-load .d2-pa { animation: d2-ua-load 5s infinite; }
+.d2-s-load .d2-pb { animation: d2-ub-load 6s infinite; }
+
+@media (prefers-reduced-motion: reduce) { .d2-stage * { animation-duration: 0s !important; } }
+
+
+@keyframes d3-cam-codex { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.3,0,.2,1); } 30.8%, 60% { transform: translate(-14%, 0%) scale(1); animation-timing-function: cubic-bezier(.3,0,.2,1); } 70.8%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d3-far-codex { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.3,0,.2,1); } 30.8%, 60% { transform: translate(-7.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.3,0,.2,1); } 70.8%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d3-ua-codex { 0%, 20% { opacity: 1; } 23.8%, 65.4% { opacity: 0; } 70.8%, 100% { opacity: 1; } }
+@keyframes d3-ub-codex { 0%, 25.4% { opacity: 0; } 30.8%, 60% { opacity: 1; } 63.8%, 100% { opacity: 0; } }
+@keyframes d3-cam-hq { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.3,0,.2,1); } 30.8%, 60% { transform: translate(0%, -12%) scale(1.06); animation-timing-function: cubic-bezier(.3,0,.2,1); } 70.8%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d3-far-hq { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.3,0,.2,1); } 30.8%, 60% { transform: translate(0.0%, -6.0%) scale(1.030); animation-timing-function: cubic-bezier(.3,0,.2,1); } 70.8%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d3-ua-hq { 0%, 20% { opacity: 1; } 23.8%, 65.4% { opacity: 0; } 70.8%, 100% { opacity: 1; } }
+@keyframes d3-ub-hq { 0%, 25.4% { opacity: 0; } 30.8%, 60% { opacity: 1; } 63.8%, 100% { opacity: 0; } }
+@keyframes d3-cam-sub { 0%, 20% { transform: translate(0%, 0%) scale(1); animation-timing-function: cubic-bezier(.3,0,.2,1); } 30.8%, 60% { transform: translate(-2%, -1%) scale(1.03); animation-timing-function: cubic-bezier(.3,0,.2,1); } 70.8%, 100% { transform: translate(0%, 0%) scale(1); } }
+@keyframes d3-far-sub { 0%, 20% { transform: translate(0.0%, 0.0%) scale(1.000); animation-timing-function: cubic-bezier(.3,0,.2,1); } 30.8%, 60% { transform: translate(-1.0%, -0.5%) scale(1.015); animation-timing-function: cubic-bezier(.3,0,.2,1); } 70.8%, 100% { transform: translate(0.0%, 0.0%) scale(1.000); } }
+@keyframes d3-ua-sub { 0%, 20% { opacity: 1; } 23.8%, 65.4% { opacity: 0; } 70.8%, 100% { opacity: 1; } }
+@keyframes d3-ub-sub { 0%, 25.4% { opacity: 0; } 30.8%, 60% { opacity: 1; } 63.8%, 100% { opacity: 0; } }
+@keyframes d3-cam-load { 0% { transform: translate(0%, 0%) scale(1.4); opacity: 0; } 4% { opacity: 1; } 17.3% { transform: translate(0%, 0%) scale(1); } 100% { transform: translate(0%, 0%) scale(1); opacity: 1; } }
+@keyframes d3-far-load { 0% { transform: translate(0.0%, 0.0%) scale(1.200); opacity: 0; } 4% { opacity: 1; } 17.3% { transform: translate(0.0%, 0.0%) scale(1.000); } 100% { transform: translate(0.0%, 0.0%) scale(1.000); opacity: 1; } }
+@keyframes d3-ua-load { 0%, 13.0% { opacity: 0; transform: translateY(10px); } 21.7%, 100% { opacity: 1; transform: none; } }
+
+.d3-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 600px; box-sizing: border-box; background: #02070d; overflow: hidden; }
+.d3-stage { position: relative; container-type: inline-size; width: min(100%, calc((100dvh - 8px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; background: #02070d; color: #dbeaf3; font-family: Inter, system-ui, "Segoe UI", sans-serif; }
+.d3-far, .d3-world { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 50% 50%; will-change: transform; }
+.d3-far { inset: -30%; width: auto; height: auto; background:
+  radial-gradient(ellipse 22% 16% at 30% 34%, rgba(46,120,190,.34), transparent 70%),
+  radial-gradient(ellipse 20% 14% at 66% 26%, rgba(124,74,170,.28), transparent 72%),
+  radial-gradient(ellipse 16% 10% at 80% 40%, rgba(255,150,90,.14), transparent 70%),
+  radial-gradient(ellipse 30% 18% at 52% 66%, rgba(20,70,110,.3), transparent 75%),
+  linear-gradient(180deg, #02070d 0%, #041320 60%, #061827 100%); }
+.d3-far::after { content: ''; position: absolute; inset: 0; opacity: .7; background-image:
+  radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 27% 41%, #cfe8ff, transparent), radial-gradient(1.4px 1.4px at 38% 9%, #fff, transparent),
+  radial-gradient(1px 1px at 46% 52%, #cfe8ff, transparent), radial-gradient(1px 1px at 58% 22%, #fff, transparent), radial-gradient(1.4px 1.4px at 66% 44%, #ffe7c4, transparent),
+  radial-gradient(1px 1px at 74% 12%, #fff, transparent), radial-gradient(1px 1px at 91% 37%, #cfe8ff, transparent), radial-gradient(1px 1px at 5% 49%, #fff, transparent),
+  radial-gradient(1px 1px at 18% 72%, #cfe8ff, transparent), radial-gradient(1.4px 1.4px at 79% 66%, #fff, transparent), radial-gradient(1px 1px at 34% 84%, #fff, transparent),
+  radial-gradient(1px 1px at 62% 88%, #cfe8ff, transparent), radial-gradient(1px 1px at 88% 80%, #fff, transparent), radial-gradient(1px 1px at 50% 30%, #fff, transparent); }
+/* Set pieces at fixed world positions: the planet under Verse, the holo glow right (Codex), the night surface below (HQ). */
+.d3-planet { position: absolute; left: 50%; top: 62%; width: 120cqw; aspect-ratio: 1; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(circle at 50% 2%, #1d4a62 0, #0f2c3e 6%, #081a27 14%, #040d15 34%, #030a10 70%);
+  box-shadow: 0 -.2cqw 1.6cqw rgba(82,193,230,.35), inset 0 .3cqw 1.2cqw rgba(150,225,255,.25); }
+.d3-holo { position: absolute; left: 41.0%; top: 18%; width: 46cqw; height: 34cqw; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(76,201,240,.26), rgba(76,201,240,.06) 50%, transparent 72%); }
+.d3-holo::before { content: ''; position: absolute; left: 22%; right: 22%; top: 58%; height: 3.2cqw; border-radius: 50%; border: 1px solid rgba(120,220,255,.5); box-shadow: 0 0 2cqw rgba(76,201,240,.35); }
+.d3-ground { position: absolute; left: -40%; right: -40%; top: 66.0%; height: 90%; background:
+  radial-gradient(7cqw 2cqw at 30% 30%, rgba(255,184,107,.32), transparent 70%), radial-gradient(9cqw 2.4cqw at 48% 46%, rgba(255,184,107,.24), transparent 70%),
+  radial-gradient(6cqw 1.8cqw at 64% 34%, rgba(255,184,107,.3), transparent 70%), radial-gradient(8cqw 2.2cqw at 76% 56%, rgba(255,184,107,.22), transparent 70%),
+  radial-gradient(1.4cqw .5cqw at 64% 34%, rgba(255,214,160,.6), transparent 70%), radial-gradient(1.6cqw .6cqw at 30% 30%, rgba(255,214,160,.55), transparent 70%),
+  linear-gradient(180deg, rgba(4,11,18,0) 0%, #06131d 18%, #040b12 60%); }
+/* HUD: header stays put; page content per pose. */
+.d3-bar { position: absolute; left: 0; right: 0; top: 0; height: 6.4cqw; display: flex; align-items: center; gap: 3cqw; padding: 0 3cqw; z-index: 3;
+  font: 600 1.15cqw/1 Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #8fb2c6; background: linear-gradient(180deg, rgba(2,7,13,.85), rgba(2,7,13,0)); }
+.d3-bar a { color: inherit; text-decoration: none; cursor: pointer; padding: .6cqw .4cqw; }
+.d3-bar a.on { color: #4cc9f0; text-shadow: 0 0 .8cqw rgba(76,201,240,.6); }
+.d3-brand { color: #dbeaf3; margin-right: auto; }
+.d3-ui { position: absolute; inset: 7.5cqw 6cqw 4cqw; z-index: 2; pointer-events: none; }
+.d3-ui > * { pointer-events: auto; }
+.d3-pg { position: absolute; inset: 0; }
+.d3-kick { font: 600 1.05cqw Orbitron, Inter, sans-serif; letter-spacing: .2em; color: #4cc9f0; }
+.d3-h { font: 700 3.4cqw/1.1 Orbitron, Inter, sans-serif; margin: .6cqw 0 1.6cqw; color: #eaf6fc; }
+.d3-row { display: flex; gap: 1.6cqw; }
+.d3-tile { display: block; width: 15cqw; height: 9cqw; border-radius: .8cqw; border: 1px solid rgba(120,200,240,.28); background: rgba(6,20,32,.62); padding: 1cqw; box-sizing: border-box;
+  font: 600 1cqw Orbitron, Inter, sans-serif; letter-spacing: .14em; color: #a8c6d6; text-decoration: none; cursor: pointer; }
+.d3-tile i { display: block; height: .5cqw; border-radius: 1cqw; background: rgba(168,198,214,.25); margin-top: 1cqw; width: 70%; }
+.d3-tile i + i { width: 46%; margin-top: .6cqw; }
+.d3-tile:hover { border-color: rgba(76,201,240,.7); }
+.d3-list { display: grid; gap: .9cqw; width: 44cqw; }
+.d3-list i { display: block; height: 3.2cqw; border-radius: .6cqw; background: rgba(6,20,32,.66); border: 1px solid rgba(120,200,240,.18); }
+.d3-crumb { font: 500 1cqw Inter, sans-serif; color: #7f9fb2; }
+.d3-crumb a { color: #4cc9f0; cursor: pointer; text-decoration: none; }
+.d3-tag { position: absolute; right: 1.6cqw; bottom: 1.4cqw; z-index: 4; font: 600 .95cqw Orbitron, Inter, sans-serif; letter-spacing: .16em; color: #6f8ea0; }
+
+.d3-s-codex .d3-world { animation: d3-cam-codex 6s infinite; }
+.d3-s-codex .d3-far { animation: d3-far-codex 6s infinite; }
+.d3-s-codex .d3-pa { animation: d3-ua-codex 6s infinite; }
+.d3-s-codex .d3-pb { animation: d3-ub-codex 6s infinite; }
+.d3-s-hq .d3-world { animation: d3-cam-hq 6s infinite; }
+.d3-s-hq .d3-far { animation: d3-far-hq 6s infinite; }
+.d3-s-hq .d3-pa { animation: d3-ua-hq 6s infinite; }
+.d3-s-hq .d3-pb { animation: d3-ub-hq 6s infinite; }
+.d3-s-sub .d3-world { animation: d3-cam-sub 6s infinite; }
+.d3-s-sub .d3-far { animation: d3-far-sub 6s infinite; }
+.d3-s-sub .d3-pa { animation: d3-ua-sub 6s infinite; }
+.d3-s-sub .d3-pb { animation: d3-ub-sub 6s infinite; }
+.d3-s-load .d3-world { animation: d3-cam-load 5s infinite; }
+.d3-s-load .d3-far { animation: d3-far-load 5s infinite; }
+.d3-s-load .d3-pa { animation: d3-ua-load 5s infinite; }
+.d3-s-load .d3-pb { animation: d3-ub-load 6s infinite; }
+
+@media (prefers-reduced-motion: reduce) { .d3-stage * { animation-duration: 0s !important; } }
+
+</style>
+
+  <section data-design="schwenk" data-nav-label="Schwenk auf einer Bühne" data-design-active="true" data-design-motto="Kamera schwenkt über eine Bühne" data-design-traits="Inhalte fahren mit der Kamera aus dem Bild|Nur Schwenk und leichter Zoom|Gleichmäßige Fahrt um 1,1 s" data-design-icon="compass" data-ov-demo=".d1-world">
+
+    <section id="schwenk-codex" data-nav-label="Verse ↔ Codex" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d1-screen d1-s-codex"><div class="d1-stage">
+        <div class="d1-far"></div>
+        <div class="d1-world"><div class="d1-planet"></div><div class="d1-holo"></div><div class="d1-ground d1-ground-in"></div><div class="d1-ui" style="inset: 7.5cqw 6cqw 4cqw"><div class="d1-pg d1-pa"><div class="d1-kick">VERSE</div><div class="d1-h">Was gibt es Neues?</div><div class="d1-row"><a class="d1-tile d1-tile-a" data-screen-link="schwenk-sub">NEWS<i></i><i></i></a><a class="d1-tile">PATCHES<i></i><i></i></a><a class="d1-tile">GALERIE<i></i><i></i></a></div></div></div><div class="d1-ui" style="inset: 7.5cqw 6cqw 4cqw; left: 46%; top: 0%;"><div class="d1-pg d1-pb"><div class="d1-kick d1-cx">CODEX</div><div class="d1-h">Holotisch</div><div class="d1-list"><i></i><i></i><i></i></div></div></div></div>
+        <div class="d1-bar"><span class="d1-brand">VERSE COMPANION</span><a class="" data-screen-link="schwenk-load">VERSE</a><a class="on" data-screen-link="schwenk-codex">CODEX</a><a class="" data-screen-link="schwenk-hq">HQ</a></div>
+        
+        <div class="d1-tag">VERSE ↔ CODEX · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="schwenk-codex" data-anno-side="right" data-anno-target=".d1-cx" style="--anno-x:30%;--anno-y:42%">
+  <button class="anno-pin" type="button" data-anno-pin="schwenk-codex" aria-expanded="false" aria-controls="anno-bubble-schwenk-codex" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-schwenk-codex" data-anno-bubble="schwenk-codex" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="schwenk-codex" aria-expanded="false" aria-controls="anno-bubble-schwenk-codex"><span class="anno-bubble-question">Die Inhalte der Hauptseite fahren mit dem Hintergrund nach links aus dem Bild, die neuen kommen von rechts mit. Wirkt das wie eine Welt, oder lenkt das bewegte Lesen ab?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-schwenk-codex" data-annotation="schwenk-codex" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-schwenk-codex"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="schwenk-hq" data-nav-label="Verse ↔ HQ" data-screen hidden data-screen-fit="full">
+      <div class="d1-screen d1-s-hq"><div class="d1-stage">
+        <div class="d1-far"></div>
+        <div class="d1-world"><div class="d1-planet"></div><div class="d1-holo"></div><div class="d1-ground d1-ground-in"></div><div class="d1-ui" style="inset: 7.5cqw 6cqw 4cqw"><div class="d1-pg d1-pa"><div class="d1-kick">VERSE</div><div class="d1-h">Was gibt es Neues?</div><div class="d1-row"><a class="d1-tile d1-tile-a" data-screen-link="schwenk-sub">NEWS<i></i><i></i></a><a class="d1-tile">PATCHES<i></i><i></i></a><a class="d1-tile">GALERIE<i></i><i></i></a></div></div></div><div class="d1-ui" style="inset: 7.5cqw 6cqw 4cqw; left: 0%; top: 32%;"><div class="d1-pg d1-pb"><div class="d1-kick">HQ</div><div class="d1-h">Heute im HQ</div><div class="d1-row"><span class="d1-tile">EINSATZ<i></i><i></i></span><span class="d1-tile">LAGER<i></i><i></i></span></div></div></div></div>
+        <div class="d1-bar"><span class="d1-brand">VERSE COMPANION</span><a class="" data-screen-link="schwenk-load">VERSE</a><a class="" data-screen-link="schwenk-codex">CODEX</a><a class="on" data-screen-link="schwenk-hq">HQ</a></div>
+        
+        <div class="d1-tag">VERSE ↔ HQ · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="schwenk-hq" data-anno-side="top" data-anno-target=".d1-ground" style="--anno-x:50%;--anno-y:78%">
+  <button class="anno-pin" type="button" data-anno-pin="schwenk-hq" aria-expanded="false" aria-controls="anno-bubble-schwenk-hq" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-schwenk-hq" data-anno-bubble="schwenk-hq" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="schwenk-hq" aria-expanded="false" aria-controls="anno-bubble-schwenk-hq"><span class="anno-bubble-question">HQ liegt unter dem Verse: die Kamera neigt sich nach unten und zoomt leicht auf die Nachtseite des Planeten. Ist das die richtige Richtung für HQ?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-schwenk-hq" data-annotation="schwenk-hq" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-schwenk-hq"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="schwenk-sub" data-nav-label="Unterseite" data-screen hidden data-screen-fit="full">
+      <div class="d1-screen d1-s-sub"><div class="d1-stage">
+        <div class="d1-far"></div>
+        <div class="d1-world"><div class="d1-planet"></div><div class="d1-holo"></div><div class="d1-ground d1-ground-in"></div><div class="d1-ui" style="inset: 7.5cqw 6cqw 4cqw"><div class="d1-pg d1-pa"><div class="d1-kick">VERSE</div><div class="d1-h">Was gibt es Neues?</div><div class="d1-row"><a class="d1-tile d1-tile-a" data-screen-link="schwenk-sub">NEWS<i></i><i></i></a><a class="d1-tile">PATCHES<i></i><i></i></a><a class="d1-tile">GALERIE<i></i><i></i></a></div></div></div><div class="d1-ui" style="inset: 7.5cqw 6cqw 4cqw; left: 3.7037037037037033%; top: 2.7777777777777777%;"><div class="d1-pg d1-pb"><div class="d1-crumb"><a data-screen-link="schwenk-codex">Verse</a> › News</div><div class="d1-h">News</div><div class="d1-list"><i></i><i></i><i></i><i></i></div></div></div></div>
+        <div class="d1-bar"><span class="d1-brand">VERSE COMPANION</span><a class="on" data-screen-link="schwenk-load">VERSE</a><a class="" data-screen-link="schwenk-codex">CODEX</a><a class="" data-screen-link="schwenk-hq">HQ</a></div>
+        
+        <div class="d1-tag">UNTERSEITE · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="schwenk-sub" data-anno-side="right" data-anno-target=".d1-tile-a" style="--anno-x:22%;--anno-y:42%">
+  <button class="anno-pin" type="button" data-anno-pin="schwenk-sub" aria-expanded="false" aria-controls="anno-bubble-schwenk-sub" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-schwenk-sub" data-anno-bubble="schwenk-sub" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="schwenk-sub" aria-expanded="false" aria-controls="anno-bubble-schwenk-sub"><span class="anno-bubble-question">Unterseite: kleiner Push-in (8 %) zur geklickten Kachel, der Hintergrund bleibt die Welt der Hauptseite. Stark genug, oder zu wenig?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-schwenk-sub" data-annotation="schwenk-sub" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-schwenk-sub"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="schwenk-load" data-nav-label="Erster Aufruf" data-screen hidden data-screen-fit="full">
+      <div class="d1-screen d1-s-load"><div class="d1-stage">
+        <div class="d1-far"></div>
+        <div class="d1-world"><div class="d1-planet"></div><div class="d1-holo"></div><div class="d1-ground d1-ground-in"></div></div>
+        <div class="d1-bar"><span class="d1-brand">VERSE COMPANION</span><a class="on" data-screen-link="schwenk-load">VERSE</a><a class="" data-screen-link="schwenk-codex">CODEX</a><a class="" data-screen-link="schwenk-hq">HQ</a></div>
+        <div class="d1-ui"><div class="d1-pg d1-pa"><div class="d1-kick">VERSE</div><div class="d1-h">Was gibt es Neues?</div><div class="d1-row"><a class="d1-tile d1-tile-a" data-screen-link="schwenk-sub">NEWS<i></i><i></i></a><a class="d1-tile">PATCHES<i></i><i></i></a><a class="d1-tile">GALERIE<i></i><i></i></a></div></div></div>
+        <div class="d1-tag">ANKUNFT · DANN INHALT</div>
+      </div></div>
+    </section>
+  </section>
+
+  <section data-design="kran" data-nav-label="Kranfahrt mit Tiefe" hidden data-design-motto="Erst ausholen, dann anfliegen" data-design-traits="Zwischen den Bereichen zoomt die Kamera kurz heraus|Drei Tiefenebenen mit Parallaxe|Inhalte bleiben als HUD stehen und blenden über" data-design-icon="gauge" data-ov-demo=".d2-world">
+
+    <section id="kran-codex" data-nav-label="Verse ↔ Codex" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d2-screen d2-s-codex"><div class="d2-stage">
+        <div class="d2-far"></div>
+        <div class="d2-world"><div class="d2-planet"></div><div class="d2-holo"></div><div class="d2-ground d2-ground-in"></div></div>
+        <div class="d2-bar"><span class="d2-brand">VERSE COMPANION</span><a class="" data-screen-link="kran-load">VERSE</a><a class="on" data-screen-link="kran-codex">CODEX</a><a class="" data-screen-link="kran-hq">HQ</a></div>
+        <div class="d2-ui"><div class="d2-pg d2-pa"><div class="d2-kick">VERSE</div><div class="d2-h">Was gibt es Neues?</div><div class="d2-row"><a class="d2-tile d2-tile-a" data-screen-link="kran-sub">NEWS<i></i><i></i></a><a class="d2-tile">PATCHES<i></i><i></i></a><a class="d2-tile">GALERIE<i></i><i></i></a></div></div><div class="d2-pg d2-pb"><div class="d2-kick d2-cx">CODEX</div><div class="d2-h">Holotisch</div><div class="d2-list"><i></i><i></i><i></i></div></div></div>
+        <div class="d2-tag">VERSE ↔ CODEX · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="kran-codex" data-anno-side="right" data-anno-target=".d2-world" style="--anno-x:30%;--anno-y:42%">
+  <button class="anno-pin" type="button" data-anno-pin="kran-codex" aria-expanded="false" aria-controls="anno-bubble-kran-codex" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-kran-codex" data-anno-bubble="kran-codex" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="kran-codex" aria-expanded="false" aria-controls="anno-bubble-kran-codex"><span class="anno-bubble-question">Mitten im Flug zoomt die Kamera auf 85 % heraus und fliegt dann wieder heran. Das zeigt, dass beide Orte in einer Welt liegen. Zu viel Bewegung für einen Menüklick?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kran-codex" data-annotation="kran-codex" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kran-codex"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="kran-hq" data-nav-label="Verse ↔ HQ" data-screen hidden data-screen-fit="full">
+      <div class="d2-screen d2-s-hq"><div class="d2-stage">
+        <div class="d2-far"></div>
+        <div class="d2-world"><div class="d2-planet"></div><div class="d2-holo"></div><div class="d2-ground d2-ground-in"></div></div>
+        <div class="d2-bar"><span class="d2-brand">VERSE COMPANION</span><a class="" data-screen-link="kran-load">VERSE</a><a class="" data-screen-link="kran-codex">CODEX</a><a class="on" data-screen-link="kran-hq">HQ</a></div>
+        <div class="d2-ui"><div class="d2-pg d2-pa"><div class="d2-kick">VERSE</div><div class="d2-h">Was gibt es Neues?</div><div class="d2-row"><a class="d2-tile d2-tile-a" data-screen-link="kran-sub">NEWS<i></i><i></i></a><a class="d2-tile">PATCHES<i></i><i></i></a><a class="d2-tile">GALERIE<i></i><i></i></a></div></div><div class="d2-pg d2-pb"><div class="d2-kick">HQ</div><div class="d2-h">Heute im HQ</div><div class="d2-row"><span class="d2-tile">EINSATZ<i></i><i></i></span><span class="d2-tile">LAGER<i></i><i></i></span></div></div></div>
+        <div class="d2-tag">VERSE ↔ HQ · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="kran-hq" data-anno-side="top" data-anno-target=".d2-ground" style="--anno-x:50%;--anno-y:78%">
+  <button class="anno-pin" type="button" data-anno-pin="kran-hq" aria-expanded="false" aria-controls="anno-bubble-kran-hq" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-kran-hq" data-anno-bubble="kran-hq" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="kran-hq" aria-expanded="false" aria-controls="anno-bubble-kran-hq"><span class="anno-bubble-question">HQ: die Kamera sinkt tief (Zoom auf 160 %) auf die Nachtseite, die Lichter der Städte wachsen. Passt diese Stärke?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kran-hq" data-annotation="kran-hq" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kran-hq"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="kran-sub" data-nav-label="Unterseite" data-screen hidden data-screen-fit="full">
+      <div class="d2-screen d2-s-sub"><div class="d2-stage">
+        <div class="d2-far"></div>
+        <div class="d2-world"><div class="d2-planet"></div><div class="d2-holo"></div><div class="d2-ground d2-ground-in"></div></div>
+        <div class="d2-bar"><span class="d2-brand">VERSE COMPANION</span><a class="on" data-screen-link="kran-load">VERSE</a><a class="" data-screen-link="kran-codex">CODEX</a><a class="" data-screen-link="kran-hq">HQ</a></div>
+        <div class="d2-ui"><div class="d2-pg d2-pa"><div class="d2-kick">VERSE</div><div class="d2-h">Was gibt es Neues?</div><div class="d2-row"><a class="d2-tile d2-tile-a" data-screen-link="kran-sub">NEWS<i></i><i></i></a><a class="d2-tile">PATCHES<i></i><i></i></a><a class="d2-tile">GALERIE<i></i><i></i></a></div></div><div class="d2-pg d2-pb"><div class="d2-crumb"><a data-screen-link="kran-codex">Verse</a> › News</div><div class="d2-h">News</div><div class="d2-list"><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="d2-tag">UNTERSEITE · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="kran-sub" data-anno-side="right" data-anno-target=".d2-ui" style="--anno-x:22%;--anno-y:42%">
+  <button class="anno-pin" type="button" data-anno-pin="kran-sub" aria-expanded="false" aria-controls="anno-bubble-kran-sub" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-kran-sub" data-anno-bubble="kran-sub" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="kran-sub" aria-expanded="false" aria-controls="anno-bubble-kran-sub"><span class="anno-bubble-question">Die Inhalte fahren hier nicht mit, sie blenden als HUD über, während nur die Welt dahinter fährt. Lieber so, oder mitfahren wie bei Schwenk?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-kran-sub" data-annotation="kran-sub" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-kran-sub"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="kran-load" data-nav-label="Erster Aufruf" data-screen hidden data-screen-fit="full">
+      <div class="d2-screen d2-s-load"><div class="d2-stage">
+        <div class="d2-far"></div>
+        <div class="d2-world"><div class="d2-planet"></div><div class="d2-holo"></div><div class="d2-ground d2-ground-in"></div></div>
+        <div class="d2-bar"><span class="d2-brand">VERSE COMPANION</span><a class="on" data-screen-link="kran-load">VERSE</a><a class="" data-screen-link="kran-codex">CODEX</a><a class="" data-screen-link="kran-hq">HQ</a></div>
+        <div class="d2-ui"><div class="d2-pg d2-pa"><div class="d2-kick">VERSE</div><div class="d2-h">Was gibt es Neues?</div><div class="d2-row"><a class="d2-tile d2-tile-a" data-screen-link="kran-sub">NEWS<i></i><i></i></a><a class="d2-tile">PATCHES<i></i><i></i></a><a class="d2-tile">GALERIE<i></i><i></i></a></div></div></div>
+        <div class="d2-tag">ANKUNFT · DANN INHALT</div>
+      </div></div>
+    </section>
+  </section>
+
+  <section data-design="ruhig" data-nav-label="Ruhige Kamera" hidden data-design-motto="Kleine, kurze Kamerabewegung" data-design-traits="Kurze Fahrt um 0,65 s|Kaum Zoom, nur ein kleiner Schwenk|Inhalt wechselt fast sofort" data-design-icon="sun" data-ov-demo=".d3-world">
+
+    <section id="ruhig-codex" data-nav-label="Verse ↔ Codex" data-screen data-screen-active="true" data-screen-fit="full">
+      <div class="d3-screen d3-s-codex"><div class="d3-stage">
+        <div class="d3-far"></div>
+        <div class="d3-world"><div class="d3-planet"></div><div class="d3-holo"></div><div class="d3-ground d3-ground-in"></div></div>
+        <div class="d3-bar"><span class="d3-brand">VERSE COMPANION</span><a class="" data-screen-link="ruhig-load">VERSE</a><a class="on" data-screen-link="ruhig-codex">CODEX</a><a class="" data-screen-link="ruhig-hq">HQ</a></div>
+        <div class="d3-ui"><div class="d3-pg d3-pa"><div class="d3-kick">VERSE</div><div class="d3-h">Was gibt es Neues?</div><div class="d3-row"><a class="d3-tile d3-tile-a" data-screen-link="ruhig-sub">NEWS<i></i><i></i></a><a class="d3-tile">PATCHES<i></i><i></i></a><a class="d3-tile">GALERIE<i></i><i></i></a></div></div><div class="d3-pg d3-pb"><div class="d3-kick d3-cx">CODEX</div><div class="d3-h">Holotisch</div><div class="d3-list"><i></i><i></i><i></i></div></div></div>
+        <div class="d3-tag">VERSE ↔ CODEX · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ruhig-codex" data-anno-side="right" data-anno-target=".d3-world" style="--anno-x:30%;--anno-y:42%">
+  <button class="anno-pin" type="button" data-anno-pin="ruhig-codex" aria-expanded="false" aria-controls="anno-bubble-ruhig-codex" aria-label="{{anno.pin_label}}">1</button>
+  <div class="anno-bubble" id="anno-bubble-ruhig-codex" data-anno-bubble="ruhig-codex" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ruhig-codex" aria-expanded="false" aria-controls="anno-bubble-ruhig-codex"><span class="anno-bubble-question">Der Schwenk ist hier nur ein Siebtel der Strecke. Reicht das für das Gefühl, im selben Raum zu bleiben?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ruhig-codex" data-annotation="ruhig-codex" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ruhig-codex"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ruhig-hq" data-nav-label="Verse ↔ HQ" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen d3-s-hq"><div class="d3-stage">
+        <div class="d3-far"></div>
+        <div class="d3-world"><div class="d3-planet"></div><div class="d3-holo"></div><div class="d3-ground d3-ground-in"></div></div>
+        <div class="d3-bar"><span class="d3-brand">VERSE COMPANION</span><a class="" data-screen-link="ruhig-load">VERSE</a><a class="" data-screen-link="ruhig-codex">CODEX</a><a class="on" data-screen-link="ruhig-hq">HQ</a></div>
+        <div class="d3-ui"><div class="d3-pg d3-pa"><div class="d3-kick">VERSE</div><div class="d3-h">Was gibt es Neues?</div><div class="d3-row"><a class="d3-tile d3-tile-a" data-screen-link="ruhig-sub">NEWS<i></i><i></i></a><a class="d3-tile">PATCHES<i></i><i></i></a><a class="d3-tile">GALERIE<i></i><i></i></a></div></div><div class="d3-pg d3-pb"><div class="d3-kick">HQ</div><div class="d3-h">Heute im HQ</div><div class="d3-row"><span class="d3-tile">EINSATZ<i></i><i></i></span><span class="d3-tile">LAGER<i></i><i></i></span></div></div></div>
+        <div class="d3-tag">VERSE ↔ HQ · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ruhig-hq" data-anno-side="top" data-anno-target=".d3-ground" style="--anno-x:50%;--anno-y:78%">
+  <button class="anno-pin" type="button" data-anno-pin="ruhig-hq" aria-expanded="false" aria-controls="anno-bubble-ruhig-hq" aria-label="{{anno.pin_label}}">2</button>
+  <div class="anno-bubble" id="anno-bubble-ruhig-hq" data-anno-bubble="ruhig-hq" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ruhig-hq" aria-expanded="false" aria-controls="anno-bubble-ruhig-hq"><span class="anno-bubble-question">HQ: nur 12 % nach unten und 6 % Zoom. Erkennt man noch, dass man Richtung Planet fliegt?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ruhig-hq" data-annotation="ruhig-hq" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ruhig-hq"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ruhig-sub" data-nav-label="Unterseite" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen d3-s-sub"><div class="d3-stage">
+        <div class="d3-far"></div>
+        <div class="d3-world"><div class="d3-planet"></div><div class="d3-holo"></div><div class="d3-ground d3-ground-in"></div></div>
+        <div class="d3-bar"><span class="d3-brand">VERSE COMPANION</span><a class="on" data-screen-link="ruhig-load">VERSE</a><a class="" data-screen-link="ruhig-codex">CODEX</a><a class="" data-screen-link="ruhig-hq">HQ</a></div>
+        <div class="d3-ui"><div class="d3-pg d3-pa"><div class="d3-kick">VERSE</div><div class="d3-h">Was gibt es Neues?</div><div class="d3-row"><a class="d3-tile d3-tile-a" data-screen-link="ruhig-sub">NEWS<i></i><i></i></a><a class="d3-tile">PATCHES<i></i><i></i></a><a class="d3-tile">GALERIE<i></i><i></i></a></div></div><div class="d3-pg d3-pb"><div class="d3-crumb"><a data-screen-link="ruhig-codex">Verse</a> › News</div><div class="d3-h">News</div><div class="d3-list"><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="d3-tag">UNTERSEITE · SCHLEIFE</div>
+      </div></div>
+      <div class="anno-layer" data-anno-layer>
+<div class="anno" data-anno="ruhig-sub" data-anno-side="right" data-anno-target=".d3-tile-a" style="--anno-x:22%;--anno-y:42%">
+  <button class="anno-pin" type="button" data-anno-pin="ruhig-sub" aria-expanded="false" aria-controls="anno-bubble-ruhig-sub" aria-label="{{anno.pin_label}}">3</button>
+  <div class="anno-bubble" id="anno-bubble-ruhig-sub" data-anno-bubble="ruhig-sub" data-open="false">
+    <button type="button" class="anno-bubble-summary" data-anno-summary="ruhig-sub" aria-expanded="false" aria-controls="anno-bubble-ruhig-sub"><span class="anno-bubble-question">Unterseite: 3 % Push-in. Merkt man den überhaupt, oder ist das schon fast ein Schnitt?</span></button>
+    <div class="anno-bubble-body"><textarea class="anno-answer" data-comment="anno-ruhig-sub" data-annotation="ruhig-sub" data-attachable placeholder="{{anno.answer_placeholder}}"></textarea><div class="attach-slot" data-attach-slot="anno-ruhig-sub"></div></div>
+  </div>
+</div>
+      </div>
+    </section>
+
+    <section id="ruhig-load" data-nav-label="Erster Aufruf" data-screen hidden data-screen-fit="full">
+      <div class="d3-screen d3-s-load"><div class="d3-stage">
+        <div class="d3-far"></div>
+        <div class="d3-world"><div class="d3-planet"></div><div class="d3-holo"></div><div class="d3-ground d3-ground-in"></div></div>
+        <div class="d3-bar"><span class="d3-brand">VERSE COMPANION</span><a class="on" data-screen-link="ruhig-load">VERSE</a><a class="" data-screen-link="ruhig-codex">CODEX</a><a class="" data-screen-link="ruhig-hq">HQ</a></div>
+        <div class="d3-ui"><div class="d3-pg d3-pa"><div class="d3-kick">VERSE</div><div class="d3-h">Was gibt es Neues?</div><div class="d3-row"><a class="d3-tile d3-tile-a" data-screen-link="ruhig-sub">NEWS<i></i><i></i></a><a class="d3-tile">PATCHES<i></i><i></i></a><a class="d3-tile">GALERIE<i></i><i></i></a></div></div></div>
+        <div class="d3-tag">ANKUNFT · DANN INHALT</div>
+      </div></div>
+    </section>
+  </section>
+
+  <section data-view="analyse" data-view-kind="analysis" data-analysis="full" data-nav-label="Analyse" hidden>
+    <section id="briefing" data-analysis-briefing data-nav-label="Briefing">
+      <p data-briefing-what>Die Hintergrund-Szene (Shell-Beta) kennt schon Kamera-Posen für Verse, Codex und HQ. Trotzdem bricht die Welt an sieben Stellen: Seitenwechsel blenden oder schneiden, statt die Kamera zu bewegen.</p>
+      <p data-briefing-why>Erst wenn jeder Wechsel eine Kamerafahrt durch dieselbe Szene ist, wirkt die App wie ein Ort. Danach folgt der Performance-Durchgang, damit Fahrt und Scrollen ohne Ruckler laufen.</p>
+      <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"7 → 0","unit":"Brüche","label":"Stellen, an denen der Hintergrund wechselt statt fährt"}'>7 → 0 Brüche</div>
+      <a data-briefing-topic="t-welt" data-share="50">Eine Welt</a>
+      <a data-briefing-topic="t-regeln" data-share="15">Regeln</a>
+      <a data-briefing-topic="t-perf" data-share="35">Ruckler</a>
+      <p data-briefing-duration>≈ 7 min</p>
+      <div data-alevel="1" data-title="Briefing">
+        <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"7","unit":"Brüche","label":"heute"}'></div></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Verse-Flüge (View Transition)","value":3},{"label":"Unterseiten-Schnitt","value":1},{"label":"Überblendungen in den Posen","value":2},{"label":"Planet nur in der Seite","value":1}],"unit":"Stellen"}'></div>
+          <p>Drei Brüche kommen von den Verse-Flügen: die View Transition nimmt den ganzen Bildschirm samt Hintergrund als Bild auf und zoomt ihn ×3 mit Unschärfe weg, dann blendet die neue Seite über Schwarz ein. Unterseiten schneiden hart und legen einen Schleier auf. HQ blendet den Himmel auf 45 % ab, Codex blendet den Holo-Schein ein. Der Verse-Planet gehört zur Seite und verschwindet beim Verlassen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="t-welt" data-topic data-nav-label="Eine Welt">
+      <div data-alevel="2" data-title="Eine Welt">
+        <div data-slot="short"><p>Hintergrund und Bühnenstücke werden eine Szene, durch die nur die Kamera fährt.</p></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"Hub ↔ Unterseite (Verse)","value":3},{"label":"Hauptseite → Unterseite","value":1},{"label":"Hauptseite ↔ Hauptseite","value":2},{"label":"Verse verlassen","value":1}],"unit":"Brüche"}'></div>
+          <p>Fünf Fragen legen fest, wie die Kamera fährt und was dabei im Bild bleibt. Die Varianten links zeigen, wie weit und wie lange.</p>
+        </div>
+      </div>
+
+      <section id="d-snapshot" data-nav-label="Hintergrund im Flug" data-decision="d-snapshot" data-decision-mode="single" data-label="Hintergrund im Flug" data-rec="live" data-rec-why="Nur so bleibt der Sternenhimmel echt und fährt mit der Kamera, statt als Bild weggezoomt zu werden." data-applies-to="alle Verse-Flüge (Hub ↔ News, Patches, Galerie, Sternkarte)" data-finding="f-snapshot">
+        <p data-applies>Gilt für: alle Verse-Flüge</p>
+        <p data-situation>Die Verse-Flüge nutzen eine View Transition auf der ganzen Seite. Der feste Hintergrund liegt mit im Bild und wird ×3 vergrößert, unscharf und dann über Schwarz (#02070d) ersetzt.</p>
+        <h3 data-question>Was passiert mit dem Hintergrund, während Verse zur Unterseite fliegt?</h3>
+        <p data-stakes>Ob der Himmel beim Flug springt oder durchgehend fährt.</p>
+        <div data-options>
+          <label data-opt="live" data-recommended>
+            <input type="radio" name="dm-d-snapshot" value="live" checked>
+            <span data-opt-label>Szene aus dem Bild nehmen, Kamera fährt live</span>
+            <span data-opt-consequence>Die Szene bekommt einen eigenen Namen ohne Animation, nur die Inhalte fliegen; die Kamera fährt dazu echt mit.</span>
+          </label>
+          <label data-opt="ohne-vt">
+            <input type="radio" name="dm-d-snapshot" value="ohne-vt">
+            <span data-opt-label>View Transitions ganz ersetzen</span>
+            <span data-opt-consequence>Inhalte animieren sich selbst; mehr Umbau, aber ein Weg für alle Wechsel.</span>
+          </label>
+          <label data-opt="bleibt">
+            <input type="radio" name="dm-d-snapshot" value="bleibt">
+            <span data-opt-label>Flüge so lassen</span>
+            <span data-opt-consequence>Der Hintergrund zoomt weiter mit weg und wird ersetzt.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-snapshot-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-snapshot-none" value=""><input type="hidden" name="dm-d-snapshot-hes" value=""><input type="hidden" name="dm-d-snapshot-touched" value=""><input type="hidden" name="dm-d-snapshot-issue" value=""><input type="hidden" name="dm-d-snapshot-epic" value="">
+        <div data-alevel="3" data-title="Hintergrund im Flug">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"×3","unit":"Zoom","label":"des Hintergrunds beim Abtauchen"}'></div></div>
+          <div data-slot="long">
+            <div data-viz="bar" data-viz-spec='{"value":3,"max":3,"label":"Verse-Flugrichtungen mit Hintergrund-Bruch (down, up, side)","unit":""}'></div>
+            <p>In <code>verse-flight.ts</code> startet <code>startViewTransition</code> ohne eigenen Namen für die Szene. <code>styles.scss</code> animiert <code>::view-transition-old(root)</code> mit Zoom und Unschärfe und setzt <code>::view-transition { background: #02070d }</code>. Bekommt <code>sc-shell-scene</code> einen eigenen <code>view-transition-name</code>, bleibt sie außerhalb.</p>
+          </div>
+          <div data-example><pre>html[data-verse-flight='down']::view-transition-old(root) {
+  transform-origin: var(--vf-ox) var(--vf-oy);
+  animation: sc-flight-dive 700ms …;   /* zoomt den Himmel mit */
+}
+html[data-verse-flight]::view-transition { background: #02070d; }</pre></div>
+        </div>
+      </section>
+
+      <section id="d-setpieces" data-nav-label="Bühnenstücke" data-decision="d-setpieces" data-decision-mode="single" data-label="Bühnenstücke" data-rec="welt" data-rec-why="Dann sieht man beim Schwenk den Planeten wegziehen und den Holotisch hereinkommen, statt sie ein- und auszublenden." data-applies-to="Verse-Planet, Codex-Holo-Schein, HQ-Nachtseite" data-finding="f-setpieces">
+        <p data-applies>Gilt für: Verse-Planet, Codex-Holo-Schein, HQ-Nachtseite</p>
+        <p data-situation>Der Verse-Planet gehört zur Hub-Seite, Codex und HQ blenden ihre Stücke per Deckkraft ein. Beim Wechsel verschwinden sie, statt aus dem Bild zu ziehen.</p>
+        <h3 data-question>Wo stehen Planet, Holotisch-Schein und Nachtseite?</h3>
+        <p data-stakes>Ob ein Bereichswechsel wie ein Schwenk oder wie eine Überblendung aussieht.</p>
+        <div data-options>
+          <label data-opt="welt" data-recommended>
+            <input type="radio" name="dm-d-setpieces" value="welt" checked>
+            <span data-opt-label>An festen Orten in der einen Szene</span>
+            <span data-opt-consequence>Planet unten mittig, Holotisch rechts, Nachtseite darunter; die Kamera schwenkt zu ihnen.</span>
+          </label>
+          <label data-opt="seite">
+            <input type="radio" name="dm-d-setpieces" value="seite">
+            <span data-opt-label>Bleiben in ihren Seiten</span>
+            <span data-opt-consequence>Die Szene zeigt nur Himmel; die Stücke kommen und gehen mit der Seite.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-setpieces-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-setpieces-none" value=""><input type="hidden" name="dm-d-setpieces-hes" value=""><input type="hidden" name="dm-d-setpieces-touched" value=""><input type="hidden" name="dm-d-setpieces-issue" value=""><input type="hidden" name="dm-d-setpieces-epic" value="">
+        <div data-alevel="3" data-title="Bühnenstücke">
+          <div data-slot="short"><p>3 Bühnenstücke, 2 davon nur per Deckkraft.</p></div>
+          <div data-slot="long">
+            <p>Der Live-Planet (<code>sc-briefing-planet</code>, WebGL) bleibt als Darstellung der Hub-Seite, aber sein Platz wird eine Weltposition: beim Verlassen zieht er mit der Kamera aus dem Bild, statt zu verschwinden. Codex-Schein und HQ-Boden stehen in <code>shell-scene.component.scss</code> heute als <code>opacity: var(--pose-…)</code>; sie werden feste Orte, zu denen nur noch <code>transform</code> fährt.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="d-sub" data-nav-label="Unterseiten" data-decision="d-sub" data-decision-mode="single" data-label="Unterseiten" data-rec="push" data-rec-why="Eine kleine Fahrt zur geklickten Kachel hält die Welt; der Schnitt mit Schleier ist der einzige Sprung, den jeder Klick sieht." data-applies-to="jede Seite unter Verse, Codex und HQ" data-finding="f-sub">
+        <p data-applies>Gilt für: jede Seite unter Verse, Codex und HQ</p>
+        <p data-situation>Heute schneidet ein Klick auf eine Unterseite hart und legt einen Schleier (22 %) über den Himmel; zurück hebt er ihn wieder ab.</p>
+        <h3 data-question>Wie geht die Kamera mit auf eine Unterseite?</h3>
+        <p data-stakes>Ob jeder Listen- und Detailklick in derselben Welt bleibt.</p>
+        <div data-options>
+          <label data-opt="push" data-recommended>
+            <input type="radio" name="dm-d-sub" value="push" checked>
+            <span data-opt-label>Kleiner Push-in zum geklickten Element</span>
+            <span data-opt-consequence>Kamera zoomt leicht in Richtung Klick, zurück zieht sie heraus; der Schleier wird mitgefahren statt gesetzt.</span>
+          </label>
+          <label data-opt="still">
+            <input type="radio" name="dm-d-sub" value="still">
+            <span data-opt-label>Kamera steht, nur der Inhalt wechselt</span>
+            <span data-opt-consequence>Kein Sprung mehr, aber auch kein Gefühl von Tiefe.</span>
+          </label>
+          <label data-opt="heute">
+            <input type="radio" name="dm-d-sub" value="heute">
+            <span data-opt-label>Schnitt mit Schleier wie heute</span>
+            <span data-opt-consequence>Der Hintergrund springt bei jedem Unterseiten-Klick.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-sub-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-sub-none" value=""><input type="hidden" name="dm-d-sub-hes" value=""><input type="hidden" name="dm-d-sub-touched" value=""><input type="hidden" name="dm-d-sub-issue" value=""><input type="hidden" name="dm-d-sub-epic" value="">
+        <div data-alevel="3" data-title="Unterseiten">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0 ms","unit":"","label":"Übergang heute (Modus still)"}'></div></div>
+          <div data-slot="long">
+            <p><code>sceneStep()</code> in <code>scene.model.ts</code> liefert für jedes Ziel, das keine Hauptseite ist, <code>mode: 'still'</code>, und die Szene schaltet alle Transitionen ab. Neu: eine Unterpose je Bereich (Push-in mit Ursprung am Klickpunkt), die wie die Hauptposen per Transition angefahren wird.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="d-first" data-nav-label="Erster Aufruf" data-decision="d-first" data-decision-mode="single" data-label="Erster Aufruf" data-rec="ankunft" data-rec-why="Die Ankunft läuft innerhalb der bestehenden Einstiege und macht den Ort von Anfang an räumlich." data-applies-to="erster Aufruf und Neuladen von /verse, /codex, /hq" data-finding="f-first">
+        <p data-applies>Gilt für: erster Aufruf und Neuladen der drei Hauptseiten</p>
+        <p data-situation>Fest steht: der Verse-Einstieg des Tages (4,2 s) und der kurze Neuladen-Einstieg bleiben. Heute steht der Himmel beim Laden sofort, Codex und HQ haben keine Ankunft.</p>
+        <h3 data-question>Wie kommt die Kamera beim Laden einer Hauptseite an?</h3>
+        <p data-stakes>Erster Eindruck, und ob Codex und HQ gleich wie Verse ankommen.</p>
+        <div data-options>
+          <label data-opt="ankunft" data-recommended>
+            <input type="radio" name="dm-d-first" value="ankunft" checked>
+            <span data-opt-label>Kamera fährt aus der Ferne an, dann die Inhalte</span>
+            <span data-opt-consequence>Leichter Dolly-in auf die Pose des Bereichs, innerhalb der bestehenden Einstiegszeiten.</span>
+          </label>
+          <label data-opt="nur-verse">
+            <input type="radio" name="dm-d-first" value="nur-verse">
+            <span data-opt-label>Ankunft nur beim ersten Verse-Besuch</span>
+            <span data-opt-consequence>Codex und HQ stehen beim Laden sofort.</span>
+          </label>
+          <label data-opt="steht">
+            <input type="radio" name="dm-d-first" value="steht">
+            <span data-opt-label>Szene steht beim Laden sofort</span>
+            <span data-opt-consequence>Nur die Inhalte bauen sich auf.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-first-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-first-none" value=""><input type="hidden" name="dm-d-first-hes" value=""><input type="hidden" name="dm-d-first-touched" value=""><input type="hidden" name="dm-d-first-issue" value=""><input type="hidden" name="dm-d-first-epic" value="">
+        <div data-alevel="3" data-title="Erster Aufruf">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"4,2","unit":"s","label":"Verse-Einstieg des Tages, bleibt"}'></div></div>
+          <div data-slot="long">
+            <p>Die Ankunft ist nur eine Startpose (Kamera weiter weg) beim ersten Bild, aus der die Szene in ihre Pose fährt. Sie läuft parallel zu Sternen und Namen und verlängert keinen Einstieg; jede Eingabe beendet sie wie den Einstieg (innerhalb 300 ms).</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="d-dur" data-nav-label="Flugdauer" data-decision="d-dur" data-decision-mode="slider" data-unit="ms" data-label="Flugdauer" data-rec="1100" data-rec-why="Heute 0,9–1,6 s je nach Strecke; 1,1 s als Grundwert hält Verse ↔ Codex flüssig, ohne dass ein Menüklick träge wirkt." data-applies-to="Fahrt zwischen zwei Hauptseiten" data-finding="f-dur">
+        <p data-applies>Gilt für: Fahrt zwischen zwei Hauptseiten</p>
+        <p data-situation>Heute 900 ms plus ein Streckenanteil, höchstens 1600 ms; Unterseiten bekommen etwa die Hälfte.</p>
+        <h3 data-question>Wie lange dauert die kürzeste Kamerafahrt zwischen Hauptseiten?</h3>
+        <div data-options>
+          <input type="range" name="dm-d-dur" min="500" max="1600" step="50" value="1100">
+        </div>
+        <textarea data-comment="d-dur-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-dur-hes" value=""><input type="hidden" name="dm-d-dur-touched" value=""><input type="hidden" name="dm-d-dur-issue" value=""><input type="hidden" name="dm-d-dur-epic" value="">
+        <div data-alevel="3" data-title="Flugdauer">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"900–1600","unit":"ms","label":"heute (flightMs)"}'></div></div>
+          <div data-slot="long"><p><code>flightMs()</code> rechnet 900 ms + Abstand × 200, gedeckelt bei 1600 ms. Der Regler setzt den Grundwert; der Deckel wächst mit (+500 ms).</p></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="t-regeln" data-topic data-nav-label="Regeln">
+      <div data-alevel="2" data-title="Regeln">
+        <div data-slot="short"><p>Was für jede Fahrt gilt: wo sie läuft, wer sie abschaltet, was ein Doppelklick tut.</p></div>
+        <div data-slot="long"><p>Drei Regeln, die keine Variante ändert. Zwei davon gelten heute schon und werden nur bestätigt.</p></div>
+      </div>
+
+      <section id="d-scope" data-nav-label="Geltung" data-decision="d-scope" data-decision-mode="single" data-label="Geltung" data-rec="beta" data-rec-why="Die Szene ist Teil der neuen Shell; sie ohne die Shell freizuschalten wäre ein zweiter Umbau, kein Feinschliff." data-applies-to="wer die Kamera-Welt sieht" data-finding="f-scope">
+        <p data-applies>Gilt für: wer die Kamera-Welt sieht</p>
+        <p data-situation>Die Szene läuft nur mit der Shell-Beta (Standard: aus), die Verse-Flüge nur mit der Verse-Beta (Standard: aus).</p>
+        <h3 data-question>Wer bekommt die Kamera-Welt?</h3>
+        <div data-options>
+          <label data-opt="beta" data-recommended>
+            <input type="radio" name="dm-d-scope" value="beta" checked>
+            <span data-opt-label>Weiter nur in der Shell-Beta</span>
+            <span data-opt-consequence>Kein Risiko für alle anderen; Freigabe später mit der Shell.</span>
+          </label>
+          <label data-opt="alle">
+            <input type="radio" name="dm-d-scope" value="alle">
+            <span data-opt-label>Szene auch ohne Shell-Beta zeigen</span>
+            <span data-opt-consequence>Jeder sieht die Welt; die alte Shell braucht dafür eigene Anpassungen.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-scope-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-scope-none" value=""><input type="hidden" name="dm-d-scope-hes" value=""><input type="hidden" name="dm-d-scope-touched" value=""><input type="hidden" name="dm-d-scope-issue" value=""><input type="hidden" name="dm-d-scope-epic" value="">
+        <div data-alevel="3" data-title="Geltung">
+          <div data-slot="short"><p><code>BETA_DEFAULTS</code>: verse aus, codex an, shell aus.</p></div>
+          <div data-slot="long"><p><code>ShellSceneComponent</code> rendert nur mit <code>isEnabled('shell')</code>; ohne die Beta hat die Seite einen einfarbigen Hintergrund, durch den keine Kamera fahren kann.</p></div>
+        </div>
+      </section>
+
+      <section id="d-reduced" data-nav-label="Weniger Bewegung" data-decision="d-reduced" data-decision-mode="verify" data-label="Weniger Bewegung" data-rec="ok" data-rec-why="So gilt es heute schon und erfüllt die Systemeinstellung." data-applies-to="Systemeinstellung „Bewegung reduzieren“" data-finding="f-reduced">
+        <p data-applies>Gilt für: Systemeinstellung „Bewegung reduzieren“</p>
+        <p data-situation>Mit „Bewegung reduzieren“ wird aus jeder Fahrt eine kurze Überblendung (420 ms), der Push-in entfällt.</p>
+        <h3 data-question>Stimmt das so für alle neuen Fahrten?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-d-reduced" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Überblendung statt Fahrt, auch für Unterseiten und Ankunft.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-d-reduced" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-d-reduced" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+        </div>
+        <input type="text" name="dm-d-reduced-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="d-reduced-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-reduced-none" value=""><input type="hidden" name="dm-d-reduced-hes" value=""><input type="hidden" name="dm-d-reduced-touched" value=""><input type="hidden" name="dm-d-reduced-issue" value=""><input type="hidden" name="dm-d-reduced-epic" value="">
+        <div data-alevel="3" data-title="Weniger Bewegung">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"420","unit":"ms","label":"Überblendung (SCENE_FADE_MS)"}'></div></div>
+          <div data-slot="long"><p><code>sceneStep()</code> gibt bei reduzierter Bewegung <code>mode: 'fade'</code>; die Verse-Flüge starten gar nicht. Das bleibt die Regel.</p></div>
+        </div>
+      </section>
+
+      <section id="d-retarget" data-nav-label="Klick im Flug" data-decision="d-retarget" data-decision-mode="verify" data-label="Klick im Flug" data-rec="ok" data-rec-why="Die Szene macht das heute schon für Hauptseiten; neu gilt es auch für Unterseiten und Verse-Flüge." data-applies-to="ein Klick, während die Kamera noch fährt" data-finding="f-retarget">
+        <p data-applies>Gilt für: ein Klick, während die Kamera noch fährt</p>
+        <p data-situation>Ein neuer Klick mitten in der Fahrt lenkt die Kamera von ihrer aktuellen Stelle zum neuen Ziel um, ohne Sprung zurück.</p>
+        <h3 data-question>Stimmt das als Regel für jede Fahrt?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-d-retarget" value="ok" checked><span data-opt-label>Stimmt so</span><span data-opt-consequence>Kein Wechsel wartet auf das Ende einer Fahrt.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-d-retarget" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was anders sein soll.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-d-retarget" value="wrong"><span data-opt-label>Stimmt nicht</span><span data-opt-consequence>Bitte unten korrigieren.</span></label>
+        </div>
+        <input type="text" name="dm-d-retarget-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="d-retarget-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-retarget-none" value=""><input type="hidden" name="dm-d-retarget-hes" value=""><input type="hidden" name="dm-d-retarget-touched" value=""><input type="hidden" name="dm-d-retarget-issue" value=""><input type="hidden" name="dm-d-retarget-epic" value="">
+        <div data-alevel="3" data-title="Klick im Flug">
+          <div data-slot="short"><p>Heute: Hauptseiten ja, Verse-Flüge nein (<code>running</code> blockiert).</p></div>
+          <div data-slot="long"><p><code>VerseFlight.begin()</code> verweigert einen zweiten Flug, solange einer läuft (<code>this.running</code>). Mit der live fahrenden Szene kann die Kamera umlenken, der Inhalt springt dann ans neue Ziel.</p></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="t-perf" data-topic data-nav-label="Ruckler">
+      <div data-alevel="2" data-title="Ruckler">
+        <div data-slot="short"><p>Der Performance-Durchgang am Ende der Umsetzung: Glas, Scrollen, Messlatte.</p></div>
+        <div data-slot="long">
+          <div data-viz="bars" data-viz-spec='{"items":[{"label":"backdrop-filter (Glas)","value":55},{"label":"Scroll-Listener","value":17}],"unit":"Stellen"}'></div>
+          <p>Glas-Unschärfe über einem bewegten Hintergrund muss bei jedem Bild neu gerechnet werden, während der Fahrt und beim Scrollen. Dazu kommen 17 einzelne Scroll-Listener und das Skript-Gleiten von Bühne zu unterem Teil.</p>
+        </div>
+      </div>
+
+      <section id="d-glass" data-nav-label="Glas-Unschärfe" data-decision="d-glass" data-decision-mode="single" data-label="Glas-Unschärfe" data-rec="gezielt" data-rec-why="Listen-Karten sind die vielen, Kopfzeile und Dialoge die wenigen; dort bleibt der Glaseffekt sichtbar, wo er wirkt." data-applies-to="alle Flächen mit backdrop-filter" data-finding="f-glass">
+        <p data-applies>Gilt für: alle Flächen mit Glas-Unschärfe</p>
+        <p data-situation>55 Stellen nutzen <code>backdrop-filter</code>. Über der fahrenden Szene rechnet der Browser jede davon bei jedem Bild neu.</p>
+        <h3 data-question>Wo bleibt die Glas-Unschärfe?</h3>
+        <p data-stakes>Ruckler bei Fahrt und Scrollen gegen den Glas-Look.</p>
+        <div data-options>
+          <label data-opt="gezielt" data-recommended>
+            <input type="radio" name="dm-d-glass" value="gezielt" checked>
+            <span data-opt-label>Nur Kopfzeile, Menüs und Dialoge</span>
+            <span data-opt-consequence>Karten und Listen bekommen einen festen dunklen Ton, der gleich aussieht.</span>
+          </label>
+          <label data-opt="pause">
+            <input type="radio" name="dm-d-glass" value="pause">
+            <span data-opt-label>Überall behalten, während der Fahrt aussetzen</span>
+            <span data-opt-consequence>Glas bleibt, aber flackert beim Ein- und Ausschalten; Scrollen bleibt teuer.</span>
+          </label>
+          <label data-opt="alle">
+            <input type="radio" name="dm-d-glass" value="alle">
+            <span data-opt-label>Überall behalten</span>
+            <span data-opt-consequence>Ruckler auf schwächeren Rechnern bleiben.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-glass-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-glass-none" value=""><input type="hidden" name="dm-d-glass-hes" value=""><input type="hidden" name="dm-d-glass-touched" value=""><input type="hidden" name="dm-d-glass-issue" value=""><input type="hidden" name="dm-d-glass-epic" value="">
+        <div data-alevel="3" data-title="Glas-Unschärfe">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"55","unit":"Stellen","label":"backdrop-filter in src/app"}'></div></div>
+          <div data-slot="long">
+            <div data-viz="bars" data-viz-spec='{"items":[{"label":"news-list","value":4},{"label":"lightbox","value":3},{"label":"shell, quick-search, footer","value":6},{"label":"übrige","value":42}],"unit":""}'></div>
+            <p>Meist sind es kleine Unschärfen hinter Karten und Chips. Auf dem dunklen Himmel sieht ein fester Ton mit 88 % Deckkraft fast gleich aus und kostet nichts.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="d-glide" data-nav-label="Bühne → unterer Teil" data-decision="d-glide" data-decision-mode="single" data-label="Bühne → unterer Teil" data-rec="snap" data-rec-why="Natives Einrasten läuft im Compositor und kann nicht mit dem Hauptthread um Bilder kämpfen." data-applies-to="Verse-Hub und Codex: Wechsel von Bühne zu unterem Teil" data-finding="f-glide">
+        <p data-applies>Gilt für: Verse-Hub und Codex, Bühne zum unteren Teil</p>
+        <p data-situation>Ein Scroll auf der Bühne gleitet per Skript bis zum unteren Teil (<code>page-glide.ts</code>, <code>briefing-dock.ts</code>). Das Verhalten bleibt, die Frage ist nur wie.</p>
+        <h3 data-question>Womit gleitet die Seite von der Bühne zum unteren Teil?</h3>
+        <div data-options>
+          <label data-opt="snap" data-recommended>
+            <input type="radio" name="dm-d-glide" value="snap" checked>
+            <span data-opt-label>Mit nativem Einrasten (CSS scroll-snap)</span>
+            <span data-opt-consequence>Gleiches Verhalten, ohne Skript im Bild; die Gleitkurve bestimmt dann der Browser.</span>
+          </label>
+          <label data-opt="skript">
+            <input type="radio" name="dm-d-glide" value="skript">
+            <span data-opt-label>Skript behalten, nur entlasten</span>
+            <span data-opt-consequence>Eigene Kurve bleibt; Ruckler nur weniger, nicht weg.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-glide-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-glide-none" value=""><input type="hidden" name="dm-d-glide-hes" value=""><input type="hidden" name="dm-d-glide-touched" value=""><input type="hidden" name="dm-d-glide-issue" value=""><input type="hidden" name="dm-d-glide-epic" value="">
+        <div data-alevel="3" data-title="Bühne → unterer Teil">
+          <div data-slot="short"><p>2 Seiten mit Skript-Gleiten: Verse-Hub, Codex.</p></div>
+          <div data-slot="long"><p>Beim Skript-Gleiten setzt JavaScript jedes Bild die Scrollposition; jede andere Arbeit im selben Bild (Planet, Szene, Listener) lässt es stocken. Mit <code>scroll-snap-type: y mandatory</code> nur zwischen Bühne und unterem Teil übernimmt der Browser die Fahrt.</p></div>
+        </div>
+      </section>
+
+      <section id="d-scrollcam" data-nav-label="Kamera beim Scrollen" data-decision="d-scrollcam" data-decision-mode="yesnoalt" data-label="Kamera beim Scrollen" data-rec="yes" data-rec-why="Eine kleine Neigung mit dem Scrollen macht die Welt räumlich; per scroll-timeline läuft sie ohne Skript und ruckelt nicht." data-applies-to="alle Seiten der Shell-Beta" data-finding="f-scrollcam">
+        <p data-applies>Gilt für: alle Seiten mit der Szene</p>
+        <p data-situation>Beim Scrollen steht der Hintergrund heute still, die Seite gleitet darüber.</p>
+        <h3 data-question>Soll sich die Kamera beim Scrollen leicht mitneigen (höchstens 3 % der Höhe)?</h3>
+        <div data-options>
+          <label data-opt="yes" data-recommended><input type="radio" name="dm-d-scrollcam" value="yes" checked><span data-opt-label>Ja, leicht mitneigen</span><span data-opt-consequence>Sterne wandern etwas langsamer als die Seite; läuft im Compositor.</span></label>
+          <label data-opt="no"><input type="radio" name="dm-d-scrollcam" value="no"><span data-opt-label>Nein, Hintergrund steht</span><span data-opt-consequence>Wie heute.</span></label>
+          <label data-opt="alt"><input type="radio" name="dm-d-scrollcam" value="alt"><span data-opt-label>Anders</span><span data-opt-consequence>Eigene Antwort unten.</span></label>
+        </div>
+        <input type="text" name="dm-d-scrollcam-alt" value="" placeholder="Deine Antwort">
+        <textarea data-comment="d-scrollcam-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-scrollcam-none" value=""><input type="hidden" name="dm-d-scrollcam-hes" value=""><input type="hidden" name="dm-d-scrollcam-touched" value=""><input type="hidden" name="dm-d-scrollcam-issue" value=""><input type="hidden" name="dm-d-scrollcam-epic" value="">
+        <div data-alevel="3" data-title="Kamera beim Scrollen">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"≤ 3","unit":"%","label":"Neigung der Szene über die ganze Seite"}'></div></div>
+          <div data-slot="long"><p><code>animation-timeline: scroll()</code> auf der Himmelsebene, nur <code>transform</code>. Kein Scroll-Listener, kein Skript; ohne Unterstützung im Browser steht der Himmel wie heute.</p></div>
+        </div>
+      </section>
+
+      <section id="d-listeners" data-nav-label="Scroll-Listener" data-decision="d-listeners" data-decision-mode="verify" data-label="Scroll-Listener" data-rec="ok" data-rec-why="Ein gemeinsamer Takt liest Layout einmal pro Bild statt 17-mal." data-applies-to="alle Komponenten mit eigenem Scroll-Listener" data-finding="f-listeners">
+        <p data-applies>Gilt für: alle Komponenten mit eigenem Scroll-Listener</p>
+        <p data-situation>17 Komponenten hören einzeln auf Scroll und lesen Layout. Sie werden zu einem gemeinsamen Takt pro Bild zusammengelegt, ohne dass sich ihr Verhalten ändert.</p>
+        <h3 data-question>Ist das als reiner Umbau ohne sichtbare Änderung in Ordnung?</h3>
+        <div data-options>
+          <label data-opt="ok" data-recommended><input type="radio" name="dm-d-listeners" value="ok" checked><span data-opt-label>Ja, so umbauen</span><span data-opt-consequence>Gleiches Verhalten, weniger Arbeit pro Bild.</span></label>
+          <label data-opt="partial"><input type="radio" name="dm-d-listeners" value="partial"><span data-opt-label>Teilweise</span><span data-opt-consequence>Bitte unten sagen, was ausgenommen wird.</span></label>
+          <label data-opt="wrong"><input type="radio" name="dm-d-listeners" value="wrong"><span data-opt-label>Nein</span><span data-opt-consequence>Bitte unten begründen.</span></label>
+        </div>
+        <input type="text" name="dm-d-listeners-fix" value="" placeholder="Korrektur">
+        <textarea data-comment="d-listeners-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-listeners-none" value=""><input type="hidden" name="dm-d-listeners-hes" value=""><input type="hidden" name="dm-d-listeners-touched" value=""><input type="hidden" name="dm-d-listeners-issue" value=""><input type="hidden" name="dm-d-listeners-epic" value="">
+        <div data-alevel="3" data-title="Scroll-Listener">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"17","unit":"Listener","label":"auf window/document scroll"}'></div></div>
+          <div data-slot="long"><p>Darunter <code>briefing-planet</code>, <code>briefing-dock</code>, <code>fusion-bar</code>, <code>hq-page-bar</code>, <code>hq-pages</code>, <code>codex-holo-stage</code>, <code>codex-browse</code>. Jeder liest <code>getBoundingClientRect</code> oder <code>scrollY</code>; zusammen erzwingen sie mehrfaches Layout im selben Bild.</p></div>
+        </div>
+      </section>
+
+      <section id="d-budget" data-nav-label="Messlatte" data-decision="d-budget" data-decision-mode="single" data-label="Messlatte" data-rec="messen" data-rec-why="Ruckler sind auf dieser Maschine nur mit echter GPU messbar; eine Zahl macht den Durchgang prüfbar." data-applies-to="Abschluss des Performance-Durchgangs" data-finding="f-budget">
+        <p data-applies>Gilt für: Abschluss des Performance-Durchgangs</p>
+        <p data-situation>Frühere Messungen zeigten lange Bilder im GPU-Prozess bei freiem Hauptthread; ohne echte GPU und Zahl ist „ruckelfrei“ nicht prüfbar.</p>
+        <h3 data-question>Woran gilt der Durchgang als bestanden?</h3>
+        <div data-options>
+          <label data-opt="messen" data-recommended>
+            <input type="radio" name="dm-d-budget" value="messen" checked>
+            <span data-opt-label>Kein Bild über 33 ms bei Fahrt und Scrollen</span>
+            <span data-opt-consequence>Gemessen mit echter GPU auf 60 Hz und 144 Hz, vorher und nachher im Bericht.</span>
+          </label>
+          <label data-opt="auge">
+            <input type="radio" name="dm-d-budget" value="auge">
+            <span data-opt-label>Nach Augenmaß auf deinem Rechner</span>
+            <span data-opt-consequence>Schneller, aber nicht wiederholbar.</span>
+          </label>
+        </div>
+        <textarea data-comment="d-budget-note" placeholder="Notiz (optional)"></textarea>
+        <input type="hidden" name="dm-d-budget-none" value=""><input type="hidden" name="dm-d-budget-hes" value=""><input type="hidden" name="dm-d-budget-touched" value=""><input type="hidden" name="dm-d-budget-issue" value=""><input type="hidden" name="dm-d-budget-epic" value="">
+        <div data-alevel="3" data-title="Messlatte">
+          <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"33","unit":"ms","label":"längstes erlaubtes Bild"}'></div></div>
+          <div data-slot="long"><p>Gemessen werden je zehn Fahrten Verse ↔ Codex, Verse ↔ HQ, Hub ↔ News und ein Scroll über Codex-Liste und HQ. Rechner im Leerlauf, Fenster sichtbar, Shader vorgewärmt.</p></div>
+        </div>
+      </section>
+    </section>
+  </section>
+
+</section>
