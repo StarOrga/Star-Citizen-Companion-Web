@@ -827,7 +827,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .cohort-link:hover { color: var(--sc-accent); }
   /* The patch Δ fits the fixed card: no column wider than the card, the card scrolls inside (C18). */
   .patchdiff { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; overflow-x: auto; }
-  .patchdiff ::ng-deep .delta-table thead th { letter-spacing: 0.02em; }
+  .patchdiff ::ng-deep .delta-table thead th { letter-spacing: 0; font-size: max(9.5px, var(--sc-fs-floor)); }
+  .patchdiff ::ng-deep .delta-table th[scope="row"] { white-space: normal; hyphens: auto; }
   .patchdiff ::ng-deep .delta-table { font-size: max(11px, var(--f)); }
   .patchdiff ::ng-deep .delta-table th, .patchdiff ::ng-deep .delta-table td { padding: 4px 3px; }
   .patchdiff ::ng-deep .delta-head { flex-wrap: wrap; }

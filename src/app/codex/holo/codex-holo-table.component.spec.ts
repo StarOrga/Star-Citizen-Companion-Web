@@ -82,7 +82,7 @@ describe('CodexHoloTableComponent', () => {
     it('names a part by its type and size, with no numbers on the pin', () => {
       const f = setup({ pins: typed });
       const labels = pinButtons(f).map((b) => b.querySelector('.pin-label')!.textContent!.trim());
-      expect(labels).toEqual(['codex.moduleSection.coolers S2', 'codex.moduleSection.weapons S3']);
+      expect(labels).toEqual(['codex.holo.partType.cooler S2', 'codex.moduleSection.weapons S3']);
       expect(pinButtons(f).every((b) => b.querySelector('i')!.textContent!.trim() === '')).toBe(true);
     });
 
@@ -90,7 +90,7 @@ describe('CodexHoloTableComponent', () => {
       const f = setup({ pins: typed, inspectedPort: 'hp_a' });
       const el = f.nativeElement as HTMLElement;
       const co = el.querySelector('sc-holo-callout')!;
-      expect(co.querySelector('.k-t')!.textContent).toContain('codex.moduleSection.coolers');
+      expect(co.querySelector('.k-t')!.textContent).toContain('codex.holo.partType.cooler');
       expect(co.querySelector('.nm')!.textContent).toContain('Mantis Cooler');
       expect(co.querySelectorAll('.v > span').length).toBe(3);
       expect(el.querySelectorAll('sc-holo-callout').length).toBe(1);

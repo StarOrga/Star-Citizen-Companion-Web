@@ -32,13 +32,15 @@ const META_LINE = /^[ \t]*[^\s:][^:\n]{0,30}:[ \t]*[^\n]{0,60}\n+/;
  * that is nothing but such lines is kept as it is.
  */
 export function akteProse(raw: string): string {
-  let s = (raw ?? '').replace(/\r\n?/g, '\n').trimStart();
+  const all = (raw ?? '').replace(/\r\n?/g, '\n').trim();
+  let s = all;
   for (let i = 0; i < 6; i++) {
     const m = META_LINE.exec(s);
-    if (!m || !s.slice(m[0].length).trim()) break;
+    if (!m) break;
     s = s.slice(m[0].length);
   }
-  return s.trim();
+  // Only data lines, or the last one without a line end: nothing to strip them from.
+  return META_LINE.exec(s + '\n') && !s.includes('\n') && s.length <= 92 ? all : s.trim() || all;
 }
 
 /** Id of the factory paint in ship_skins: the official RSI image belongs to it. */

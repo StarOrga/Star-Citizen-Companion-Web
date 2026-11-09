@@ -79,7 +79,10 @@ export type HoloPatchSide = CodexBuild | 'active';
                 [attr.aria-label]="'codex.holo.patch.fromAria' | translate: { patch: fromLabel() }"
                 [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate">
           @if (from(); as f) {
-            {{ sideVersion(f) }} <em class="ch">{{ channelLabel(sideChannel(f)) }}</em>
+            {{ sideVersion(f) }}
+            <!-- Two extracts of one patch (4.10.2 → 4.10.2): the build tells them apart. -->
+            @if (f !== 'active' && f.patchVersion === sideVersion(to())) { <small class="bn">#{{ f.buildNumber.slice(-4) }}</small> }
+            <em class="ch">{{ channelLabel(sideChannel(f)) }}</em>
             @if (sideCurrent(f)) { <span class="cur">{{ 'codex.holo.patch.current' | translate }}</span> }
           } @else {
             <span class="ph">{{ 'codex.holo.patch.pickFrom' | translate }}</span>
@@ -212,6 +215,7 @@ export type HoloPatchSide = CodexBuild | 'active';
       font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-accent); }
     .cur::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent); }
     .car { font-size: 0.62rem; color: var(--sc-fg-2); }
+    .bn { font-size: max(0.62rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .patch-pop {
       position: absolute; top: calc(100% + 6px); left: 0; z-index: 80;

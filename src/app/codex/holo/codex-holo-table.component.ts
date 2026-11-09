@@ -1099,7 +1099,8 @@ export class CodexHoloTableComponent {
     for (const o of lay.labels) {
       if (o.portName === port) continue;
       const overX = o.rect.x < left + w && o.rect.x + o.rect.w > left;
-      const overY = o.rect.y < top + h && o.rect.y + o.rect.h > top;
+      // `h` is the callout's reserved box; its drawn card ends a few px earlier — a tag that only grazes it stays.
+      const overY = o.rect.y < top + h - 6 && o.rect.y + o.rect.h > top + 6;
       if (overX && overY) covered.add(o.portName);
     }
     return { pin, left, top, covered };
