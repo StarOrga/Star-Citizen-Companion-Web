@@ -217,5 +217,203 @@
         "answer": "aber ich kann auc h merhrere mein exemplar haben mit verschiedenen konfigurationen"
       }
     ]
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T17:51:42.407Z",
+    "favorite": null,
+    "userPins": [
+      {
+        "id": "up-mw9je2ad7a9y",
+        "design": "d1",
+        "screen": "r3-d1-s2",
+        "x": 27.1,
+        "y": 91,
+        "target": "span \"Einfach\"",
+        "text": "Ich finde gut, dass es integriert, aber irgendwie links breiter als rechts hmmm",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jeig2capz",
+        "design": "d1",
+        "screen": "r3-d1-s1",
+        "x": 72.6,
+        "y": 90.3,
+        "target": "button.bz-tab \"Bauteile\"",
+        "text": "sehr schön integriert, aber irgendwie auch doof, das s man die einordnung nicht direkt sieht usw... hmmmmm",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jg68n2l5o",
+        "design": "d1",
+        "screen": "r3-d1-s4",
+        "x": 60.9,
+        "y": 54.2,
+        "target": "div.b3-stage \"◧ Nur BildBei der Gladius handelt es sic\"",
+        "text": "hier natürlich dann das cig farbige bild was wir ja auch schon von den schiffen haben",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jll768ian",
+        "design": "d1",
+        "screen": "r3-d1-s4",
+        "x": 43.8,
+        "y": 17.2,
+        "target": "button.b3-hide \"◧ Nur Bild\"",
+        "text": "der umschalter sollte an der gleichen stelle eingeklappt und ausgeklappt sein!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jlvu0owf8",
+        "design": "d1",
+        "screen": "r3-d1-s4",
+        "x": 44.2,
+        "y": 43.8,
+        "target": "div.bz-row2 \"Bei RSI ansehen ↗\"",
+        "text": "Das panel sollte immer gleich groß sein, dazu schauen was maximal textlä#ngen sind",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jn43xvxe7",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 24.7,
+        "y": 95.8,
+        "target": "span.bz-val \"◆ Leichter Jäger\"",
+        "text": "Was wäre wenn wir den einsatz auf mitte oben verschieben, dann haben wir unten im panel für jedes subthema mehr platz und es sieht ordentlicher aus!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jnr4nzlbm",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 68.1,
+        "y": 89.7,
+        "target": "button.bz-tab \"Einordnung\"",
+        "text": "Oder die drei tehemen eher ähnlich wi edas textfeld in der aktehmmmm. Dann hätte man ein festes element was man immer anschaut...",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jp4fqmabf",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 36.3,
+        "y": 81.8,
+        "target": "button.bz-chip.off \"Alle Teile\"",
+        "text": "vllt. die filter auch irgendwi ein die ziele für die ansichten, dabei die gesammte ziele ausgenutzt! horizontal",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jq0bru0nn",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 69.6,
+        "y": 12.3,
+        "target": "b \"2× im Hangar\"",
+        "text": "Das 2x im hangar und das rechts danebnen sollten wir button technisch mergen, gern das hangar symbol weiterhin davo r",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-r3-d1-s1-a3",
+          "text": "das finde ich gut",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s4-a1",
+          "text": "ja das ist super",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s4-a2",
+          "text": "eigentlich schon und andereseits nicht, wie mit den koponennten typen filtern najaa....",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s6-a2",
+          "text": "´Das ist eine gute idee, dafür brauchen wir aber generell einen visuelelen code, auch rechts in bauteile oder unten in den einzlekomponenten das sollte immer gleich aussehen wenn es abweicht !",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s6-a3",
+          "text": "Finde ich super",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s7-a1",
+          "text": "passt",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s8-a1",
+          "text": "shehr gut! wobei zweiteres immer das neuere sein muss, entsprechend die auswhal ddynmaisch steurn was man dor tauswählne kann",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": [
+      {
+        "id": "r3-d1-s1-a3",
+        "screen": "r3-d1-s1",
+        "design": "d1",
+        "question": "Die Modelle stehen nur dann unter dem Namen, wenn es welche gibt. Passt „Standard“ als Name für die Grundversion?",
+        "improved": "Modelle unter dem Namen",
+        "answer": "das finde ich gut"
+      },
+      {
+        "id": "r3-d1-s4-a1",
+        "screen": "r3-d1-s4",
+        "design": "d1",
+        "question": "Der Text liegt als Karte links oben auf dem RSI-Bild. Gibt es für ein Schiff kein offizielles Bild, bleibt der Hologramm-Look wie bisher. Passt die Karte so?",
+        "improved": "Ohne Überschrift „Akte“",
+        "answer": "ja das ist super"
+      },
+      {
+        "id": "r3-d1-s4-a2",
+        "screen": "r3-d1-s4",
+        "design": "d1",
+        "question": "Die Lackierungen sitzen in der Akte über dem Filmstreifen; ein Klick tauscht das Bild. Fehlt für eine Lackierung ein RSI-Bild, zeigt die Akte das Hologramm in ihren Farben. In Ordnung?",
+        "answer": "eigentlich schon und andereseits nicht, wie mit den koponennten typen filtern najaa...."
+      },
+      {
+        "id": "r3-d1-s6-a2",
+        "screen": "r3-d1-s6",
+        "design": "d1",
+        "question": "Ein Teil, das vom Werk abweicht, trägt einen Punkt am Etikett und einen hellen Pin am Rumpf. Deutlich genug?",
+        "answer": "´Das ist eine gute idee, dafür brauchen wir aber generell einen visuelelen code, auch rechts in bauteile oder unten in den einzlekomponenten das sollte immer gleich aussehen wenn es abweicht !"
+      },
+      {
+        "id": "r3-d1-s6-a3",
+        "screen": "r3-d1-s6",
+        "design": "d1",
+        "question": "Abzeichen und Ausstattung stehen jetzt oben rechts beim Namen, weil unten rechts die Tabs andocken. Passt der Platz?",
+        "answer": "Finde ich super"
+      },
+      {
+        "id": "r3-d1-s7-a1",
+        "screen": "r3-d1-s7",
+        "design": "d1",
+        "question": "„Deine Anpassungen“ ist vorgewählt, solange ein Exemplar gezeigt wird, und listet, was du gegenüber dem Werk getauscht hast. Trifft der Name, oder lieber „Dein Umbau“?",
+        "answer": "passt"
+      },
+      {
+        "id": "r3-d1-s8-a1",
+        "screen": "r3-d1-s8",
+        "design": "d1",
+        "question": "Von und bis in einer Zeile, der Kanal als kleines Etikett, der Live-Patch mit Punkt und „aktuell“. Liest sich das auf einen Blick?",
+        "improved": "Kanal als Etikett, eine Zeile",
+        "answer": "shehr gut! wobei zweiteres immer das neuere sein muss, entsprechend die auswhal ddynmaisch steurn was man dor tauswählne kann"
+      }
+    ]
   }
 ]
