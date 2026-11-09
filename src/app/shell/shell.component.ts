@@ -15,7 +15,7 @@ import {
   untracked,
   viewChildren,
 } from '@angular/core';
-import { setRootVar } from '../core/root-var';
+import { claimRootAttr, setRootVar } from '../core/root-var';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   NavigationCancel,
@@ -1165,6 +1165,9 @@ export class ShellComponent implements AfterViewInit {
   private topbarHeightPx: number | null = null;
 
   constructor() {
+    // The layout on <html> too: global rules read html[data-sc-layout], never html:has([data-layout]).
+    effect(() => claimRootAttr('data-sc-layout', this, this.shellOn() ? this.layout.layout() : null));
+    inject(DestroyRef).onDestroy(() => claimRootAttr('data-sc-layout', this, null));
     // Profile menu: mount on open, keep it until its reversed close has played.
     effect(() => {
       const open = this.menuOpen();

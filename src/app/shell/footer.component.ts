@@ -144,7 +144,7 @@ import { BRAND_NAME } from '../core/brand';
       }
       /* A detail page's share button sits beside the feedback launcher: the
          links then end the same distance before it. */
-      :host-context(html:has(sc-share-button .dock)) .sf {
+      :host-context(html[data-sc-share-dock]) .sf {
         padding-inline-end: calc(var(--sc-fab-clear-inline) + max(44px, var(--sc-tap-min)) + var(--sc-space-4));
       }
     }

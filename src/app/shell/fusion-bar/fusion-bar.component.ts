@@ -16,7 +16,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { setRootVar } from '../../core/root-var';
+import { claimRootAttr, setRootVar } from '../../core/root-var';
 import { onScrollTick } from '../../core/scroll-tick';
 import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
@@ -67,6 +67,8 @@ export const ENTER_MS = 3100;
 export const SWEEP_MS = 1700;
 /** Longest wait for the router's scroll reset after a route change before the state settles anyway. */
 const NAV_SETTLE_MS = 400;
+/** A resize-driven height publish waits until the bar/body size has stood still this long. */
+const PUBLISH_SETTLE_MS = 140;
 /** Tokens shown inside the search field before the rest folds into "+n". */
 const MAX_TOKENS = 3;
 
@@ -507,6 +509,11 @@ export class FusionBarComponent {
       });
     });
 
+    // Staged or not on <html> for the phone rules (html[data-sc-bar], never html:has(sc-fusion-bar…)).
+    // Coarse on purpose: every flip restyles the document, the hero's dock fade reads the
+    // hero's own attributes (StageHeroDirective).
+    effect(() => claimRootAttr('data-sc-bar', this, this.mode() === 'stage' ? 'stage' : 'bar'));
+
     // The stage slot comes and goes with the page: track it and stand on it.
     effect(() => {
       const anchor = this.chrome.stageAnchor();
@@ -555,6 +562,7 @@ export class FusionBarComponent {
     inject(DestroyRef).onDestroy(() => {
       if (this.morphTimer) clearTimeout(this.morphTimer);
       if (this.quietTimer) clearTimeout(this.quietTimer);
+      if (this.publishTimer) clearTimeout(this.publishTimer);
       this.pendingFlip = null;
       this.chrome.setSnap(false);
       if (this.enterTimer) clearTimeout(this.enterTimer);
@@ -568,6 +576,7 @@ export class FusionBarComponent {
       this.anchorRo?.disconnect();
       this.chrome.setBarHidden(false);
       this.chrome.setStageSearch('none');
+      claimRootAttr('data-sc-bar', this, null);
       if (typeof document !== 'undefined') {
         document.documentElement.style.removeProperty('--sc-topbar-h');
         document.documentElement.style.removeProperty('--sc-bar-stack-h');
@@ -825,7 +834,7 @@ export class FusionBarComponent {
     if (typeof requestAnimationFrame !== 'function' || this.measureFrame) return;
     this.measureFrame = requestAnimationFrame(() => {
       this.measureFrame = 0;
-      this.publishHeight();
+      this.publishHeightSettled();
       this.placeStage();
     });
   }
@@ -912,15 +921,35 @@ export class FusionBarComponent {
    */
   private publishHeight(): void {
     if (typeof document === 'undefined') return;
+    if (this.publishTimer) clearTimeout(this.publishTimer);
+    this.publishTimer = null;
     const el = this.host.nativeElement as HTMLElement;
     const staged = this.mode() === 'stage';
     // The bar parks `--sc-chrome-top` (minus its 4px padding) below the viewport top: that lift counts.
     const lift = Math.max(0, (parseFloat(getComputedStyle(el).top) || 0) - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sc-imp-banner-h')) || 0));
-    const px = this.phone() || this.hidden() || staged ? 0 : Math.round(el.getBoundingClientRect().height + lift);
+    // Layout height, not the rect: the morph scales the bar, and every in-between value
+    // written on <html> restyled the whole document in that frame.
+    const h = el.offsetHeight;
+    const px = this.phone() || this.hidden() || staged ? 0 : Math.round(h + lift);
     setRootVar('--sc-topbar-h', `${px}px`);
     // Phone: the whole bottom stack (bar + panel) the page must keep free.
-    const stack = this.phone() && !staged ? Math.round(el.getBoundingClientRect().height) : 0;
+    const stack = this.phone() && !staged ? Math.round(h) : 0;
     setRootVar('--sc-bar-stack-h', `${stack}px`);
+  }
+
+  /**
+   * The ResizeObserver path: the bar and the body resize in every frame of a morph or a
+   * route swap, and each new value on <html> restyles the whole document (perf-report
+   * "Wave 2c root cause"). Publish once the size has stood still for {@link PUBLISH_SETTLE_MS};
+   * mode changes still publish at once.
+   */
+  private publishTimer: ReturnType<typeof setTimeout> | null = null;
+  private publishHeightSettled(): void {
+    if (this.publishTimer) clearTimeout(this.publishTimer);
+    this.publishTimer = setTimeout(() => {
+      this.publishTimer = null;
+      this.publishHeight();
+    }, PUBLISH_SETTLE_MS);
   }
 
   private pulse(kind: 'morph' | 'enter'): void {

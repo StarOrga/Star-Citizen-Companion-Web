@@ -7,10 +7,11 @@
 // world and fades the objects a pose does not show over the flight
 // (--o-<object>, --scene-move from the component).
 //
-// Not encapsulated: the scene must clear the body's own background (html
+// Not encapsulated (and keyed on html[data-sc-scene], set by the component — a body:has() would
+// restyle the whole page on every DOM change): the scene must clear the body's own background (html
 // keeps --sc-bg-0, the canvas), or the opaque body would paint over this
 // z-index -1 layer. Everything else is scoped under the host class .sc-shell-scene.
-body:has(.sc-shell-scene > .scene) { background: transparent; }
+html[data-sc-scene] body { background: transparent; }
 
 .sc-shell-scene {
   & {
@@ -272,7 +273,7 @@ body:has(.sc-shell-scene > .scene) { background: transparent; }
 // phone, past the right edge; the body clips it on both axes, so the overshoot
 // never lengthens or widens the page (clip, not hidden: no scroll container,
 // sticky and the viewport scroll stay as they are).
-body:has(.brief-world) { overflow: clip; }
+html[data-sc-brief-world] body { overflow: clip; }
 
 @keyframes sc-scene-city { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
 @keyframes sc-scene-beacon { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }

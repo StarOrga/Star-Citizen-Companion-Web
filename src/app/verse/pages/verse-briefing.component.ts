@@ -20,6 +20,7 @@ import { SceneCameraService } from '../../shell/scene/scene-camera.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
+import { claimRootAttr } from '../../core/root-var';
 import { WindowFocusService } from '../../core/window-focus.service';
 import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
@@ -527,6 +528,9 @@ export class VerseBriefingComponent {
   private readonly injector = inject(Injector);
 
   constructor() {
+    // The hub's planet runs on past the page end: html[data-sc-brief-world] lets the body clip it.
+    effect(() => claimRootAttr('data-sc-brief-world', this, this.enabled() && this.shell() ? '' : null));
+    inject(DestroyRef).onDestroy(() => claimRootAttr('data-sc-brief-world', this, null));
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
     void this.api.loadSeen();
     if (this.shell()) void this.galleryFill.load();
