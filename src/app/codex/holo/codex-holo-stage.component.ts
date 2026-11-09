@@ -798,7 +798,11 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .tcount { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-accent); }
   .ptab.on .tcount { color: var(--sc-fg-0); }
   .pbody { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 12px 16px; animation: rise var(--rise-dur, 300ms) var(--e-out) var(--rise-delay, 60ms) backwards;
-  transition: opacity var(--holo-t-fast) var(--e-io); }
+  transition: opacity var(--holo-t-fast) var(--e-io);
+  /* The card scrolls; its bottom edge fades instead of cutting a line in half, and the extra bottom
+     padding lets the last line scroll fully clear of the fade (QA: "Außen – fast bester Wert…"). */
+  padding-bottom: 28px; scroll-padding-bottom: 28px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent); }
   .ph-reveal .pbody { --rise-dur: 560ms; --rise-delay: 260ms; }
   .holo-stage:not(.first):is(.ph-wait, .ph-hero) :is(.holo-below, .pbody) { opacity: 0.35; }
   .pbody:focus-visible { outline: none; }
