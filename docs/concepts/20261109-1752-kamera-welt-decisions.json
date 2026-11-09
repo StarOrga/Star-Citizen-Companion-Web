@@ -1,0 +1,79 @@
+[
+ {
+  "iteration": 1,
+  "action": "iterate",
+  "favorite": "schwenk",
+  "general": "das concept ist mir viel zu wenig detailgetreu, nmimm wirklich die aktuelle live variante en ddetail und btw hq soll voll auf dem planetetn statfinden und schaue dir nochmal viel gnauer aktuelle backgrounds an, animationen naja, aber wo man wann wie ist am ende",
+  "decisions": [
+   {
+    "id": "d-snapshot",
+    "value": "live",
+    "untouched": true
+   },
+   {
+    "id": "d-setpieces",
+    "value": "welt",
+    "untouched": true
+   },
+   {
+    "id": "d-sub",
+    "value": "push",
+    "untouched": true
+   },
+   {
+    "id": "d-first",
+    "value": "ankunft",
+    "untouched": true
+   },
+   {
+    "id": "d-dur",
+    "value": 1100,
+    "untouched": true
+   },
+   {
+    "id": "d-scope",
+    "value": "beta",
+    "untouched": true
+   },
+   {
+    "id": "d-reduced",
+    "value": "ok",
+    "untouched": true
+   },
+   {
+    "id": "d-retarget",
+    "value": "ok",
+    "untouched": true
+   },
+   {
+    "id": "d-glass",
+    "value": "gezielt",
+    "untouched": true
+   },
+   {
+    "id": "d-glide",
+    "value": "snap",
+    "untouched": true
+   },
+   {
+    "id": "d-scrollcam",
+    "value": {
+     "answer": "yes",
+     "alt": ""
+    },
+    "untouched": true
+   },
+   {
+    "id": "d-listeners",
+    "value": "ok",
+    "untouched": true
+   },
+   {
+    "id": "d-budget",
+    "value": "messen",
+    "untouched": true
+   }
+  ],
+  "response": "Round 2: one world built from live captures (sky, WebGL planet, holotable, content layers); world map with every page as a camera frame, a tour, end poses with a HEUTE inset; HQ moved onto the planet night side; station proposed as Admin; round-1 technical questions carried over unchanged (all untouched)."
+ }
+]
