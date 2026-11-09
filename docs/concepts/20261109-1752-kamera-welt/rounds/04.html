@@ -1,4 +1,5 @@
-<section data-iteration="4" data-iteration-template="design" data-tab-label="Runde 4">
+<section data-iteration="4" data-iteration-template="design" data-tab-label="Runde 4" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{"d4-starmap":"hier sollte dann auch nur die sternenkarte sein, der background planet ok, leicht sichtbar, aber nicht rechts der galieri planet sichtbar 1","d4-pb-pop-l":"animativ sind die popups schon besser aber ich mag das design nicht mit den komischen ecken drum...  das ist nicht spacig.... eher nur zukunftsmäßig..."},"views":{},"userPins":[{"id":"up-mw9lzel02odm","design":"welt4","screen":"d4-pb-main","x":15,"y":64.6,"target":"div.d4-o.d4-o-hub","text":"Das zünden von news planet des projektor und panel darf ruhig mit deutlichen versatz geschehnen, eher sptäer nach 5s weiteren und dann 5s stehen lassen und dann 5 sekunden ohne projektion und panel und dann das nächste vom anderen planeten ussw.\nDas gilt aber generell egal wann ich woher komme","attachments":[]},{"id":"up-mw9m1iwm267g","design":"welt4","screen":"d4-pb-scroll","x":32.3,"y":6.8,"target":"div.d4-r.d4-pb-scroll-r2","text":"der header mit icon namen  und die suche und die profilicons usw. sollten sich transformieren in diesen subheader, viel besser bitte! schau dir das intensiv  an wie das aktuell gehscieht !","attachments":[]},{"id":"up-mw9m4ix3dfj4","design":"welt4","screen":"d4-pb-minor","x":26.9,"y":16.2,"target":"div.d4-r.d4-pb-minor-r1","text":"Bitte den titel auch auf die richitsige seitenbreite justierne","attachments":[]}]}</script>
 <style>
 
 .d4-screen { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 600px; box-sizing: border-box; background: #02070d; overflow: hidden; }
@@ -648,8 +649,8 @@
         <p data-situation>Du wolltest es länger und trailerhaft, aber ohne Minuten. Die Recherche empfiehlt rund 7 s bis zum Endzustand, höchstens 8 s, die Suche nutzbar ab 3,5 s.</p>
         <h3 data-question>Wie lange läuft der große Auftritt?</h3>
         <div data-options><input type="range" name="dm-r4-d-len" min="5000" max="10000" step="250" value="7000"></div>
-        <textarea data-comment="r4-d-len-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r4-d-len-hes" value=""><input type="hidden" name="dm-r4-d-len-touched" value=""><input type="hidden" name="dm-r4-d-len-issue" value=""><input type="hidden" name="dm-r4-d-len-epic" value="">
+        <textarea data-comment="r4-d-len-note" placeholder="Notiz (optional)">das will ich nicht bestimmen! DDa gibt es keine vorgabe von rmir!</textarea>
+        <input type="hidden" name="dm-r4-d-len-hes" value="{&quot;ms&quot;:21460,&quot;revisits&quot;:1,&quot;median&quot;:16433}"><input type="hidden" name="dm-r4-d-len-touched" value="1"><input type="hidden" name="dm-r4-d-len-issue" value=""><input type="hidden" name="dm-r4-d-len-epic" value="">
         <div data-alevel="3" data-title="Länge des Auftritts">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"10","unit":"s","label":"Grenze der Aufmerksamkeit (NN/G)"}'></div></div>
           <div data-slot="long"><p>Quellen: nngroup.com/articles/response-times-3-important-limits (0,1 / 1 / 10 s), nngroup.com/articles/animation-duration (UI-Animationen 100–500 ms, eher zu lang als zu kurz). Die Trailer-Werte sind Erfahrungswerte ohne Messquelle. Tippen vor 3,5 s beendet den Auftritt und landet im Suchfeld.</p></div>
@@ -667,7 +668,7 @@
         </div>
         <input type="text" name="dm-r4-d-path-fix" value="" placeholder="Korrektur">
         <textarea data-comment="r4-d-path-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r4-d-path-none" value=""><input type="hidden" name="dm-r4-d-path-hes" value=""><input type="hidden" name="dm-r4-d-path-touched" value=""><input type="hidden" name="dm-r4-d-path-issue" value=""><input type="hidden" name="dm-r4-d-path-epic" value="">
+        <input type="hidden" name="dm-r4-d-path-none" value=""><input type="hidden" name="dm-r4-d-path-hes" value="{&quot;ms&quot;:9580,&quot;revisits&quot;:1,&quot;median&quot;:16433}"><input type="hidden" name="dm-r4-d-path-touched" value="1"><input type="hidden" name="dm-r4-d-path-issue" value=""><input type="hidden" name="dm-r4-d-path-epic" value="">
         <div data-alevel="3" data-title="Gerade Kamerawege">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"0","unit":"Richtungswechsel","label":"pro Fahrt"}'></div></div>
           <div data-slot="long"><p>Runde 3 interpolierte Zoom und Verschiebung getrennt; dabei lief ein Planet erst in die eine, dann in die andere Richtung. Jetzt: Zoom logarithmisch um den Fixpunkt beider Posen.</p></div>
@@ -683,7 +684,7 @@
           <label data-opt="always"><input type="radio" name="dm-r4-d-labels" value="always"><span data-opt-label>Am Handy immer klein sichtbar</span><span data-opt-consequence>Ein Tipp öffnet sofort, das Bild ist etwas voller.</span></label>
         </div>
         <textarea data-comment="r4-d-labels-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r4-d-labels-none" value=""><input type="hidden" name="dm-r4-d-labels-hes" value=""><input type="hidden" name="dm-r4-d-labels-touched" value=""><input type="hidden" name="dm-r4-d-labels-issue" value=""><input type="hidden" name="dm-r4-d-labels-epic" value="">
+        <input type="hidden" name="dm-r4-d-labels-none" value=""><input type="hidden" name="dm-r4-d-labels-hes" value="{&quot;ms&quot;:16433,&quot;revisits&quot;:0,&quot;median&quot;:16433}"><input type="hidden" name="dm-r4-d-labels-touched" value="1"><input type="hidden" name="dm-r4-d-labels-issue" value=""><input type="hidden" name="dm-r4-d-labels-epic" value="">
         <div data-alevel="3" data-title="Planetennamen am Handy">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"3","unit":"Planeten","label":"News, Patches, Galerie"}'></div></div>
           <div data-slot="long"><p>Die Sonne macht es heute schon so: Name per <code>[scTooltip]</code>. Die Planeten bekommen denselben Weg, Tastaturfokus zeigt den Namen ebenfalls.</p></div>
@@ -699,7 +700,7 @@
           <label data-opt="minor"><input type="radio" name="dm-r4-d-rail" value="minor"><span data-opt-label>Nur Einstellungen und Profil</span><span data-opt-consequence>Andere Seiten behalten ihr Menü.</span></label>
         </div>
         <textarea data-comment="r4-d-rail-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r4-d-rail-none" value=""><input type="hidden" name="dm-r4-d-rail-hes" value=""><input type="hidden" name="dm-r4-d-rail-touched" value=""><input type="hidden" name="dm-r4-d-rail-issue" value=""><input type="hidden" name="dm-r4-d-rail-epic" value="">
+        <input type="hidden" name="dm-r4-d-rail-none" value=""><input type="hidden" name="dm-r4-d-rail-hes" value="{&quot;ms&quot;:6778,&quot;revisits&quot;:0,&quot;median&quot;:16433}"><input type="hidden" name="dm-r4-d-rail-touched" value="1"><input type="hidden" name="dm-r4-d-rail-issue" value=""><input type="hidden" name="dm-r4-d-rail-epic" value="">
         <div data-alevel="3" data-title="HQ-Seitenleiste als Stil">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Vorbild","label":"sc-hq-rail"}'></div></div>
           <div data-slot="long"><p>Vorlage ist <code>src/app/hq/hq-rail.component.ts</code>: schmale Icons am linken Rand, aktiver Eintrag mit Leuchtstrich, Name als Tooltip.</p></div>
@@ -717,7 +718,7 @@
         </div>
         <input type="text" name="dm-r4-d-auto-fix" value="" placeholder="Korrektur">
         <textarea data-comment="r4-d-auto-note" placeholder="Notiz (optional)"></textarea>
-        <input type="hidden" name="dm-r4-d-auto-none" value=""><input type="hidden" name="dm-r4-d-auto-hes" value=""><input type="hidden" name="dm-r4-d-auto-touched" value=""><input type="hidden" name="dm-r4-d-auto-issue" value=""><input type="hidden" name="dm-r4-d-auto-epic" value="">
+        <input type="hidden" name="dm-r4-d-auto-none" value=""><input type="hidden" name="dm-r4-d-auto-hes" value="{&quot;ms&quot;:93478,&quot;revisits&quot;:0,&quot;median&quot;:16433}"><input type="hidden" name="dm-r4-d-auto-touched" value="1"><input type="hidden" name="dm-r4-d-auto-issue" value=""><input type="hidden" name="dm-r4-d-auto-epic" value="">
         <div data-alevel="3" data-title="Automatische Hinweise">
           <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Animation","label":"für alle kleinen Einblendungen"}'></div></div>
           <div data-slot="long"><p>Betrifft den App-Hinweis unten rechts im Verse und die Meldungen der Seiten; schließen weiter rückwärts in 60 % der Zeit.</p></div>
