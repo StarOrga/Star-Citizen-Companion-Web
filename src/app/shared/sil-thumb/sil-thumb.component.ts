@@ -29,6 +29,7 @@ const KIND_ICON: Readonly<Record<string, SearchIconKind>> = {
       <svg class="sil" [attr.viewBox]="t.viewBox" preserveAspectRatio="xMidYMid meet" fill="none" stroke="currentColor"
            stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
         <path [attr.d]="t.path" [attr.transform]="t.transform || null" vector-effect="non-scaling-stroke" />
+        @if (t.edges) { <path class="edges" [attr.d]="t.edges" vector-effect="non-scaling-stroke" stroke-width="0.8" opacity="0.5" /> }
       </svg>
     } @else {
       <svg class="ic" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" fill="none" stroke="currentColor" stroke-width="1.5"

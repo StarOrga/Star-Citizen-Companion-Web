@@ -56,6 +56,8 @@ export interface HoloSilhouette {
   source: SilhouetteSource | null;
   viewBox: string;
   path: string;
+  /** Inner feature edges: open polylines in the same viewBox as `path`, stroke only. Non-ship kinds, when the uploader emitted them. */
+  edges?: string | null;
   bbox: SilhouetteBbox;
   scaleMPerUnit: number | null;
   anchors: readonly SilhouetteAnchor[];
@@ -72,6 +74,11 @@ function isFiniteNumber(v: unknown): v is number {
 
 function asString(v: unknown): string | null {
   return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
+/** The optional inner-edge path: a non-empty string under the size cap, else null (the outline alone then renders). */
+function parseEdges(v: unknown): string | null {
+  return typeof v === 'string' && v.length > 0 && v.length <= MAX_PATH_LENGTH ? v : null;
 }
 
 function parseBbox(raw: unknown): SilhouetteBbox | null {
@@ -185,6 +192,7 @@ export function parseHoloSilhouette(row: Record<string, unknown> | null | undefi
     source: parseSource(meta),
     viewBox,
     path,
+    edges: parseEdges(row['edges']),
     bbox,
     scaleMPerUnit: isFiniteNumber(meta['scaleMPerUnit']) ? (meta['scaleMPerUnit'] as number) : null,
     anchors,

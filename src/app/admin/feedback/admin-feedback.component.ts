@@ -48,6 +48,7 @@ import {
   DeclineReasonId,
   DeclineReasonTexts,
   adminAsk,
+  awaitsDeploy,
   awaitsReview,
   awaitsTriage,
   declineReasonLabelKey,
@@ -722,6 +723,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       <ng-template #refLink let-m>
         @if (m.ship_ref) {
           @let refLabel = (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate;
+          @if (awaitsDeploy(m)) {
+            <span class="deploy-lag" [scTooltip]="'adminFeedback.deployLagHint' | translate">⏳ {{ 'adminFeedback.deployLag' | translate }}</span>
+          }
           <a
             class="link-btn quiet ref"
             [href]="m.ship_ref"
@@ -1226,6 +1230,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     /* The PR / issue arrow sits on the far right of its row and stays quiet
        until you look for it (feedback d08f1983). */
     .link-btn.ref { margin-left: auto; min-width: 36px; justify-content: center; padding: 0 8px; border-color: transparent; color: var(--sc-fg-2); font-size: 1rem; }
+    .deploy-lag { margin-left: auto; font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-warning); white-space: nowrap; }
+    .deploy-lag + .link-btn.ref { margin-left: 0; }
     .link-btn.ref:hover { border-color: var(--sc-border); color: var(--sc-fg-1); }
     .link-btn:hover { background: rgba(0, 212, 255, 0.08); }
 
@@ -1449,6 +1455,9 @@ export class AdminFeedbackComponent implements OnInit {
   // ---- Derivations every surface shares --------------------------------------
 
   /** The presentation bucket — the board's one bucketing rule. */
+  /** Merged, production does not carry it yet (live_at still empty). */
+  protected readonly awaitsDeploy = awaitsDeploy;
+
   bucketOf(m: FeedbackRow): FeedbackBucket {
     return feedbackBucket(m, this.threads().get(m.id));
   }

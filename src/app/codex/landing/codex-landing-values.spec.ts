@@ -83,6 +83,23 @@ describe('hero claims', () => {
     expect(lines).toContain('codex.landing.claims.ship.s1');
   });
 
+  it('discovery picks and merely changed entries are never claimed as "neu in"', () => {
+    const picks: LandingCodexCategory = { category: 'fpsWeapon', count: 0, announced: 0, discover: true, entries: [{ id: 'x', name: 'Canuto', route: [], announced: false }] };
+    expect(buildClaims(t, 'fpsWeapon', { patch: '4.10.2', news: picks }).some((l) => l.includes('Canuto'))).toBe(false);
+    const changed: LandingCodexCategory = {
+      category: 'tool',
+      count: 2,
+      announced: 0,
+      entries: [
+        { id: 'n', name: 'Fresh', route: [], announced: false, isNew: true },
+        { id: 'u', name: 'Tweaked', route: [], announced: false, updated: true },
+      ],
+    };
+    const lines = buildClaims(t, 'tool', { patch: '4.10.2', news: changed });
+    expect(lines.some((l) => l.includes('Fresh'))).toBe(true);
+    expect(lines.some((l) => l.includes('Tweaked'))).toBe(false);
+  });
+
   it('without data: the static claims fill all seven lines, never twice in a row', () => {
     const lines = buildClaims(t, 'tool', { patch: null, news: null });
     expect(lines.length).toBe(CLAIMS_PER_CATEGORY);

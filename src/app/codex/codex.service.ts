@@ -1674,20 +1674,36 @@ export class CodexService {
    * row fails {@link parseHoloSilhouette}'s validation — both cases render the
    * same §C3 neutral placeholder, never a guessed shape.
    */
+  /** False once the view answered that `edges` does not exist yet (migration 20261108222000 not deployed). */
+  private silhouetteEdges = true;
+
+  private silhouetteColumns(): string {
+    return `kind, class_name, channel, patch_version, build_number, view_box, path, ${this.silhouetteEdges ? 'edges, ' : ''}bbox, anchors, unresolved, meta, generated_at`;
+  }
+
+  /** A read that failed only because `edges` is missing: drop the column for this session and say to retry. */
+  private dropMissingEdges(error: { code?: string; message?: string }): boolean {
+    if (!this.silhouetteEdges || error.code !== '42703' || !/edges/.test(error.message ?? '')) return false;
+    this.silhouetteEdges = false;
+    logWarn('codex', 'codex_silhouettes has no edges column yet, reading without it');
+    return true;
+  }
+
   async silhouette(kind: SilhouetteKind, className: string): Promise<HoloSilhouette | null> {
     const build = await this.loadCurrentBuild();
     if (!build) return null;
     const cacheKey = `${build.id}:${kind}:${className}`;
     if (this.silhouetteCache.has(cacheKey)) return this.silhouetteCache.get(cacheKey)!;
-    const { data, error } = await this.sb.client
-      .from('codex_silhouettes')
-      .select(
-        'kind, class_name, channel, patch_version, build_number, view_box, path, bbox, anchors, unresolved, meta, generated_at',
-      )
-      .eq('build_id', build.id)
-      .eq('kind', kind)
-      .eq('class_name', className)
-      .maybeSingle();
+    const read = () =>
+      this.sb.client
+        .from('codex_silhouettes')
+        .select(this.silhouetteColumns())
+        .eq('build_id', build.id)
+        .eq('kind', kind)
+        .eq('class_name', className)
+        .maybeSingle();
+    let { data, error } = await read();
+    if (error && this.dropMissingEdges(error)) ({ data, error } = await read());
     // wave 1.5 fix (redteam should-fix): a transport ERROR is not the same
     // fact as "no row exists" — memoizing null on error would permanently
     // hide a silhouette that is really just one flaky request away, for the
@@ -1697,7 +1713,7 @@ export class CodexService {
       logWarn('codex', 'silhouette read failed', { kind, className, error });
       return null;
     }
-    const parsed = data ? parseHoloSilhouette(data as Record<string, unknown>) : null;
+    const parsed = data ? parseHoloSilhouette(data as unknown as Record<string, unknown>) : null;
     this.silhouetteCache.set(cacheKey, parsed);
     return parsed;
   }
@@ -1734,14 +1750,15 @@ export class CodexService {
     const CHUNK = 200;
     for (let i = 0; i < toFetch.length; i += CHUNK) {
       const chunk = toFetch.slice(i, i + CHUNK);
-      const { data, error } = await this.sb.client
-        .from('codex_silhouettes')
-        .select(
-          'kind, class_name, channel, patch_version, build_number, view_box, path, bbox, anchors, unresolved, meta, generated_at',
-        )
-        .eq('build_id', build.id)
-        .eq('kind', kind)
-        .in('class_name', chunk);
+      const read = () =>
+        this.sb.client
+          .from('codex_silhouettes')
+          .select(this.silhouetteColumns())
+          .eq('build_id', build.id)
+          .eq('kind', kind)
+          .in('class_name', chunk);
+      let { data, error } = await read();
+      if (error && this.dropMissingEdges(error)) ({ data, error } = await read());
       if (error) {
         // Transport error: leave this chunk's entries unmemoized, retryable later.
         logWarn('codex', 'silhouette chunk failed', { kind, count: chunk.length, error });
@@ -1749,7 +1766,7 @@ export class CodexService {
       }
 
       const seen = new Set<string>();
-      for (const row of (data ?? []) as Record<string, unknown>[]) {
+      for (const row of (data ?? []) as unknown as Record<string, unknown>[]) {
         const className = row['class_name'] as string;
         seen.add(className);
         const parsed = parseHoloSilhouette(row);

@@ -1,0 +1,82 @@
+{
+  "pl04": {
+    "mesh": "COOL_AEGS_S01 cooler mesh cool_aegs_s01_pl04 (Bracer-shaped quad)",
+    "triangles": 28443,
+    "droppedPrimitives": 0,
+    "before": {
+      "pointCount": 9,
+      "pathChars": 141,
+      "view": "top",
+      "tolM": 0.15
+    },
+    "after": {
+      "pointCount": 224,
+      "pathChars": 3490,
+      "view": "top",
+      "edgesChars": 7125,
+      "edgePolylines": 84,
+      "tolM": 0.003005,
+      "seconds": 1.63
+    }
+  },
+  "pl02": {
+    "mesh": "COOL_AEGS_S01 cooler mesh cool_aegs_s01_pl02",
+    "triangles": 27115,
+    "droppedPrimitives": 0,
+    "before": {
+      "pointCount": 25,
+      "pathChars": 418,
+      "view": "top",
+      "tolM": 0.15
+    },
+    "after": {
+      "pointCount": 136,
+      "pathChars": 2158,
+      "view": "top",
+      "edgesChars": 7084,
+      "edgePolylines": 88,
+      "tolM": 0.003005,
+      "seconds": 1.74
+    }
+  },
+  "missile": {
+    "mesh": "BEHR_Pathfinder_S4 missile",
+    "triangles": 16584,
+    "droppedPrimitives": 0,
+    "before": {
+      "pointCount": 6,
+      "pathChars": 93,
+      "view": "top",
+      "tolM": 0.15
+    },
+    "after": {
+      "pointCount": 31,
+      "pathChars": 477,
+      "view": "top",
+      "edgesChars": 7154,
+      "edgePolylines": 105,
+      "tolM": 0.016224,
+      "seconds": 0.87
+    }
+  },
+  "fps": {
+    "mesh": "ammo_fps_none_modified_rocket",
+    "triangles": 23706,
+    "droppedPrimitives": 0,
+    "before": {
+      "pointCount": 5,
+      "pathChars": 79,
+      "view": "top",
+      "tolM": 0.15
+    },
+    "after": {
+      "pointCount": 67,
+      "pathChars": 1041,
+      "view": "top",
+      "edgesChars": 6980,
+      "edgePolylines": 48,
+      "tolM": 0.001655,
+      "seconds": 1.47
+    }
+  }
+}

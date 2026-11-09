@@ -105,6 +105,12 @@ export class CodexLandingComponent {
 
   readonly current = computed(() => this.picked() ?? this.items()[this.active()] ?? null);
   readonly category = computed(() => this.current()?.category ?? null);
+  /** Hero eyebrow: "neu in {patch}" only when the category really has new entries, not in discover mode. */
+  readonly eyebrowKey = computed(() => {
+    const cat = this.category();
+    const news = cat ? this.codex()?.categories.find((c) => c.category === cat) : null;
+    return news?.discover ? 'codex.landing.hero.eyebrowPatch' : 'codex.landing.hero.eyebrow';
+  });
   readonly paused = computed(
     () =>
       this.held() || this.paintOpen() || this.heroHold() || this.hidden() || this.still() || this.items().length < 2,
