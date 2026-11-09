@@ -211,6 +211,16 @@ describe('HqStockComponent · Frachtdeck', () => {
     expect(el.querySelector('button.set.add')).not.toBeNull();
   });
 
+  it('AUD-L12: the plus tile is a native button inside a listitem wrapper, not a button with role=listitem', () => {
+    const { el } = mount({ bestand: 'hangar' });
+    const add = el.querySelector<HTMLElement>('.grid .tile.add')!;
+    expect(add.tagName).toBe('BUTTON');
+    expect(add.getAttribute('role')).toBeNull();
+    expect(add.parentElement?.getAttribute('role')).toBe('listitem');
+    expect(add.parentElement?.parentElement?.getAttribute('role')).toBe('list');
+    expect(getComputedStyle(add.parentElement!).display).not.toBe('contents');
+  });
+
   it('Hangar: origin and role filters, the wishlist counter, variants per ship and Importieren as an anchor (H1, H2, H3)', () => {
     const { el, click } = mount({ bestand: 'hangar' });
     expect(chip(el, 'origin.loan')!.classList).toContain('zero');

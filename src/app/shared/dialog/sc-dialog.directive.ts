@@ -8,6 +8,7 @@ import {
   output,
 } from '@angular/core';
 import { FocusTrap, FocusTrapFactory } from '@angular/cdk/a11y';
+import { ModalInertService } from './modal-inert.service';
 
 /** Open dialogs, oldest first; only the last one reacts to a document-level Escape. */
 const openDialogs: ScDialogDirective[] = [];
@@ -62,6 +63,12 @@ export class ScDialogDirective implements OnDestroy {
   readonly scDialogModal = input(true);
   /** 'first': the element with the cdkFocusInitial attribute, else the first tabbable element, else the dialog itself. 'container': the dialog itself. */
   readonly scDialogInitialFocus = input<'first' | 'container'>('first');
+  /**
+   * Whether everything outside this dialog becomes `inert` while it is open.
+   * null (default): follows `aria-modal="true"` on the host — a real modal blocks
+   * the page, a popover without aria-modal does not. Needs `scDialogModal` too.
+   */
+  readonly scDialogInert = input<boolean | null>(null);
   /** Explicit return target; defaults to the element that had focus when the dialog opened. */
   readonly scDialogReturnFocus = input<HTMLElement | null>(null);
   /** Escape inside the dialog. The host decides what "close" means. */
@@ -69,6 +76,8 @@ export class ScDialogDirective implements OnDestroy {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   private readonly trapFactory = inject(FocusTrapFactory);
+  private readonly inertService = inject(ModalInertService);
+  private inertRegistered = false;
   private readonly opener: HTMLElement | null;
   private trap: FocusTrap | null = null;
   private destroyed = false;
@@ -86,6 +95,11 @@ export class ScDialogDirective implements OnDestroy {
       if (this.destroyed) return;
       this.trap = this.trapFactory.create(this.host);
       this.trap.enabled = this.scDialogModal();
+      const inert = this.scDialogInert() ?? this.host.getAttribute('aria-modal') === 'true';
+      if (inert && this.scDialogModal()) {
+        this.inertService.register(this.host);
+        this.inertRegistered = true;
+      }
       if (this.scDialogInitialFocus() === 'container') {
         this.host.focus({ preventScroll: true });
         return;
@@ -110,6 +124,8 @@ export class ScDialogDirective implements OnDestroy {
     if (!openDialogs.length && typeof document !== 'undefined') {
       document.removeEventListener('keydown', onDocumentKeydown);
     }
+    if (this.inertRegistered) this.inertService.unregister(this.host);
+    this.inertRegistered = false;
     this.trap?.destroy();
     this.trap = null;
     const target = this.scDialogReturnFocus() ?? this.opener;

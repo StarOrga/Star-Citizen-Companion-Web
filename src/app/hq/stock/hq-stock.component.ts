@@ -410,10 +410,12 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
         <div class="grid" [class.pads]="tab() === 'hangar'" [class.lockers]="tab() === 'sammlung'" role="list" [attr.aria-label]="'hq.bestand.tab.' + tab() | translate">
           @for (c of pageCells(); track cellKey(c)) {
             @if (c.kind === 'add') {
-              <button type="button" class="tile add" role="listitem" [attr.aria-label]="addLabel() | translate" (click)="add()">
-                <span class="plus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></span>
-                <span class="add-t">{{ addLabel() | translate }}</span>
-              </button>
+              <div class="cell" role="listitem">
+                <button type="button" class="tile add" [attr.aria-label]="addLabel() | translate" (click)="add()">
+                  <span class="plus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></span>
+                  <span class="add-t">{{ addLabel() | translate }}</span>
+                </button>
+              </div>
             } @else if (c.kind === 'ship') {
               <div class="tile item ship" role="listitem" [class.focus]="focusKey() === c.ship.shipClassName.toLowerCase()">
                 <a class="nm tile-link" [routerLink]="shipLink(c.ship).commands" [queryParams]="shipLink(c.ship).queryParams">{{ shipName(c.ship) }}</a>
@@ -609,6 +611,9 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .selbar svg { width: 16px; height: 16px; }
       .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: minmax(104px, auto); gap: 10px; align-content: start; }
       .tile { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--sc-border); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 5%, var(--sc-bg-1)), var(--sc-bg-1)); color: var(--sc-fg); text-decoration: none; font: inherit; text-align: start; transition: border-color 0.2s, transform 0.2s; }
+      /* The add tile is a native button inside a listitem wrapper that fills the grid cell (display: contents can drop the role). */
+      .cell { display: flex; min-width: 0; }
+      .cell > .tile { flex: 1; min-width: 0; }
       .tile.add { align-items: center; justify-content: center; border-style: dashed; border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); cursor: pointer; }
       .tile.add:hover { border-color: var(--sc-accent); transform: translateY(-1px); }
       /* F2, a3-s9: Hangar reads as ship bays - a landing pad (hatched floor, ring) per ship. */

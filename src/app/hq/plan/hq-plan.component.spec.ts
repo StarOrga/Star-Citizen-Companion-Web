@@ -119,6 +119,32 @@ describe('HqPlanComponent', () => {
     expect(f.componentInstance['flowPicks']()).toEqual([{ key: 'item:medpen', qty: 2 }]);
   });
 
+  it('AUD-L14: after a delete focus lands on the main button of the Nachschub that moved up, never on a trash button', async () => {
+    const { f, el } = make(false);
+    const c = f.componentInstance as unknown as { ns: { packages: { set(v: unknown[]): void }; loaded: { set(v: boolean): void }; remove: unknown }; askRemove(id: string, k: 'remove'): void; doRemove(back: boolean): Promise<void> };
+    const nach = (i: number) => ({ id: `n${i}`, name: `N${i}`, status: 'active' as const, slot: i, snapshot: {}, createdAt: `2026-11-0${i}T10:00:00Z`, archivedAt: null });
+    c.ns.packages.set([nach(1), nach(2), nach(3)]);
+    c.ns.loaded.set(true);
+    f.detectChanges();
+    const dels = () => [...el.querySelectorAll<HTMLElement>('.board .slot .del')];
+    expect(dels().length).toBe(3);
+    dels()[0].focus();
+    c.askRemove('n1', 'remove');
+    f.detectChanges();
+    // The Nachschub is gone; the slots are keyed by position, so the next one's trash button now sits under the focus.
+    c.ns.remove = () => {
+      c.ns.packages.set([nach(2), nach(3)]);
+      return Promise.resolve({ ok: true, key: 'x' });
+    };
+    await c.doRemove(false);
+    f.detectChanges();
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+    const active = document.activeElement as HTMLElement;
+    expect(active.closest('.del')).toBeNull();
+    expect(active.classList).toContain('hit');
+    expect(active.closest('.slot')?.textContent).toContain('N2');
+  });
+
   it('the archive opens from the end of the board', () => {
     const { f, el } = make(false);
     click(f, el.querySelector('.board .archive'));

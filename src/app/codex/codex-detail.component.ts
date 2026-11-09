@@ -271,6 +271,7 @@ import type { AssetPackageKind, AssetPackageRow } from './asset-package/asset-pa
 import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
+import { NotFoundComponent } from '../shared/not-found/not-found.component';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { HANGAR_ROOT_CRUMB, NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
 import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
@@ -294,7 +295,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
+  imports: [CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -330,6 +331,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         </div>
       } @else if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
+      } @else if (error() === invalidRouteKey) {
+        <sc-not-found titleKey="codex.detail.notFoundPage.title" bodyKey="codex.detail.invalidRoute" [back]="notFoundBack()" />
       } @else if (error(); as err) {
         <div class="sc-card err" role="alert">
           <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
@@ -338,7 +341,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           }
         </div>
       } @else if (!detail()) {
-        <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
+        <!-- The read worked and found no row (a failed read is the error state above, with retry). -->
+        <sc-not-found titleKey="codex.detail.notFoundPage.title" bodyKey="codex.detail.notFound" [back]="notFoundBack()" />
       } @else {
         <!-- Classic view. The Holotable view is the separate branch below;
              whatever both show (pickers, ship actions, link form, fixed
@@ -1688,6 +1692,9 @@ export class CodexDetailComponent implements OnInit {
     return originTrail(this.navOrigin, fallback);
   });
   readonly kind = computed(() => this.detail()?.kind ?? null);
+  protected readonly invalidRouteKey = 'codex.detail.invalidRoute';
+  /** The not-found state leads back to the page's parent crumb (where the reader came from, else the kind's index). */
+  protected readonly notFoundBack = computed<PageCrumb | null>(() => this.crumbs().at(-1) ?? null);
   /**
    * Hosted under HQ > Hangar (`/hq/hangar/:id`, shell beta): the class name of the hangar ship whose
    * page this is. The route then carries a hangar id instead of `kind`/`className`; the host resolves it.

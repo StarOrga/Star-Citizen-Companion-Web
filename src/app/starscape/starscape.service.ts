@@ -333,16 +333,23 @@ export class StarscapeService {
    * became a hidden crop variant must still open the picture someone sent.
    */
   async loadOne(imageId: string): Promise<Wallpaper | null> {
+    const r = await this.fetchOne(imageId);
+    return r === 'error' ? null : r;
+  }
+
+  /** Like `loadOne`, but tells "no such image" (null) from "the read failed" ('error'). */
+  async fetchOne(imageId: string): Promise<Wallpaper | null | 'error'> {
     try {
       const { data, error } = await this.sb.client
         .from('verse_wallpapers')
         .select('image_id, source_url, preview_url, title, series, article_url, published_at')
         .eq('image_id', imageId)
         .maybeSingle();
-      if (error || !data) return null;
+      if (error) return 'error';
+      if (!data) return null;
       return mapWallpaperRow(data as Record<string, unknown>);
     } catch {
-      return null; // a dead link must not break the gallery behind it
+      return 'error'; // a dead link must not break the gallery behind it
     }
   }
 

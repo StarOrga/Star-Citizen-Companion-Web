@@ -91,6 +91,7 @@ import { MissileRecord, missileRecordOf } from './codex-missile';
 import { ItemRankKind, ItemRankRecord, itemRankRecordOf } from './codex-item-rank';
 import { USABLE_ITEM_ATTACH_TYPES, isUsableAttachType } from './codex-area-taxonomy';
 import { CodexPrefsService } from './codex-prefs.service';
+import { DIFF_LOOKBACK, diffPair } from './codex-diff-pair';
 import {
   cohortCacheKey,
   readCohortCache,
@@ -2123,9 +2124,10 @@ export class CodexService {
     const out = new Map<string, ShipStatDelta[]>();
     const names = Array.from(new Set(classNames.filter(Boolean)));
     if (names.length === 0) return out;
-    const builds = await this.recentLiveBuilds(2);
-    if (builds.length < 2) return out; // need a previous build to diff against
-    const [current, previous] = builds;
+    // The patch's baseline, not a same-patch rebuild (codex-diff-pair.ts).
+    const pair = diffPair(await this.recentLiveBuilds(DIFF_LOOKBACK));
+    if (!pair) return out; // need a previous build to diff against
+    const [current, previous] = pair;
     const [curRows, prevRows] = await Promise.all([
       this.shipRowsForBuild(current.id, names),
       this.shipRowsForBuild(previous.id, names),

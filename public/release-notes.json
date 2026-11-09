@@ -1,9 +1,9 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.242.0",
+  "current": "0.243.0",
   "releases": [
     {
-      "version": "0.242.0",
+      "version": "0.243.0",
       "date": "2026-11-09",
       "sections": [
         {
@@ -47,6 +47,56 @@
             {
               "title": "",
               "text": "The Bestand header no longer overflows on phones; the subheader search chip follows the Bestand tab."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.242.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Not-found pages for unknown Codex entries, locker sets and gallery images, with a way back to the list."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "\"Mehr in Codex\" sits exactly where \"Mehr im Verse\" sits, at every window size."
+            },
+            {
+              "title": "",
+              "text": "\"Neu in <Patch>\" compares against the previous patch, not against a rebuild of the same patch; the nightly cleanup keeps that comparison build."
+            },
+            {
+              "title": "",
+              "text": "Behind an open dialog the rest of the page can no longer be reached with the keyboard or a screen reader."
+            },
+            {
+              "title": "",
+              "text": "After deleting a Nachschub the focus moves to the next one, never onto its delete button."
+            },
+            {
+              "title": "",
+              "text": "The Bestand tab (Inventar/Hangar/Sammlung) is kept in the address, so a reload or a shared link opens it again."
+            },
+            {
+              "title": "",
+              "text": "\"In einen Nachschub\" in the wish list does nothing while nothing is selected."
+            },
+            {
+              "title": "",
+              "text": "The \"add\" tiles in Bestand are announced as buttons."
             }
           ]
         }
