@@ -14,6 +14,7 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
+import { SilThumbsService } from '../shared/sil-thumb/sil-thumbs.service';
 import { CodexDetailComponent } from './codex-detail.component';
 import { BlueprintDetail, CodexService, ResolvedEntity } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
@@ -276,6 +277,38 @@ describe('CodexDetailComponent — ship load skeleton', () => {
     fixture.detectChanges();
     expect(el.querySelector('.skel-stage')).toBeNull();
     expect(el.querySelector('sc-codex-holo-stage')).not.toBeNull();
+  });
+
+  it('draws only the real silhouette (no backdrop) while a ship with a silhouette loads', async () => {
+    configureSetup('ship', [], NOMAD_PAYLOAD, { getDetail: () => new Promise(() => undefined) });
+    TestBed.overrideProvider(SilThumbsService, {
+      useValue: {
+        request: () => undefined,
+        thumbOf: () => ({ viewBox: '0 0 100 40', path: 'M0 20 L100 20 L50 0 Z', transform: '' }),
+      } as Partial<SilThumbsService>,
+    });
+    await TestBed.compileComponents();
+    const fixture = TestBed.createComponent(CodexDetailComponent);
+    fixture.detectChanges();
+    const stage = fixture.nativeElement.querySelector('.skel-stage.arrival') as HTMLElement;
+    expect(stage).not.toBeNull();
+    expect(stage.getAttribute('role')).toBe('status');
+    expect(stage.querySelector('sc-ship-arrival svg path.outline')).not.toBeNull();
+    expect(stage.querySelector('.skel-ring, .skel-scan, .sun, .star, .streak, canvas, img')).toBeNull();
+    expect(Array.from(stage.querySelectorAll('i')).map((i) => i.className)).toEqual(['flash']);
+  });
+
+  it('keeps the stage skeleton when the ship has no silhouette', async () => {
+    configureSetup('ship', [], NOMAD_PAYLOAD, { getDetail: () => new Promise(() => undefined) });
+    TestBed.overrideProvider(SilThumbsService, {
+      useValue: { request: () => undefined, thumbOf: () => null } as Partial<SilThumbsService>,
+    });
+    await TestBed.compileComponents();
+    const fixture = TestBed.createComponent(CodexDetailComponent);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('sc-ship-arrival')).toBeNull();
+    expect(el.querySelector('.skel-stage .skel-ring')).not.toBeNull();
   });
 
   it('keeps the plain skeleton card for non-ship kinds', async () => {

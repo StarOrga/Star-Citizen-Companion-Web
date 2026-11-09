@@ -1,0 +1,101 @@
+<section data-iteration="4" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Der Start zeigt jetzt das animierte App-Logo im Quantum-Sprung, und unbekannte Adressen landen auf einer echten 404 statt still auf /verse.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🌀</span><span>Der <b>Start-Bildschirm</b> zeigt Streifen und das echte Logo.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🛰️</span><span>Eine <b>echte 404</b> zeigt 4 · Logo · 4 und „Meintest du“.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⏳</span><span>Nach 8 s kommt ein <b>ruhiger Hinweis</b> mit „Erneut versuchen“.</span></li>
+      </ul>
+      <a class="fr-try" href="http://127.0.0.1:4200/gibts-nicht" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
+      <p class="fr-try-auth">🔑 Vorher <code>npm start</code> im Worktree, dann mit deinem Konto anmelden</p>
+    </div>
+    <div class="fr-ba" data-label-before="Start" data-label-after="404">
+      <figure class="fr-shot"><img src="20261109-1545-ladeschirm-nicht-gefunden/shots/after-boot.png" alt=""><figcaption>Neuer Start-Bildschirm</figcaption></figure>
+      <figure class="fr-shot"><img src="20261109-1545-ladeschirm-nicht-gefunden/shots/after-404.png" alt=""><figcaption>Neue 404-Seite (eingeloggt, Prod-Build)</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Volle Testsuite grün, Build und Lint ohne Fehler; Anforderung: nichts rot (geschätzt).">
+        <span class="fr-meter-name">🧱 Stabilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6663 grün</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Reduzierte Bewegung zeigt überall ein Standbild, eine h1 für Screenreader, 390 px ohne Überlauf; Anforderung: alle drei (geschätzt).">
+        <span class="fr-meter-name">♿ Barrierefreiheit</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">3 / 3</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 85%" data-tip="Silhouetten-Ankunft nur per Spec geprüft, nicht im Browser gesehen; Anforderung: alle Zustände gesehen (geschätzt).">
+        <span class="fr-meter-name">👁 Sichtprüfung</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">5 / 6</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="5 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_local}} · ✓ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_live}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-codex-slugs"
+          data-issue-title="[FEATURE] 404 'Meintest du' suggests Codex items, not only top-level routes"
+          data-issue-type="feature"
+          data-issue-body="Approved in the loading/not-found concept (2026-11-09): the 404 page offers up to two suggestions. Built: suggestions from top-level routes (suggest-routes.ts). Not built: Codex slug matches, e.g. /codex/schiffe/carrack-x -> Anvil Carrack, because no cheap client-side slug index exists yet."
+          data-issue-module="shell"
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="aufwendig">
+        <span class="oq-label">Meintest du ohne Codex</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Vorschläge kommen nur aus den Hauptbereichen, nicht aus Codex-Einträgen.</dd>
+          <dt>{{final.fund_where}}</dt><dd>404-Seite, „Meintest du“</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — braucht einen Slug-Index, eigener Schritt.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-slow-card-area"
+          data-issue-title="[BUG] Slow-navigation streaks cover header and footer instead of the content area"
+          data-issue-type="bug"
+          data-issue-body="The slow-navigation card stage is position:fixed; inset:0 (slow-navigation.component.ts:36-38), so the slowed streaks run behind the header and footer too. The brief said 'over the content area'. Nothing is blocked (pointer-events none)."
+          data-issue-module="shell"
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Hinweis über ganzer Seite</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die Streifen hinter dem Lädt-zu-lange-Hinweis laufen auch hinter Kopf- und Fußleiste.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Lädt-zu-lange-Hinweis</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt — kleine CSS-Änderung.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Commits <code>aa8d7864</code>, <code>37457d6f</code> · Bereiche: shell, codex, index.html</li>
+      <li><code>not-found-page.component.ts</code>, <code>slow-navigation.service.ts</code>, <code>ship-arrival.component.ts</code></li>
+      <li>Tests: 6663 grün, 1 übersprungen · Build und Lint grün · Prüfer: 17 met, 3 partial, 1 Defekt behoben</li>
+      <li>Nachtrag: <code>build-brand-icons.mjs</code> spleißt das alte Markenzeichen nicht mehr in index.html</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-arrival" data-crit="mid" data-guide="">Schiffsseite laden: Silhouette erscheint</li>
+      <li data-todo-id="t-boot-phone" data-crit="low" data-guide="">Start-Bildschirm auf dem Handy ansehen</li>
+    </ul>
+  </section>
+</section>

@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="440" height="440">
+<!-- Source of truth: Star-Citizen-Companion-App/modules/desktop/resources/app-logo.svg (verbatim copy). The first-paint splash in src/index.html inlines this file with scb- prefixed ids/classes. -->
+<defs>
+  <!-- Background: fills full square, fades to transparent at edges (r=71% reaches corners) -->
+  <radialGradient id="bg" cx="50%" cy="50%" r="71%"><stop offset="0%" stop-color="#112840" stop-opacity=".88"/><stop offset="35%" stop-color="#0d2635" stop-opacity=".72"/><stop offset="65%" stop-color="#0d2635" stop-opacity=".35"/><stop offset="85%" stop-color="#0d2635" stop-opacity=".15"/><stop offset="100%" stop-color="#0d2635" stop-opacity=".05"/></radialGradient>
+  <!-- Tunnel depth -->
+  <radialGradient id="tunnel" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#0d2635" stop-opacity="0"/><stop offset="50%" stop-color="#52c1e6" stop-opacity=".02"/><stop offset="75%" stop-color="#52c1e6" stop-opacity=".08"/><stop offset="90%" stop-color="#7dd5f0" stop-opacity=".10"/><stop offset="100%" stop-color="#52c1e6" stop-opacity=".02"/></radialGradient>
+  <!-- Core glow: warm center, NOT white -->
+  <radialGradient id="coreG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a0dcf0"/><stop offset="15%" stop-color="#7dd5f0"/><stop offset="50%" stop-color="#52c1e6" stop-opacity=".55"/><stop offset="85%" stop-color="#52c1e6" stop-opacity=".15"/><stop offset="100%" stop-color="#0d2635" stop-opacity="0"/></radialGradient>
+  <!-- Brain fill -->
+  <radialGradient id="brainG" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#d0eef8" stop-opacity=".2"/><stop offset="100%" stop-color="#52c1e6" stop-opacity=".04"/></radialGradient>
+  <!-- Halo -->
+  <radialGradient id="halo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#52c1e6" stop-opacity=".28"/><stop offset="40%" stop-color="#52c1e6" stop-opacity=".08"/><stop offset="100%" stop-color="#52c1e6" stop-opacity="0"/></radialGradient>
+  <!-- Filters -->
+  <filter id="fCl" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="14"/></filter>
+  <!-- Outer nebula: gradient-based (no filter = no pixelation) -->
+  <radialGradient id="neb1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1e5a7a" stop-opacity=".9"/><stop offset="35%" stop-color="#154a68" stop-opacity=".5"/><stop offset="70%" stop-color="#0d3850" stop-opacity=".15"/><stop offset="100%" stop-color="#0d2635" stop-opacity="0"/></radialGradient>
+  <radialGradient id="neb2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1a5070" stop-opacity=".72"/><stop offset="40%" stop-color="#124060" stop-opacity=".35"/><stop offset="100%" stop-color="#0d2635" stop-opacity="0"/></radialGradient>
+  <radialGradient id="neb3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#1e5a7a" stop-opacity=".6"/><stop offset="45%" stop-color="#154a68" stop-opacity=".25"/><stop offset="100%" stop-color="#112840" stop-opacity="0"/></radialGradient>
+  <filter id="fW" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+  <filter id="fTw" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.5"/></filter>
+  <filter id="fDk" x="-80%" y="-400%" width="260%" height="900%"><feGaussianBlur stdDeviation="3"/></filter>
+  <filter id="fCo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="fNd" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="fBr" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="fTx" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+
+<style>
+  /* === CLOUDS — rotate, fill corners === */
+  @keyframes cs{to{transform:rotate(360deg)}}
+  @keyframes csr{to{transform:rotate(-360deg)}}
+  .cla{animation:cs 24s linear infinite;transform-origin:150px 150px}
+  .clb{animation:csr 30s linear infinite;transform-origin:150px 150px}
+  .clc{animation:cs 20s linear infinite;transform-origin:150px 150px}
+  /* Outer system-bubble edge circles — thin, long dashes, slow counter-rotation, not affected by quantum phase */
+  .ocw{animation:cs 60s linear infinite;transform-origin:150px 150px}
+  .occw{animation:csr 75s linear infinite;transform-origin:150px 150px}
+  @keyframes wd{0%,100%{opacity:.25;transform:rotate(0) scale(1)}50%{opacity:.55;transform:rotate(8deg) scale(1.06)}}
+  @keyframes wd2{0%,100%{opacity:.2;transform:rotate(0) scale(1)}50%{opacity:.45;transform:rotate(-6deg) scale(1.04)}}
+  .wia{animation:wd 7s ease-in-out infinite;transform-origin:150px 150px}
+  .wib{animation:wd2 9s ease-in-out infinite;transform-origin:150px 150px;animation-delay:-3s}
+  @keyframes cpf{0%,100%{opacity:0}30%,70%{opacity:.4}}
+  .cp1{animation:cpf 4.5s ease-in-out infinite}.cp2{animation:cpf 5.5s ease-in-out infinite;animation-delay:-1.5s}
+
+  /* === DISK PARTICLES === */
+  /* Planets now use SVG animateMotion along elliptical paths (real circles, not dashed strokes) */
+
+  /* === CORE BREATHE === */
+  @keyframes cbr{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.08);opacity:1}}
+  .cbr{animation:cbr 3s ease-in-out infinite;transform-origin:150px 150px}
+
+  /* === NEURAL PULSES — FIX: seamless loop ===
+     Key: stroke-dasharray "segment gap" must tile evenly over the path length.
+     Using dasharray="12 48" (period=60) with dashoffset traveling -60 per cycle
+     means each pulse segment slides exactly one full period = seamless restart */
+  @keyframes np{from{stroke-dashoffset:0}to{stroke-dashoffset:-60}}
+  .np1{animation:np 2.8s linear infinite}.np2{animation:np 3.6s linear infinite;animation-delay:.7s}
+  .np3{animation:np 4.2s linear infinite;animation-delay:1.4s}.np4{animation:np 2.2s linear infinite;animation-delay:.3s}
+  .np5{animation:np 3.1s linear infinite;animation-delay:1.9s}.np6{animation:np 5s linear infinite;animation-delay:.9s}
+
+  /* === QUANTUM PHASE (12s) === */
+  @keyframes phB{
+    0%{opacity:1;transform:scale(1)}
+    15%{opacity:1;transform:scale(1.06)}25%{opacity:1;transform:scale(1.02)}
+    38%{opacity:1;transform:scale(1.10)}48%{opacity:1;transform:scale(1.05)}
+    58.3%{opacity:1;transform:scale(1.22)}
+    66.7%{opacity:0;transform:scale(1.7)}
+    79.2%{opacity:0;transform:scale(.5)}
+    83.3%{opacity:1;transform:scale(.7)}
+    100%{opacity:1;transform:scale(1)}
+  }
+  .phb{animation:phB 12s ease-in-out infinite;transform-origin:150px 148px}
+  @keyframes phD{0%,48%{opacity:1}54%{opacity:.6}60%{opacity:0}78%{opacity:0}84%{opacity:.5}100%{opacity:1}}
+  .phd{animation:phD 12s ease-in-out infinite}
+  @keyframes phT{0%,54%{opacity:0;letter-spacing:.35em}62%{opacity:1;letter-spacing:.2em}75%{opacity:1;letter-spacing:.2em}83%{opacity:0;letter-spacing:.5em}100%{opacity:0}}
+  .pht{animation:phT 12s ease-in-out infinite}
+  @keyframes phCl{0%,38%{opacity:1;transform:scale(1)}44%{opacity:1;transform:scale(1.1)}50%,68%{opacity:1;transform:scale(.82)}80%{opacity:.6;transform:scale(1.05)}92%,100%{opacity:1;transform:scale(1)}}
+  .phcl{animation:phCl 12s ease-in-out infinite;transform-origin:150px 150px}
+
+  /* Starfield */
+  @keyframes tw{0%,100%{opacity:.08}50%{opacity:.45}}
+  .star{animation:tw var(--d,4s) ease-in-out infinite;animation-delay:var(--dl,0s)}
+
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}.pht{opacity:0!important}.phb{opacity:1!important}}
+</style>
+
+<!-- Full-square background (fills corners) -->
+<rect width="300" height="300" fill="url(#bg)"/>
+
+<!-- Ambient nebula (asymmetric — top-left dominant, bottom-right absent) -->
+<circle cx="-12" cy="14" r="95" fill="url(#neb1)"/>
+<circle cx="50" cy="308" r="75" fill="url(#neb2)"/>
+<circle cx="310" cy="80" r="60" fill="url(#neb3)"/>
+
+<!-- Starfield (spread across full square, including corners) -->
+<circle class="star" cx="12" cy="10" r=".7" fill="#7dd5f0" style="--d:5.1s;--dl:-0.5s"/>
+<circle class="star" cx="288" cy="14" r=".6" fill="#52c1e6" style="--d:4.8s;--dl:-2.2s"/>
+<circle class="star" cx="8" cy="290" r=".8" fill="#7dd5f0" style="--d:6.3s;--dl:-1.1s"/>
+<circle class="star" cx="292" cy="288" r=".7" fill="#52c1e6" style="--d:5.4s;--dl:-3.7s"/>
+<circle class="star" cx="38" cy="32" r=".7" fill="#7dd5f0" style="--d:5.5s;--dl:-1s"/>
+<circle class="star" cx="248" cy="58" r=".9" fill="#52c1e6" style="--d:4.2s;--dl:-3s"/>
+<circle class="star" cx="272" cy="138" r=".6" fill="#7dd5f0" style="--d:6.8s;--dl:-.4s"/>
+<circle class="star" cx="228" cy="252" r=".8" fill="#52c1e6" style="--d:3.5s;--dl:-2.5s"/>
+<circle class="star" cx="112" cy="278" r=".7" fill="#7dd5f0" style="--d:5.2s;--dl:-1.8s"/>
+<circle class="star" cx="28" cy="222" r=".9" fill="#52c1e6" style="--d:4.7s;--dl:-4s"/>
+<circle class="star" cx="22" cy="88" r=".6" fill="#7dd5f0" style="--d:6.2s;--dl:-.9s"/>
+<circle class="star" cx="192" cy="22" r=".8" fill="#52c1e6" style="--d:3.8s;--dl:-2.1s"/>
+<circle class="star" cx="82" cy="18" r=".7" fill="#7dd5f0" style="--d:5.8s;--dl:-3.6s"/>
+<circle class="star" cx="268" cy="92" r=".9" fill="#52c1e6" style="--d:4.4s;--dl:-1.4s"/>
+<circle class="star" cx="262" cy="202" r=".6" fill="#7dd5f0" style="--d:7.1s;--dl:-4.3s"/>
+<circle class="star" cx="168" cy="282" r=".8" fill="#52c1e6" style="--d:3.3s;--dl:-.2s"/>
+<circle class="star" cx="52" cy="262" r=".7" fill="#7dd5f0" style="--d:5.6s;--dl:-2.8s"/>
+<circle class="star" cx="8" cy="162" r=".6" fill="#52c1e6" style="--d:4.9s;--dl:-3.9s"/>
+<circle class="star" cx="72" cy="38" r=".9" fill="#7dd5f0" style="--d:6.4s;--dl:-1.2s"/>
+<circle class="star" cx="215" cy="38" r=".7" fill="#52c1e6" style="--d:3.7s;--dl:-4.6s"/>
+<circle class="star" cx="285" cy="168" r=".5" fill="#7dd5f0" style="--d:5.3s;--dl:-.7s"/>
+<circle class="star" cx="142" cy="12" r=".8" fill="#52c1e6" style="--d:4.1s;--dl:-2.4s"/>
+<circle class="star" cx="32" cy="142" r=".7" fill="#7dd5f0" style="--d:6s;--dl:-3.2s"/>
+<circle class="star" cx="202" cy="272" r=".6" fill="#52c1e6" style="--d:5.7s;--dl:-1.6s"/>
+<!-- Extra corner stars -->
+<circle class="star" cx="4" cy="48" r=".5" fill="#52c1e6" style="--d:7.2s;--dl:-0.3s"/>
+<circle class="star" cx="296" cy="42" r=".6" fill="#7dd5f0" style="--d:5.9s;--dl:-4.1s"/>
+<circle class="star" cx="6" cy="252" r=".5" fill="#52c1e6" style="--d:6.6s;--dl:-1.7s"/>
+<circle class="star" cx="294" cy="258" r=".7" fill="#7dd5f0" style="--d:4.3s;--dl:-2.9s"/>
+<circle class="star" cx="48" cy="6" r=".6" fill="#7dd5f0" style="--d:5.7s;--dl:-3.4s"/>
+<circle class="star" cx="252" cy="4" r=".5" fill="#52c1e6" style="--d:6.1s;--dl:-0.8s"/>
+<circle class="star" cx="46" cy="294" r=".7" fill="#52c1e6" style="--d:4.6s;--dl:-2.6s"/>
+<circle class="star" cx="256" cy="296" r=".6" fill="#7dd5f0" style="--d:5.3s;--dl:-4.4s"/>
+
+<!-- ===== 5% MARGIN: scale core content to 90% so the mark fills the icon canvas ===== -->
+<g transform="translate(15,15) scale(0.90)">
+
+<!-- ===== CLOUD LAYER 1 — Broad rotation (fills corners via larger rx/ry) ===== -->
+<g class="cla phcl" filter="url(#fCl)">
+  <ellipse cx="150" cy="150" rx="155" ry="120" fill="none" stroke="#52c1e6" stroke-width="32" stroke-opacity=".11"/>
+  <ellipse cx="150" cy="150" rx="145" ry="112" fill="none" stroke="#7dd5f0" stroke-width="16" stroke-opacity=".08"/>
+  <!-- Corner cloud puffs (pushed outward to fill corners) -->
+  <circle cx="150" cy="2" r="28" fill="#52c1e6" fill-opacity=".12"/>
+  <circle cx="298" cy="150" r="26" fill="#52c1e6" fill-opacity=".11"/>
+  <circle cx="150" cy="298" r="28" fill="#7dd5f0" fill-opacity=".10"/>
+  <circle cx="2" cy="150" r="26" fill="#52c1e6" fill-opacity=".12"/>
+  <!-- Diagonal puffs closer to actual corners -->
+  <circle cx="270" cy="30" r="22" fill="#7dd5f0" fill-opacity=".09"/>
+  <circle cx="270" cy="270" r="22" fill="#52c1e6" fill-opacity=".09"/>
+  <circle cx="30" cy="270" r="24" fill="#7dd5f0" fill-opacity=".10"/>
+  <circle cx="30" cy="30" r="22" fill="#52c1e6" fill-opacity=".09"/>
+</g>
+
+<!-- ===== OUTER BUBBLE-EDGE CIRCLES — very subtle, inward, close together, long sparse dashes ===== -->
+<!-- Outer mystical wisps: blurred, ultra-faded, long dashes — barely visible, dreamlike -->
+<g class="ocw" filter="url(#fW)">
+  <circle cx="150" cy="150" r="132" fill="none" stroke="#7dd5f0" stroke-width="3" stroke-opacity=".09" stroke-dasharray="36 60" stroke-linecap="round"/>
+</g>
+<g class="occw" filter="url(#fW)">
+  <circle cx="150" cy="150" r="135" fill="none" stroke="#52c1e6" stroke-width="2.5" stroke-opacity=".07" stroke-dasharray="44 70" stroke-linecap="round"/>
+</g>
+
+<!-- Tunnel depth -->
+<circle cx="150" cy="150" r="148" fill="url(#tunnel)"/>
+
+<!-- Cloud particles -->
+<circle class="cp1" cx="224" cy="56" r="1.5" fill="#7dd5f0" opacity=".4"/>
+<circle class="cp2" cx="48" cy="206" r="1" fill="#52c1e6" opacity=".35"/>
+
+<!-- ===== ACCRETION DISK — real circular planets orbiting elliptical paths ===== -->
+<g transform="rotate(-20 150 150)">
+  <!-- Track lines (faint orbit guides) -->
+  <ellipse cx="150" cy="150" rx="105" ry="28" fill="none" stroke="#52c1e6" stroke-width=".6" opacity=".22"/>
+  <ellipse cx="150" cy="150" rx="86" ry="22" fill="none" stroke="#52c1e6" stroke-width=".5" opacity=".2"/>
+  <ellipse cx="150" cy="150" rx="68" ry="17" fill="none" stroke="#52c1e6" stroke-width=".5" opacity=".18"/>
+
+  <!-- Invisible motion paths (closed ellipses drawn with 2 arcs so animateMotion loops seamlessly) -->
+  <path id="orbit-outer" d="M 255 150 A 105 28 0 1 1 45 150 A 105 28 0 1 1 255 150" fill="none" stroke="none"/>
+  <path id="orbit-mid"   d="M 236 150 A  86 22 0 1 1 64 150 A  86 22 0 1 1 236 150" fill="none" stroke="none"/>
+  <path id="orbit-inner" d="M 218 150 A  68 17 0 1 1 82 150 A  68 17 0 1 1 218 150" fill="none" stroke="none"/>
+
+  <!-- Outer orbit: 3 planets evenly spaced -->
+  <circle r="3.5" fill="#7dd5f0" filter="url(#fDk)" opacity=".9">
+    <animateMotion dur="20s" repeatCount="indefinite"><mpath href="#orbit-outer"/></animateMotion>
+  </circle>
+  <circle r="3" fill="#a0dcf0" filter="url(#fDk)" opacity=".85">
+    <animateMotion dur="20s" begin="-6.67s" repeatCount="indefinite"><mpath href="#orbit-outer"/></animateMotion>
+  </circle>
+  <circle r="2.5" fill="#52c1e6" filter="url(#fDk)" opacity=".8">
+    <animateMotion dur="20s" begin="-13.33s" repeatCount="indefinite"><mpath href="#orbit-outer"/></animateMotion>
+  </circle>
+
+  <!-- Middle orbit: 2 planets opposite -->
+  <circle r="3" fill="#7dd5f0" filter="url(#fDk)" opacity=".88">
+    <animateMotion dur="13s" repeatCount="indefinite"><mpath href="#orbit-mid"/></animateMotion>
+  </circle>
+  <circle r="2.5" fill="#a0dcf0" filter="url(#fDk)" opacity=".82">
+    <animateMotion dur="13s" begin="-6.5s" repeatCount="indefinite"><mpath href="#orbit-mid"/></animateMotion>
+  </circle>
+
+  <!-- Inner orbit: 2 planets opposite -->
+  <circle r="2.5" fill="#7dd5f0" filter="url(#fDk)" opacity=".85">
+    <animateMotion dur="28s" repeatCount="indefinite"><mpath href="#orbit-inner"/></animateMotion>
+  </circle>
+  <circle r="2" fill="#a0dcf0" filter="url(#fDk)" opacity=".78">
+    <animateMotion dur="28s" begin="-14s" repeatCount="indefinite"><mpath href="#orbit-inner"/></animateMotion>
+  </circle>
+</g>
+
+<!-- ===== BRAIN-NEBULA CORE (+10% size, seamless neural loops) ===== -->
+<g class="phb" filter="url(#fBr)">
+  <!-- Halo (outer bubble) — pulses 0.15s AFTER core for shockwave-from-inside-out effect -->
+  <circle cx="150" cy="150" r="42" fill="url(#halo)" class="cbr" style="transform-origin:150px 150px;animation-delay:0.15s"/>
+  <!-- Core glow (slightly smaller sun) -->
+  <circle cx="150" cy="150" r="30" fill="url(#coreG)" filter="url(#fCo)" class="cbr" style="transform-origin:150px 150px"/>
+
+  <!-- Soft brain-core fill (no inner lines — sulci / fissure / neural pulses removed) -->
+  <path d="M150,125 C137,120 123,125 120,136 C117,147 119,160 126,166 C133,172 143,172 150,170" fill="url(#brainG)" fill-opacity=".6" stroke="none"/>
+  <path d="M150,125 C163,120 177,125 180,136 C183,147 181,160 174,166 C167,172 157,172 150,170" fill="url(#brainG)" fill-opacity=".6" stroke="none"/>
+
+  <!-- Soft center (no hard white dot) -->
+  <circle cx="150" cy="150" r="3.5" fill="#a0dcf0" opacity=".6"/>
+</g>
+
+<!-- ===== VC TEXT (+10% font size) ===== -->
+<text x="150" y="155" font-family="Orbitron,sans-serif" font-weight="700" font-size="26"
+  fill="#7dd5f0" text-anchor="middle" dominant-baseline="middle"
+  filter="url(#fTx)" class="pht">VC</text>
+
+</g><!-- end 5% margin scale group -->
+</svg>

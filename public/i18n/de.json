@@ -1,4 +1,16 @@
 {
+  "notFoundPage": {
+    "srTitle": "404 – Seite nicht gefunden",
+    "title": "Ziel außerhalb der Karte",
+    "lead": "Diese Adresse führt ins Leere:",
+    "didYouMean": "Meintest du",
+    "home": "Zurück zur Startseite"
+  },
+  "slowLoad": {
+    "title": "Das dauert länger als sonst",
+    "retry": "Erneut versuchen",
+    "home": "Zur Startseite"
+  },
   "handoff": {
     "title": "Auf dem Handy weitermachen",
     "working": "Du wirst auf diesem Gerät angemeldet …",

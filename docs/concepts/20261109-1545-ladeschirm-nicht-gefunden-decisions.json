@@ -1,0 +1,142 @@
+[
+  {
+    "iteration": 1,
+    "favorite": "d2",
+    "annotations": [
+      {
+        "id": "r1-d2-s1-a1",
+        "answer": "lass den weg auch die striche maß ring drum herum...."
+      },
+      {
+        "id": "r1-d2-s1-a2",
+        "answer": "reichtig cooole idee, ist perfekt!"
+      },
+      {
+        "id": "r1-d2-s2-a1",
+        "answer": "ne, das ist für mich eher eine animation für die gesamte seite im loading... wenn wir soweit sind wie hier dann gern eine zu dem was gleich angeziegt wird passende animation !"
+      },
+      {
+        "id": "r1-d2-s2-a2",
+        "answer": "weg"
+      },
+      {
+        "id": "r1-d2-s3-a1",
+        "answer": "Gern hinweis, aber knakciger! wesentlich! und finde gut das hinten es langsam weiterläuft"
+      }
+    ],
+    "screens": {
+      "d2-s4": "die seite gefällt mir noch gar nicht, für eine suche haben wir doch den subheader.Statt bekannte ziele einfach unten wie auf den anderen seiten auch verse, codex und hq\n\nIn der mitte eher weniger details aber schon gern ewesentliches , meintest du gern \n404 größer dargestellt / in szene gesetzt. Notbarke versteht man nnicht."
+    },
+    "userPins": [
+      {
+        "id": "up-mw9g2xiauj7h",
+        "design": "d2",
+        "screen": "d2-s1",
+        "x": 50.8,
+        "y": 46.5,
+        "target": "svg.d2-disk",
+        "text": "Bitte hier vor allem als basis exakt die logo animation nehmen, siehe auch vc app loading scree!",
+        "attachments": []
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "favorite": null,
+    "annotations": [
+      {
+        "id": "r2-q2-s1-a1",
+        "answer": "gut"
+      },
+      {
+        "id": "r2-q2-s2-a1",
+        "answer": "ja ok! Aber dann hier ohne dire ringe nach außen!"
+      },
+      {
+        "id": "r2-q2-s3-a1",
+        "answer": "leiber die tatsächliche silhouette nehmen!"
+      },
+      {
+        "id": "r2-q2-s5-a1",
+        "answer": "sehr gut! Genauso wie der loadings screen, aber dnan bitte langsamer machen! und übergang von ladescreen zu 404 berücksichtigen, und bitte nicht in der mitte oval machen! das logo ist dort rund und sollte auch so sein"
+      },
+      {
+        "id": "r2-q2-s5-a2",
+        "answer": "ja"
+      }
+    ],
+    "screens": {},
+    "userPins": [
+      {
+        "id": "up-mw9greq7gin1",
+        "design": "q2",
+        "screen": "q2-s2",
+        "x": 50.4,
+        "y": 58.3,
+        "target": "main.q2-page.q2-empty",
+        "text": "die info ist redundant",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9gsm4yfylj",
+        "design": "q2",
+        "screen": "q2-s4",
+        "x": 44.9,
+        "y": 49.2,
+        "target": "h2.q2-h2 \"Quantum-Antrieb spult noch\"",
+        "text": "das ist mir zuuu thematisch, nicht zu überboardnend",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9gsv6hhk5e",
+        "design": "q2",
+        "screen": "q2-s4",
+        "x": 47.9,
+        "y": 52.6,
+        "target": "p \"Der Codex antwortet gerade langsam.\"",
+        "text": "das benötigt man nicht nochaml diese info.",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9gtagv7orh",
+        "design": "q2",
+        "screen": "q2-s4",
+        "x": 56.5,
+        "y": 56.5,
+        "target": "a.q2-pill \"Status\"",
+        "text": "wohin soll status führen !?",
+        "attachments": []
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "action": "implement",
+    "annotations": [
+      {
+        "id": "r3-q3-s2-a1",
+        "answer": "ne, lass uns das rausnehmen, im zweifel laden komponenten... das heißt hierfür nix designene"
+      },
+      {
+        "id": "r3-q3-s3-a1",
+        "answer": "ne, nur silhouette, ohne davor sonne und sternchen etc. da drin!"
+      },
+      {
+        "id": "r3-q3-s5-a1",
+        "answer": "sehr gut!"
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw9h5q3vufxn",
+        "design": "q3",
+        "screen": "q3-s1",
+        "x": 51,
+        "y": 62.6,
+        "target": "span.q3-lsub \"Quantum-Antrieb spult auf\"",
+        "text": "quan... benötigen wir nicht!",
+        "attachments": []
+      }
+    ]
+  }
+]

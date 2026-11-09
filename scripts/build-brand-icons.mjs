@@ -206,13 +206,13 @@ emit(resolve(BRAND, 'scc-mark-mono.svg'), text(monoMark()));
 
 // ── 2b. Inlined copies of the mark ──────────────────────────────────────────
 //
-// Two places need the mark as literal markup rather than a fetched asset. Both
-// previously held a hand-written duplicate that drifted from the source. They
-// are now spliced between sentinels and verified here, so the copies cannot
-// silently fall behind again.
+// Places that need the mark as literal markup rather than a fetched asset are
+// spliced between sentinels and verified here, so the copies cannot silently
+// fall behind again. `src/index.html` left this list: since the Quantum-Sprung
+// boot splash (concept 2026-11-09) it inlines the animated app logo
+// (`public/brand/app-logo.svg`, from the desktop app) instead of this mark.
 
 const INLINE_TARGETS = [
-  ['src/index.html', 'scc', '          ', 'aria-hidden="true"'],
   // `class="logo"` is load-bearing: renderer/main.ts serialises `svg.logo` into
   // the uploader's favicon at runtime, and styles.css sizes it.
   ['data-uploader/src/renderer/index.html', 'uploader', '        ', 'class="logo" aria-hidden="true"'],
