@@ -63,12 +63,13 @@ export type WheelEntry = LandingCodexEntry & { onTable: boolean; category: Landi
  * icons, the active one with its name, the others name in a tooltip); below it
  * every new and updated item of the current patch — ships, FPS weapons, armour,
  * components, tools, each row tagged with its category glyph (admin feedback #318) —
- * stands in one fixed list, the active category first: no wheel, the mouse wheel stays
+ * stands in one fixed list, the completely new ones first (tagged "neu"), then the updated
+ * ones (#328), the active category first in each group: no wheel, the mouse wheel stays
  * with the page, as many rows as the pane's height holds (the entry on the table always
  * among them). The pane is as tall as its content, at most the shared height. A patch with
  * nothing new at all offers entries of the active category to discover instead (title
- * without "neu", never an empty middle). "+ N weitere" counts the active category's
- * entries off the list, "Alle <Kategorie>" closes the pane. A tab click
+ * without "neu", never an empty middle). "+ N neue & aktualisierte" (discovery: "+ N weitere")
+ * counts the active category's entries off the list, "Alle <Kategorie>" closes the pane. A tab click
  * puts that category on the table and holds it; the held tab again resumes the
  * rotation. An entry click puts that entry on the table (held) — its small arrow
  * and a modified click open the subpage.
@@ -146,7 +147,7 @@ export type WheelEntry = LandingCodexEntry & { onTable: boolean; category: Landi
             <div class="more-slot">
               @if (more() > 0) {
                 <a class="more" routerLink="/codex/index" [queryParams]="r.discover ? indexQuery(r.category) : searchQuery(r.category)">
-                  {{ 'codex.landing.codex.more' | translate: { count: more() } }} <i aria-hidden="true">↗</i>
+                  {{ (r.discover ? 'codex.landing.codex.moreDiscover' : 'codex.landing.codex.more') | translate: { count: more() } }} <i aria-hidden="true">↗</i>
                 </a>
               }
             </div>
@@ -205,8 +206,8 @@ export class CodexLandingCodexPaneComponent {
 
   readonly activeRow = computed(() => this.rows().find((r) => r.category === this.active()) ?? null);
   /**
-   * The list: every category's new and updated entries, the active category first, then the
-   * others in rotation order (#318). Only when no category has anything new: the active
+   * The list: every category's completely new entries first, then the updated ones (#328);
+   * inside each group the active category first, then the others in rotation order (#318). Only when no category has anything new: the active
    * category's picks to discover.
    */
   readonly entries = computed<WheelEntry[]>(() => {
@@ -218,9 +219,11 @@ export class CodexLandingCodexPaneComponent {
     }
     const from = Math.max(0, LANDING_CATEGORIES.indexOf(this.active() ?? LANDING_CATEGORIES[0]));
     const order = (c: LandingCategory) => (LANDING_CATEGORIES.indexOf(c) - from + LANDING_CATEGORIES.length) % LANDING_CATEGORIES.length;
-    return [...real]
+    const all = [...real]
       .sort((a, b) => order(a.category) - order(b.category))
       .flatMap((r) => r.entries.map((e) => ({ ...e, category: r.category })));
+    // Every completely new entry first, then the updated ones; each group keeps the rotation order (#328).
+    return [...all.filter((e) => e.isNew), ...all.filter((e) => !e.isNew)];
   });
   /** The whole list is nothing but discovery picks (title without "neu"). */
   readonly discovering = computed(() => !this.rows().some((r) => !r.discover && r.entries.length) && !!this.activeRow()?.discover);
@@ -234,7 +237,7 @@ export class CodexLandingCodexPaneComponent {
     const keep = new Set(visible);
     return [...visible, ...all.filter((e) => !keep.has(e))].slice(0, Math.max(MAX_RENDERED, visible.length));
   });
-  /** Entries of the active category beyond the visible rows ("+ N weitere" opens them in the index). */
+  /** Entries of the active category beyond the visible rows ("+ N neue & aktualisierte" opens them in the index). */
   readonly more = computed(() => {
     // A category with nothing new while others have news: its discovery picks are not in the list, nothing "weitere".
     if (this.activeRow()?.discover && !this.discovering()) return 0;

@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.244.0",
+  "current": "0.244.1",
   "releases": [
+    {
+      "version": "0.244.1",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex patch list: completely new ships and items come first, each with a \"neu\" tag, then the updated ones; the link reads \"+ N neue & aktualisierte\"."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.244.0",
       "date": "2026-11-09",
