@@ -1,0 +1,96 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T16:53:58.806Z",
+    "favorite": null,
+    "decisions": [
+      {
+        "id": "r1-co-title",
+        "label": "Was oben im Callout steht",
+        "value": "type",
+        "rec": "type",
+        "note": ""
+      },
+      {
+        "id": "r1-co-rest",
+        "label": "Callouts in Einfach",
+        "value": "tags",
+        "rec": "tags",
+        "note": ""
+      },
+      {
+        "id": "r1-hotkeys",
+        "label": "Ziffern-Tasten",
+        "value": "drop",
+        "rec": "drop",
+        "note": ""
+      },
+      {
+        "id": "r1-3d-dist",
+        "label": "Drehen ohne Zoom",
+        "value": "sphere",
+        "rec": "sphere",
+        "note": ""
+      },
+      {
+        "id": "r1-top-all",
+        "label": "Draufsicht „Alle Hardpoints“",
+        "value": "swap",
+        "rec": "swap",
+        "note": ""
+      },
+      {
+        "id": "r1-rooms",
+        "label": "Räume und Decks",
+        "value": "uploader",
+        "rec": "uploader",
+        "note": ""
+      },
+      {
+        "id": "r1-editions",
+        "label": "Was aus Editionen wird",
+        "value": "fold",
+        "rec": "fold",
+        "note": ""
+      },
+      {
+        "id": "r1-models",
+        "label": "Modellvarianten",
+        "value": "own",
+        "rec": "own",
+        "note": ""
+      },
+      {
+        "id": "r1-exemplar",
+        "label": "Werk oder dein Exemplar",
+        "value": "switch",
+        "rec": "switch",
+        "note": ""
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw9hwc3ayyym",
+        "design": "d2",
+        "screen": "d2-s1",
+        "x": 32.5,
+        "y": 13.3,
+        "target": "button \"Schema\"",
+        "text": "diese subauswahl finde ich noch nichtg super... Generlel mach nweitere variatnten",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": []
+  }
+]
