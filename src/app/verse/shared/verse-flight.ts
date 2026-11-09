@@ -66,7 +66,7 @@ export class VerseFlight {
   reducedMotion: () => boolean = flightReducedMotion;
   /** Length of the aim step on `down`; 0 skips it. Swappable for specs. */
   aimMs = VERSE_AIM_MS;
-  /** A hidden tab aborts every transition; swappable for specs (the Karma window may be in the background). */
+  /** A hidden tab aborts every transition; swappable for specs (the test window may be in the background). */
   hidden: () => boolean = () => this.document.visibilityState !== 'visible';
 
   constructor() {

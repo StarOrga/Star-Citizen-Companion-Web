@@ -15,8 +15,8 @@ import { KeybindCategoryService } from './keybind-category.service';
  * binding chord widens the whole page and the phone scrolls sideways — the
  * same failure codex-detail-mobile-width.spec.ts guards for the detail page.
  *
- * Measured, not asserted from the source, and in a REAL 375px viewport: Karma
- * renders at ~749px, where the page's phone media queries (max-width: 640px —
+ * Measured, not asserted from the source, and in a REAL 375px viewport: the test
+ * window is 1280px wide, where the page's phone media queries (max-width: 640px —
  * the device switch wraps there) do not apply. So the rendered page moves into
  * a 375px iframe together with every stylesheet, and the iframe's own viewport
  * decides the media queries. The iframe document must not scroll sideways.
@@ -116,7 +116,7 @@ describe('Codex keybinds at a 375px viewport (REQ-24)', () => {
     }
     doc.body.style.margin = '0';
     doc.body.appendChild(doc.adoptNode(fixture.nativeElement as HTMLElement));
-    // A cloned <link> loads asynchronously; inline <style> (Karma's case) applies at once.
+    // A cloned <link> loads asynchronously; inline <style> applies at once.
     await Promise.all(
       Array.from(doc.head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map(
         (l) => new Promise<void>((resolve) => {

@@ -31,7 +31,7 @@ class UserFeedbackFabStub {}
 class FooterStub { readonly overlay = input(false); }
 
 /**
- * Dispatch a click without letting the karma page follow the anchor: for a
+ * Dispatch a click without letting the test page follow the anchor: for a
  * modified click RouterLink deliberately does NOT preventDefault (that is the
  * whole point — the browser opens a new tab), which inside the test runner
  * would navigate the harness away.
@@ -194,7 +194,7 @@ describe('ShellComponent navigation', () => {
    * rail does). It has to be the height the header actually PARKS at — so a
    * real number while the header is sticky, and 0px while it scrolls away with
    * the page, which is what it does below 1080px (admin feedback af058ca4
-   * round 4). Whichever side of that line the karma window is on, the property
+   * round 4). Whichever side of that line the test window is on, the property
    * must exist and must agree with the header's computed position.
    */
   it('publishes the height the header parks at as --sc-topbar-h', () => {

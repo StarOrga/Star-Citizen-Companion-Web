@@ -4,7 +4,7 @@ import type { HqItemMark } from './hq-item-marks.service';
 /**
  * In-memory stand-in for `HqItemMarksService` in specs that render the ownership card: the real
  * service queries `hq_item_marks` through the live Supabase client, which never answers inside
- * Karma and leaves `whenStable()` waiting until the spec times out.
+ * a spec and leaves `whenStable()` waiting until the spec times out.
  */
 export function fakeItemMarks(start: readonly HqItemMark[] = []) {
   const marks = signal<readonly HqItemMark[]>(start);

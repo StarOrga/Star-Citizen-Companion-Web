@@ -6,9 +6,9 @@ import { TEASER_BOX, TEASER_FALLBACK, TEASER_MAX, TeaserBox, TeaserStripDirectiv
  * The strip's arithmetic (feedback fdaad6b7): as many roadmap thumbnails as
  * TWO rows of the measured width hold, then "…".
  *
- * Both breakpoints are exercised explicitly. Karma renders at 749 px, i.e. in
- * the phone branch, so a rule that only holds for the 96 px desktop thumbnail
- * would pass here and be wrong where the admin looks.
+ * Both breakpoints are exercised explicitly. The 1280px test window renders
+ * the desktop branch, so a rule that only holds for the 96 px desktop thumbnail
+ * would pass here and be wrong on a phone.
  */
 const DESKTOP: TeaserBox = { ...TEASER_BOX, width: 0 };
 const PHONE: TeaserBox = { width: 0, item: 84, gap: 6, rest: 34, rows: 2 };

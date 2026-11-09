@@ -145,7 +145,7 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     }
   });
 
-  // elementFromPoint is viewport-relative, and the Karma frame is short — bring
+  // elementFromPoint is viewport-relative, and the test window is short — bring
   // each probe into view before measuring it.
   function hit(target: HTMLElement): Element | null {
     target.scrollIntoView({ block: 'center' });

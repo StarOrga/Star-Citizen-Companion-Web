@@ -45,7 +45,7 @@ describe('FeedbackMotionService', () => {
 
   /**
    * The fold is a Web Animation, and those only move when the page renders a
-   * frame — which Karma cannot promise (testing/frames.ts). So the specs do
+   * frame — which a test page cannot promise (testing/frames.ts). So the specs do
    * not wait out its 320 ms: they hold the fold, look, and run it to its end.
    */
   it('folds the row shut and closes the gap under it', async () => {

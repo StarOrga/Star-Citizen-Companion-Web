@@ -26,8 +26,8 @@ class UserFeedbackPanelStub {}
  * and had no way to report it (admin feedback bb2c82de).
  *
  * These are the two numbers that fix has to keep true forever, in both
- * launchers: above the whole modal band, below the global notice band. Karma
- * renders at 749px, so the launchers' `max-width: 720px` branch is NOT active
+ * launchers: above the whole modal band, below the global notice band. The test
+ * window is 1280px wide, so the launchers' `max-width: 720px` branch is NOT active
  * here — the invariant is asserted on the desktop branch, and the media query
  * deliberately touches only `right` / `bottom` / `gap`, never the layer, so
  * both branches carry the same z-index by construction.

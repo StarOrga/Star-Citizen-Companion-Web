@@ -242,7 +242,7 @@ describe('CodexHoloTableComponent', () => {
         providers: [provideTranslateService({ fallbackLang: 'en' })],
       });
       const fixture = TestBed.createComponent(CodexHoloTableComponent);
-      // A desktop-sized surface: Karma's own window is only 749px wide.
+      // A desktop-sized surface of its own, whatever the test window is.
       const host = fixture.nativeElement as HTMLElement;
       host.style.width = '980px';
       host.style.height = '640px';

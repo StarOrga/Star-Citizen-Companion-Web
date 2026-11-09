@@ -33,7 +33,7 @@ class FooterStub { readonly overlay = input(false); }
 @Component({ selector: 'sc-account-notice', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class AccountNoticeStub {}
 
-/** Click without letting the karma page follow the anchor — see shell-nav.spec.ts. */
+/** Click without letting the test page follow the anchor — see shell-nav.spec.ts. */
 function click(el: HTMLElement, init: MouseEventInit = {}): void {
   const swallow = (ev: Event) => ev.preventDefault();
   el.addEventListener('click', swallow);

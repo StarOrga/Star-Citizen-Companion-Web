@@ -225,7 +225,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
    * hingescrollt werden." The board's teaser links carry `?focus=<card id>`.
    *
    * The reveal waits a frame for the section to render; the spec says when
-   * that frame is, rather than waiting on Karma's (testing/frames.ts).
+   * that frame is, rather than waiting on the browser's (testing/frames.ts).
    */
   it('opens, lights and scrolls to the ONE roadmap card the board linked to', async () => {
     const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockReturnValue(undefined as never);

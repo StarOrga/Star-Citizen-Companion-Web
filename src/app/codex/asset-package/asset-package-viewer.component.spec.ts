@@ -45,7 +45,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
     return { fixture, c };
   }
 
-  /** Stand in for the per-frame projection (no WebGL in Karma). */
+  /** Stand in for the per-frame projection (no WebGL in specs). */
   function project(c: AssetPackageViewerComponent, ids: string[]): void {
     c['viewport'].set({ w: 1000, h: 600 });
     c['silhouette'].set({ left: 300, top: 200, right: 700, bottom: 400 });
@@ -281,7 +281,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       expect(a.getAttribute('title')).toBeNull();
 
       const ctrl = new MouseEvent('click', { button: 0, ctrlKey: true, cancelable: true, bubbles: true });
-      // Keep Karma's page: only the viewer's own reaction is under test here.
+      // Keep the test page: only the viewer's own reaction is under test here.
       const stop = (ev: Event) => ev.preventDefault();
       a.parentElement!.addEventListener('click', stop);
       a.dispatchEvent(ctrl);
