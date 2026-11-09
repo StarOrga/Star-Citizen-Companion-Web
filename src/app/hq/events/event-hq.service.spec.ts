@@ -62,7 +62,7 @@ describe('EventHqService claim / resume / end pass', () => {
   const reward = { id: 'r1', name: 'Reward', className: 'ITEM_X' } as never;
   const invError = signal<string | null>(null);
 
-  function setup(opts: { addStock: boolean; loaded?: boolean; user?: { id: string } | null }) {
+  function setup(opts: { addStock: boolean; loaded?: boolean; nsLoaded?: boolean; user?: { id: string } | null }) {
     const claim = vi.fn().mockResolvedValue(true);
     const fulfil = vi.fn().mockResolvedValue(undefined);
     const reload = vi.fn().mockResolvedValue(true);
@@ -74,7 +74,7 @@ describe('EventHqService claim / resume / end pass', () => {
         { provide: EventSheetService, useValue: { events: signal([event]), byId: signal(new Map([['ev', event]])), loaded: signal(opts.loaded ?? true), error: signal(null), load: () => Promise.resolve() } },
         { provide: UserEventStateService, useValue: { states: signal(new Map()), done: signal([]), loaded: signal(true), error: signal(null), stateOf: () => ({ status: 'open', progress: {}, claimed: {} }), claim, setStatus: vi.fn().mockResolvedValue(true), load: () => Promise.resolve() } },
         { provide: NewsService, useValue: { patchLines: () => [] } },
-        { provide: NachschubService, useValue: { active: () => [n], packages: signal([n]), loaded: signal(true), fulfilEventReward: fulfil, reload, update: vi.fn().mockResolvedValue(true), ensureLoaded: () => Promise.resolve(), applyEventEnds } },
+        { provide: NachschubService, useValue: { active: () => [n], packages: signal([n]), loaded: signal(opts.nsLoaded ?? true), fulfilEventReward: fulfil, reload, update: vi.fn().mockResolvedValue(true), ensureLoaded: () => Promise.resolve(), applyEventEnds } },
         { provide: HqEinsatzService, useValue: { ofPackage: () => [], ready: signal(true) } },
         { provide: HqInventoryService, useValue: { addStock: () => Promise.resolve(opts.addStock), error: invError } },
         { provide: HangarService, useValue: { error: signal(null) } },
@@ -109,6 +109,14 @@ describe('EventHqService claim / resume / end pass', () => {
 
   it('end pass runs per user and not after a failed load', async () => {
     const failed = setup({ addStock: true, loaded: false, user: { id: 'a' } });
+    failed.svc.ensure();
+    await new Promise((r) => setTimeout(r, 0));
+    TestBed.tick();
+    expect(failed.applyEventEnds).not.toHaveBeenCalled();
+  });
+
+  it('end pass waits for the Nachschub list too (a failed list load does not use it up)', async () => {
+    const failed = setup({ addStock: true, nsLoaded: false, user: { id: 'a' } });
     failed.svc.ensure();
     await new Promise((r) => setTimeout(r, 0));
     TestBed.tick();
