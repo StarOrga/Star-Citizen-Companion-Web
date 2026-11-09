@@ -16,6 +16,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { setRootVar } from '../../core/root-var';
 import { onScrollTick } from '../../core/scroll-tick';
 import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
@@ -916,10 +917,10 @@ export class FusionBarComponent {
     // The bar parks `--sc-chrome-top` (minus its 4px padding) below the viewport top: that lift counts.
     const lift = Math.max(0, (parseFloat(getComputedStyle(el).top) || 0) - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sc-imp-banner-h')) || 0));
     const px = this.phone() || this.hidden() || staged ? 0 : Math.round(el.getBoundingClientRect().height + lift);
-    document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
+    setRootVar('--sc-topbar-h', `${px}px`);
     // Phone: the whole bottom stack (bar + panel) the page must keep free.
     const stack = this.phone() && !staged ? Math.round(el.getBoundingClientRect().height) : 0;
-    document.documentElement.style.setProperty('--sc-bar-stack-h', `${stack}px`);
+    setRootVar('--sc-bar-stack-h', `${stack}px`);
   }
 
   private pulse(kind: 'morph' | 'enter'): void {

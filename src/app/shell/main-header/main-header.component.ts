@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, signal } from '@angular/core';
+import { setRootVar } from '../../core/root-var';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -500,7 +501,7 @@ export class MainHeaderComponent {
     afterNextRender(() => {
       if (typeof document === 'undefined') return;
       const publish = () =>
-        document.documentElement.style.setProperty('--sc-mainhead-h', `${Math.round(host.offsetHeight)}px`);
+        setRootVar('--sc-mainhead-h', `${Math.round(host.offsetHeight)}px`);
       publish();
       // One frame later: the published height resizes the spacer (and the body), which a
       // write inside this callback would report again in the same frame (RO loop error).

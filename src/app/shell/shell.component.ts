@@ -15,6 +15,7 @@ import {
   untracked,
   viewChildren,
 } from '@angular/core';
+import { setRootVar } from '../core/root-var';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   NavigationCancel,
@@ -1267,7 +1268,7 @@ export class ShellComponent implements AfterViewInit {
     const px = parked ? Math.round(bar.getBoundingClientRect().height) : 0;
     if (px === this.topbarHeightPx) return;
     this.topbarHeightPx = px;
-    document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
+    setRootVar('--sc-topbar-h', `${px}px`);
   }
 
   private stopTopbarProbe(): void {
