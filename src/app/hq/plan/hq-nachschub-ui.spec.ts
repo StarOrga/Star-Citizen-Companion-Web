@@ -416,7 +416,7 @@ describe('HqNachschubFlowComponent', () => {
       removeLine: vi.fn().mockName('removeLine'),
     };
     const reward = { id: 'r1', name: 'Keelback', className: 'ARGO_KEELBACK', variant: null, channel: 'pledge', timing: { kind: 'immediate', date: null }, trackId: null, tier: null };
-    const sheet = normalizeSheet({ schema: 1, fields: { rewards: { value: [reward], confidence: 1, source: 'admin', review: 'approved' } } });
+    const sheet = normalizeSheet({ schema: 1, fields: { rewards: { value: [reward, { ...reward, id: 'r2', name: 'Helm', className: 'HELM' }], confidence: 1, source: 'admin', review: 'approved' } } });
     const row = { id: 'ev', name: 'Ev', startDate: '2000-01-01', endDate: '2999-12-31', dateStatus: 'confirmed', status: 'scheduled', hidden: false, freeFly: false, sheet };
     TestBed.configureTestingModule({
       providers: [
@@ -442,6 +442,23 @@ describe('HqNachschubFlowComponent', () => {
     await f.whenStable();
     f.detectChanges();
   };
+
+  it('event parent tick selects all rewards, untick clears them, partial shows a share', async () => {
+    const { f } = setupEdit();
+    const cmp = f.componentInstance as unknown as { eventPicks: { (): Map<string, Set<string>>; set(v: unknown): void }; toggleEvent(o: unknown): void; eventShare(o: unknown): number };
+    const o = f.debugElement.injector.get(EventHqService).open()[0];
+    expect(cmp.eventShare(o)).toBe(0);
+    cmp.toggleEvent(o);
+    expect([...cmp.eventPicks().get('ev')!].sort()).toEqual(['r1', 'r2']);
+    expect(cmp.eventShare(o)).toBe(1);
+    cmp.eventPicks.set(new Map([['ev', new Set(['r1'])]]));
+    expect(cmp.eventShare(o)).toBe(0.5);
+    cmp.toggleEvent(o);
+    expect(cmp.eventShare(o)).toBe(1);
+    cmp.toggleEvent(o);
+    expect(cmp.eventPicks().has('ev')).toBe(false);
+    expect(cmp.eventShare(o)).toBe(0);
+  });
 
   it('edit: adding an event binds its rewards as lines with their own event step', async () => {
     const { f, fake } = setupEdit();

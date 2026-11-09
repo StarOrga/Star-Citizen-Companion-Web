@@ -6,6 +6,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { DesktopReleaseService } from '../desktop/desktop-release.service';
+import { HeaderPopoutService } from './header-popout.service';
 import { AppsMenuComponent, formatAppSize } from './apps-menu.component';
 
 describe('formatAppSize', () => {
@@ -123,5 +124,16 @@ describe('AppsMenuComponent', () => {
     a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
     fixture.detectChanges();
     expect(el().querySelector('.pop')).not.toBeNull();
+  });
+
+  it('is an icon-only trigger and folds away when another header popout opens', async () => {
+    setup('viewer');
+    expect(el().querySelector('.trigger .label')).toBeNull();
+    expect(el().querySelector('.trigger')!.getAttribute('aria-label')).toBe('appsMenu.trigger');
+    await openMenu();
+    expect(TestBed.inject(HeaderPopoutService).active()).toBe('apps');
+    TestBed.inject(HeaderPopoutService).claim('wishlist');
+    fixture.detectChanges();
+    expect(el().querySelector('.pop')).toBeNull();
   });
 });

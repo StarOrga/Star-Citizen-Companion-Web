@@ -35,6 +35,8 @@ import { VerseApiService } from '../verse/data/verse-api.service';
 import { KartographCrestComponent } from '../verse/starmap/kartograph-crest.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { AppsMenuComponent } from './apps-menu.component';
+import { HeaderPopoutService } from './header-popout.service';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { MerklisteComponent } from './merkliste/merkliste.component';
 import { WishCartDialogComponent } from './cart/wish-cart-dialog.component';
 import { WishCartService } from './cart/wish-cart.service';
@@ -72,7 +74,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, WishCartDialogComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -299,23 +301,24 @@ import { avatarUrlOf } from './avatar-url';
           @if (menuOpen()) {
             <div class="dropdown" role="menu" (keydown)="onMenuKeydown($event)">
               <div class="dropdown-header">
-                <span class="dh-name">{{ displayName() }}</span>
-                @if (auth.user()?.email; as email) {
-                  <span class="dh-email">{{ email }}</span>
-                }
+                <div class="dh-id">
+                  <span class="dh-name">{{ displayName() }}</span>
+                  @if (auth.user()?.email; as email) {
+                    <span class="dh-email">{{ email }}</span>
+                  }
+                </div>
+                <button type="button" scAction tier="tertiary" class="dh-signout"
+                        [disabled]="signingOut()" [busy]="signingOut()"
+                        [attr.aria-label]="'nav.signOut' | translate" [scTooltip]="'nav.signOut' | translate" scTooltipTier="label"
+                        (click)="doSignOut()">
+                  <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4.5H5.5v15H10M15 8l4 4-4 4M19 12H9.5" /></svg>
+                </button>
               </div>
               <!-- The navigating entries are real anchors, and only the PLAIN
                    left click folds the menu away: a middle/Ctrl/Cmd/Shift
                    click opens the target in a new tab and leaves the user
                    standing here, so closing the menu under them would be a
                    surprise (see onMenuNavigate). -->
-              <a
-                class="dropdown-item"
-                role="menuitem"
-                routerLink="/settings"
-                (click)="onMenuNavigate($event)">
-                {{ 'nav.settings' | translate }}
-              </a>
               <a
                 class="dropdown-item"
                 role="menuitem"
@@ -327,6 +330,18 @@ import { avatarUrlOf } from './avatar-url';
                   <span class="di-count" aria-hidden="true">{{ requestCount() }}</span>
                 }
               </a>
+              <a
+                class="dropdown-item"
+                role="menuitem"
+                routerLink="/settings"
+                (click)="onMenuNavigate($event)">
+                {{ 'nav.settings' | translate }}
+              </a>
+              @if (roles.isAdmin()) {
+                <!-- Group divider: Admin / Integrationen sit apart from Social / Einstellungen. A plain <hr>,
+                     not a .dropdown-item, so the roving focus skips it. -->
+                <hr class="menu-sep" role="separator" />
+              }
               @if (roles.isAdmin() && shellOn()) {
                 <!-- The Admin hub: in the beta shell it is NOT in the nav or the header's sub row
                      any more (batch 2026-11-05, d-admin), this menu is its one home, desktop and
@@ -411,20 +426,6 @@ import { avatarUrlOf } from './avatar-url';
                   {{ 'nav.viewAs.exit' | translate }}
                 </button>
               }
-
-              <!-- C1: visually separates "Ansehen als" from "Abmelden" — a plain
-                   <hr>, not a .dropdown-item, so onMenuKeydown()'s roving focus
-                   skips over it (same reasoning as .dropdown-sep above). -->
-              <hr class="menu-sep" role="separator" />
-
-              <button
-                type="button"
-                class="dropdown-item"
-                role="menuitem"
-                [disabled]="signingOut()"
-                (click)="doSignOut()">
-                {{ 'nav.signOut' | translate }}
-              </button>
             </div>
           }
         </div>
@@ -683,11 +684,11 @@ import { avatarUrlOf } from './avatar-url';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
+      width: var(--sc-head-item-h, 40px);
+      height: var(--sc-head-item-h, 40px);
+      border-radius: 8px;
       border: 1px solid var(--sc-border);
-      background: var(--sc-bg-1);
+      background: transparent;
       color: var(--sc-accent);
       font-family: var(--sc-font-display);
       font-weight: 700;
@@ -696,10 +697,11 @@ import { avatarUrlOf } from './avatar-url';
       cursor: pointer;
       transition: all 0.18s ease;
     }
-    .avatar-btn:hover {
+    .avatar-btn:hover, .avatar-btn[aria-expanded='true'] {
       border-color: var(--sc-accent);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+      background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
     }
+    .avatar-btn[aria-expanded='true'] { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc-accent) 18%, transparent); }
     .avatar-btn:focus-visible {
       outline: none;
       border-color: var(--sc-accent);
@@ -722,12 +724,14 @@ import { avatarUrlOf } from './avatar-url';
     }
     .dropdown-header {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: 8px 12px 10px;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 6px 10px 12px;
       margin-bottom: 4px;
       border-bottom: 1px solid var(--sc-border);
     }
+    .dropdown-header .dh-id { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+    .dropdown-header .dh-signout { flex: none; }
     .dropdown-header .dh-name {
       font-family: var(--sc-font-display);
       font-weight: 700;
@@ -927,12 +931,13 @@ import { avatarUrlOf } from './avatar-url';
     .bar-account .avatar-btn { width: var(--sc-head-item-h, 40px); height: var(--sc-head-item-h, 40px); }
     /* The real profile picture fills the round button; the initial stays the fallback. */
     .avatar-btn.has-img { padding: 0; overflow: hidden; }
-    .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+    .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; display: block; }
+    /* Touch floor: 48 px, by pointer like the wishlist trigger. */
+    @media (pointer: coarse), (max-width: 749px) { .avatar-btn, .mh-account .avatar-btn, .bar-account .avatar-btn { width: 48px; height: 48px; } }
     .mh-account, .bar-account { display: flex; align-items: center; gap: 8px; }
     .mh-account .avatar-btn {
       width: var(--sc-head-item-h, 40px);
       height: var(--sc-head-item-h, 40px);
-      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
     }
     /* Room of the pinned main header (it is position: fixed; MainHeaderComponent
        publishes its row height as --sc-mainhead-h). */
@@ -1093,6 +1098,7 @@ export class ShellComponent implements AfterViewInit {
   /** The Admin hub, the first red entry of the account menu. */
   protected readonly adminHub = ADMIN_HUB;
   readonly menuOpen = signal(false);
+  private readonly popouts = inject(HeaderPopoutService);
   /** The folded admin menu (721-1179px). */
   readonly adminMenuOpen = signal(false);
   /** On /admin or /admin/telemetry - the folded menu's button carries the active mark. */
@@ -1148,6 +1154,10 @@ export class ShellComponent implements AfterViewInit {
   private topbarHeightPx: number | null = null;
 
   constructor() {
+    // Another header popout (wishlist / apps) took the slot: the profile menu folds away.
+    effect(() => {
+      if (this.popouts.active() !== 'profile' && untracked(() => this.menuOpen())) this.menuOpen.set(false);
+    });
     // A first visit to the Verse hub (or a reload) opens with its entrance: the stars,
     // then the app's name, then the chrome. The hub's chunk is still on its way here,
     // so the entrance is announced now — header and search field stand hidden from
@@ -1371,7 +1381,13 @@ export class ShellComponent implements AfterViewInit {
   toggleMenu(event: Event) {
     event.stopPropagation();
     this.adminMenuOpen.set(false);
-    this.menuOpen.update((open) => !open);
+    if (this.menuOpen()) {
+      this.closeMenu();
+      return;
+    }
+    // Opening the profile menu closes the wishlist / apps popouts (one header popout at a time).
+    this.popouts.claim('profile');
+    this.menuOpen.set(true);
   }
 
   toggleAdminMenu(event: Event) {
@@ -1435,6 +1451,7 @@ export class ShellComponent implements AfterViewInit {
 
   closeMenu() {
     this.menuOpen.set(false);
+    this.popouts.release('profile');
   }
 
   // Close on any click outside the profile-menu subtree.

@@ -118,8 +118,7 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = ADMIN_HUB_GROUPS.flatMap
     <div class="sc-stage-hero sc-stage-a" scStageHero>
       <sc-page-header
         [eyebrow]="'adminHub.eyebrow' | translate"
-        [title]="'adminHub.title' | translate"
-        [subtitle]="'adminHub.subtitle' | translate" />
+        [title]="'adminHub.title' | translate" />
       <div scStageSearch></div>
     </div>
     <div class="groups sc-below-stage">

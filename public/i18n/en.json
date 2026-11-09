@@ -6043,7 +6043,6 @@
     },
     "title": "HQ",
     "eyebrow": "Personal area",
-    "subtitle": "Your ships, sets and ops in one place.",
     "tabsAria": "HQ sections",
     "tabs": {
       "overview": "Overview",
@@ -7444,7 +7443,6 @@
   "adminHub": {
     "eyebrow": "Admin",
     "title": "Command centre",
-    "subtitle": "Every admin tool in one place.",
     "groups": {
       "people": "People & access",
       "operations": "Operations",
@@ -8194,16 +8192,11 @@
     }
   },
   "quick": {
-    "title": "Quick access",
-    "recent": "Recently opened",
-    "more": "Show more",
-    "less": "Show less",
-    "emptyRecent": "Nothing opened yet.",
+    "toNachschub": "Into a Nachschub: {{name}}",
     "wish": "Wishlist",
-    "lastAdded": "last added",
     "emptyWish": "Nothing on the wishlist yet.",
     "allWish": "Whole wishlist · {{n}} items",
-    "emptyContext": "Nothing here yet.",
+    "allWishOne": "Whole wishlist · 1 item",
     "section": {
       "inventar": "Inventory",
       "hangar": "Hangar",
@@ -8221,9 +8214,7 @@
       "item": "Items",
       "blueprint": "Blueprints",
       "news": "News"
-    },
-    "recentNeedsConsent": "This device only remembers opened pages with the \"Preferences\" consent.",
-    "recentConsentLink": "Open settings"
+    }
   },
   "cart": {
     "title": "Wishlist",

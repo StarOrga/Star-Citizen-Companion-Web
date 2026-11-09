@@ -35,8 +35,7 @@ import { HqLink, hqHangar, hqLocker, hqOps, hqSet, ownShipLink, personalShipLink
     <div class="sc-stage-hero sc-stage-a" scStageHero>
       <sc-page-header
         [eyebrow]="'hq.eyebrow' | translate"
-        [title]="'hq.title' | translate"
-        [subtitle]="'hq.subtitle' | translate" />
+        [title]="'hq.title' | translate" />
       <div scStageSearch></div>
     </div>
 

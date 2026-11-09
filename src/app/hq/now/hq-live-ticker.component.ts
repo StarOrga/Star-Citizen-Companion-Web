@@ -158,6 +158,11 @@ const TICK_MS = 30_000;
 
       /* Touch: every target gets the 48px the touch audit measures. */
       @media (pointer: coarse) { .dock { --_h: 48px; } }
+      /* Phones: no "app on / off", no launch, no Aussicht - only live info from a tracking app stays. */
+      @media (max-width: 749px) {
+        .dock:not([data-state='tracking']) { display: none; }
+        .dock .state, .dock .mark, .dock .go, .dock .aussicht { display: none; }
+      }
       @media (prefers-reduced-motion: reduce) { .aussicht { animation: none; } }
     `,
   ],
