@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { DestroyRef, Injectable, NgZone, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { NewsService } from '../../news/news.service';
@@ -46,6 +46,7 @@ export class EventHqService {
   private endsAppliedFor: string | null = null;
   private pollTimer: ReturnType<typeof setInterval> | undefined;
   private clockTimer: ReturnType<typeof setInterval> | undefined;
+  private readonly zone = inject(NgZone);
   /** i18n key of the last failed claim write (Bestand/Hangar), else null; the claim dialog shows it. */
   readonly claimError = signal<string | null>(null);
 
@@ -97,7 +98,9 @@ export class EventHqService {
   /** Advances the clock behind {@link open} so an event whose end passed leaves a long-open tab; stops at sign-out. */
   private startClock(): void {
     if (this.clockTimer) return;
-    this.clockTimer = setInterval(() => {
+    // Outside the zone: a repeating timer would keep the app from ever turning stable (the service worker registers
+    // on stability, fixture.whenStable() waits for it); the signal write still schedules change detection.
+    this.clockTimer = this.zone.runOutsideAngular(() => setInterval(() => {
       if (!this.auth.user()) {
         clearInterval(this.clockTimer);
         this.clockTimer = undefined;
@@ -105,7 +108,7 @@ export class EventHqService {
         return;
       }
       this.now.set(Date.now());
-    }, CLOCK_MS);
+    }, CLOCK_MS));
   }
 
   eventById(id: string | null | undefined): EventRow | null {

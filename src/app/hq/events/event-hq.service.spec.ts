@@ -72,9 +72,9 @@ describe('EventHqService claim / resume / end pass', () => {
       providers: [
         { provide: AuthService, useValue: { user } },
         { provide: EventSheetService, useValue: { events: signal([event]), byId: signal(new Map([['ev', event]])), loaded: signal(opts.loaded ?? true), error: signal(null), load: () => Promise.resolve() } },
-        { provide: UserEventStateService, useValue: { states: signal(new Map()), done: signal([]), loaded: signal(true), error: signal(null), stateOf: () => ({ status: 'open', progress: {}, claimed: {} }), claim, load: () => Promise.resolve() } },
+        { provide: UserEventStateService, useValue: { states: signal(new Map()), done: signal([]), loaded: signal(true), error: signal(null), stateOf: () => ({ status: 'open', progress: {}, claimed: {} }), claim, setStatus: vi.fn().mockResolvedValue(true), load: () => Promise.resolve() } },
         { provide: NewsService, useValue: { patchLines: () => [] } },
-        { provide: NachschubService, useValue: { active: () => [n], packages: signal([n]), loaded: signal(true), fulfilEventReward: fulfil, reload, ensureLoaded: () => Promise.resolve(), applyEventEnds } },
+        { provide: NachschubService, useValue: { active: () => [n], packages: signal([n]), loaded: signal(true), fulfilEventReward: fulfil, reload, update: vi.fn().mockResolvedValue(true), ensureLoaded: () => Promise.resolve(), applyEventEnds } },
         { provide: HqEinsatzService, useValue: { ofPackage: () => [], ready: signal(true) } },
         { provide: HqInventoryService, useValue: { addStock: () => Promise.resolve(opts.addStock), error: invError } },
         { provide: HangarService, useValue: { error: signal(null) } },

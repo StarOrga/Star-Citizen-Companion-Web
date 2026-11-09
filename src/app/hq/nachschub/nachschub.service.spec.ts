@@ -564,20 +564,24 @@ describe('Einsätze of a deleted Nachschub (AUD-L02)', () => {
   const steps = [{ kind: 'buy' as const, label: 'Gladius', location: null, system: null, className: null, qty: 1, supplyId: null, missionRef: null }];
 
   beforeEach(() => {
-    vi.useFakeTimers();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [provideTranslateService(), fakeSupabase().provider, { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } }],
     });
   });
-  afterEach(() => {
-    vi.useRealTimers();
-    localStorage.clear();
-  });
+  afterEach(() => localStorage.clear());
 
-  it('are gone for every consumer once the list is loaded and the Nachschub is not in it; while loading nothing is hidden', () => {
+  /** Both services up and the Einsatz account pull finished (it sets the rows once per user). */
+  async function services() {
     const ns = TestBed.inject(NachschubService);
     const einsatz = TestBed.inject(HqEinsatzService);
+    TestBed.flushEffects();
+    await vi.waitFor(() => expect(einsatz.ready()).toBe(true));
+    return { ns, einsatz };
+  }
+
+  it('are gone for every consumer once the list is loaded and the Nachschub is not in it; while loading nothing is hidden', async () => {
+    const { ns, einsatz } = await services();
     const kept = einsatz.create({ title: 'Kept', packageId: 'a', steps })!;
     const orphan = einsatz.create({ title: 'Orphan', packageId: 'gone', steps })!;
     const loose = einsatz.create({ title: 'Loose', steps })!;
@@ -591,9 +595,8 @@ describe('Einsätze of a deleted Nachschub (AUD-L02)', () => {
     expect(einsatz.markStepDone({ kind: 'buy' })?.einsatzId).not.toBe(orphan.id);
   });
 
-  it('an archived Nachschub keeps its Einsätze', () => {
-    const ns = TestBed.inject(NachschubService);
-    const einsatz = TestBed.inject(HqEinsatzService);
+  it('an archived Nachschub keeps its Einsätze', async () => {
+    const { ns, einsatz } = await services();
     einsatz.create({ title: 'Old', packageId: 'a', steps });
     ns.packages.set([{ id: 'a', name: 'A', status: 'archived', slot: null, snapshot: {}, createdAt: '2026-11-07T10:00:00Z', archivedAt: '2026-11-08T00:00:00Z' }]);
     ns.loaded.set(true);
