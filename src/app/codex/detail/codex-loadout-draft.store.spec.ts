@@ -84,7 +84,7 @@ describe('CodexLoadoutDraftStore', () => {
         },
       ],
     });
-    // The mirror writes the URL; keep the Karma page where it is.
+    // The mirror writes the URL; keep the test page where it is.
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     store = TestBed.inject(CodexLoadoutDraftStore);
     const stock: LoadoutItem = {

@@ -307,7 +307,7 @@ describe('ImpersonationService — pending window and anon self-heal', () => {
    * Spied on the PROTOTYPE, not per instance: these specs construct services
    * before they get a handle on them (and one of them constructs a second
    * service to simulate the document a reload produces), so an instance spy
-   * leaves a window where a real `location.reload()` would take Karma down.
+   * leaves a window where a real `location.reload()` would take the test page down.
    */
   let reload: Mock;
 

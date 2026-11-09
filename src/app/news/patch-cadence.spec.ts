@@ -78,7 +78,7 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
   beforeEach(() => {
     reduced = false;
     // Stubbed before the component is built: the constructor reads the query
-    // once and subscribes to it, and Karma's own preference must not decide
+    // once and subscribes to it, and the test browser's own preference must not decide
     // whether these tests exercise the rotation.
     vi.spyOn(window, 'matchMedia').mockImplementation((query: string) =>
         ({

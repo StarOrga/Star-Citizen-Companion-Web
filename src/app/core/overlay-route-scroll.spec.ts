@@ -3,7 +3,8 @@ import { Location, ViewportScroller } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { ApplicationRef, Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router, RouterOutlet, Routes, provideRouter, withInMemoryScrolling } from '@angular/router';
+import { Router, RouterOutlet, Routes, Scroll, provideRouter, withInMemoryScrolling } from '@angular/router';
+import { filter, firstValueFrom } from 'rxjs';
 import {
   OVERLAY_ROUTE_DATA,
   OverlayScrollState,
@@ -29,8 +30,6 @@ const ROUTES: Routes = [
   { path: 'item/:id', component: PageComponent },
 ];
 
-/** The router's Scroll event waits for a timeout / animation frame. */
-const settle = () => new Promise<void>((r) => setTimeout(r, 40));
 
 describe('keepsScroll', () => {
   const st = (overlay: boolean, params = '{}', route: unknown = board): OverlayScrollState => ({
@@ -86,10 +85,19 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
 
   afterEach(() => host.remove());
 
-  async function go(url: string): Promise<void> {
-    await router.navigateByUrl(url);
-    await settle();
+  /**
+   * Runs a navigation and waits for the router's Scroll event (it waits for a timeout and an
+   * animation frame), then one more task for the scroller's reaction. A fixed 40 ms wait was
+   * too short under a loaded full run.
+   */
+  async function settled(navigate: () => unknown): Promise<void> {
+    const scrolled = firstValueFrom(router.events.pipe(filter((e) => e instanceof Scroll)));
+    await navigate();
+    await scrolled;
+    await new Promise((r) => setTimeout(r));
   }
+
+  const go = (url: string) => settled(() => router.navigateByUrl(url));
 
   it('opening and closing the overlay (link, Esc, close button) leaves the board where it was', async () => {
     await go('/board');
@@ -103,8 +111,7 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
     await go('/board');
     await go('/board/4.10');
     toTop.mockClear();
-    location.back();
-    await settle();
+    await settled(() => location.back());
     expect(location.path()).toBe('/board');
     expect(toTop).not.toHaveBeenCalled();
   });
@@ -115,8 +122,7 @@ describe('OverlayRouteScrollService (feedback #245)', () => {
     await go('/other');
     expect(toTop).toHaveBeenCalledWith([0, 0]);
     toTop.mockClear();
-    location.back();
-    await settle();
+    await settled(() => location.back());
     expect(toTop).toHaveBeenCalledWith([0, 0], { behavior: 'instant' });
   });
 

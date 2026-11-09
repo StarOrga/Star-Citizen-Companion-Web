@@ -45,8 +45,8 @@ function lane(): number {
  * sides read the same `--sc-fab-*` tokens, which is what makes this a real
  * check rather than two copies of the number 24.
  *
- * Karma renders at 749px, i.e. the PHONE branch of the shared tokens
- * (inset 16px). The assertion is therefore written against the tokens, not
+ * The 1280px test window renders the DESKTOP branch of the shared tokens
+ * (the phone branch insets 16px). The assertion is therefore written against the tokens, not
  * against literals, so it holds in both branches: the promo clears whatever
  * the lane currently is. The rendered launcher is measured in the same pass to
  * prove the lane still describes the real button.
@@ -88,7 +88,7 @@ describe('Starscape promo vs. the feedback launcher', () => {
       providers: [provideTranslateService()],
     });
     // The pitch refuses to show below 900px; pin a desktop width so the card
-    // renders. Its CSS still resolves in Karma's 749px frame — which is the
+    // renders. Its CSS still resolves at the real window width — which is the
     // point: the offset must be right in that branch too.
     Object.defineProperty(window, 'innerWidth', { value: 1280, configurable: true });
     const fixture = TestBed.createComponent(StarscapeAppPromoComponent);

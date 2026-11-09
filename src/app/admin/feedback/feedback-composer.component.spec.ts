@@ -1002,8 +1002,8 @@ describe('FeedbackComposerComponent - the send row', () => {
    * Admin feedback 187574ed: "Entwurf gesichert kann gern direkt links neben
    * der zeichenzähleranzeige". Both are quiet readouts about the text above
    * them, so they share one line — and the draft state is the one on the left.
-   * Asserted in both media branches: Karma renders at 749px, i.e. the phone
-   * side, and this row never turns into a column on either side.
+   * The 1280px test window is the desktop side; this row never turns into a
+   * column on either side.
    */
   it('puts the draft state directly left of the character counter', async () => {
     await mount({}, true);

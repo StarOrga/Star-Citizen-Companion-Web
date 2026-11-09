@@ -3,7 +3,7 @@ import { FeedbackAttachmentSignerService } from '../feedback-attachment-signer.s
 import { feedbackImagePath } from '../feedback-images.util';
 
 /**
- * Test double for the attachment signer — Karma must never sign against the
+ * Test double for the attachment signer — specs must never sign against the
  * real Storage API. By default every source passes through unchanged; give it
  * `signed` (object path → URL) to make bucket URLs resolve like the real one,
  * and `failed` paths to simulate a signing error.

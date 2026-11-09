@@ -30,7 +30,7 @@ describe('HangarPickerComponent', () => {
   /**
    * Ctrl+click an anchor the way a user would, minus the browser's part. The
    * component is meant to leave such a click to the browser — which, left
-   * alone, opens a REAL tab and sends Karma's page to the background, where it
+   * alone, opens a REAL tab and sends the test page to the background, where it
    * renders no frames for the rest of the run (see
    * `testing/new-tab-guard.spec.ts`). So the click is swallowed on `window`,
    * after every listener of the page has seen it. Returns whether the page
