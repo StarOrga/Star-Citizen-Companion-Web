@@ -18,7 +18,7 @@ import {
   toLang,
 } from '../codex.service';
 import { UpcomingShipsService, normalizeShipName } from '../upcoming-ships.service';
-import { formatNumber } from '../codex-format';
+import { comparePatchVersion, formatNumber } from '../codex-format';
 import { shipAnchorPorts, shipAnchorPositions } from './codex-landing-values';
 import { loadoutAnchorPorts, loadoutComponentClasses, loadoutValues, withLoadoutClassStats } from './codex-landing-loadout';
 
@@ -65,6 +65,8 @@ export const TOOL_ATTACH_TYPES: readonly string[] = ['TractorBeam', 'TowingBeam'
 
 /** Entries of a category with nothing new that the list offers to discover (the pane shows as many as fit). */
 const DISCOVER_ENTRIES = 16;
+/** Earlier-patch entries per category at most: the pane never shows more rows than {@link DISCOVER_ENTRIES} of them anyway. */
+const EARLIER_ENTRIES = 16;
 
 const KIND_OF: Record<LandingCategory, CodexKind> = {
   ship: 'ship',
@@ -582,12 +584,14 @@ export class CodexLandingDataService {
               .filter((s) => ids.has(s.id))
               .map((s) => ({ id: s.id, name: s.name, route: ['/codex', 'upcoming', s.id], announced: true }));
           }
+          const earlier = await this.earlierEntries(category, rows, patch, new Set(fresh.map((r) => r.classNameSlug)));
           return {
             category,
             count: fresh.length,
             ...(discover ? { discover: true } : {}),
             entries: [...ready, ...announced.slice(0, ANNOUNCED_IN_LIST)],
             announced: announced.length,
+            ...(earlier.length ? { earlier } : {}),
           };
         } catch (err) {
           this.error.set(toErrorKey('codex-landing', `news ${category}`, err));
@@ -596,6 +600,45 @@ export class CodexLandingDataService {
       }),
     );
     return { patch, categories };
+  }
+
+  /**
+   * New and updated entries of the patches before `patch`, newest patch first (#318), from
+   * the ingest-time record; only names the category's pool holds (the right category, a
+   * page to open) and none the current patch lists already. Best-effort: `[]` on failure.
+   */
+  private async earlierEntries(
+    category: LandingCategory,
+    rows: readonly CodexListRow[],
+    patch: string | null,
+    taken: ReadonlySet<string>,
+  ): Promise<LandingCodexEntry[]> {
+    if (!patch) return [];
+    const history = await this.diff.patchHistoryMemo(KIND_OF[category]).catch(() => []);
+    const byId = new Map(rows.map((r) => [r.classNameSlug, r]));
+    const seen = new Set(taken);
+    const out: LandingCodexEntry[] = [];
+    for (const g of history) {
+      if (comparePatchVersion(g.patch, patch) >= 0) continue;
+      const pick = (ids: readonly string[], isNew: boolean) => {
+        for (const id of ids) {
+          const r = byId.get(id);
+          if (!r || seen.has(id) || out.length >= EARLIER_ENTRIES) continue;
+          seen.add(id);
+          out.push({
+            id,
+            name: r.nameLocalized ?? id,
+            route: ['/codex', KIND_OF[category], id],
+            announced: false,
+            patch: g.patch,
+            ...(isNew ? { isNew: true } : { updated: true }),
+          });
+        }
+      };
+      pick(g.added, true);
+      pick(g.changed, false);
+    }
+    return out;
   }
 
   private async rsiShipImage(name: string): Promise<string | null> {

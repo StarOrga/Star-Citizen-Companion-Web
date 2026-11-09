@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.246.1",
+  "current": "0.247.0",
   "releases": [
+    {
+      "version": "0.247.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing: the \"neu in diesem Patch\" list keeps the current patch first and fills the remaining rows with items from earlier patches, each under its own patch heading, without growing the panel."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.246.1",
       "date": "2026-11-09",
