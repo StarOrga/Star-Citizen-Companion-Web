@@ -50,7 +50,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
               <button type="button" class="btn" (click)="start()">{{ 'handoff.retry' | translate }}</button>
             } @else if (svc.status() === 'connected') {
               <p class="ok">{{ 'handoff.connected' | translate }}@if (svc.device(); as d) { <span class="dev">· {{ d }}</span>}</p>
-              <p class="hint">{{ 'handoff.revoke.note' | translate }}</p>
+              <p class="hint">{{ 'handoff.revokeNote' | translate }}</p>
               <button type="button" class="btn" (click)="revoke(null)">{{ 'handoff.revoke' | translate }}</button>
             } @else if (svc.status() === 'pending' && qr(); as src) {
               <img class="qr" [src]="src" [alt]="'handoff.qrAlt' | translate" width="160" height="160" />
@@ -61,7 +61,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
             } @else {
               <p class="hint">{{ 'handoff.loading' | translate }}</p>
             }
-            @if (doneNote()) { <p class="hint">{{ 'handoff.revoke.done' | translate }}</p> }
+            @if (doneNote()) { <p class="hint">{{ 'handoff.revokeDone' | translate }}</p> }
           </div>
           @if (phones().length) {
             <div class="phones">

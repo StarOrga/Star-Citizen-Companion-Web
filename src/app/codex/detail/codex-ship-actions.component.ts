@@ -69,7 +69,6 @@ import { ShipLinkFormStore } from './ship-link-form.store';
     .btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .btn:disabled { opacity: 0.38; cursor: not-allowed; }
     .btn.quiet { text-transform: none; letter-spacing: 0; background: transparent; }
-     { color: var(--sc-accent); }
   `],
 })
 export class CodexShipActionsComponent {

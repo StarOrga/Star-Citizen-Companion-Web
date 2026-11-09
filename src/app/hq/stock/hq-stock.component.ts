@@ -1,4 +1,4 @@
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, afterNextRender, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -63,7 +63,7 @@ type Cell =
 @Component({
   selector: 'sc-hq-stock',
   standalone: true,
-  imports: [ScPopoverDismissDirective, TranslatePipe, DatePipe, ScDatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent, HqBlueprintPickerComponent],
+  imports: [ScPopoverDismissDirective, TranslatePipe, ScDatePipe, NgTemplateOutlet, FormsModule, RouterLink, ScActionDirective, ScTooltipDirective, HqStockPopupComponent, HqStockSharedComponent, HqBlueprintPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="head">
@@ -164,7 +164,7 @@ type Cell =
                 <small class="where">
                   @if (c.ship.origin) { {{ 'hq.bestand.origin.' + c.ship.origin | translate }} }
                   @if (hangar.isFlagship(c.ship.shipClassName)) { · {{ 'hangar.flagship.mark' | translate }} }
-                  @if (destroyedAt(c.ship.shipClassName); as at) { · {{ 'hq.stock.destroyed' | translate: { at: (at | date: 'short') } }} }
+                  @if (destroyedAt(c.ship.shipClassName); as at) { · {{ 'hq.stock.destroyed' | translate: { at: (at | scDate: 'datetime') } }} }
                 </small>
                 <ng-container *ngTemplateOutlet="wishRow; context: { $implicit: shipTarget(c.ship) }" />
               </div>

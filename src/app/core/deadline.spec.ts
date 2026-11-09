@@ -76,6 +76,18 @@ describe('deadline', () => {
       expect(seen[0].signal).toBeUndefined();
     });
 
+    it('sends a DELETE with keepalive so it outlives a reload, still without a signal', async () => {
+      const seen: RequestInit[] = [];
+      const base = vi.fn().mockName('base').mockImplementation((_i: RequestInfo | URL, init?: RequestInit) => {
+        if (init) seen.push(init);
+        return Promise.resolve(new Response('{}'));
+      });
+      const f = createReadDeadlineFetch(REST, 30, base as unknown as typeof fetch);
+      await f(`${REST}search_wishlist?class_name=eq.x`, { method: 'DELETE' });
+      expect(seen[0].keepalive).toBe(true);
+      expect(seen[0].signal).toBeUndefined();
+    });
+
     it('gives a read-only RPC a deadline signal', async () => {
       const seen: RequestInit[] = [];
       const f = createReadDeadlineFetch(REST, 30, hangingFetch(seen));

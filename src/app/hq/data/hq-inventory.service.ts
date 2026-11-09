@@ -240,7 +240,10 @@ export class HqInventoryService {
     op: string,
   ): Promise<boolean> {
     const userId = this.auth.user()?.id;
-    if (!userId || !Number.isFinite(qty) || qty < 0 || qty > HQ_QTY_MAX) return false;
+    if (!userId || !Number.isFinite(qty) || qty < 0 || qty > HQ_QTY_MAX) {
+      this.error.set('errors.generic');
+      return false;
+    }
     this.error.set(null);
     try {
       const t = this.sb.client.from('hq_inventory_items' as never);
@@ -302,7 +305,8 @@ export class HqInventoryService {
     const r = list[index];
     if (!have || !r) return false;
     const rest = list.filter((_, i) => i !== index);
-    return this.writeRow(have, handedOut ? roundQty(have.qty - r.amount) : have.qty, rest, handedOut ? 'handOut' : 'release');
+    // Never below zero: an undo of addStock can leave a row with fewer pieces than were reserved.
+    return this.writeRow(have, handedOut ? Math.max(0, roundQty(have.qty - r.amount)) : have.qty, rest, handedOut ? 'handOut' : 'release');
   }
 
   /** "liegt in …": put `qty` of `item` into `location` (source `manual`). False on invalid input or failure. */

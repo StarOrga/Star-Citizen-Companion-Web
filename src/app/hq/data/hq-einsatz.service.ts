@@ -136,7 +136,16 @@ export class HqEinsatzService {
   private inFlight: Promise<void> | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly items = computed(() => this.rows().filter((e) => !e.deletedAt));
+  /**
+   * Ids of the Nachschübe that exist (active or archived), set by NachschubService once ITS list is loaded; null while
+   * it is loading or unknown. An Einsatz pointing at a deleted Nachschub (soft reference, no FK) is gone for every
+   * consumer below, so a delete never leaves an Einsatz on the Start tile that Planen cannot show or remove.
+   */
+  private readonly knownPackages = signal<ReadonlySet<string> | null>(null);
+  readonly items = computed(() => {
+    const known = this.knownPackages();
+    return this.rows().filter((e) => !e.deletedAt && !(known && e.packageId && !known.has(e.packageId)));
+  });
   /** Planned or active Einsaetze, soonest first (undated last). */
   readonly upcoming = computed(() =>
     this.items()
@@ -166,6 +175,11 @@ export class HqEinsatzService {
         if (this.timer) clearTimeout(this.timer);
       });
     }
+  }
+
+  /** NachschubService publishes which Nachschübe exist (null = not known yet, nothing is hidden). */
+  setKnownPackages(ids: ReadonlySet<string> | null): void {
+    this.knownPackages.set(ids);
   }
 
   /** Save a new Einsatz (planned). Returns it, or null for an empty title / no steps. */

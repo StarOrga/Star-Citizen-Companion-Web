@@ -106,7 +106,7 @@ export class HqEventClaimDialogComponent {
     try {
       const ok = await this.events.claim(this.eventId(), this.reward(), this.channel(), this.store(), this.ship());
       if (!ok) {
-        this.error.set(this.events.error() ?? 'errors.generic');
+        this.error.set(this.events.claimError() ?? this.events.error() ?? 'errors.generic');
         return;
       }
       if (this.complete()) await this.events.complete(this.eventId());

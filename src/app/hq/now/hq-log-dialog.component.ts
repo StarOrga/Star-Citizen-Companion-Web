@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { HqLiveService } from './hq-live.service';
@@ -9,7 +9,7 @@ import { dayKey, eventLabel } from './hq-live.util';
 @Component({
   selector: 'sc-hq-log-dialog',
   standalone: true,
-  imports: [TranslatePipe, DatePipe, ScDialogDirective],
+  imports: [TranslatePipe, ScDatePipe, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="backdrop"></div>
@@ -31,11 +31,11 @@ import { dayKey, eventLabel } from './hq-live.util';
           <p class="empty">{{ 'hq.log.empty' | translate }}</p>
         }
         @for (day of days(); track day.key) {
-          <h4 class="day">{{ day.at | date: 'fullDate' }}</h4>
+          <h4 class="day">{{ day.at | scDate }}</h4>
           <ul>
             @for (ev of day.events; track ev.id) {
               <li [class.undone]="ev.undone">
-                <time class="mono" [attr.datetime]="ev.at">{{ ev.at | date: 'shortTime' }}</time>
+                <time class="mono" [attr.datetime]="ev.at">{{ ev.at | scDate: 'time' }}</time>
                 <span class="text">{{ label(ev).key | translate: label(ev).params }}</span>
                 @if (ev.undone) {
                   <span class="tag">{{ 'hq.log.undone' | translate }}</span>

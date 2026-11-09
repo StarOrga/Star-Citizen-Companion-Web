@@ -121,7 +121,12 @@ export function createReadDeadlineFetch(
 ): typeof fetch {
   return (input: RequestInfo | URL, init?: RequestInit) => {
     const { url, method } = requestParts(input, init);
-    if (!isReadRequest(method, url, restBase)) return base(input, init);
+    if (!isReadRequest(method, url, restBase)) {
+      // A DELETE (a wishlist position after its undo window, flushed on pagehide) must outlive the page: keepalive lets
+      // the browser finish it after a reload or a closed tab. Still no deadline and no signal.
+      if (method === 'DELETE' && url.startsWith(restBase)) return base(input, { ...init, keepalive: true });
+      return base(input, init);
+    }
     return base(input, { ...init, signal: deadlineSignal(ms, init?.signal) });
   };
 }

@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { humanizeClassName } from '../../codex/codex-format';
 import { toErrorKey } from '../../core/describe-error';
@@ -8,6 +8,7 @@ import { SearchWishlistService } from '../../codex/search/search-wishlist.servic
 import { HangarService } from '../../hangar/hangar.service';
 import { HqSupplyPackageRow } from '../data/hq-db.types';
 import { newClientId } from '../data/hq-supplies-sync';
+import { HqEinsatzService } from '../data/hq-einsatz.service';
 import { HqInventoryService } from '../data/hq-inventory.service';
 import { WishlistStore } from '../data/wishlist.store';
 import { AddedLine, HqSuppliesService, SupplyItem } from '../hq-supplies.service';
@@ -116,6 +117,18 @@ export class NachschubService {
   private readonly inventory = inject(HqInventoryService);
   private readonly hangar = inject(HangarService);
   private readonly naming = inject(NachschubNamingService);
+  private readonly einsatzSvc = inject(HqEinsatzService);
+
+  constructor() {
+    // Tell the Einsatz service which Nachschübe exist (only once the list is loaded), so an Einsatz of a deleted one
+    // is gone for every consumer (Start tile, live ticks, counts). Rows are only hidden, never deleted from here: an
+    // empty read (e.g. an expired session answered as anon) must never cost the reader data.
+    effect(() => {
+      const ids = this.loaded() ? new Set(this.packages().map((p) => p.id)) : null;
+      untracked(() => this.einsatzSvc.setKnownPackages(ids));
+    });
+  }
+
   private readonly searchWish = inject(SearchWishlistService);
 
   readonly packages = signal<readonly Nachschub[]>([]);
@@ -291,7 +304,7 @@ export class NachschubService {
       if (stock) snapshot[added.line.id] = this.ownedOf({ ship: p.kind === 'ship', className: p.className });
     }
     // Rewards of the chosen event are lines of their own (they close when the claimed reward lands in Bestand).
-    const rewardLines = this.addRewardLines(opts.event?.rewards ?? [], id, snapshot);
+    const rewardLines = this.addRewardLines(opts.event?.rewards ?? [], id, snapshot, stock);
     // Nothing fit (the line list is full): no empty Nachschub that would hold a slot for ever. An event Nachschub
     // may have no line at all (sightseeing, or only rewards).
     if (taken.length && !lines.length && !rewardLines.length) return fail('hq.nachschub.linesFull');
@@ -358,8 +371,8 @@ export class NachschubService {
       }
     }
     // Rewards of an event added while editing become reward lines too, exactly like on creation.
-    const rewardLines = this.addRewardLines(eventRewards, id, snapshot);
-    if (rewardLines.length) newBaselines = true;
+    const rewardLines = this.addRewardLines(eventRewards, id, snapshot, stock);
+    if (rewardLines.length && stock) newBaselines = true;
     const all = [...lines, ...asPicks(rewardLines)];
     if (taken.length && !lines.length && !rewardLines.length) return fail('hq.nachschub.linesFull');
     const took = await this.shiftWishes(lines.map((x) => ({ p: x.p, delta: -x.p.qty })));
@@ -390,13 +403,14 @@ export class NachschubService {
   }
 
   /** Reward lines of chosen events: one line per reward; they close when the claimed reward lands in Bestand. */
-  private addRewardLines(rewards: EventBinding['rewards'], packageId: string, snapshot: Record<string, number>): AddedLine[] {
+  private addRewardLines(rewards: EventBinding['rewards'], packageId: string, snapshot: Record<string, number>, stock: boolean): AddedLine[] {
     const out: AddedLine[] = [];
     for (const r of rewards) {
       const added = this.supplies.addLine(r.name, 1, { entityKind: r.ship ? 'ship' : 'item', className: r.className, packageId, source: 'search' });
       if (!added) continue;
       out.push(added);
-      snapshot[added.id] = this.ownedOf({ ship: r.ship, className: r.className });
+      // Same rule as a wish line: no baseline from unloaded stock, the first reconcile after the load sets it.
+      if (stock) snapshot[added.id] = this.ownedOf({ ship: r.ship, className: r.className });
     }
     return out;
   }
