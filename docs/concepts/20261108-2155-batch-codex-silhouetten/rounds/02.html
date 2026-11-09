@@ -1,0 +1,94 @@
+<section data-iteration="2" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Die Codex-Liste ist nie mehr leer, „Im Hangar“ sagt, was gezeigt wird, Item-Silhouetten zeigen echte Umrisse, und der Watcher trennt gemergt von live.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">📋</span><span>Die Codex-Liste <b>zeigt immer Einträge</b>, ohne Drehrad und ohne Scrollen.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🧩</span><span>Bracer-Kühler: <b>9 → 224 Umrisspunkte</b>, dazu feine Innenkanten.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⏳</span><span>Feedback gilt erst als <b>erledigt, wenn es live ist</b>.</span></li>
+      </ul>
+      <a class="fr-try" href="http://127.0.0.1:4378/codex" target="_blank" rel="noopener noreferrer">▶ {{final.try_it}}</a>
+      <p class="fr-try-auth">🔑 Codex ohne Login; „Gezeigt: Serie“ nur mit eigenem Schiff (Login nur auf localhost:4200)</p>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="20261108-2155-batch-codex-silhouetten/assets/2026-11-08T20-42-47-831Z-1.webp" alt=""><figcaption>Leerer Kasten links</figcaption></figure>
+      <figure class="fr-shot"><img src="20261108-2155-batch-codex-silhouetten/evidence/qa/codex-1920.png" alt=""><figcaption>Einträge zum Entdecken, „Codex · 4.10.2“</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Ohne die neuen Migrationen läuft die Seite weiter: fehlende RPC → alter Vergleich, fehlende Spalte → Abfrage ohne Kanten. Anforderung: kein Ausfall vor dem Deploy (geschätzt).">
+        <span class="fr-meter-name">🧱 Stabilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">0 Ausfälle</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Zweimaliges Erfassen von 4.10.2 im Dry-Run: 0 neue oder geänderte Einträge; ein simulierter neuer Patch zeigt das neue Schiff. Anforderung: Re-Upload setzt nichts zurück (geschätzt).">
+        <span class="fr-meter-name">🗄 Datenintegrität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">0 Rücksetzer</b>
+      </div>
+      <div class="fr-meter" data-grade="open" style="--fr-fill: 0%" data-tip="Item-Silhouetten tragen bis zu ~7 kB Innenkanten mehr; die Ladezeit der Listen ist nicht gemessen. Anforderung: Liste spürbar nicht langsamer (geschätzt).">
+        <span class="fr-meter-name">⚡ Performance</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">nicht gemessen</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="5 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_local}} · ✓ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_live}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-tab-wrap"
+          data-issue-title="[BUG] Codex landing: category icons wrap to a second row at 1280px"
+          data-issue-type="bug"
+          data-issue-body="At a 1280x720 window the codex pane on /codex is narrower than the 257px the fit spec (codex-landing-fit.spec.ts CASES) treats as the desktop minimum, so the five category tabs wrap (the tool icon lands on a second row) and the pane edge touches the WERTE strip (QA screenshot docs/concepts/20261108-2155-batch-codex-silhouetten/evidence/qa/codex-1280.png). Pre-existing on main: .tabs uses flex-wrap: wrap and the spec only demands one row at 257px and on phones. A plain nowrap breaks the 'active name whole' assertion at 186px, so the fix needs a layout decision (icon-only active tab below a width, or a wider side column at 1280)."
+          data-issue-module="codex"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="braucht Concept" data-routed>
+        <span class="oq-label">Kategorie-Icons brechen um</span>
+        <span class="oq-done">✓ umgesetzt — unter der Namensbreite zeigt der aktive Tab nur sein Icon, die Reihe bleibt einzeilig (<code>38b991f1</code>)</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Bei 1280 px rutscht ein Kategorie-Icon in eine zweite Zeile. Das war schon vorher so.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Codex-Landing, linke Liste, Fenster 1280 × 720</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue: Der einfache Fix bricht eine frühere Layout-Entscheidung für Tablets.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Commit <code>40534f53</code> · Bereiche: codex, supabase, data-uploader, scripts</li>
+      <li>Beim Ship zuerst die Migrationen <code>20261108220000</code>, <code>…221000</code>, <code>…222000</code> pushen, dann <code>ingest-catalog</code> deployen, dann aus dem Primär-Checkout <code>npm run watcher -- install</code></li>
+      <li>Tests: Karma 6462 ✓, test:gate 125 ✓, test:functions 506 ✓, Uploader vitest 586 ✓, Silhouetten-pytest 36 ✓</li>
+      <li>Ursachen: Quadrate kamen von der festen 0,15-m-Toleranz (nicht von Proxy-Boxen), „exit null“ von einem hängenden DB-Fetch ohne Timeout</li>
+      <li>Ohne Feinjustierung gebaut wie empfohlen: d-new-source, d-own-head, d-watcher · Nachtrag: Tab-Umbruch bei 1280 px behoben (Fit-Spec 216 px)</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-own-head" data-crit="mid" data-guide="">„Gezeigt: Serie“ mit eigenem Schiff ansehen</li>
+      <li data-todo-id="t-edges" data-crit="mid" data-guide="">Innenkanten nach dem Upload ansehen</li>
+      <li data-todo-id="t-chaos" data-crit="mid" data-guide="">Watcher-Chaos-Test bei ruhigem Watcher</li>
+    </ul>
+  </section>
+  <section data-handoffs hidden aria-label="{{final.group_handoffs}}">
+    <ul>
+      <li data-todo-id="h-upload" data-crit="mid" data-guide="">Uploader-Update installieren, Daten hochladen</li>
+    </ul>
+  </section>
+</section>

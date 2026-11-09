@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { Location, NgTemplateOutlet } from '@angular/common';
 import { Params, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -21,38 +21,34 @@ export function searchQueryFor(category: LandingCategory): Params {
   return { ...CATEGORY_INDEX_QUERY[category], fresh: '1' };
 }
 
-/**
- * Rows of the entry wheel. Fixed and odd, so the entry on the table stands in
- * the middle. The pane is as tall as its content (at most 400px,
- * codex-landing.component.scss): title, tabs, five rows and the foot fit it
- * down to a 1280x720 window (codex-landing-codex-pane.component.spec).
- */
-export const WHEEL_ROWS = 5;
-/** Wheel distance (px, summed) that turns the entry wheel by one row. */
-const WHEEL_STEP_PX = 40;
-
-/** The window of a wheel over `count` entries: indices in display order, centred on `centre`. */
-export function wheelWindow(count: number, centre: number, rows = WHEEL_ROWS): number[] {
-  if (count <= rows) return Array.from({ length: count }, (_, i) => i);
-  const half = (rows - 1) / 2;
-  return Array.from({ length: rows }, (_, i) => (((centre - half + i) % count) + count) % count);
-}
+/** Rows shown before the pane has been measured, and on a phone (the pane there grows with its content). */
+export const DEFAULT_ROWS = 5;
+/** Gap between two rows (px, `.new` in the scss). */
+const ROW_GAP_PX = 1;
+/** Row height (px) before one has been rendered: `.new a` min-height, 48px on touch screens. */
+const ROW_PX = 28;
+const ROW_PX_COARSE = 48;
+/** Rows kept in the DOM at most (the rest is behind "+ N weitere"): enough to fill any pane height. */
+const MAX_RENDERED = 60;
 
 /**
- * Where the wheel stands before it is turned: the entry on the table, else the
- * first entry of the active category or the next one in rotation order.
+ * The rows of a fixed list: the first `capacity`, in order. The entry on the table is always
+ * among them - when it stands further down it takes the last visible place.
  */
-export function wheelCentre(entries: readonly WheelEntry[], active: LandingCategory | null): number {
+export function visibleEntries<T extends { onTable: boolean }>(entries: readonly T[], capacity: number): T[] {
+  const cap = Math.max(1, capacity);
+  if (entries.length <= cap) return [...entries];
+  const shown = entries.slice(0, cap);
   const table = entries.findIndex((e) => e.onTable);
-  if (table >= 0) return table;
-  const from = active ? LANDING_CATEGORIES.indexOf(active) : 0;
-  const next = entries.findIndex((e) => LANDING_CATEGORIES.indexOf(e.category) >= from);
-  return Math.max(0, next);
+  if (table >= cap) shown[cap - 1] = entries[table];
+  return shown;
 }
 
 interface RowView {
   category: LandingCategory;
   count: number;
+  /** Nothing new: the entries are picks to discover (title without "neu", the index link without the fresh filter). */
+  discover: boolean;
   /** Index of the category's item in the rotation, -1 = nothing to put on the table. */
   index: number;
   entries: (LandingCodexEntry & { onTable: boolean })[];
@@ -66,13 +62,13 @@ export type WheelEntry = LandingCodexEntry & { onTable: boolean; category: Landi
  * edge facing the hologram. A horizontal category bar on top (d-tabs `active`:
  * icons, the active one with its name, the others name in a tooltip); below it
  * every new and updated item of the current patch — ships, FPS weapons, armour,
- * components, tools, each row tagged with its category glyph — stands in one
- * wheel of {@link WHEEL_ROWS} rows (the one on the table in the middle, else the
- * active category's first; announced ships tagged). A category with nothing new
- * of its own still shows the others' (admin feedback #318); only a patch with
- * nothing new at all drops the middle. The pane is as tall as its content.
- * "+ N weitere" counts the active category's entries off the wheel, "Alle
- * <Kategorie>" closes the pane. A tab click
+ * components, tools, each row tagged with its category glyph (admin feedback #318) —
+ * stands in one fixed list, the active category first: no wheel, the mouse wheel stays
+ * with the page, as many rows as the pane's height holds (the entry on the table always
+ * among them). The pane is as tall as its content, at most the shared height. A patch with
+ * nothing new at all offers entries of the active category to discover instead (title
+ * without "neu", never an empty middle). "+ N weitere" counts the active category's
+ * entries off the list, "Alle <Kategorie>" closes the pane. A tab click
  * puts that category on the table and holds it; the held tab again resumes the
  * rotation. An entry click puts that entry on the table (held) — its small arrow
  * and a modified click open the subpage.
@@ -88,7 +84,7 @@ export type WheelEntry = LandingCodexEntry & { onTable: boolean; category: Landi
     <nav class="body" [attr.aria-label]="'codex.landing.codex.label' | translate">
       <h2 class="ph">
         @if (codex()?.patch; as patch) {
-          {{ 'codex.landing.codex.title' | translate: { patch } }}
+          {{ (discovering() ? 'codex.landing.codex.titleDiscover' : 'codex.landing.codex.title') | translate: { patch } }}
         } @else {
           {{ 'codex.landing.codex.titleNoPatch' | translate }}
         }
@@ -118,18 +114,19 @@ export type WheelEntry = LandingCodexEntry & { onTable: boolean; category: Landi
         }
       </ul>
       @if (held()) { <p class="sc-sr-only">{{ 'codex.landing.codex.held' | translate }}</p> }
-      @if (wheel().length) {
-          <div class="open">
-            <ul class="new" [class.spins]="spins()" (wheel)="onWheel($event)" (keydown)="onWheelKey($event)">
-              @for (e of wheel(); track e.category + ':' + e.id; let i = $index) {
+      @if (entries().length) {
+          <div class="open" #openList>
+            <ul class="new">
+              @for (e of shown(); track e.category + ':' + e.id; let i = $index) {
                 <li [class.table]="e.onTable" [class.own]="e.category === active()" [class.flash]="e.onTable && switchNo() > 0"
-                    [class.far]="spins() && (i === 0 || i === wheel().length - 1)">
+                    [class.cut]="i >= capacity()" [attr.aria-hidden]="i >= capacity() ? 'true' : null">
                   <a class="ent" [href]="href(e.route)" [attr.aria-current]="e.onTable ? 'true' : null"
                      [scTooltip]="e.name" scTooltipTier="label" (click)="onEntry($event, e)">
                     <i class="cat" aria-hidden="true">{{ glyph(e.category) }}</i>
                     <span class="sc-sr-only">{{ 'codex.landing.categories.' + e.category | translate }}:</span>
                     <span class="nm">{{ e.name }}</span>
                     @if (e.announced) { <em class="soon">{{ 'codex.landing.codex.announced' | translate }}</em> }
+                    @if (e.isNew) { <em class="upd fresh">{{ 'codex.landing.codex.new' | translate }}</em> }
                     @if (e.updated) { <em class="upd">{{ 'codex.landing.codex.updated' | translate }}</em> }
                     @if (e.onTable) { <span class="here">{{ 'codex.landing.codex.onTable' | translate }}</span> }
                   </a>
@@ -145,10 +142,14 @@ export type WheelEntry = LandingCodexEntry & { onTable: boolean; category: Landi
       }
       <div class="foot">
         @if (activeRow(); as r) {
-          @if (more() > 0) {
-            <a class="more" routerLink="/codex/index" [queryParams]="searchQuery(r.category)">
-              {{ 'codex.landing.codex.more' | translate: { count: more() } }} <i aria-hidden="true">↗</i>
-            </a>
+          @if (r.entries.length) {
+            <div class="more-slot">
+              @if (more() > 0) {
+                <a class="more" routerLink="/codex/index" [queryParams]="r.discover ? indexQuery(r.category) : searchQuery(r.category)">
+                  {{ 'codex.landing.codex.more' | translate: { count: more() } }} <i aria-hidden="true">↗</i>
+                </a>
+              }
+            </div>
           }
           <a class="all" routerLink="/codex/index" [queryParams]="indexQuery(r.category)">
             {{ 'codex.landing.codex.all' | translate: { category: ('codex.landing.categories.' + r.category | translate) } }} <i aria-hidden="true">↗</i>
@@ -193,56 +194,75 @@ export class CodexLandingCodexPaneComponent {
         const item = index >= 0 ? items[index] : null;
         const entries = (n?.entries ?? []).map((e) => ({ ...e, onTable: !!cur && cur.category === category && e.id === cur.className }));
         // The item on the table joins a list that has entries — first, when it is not among them.
-        // With nothing new or updated there is no list: the middle of the pane stays away.
         if (entries.length && cur?.category === category && !entries.some((e) => e.onTable)) {
           const shown = cur.announced ? cur : (item ?? cur);
           entries.unshift({ id: shown.className, name: shown.name, route: shown.detailRoute, announced: !!shown.announced, onTable: true });
         }
-        return { category, count: n?.count ?? 0, index, entries };
+        return { category, count: n?.count ?? 0, discover: !!n?.discover, index, entries };
       },
     );
   });
 
   readonly activeRow = computed(() => this.rows().find((r) => r.category === this.active()) ?? null);
-  /** Every category's new and updated entries in one list, rotation order. */
-  readonly entries = computed<WheelEntry[]>(() => this.rows().flatMap((r) => r.entries.map((e) => ({ ...e, category: r.category }))));
-  /** More entries than rows: the list is a wheel. */
-  readonly spins = computed(() => this.entries().length > WHEEL_ROWS);
-  /** Rows the reader turned the wheel; a new entry on the table centres it again. */
-  private readonly spin = linkedSignal({
-    source: () => `${this.active()}:${this.current()?.className ?? ''}`,
-    computation: () => 0,
+  /**
+   * The list: every category's new and updated entries, the active category first, then the
+   * others in rotation order (#318). Only when no category has anything new: the active
+   * category's picks to discover.
+   */
+  readonly entries = computed<WheelEntry[]>(() => {
+    const rows = this.rows();
+    const real = rows.filter((r) => !r.discover && r.entries.length);
+    if (!real.length) {
+      const r = this.activeRow();
+      return r ? r.entries.map((e) => ({ ...e, category: r.category })) : [];
+    }
+    const from = Math.max(0, LANDING_CATEGORIES.indexOf(this.active() ?? LANDING_CATEGORIES[0]));
+    const order = (c: LandingCategory) => (LANDING_CATEGORIES.indexOf(c) - from + LANDING_CATEGORIES.length) % LANDING_CATEGORIES.length;
+    return [...real]
+      .sort((a, b) => order(a.category) - order(b.category))
+      .flatMap((r) => r.entries.map((e) => ({ ...e, category: r.category })));
   });
-  /** The rows on screen, the entry on the table in the middle until the wheel is turned. */
-  readonly wheel = computed(() => {
-    const entries = this.entries();
-    return wheelWindow(entries.length, wheelCentre(entries, this.active()) + this.spin()).map((i) => entries[i]);
+  /** The whole list is nothing but discovery picks (title without "neu"). */
+  readonly discovering = computed(() => !this.rows().some((r) => !r.discover && r.entries.length) && !!this.activeRow()?.discover);
+  /** How many rows the pane's height holds; rows past it stay laid out but hidden, so the height never feeds back. */
+  readonly capacity = signal(DEFAULT_ROWS);
+  private readonly openList = viewChild<ElementRef<HTMLElement>>('openList');
+  /** The list in display order; the entry on the table always within the first {@link capacity} rows. */
+  readonly shown = computed(() => {
+    const all = this.entries();
+    const visible = visibleEntries(all, this.capacity());
+    const keep = new Set(visible);
+    return [...visible, ...all.filter((e) => !keep.has(e))].slice(0, Math.max(MAX_RENDERED, visible.length));
   });
-  /** Entries of the active category beyond the rows on screen ("+ N weitere" opens them in the index). */
+  /** Entries of the active category beyond the visible rows ("+ N weitere" opens them in the index). */
   readonly more = computed(() => {
+    // A category with nothing new while others have news: its discovery picks are not in the list, nothing "weitere".
+    if (this.activeRow()?.discover && !this.discovering()) return 0;
     const cat = this.active();
-    const shown = this.wheel().filter((e) => e.category === cat).length;
-    return Math.max(0, (this.activeRow()?.entries.length ?? 0) - shown);
+    const visible = this.shown().slice(0, this.capacity()).filter((e) => e.category === cat).length;
+    return Math.max(0, (this.activeRow()?.entries.length ?? 0) - visible);
   });
 
-  private wheelSum = 0;
-
-  /** Turns the wheel; only then the turn is taken from the page (which would open the index at its end). */
-  onWheel(ev: WheelEvent): void {
-    if (!this.spins()) return;
-    ev.preventDefault();
-    if (Math.sign(ev.deltaY) !== Math.sign(this.wheelSum)) this.wheelSum = 0;
-    this.wheelSum += ev.deltaMode === 1 ? ev.deltaY * WHEEL_STEP_PX : ev.deltaY;
-    const steps = Math.trunc(this.wheelSum / WHEEL_STEP_PX);
-    if (!steps) return;
-    this.wheelSum -= steps * WHEEL_STEP_PX;
-    this.spin.update((s) => s + steps);
-  }
-
-  onWheelKey(ev: KeyboardEvent): void {
-    if (!this.spins() || (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp')) return;
-    ev.preventDefault();
-    this.spin.update((s) => s + (ev.key === 'ArrowDown' ? 1 : -1));
+  constructor() {
+    // The list fills the pane between tabs and foot (scss `.open`); the rows that fit are counted
+    // from its height. On a phone the pane grows with its content, so there is a fixed count.
+    effect((onCleanup) => {
+      const el = this.openList()?.nativeElement;
+      if (!el || typeof ResizeObserver === 'undefined') return;
+      const measure = () => {
+        if (window.matchMedia('(max-width: 720px)').matches) {
+          this.capacity.set(DEFAULT_ROWS);
+          return;
+        }
+        const li = el.querySelector<HTMLElement>('li');
+        const row = (li?.offsetHeight || (window.matchMedia('(pointer: coarse)').matches ? ROW_PX_COARSE : ROW_PX)) + ROW_GAP_PX;
+        this.capacity.set(Math.max(1, Math.floor((el.clientHeight + ROW_GAP_PX) / row)));
+      };
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      measure();
+      onCleanup(() => ro.disconnect());
+    });
   }
 
   glyph(cat: LandingCategory): string {

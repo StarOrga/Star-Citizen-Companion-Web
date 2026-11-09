@@ -57,6 +57,8 @@ describe('Codex landing: category bar fit (B2.5) and figure fit (B2.6, B2.8)', (
    */
   const CASES: { width: number; coarse: boolean; oneRow: boolean }[] = [
     { width: 257, coarse: false, oneRow: true },
+    // 1280x720 window (QA 2026-11-08): the active tab shows its icon only, the row stays one line.
+    { width: 216, coarse: false, oneRow: true },
     { width: 328, coarse: true, oneRow: true },
     { width: 186, coarse: false, oneRow: false },
   ];

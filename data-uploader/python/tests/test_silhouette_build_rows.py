@@ -25,7 +25,7 @@ class FakeExporter:
         self.cached_keys = set(cached)
         self.lock = threading.Lock()
 
-    def source(self, mesh, tolerance_m):
+    def source(self, mesh, tolerance_m, item=False):
         self.sources.append(mesh)
         if mesh.endswith("missing.cgf"):
             raise FileNotFoundError(mesh)
@@ -192,7 +192,7 @@ def test_compute_names_a_converter_failure_and_an_empty_mesh(tmp_path, monkeypat
 
 def test_a_hull_whose_lod0_fails_to_convert_falls_back_to_its_lod1(tmp_path):
     class Lod0Breaks(FakeExporter):
-        def source(self, mesh, tolerance_m):
+        def source(self, mesh, tolerance_m, item=False):
             if mesh == "s/gone.cga" or mesh == "s/gone_lod1.cga":
                 if mesh.endswith("_lod1.cga"):
                     raise FileNotFoundError(mesh)

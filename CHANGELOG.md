@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.241.0] - 2026-11-09
+
+### Added
+- Codex landing: when a patch brings nothing new, the list offers entries of the category to discover instead of an empty box — no wheel and no scrolling, the rest sits behind "+ N weitere"; what counts as new or changed is now recorded per patch, so a second build of the same patch no longer erases it.
+- Codex head: "1× im Hangar · Gezeigt: Serie" makes clear the page shows the stock ship, not your own copy.
+- Silhouettes of components, ammo and small items follow the real outline from their best side, with fine inner edges (Data Uploader 0.76.0, takes effect after the next upload).
+- Admin feedback: an item counts as done only once it is live; merged but not yet deployed shows "Deploy ausstehend".
+
+### Fixed
+- Codex: category tabs stay on one row at a 1280px window; the hero no longer calls a discovery pick or a merely changed entry "neu".
+- Feedback watcher: a hanging database call no longer ends a run with "exit null", and a second start no longer runs alongside the first.
+
 ## [0.240.2] - 2026-11-09
 
 ### Fixed

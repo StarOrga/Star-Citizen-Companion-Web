@@ -1,0 +1,67 @@
+[
+ {
+  "iteration": 1,
+  "action": "implement",
+  "decisions": {
+   "d-new-source": {
+    "value": "ingest",
+    "rec": "ingest",
+    "deviates": false,
+    "untouched": true,
+    "note": ""
+   },
+   "d-empty": {
+    "value": "discover",
+    "rec": "discover",
+    "deviates": false,
+    "untouched": false,
+    "note": ""
+   },
+   "d-noscroll": {
+    "value": "fixed",
+    "rec": "fixed",
+    "deviates": false,
+    "untouched": false,
+    "note": ""
+   },
+   "d-own-head": {
+    "value": "shown",
+    "rec": "shown",
+    "deviates": false,
+    "untouched": true,
+    "note": ""
+   },
+   "d-sil-fix": {
+    "value": [
+     "proxy",
+     "axis",
+     "edges"
+    ],
+    "rec": "proxy axis",
+    "deviates": true,
+    "untouched": false,
+    "note": ""
+   },
+   "d-watcher": {
+    "value": [
+     "gateerr",
+     "double",
+     "live"
+    ],
+    "rec": "gateerr double live",
+    "deviates": false,
+    "untouched": true,
+    "note": ""
+   }
+  },
+  "comments": {
+   "general": {
+    "text": "",
+    "attachments": []
+   },
+   "items": []
+  },
+  "userPins": [],
+  "summary": "Alle Empfehlungen übernommen; zusätzlich innere Kantenlinien bei Item-Silhouetten (edges). Umsetzen geklickt."
+ }
+]

@@ -143,6 +143,11 @@ export interface FeedbackRow {
   created_at: string;
   updated_at: string;
   shipped_at: string | null;
+  /**
+   * When production was seen carrying the merge. `null` on a `shipped` row = merged but not online yet
+   * (deploy lag); `undefined` = the backend does not report it (pre-migration), so no lag is claimed.
+   */
+  live_at?: string | null;
   processed_at: string | null;
   author: FeedbackAuthor | null;
   /**
@@ -1944,4 +1949,9 @@ export function isLongMessage(body: string, maxLines = 3): boolean {
     if (lines > maxLines) return true;
   }
   return false;
+}
+
+/** A `shipped` topic whose merge is not online yet (Vercel lag): `live_at` is reported and still empty. */
+export function awaitsDeploy(row: Pick<FeedbackRow, 'status' | 'live_at'>): boolean {
+  return row.status === 'shipped' && row.live_at === null;
 }
