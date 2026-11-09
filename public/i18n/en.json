@@ -2606,7 +2606,7 @@
     "ownCard": {
       "haveTitle": "Got it?",
       "mineShip": "Your copy",
-      "mineItem": "Your stock",
+      "mineItem": "Your storage",
       "mineBlueprint": "Your blueprint",
       "collected": "In your collection",
       "removeSammlung": "Remove from collection",
@@ -2621,7 +2621,7 @@
       "toWishlist": "Wishlist",
       "toHangar": "Hangar",
       "toInventar": "Inventory",
-      "toSammlung": "Collection",
+      "toSammlung": "Collections",
       "openWishlist": "Open wishlist",
       "wishQtyAria": "Quantity on the wishlist: {{name}}",
       "qtyAria": "Quantity in the inventory: {{name}}",
@@ -5116,7 +5116,7 @@
   "consent": {
     "banner": {
       "title": "Browser storage",
-      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and your Sammlung, plus anonymous usage statistics. You can change this anytime in Settings.",
+      "text": "This app sets no cookies. It stores your login session and language in this browser (required), and — only if you allow it — convenience preferences like news filters and your collections, plus anonymous usage statistics. You can change this anytime in Settings.",
       "acceptAll": "Allow all",
       "essentialOnly": "Essential only"
     },
@@ -5132,7 +5132,7 @@
       },
       "preferences": {
         "label": "Preferences",
-        "desc": "News channel filter, Sammlung and similar convenience state. Turning this off deletes the stored values."
+        "desc": "News channel filter, collections and similar convenience state. Turning this off deletes the stored values."
       },
       "statistics": {
         "label": "Statistics",
@@ -5658,10 +5658,10 @@
         "forItem": "for {{name}}",
         "bpOwned": "Blueprint {{name}}: in your collection",
         "bpMissing": "Blueprint {{name}}: missing, a mission is planned",
-        "matOwned": "{{name}}: {{need}} needed, {{have}} in stock",
-        "matMissing": "{{name}}: {{need}} needed, {{have}} in stock, {{missing}} to get",
+        "matOwned": "{{name}}: {{need}} needed, {{have}} in storage",
+        "matMissing": "{{name}}: {{need}} needed, {{have}} in storage, {{missing}} to get",
         "noRecipe": "No material is known for the recipe yet.",
-        "source": "The app reports blueprints and material into your collection and inventory by itself; until then, what is listed there counts.",
+        "source": "The app reports blueprints and material into your collections and inventory by itself; until then, what is listed there counts.",
         "loading": "Loading the recipe …"
       }
     },
@@ -5706,21 +5706,21 @@
       }
     },
     "bestand": {
-      "title": "Bestand",
-      "tabsAria": "Areas of the Bestand",
+      "title": "Storage",
+      "tabsAria": "Areas of your storage",
       "tab": {
-        "inventar": "Inventar",
+        "inventar": "Inventory",
         "hangar": "Hangar",
-        "sammlung": "Sammlung",
+        "sammlung": "Collections",
         "alles": "All"
       },
-      "search": "Search the Inventar",
+      "search": "Search your storage",
       "menu": "Page menu",
-      "reset": "Reset in-game stock",
-      "resetTitle": "Reset in-game stock?",
+      "reset": "Reset in-game storage",
+      "resetTitle": "Reset in-game storage?",
       "resetMessage": "Every place that the game or the search wrote is removed. Entries you made by hand stay. This cannot be undone.",
       "resetConfirm": "Reset",
-      "filter": "Filter the Inventar",
+      "filter": "Filter your storage",
       "all": "All",
       "used": "Recently used up",
       "used48": "last 48 h",
@@ -5773,7 +5773,7 @@
           "other": "Other",
           "sets": "Sets",
           "ships": "Ships",
-          "sammlung": "Collection"
+          "sammlung": "Collections"
         },
         "sub": {
           "ore": "Ore",
@@ -5853,7 +5853,7 @@
           "craft": "Craft it yourself"
         },
         "pickup": "Plan pick-up",
-        "alsoIn": "Also in your stock",
+        "alsoIn": "Also in your storage",
         "inCodex": "In the Codex: “{{q}}” – onto the wishlist",
         "setItems": "{{n}} pieces",
         "addSet": "Create set",
@@ -5917,13 +5917,13 @@
           "release": "Release",
           "handout": "Handed out",
           "handoutTitle": "Mark as handed out?",
-          "handoutMessage": "{{n}} leave your stock.",
+          "handoutMessage": "{{n}} leave your storage.",
           "newOne": "New reservation",
           "saveEdit": "Save",
           "editFor": "Reservations of {{name}}"
         },
         "deleteTitle": "Delete entries?",
-        "deleteMessage": "{{n}} entries leave your stock.",
+        "deleteMessage": "{{n}} entries leave your storage.",
         "deleteOne": "Delete {{name}}",
         "editAmount": "Amount of {{name}}",
         "col": {
@@ -5943,13 +5943,13 @@
       "sellGoalInvalid": "Enter a goal of at least 1 aUEC.",
       "target": {
         "minQ": "min. Q {{q}}",
-        "title": "Plan from stock",
+        "title": "Plan from storage",
         "intent": {
           "pickup": "Pick up",
           "sell": "Sell",
           "buy": "Buy"
         },
-        "lead": "{{n}} item(s) from your stock",
+        "lead": "{{n}} item(s) from your storage",
         "where": "Where to",
         "new": "New Nachschub",
         "newSell": "New Nachschub: make money",
@@ -5973,8 +5973,8 @@
         "sell": "Make money",
         "goal": "Goal in aUEC",
         "goalPlaceholder": "e.g. 1,500,000",
-        "pickHint": "Choose what you sell from your stock.",
-        "empty": "Your stock is empty, so there is nothing to sell yet.",
+        "pickHint": "Choose what you sell from your storage.",
+        "empty": "Your storage is empty, so there is nothing to sell yet.",
         "pick": "Sell {{name}} from {{place}}"
       },
       "sell": {
@@ -6130,7 +6130,7 @@
       "start": "Start",
       "planen": "Plan",
       "jetzt": "Now",
-      "inventar": "Inventory",
+      "inventar": "Storage",
       "statistik": "Stats",
       "empty": "{{page}}: something new is being built here."
     },
@@ -6162,7 +6162,7 @@
         "blueprints": "{{n}} blueprints",
         "blueprintsOne": "1 blueprint",
         "stale": "Inventory count {{n}} days old",
-        "open": "View inventory"
+        "open": "View storage"
       },
       "now": {
         "live": "Live",
@@ -6732,7 +6732,7 @@
         "title": "Claim {{name}}",
         "channel": "How did you get it?",
         "byApp": "The app detected the channel; you can change it.",
-        "store": "Put into stock",
+        "store": "Put into storage",
         "isShip": "Is a ship",
         "toHangar": "Goes to the Hangar.",
         "toInventory": "Goes to the Inventar (location \"Event-Belohnungen\").",
@@ -7377,9 +7377,9 @@
       "hqNow": "Now",
       "hqStock": "Inventory",
       "hqStats": "Stats",
-      "hqStockAll": "Stock",
+      "hqStockAll": "Storage",
       "hqStockHangar": "Hangar",
-      "hqStockSammlung": "Collection"
+      "hqStockSammlung": "Collections"
     },
     "placeholder": {
       "all": "Search everywhere …",
@@ -7393,7 +7393,7 @@
       "hq": "Hangar, sets, ships …",
       "hqPlan": "A set, part or place for your op …",
       "hqNow": "Ship, place or part …",
-      "hqStock": "Search your stock …",
+      "hqStock": "Search your storage …",
       "hqStats": "Ship or set …"
     },
     "search": {
@@ -8200,7 +8200,7 @@
     "section": {
       "inventar": "Inventory",
       "hangar": "Hangar",
-      "sammlung": "Collection"
+      "sammlung": "Collections"
     },
     "all": {
       "inventar": "Whole inventory",
@@ -8270,7 +8270,7 @@
       "wish": "Wishlist",
       "inventar": "Inventory",
       "hangar": "Hangar",
-      "sammlung": "Collection"
+      "sammlung": "Collections"
     },
     "tip": {
       "wishOff": "Put on the wishlist",
@@ -8286,7 +8286,7 @@
       "wish": "To the wishlist",
       "inventar": "Into the inventory",
       "hangar": "Into the hangar",
-      "sammlung": "To the collection"
+      "sammlung": "To the collections"
     },
     "wishQty": "Wished quantity",
     "ownQty": {

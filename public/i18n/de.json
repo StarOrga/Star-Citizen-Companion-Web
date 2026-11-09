@@ -2606,7 +2606,7 @@
     "ownCard": {
       "haveTitle": "Haben?",
       "mineShip": "Dein Exemplar",
-      "mineItem": "Dein Bestand",
+      "mineItem": "Dein Lager",
       "mineBlueprint": "Deine Blaupause",
       "collected": "In deiner Sammlung",
       "removeSammlung": "Aus der Sammlung entfernen",
@@ -2621,7 +2621,7 @@
       "toWishlist": "Wunschliste",
       "toHangar": "Hangar",
       "toInventar": "Inventar",
-      "toSammlung": "Sammlung",
+      "toSammlung": "Sammlungen",
       "openWishlist": "Wunschliste öffnen",
       "wishQtyAria": "Menge auf der Wunschliste: {{name}}",
       "qtyAria": "Menge im Inventar: {{name}}",
@@ -3837,7 +3837,7 @@
       },
       "fullRun": {
         "title": "Voll-Lauf für {{lang}} starten?",
-        "text": "Kostet ca. {{usd}} $ ({{count}} Texte) — der Altbestand wird komplett übersetzt. Der Auftrag wartet danach noch auf deine Freigabe.",
+        "text": "Kostet ca. {{usd}} $ ({{count}} Texte) — alle bisherigen Texte werden komplett übersetzt. Der Auftrag wartet danach noch auf deine Freigabe.",
         "confirm": "Voll-Lauf anlegen"
       },
       "jobs": {
@@ -3996,7 +3996,7 @@
         "synced": "Abgeglichen: {{checked}} geprüft, {{changed}} geändert, {{errors}} Fehler.",
         "learn": "Lernen",
         "learnTitle": "Lernschritt für {{lang}} starten?",
-        "learnText": "Leitet Begriffe, Stil und Karten für {{lang}} aus dem Bestand ab. Kann Kosten verursachen.",
+        "learnText": "Leitet Begriffe, Stil und Karten für {{lang}} aus den vorhandenen Texten ab. Kann Kosten verursachen.",
         "learnResult": "Ergebnis des Lernschritts",
         "draft": "Anfrage-Entwurf erstellen",
         "drafted": "Entwurf für {{name}} erstellt – siehe Anfragen.",
@@ -5658,10 +5658,10 @@
         "forItem": "für {{name}}",
         "bpOwned": "Blaupause {{name}}: in deiner Sammlung",
         "bpMissing": "Blaupause {{name}}: fehlt, eine Mission ist eingeplant",
-        "matOwned": "{{name}}: {{need}} gebraucht, {{have}} im Bestand",
-        "matMissing": "{{name}}: {{need}} gebraucht, {{have}} im Bestand, {{missing}} werden besorgt",
+        "matOwned": "{{name}}: {{need}} gebraucht, {{have}} im Lager",
+        "matMissing": "{{name}}: {{need}} gebraucht, {{have}} im Lager, {{missing}} werden besorgt",
         "noRecipe": "Für das Rezept ist noch kein Material bekannt.",
-        "source": "Blaupausen und Material meldet die App von selbst in Sammlung und Inventar; bis dahin zählt, was dort steht.",
+        "source": "Blaupausen und Material meldet die App von selbst in Sammlungen und Inventar; bis dahin zählt, was dort steht.",
         "loading": "Rezept wird geladen …"
       }
     },
@@ -5706,21 +5706,21 @@
       }
     },
     "bestand": {
-      "title": "Bestand",
-      "tabsAria": "Bereiche des Bestands",
+      "title": "Lager",
+      "tabsAria": "Bereiche des Lagers",
       "tab": {
         "inventar": "Inventar",
         "hangar": "Hangar",
-        "sammlung": "Sammlung",
+        "sammlung": "Sammlungen",
         "alles": "Alles"
       },
-      "search": "Im Inventar suchen",
+      "search": "Im Lager suchen",
       "menu": "Seitenmenü",
-      "reset": "Ingame-Bestand zurücksetzen",
-      "resetTitle": "Ingame-Bestand zurücksetzen?",
+      "reset": "Ingame-Lager zurücksetzen",
+      "resetTitle": "Ingame-Lager zurücksetzen?",
       "resetMessage": "Alle Orte, die das Spiel oder die Suche geschrieben haben, werden entfernt. Von Hand angelegte Einträge bleiben. Das lässt sich nicht rückgängig machen.",
       "resetConfirm": "Zurücksetzen",
-      "filter": "Inventar filtern",
+      "filter": "Lager filtern",
       "all": "Alle",
       "used": "Kürzlich aufgebraucht",
       "used48": "letzte 48 Std.",
@@ -5773,7 +5773,7 @@
           "other": "Sonstiges",
           "sets": "Sets",
           "ships": "Schiffe",
-          "sammlung": "Sammlung"
+          "sammlung": "Sammlungen"
         },
         "sub": {
           "ore": "Erz",
@@ -5853,7 +5853,7 @@
           "craft": "Selbst herstellen"
         },
         "pickup": "Abholen planen",
-        "alsoIn": "Auch im Bestand",
+        "alsoIn": "Auch im Lager",
         "inCodex": "Im Codex: „{{q}}“ – auf die Wunschliste",
         "setItems": "{{n}} Teile",
         "addSet": "Set anlegen",
@@ -5917,13 +5917,13 @@
           "release": "Freigeben",
           "handout": "Ausgehändigt",
           "handoutTitle": "Als ausgehändigt markieren?",
-          "handoutMessage": "{{n}} verlassen deinen Bestand.",
+          "handoutMessage": "{{n}} verlassen dein Lager.",
           "newOne": "Neue Reservierung",
           "saveEdit": "Speichern",
           "editFor": "Reservierungen von {{name}}"
         },
         "deleteTitle": "Einträge löschen?",
-        "deleteMessage": "{{n}} Einträge verschwinden aus dem Bestand.",
+        "deleteMessage": "{{n}} Einträge verschwinden aus dem Lager.",
         "deleteOne": "{{name}} löschen",
         "editAmount": "Menge von {{name}}",
         "col": {
@@ -5943,13 +5943,13 @@
       "sellGoalInvalid": "Gib ein Ziel von mindestens 1 aUEC ein.",
       "target": {
         "minQ": "mind. Q {{q}}",
-        "title": "Aus dem Bestand planen",
+        "title": "Aus dem Lager planen",
         "intent": {
           "pickup": "Abholen",
           "sell": "Verkaufen",
           "buy": "Kaufen"
         },
-        "lead": "{{n}} Gegenstand/Gegenstände aus deinem Bestand",
+        "lead": "{{n}} Gegenstand/Gegenstände aus deinem Lager",
         "where": "Wohin",
         "new": "Neuer Nachschub",
         "newSell": "Neuer Nachschub: Geld verdienen",
@@ -5973,8 +5973,8 @@
         "sell": "Geld verdienen",
         "goal": "Ziel in aUEC",
         "goalPlaceholder": "z. B. 1.500.000",
-        "pickHint": "Wähle aus deinem Bestand, was du verkaufst.",
-        "empty": "Dein Bestand ist leer, es gibt noch nichts zu verkaufen.",
+        "pickHint": "Wähle aus deinem Lager, was du verkaufst.",
+        "empty": "Dein Lager ist leer, es gibt noch nichts zu verkaufen.",
         "pick": "{{name}} aus {{place}} verkaufen"
       },
       "sell": {
@@ -6130,7 +6130,7 @@
       "start": "Start",
       "planen": "Planen",
       "jetzt": "Jetzt",
-      "inventar": "Inventar",
+      "inventar": "Lager",
       "statistik": "Statistik",
       "empty": "{{page}}: Hier entsteht gerade etwas Neues."
     },
@@ -6162,7 +6162,7 @@
         "blueprints": "{{n}} Blueprints",
         "blueprintsOne": "1 Blueprint",
         "stale": "Inventarstand {{n}} Tage alt",
-        "open": "Inventar ansehen"
+        "open": "Lager ansehen"
       },
       "now": {
         "live": "Live",
@@ -6531,7 +6531,7 @@
         "amount": "Menge",
         "in": "Einlagern",
         "out": "Entnehmen",
-        "set": "Bestand setzen",
+        "set": "Menge setzen",
         "for": "Reservieren für",
         "forHint": "z. B. Spieler X oder Verkauf",
         "reserve": "Reservieren",
@@ -6545,7 +6545,7 @@
         "emptyText": "Danach ist nichts mehr davon hier: Der Eintrag verschwindet aus der Liste.",
         "emptyConfirm": "Entnehmen und löschen",
         "cutTitle": "Weniger als reserviert",
-        "cutText": "{{reserved}} {{unit}} sind reserviert. Die neuesten Reservierungen werden auf den neuen Bestand gekürzt."
+        "cutText": "{{reserved}} {{unit}} sind reserviert. Die neuesten Reservierungen werden auf die neue Menge gekürzt."
       },
       "lager": {
         "empty": "Noch nichts im Inventar erfasst. Sobald etwas drin ist, kannst du hier suchen, wo es liegt.",
@@ -6732,7 +6732,7 @@
         "title": "{{name}} abholen",
         "channel": "Wie hast du es bekommen?",
         "byApp": "Die App hat den Weg erkannt; du kannst ihn ändern.",
-        "store": "In den Bestand legen",
+        "store": "Ins Lager legen",
         "isShip": "Ist ein Schiff",
         "toHangar": "Kommt in den Hangar.",
         "toInventory": "Kommt ins Inventar (Ort „Event-Belohnungen“).",
@@ -7377,9 +7377,9 @@
       "hqNow": "Jetzt",
       "hqStock": "Inventar",
       "hqStats": "Statistik",
-      "hqStockAll": "Bestand",
+      "hqStockAll": "Lager",
       "hqStockHangar": "Hangar",
-      "hqStockSammlung": "Sammlung"
+      "hqStockSammlung": "Sammlungen"
     },
     "placeholder": {
       "all": "Überall suchen …",
@@ -7393,7 +7393,7 @@
       "hq": "Hangar, Sets, Schiffe …",
       "hqPlan": "Set, Teil oder Ort für deinen Einsatz …",
       "hqNow": "Schiff, Ort oder Teil …",
-      "hqStock": "Im Bestand suchen …",
+      "hqStock": "Im Lager suchen …",
       "hqStats": "Schiff oder Set …"
     },
     "search": {
@@ -8200,7 +8200,7 @@
     "section": {
       "inventar": "Inventar",
       "hangar": "Hangar",
-      "sammlung": "Sammlung"
+      "sammlung": "Sammlungen"
     },
     "all": {
       "inventar": "Gesamtes Inventar",
@@ -8270,7 +8270,7 @@
       "wish": "Wunschliste",
       "inventar": "Inventar",
       "hangar": "Hangar",
-      "sammlung": "Sammlung"
+      "sammlung": "Sammlungen"
     },
     "tip": {
       "wishOff": "Auf die Wunschliste",
@@ -8286,7 +8286,7 @@
       "wish": "Auf die Wunschliste",
       "inventar": "Ins Inventar",
       "hangar": "In den Hangar",
-      "sammlung": "Zur Sammlung"
+      "sammlung": "Zu den Sammlungen"
     },
     "wishQty": "Wunschmenge",
     "ownQty": {
