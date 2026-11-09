@@ -2524,10 +2524,15 @@ export class CodexDetailComponent implements OnInit {
       tone: 'danger',
     });
     if (!ok) return;
+    const wasActive = this.activeVariantId() === id;
+    // Flush a pending autosave into the exemplar BEFORE it goes, and stop autosaving into it.
+    if (wasActive) this.draftStore.setAutosave(false);
     const done = await this.runMenu(async () => {
       if (!(await this.hangar.deleteConfig(id))) throw new Error('delete failed');
     }, 'deleteConfig');
-    if (done && this.activeVariantId() === id) {
+    if (done && wasActive) {
+      // The removed exemplar's swaps must not leak into the Werk sandbox as a draft.
+      this.draftStore.reset();
       const w = this.werkLink();
       // 'merge' alone kept `?v=` of the removed exemplar on the HQ page (its Werk link carries no `v: null`).
       void this.router.navigate(w.commands as unknown[], {
