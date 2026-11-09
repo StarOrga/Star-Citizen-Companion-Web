@@ -1,7 +1,35 @@
 import { NgZone } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { wireHqPageScroll } from '../../../hq/hq-page-scroll';
-import { dockEase, dockProgress, dockState, glideTarget, labelMove, planetMove, wireSnap } from './briefing-dock';
+import { dockEase, dockProgress, dockState, glideTarget, labelMove, planetMove, snapStepTarget, wireSnap } from './briefing-dock';
+
+describe('snapStepTarget (a wheel step that mandatory snapping would bounce)', () => {
+  // Codex: stage at 16, the tall overview from 900 (2400 px), the footer end at 3300; viewport 900.
+  const ps = [16, 900, 3300];
+  it('steps from the stage down to the lower part instead of snapping back', () => {
+    expect(snapStepTarget(16, 1, ps, 900)).toBe(900);
+    expect(snapStepTarget(116, 1, ps, 900)).toBe(900);
+  });
+  it('scrolls natively inside an area taller than the viewport', () => {
+    expect(snapStepTarget(900, 1, ps, 900)).toBeNull();
+    expect(snapStepTarget(1500, -1, ps, 900)).toBeNull();
+  });
+  it('steps from the lower part start back up to the stage', () => {
+    expect(snapStepTarget(900, -1, ps, 900)).toBe(16);
+    expect(snapStepTarget(500, -1, ps, 900)).toBe(16);
+  });
+  it('leaves the ends to the browser', () => {
+    expect(snapStepTarget(16, -1, ps, 900)).toBeNull();
+    expect(snapStepTarget(3300, 1, ps, 900)).toBeNull();
+    expect(snapStepTarget(16, 1, [16], 900)).toBeNull();
+  });
+  it('steps through viewport-high sections one by one (HQ)', () => {
+    const hq = [0, 900, 1800];
+    expect(snapStepTarget(0, 1, hq, 900)).toBe(900);
+    expect(snapStepTarget(900, 1, hq, 900)).toBe(1800);
+    expect(snapStepTarget(1800, -1, hq, 900)).toBe(900);
+  });
+});
 
 describe('briefing-dock', () => {
   it('maps the scroll range to 0…1 and the states', () => {

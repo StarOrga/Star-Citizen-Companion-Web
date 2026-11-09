@@ -113,6 +113,15 @@ function box(el: Element): Box {
  * stays; `end` — an element snapped with its END edge (the footer under the last page, so
  * the end of the document stays a resting place); `zone` — the late re-checks run outside
  * Angular, so they never keep the app (or a spec's `whenStable()`) busy.
+ *
+ * Direction: `mandatory` snapping picks the snap position CLOSEST to where a scroll ends,
+ * so a wheel notch or a short touchpad swipe on the stage (100–140 px of a 900 px step)
+ * was pulled back to the stage — measured on the real GPU (perf-report "Wave 2c root
+ * cause"): eight notches never reached the lower part, and every notch docked and undocked
+ * the header (a full morph each time). A wheel gesture that native snapping would bounce
+ * therefore finishes the step in its direction (a native smooth scroll to the next snap
+ * position, the snap keeps it there); the rest of that gesture is swallowed. Inside an
+ * area taller than the viewport the wheel scrolls natively.
  */
 export function wireSnap(
   targets: () => readonly (HTMLElement | null)[],
@@ -154,12 +163,118 @@ export function wireSnap(
   // The targets can mount after the first call (the hub builds in steps): look again after layout settles.
   const arm = (): ReturnType<typeof setTimeout>[] => [400, 1600, 4000].map((ms) => setTimeout(apply, ms));
   const late = opts.zone ? opts.zone.runOutsideAngular(arm) : arm();
+  const stepper = snapStepper(() => marked);
+  const listen = (): void => window.addEventListener('wheel', stepper.onWheel, { passive: false });
+  if (opts.zone) opts.zone.runOutsideAngular(listen);
+  else listen();
   return () => {
+    window.removeEventListener('wheel', stepper.onWheel);
+    stepper.stop();
     late.forEach(clearTimeout);
     wide.removeEventListener('change', apply);
     reduce.removeEventListener('change', apply);
     clear();
   };
+}
+
+/** Snap positions (document y) of the marked targets: start-aligned tops (minus scroll-margin), end-aligned bottoms. */
+function snapPositions(marked: readonly HTMLElement[]): number[] {
+  const y = window.scrollY;
+  const vh = window.innerHeight;
+  const max = Math.max(0, document.documentElement.scrollHeight - vh);
+  const out = marked.map((el) => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const p = el.style.getPropertyValue('scroll-snap-align') === 'end' ? r.bottom + y - vh + (parseFloat(cs.scrollMarginBottom) || 0) : r.top + y - (parseFloat(cs.scrollMarginTop) || 0);
+    return Math.round(Math.min(max, Math.max(0, p)));
+  });
+  return [...new Set(out)].sort((a, b) => a - b);
+}
+
+/**
+ * Where a wheel step in `dir` goes from `y` between the snap positions `ps` (sorted), or
+ * null when the native scroll must run (an area taller than the viewport, no next position).
+ * An area of at most one viewport is one step; from the end of a tall area the next step
+ * is the next position.
+ */
+export function snapStepTarget(y: number, dir: number, ps: readonly number[], vh: number): number | null {
+  if (!dir || ps.length < 2) return null;
+  const at = [...ps].reverse().find((p) => p <= y + 1) ?? ps[0];
+  const next = ps.find((p) => p > y + 1) ?? null;
+  if (dir > 0) {
+    if (next === null) return null;
+    const tall = next - at > vh + 1;
+    return !tall || y + vh >= next - 1 ? next : null;
+  }
+  if (y > at + 1) {
+    // Between two positions: inside a tall area the wheel is free, a short one steps back to its start.
+    return next !== null && next - at > vh + 1 ? null : at;
+  }
+  const prev = [...ps].reverse().find((p) => p < at - 1) ?? null;
+  if (prev === null) return null;
+  // Up into a tall area scrolls natively (it is free inside); a short one is one step.
+  return at - prev > vh + 1 ? null : prev;
+}
+
+/** Nested scroll containers (a list, a panel) keep their own wheel. */
+function inOwnScroller(el: Element | null): boolean {
+  for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+    if (n.scrollHeight > n.clientHeight + 1) {
+      const o = getComputedStyle(n).overflowY;
+      if (o === 'auto' || o === 'scroll') return true;
+    }
+  }
+  return false;
+}
+
+/** How long after the last swallowed wheel event a gesture still counts as the same one (touchpad inertia). */
+const STEP_GESTURE_GAP_MS = 220;
+/** A step that never reports `scrollend` releases the wheel after this long. */
+const STEP_MAX_MS = 1400;
+
+function snapStepper(marked: () => readonly HTMLElement[]): { onWheel: (e: WheelEvent) => void; stop: () => void } {
+  let dir = 0;
+  let target = -1;
+  let lastWheel = 0;
+  let ended = true;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const done = (): void => {
+    ended = true;
+  };
+  const stop = (): void => {
+    dir = 0;
+    target = -1;
+    ended = true;
+    if (timer) clearTimeout(timer);
+    timer = null;
+    window.removeEventListener('scrollend', done);
+  };
+  const onWheel = (e: WheelEvent): void => {
+    if (e.defaultPrevented || e.ctrlKey || !e.deltaY) return;
+    const d = Math.sign(e.deltaY);
+    const now = performance.now();
+    // The rest of a step's own gesture (more notches, touchpad inertia): swallowed until it pauses.
+    if (dir === d && (!ended || now - lastWheel < STEP_GESTURE_GAP_MS)) {
+      lastWheel = now;
+      e.preventDefault();
+      return;
+    }
+    if (dir) stop();
+    const els = marked();
+    if (els.length < 2 || !document.documentElement.style.getPropertyValue('scroll-snap-type')) return;
+    if (inOwnScroller(e.target as Element | null) || (e.target as Element | null)?.closest?.('model-viewer')) return;
+    const to = snapStepTarget(window.scrollY, d, snapPositions(els), window.innerHeight);
+    if (to === null || Math.abs(to - window.scrollY) < 2) return;
+    e.preventDefault();
+    dir = d;
+    target = to;
+    lastWheel = now;
+    ended = false;
+    window.addEventListener('scrollend', done, { once: true });
+    timer = setTimeout(done, STEP_MAX_MS);
+    scrollToSmooth(target);
+  };
+  return { onWheel, stop };
 }
 
 /** Smooth native scroll to `top` (the "Mehr im Verse" cue); instant under reduced motion. */
