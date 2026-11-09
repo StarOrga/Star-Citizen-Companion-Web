@@ -76,7 +76,7 @@ export function wirePageGlide(lower: () => HTMLElement | null, zone: NgZone, onS
   };
   const onScroll = (): void => sync();
   // The stage (the lower part's previous sibling) and the lower part are the two snap areas.
-  const releaseSnap = wireSnap(() => [lower()?.previousElementSibling as HTMLElement | null, lower()]);
+  const releaseSnap = wireSnap(() => [lower()?.previousElementSibling as HTMLElement | null, lower()], { zone });
 
   zone.runOutsideAngular(() => {
     window.addEventListener('scroll', onScroll, { passive: true });

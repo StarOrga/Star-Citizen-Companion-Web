@@ -1,4 +1,7 @@
-import { dockEase, dockProgress, dockState, glideEase, glideTarget, keyDirection, labelMove, planetMove, wireSnap } from './briefing-dock';
+import { NgZone } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { wireHqPageScroll } from '../../../hq/hq-page-scroll';
+import { dockEase, dockProgress, dockState, glideTarget, labelMove, planetMove, wireSnap } from './briefing-dock';
 
 describe('briefing-dock', () => {
   it('maps the scroll range to 0…1 and the states', () => {
@@ -42,16 +45,6 @@ describe('briefing-dock', () => {
     expect(glideTarget(800, 800, 1)).toBeNull();
     expect(glideTarget(0, 800, -1)).toBeNull();
     expect(glideTarget(0, 0, 1)).toBeNull();
-    expect(glideEase(0)).toBe(0);
-    expect(glideEase(1)).toBe(1);
-    expect(glideEase(0.5)).toBeCloseTo(0.5, 6);
-  });
-
-  it('reads the scrolling keys as a direction', () => {
-    expect(keyDirection({ key: 'PageDown', shiftKey: false })).toBe(1);
-    expect(keyDirection({ key: 'Home', shiftKey: false })).toBe(-1);
-    expect(keyDirection({ key: ' ', shiftKey: true })).toBe(-1);
-    expect(keyDirection({ key: 'a', shiftKey: false })).toBe(0);
   });
 
   it('makes the stage and the lower part native scroll-snap areas and releases them again', () => {
@@ -76,5 +69,23 @@ describe('briefing-dock', () => {
     const release = wireSnap(() => [document.createElement('div'), null]);
     expect(document.documentElement.style.scrollSnapType).toBe('');
     release();
+  });
+
+  it('snaps every HQ page and the footer end, with the late re-checks outside the zone', () => {
+    const zone = TestBed.inject(NgZone);
+    const pages = [document.createElement('section'), document.createElement('section'), document.createElement('section')];
+    const footer = document.createElement('sc-footer');
+    document.body.append(footer);
+    const release = zone.run(() => wireHqPageScroll(() => pages, zone));
+    expect(zone.hasPendingMacrotasks, 'no timer keeps the app busy').toBe(false);
+    if (matchMedia('(min-width: 1024px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      expect(pages.every((p) => p.style.scrollSnapAlign.includes('start'))).toBe(true);
+      expect(footer.style.scrollSnapAlign).toContain('end');
+      expect(document.documentElement.style.scrollSnapType).toContain('mandatory');
+    }
+    release();
+    expect(document.documentElement.style.scrollSnapType).toBe('');
+    expect(footer.style.scrollSnapAlign).toBe('');
+    footer.remove();
   });
 });

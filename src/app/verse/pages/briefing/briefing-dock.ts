@@ -26,9 +26,6 @@ import { TX_DOORS } from './briefing-transmit.component';
 /** Columns stand side by side from here on (briefing-hub.component.scss). */
 export const DOCK_MIN_WIDTH = 901;
 
-/** Length of the glide from one end of the page to the other. */
-export const DOCK_GLIDE_MS = 1100;
-
 export type DockState = 'top' | 'fly' | 'docked';
 
 export interface Box {
@@ -82,38 +79,12 @@ export function labelMove(planetSrc: Box, src: Box, dst: Box, planet: Move, e: n
   };
 }
 
-/** easeInOutCubic: the glide starts and lands softly. */
-export function glideEase(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-}
-
 /** Where a gesture or a stopped scroll goes: the end in its direction (`dir` > 0 = down). */
 export function glideTarget(y: number, max: number, dir: number): number | null {
   if (max <= 1) return null;
   if (dir > 0) return y < max - 1 ? max : null;
   if (dir < 0) return y > 1 ? 0 : null;
   return null;
-}
-
-/** Keys that scroll the page, as a direction. */
-export function keyDirection(e: Pick<KeyboardEvent, 'key' | 'shiftKey'>): number {
-  switch (e.key) {
-    case 'ArrowDown': case 'PageDown': case 'End': return 1;
-    case 'ArrowUp': case 'PageUp': case 'Home': return -1;
-    case ' ': return e.shiftKey ? -1 : 1;
-    default: return 0;
-  }
-}
-
-/** True if `el` (up to the body) sits in something that scrolls itself — that gesture is not the page's. */
-export function inScroller(el: Element | null): boolean {
-  for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
-    if (n instanceof HTMLElement && n.scrollHeight > n.clientHeight + 1) {
-      const o = getComputedStyle(n).overflowY;
-      if (o === 'auto' || o === 'scroll') return true;
-    }
-  }
-  return false;
 }
 
 /** True in a field or dialog: its keys and wheel are not the page's. */
@@ -135,12 +106,20 @@ function box(el: Element): Box {
  * taller than the viewport (the Codex overview) scrolls freely inside itself, that is
  * how the spec treats an oversized snap area. Returns `release` (restores every inline
  * style it set).
+ *
+ * Options: `minWidth` (default {@link DOCK_MIN_WIDTH}) — below it the browser's own scroll
+ * stays; `end` — an element snapped with its END edge (the footer under the last page, so
+ * the end of the document stays a resting place); `zone` — the late re-checks run outside
+ * Angular, so they never keep the app (or a spec's `whenStable()`) busy.
  */
-export function wireSnap(targets: () => readonly (HTMLElement | null)[]): () => void {
+export function wireSnap(
+  targets: () => readonly (HTMLElement | null)[],
+  opts: { minWidth?: number; end?: () => HTMLElement | null; zone?: NgZone } = {},
+): () => void {
   if (typeof document === 'undefined' || typeof matchMedia !== 'function') return () => undefined;
   const root = document.documentElement;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  const wide = matchMedia(`(min-width: ${DOCK_MIN_WIDTH}px)`);
+  const wide = matchMedia(`(min-width: ${opts.minWidth ?? DOCK_MIN_WIDTH}px)`);
   let marked: HTMLElement[] = [];
   const clear = (): void => {
     root.style.removeProperty('scroll-snap-type');
@@ -156,13 +135,19 @@ export function wireSnap(targets: () => readonly (HTMLElement | null)[]): () => 
       return;
     }
     for (const el of marked) el.style.setProperty('scroll-snap-align', 'start');
+    const end = opts.end?.();
+    if (end && !marked.includes(end)) {
+      end.style.setProperty('scroll-snap-align', 'end');
+      marked.push(end);
+    }
     root.style.setProperty('scroll-snap-type', 'y mandatory');
   };
   apply();
   wide.addEventListener('change', apply);
   reduce.addEventListener('change', apply);
   // The targets can mount after the first call (the hub builds in steps): look again after layout settles.
-  const late = [400, 1600, 4000].map((ms) => setTimeout(apply, ms));
+  const arm = (): ReturnType<typeof setTimeout>[] => [400, 1600, 4000].map((ms) => setTimeout(apply, ms));
+  const late = opts.zone ? opts.zone.runOutsideAngular(arm) : arm();
   return () => {
     late.forEach(clearTimeout);
     wide.removeEventListener('change', apply);
@@ -207,7 +192,7 @@ export function wireDock(
   const releaseSnap = wireSnap(() => [
     host.querySelector<HTMLElement>('section'),
     host.querySelector<HTMLElement>('sc-briefing-hub'),
-  ]);
+  ], { zone });
   const onScroll = (): void => schedule();
 
   const parts = () =>

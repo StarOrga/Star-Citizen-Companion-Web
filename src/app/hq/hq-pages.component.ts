@@ -45,8 +45,8 @@ import { HqStockComponent } from './stock/hq-stock.component';
  *   stand under the docked subheader: the bar condenses by scroll depth like on every main page,
  *   and the page column is the subheader's width (`.sc-below-stage` = `--sc-b-w`).
  * - The footer is the shell's own and comes after the last page, Statistik.
- * - One page at a time (`hq-page-scroll.ts`): wheel and keys glide from page to page, the cue at the
- *   viewport's bottom edge leads to the next one.
+ * - One page at a time (`hq-page-scroll.ts`): native CSS scroll-snap finishes every wheel, key or
+ *   touch gesture on a page; the cue at the viewport's bottom edge leads to the next one.
  */
 @Component({
   selector: 'sc-hq-pages',
