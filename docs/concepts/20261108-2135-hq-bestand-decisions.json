@@ -323,5 +323,129 @@
       1033,
       1037
     ]
+  },
+  {
+    "iteration": 3,
+    "action": "implement",
+    "favorite": null,
+    "decisions": [
+      {
+        "id": "q-recent",
+        "value": "changes",
+        "rec": "session",
+        "note": ""
+      },
+      {
+        "id": "q-route",
+        "value": "none",
+        "rec": "merge",
+        "note": "aber man kann ja mehrfach das zu einem bestehenden nachschub hijnzu fügen und verwalten nich timmer nu reeinem neuen!"
+      },
+      {
+        "id": "q-subfilter",
+        "value": "codex",
+        "rec": "codex",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-a3-2",
+          "text": "aber min. 3 buchstaben im namen!",
+          "attachments": []
+        },
+        {
+          "id": "anno-a3-3",
+          "text": "ok!",
+          "attachments": []
+        },
+        {
+          "id": "anno-a3-5",
+          "text": "Ok, wobei ich die drei filterzeilen noch so naja finde!",
+          "attachments": []
+        },
+        {
+          "id": "anno-a3-6",
+          "text": "das wort und wie viel reserviert, gern anzeigen bei hover over, auch die genaue qualität!",
+          "attachments": []
+        },
+        {
+          "id": "q-route-note",
+          "text": "aber man kann ja mehrfach das zu einem bestehenden nachschub hijnzu fügen und verwalten nich timmer nu reeinem neuen!",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "userPins": [
+      {
+        "id": "up-mw8dmrisn6qy",
+        "design": "frachtdeck3",
+        "screen": "a3-s1",
+        "x": 74.9,
+        "y": 59.7,
+        "target": "aside.d14-log \"LadeprotokollAlles, was du hast: Inventa\"",
+        "text": "Das panel noch etwas peppiger, noch etwas weniger textuell, weniger erklärungen!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8dp4i3fft8",
+        "design": "frachtdeck3",
+        "screen": "a3-s1",
+        "x": 77.1,
+        "y": 89.6,
+        "target": "div.d14-used \"Zuletzt aufgebraucht · letzte Spielsitzu\"",
+        "text": "Das geht hier unten irgendwi eunter und ich sehe auch nicht das protokoll zusammenhängend oben letzte änderungen....",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8dqhnmnh6u",
+        "design": "frachtdeck3",
+        "screen": "a3-s2",
+        "x": 53.4,
+        "y": 26.3,
+        "target": "small \"Frachtraum\"",
+        "text": "aber die cutlass ist ja auch irgendwo! idann lieber den ort angeben und system und ort. nur wenn irgendwo im weltraum, dann gern cutllass weltall oder so..",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8dvzt6it7u",
+        "design": "frachtdeck3",
+        "screen": "a3-s6",
+        "x": 58.7,
+        "y": 96,
+        "target": "span.d10-btn.sec \"Reservieren\"",
+        "text": "Das finde ich super und raffiniert !",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8dw4l555zc",
+        "design": "frachtdeck3",
+        "screen": "a3-s6",
+        "x": 53.5,
+        "y": 93.6,
+        "target": "span.d10-btn.sec \"Verkaufen\"",
+        "text": "Gern das auch einfühhren für die übersicht ansicht wenn man im log oder wo auch immer was auswählt. Dort auswählen bitte mit highlighting statt checkboxen oder sooo.",
+        "attachments": []
+      },
+      {
+        "id": "up-mw8dx0scicv3",
+        "design": "frachtdeck3",
+        "screen": "a3-s7",
+        "x": 40.8,
+        "y": 54.7,
+        "target": "div.alt \"Eisen Q ≥ 700 wünschen und einplanendire\"",
+        "text": "finde ich super! Gern auch bei suche mit <= 3 Treffern !",
+        "attachments": []
+      }
+    ],
+    "outcome": "implemented on claude/hq-bestand-ui-improvements-33d845 (fe8e22d1); final report = round 4"
   }
 ]
