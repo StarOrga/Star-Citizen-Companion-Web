@@ -16,7 +16,7 @@ import { MOON_SLOT_S } from './briefing-moon.component';
 import { SKY_STEP_S } from './briefing-sky.component';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { PLANET_SOURCES } from './planet/planet-assets';
-import { CALM_WAIT_MS, INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SKIP_MS, INTRO_SWITCH_MS, VerseBriefingComponent, hurry, linkKey, verseItemLink } from '../verse-briefing.component';
+import { CALM_WAIT_MS, ENTRANCE_SEARCH_K, INTRO_BUILD_MS, INTRO_FINALE_MS, INTRO_PLANET_WAIT_MS, INTRO_SKIP_MS, INTRO_SWITCH_MS, VerseBriefingComponent, hurry, linkKey, verseItemLink } from '../verse-briefing.component';
 import { ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
 import { By } from '@angular/platform-browser';
 import { BriefingPlanetComponent } from './briefing-planet.component';
@@ -422,12 +422,13 @@ describe('Verse briefing — component', () => {
       fixture.detectChanges();
       expect(stage(fixture)?.classList, 'a modifier alone is no input').toContain('intro');
       window.dispatchEvent(new Event('pointerdown'));
-      expect(fixture.componentInstance.holoStands()).toBe(true);
+      expect(fixture.componentInstance.stands(), 'not before the skip has run out').toBe(false);
       tick(INTRO_SKIP_MS);
       fixture.detectChanges();
       expect(stage(fixture)?.classList).not.toContain('intro');
       expect(stage(fixture)?.classList).not.toContain('finale');
       expect(title(fixture)?.querySelector('.brand')).toBeNull();
+      expect(fixture.componentInstance.stands(), 'the page stands after the skip').toBe(true);
       expect(chrome.heroIntro()).toBeNull();
       tick(10_000);
       expect(stage(fixture)?.classList, 'no comet afterwards').not.toContain('finale');
@@ -438,9 +439,9 @@ describe('Verse briefing — component', () => {
       const fixture = TestBed.createComponent(VerseBriefingComponent);
       fixture.detectChanges();
       const c = fixture.componentInstance;
-      expect(c.holoStands()).toBe(false);
+      expect(c.stands()).toBe(false);
       const tx = (): HTMLElement => (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('sc-briefing-transmit')!;
-      expect(tx().dataset['phase'], 'nothing sent during the entrance').toBe('out');
+      expect(tx().dataset['phase'], 'nothing sent during the entrance').toBe('rest');
       tick(10_000);
       fixture.detectChanges();
       expect(c.brand()).toBe(false);
@@ -485,7 +486,7 @@ describe('Verse briefing — component', () => {
       const c = fixture.componentInstance;
       expect(c.intro).toBe('full');
       expect(stage(fixture)?.classList).toContain('intro');
-      expect(chrome.heroIntro(), 'the hub took the announced entrance over').toEqual({ k: 1, full: true });
+      expect(chrome.heroIntro(), 'the hub took the announced entrance over').toEqual({ k: ENTRANCE_SEARCH_K, full: true });
       // The app's name in the hero: no story title, no eyebrow, no chevrons yet.
       expect(title(fixture)?.querySelector('.tl.brand')).not.toBeNull();
       expect(title(fixture)?.querySelectorAll('i.ltr').length).toBeGreaterThan(0);
