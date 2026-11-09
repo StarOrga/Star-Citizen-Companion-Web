@@ -221,6 +221,9 @@ export function mergeLoadout(
     }
   }
   for (const o of overrides) {
+    // A nested override (`mount.gun`, a part inside a carried item) belongs to the stock tree under its top port,
+    // not next to it: appending it would count the part twice. The codex page applies those itself.
+    if (o.portName.includes('.')) continue;
     if (!seenPorts.has(o.portName)) {
       merged.push({ portName: o.portName, className: o.className, kind: o.kind });
     }

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { ExemplarAiService, loadoutHash } from './exemplar-ai.service';
+import { ExemplarAiService, loadoutHash, EXEMPLAR_NAME_TIMEOUT_MS } from './exemplar-ai.service';
 
 const L = (portName: string, className: string) => ({ portName, className, kind: 'weapon' });
 const changes = [{ slot: 'Waffe 1', from: 'Omnisky VI', to: 'Laser Repeater S3' }];
@@ -45,9 +45,27 @@ describe('ExemplarAiService', () => {
     expect(await m.svc.suggestName('Gladius', [])).toBeNull();
     expect(m.invoke).not.toHaveBeenCalled();
     expect(await m.svc.suggestName('Gladius', changes)).toBe('Laser-Jäger');
-    expect(m.invoke).toHaveBeenCalledWith('exemplar-ai', { body: { kind: 'exemplar_name', locale: 'de', ship: 'Gladius', changes } });
+    expect(m.invoke).toHaveBeenCalledWith('exemplar-ai', { body: { kind: 'exemplar_name', locale: 'de', ship: 'Gladius', changes }, signal: expect.any(AbortSignal) });
     const n = mount({ data: { ok: true, status: 'no_key' } });
     expect(await n.svc.suggestName('Gladius', changes)).toBeNull();
+  });
+
+  it('suggestName: a function that does not answer within 2 s yields null and the request is aborted (D8)', async () => {
+    vi.useFakeTimers();
+    try {
+      const m = mount();
+      let signal: AbortSignal | undefined;
+      m.invoke.mockImplementation((_name: string, opts: { signal: AbortSignal }) => {
+        signal = opts.signal;
+        return new Promise(() => undefined);
+      });
+      const pending = m.svc.suggestName('Gladius', changes);
+      await vi.advanceTimersByTimeAsync(EXEMPLAR_NAME_TIMEOUT_MS);
+      expect(await pending).toBeNull();
+      expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('suggestName: a failing call yields null, never throws', async () => {

@@ -7,6 +7,8 @@ import type { ConfigLoadoutEntry } from './hangar.types';
 /** Hard limits, mirrored from the `exemplar-ai` edge function (which enforces them; the client clamps again). */
 export const EXEMPLAR_NAME_MAX = 32;
 export const EXEMPLAR_SUMMARY_MAX = 90;
+/** The name dialog waits at most this long for a suggestion (D8): a slow or missing function never holds it up. */
+export const EXEMPLAR_NAME_TIMEOUT_MS = 2000;
 
 /** One changed slot: the factory part and the part the player fitted instead (display names). */
 export interface ExemplarPartChange {
@@ -83,7 +85,7 @@ export class ExemplarAiService {
    */
   async suggestName(shipName: string, changes: readonly ExemplarPartChange[]): Promise<string | null> {
     if (!changes.length || !shipName.trim()) return null;
-    const text = await this.ask('exemplar_name', shipName, changes);
+    const text = await this.ask('exemplar_name', shipName, changes, EXEMPLAR_NAME_TIMEOUT_MS);
     return text ? clamp(text, EXEMPLAR_NAME_MAX) : null;
   }
 
@@ -152,16 +154,32 @@ export class ExemplarAiService {
   }
 
   /** The function call; any failure or non-"generated" status -> null (graceful, logged only for real errors). */
-  private async ask(kind: 'exemplar_name' | 'exemplar_summary', ship: string, changes: readonly ExemplarPartChange[]): Promise<string | null> {
+  private async ask(
+    kind: 'exemplar_name' | 'exemplar_summary',
+    ship: string,
+    changes: readonly ExemplarPartChange[],
+    timeoutMs?: number,
+  ): Promise<string | null> {
+    const abort = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | null = null;
     try {
       const locale = this.i18n.getCurrentLang() === 'en' ? 'en' : 'de';
-      const { data, error } = await this.sb.client.functions.invoke('exemplar-ai', { body: { kind, locale, ship, changes } });
+      const call = this.sb.client.functions.invoke('exemplar-ai', { body: { kind, locale, ship, changes }, signal: abort.signal });
+      // Out of time = no suggestion: the request is aborted and the caller goes on without one.
+      const late = new Promise<null>((resolve) => {
+        if (timeoutMs !== undefined) timer = setTimeout(() => { abort.abort(); resolve(null); }, timeoutMs);
+      });
+      const answer = await Promise.race([call, late]);
+      if (!answer) return null;
+      const { data, error } = answer;
       if (error) throw error;
       const text = (data as { status?: string; text?: unknown } | null)?.text;
       return typeof text === 'string' && text.trim() ? text : null;
     } catch (err) {
       toErrorKey('hangar', kind, err);
       return null;
+    } finally {
+      if (timer !== null) clearTimeout(timer);
     }
   }
 }
