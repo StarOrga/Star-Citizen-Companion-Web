@@ -87,14 +87,14 @@ export const AKTE_STANDARD_LIVERY = 'standard';
             @if (liveries().length > 1) {
               @for (l of liveries(); track l.id) {
                 <button type="button" class="ak-sw" [class.on]="activeLivery() === l.id" [attr.aria-pressed]="activeLivery() === l.id"
-                        [scTooltip]="l.id === standardId ? ('codex.holo.akte.standard' | translate) : l.label" scTooltipTier="label" scTooltipPlacement="below" (click)="pickLivery(l.id)">
+                        [scTooltip]="l.id === standardId ? ('codex.holo.akte.standard' | translate) : l.label" scTooltipTier="label" scTooltipPlacement="caption" (click)="pickLivery(l.id)">
                   <span class="t">@if (l.imageUrl) { <img [src]="l.imageUrl" alt="" loading="lazy" /> } @else { <i></i> }</span>
                   <small>{{ l.id === standardId ? ('codex.holo.akte.standard' | translate) : l.label }}</small>
                 </button>
               }
             }
             @for (e of editionTiles(); track e.classNameSlug) {
-              <a class="ak-sw ed" [routerLink]="['/codex', 'ship', e.classNameSlug]" [scTooltip]="e.label" scTooltipTier="label" scTooltipPlacement="below">
+              <a class="ak-sw ed" [routerLink]="['/codex', 'ship', e.classNameSlug]" [scTooltip]="e.label" scTooltipTier="label" scTooltipPlacement="caption">
                 <span class="t"><i></i></span>
                 <small>{{ e.label }}</small>
               </a>

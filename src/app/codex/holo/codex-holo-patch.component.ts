@@ -78,7 +78,7 @@ export type HoloPatchSide = CodexBuild | 'active';
                 (click)="toggle()" aria-haspopup="listbox" [attr.aria-expanded]="openSide() === 'from'"
                 [attr.aria-controls]="panelId" [attr.aria-keyshortcuts]="hotkey()"
                 [attr.aria-label]="'codex.holo.patch.fromAria' | translate: { patch: fromLabel() }"
-                [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate" scTooltipPlacement="below">
+                [scTooltip]="openSide() ? null : ('codex.holo.patch.trigger.hotkeyHint' | translate)" scTooltipPlacement="below">
           @if (from(); as f) {
             {{ sideVersion(f) }}
             <!-- Two extracts of one patch (4.10.2 → 4.10.2): the build tells them apart. -->

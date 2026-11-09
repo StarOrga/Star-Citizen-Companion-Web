@@ -90,6 +90,9 @@ const POSITIONS: ConnectedPosition[] = [
   { originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center', offsetX: 8 },
 ];
 
+/** Over the host's bottom caption line: the bubble's bottom edge sits just below the host. */
+const CAPTION_POSITION: ConnectedPosition = { originX: 'center', originY: 'bottom', overlayX: 'center', overlayY: 'bottom', offsetY: 10 };
+
 /**
  * App-styled replacement for the native `title` attribute (ui-defaults.md
  * R0/R1): a CDK-overlay-portaled bubble (`sc-tooltip-bubble`), with
@@ -108,14 +111,25 @@ export class ScTooltipDirective implements OnDestroy {
   readonly scTooltip = input<string | null | undefined>(null);
   readonly scTooltipTier = input<'info' | 'label'>('info');
   readonly scTooltipDisabled = input(false);
-  /** Preferred side; the others stay as fallbacks. `below` for a host whose label sits right above it. */
-  readonly scTooltipPlacement = input<'above' | 'below'>('above');
+  /**
+   * Preferred side; the others stay as fallbacks. `below` for a host whose label sits right above it;
+   * `caption` lays the bubble over the host's own bottom caption (a tile whose cut name it spells out),
+   * so it covers neither the heading above nor the control below.
+   */
+  readonly scTooltipPlacement = input<'above' | 'below' | 'caption'>('above');
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly overlay = inject(Overlay);
   private readonly state = inject(ScTooltipState);
 
   private overlayRef: OverlayRef | null = null;
+
+  private positions(): ConnectedPosition[] {
+    const placement = this.scTooltipPlacement();
+    if (placement === 'below') return [POSITIONS[1], POSITIONS[0], POSITIONS[2], POSITIONS[3]];
+    if (placement === 'caption') return [CAPTION_POSITION, ...POSITIONS];
+    return POSITIONS;
+  }
   private bubble: ComponentRef<ScTooltipComponent> | null = null;
 
   private openTimer: ReturnType<typeof setTimeout> | null = null;
@@ -287,7 +301,7 @@ export class ScTooltipDirective implements OnDestroy {
       positionStrategy: this.overlay
         .position()
         .flexibleConnectedTo(this.anchorElement())
-        .withPositions(this.scTooltipPlacement() === 'below' ? [POSITIONS[1], POSITIONS[0], POSITIONS[2], POSITIONS[3]] : POSITIONS)
+        .withPositions(this.positions())
         .withPush(true),
       scrollStrategy: this.overlay.scrollStrategies.reposition(),
       panelClass: 'sc-tooltip-panel',
