@@ -32,9 +32,10 @@ import { SlowNavigationService } from './slow-navigation.service';
   `,
   styles: [`
     :host { display: contents; }
+    /* The content area only: header bar and footer stay clear of the streaks. */
     .stage {
       position: fixed;
-      inset: 0;
+      inset: var(--sc-bar-h, 64px) 0 var(--sc-footer-h, 0px);
       z-index: 60;
       display: grid;
       place-items: center;
