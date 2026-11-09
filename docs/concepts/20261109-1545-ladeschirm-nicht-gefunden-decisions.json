@@ -39,5 +39,74 @@
         "attachments": []
       }
     ]
+  },
+  {
+    "iteration": 2,
+    "favorite": null,
+    "annotations": [
+      {
+        "id": "r2-q2-s1-a1",
+        "answer": "gut"
+      },
+      {
+        "id": "r2-q2-s2-a1",
+        "answer": "ja ok! Aber dann hier ohne dire ringe nach außen!"
+      },
+      {
+        "id": "r2-q2-s3-a1",
+        "answer": "leiber die tatsächliche silhouette nehmen!"
+      },
+      {
+        "id": "r2-q2-s5-a1",
+        "answer": "sehr gut! Genauso wie der loadings screen, aber dnan bitte langsamer machen! und übergang von ladescreen zu 404 berücksichtigen, und bitte nicht in der mitte oval machen! das logo ist dort rund und sollte auch so sein"
+      },
+      {
+        "id": "r2-q2-s5-a2",
+        "answer": "ja"
+      }
+    ],
+    "screens": {},
+    "userPins": [
+      {
+        "id": "up-mw9greq7gin1",
+        "design": "q2",
+        "screen": "q2-s2",
+        "x": 50.4,
+        "y": 58.3,
+        "target": "main.q2-page.q2-empty",
+        "text": "die info ist redundant",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9gsm4yfylj",
+        "design": "q2",
+        "screen": "q2-s4",
+        "x": 44.9,
+        "y": 49.2,
+        "target": "h2.q2-h2 \"Quantum-Antrieb spult noch\"",
+        "text": "das ist mir zuuu thematisch, nicht zu überboardnend",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9gsv6hhk5e",
+        "design": "q2",
+        "screen": "q2-s4",
+        "x": 47.9,
+        "y": 52.6,
+        "target": "p \"Der Codex antwortet gerade langsam.\"",
+        "text": "das benötigt man nicht nochaml diese info.",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9gtagv7orh",
+        "design": "q2",
+        "screen": "q2-s4",
+        "x": 56.5,
+        "y": 56.5,
+        "target": "a.q2-pill \"Status\"",
+        "text": "wohin soll status führen !?",
+        "attachments": []
+      }
+    ]
   }
 ]
