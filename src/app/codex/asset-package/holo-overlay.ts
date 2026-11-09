@@ -329,13 +329,13 @@ export const MARKER_RADIUS = 13;
 const CALLOUT_GAP = 12;
 
 /**
- * The callout's fixed size at a window width: 168 x 66 from 1920 up, 147 x 58
+ * The callout's fixed size at a window width: 188 x 88 from 1920 up, 165 x 77
  * at 1440, never below 0.8 of it. The viewer's CSS (--co-u) computes the same;
  * a host sizes its gutters with {@link calloutGutter}.
  */
 export function calloutSize(windowWidth: number): Size {
   const u = clamp(0.5 + windowWidth / 3840, 0.8, 1);
-  return { w: 168 * u, h: 66 * u };
+  return { w: 188 * u, h: 88 * u };
 }
 
 /** Gutter width that holds the callout at a window width. */

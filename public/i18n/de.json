@@ -485,6 +485,8 @@
         "title": "Codex · neu in {{patch}}",
         "titleNoPatch": "Codex · neu",
         "titleDiscover": "Codex · {{patch}}",
+        "titleRecent": "Codex · zuletzt neu",
+        "patchGroup": "Patch {{patch}}",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
         "categories": "Kategorien",
@@ -946,7 +948,6 @@
         "portsCount": "{{n}} Ports",
         "legendConfigurable": "konfigurierbar",
         "legendMissiles": "Raketen",
-        "legendHint": "Hover = Kurzwerte · Klick = Inspector",
         "inspectorEmptyTitle": "Kein Hardpoint gewählt",
         "emptyBay": "Leerer Platz",
         "journalEmpty": "Noch nichts — Werksausstattung.",
@@ -1136,6 +1137,16 @@
         "exit": "Zurück zu meinem Loadout",
         "readOnlyHint": "Geteiltes Loadout — nur lesen. Übernimm es, um es zu ändern oder zu speichern."
       },
+      "diffMarker": "weicht vom Werk ab",
+      "callout": {
+        "swap": "Bauteil tauschen",
+        "aria": "{{type}}: {{name}}"
+      },
+      "table": {
+        "tagAria": "{{type}} {{size}}: {{name}}",
+        "legendDiff": "weicht vom Werk ab",
+        "legendHint": "Klick = Bauteil wählen"
+      },
       "card": {
         "rank": "Rang {{n}} von {{m}}",
         "overallTip": "Gesamtwert: besser als {{pct}} % der Gruppe",
@@ -1152,8 +1163,7 @@
       },
       "inspector": {
         "diffLegend": "weicht vom Werk ab"
-      },
-      "diffMarker": "Weicht vom Werk ab"
+      }
     },
     "empty": {
       "title": "Noch nichts hier",

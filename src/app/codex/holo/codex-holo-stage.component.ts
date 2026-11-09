@@ -346,6 +346,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             [attr.inert]="activeView() === 'akte' ? '' : null"
             [pins]="tablePins()"
             [labelPins]="labelPins()"
+            [partFilter]="partFilter()"
+            [diffPorts]="changedPorts()"
+            (portSwap)="onPortSwap($event)"
             [schemaView]="schemaView()"
             [orbit]="pinRing()"
             [silhouette]="silhouette()"
@@ -2285,6 +2288,14 @@ export class CodexHoloStageComponent {
   onPartSwap(sel: PlacementSelection): void {
     if (this.readOnly() || this.inspectorIsRawPort()) return;
     if (this.viewerSelection() !== sel.id) this.onPartSelected(sel);
+    const it = this.inspectorTarget();
+    if (it) this.swapRequested.emit(partFocusOf(it, this.inspectedSection()).target);
+  }
+
+  /** A table callout's swap icon (schema views): inspect that port, then swap it. */
+  onPortSwap(port: string): void {
+    if (this.readOnly() || this.inspectorIsRawPort()) return;
+    if (this.inspectedPort() !== port) this.inspectPin(port);
     const it = this.inspectorTarget();
     if (it) this.swapRequested.emit(partFocusOf(it, this.inspectedSection()).target);
   }

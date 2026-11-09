@@ -1,22 +1,25 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
 /**
- * The one marker for "weicht vom Werk ab" (C19): a filled diamond in the app
- * accent, never red or copper. Identical on the hull tag/pin, the Bauteile
- * list, the inspector and the "Bauteile im Detail" list; the words stay as
- * screen-reader text.
+ * The one marker "◆ weicht vom Werk ab" (holotisch-feinschliff C19): a filled
+ * diamond in the app accent — never red, never copper (those mark elevated
+ * access). The same element sits on the hull tag and pin, in the Bauteile list,
+ * in the inspector and in the lower "Bauteile im Detail" list. The words are
+ * screen-reader text and the tooltip; nothing visible besides the diamond.
  */
 @Component({
   selector: 'sc-holo-diff-marker',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<i class="mk" aria-hidden="true"></i><span class="sc-sr-only">{{ 'codex.holo.diffMarker' | translate }}</span>`,
+  host: { class: 'holo-diff-marker' },
+  template: `<span class="dm" [scTooltip]="'codex.holo.diffMarker' | translate" scTooltipTier="label"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0.5 9.5 5 5 9.5 0.5 5z" /></svg><span class="sc-sr-only">{{ 'codex.holo.diffMarker' | translate }}</span></span>`,
   styles: [`
-    :host { display: inline-flex; align-items: center; flex: none; line-height: 1; }
-    .mk { display: block; width: 7px; height: 7px; background: var(--sc-accent); transform: rotate(45deg);
-      box-shadow: 0 0 6px color-mix(in srgb, var(--sc-accent) 60%, transparent); }
+    :host { display: inline-flex; align-items: center; vertical-align: middle; flex: none; color: var(--sc-accent); line-height: 1; }
+    .dm { display: inline-flex; align-items: center; }
+    svg { width: 0.7em; height: 0.7em; min-width: 7px; min-height: 7px; fill: currentColor; display: block; }
   `],
 })
 export class HoloDiffMarkerComponent {}
