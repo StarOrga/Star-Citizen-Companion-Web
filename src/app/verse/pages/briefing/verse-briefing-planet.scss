@@ -324,14 +324,12 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 // Camera-world entrance (concept "Kamera-Welt" 2026-11-09, rounds/05 d5-pb-main), seconds from the start:
 //   0.2–1.6 stars/world ignite   0.8–3.5 dolly from depth   2.2 title scan + afterglow
 //   3.5 search (shell)   4.3 header (shell), Patches, planets   5.0 "Mehr im Verse" breathes   5.5 stands
-// The scene's own camera is the shell's; until it exports a camera API the stage's world dollies here and
-// <html data-kw-entrance="dolly"> tells the scene the same moment.
+// The dolly itself is the scene camera's (SceneCameraService.flyTo from 'entrance', started by the component).
 .world-clip.cinema {
   transform-origin: 50% 70%;
-  animation: kw-ignite 1.4s ease-out 0.2s backwards, kw-dolly 2.7s cubic-bezier(0.45, 0, 0.2, 1) 0.8s backwards;
+  animation: kw-ignite 1.4s ease-out 0.2s backwards;
 }
 @keyframes kw-ignite { from { opacity: 0; } }
-@keyframes kw-dolly { from { scale: 1.28; } }
 // Title: a light edge runs down the lines (clip + brightness flash), the afterglow settles. Nothing stays clipped.
 .bstage.intro .hrow, .bstage.nav .hrow { position: relative; }
 .bstage.intro .hrow { animation: kw-scan 1.4s cubic-bezier(0.4, 0, 0.2, 1) 2.2s backwards; }

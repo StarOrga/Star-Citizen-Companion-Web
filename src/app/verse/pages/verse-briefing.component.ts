@@ -15,7 +15,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { AppNoticeComponent } from '../../desktop/app-notice.component';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { SceneCameraService } from '../../shell/scene/scene-camera.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
@@ -246,6 +247,7 @@ export class VerseBriefingComponent {
   private readonly chrome = inject(ShellChromeService);
   private readonly windowFocus = inject(WindowFocusService);
   private readonly router = inject(Router);
+  private readonly camera = inject(SceneCameraService);
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -767,6 +769,20 @@ export class VerseBriefingComponent {
     if (this.chrome.heroIntro()?.hold) this.chrome.startHeroIntro(ENTRANCE_SEARCH_K, true);
     // Hook for the scene camera: it dollies from depth while this attribute stands (see the handoff note).
     document.documentElement.dataset['kwEntrance'] = 'dolly';
+    // The scene's camera dollies from depth (0.8 s, 2.7 s) - started after the first NavigationEnd, or the router's own move retargets it.
+    const dolly = (): void => {
+      this.introTimers.push(setTimeout(() => void this.camera.flyTo('verse', { from: 'entrance', durationMs: 2700 }), 800));
+    };
+    if (this.router.navigated) dolly();
+    else {
+      const sub = this.router.events.subscribe((e) => {
+        if (e instanceof NavigationEnd) {
+          sub.unsubscribe();
+          dolly();
+        }
+      });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
+    }
     this.armIntroSkip();
     this.introTimers.push(
       setTimeout(() => {
