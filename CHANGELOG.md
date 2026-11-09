@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.246.0] - 2026-11-09
+
+### Added
+- New start screen: a quantum streak field with the animated app logo while the app loads.
+- A real "not found" page for unknown addresses (4 · logo · 4 with suggestions) instead of silently landing on Verse.
+- A calm "Das dauert länger als sonst" hint with retry when a page takes more than about 8 seconds.
+- Codex ship pages draw the ship's real silhouette while they load.
+
 ## [0.245.1] - 2026-11-09
 
 ### Changed
