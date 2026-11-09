@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.248.0] - 2026-11-09
+
+### Added
+- Classic ship view: saved loadouts become named layouts per ship (Layout 1, 2, …) with a switch, "Neues Layout", "Layout speichern" into the picked layout, and a button that copies a share link opening the layout as an unsaved draft for the receiver.
+
 ## [0.247.1] - 2026-11-09
 
 ### Fixed
