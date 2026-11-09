@@ -23,7 +23,7 @@ import {
  * The extension ships no build step and no test runner of its own — the logic
  * that is actually easy to get wrong (RSI DOM parsing, the fleet fingerprint,
  * the anti-nagging rule) lives in one dependency-free ES module, and this spec
- * runs it inside the app's existing Karma suite so `npm test` covers it.
+ * runs it inside the app's unit-test suite so `npm test` covers it.
  */
 const HANGAR_HTML = `
 <html><body>

@@ -17,7 +17,7 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
  * navigation — but only on the phone sheet; docked next to the page there is
  * nothing to get out of the way.
  *
- * Karma renders at 749px, so the real media query would answer "not a phone"
+ * The test window is 1280px wide, so the real media query would answer "not a phone"
  * for every case here — `matchMedia` is stubbed per test on purpose.
  */
 describe('feedback panels — minimize after an in-app deep link', () => {

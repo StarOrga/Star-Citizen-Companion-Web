@@ -260,7 +260,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
    * "von den roadmap icons mehr ergänzen … so viel wie platz ist und danach
    * '…'" — the count is width-driven now. Fed through the component's own
    * measurement port so the assertion is about the ARITHMETIC, not about how
-   * wide Karma's 749 px viewport happens to make the card.
+   * wide the test window happens to make the card.
    */
   it('fills the strip with as many icons as fit, then a "…" that links on', async () => {
     await render(FEED, ROADMAP_MANY);
@@ -300,7 +300,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
 
   /**
    * The strip reports its box from a ResizeObserver, i.e. in a rendering step
-   * after layout — one Karma cannot promise (testing/frames.ts). The spec
+   * after layout — one a test page cannot promise (testing/frames.ts). The spec
    * plays the browser's part and says WHEN the observer reports; what gets
    * measured, and from which CSS, is still the directive's own business.
    */
@@ -319,8 +319,8 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(icons.length, 'the strip measured itself and grew past the unmeasured fallback of three').toBeGreaterThan(3);
     // Whatever the viewport, the strip stays inside its TWO clipped lines and
     // its content never spills out of the card — the invariant that has to
-    // hold on the phone branch Karma renders in AND on the desktop one it
-    // does not. 2 × 52 + 6 is the phone cap; the desktop one is 2 × 60 + 6.
+    // hold on the phone branch AND on the desktop one the test window
+    // renders in. 2 × 52 + 6 is the phone cap; the desktop one is 2 × 60 + 6.
     expect(strip().scrollWidth, 'the strip does not overflow itself').toBeLessThanOrEqual(strip().clientWidth + 1);
     expect(strip().scrollHeight, 'and never wraps onto a third line').toBeLessThanOrEqual(strip().clientHeight + 1);
     expect(Math.round(strip().getBoundingClientRect().height)).toBeLessThanOrEqual(126);

@@ -620,7 +620,7 @@ describe('AdminFeedbackComponent — the stream', () => {
    * #517: the panel tells its shell that an in-app link was followed, so a
    * phone sheet can stop covering the page it just opened. Driven through the
    * handler rather than a DOM click on purpose — the anchor is a real
-   * `routerLink` (see the deep-link test above), and letting Karma follow it
+   * `routerLink` (see the deep-link test above), and letting the test page follow it
    * would navigate the test runner itself away.
    */
   it('reports an in-app navigation only for a plain left click', async () => {
@@ -767,7 +767,7 @@ describe('AdminFeedbackComponent — the Fortschritt door wears the house icon',
  * out "AUFTRAG" next to an avatar that already says the same in colour, and the
  * rows sat in a light haze that read as a box drawn around each band's group.
  *
- * Karma renders at 749 px, so the measurements pin their own width instead of
+ * The measurements pin their own width instead of
  * trusting the window — and the invariants below hold in both media branches.
  */
 describe('AdminFeedbackComponent — the overview fits its panel', () => {
@@ -1093,7 +1093,7 @@ describe('AdminFeedbackComponent — motion', () => {
     const tables = fixtureTables();
     const { fixture, cmp, el, sb, motion } = await mount(tables);
     // The fold waits a frame for the sheet to unrender; the spec says when
-    // that frame is, rather than waiting on Karma's (testing/frames.ts).
+    // that frame is, rather than waiting on the browser's (testing/frames.ts).
     const frames = installFrameClock();
     expect(cmp.arrived('r1'), 'the first load highlights nothing').toBe(false);
 

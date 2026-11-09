@@ -40,7 +40,7 @@ class ActionRowHostComponent {}
  * that they measure the same — not that they measure 38, which would only
  * re-state the stylesheet.
  *
- * Karma renders at 749px with a fine pointer, i.e. the desktop branch, which is
+ * The test window is 1280px wide with a fine pointer, i.e. the desktop branch, which is
  * where the row was ragged. The other two branches keep the invariant by
  * construction rather than by a second number: the ≤720px rule only changes the
  * send button's flex, and `(pointer: coarse)` lifts every button in the row to

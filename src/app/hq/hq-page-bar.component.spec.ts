@@ -22,7 +22,7 @@ describe('HqPageBarComponent', () => {
     return f.nativeElement as HTMLElement;
   }
 
-  // Karma renders at 749px, wider than the 720px phone query that moves the bar, so the
+  // The test window is 1280px wide, wider than the 720px phone query that moves the bar, so the
   // stacking itself (bottom offset above the docked fusion bar) cannot be measured here; it was
   // measured in a 390px phone viewport (bar bottom 764, fusion bar top 772). What the spec pins
   // is the switch that selects that rule.

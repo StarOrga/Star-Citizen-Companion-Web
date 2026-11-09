@@ -1009,7 +1009,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
         forkGuard: { ensureEditable } as unknown as Partial<CodexHoloForkGuard>,
       });
       const fixture = renderOnFakeClock();
-      // The draft mirrors itself into the URL; keep the Karma page where it is.
+      // The draft mirrors itself into the URL; keep the test page where it is.
       vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
       return { fixture, hangar, ensureEditable, cmp: fixture.componentInstance };
     }
@@ -1088,7 +1088,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(hangar.createConfig).toHaveBeenCalledTimes(1);
       expect(cmp.addFailed()).toBe(true);
       expect(hangar.updateConfig).not.toHaveBeenCalled();
-      // No translate loader in Karma: instant() hands back the key itself.
+      // No translate loader in the spec: instant() hands back the key itself.
       expect(cmp.saveError()).toBe('codex.loadout.saveErrorHangar');
       // Visible without waiting for the arrival or opening the right rail.
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.loadout.saveErrorHangar');

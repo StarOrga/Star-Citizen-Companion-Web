@@ -66,7 +66,7 @@ describe('HqAppLaunchComponent', () => {
     const { f, launcher } = mount(true);
     const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ctrlKey: true });
     let leftToBrowser = false;
-    // Runs after the component's handler; stopping here keeps Karma's page in place.
+    // Runs after the component's handler; stopping here keeps the test page in place.
     anchor(f).addEventListener(
       'click',
       (e) => {

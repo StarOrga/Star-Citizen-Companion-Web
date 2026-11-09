@@ -274,7 +274,7 @@ describe('CodexHoloStripComponent - the box ends before the corner (concept code
       host.style.setProperty('--fab-clear', '120px');
       fixture.detectChanges();
       const bar = host.querySelector('.holo-strip') as HTMLElement;
-      // Karma renders at 749px: the >640px branch.
+      // The 1280px test window: the >640px branch.
       expect(getComputedStyle(bar).marginInlineEnd).toBe('120px');
       expect(getComputedStyle(host.querySelector('.hs-row') as HTMLElement).paddingInlineEnd).toBe('0px');
       expect(Math.round(host.getBoundingClientRect().right - bar.getBoundingClientRect().right)).toBe(120);

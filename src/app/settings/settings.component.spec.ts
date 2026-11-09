@@ -27,7 +27,7 @@ import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
  * only a layout read can prove that they no longer can. The host element is
  * sized explicitly so the phone case is covered as well as the desktop one —
  * the locale grid is container-driven (`auto-fit` + `minmax`), so its wrap
- * behaviour follows the host box, not the Karma window.
+ * behaviour follows the host box, not the test window.
  */
 describe('SettingsComponent layout', () => {
   function makeUser(overrides: Partial<User> = {}): User {
@@ -151,7 +151,7 @@ describe('SettingsComponent layout', () => {
 
   /**
    * Dispatches a click the way the browser would, but never lets the anchor's
-   * default navigation actually run away with the Karma frame. Returns whether
+   * default navigation actually run away with the test page. Returns whether
    * the component itself cancelled the event.
    */
   function clickLink(link: HTMLAnchorElement, init: MouseEventInit = {}): boolean {

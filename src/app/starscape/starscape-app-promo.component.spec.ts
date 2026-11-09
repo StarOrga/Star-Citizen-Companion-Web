@@ -12,8 +12,8 @@ describe('StarscapeAppPromoComponent', () => {
     localStorage.removeItem(DISMISS_KEY);
     sessionStorage.removeItem(SESSION_KEY);
     originalWidth = window.innerWidth;
-    // The promo self-hides below the desktop breakpoint; the Karma frame can be
-    // narrower than that, so pin a desktop width for the visibility tests.
+    // The promo self-hides below the desktop breakpoint; pin a desktop width so the
+    // visibility tests do not depend on the test window.
     Object.defineProperty(window, 'innerWidth', { value: 1280, configurable: true });
     TestBed.configureTestingModule({
       imports: [StarscapeAppPromoComponent],

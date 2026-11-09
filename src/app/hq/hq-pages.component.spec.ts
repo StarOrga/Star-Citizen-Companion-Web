@@ -123,7 +123,7 @@ describe('HqPagesComponent', () => {
     const go = vi.spyOn(location, 'go');
     const link = (f.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('sc-hq-rail a[href="/hq#inventar"]')!;
     // A listener registered after the component's own sees whether it already took the click;
-    // it then cancels the click so the browser never opens a real tab in the Karma page.
+    // it then cancels the click so the browser never opens a real tab from the test page.
     let preventedByComponent: boolean | null = null;
     link.addEventListener('click', (e) => {
       preventedByComponent = e.defaultPrevented;
