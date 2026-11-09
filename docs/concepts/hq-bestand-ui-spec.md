@@ -1,15 +1,20 @@
-# HQ Bestand — UI spec (Frachtdeck)
+# HQ Lager — UI spec (Frachtdeck)
 
-Living spec of the HQ page "Bestand" (`/hq#inventar`, component `src/app/hq/stock/hq-stock.component.ts`).
+> **Wording (2026-11-09):** the umbrella term is **Lager** (EN *Storage*); its three parts are **Inventar**, **Hangar**
+> and **Sammlungen** (EN *Inventory / Hangar / Collections*). "Bestand" is gone from every user-visible string; it
+> lives on only in code identifiers, i18n key paths (`hq.bestand.*`) and the `bestand=` query param, which stay as they
+> are. The HQ rail entry and page bar read "Lager" (`hq.pages.inventar`). This file keeps its old name.
+
+Living spec of the HQ page "Lager" (`/hq#inventar`, component `src/app/hq/stock/hq-stock.component.ts`).
 Source: concept `docs/concepts/20261108-2135-hq-bestand/` (design `frachtdeck3`, round 3; brief `briefs/implement.md`,
 filter bar `briefs/f7-filter-rows.md`). Change this file together with the page.
 
 ## Frame
 
-- Tabs **Alles · Inventar · Hangar · Sammlung**, as real anchors (`hqStockLink({ tab })` →
+- Tabs **Alles · Inventar · Hangar · Sammlungen**, as real anchors (`hqStockLink({ tab })` →
   `/hq?bestand=<tab>#inventar`). A link without `bestand` opens **Inventar**. Tabs carry the item-path icons
   (`PATH_ICONS`: inventar / hangar / sammlung — the same as the search) and **no counts, no SCU**.
-- `Alles` is one deck with every lane: Rohstoffe, Waffen, Rüstung, Sonstiges, Sets, Schiffe, Sammlung.
+- `Alles` is one deck with every lane: Rohstoffe, Waffen, Rüstung, Sonstiges, Sets, Schiffe, Sammlungen.
 - The page has no own width: the shell frame (`--sc-page-max`) sizes it. The host keeps
   `padding-bottom: var(--sc-fab-clear-block)` so nothing sits under the feedback launcher; the footer keeps the
   App-Status lane (`.ticker-room`) free.
@@ -22,7 +27,7 @@ filter bar `briefs/f7-filter-rows.md`). Change this file together with the page.
 One bordered flex-wrap container, never stacked chip rows. Order = Tab order:
 
 1. Kind chips (`role=radiogroup`, roving focus with arrows/Home/End, select on Space/Enter):
-   `Alle` + Rohstoffe, Waffen, Rüstung, Sonstiges, Sets (Alles adds Schiffe, Sammlung after a divider).
+   `Alle` + Rohstoffe, Waffen, Rüstung, Sonstiges, Sets (Alles adds Schiffe, Sammlungen after a divider).
 2. Sub-kind chips **inline behind the active kind** (smaller, dashed): Rohstoffe › Erz, Raffiniert; Rüstung › Helm,
    Torso, Arme, Beine, Unterkleidung, Rucksack; Waffen › Pistole, Primärwaffe, Schwere Waffe, Nahkampf, Wurfwaffe,
    Gadget, Sonstige. Escape in the sub group returns focus to the kind chip.
@@ -79,27 +84,27 @@ it. The log follows place, kind/sub and search text. The head line names the cur
 ## Search
 
 The subheader search is the page search (`ShellChromeService.registerPageSearch`); the page has no own field. Its chip
-follows the tab (`hqContext(..., stockTab)`: Bestand / Inventar / Hangar / Sammlung, key stays `hqStock`). Tiers:
-the active tab's matches (the deck itself), then "Auch im Bestand" (the other areas, anchors with `focus`), then the
+follows the tab (`hqContext(..., stockTab)`: Lager / Inventar / Hangar / Sammlungen, key stays `hqStock`). Tiers:
+the active tab's matches (the deck itself), then "Auch im Lager" (the other areas, anchors with `focus`), then the
 Codex ("auf die Wunschliste"). `q>700` / `Q ≥ 700` in the text sets a minimum quality.
 
 Alternatives (`alternativesFor`) appear with a text and **at most three hits**: liegt woanders (same item outside the
 place/sub filter, free amount, "Abholen planen"), wünschen und einplanen (with the minimum quality), Ersatz (same Codex
 slot, meets the quality), selbst herstellen (owned blueprint by name).
 
-## Hangar and Sammlung
+## Hangar and Sammlungen
 
 - Hangar bar: origin (Pledge, Ingame, Leihschiff) and role (Codex `SHIP_ROLES` via `ensureKinds`) as two radiogroups
   in one bar, `Alle` / `Alle Rollen`, the wishlist counter as an anchor to the cart. Ship tiles show place, origin,
   role and the number of variants (carried over from the old hangar dashboard). ⋮ menu: "Importieren …" anchor to
   `/hq/hangar/import`, and the danger reset.
-- Sammlung bar: Blaupausen, Ruf, News, Galerie. Ruf stays an honest empty panel; News/Galerie show their saved count
+- Sammlungen bar: Blaupausen, Ruf, News, Galerie. Ruf stays an honest empty panel; News/Galerie show their saved count
   and a link to their page.
 
 ## Empty states
 
 One sentence, one primary action, one second way, no 0, no pager. Inventar: "Eintragen" + "Mit der App einlesen";
-filtered empty: "Filter zurücksetzen"; Hangar: "Schiff anlegen" + "RSI-Hangar holen"; Sammlung: "Blaupause anlegen" +
+filtered empty: "Filter zurücksetzen"; Hangar: "Schiff anlegen" + "RSI-Hangar holen"; Sammlungen: "Blaupause anlegen" +
 "Im Codex stöbern".
 
 ## Degradation
