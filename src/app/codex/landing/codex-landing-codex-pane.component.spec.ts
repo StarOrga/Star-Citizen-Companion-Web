@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
-import { CodexLandingCodexPaneComponent, visibleEntries } from './codex-landing-codex-pane.component';
+import { CodexLandingCodexPaneComponent, FILL_ROWS, visibleEntries, withEarlierPatches } from './codex-landing-codex-pane.component';
 import { LandingCategory, LandingCodexEntry, LandingItem } from './codex-landing-data.types';
 import de from '../../../../public/i18n/de.json';
 
@@ -39,12 +39,35 @@ describe('visibleEntries', () => {
   });
 });
 
+describe('withEarlierPatches (#318)', () => {
+  type R = { id: string; isNew?: boolean; patch?: string; head?: string };
+  const head = (patch: string): R => ({ id: 'h' + patch, head: patch });
+  const ids = (rows: R[]) => rows.map((r) => r.id);
+
+  it('fills the space the current patch leaves with earlier patches, newest first, each under a header, new before updated', () => {
+    const current: R[] = [{ id: 'c0', isNew: true }];
+    const earlier: R[] = [
+      { id: 'a0', patch: '4.10.2' },
+      { id: 'a1', patch: '4.10.2', isNew: true },
+      { id: 'b0', patch: '4.10.1', isNew: true },
+    ];
+    expect(ids(withEarlierPatches(current, earlier, head))).toEqual(['c0', 'h4.10.2', 'a1', 'a0', 'h4.10.1', 'b0']);
+  });
+
+  it('never grows past the fill budget, and a full current patch gets no fill', () => {
+    const many = (n: number, patch?: string): R[] => Array.from({ length: n }, (_, i) => ({ id: (patch ?? 'c') + i, patch }));
+    expect(withEarlierPatches(many(FILL_ROWS - 3), many(10, '4.9'), head).length).toBe(FILL_ROWS);
+    expect(ids(withEarlierPatches(many(FILL_ROWS - 1), many(10, '4.9'), head))).toEqual(ids(many(FILL_ROWS - 1)));
+    expect(withEarlierPatches(many(30), many(10, '4.9'), head).length).toBe(30);
+  });
+});
+
 describe('Codex landing pane', () => {
   let fixture: ComponentFixture<CodexLandingCodexPaneComponent>;
   let host: HTMLElement;
 
   /** The real pane at 1280x720, the tightest window the landing is built for. */
-  function mount(news: { category: LandingCategory; entries: LandingCodexEntry[]; discover?: boolean }[], active: LandingCategory, current: LandingItem | null, height: number | 'auto' = 400): void {
+  function mount(news: { category: LandingCategory; entries: LandingCodexEntry[]; discover?: boolean; earlier?: LandingCodexEntry[] }[], active: LandingCategory, current: LandingItem | null, height: number | 'auto' = 400): void {
     TestBed.configureTestingModule({ imports: [CodexLandingCodexPaneComponent], providers: [provideRouter([]), provideTranslateService()] });
     const tr = TestBed.inject(TranslateService);
     tr.setTranslation('de', de as never);
@@ -173,6 +196,24 @@ describe('Codex landing pane', () => {
     const more = host.querySelector('a.more')!.textContent!;
     expect(more).toContain('weitere');
     expect(more).not.toContain('neue');
+  });
+
+  it('earlier patches fill the list under their own patch header; with no news of its own the title says "zuletzt neu" (#318)', () => {
+    const older = (n: number, patch: string) => entries(n, 'P' + patch, 'Old ' + patch).map((e) => ({ ...e, patch, isNew: true }));
+    mount(
+      [
+        { category: 'ship', entries: entries(4), discover: true, earlier: [...older(1, '4.8'), ...older(2, '4.9')] },
+        { category: 'tool', entries: entries(2, 'T'), discover: true },
+      ],
+      'ship',
+      null,
+      'auto',
+    );
+    settle();
+    expect(host.querySelector('.ph')!.textContent).toContain('zuletzt neu');
+    const heads = Array.from(host.querySelectorAll<HTMLElement>('.new li.grp')).map((li) => li.textContent!.trim());
+    expect(heads).toEqual(['Patch 4.9', 'Patch 4.8']);
+    expect(rowsShown()).toEqual(['Old 4.9 0', 'Old 4.9 1', 'Old 4.8 0']);
   });
 
   it("a category with only discovery picks shows the others' news, not its picks", () => {

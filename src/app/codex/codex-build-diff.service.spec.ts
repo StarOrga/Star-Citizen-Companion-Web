@@ -7,8 +7,7 @@ import {
   CodexBuildDiffService,
   DIFF_LOOKBACK,
   addedClassNames,
-  diffPair,
-} from './codex-build-diff.service';
+  diffPair, groupPatchHistory } from './codex-build-diff.service';
 import { FakeCall, FakeResult, chainArgs, fakeSupabase } from '../testing/fake-supabase';
 
 const CUR = { id: 'b-cur' } as CodexBuild;
@@ -256,5 +255,29 @@ describe('CodexBuildDiffService', () => {
     const rows = await svc.addedShips();
     expect(rows.map((r) => r.classNameSlug)).toEqual(['AEGS_Avenger_Stalker']);
     expect(codex.recentLiveBuilds).toHaveBeenCalledWith(DIFF_LOOKBACK);
+  });
+});
+
+describe('groupPatchHistory (#318)', () => {
+  it('groups the record by patch, newest first, and lists a new name only as new', () => {
+    const cmp = (a: string, b: string) => a.localeCompare(b, 'en', { numeric: true });
+    const groups = groupPatchHistory(
+      [
+        { class_name: 'A', first_patch: '4.10.1' },
+        { class_name: 'B', first_patch: '4.10.3' },
+        { class_name: 'Z', first_patch: null },
+      ],
+      [
+        { class_name: 'B', patch_version: '4.10.3' },
+        { class_name: 'C', patch_version: '4.10.3' },
+        { class_name: 'D', patch_version: '4.10.2' },
+      ],
+      cmp,
+    );
+    expect(groups).toEqual([
+      { patch: '4.10.3', added: ['B'], changed: ['C'] },
+      { patch: '4.10.2', added: [], changed: ['D'] },
+      { patch: '4.10.1', added: ['A'], changed: [] },
+    ]);
   });
 });
