@@ -1040,9 +1040,6 @@
         "allShow": "All values of all four ▾",
         "allHide": "Collapse all values ▴"
       },
-      "side": {
-        "variants": "Variants & compare"
-      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -1126,6 +1123,44 @@
         "loadError": "The shared loadout could not be loaded.",
         "exit": "Back to my loadout",
         "readOnlyHint": "Shared loadout — read-only. Create a copy to change or save it."
+      },
+      "diffMarker": "differs from factory",
+      "akte": {
+        "imageOnly": "Image only",
+        "showText": "Show text",
+        "descriptionAria": "Description",
+        "noDescription": "There is no description for this ship.",
+        "liveries": "Livery",
+        "standard": "Standard",
+        "maker": "Manufacturer",
+        "modelsAria": "Model"
+      },
+      "hangar": {
+        "menuAria": "Hangar and loadout",
+        "loadouts": "Loadout",
+        "werk": "Factory",
+        "werkChanged": "Unsaved swaps: {{n}}",
+        "diffOne": "1 part differs from factory",
+        "diffMany": "{{n}} parts differ from factory",
+        "diffNone": "as factory",
+        "selectedAria": "Actions for {{name}}",
+        "removeExemplar": "Remove exemplar",
+        "removeTitle": "Remove “{{name}}”?",
+        "removeBody": "The loadout “{{name}}” is deleted. The ship stays in the hangar.",
+        "hangar": "Hangar",
+        "copy": "Copy this exemplar",
+        "copyName": "{{name}} (copy)",
+        "newFromWerk": "New exemplar from factory",
+        "saveWerk": "Add to hangar as exemplar",
+        "saveBuild": "Save build as exemplar",
+        "anotherCopy": "Another {{name}} into the hangar",
+        "openHangar": "Open in hangar",
+        "wishlist": "Wishlist",
+        "toWishlist": "Add to wishlist",
+        "wishAgain": "Wish for another",
+        "nameTitle": "Exemplar name",
+        "nameLabel": "Name",
+        "nameSuggested": "Suggestion: “{{name}}” — take it or enter your own name."
       }
     },
     "empty": {

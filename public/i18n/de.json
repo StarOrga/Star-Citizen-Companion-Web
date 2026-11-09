@@ -1040,9 +1040,6 @@
         "allShow": "Alle Werte aller vier ▾",
         "allHide": "Alle Werte zuklappen ▴"
       },
-      "side": {
-        "variants": "Varianten & Vergleich"
-      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -1126,6 +1123,44 @@
         "loadError": "Das geteilte Loadout konnte nicht geladen werden.",
         "exit": "Zurück zu meinem Loadout",
         "readOnlyHint": "Geteiltes Loadout — nur lesen. Übernimm es, um es zu ändern oder zu speichern."
+      },
+      "diffMarker": "weicht vom Werk ab",
+      "akte": {
+        "imageOnly": "Nur Bild",
+        "showText": "Text zeigen",
+        "descriptionAria": "Beschreibung",
+        "noDescription": "Für dieses Schiff liegt keine Beschreibung vor.",
+        "liveries": "Lackierung",
+        "standard": "Standard",
+        "maker": "Hersteller",
+        "modelsAria": "Modell"
+      },
+      "hangar": {
+        "menuAria": "Hangar und Ausstattung",
+        "loadouts": "Ausstattung",
+        "werk": "Werk",
+        "werkChanged": "Ungespeicherte Tausche: {{n}}",
+        "diffOne": "1 Teil weicht vom Werk ab",
+        "diffMany": "{{n}} Teile weichen vom Werk ab",
+        "diffNone": "wie Werk",
+        "selectedAria": "Aktionen für {{name}}",
+        "removeExemplar": "Exemplar entfernen",
+        "removeTitle": "„{{name}}“ entfernen?",
+        "removeBody": "Die Ausstattung „{{name}}“ wird gelöscht. Das Schiff bleibt im Hangar.",
+        "hangar": "Hangar",
+        "copy": "Dieses Exemplar kopieren",
+        "copyName": "{{name}} (Kopie)",
+        "newFromWerk": "Neues Exemplar aus Werk",
+        "saveWerk": "Als Exemplar in den Hangar",
+        "saveBuild": "Umbau als Exemplar speichern",
+        "anotherCopy": "Noch eine {{name}} in den Hangar",
+        "openHangar": "Im Hangar öffnen",
+        "wishlist": "Wunschliste",
+        "toWishlist": "Auf die Wunschliste",
+        "wishAgain": "Noch eine wünschen",
+        "nameTitle": "Name des Exemplars",
+        "nameLabel": "Name",
+        "nameSuggested": "Vorschlag: „{{name}}“ — du kannst ihn übernehmen oder einen eigenen Namen eingeben."
       }
     },
     "empty": {

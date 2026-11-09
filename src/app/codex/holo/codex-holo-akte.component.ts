@@ -81,6 +81,7 @@ export const AKTE_STANDARD_LIVERY = 'standard';
             }
           </div>
         }
+        <ng-content />
         <a class="ak-rsi" [href]="rsiHref()" target="_blank" rel="noopener noreferrer nofollow">
           {{ 'codex.detail.viewOnRsi' | translate }} <span aria-hidden="true">↗</span>
         </a>

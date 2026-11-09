@@ -58,7 +58,8 @@ import {
 import { AddToSetComponent } from './set/add-to-set.component';
 import { roleSlotForAttachType } from './codex-landing-kpi';
 import { HangarService } from '../hangar/hangar.service';
-import { HangarShipConfig, PeekedSharedLoadout } from '../hangar/hangar.types';
+import { ConfigLoadoutEntry, HangarShipConfig, PeekedSharedLoadout, ShipConfigRole } from '../hangar/hangar.types';
+import type { PathResult } from '../hq/data/item-path.service';
 import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { HQ_MINE_PARAM, HQ_ROOT, HQ_VARIANT_PARAM, hqHangar, hqShipLink, personalShipLink } from '../hq/hq-routes';
 import { CodexModeSwitchComponent, CodexPersonalUsesComponent } from './detail/codex-personal-mode.component';
@@ -153,7 +154,14 @@ import {
   StageCountChip,
 } from './detail/codex-detail.types';
 import { SkinOption, resolveSkinGroup } from './codex-skin-group';
-import { EditionOption, resolveEditionGroup } from './codex-edition-group';
+import { EditionOption, ModelVariantOption, resolveEditionGroup, resolveModelVariants } from './codex-edition-group';
+import { AKTE_STANDARD_LIVERY, AkteEdition, AkteFact, AkteLivery, CodexHoloAkteComponent } from './holo/codex-holo-akte.component';
+import { CodexHoloHangarMenuComponent, HangarExemplar, HangarMenuLink } from './holo/codex-holo-hangar-menu.component';
+import { ShipSkinsService } from './ship-skins.service';
+import { ExemplarAiService, ExemplarPartChange } from '../hangar/exemplar-ai.service';
+import { ItemPathService } from '../hq/data/item-path.service';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
+import { UndoToastService } from '../shared/undo-toast/undo-toast.service';
 import { SummaryOccupant } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
@@ -297,7 +305,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [ShipArrivalComponent, CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent],
+  imports: [ShipArrivalComponent, CompareIconComponent, ItemPathComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent, CodexHoloAkteComponent, CodexHoloHangarMenuComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -815,32 +823,62 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (missionChange)="setMission($event)"
             (rankProfileChange)="rankProfile.set($event)"
             (rankScopeChange)="setRankScope($event)"
-            (saveDraft)="saveLoadoutDraft()"
+            (saveDraft)="onHoloSaveDraft()"
             (discardDraft)="discardLoadoutDraft()"
             (locatable)="glbLocatablePorts.set($event)"
             (sheetChange)="powerSheet.set($event)"
             (arrivedShip)="onHoloArrived($event)"
             [openDetails]="sourceLinkRequested()">
-            <div htOwn class="strip-own"><ng-container [ngTemplateOutlet]="ownSegment" /></div>
-            <div htCard><ng-container [ngTemplateOutlet]="ownCard" /></div>
-            <!-- The side column below the first screen (concept holotisch-unten
-                 r1, d2): as wide as the strip's Einsatz, on the left. Every
-                 action lives in a box — Bei RSI in Beschreibung, the wish list
-                 in Wo zu kaufen, Edition/Lackierung/Vergleich in their own box.
-                 The deck plan moved into the table's Schema "Einfach" chips. -->
+            <!-- Concept holotisch-feinschliff r4 d1: the models under the name (C3), the one hangar
+                 button (C5/C22), the Akte over the table (C20/C21). Ownership lives only in the button. -->
+            @if (modelOptions().length > 1) {
+              <nav htModels class="ho-models" [attr.aria-label]="'codex.holo.akte.modelsAria' | translate">
+                @for (m of modelOptions(); track m.classNameSlug; let last = $last) {
+                  <a [routerLink]="['/codex', 'ship', m.classNameSlug]" [class.on]="m.classNameSlug === detail()!.classNameSlug"
+                     [attr.aria-current]="m.classNameSlug === detail()!.classNameSlug ? 'page' : null">{{ m.label ?? ('codex.holo.akte.standard' | translate) }}</a>
+                  @if (!last) { <i aria-hidden="true">·</i> }
+                }
+              </nav>
+            }
+            <sc-codex-holo-hangar-menu htOwn
+              [shipName]="displayName()"
+              [count]="hangarQty()"
+              [wishQty]="hangarWishQty()"
+              [signedIn]="!!currentUserId()"
+              [exemplars]="hangarExemplars()"
+              [activeId]="activeVariantId()"
+              [werkLink]="werkLink()"
+              [hangarLink]="hangarMenuLink()"
+              [werkChanged]="activeVariantId() === null ? draftChangedCount() : 0"
+              [pinned]="(cardShip()?.pinnedRank ?? null) !== null"
+              [busy]="menuBusy()"
+              [errorKey]="menuError()"
+              (rename)="renameExemplar($event)"
+              (note)="noteExemplar()"
+              (pin)="pinExemplarShip()"
+              (remove)="removeExemplar($event)"
+              (copyExemplar)="copyExemplar($event)"
+              (newFromWerk)="newExemplarFromWerk()"
+              (saveAsExemplar)="saveWerkAsExemplar()"
+              (addCopy)="addHangarCopy()"
+              (addWish)="addHangarWish()" />
+            <sc-codex-holo-akte holoAkte
+              [description]="description()"
+              [facts]="akteFacts()"
+              [heroArt]="heroArt()"
+              [previewSilhouette]="previewSilhouetteUrl()"
+              [liveries]="akteLiveries()"
+              [editions]="akteEditions()"
+              [currentSlug]="detail()!.classNameSlug"
+              [rsiHref]="shipLinkForm.pledgeLink() ?? rsiShipsUrl">
+              <button type="button" class="pin ak-pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
+                <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+              </button>
+            </sc-codex-holo-akte>
+            <!-- The side column below the first screen (concept holotisch-unten r1, d2). The
+                 description, the liveries and the compare pin moved into the Akte; the pledge-link
+                 form and the wish/supply badges went with the ownership into the hangar button. -->
             <div htSide class="ho-side">
-              <section class="sc-card side-card">
-                <h2 class="side-h">{{ 'codex.detail.description' | translate }}</h2>
-                @if (description(); as d) {
-                  <p class="desc side-desc">{{ d }}</p>
-                }
-                <div class="side-acts">
-                  <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" />
-                </div>
-                @if (shipLinkForm.open()) {
-                  <sc-codex-ship-link-form />
-                }
-              </section>
               <section class="sc-card side-card" [attr.id]="shipSourceFragment">
                 <h2 class="side-h">{{ 'codex.detail.whereToBuy' | translate }}</h2>
                 @if (buyLoading()) {
@@ -861,25 +899,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   </ul>
                 }
                 <p class="hint buy-attribution">{{ 'codex.detail.whereToBuyAttribution' | translate }}</p>
-                <!-- Secondary, not primary: the page's head and ownership card carry no primary (C5/C6). -->
-                <sc-item-path kind="ship" level="secondary" [className]="detail()!.classNameSlug" [name]="displayName()" />
-              </section>
-              <section class="sc-card side-card">
-                <h2 class="side-h">{{ 'codex.holo.side.variants' | translate }}</h2>
-                <div class="side-variants">
-                  @if (editionOptions().length > 1) {
-                    <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                      [options]="editionPickerOptions()" [current]="currentEdition()" />
-                  }
-                  @if (skinOptions().length > 1) {
-                    <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                      [options]="skinPickerOptions()" [current]="currentLivery()" />
-                  }
-                  <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
-                  <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
-                    <sc-compare-icon [on]="isPinned()" /> {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
-                  </button>
-                </div>
               </section>
             </div>
             <ng-container [ngTemplateOutlet]="tailLoadout" />
@@ -1275,8 +1294,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .ho-side { display: contents; }
     .side-card { margin: 0; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .side-h { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); font-family: var(--sc-font-display); font-weight: 400; }
-    .side-desc { font-size: max(0.8rem, var(--sc-fs-floor)); }
-    .side-acts, .side-variants { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+    /* The model links under the ship name (r3/r4 d1 .b3-models): plain words, the current one underlined. */
+    .ho-models { display: flex; align-items: center; flex-wrap: wrap; gap: 1px; font-size: max(12px, var(--sc-fs-floor)); }
+    .ho-models a { padding: 2px 6px; border-radius: 6px; color: var(--sc-fg-2); text-decoration: none; white-space: nowrap; }
+    .ho-models a:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 10%, transparent); }
+    .ho-models a.on { color: var(--sc-fg-0); border-radius: 0; box-shadow: inset 0 -1.5px 0 var(--sc-accent); }
+    .ho-models a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    .ho-models i { color: var(--sc-fg-2); font-style: normal; opacity: 0.6; }
+    @media (pointer: coarse) { .ho-models a { min-height: 48px; display: inline-flex; align-items: center; } }
     .side-buy { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
     .side-buy li { display: grid; gap: 1px; min-width: 0; font-size: max(0.78rem, var(--sc-fs-floor)); }
     .side-buy li > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2288,6 +2313,339 @@ export class CodexDetailComponent implements OnInit {
   // The edition family of this ship, base record first (feedback 77ecad2a).
   // Fewer than two entries means "nothing to pick" and hides the picker.
   readonly editionOptions = signal<EditionOption[]>([]);
+
+  // ── Holotisch head + Akte (concept holotisch-feinschliff r4 d1: C3, C5, C20–C23) ──
+  private readonly shipSkins = inject(ShipSkinsService);
+  private readonly itemPath = inject(ItemPathService);
+  private readonly confirmDialog = inject(ScConfirmService);
+  private readonly undoToast = inject(UndoToastService);
+  private readonly exemplarAi = inject(ExemplarAiService);
+  /** The separate models of this hull family, for the links under the name (C3); empty = one model. */
+  readonly modelOptions = signal<ModelVariantOption[]>([]);
+  /** The paints of this record (ship_skins) as the Akte's Lackierung tiles (C21). */
+  readonly akteLiveries = signal<AkteLivery[]>([]);
+  protected readonly rsiShipsUrl = 'https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc';
+  /** Editions (same hull, another record or marketing name) fold into the Akte tiles as links (C21). */
+  readonly akteEditions = computed<AkteEdition[]>(() =>
+    this.editionOptions().map((o) => ({ classNameSlug: o.classNameSlug, label: o.editionName ?? this.displayName() })),
+  );
+  /** The Akte's facts: maker plus a few hull lines that have a value. */
+  readonly akteFacts = computed<AkteFact[]>(() => {
+    const out: AkteFact[] = [];
+    const maker = this.manufacturerName();
+    if (maker) out.push({ labelKey: 'codex.holo.akte.maker', value: maker });
+    const rows = this.shipFactGroups().flatMap((g) => g.rows);
+    for (const key of AKTE_FACT_KEYS) {
+      const row = rows.find((r) => r.labelKey === key && !!r.value);
+      if (row?.value) out.push({ labelKey: key, value: row.value });
+    }
+    return out;
+  });
+
+  private readonly ownState = computed(() => {
+    const d = this.detail();
+    return d && d.kind === 'ship' ? this.itemPath.state('ship', d.classNameSlug, this.displayName())() : null;
+  });
+  private readonly ownStateLoad = effect(() => {
+    if (this.kind() === 'ship') void this.itemPath.ensureLoaded();
+  });
+  /** Copies in the hangar (0 = none); the HQ page is an own copy by definition. */
+  readonly hangarQty = computed(() => {
+    const s = this.ownState();
+    const qty = Math.max(1, s?.hangarQty ?? 0);
+    return this.hqHosted() || s?.inHangar ? qty : 0;
+  });
+  readonly hangarWishQty = computed(() => (this.ownState()?.wished ? (this.ownState()?.wishQty ?? 0) : 0));
+  readonly menuBusy = signal(false);
+  readonly menuError = signal<string | null>(null);
+  /** Summaries known to the page (written by ExemplarAiService on a switch or when the page is left). */
+  private readonly exemplarSummaries = signal<ReadonlyMap<string, string>>(new Map());
+
+  /** Stock occupant per port (path and bare name, lower case) — what "Werk" means for the ◆ count. */
+  private readonly stockByPort = computed(() => {
+    const m = new Map<string, string>();
+    const walk = (list: readonly LoadoutEntry[] | undefined, prefix: string, depth: number): void => {
+      if (!Array.isArray(list) || depth > 4) return;
+      for (const e of list) {
+        const port = e?.itemPortName?.trim();
+        if (!port) continue;
+        const path = prefix ? `${prefix}/${port}` : port;
+        const cls = (e.entityClassName ?? '').toLowerCase();
+        m.set(path.toLowerCase(), cls);
+        if (!m.has(port.toLowerCase())) m.set(port.toLowerCase(), cls);
+        walk(e.entries, path, depth + 1);
+      }
+    };
+    walk((this.detail()?.payload as ShipPayload | undefined)?.defaultLoadout, '', 0);
+    return m;
+  });
+
+  /** Werk part → own part per slot that differs (display names where the page knows them). */
+  exemplarChanges(loadout: readonly ConfigLoadoutEntry[]): ExemplarPartChange[] {
+    const stock = this.stockByPort();
+    const names = this.loadoutEntities();
+    const label = (cls: string): string => {
+      const e = names.get(cls);
+      return (e?.name ? pickLocalized(e.name, this.lang()) : null) || e?.nameLocalized || cls || '—';
+    };
+    const out: ExemplarPartChange[] = [];
+    for (const entry of loadout) {
+      const port = entry.portName.toLowerCase();
+      const from = stock.get(port) ?? stock.get(port.split(/[/.>]/).pop() ?? port) ?? '';
+      if (from === (entry.className ?? '').toLowerCase()) continue;
+      out.push({ slot: entry.portName, from: label(from), to: label(entry.className) });
+    }
+    return out;
+  }
+
+  /** Where an exemplar opens: HQ › Hangar › ship (shell beta), else the personal Codex view. */
+  private exemplarLink(hangarShipId: string, configId: string): HangarMenuLink {
+    const slug = this.detail()?.classNameSlug ?? '';
+    return this.shellBeta() ? hqShipLink(hangarShipId, configId) : personalShipLink(slug, configId);
+  }
+
+  readonly hangarExemplars = computed<HangarExemplar[]>(() => {
+    const summaries = this.exemplarSummaries();
+    const out: HangarExemplar[] = [];
+    for (const ref of this.myVariants()) {
+      const cfg = this.ownershipSvc.configById(ref.id);
+      if (!cfg) continue;
+      out.push({
+        id: ref.id,
+        name: ref.name,
+        diffCount: this.exemplarChanges(cfg.loadout).length,
+        summary: summaries.get(ref.id) ?? null,
+        link: this.exemplarLink(cfg.hangarShipId, ref.id),
+      });
+    }
+    return out;
+  });
+  /** "Werk": the HQ page without a variant, or the Codex page itself. */
+  readonly werkLink = computed<HangarMenuLink>(() => {
+    const id = this.hostShipId();
+    if (this.hqHosted() && id) return hqShipLink(id);
+    return { commands: ['/codex', 'ship', this.detail()?.classNameSlug ?? ''], queryParams: { [HQ_VARIANT_PARAM]: null } };
+  });
+  readonly hangarMenuLink = computed<HangarMenuLink | null>(() => (this.hangarQty() > 0 ? { commands: [hqHangar], queryParams: {} } : null));
+
+  /** The Holotisch save bar: an exemplar saves into itself; on Werk the build becomes a new exemplar — offered, never forced (C23). */
+  onHoloSaveDraft(): void {
+    if (this.personalMode()) void this.saveLoadoutDraft();
+    else void this.saveWerkAsExemplar();
+  }
+
+  /** Keep the Werk table (with its swaps) as a new exemplar, then offer a name — the AI's when it differs from Werk. */
+  async saveWerkAsExemplar(): Promise<void> {
+    if (this.addBusy()) return;
+    this.addBusy.set(true);
+    this.addFailed.set(false);
+    let created: HangarShipConfig | null = null;
+    try {
+      created = await this.adoptAndOpen();
+      if (!created) this.addFailed.set(true);
+    } catch {
+      this.addFailed.set(true);
+    } finally {
+      this.addBusy.set(false);
+    }
+    this.ownershipSvc.invalidate();
+    if (created) await this.offerExemplarName(created.id, created.name, created.loadout);
+  }
+
+  private async offerExemplarName(id: string, current: string, loadout: readonly ConfigLoadoutEntry[]): Promise<void> {
+    const changes = this.exemplarChanges(loadout);
+    const suggestion = changes.length ? await this.exemplarAi.suggestName(this.displayName(), changes) : null;
+    const v = await this.confirmDialog.prompt({
+      titleKey: 'codex.holo.hangar.nameTitle',
+      messageKey: suggestion ? 'codex.holo.hangar.nameSuggested' : undefined,
+      params: { name: suggestion ?? '' },
+      inputLabelKey: 'codex.holo.hangar.nameLabel',
+      inputMaxLength: 80,
+      initialValue: suggestion ?? current,
+      confirmKey: 'hangar.detail.save',
+    });
+    const name = v?.trim();
+    if (!name || name === current) return;
+    await this.hangar.updateConfig(id, { name });
+    this.ownershipSvc.invalidate();
+  }
+
+  async renameExemplar(id: string): Promise<void> {
+    const cfg = this.ownershipSvc.configById(id);
+    if (!cfg) return;
+    const changes = this.exemplarChanges(cfg.loadout);
+    // The suggestion only fills the dialog's hint; the player's own name stays in the field and wins.
+    const suggestion = changes.length ? await this.exemplarAi.suggestName(this.displayName(), changes) : null;
+    const v = await this.confirmDialog.prompt({
+      titleKey: 'codex.own.renameTitle',
+      messageKey: suggestion ? 'codex.holo.hangar.nameSuggested' : undefined,
+      params: { name: suggestion ?? '' },
+      inputLabelKey: 'codex.holo.hangar.nameLabel',
+      inputMaxLength: 80,
+      initialValue: cfg.name,
+      confirmKey: 'hangar.detail.save',
+    });
+    const name = v?.trim();
+    if (!name || name === cfg.name) return;
+    await this.runMenu(async () => {
+      if (!(await this.hangar.updateConfig(id, { name }))) throw new Error('rename failed');
+    }, 'updateConfig');
+  }
+
+  async noteExemplar(): Promise<void> {
+    const s = this.cardShip();
+    if (!s) return;
+    const v = await this.confirmDialog.prompt({
+      titleKey: 'codex.own.noteTitle',
+      inputLabelKey: 'hangar.detail.notes',
+      inputMaxLength: 500,
+      initialValue: s.notes ?? '',
+      confirmKey: 'hangar.detail.save',
+    });
+    if (v === null) return;
+    await this.hangar.updateShip(s.id, { notes: v.trim() || null });
+  }
+
+  async pinExemplarShip(): Promise<void> {
+    const s = this.cardShip();
+    if (!s) return;
+    if (s.pinnedRank !== null) {
+      await this.hangar.pinShip(s.id, null);
+      return;
+    }
+    const taken = new Set(this.hangar.ships().map((x) => x.pinnedRank));
+    const rank = ([1, 2, 3] as const).find((r) => !taken.has(r)) ?? 3;
+    await this.hangar.pinShip(s.id, rank);
+  }
+
+  async removeExemplar(id: string): Promise<void> {
+    const cfg = this.ownershipSvc.configById(id);
+    if (!cfg) return;
+    const ok = await this.confirmDialog.confirm({
+      titleKey: 'codex.holo.hangar.removeTitle',
+      messageKey: 'codex.holo.hangar.removeBody',
+      params: { name: cfg.name },
+      confirmKey: 'codex.holo.hangar.removeExemplar',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    const done = await this.runMenu(async () => {
+      if (!(await this.hangar.deleteConfig(id))) throw new Error('delete failed');
+    }, 'deleteConfig');
+    if (done && this.activeVariantId() === id) {
+      const w = this.werkLink();
+      void this.router.navigate(w.commands as unknown[], { queryParams: w.queryParams, queryParamsHandling: 'merge' });
+    }
+  }
+
+  async copyExemplar(id: string): Promise<void> {
+    const cfg = this.ownershipSvc.configById(id);
+    if (!cfg) return;
+    const name = this.t.instant('codex.holo.hangar.copyName', { name: cfg.name }) as string;
+    await this.createExemplar(cfg.hangarShipId, name, cfg.role, cfg.loadout);
+  }
+
+  async newExemplarFromWerk(): Promise<void> {
+    const shipId = this.ownershipSvc.configById(this.activeVariantId())?.hangarShipId ?? this.cardShip()?.id;
+    if (!shipId) return;
+    await this.createExemplar(shipId, this.t.instant('codex.loadout.defaultConfigName') as string, 'multipurpose', []);
+  }
+
+  private async createExemplar(shipId: string, name: string, role: ShipConfigRole, loadout: readonly ConfigLoadoutEntry[]): Promise<void> {
+    let created: HangarShipConfig | null = null;
+    await this.runMenu(async () => {
+      created = await this.hangar.createConfig(shipId, name, role, [...loadout]);
+      if (!created) throw new Error('create failed');
+    }, 'createConfig');
+    const c = created as HangarShipConfig | null;
+    if (!c) return;
+    const link = this.exemplarLink(shipId, c.id);
+    await this.router.navigate(link.commands as unknown[], { queryParams: link.queryParams });
+    await this.offerExemplarName(c.id, c.name, c.loadout);
+  }
+
+  async addHangarCopy(): Promise<void> {
+    const d = this.detail();
+    if (!d) return;
+    await this.runPath(() => this.itemPath.addToHangar(d.classNameSlug, this.displayName()));
+  }
+
+  async addHangarWish(): Promise<void> {
+    const d = this.detail();
+    if (!d) return;
+    const s = this.ownState();
+    await this.runPath(() =>
+      s?.wished
+        ? this.itemPath.setWishQty('ship', d.classNameSlug, this.displayName(), s.wishQty + 1)
+        : this.itemPath.addWish('ship', d.classNameSlug, this.displayName()),
+    );
+  }
+
+  private async runPath(write: () => Promise<PathResult>): Promise<void> {
+    if (this.menuBusy()) return;
+    this.menuBusy.set(true);
+    this.menuError.set(null);
+    try {
+      const res = await write();
+      if (!res.ok) {
+        this.menuError.set(res.key);
+        return;
+      }
+      const undo = res.undo;
+      if (undo) {
+        this.undoToast.offer({
+          messageKey: res.key,
+          messageParams: res.params,
+          commit: () => undefined,
+          onUndo: () => void undo().then((back) => { if (!back.ok) this.menuError.set(back.key); }),
+        });
+      }
+    } finally {
+      this.menuBusy.set(false);
+    }
+  }
+
+  /** One hangar write from the menu: busy flag, then the ownership index re-reads; a failure becomes an errors.* key. */
+  private async runMenu(write: () => Promise<void>, op: string): Promise<boolean> {
+    if (this.menuBusy()) return false;
+    this.menuBusy.set(true);
+    this.menuError.set(null);
+    try {
+      await write();
+      this.ownershipSvc.invalidate();
+      return true;
+    } catch (error) {
+      logWarn('codex', 'hangar menu write failed', { op, error });
+      this.menuError.set(toErrorKey('hangar', op, error));
+      return false;
+    } finally {
+      this.menuBusy.set(false);
+    }
+  }
+
+  /**
+   * The summary of an exemplar is refreshed only when the reader leaves it — a switch to another loadout or
+   * leaving the page — and only when its parts changed since the last one (ExemplarAiService compares a hash).
+   */
+  private refreshExemplarSummary(id: string | null): void {
+    if (!id) return;
+    const cfg = this.ownershipSvc.configById(id);
+    if (!cfg) return;
+    void this.exemplarAi
+      .ensureSummary(id, { shipName: this.displayName(), loadout: cfg.loadout, changes: this.exemplarChanges(cfg.loadout) })
+      .then((r) => {
+        if (!r.summary) return;
+        this.exemplarSummaries.update((m) => new Map(m).set(id, r.summary as string));
+      });
+  }
+  private lastExemplarId: string | null = null;
+  private readonly exemplarSwitch = effect(() => {
+    const id = this.activeVariantId();
+    const prev = this.lastExemplarId;
+    this.lastExemplarId = id;
+    if (prev && prev !== id) untracked(() => this.refreshExemplarSummary(prev));
+  });
+  private readonly exemplarLeave = inject(DestroyRef).onDestroy(() => this.refreshExemplarSummary(this.lastExemplarId));
   /** The picked entry's edition name, or null while the base record is open. */
   readonly currentEdition = computed(
     () =>
@@ -2719,6 +3077,8 @@ export class CodexDetailComponent implements OnInit {
     this.activeMissionId.set('all');
     this.skinOptions.set([]);
     this.editionOptions.set([]);
+    this.modelOptions.set([]);
+    this.akteLiveries.set([]);
     this.rankCohort.set(null);
     this.rankCohortLoading.set(false);
     this.rankCohortFailed.set(false);
@@ -2984,10 +3344,27 @@ export class CodexDetailComponent implements OnInit {
       // late answer must not paint the previous ship's family.
       if (this.detail()?.classNameSlug !== className) return;
       this.editionOptions.set(resolveEditionGroup(siblings, className) ?? []);
+      this.modelOptions.set(resolveModelVariants(siblings, className) ?? []);
     } catch (error) {
       logWarn('codex', 'edition group failed', { className, error });
       this.editionOptions.set([]);
+      this.modelOptions.set([]);
     }
+    if (kind === 'ship') void this.loadShipLiveries(className);
+  }
+
+  /** The paints of this record for the Akte's Lackierung tiles (ship_skins, C21). Best effort. */
+  private async loadShipLiveries(className: string): Promise<void> {
+    const { skins } = await this.shipSkins.listSkins(className);
+    if (this.detail()?.classNameSlug !== className) return;
+    const tiles: AkteLivery[] = skins.map((s) => ({
+      id: s.skinId,
+      label: cleanLiveryName(s.name, this.displayName()),
+      imageUrl: this.shipSkins.assetUrl(s.iconPath),
+    }));
+    // The factory paint leads; it carries the official image.
+    tiles.sort((a, b) => Number(b.id === AKTE_STANDARD_LIVERY) - Number(a.id === AKTE_STANDARD_LIVERY));
+    this.akteLiveries.set(tiles);
   }
 
   /** Reverse lookup: crafting blueprints that consume this entity as an ingredient. */
@@ -4689,4 +5066,25 @@ export class CodexDetailComponent implements OnInit {
   toggleEmptyLoadout(): void {
     this.showEmptyLoadout.update((v) => !v);
   }
+}
+
+/** Hull lines the Akte lists after the maker, in this order, when they have a value. */
+const AKTE_FACT_KEYS = ['codex.hull.crew', 'codex.hull.dimensions', 'codex.hull.equippedMass', 'codex.hull.hullHp', 'codex.hull.scmSpeed', 'codex.hull.maxSpeed'] as const;
+
+/**
+ * A livery's tile label from its ship_skins name: "Gladius Frostbite Camo Livery" → "Frostbite Camo",
+ * "Gladius (Standard)" → "Standard", "Gladius Gladius Rp" → "Gladius Rp". Never empty.
+ */
+export function cleanLiveryName(raw: string, shipName: string): string {
+  let s = (raw ?? '').replace(/\s+/g, ' ').trim();
+  const paren = /^.*\(([^)]+)\)$/.exec(s);
+  if (paren) return paren[1].trim();
+  s = s.replace(/\s+(Livery|Paint|Skin)$/i, '');
+  const words = shipName.split(' ').filter(Boolean);
+  // Drop the hull's own word once when it leads ("Gladius …"), keeping the rest.
+  for (const w of [...words].reverse()) {
+    const lead = `${w.toLowerCase()} `;
+    if (s.toLowerCase().startsWith(lead) && s.length > lead.length) { s = s.slice(lead.length); break; }
+  }
+  return s || raw;
 }
