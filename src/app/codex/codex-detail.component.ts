@@ -459,7 +459,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              manufacturer and the name sit on it top-left, the chips and the
              four frequent actions bottom-right. Everything that is not "which
              ship am I looking at?" — Ausführung, Lackierung, Port-Übersicht and
-             the rarer actions — moved one row down into the flat tool row; the
+             the rarer actions — moved under the picture into its action row; the
              fact tiles moved into the Analyse card, quantum fuel and hydrogen
              included (they existed nowhere else on the page).
              Every other codex kind keeps the two-column hero it always had: it
@@ -509,10 +509,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                own height; the stretching stage above gives up the room. -->
           <div class="hero-own"><ng-container [ngTemplateOutlet]="ownCard" /></div>
 
-          <!-- ── The four frequent actions, directly under the picture ─────
-               They sat on the art until feedback 140dfb7e asked for every
-               clickable thing except the 2D/3D switch to leave the image.
-               One row, wraps on a phone. ── -->
+          <!-- ── One action row directly under the picture ─────────────────
+               The four frequent actions sat on the art until feedback 140dfb7e
+               asked for every clickable thing except the 2D/3D switch to leave
+               the image. Ausfuehrung, Lackierung and the rarer actions used to
+               follow in a separate Werkzeugzeile with its own rule line; #321
+               ("Weg mit der Leiste") folded that strip into this row, so the
+               pickers stay one click away and the rarer actions sit at its end.
+               Wraps on a phone. ── -->
           <div class="stage-actions">
             <button type="button" class="btn" [class.on]="isPinned()" (click)="togglePin()">
               <sc-compare-icon [on]="isPinned()" />
@@ -533,14 +537,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             <a class="btn on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
               {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
             </a>
-          </div>
-
-          <!-- ── WERKZEUGZEILE (decision 1, Variante B) ──────────────────
-               One flat row under the actions: Ausführung, Lackierung and the
-               rarer actions. Both pickers stay a single click away and their
-               options are real anchors. The port overview moved up onto the
-               stage (feedback 140dfb7e). ── -->
-          <div class="toolrow">
             @if (editionOptions().length > 1) {
               <sc-codex-variant-picker class="in-toolrow" variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
                 [options]="editionPickerOptions()" [current]="currentEdition()" />
@@ -1313,7 +1309,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
     .m-top.ship-mode, .m-top.missile-mode { grid-template-columns: 1fr 1fr; }
     /* Classic ship (#321): when the side column (Haben? + Einordnung) runs
-       taller than stage + actions + tool row, the left half used to end in an
+       taller than stage + ownership card + action row, the left half used to end in an
        empty block above the KPI band. Both halves now share the row's height
        and the stage takes up the slack - its art is absolutely positioned, so
        a taller card is simply more picture. One column (<=1100px) keeps auto rows. */
@@ -1374,7 +1370,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        stage renders — nothing else on this page uses that class. */
 
 
-    /* The hero and the tool row are one unit and share the masthead's left
+    /* The hero and its action row are one unit and share the masthead's left
        half, so the row sits directly under the stage rather than in the next
        grid track. */
     .hero-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -1398,7 +1394,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     /* The hangar control directly ABOVE the stage (#239), left-aligned like the
        page's other rows; the picker itself lays out in normal flow (docked). */
     .stage-top { display: flex; align-items: center; gap: 6px; }
-    /* The four frequent actions in their own row directly under the stage. */
+    /* The one action row directly under the stage: the four frequent actions,
+       then Ausfuehrung / Lackierung and the rarer actions (the old tool row,
+       folded in by #321). The pickers' compact sizing lives in
+       sc-codex-variant-picker (:host(.in-toolrow)); the spacer that pushes the
+       rarer actions to the end lives in sc-codex-ship-actions. */
     .stage-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     /* The one button on this page (concept section 2, part-02:159). Never the
        hot accent: nothing here is admin-gated. A 3px rectangle with a 10px
@@ -1406,7 +1406,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        The hero actions used to keep a compact size of their own right here;
        they no longer need to, because this rule IS the concept's button at
        every occurrence, so the four German labels on the half-width hero and
-       the ones in the tool row are one and the same control. */
+       the rarer ones at the end of that row are one and the same control. */
     .btn, .pin { position: relative; display: inline-flex; align-items: center; gap: 5px;
       padding: 4px 8px; min-height: 48px;
       border: 1px solid var(--sc-border); border-radius: 3px;
@@ -1432,15 +1432,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     /* The 2D/3D switch (.view-switch) moved to sc-codex-ship-stage — see
        codex-ship-stage.component.ts. */
 
-    /* ── WERKZEUGZEILE ────────────────────────────────────────────────────
-       One flat row, no card: Ausfuehrung, Lackierung, then the rarer actions
-       pushed to the end (the module census sits on the stage now). */
-    .toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-      padding: 6px 2px; border-top: 1px solid var(--sc-border); }
-    /* The spacer that pushes the rarer actions to the row's end lives in
-       sc-codex-ship-actions (display:contents keeps it in this flex row). */
-    /* The pickers' tool-row sizing lives in sc-codex-variant-picker
-       (:host(.in-toolrow)). */
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
