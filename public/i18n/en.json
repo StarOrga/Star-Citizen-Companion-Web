@@ -2821,20 +2821,26 @@
       }
     },
     "savedLoadouts": {
-      "group": "Saved loadouts",
-      "save": "Save loadout",
+      "group": "Layouts of this ship",
+      "save": "Save layout",
       "saveNothing": "Change a slot first, then save.",
-      "saveTitle": "Save loadout",
-      "saveMessage": "Saved in this browser, for this ship. The same name overwrites.",
       "nameLabel": "Name",
       "saveConfirm": "Save",
-      "pick": "Load saved loadout",
       "remove": "Delete “{{name}}”",
-      "removeTitle": "Delete loadout?",
+      "removeTitle": "Delete layout?",
       "removeMessage": "“{{name}}” will be removed from this browser.",
       "removeConfirm": "Delete",
       "cart": "Add components to cart",
-      "cartSoon": "Coming soon: puts this loadout's components into the cart."
+      "cartSoon": "Coming soon: puts this loadout's components into the cart.",
+      "layouts": "Choose layout",
+      "saveInto": "Save the changes into “{{name}}”.",
+      "newLayout": "New layout",
+      "newTitle": "New layout",
+      "newMessage": "Saved in this browser, for this ship. Without a name it keeps the suggested one; the same name overwrites.",
+      "defaultName": "Layout {{n}}",
+      "share": "Copy link to “{{name}}”",
+      "shareCopied": "Link copied – whoever opens it sees this layout.",
+      "shareFailed": "Couldn't copy the link."
     }
   },
   "blueprint": {
