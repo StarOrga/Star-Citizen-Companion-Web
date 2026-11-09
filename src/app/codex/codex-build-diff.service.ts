@@ -3,6 +3,7 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { logWarn } from '../core/log';
 import { CARD_PAYLOAD_KEYS, CodexKind, CodexListRow, CodexService } from './codex.service';
 import { CodexBuild } from './codex.types';
+import { comparePatchVersion } from './codex-format';
 import { DIFF_LOOKBACK, diffPair } from './codex-diff-pair';
 
 export { DIFF_LOOKBACK, diffPair } from './codex-diff-pair';
@@ -37,6 +38,38 @@ export interface PatchNews {
   changed: string[];
 }
 
+/** What one recorded patch brought for one kind: its patch version and its new and changed class names. */
+export interface PatchNewsGroup extends PatchNews {
+  patch: string;
+}
+
+/** Rows read per history table and kind: far above what a few patches record. */
+const HISTORY_LIMIT = 1000;
+
+/**
+ * Groups the ingest-time record (`codex_patch_first_seen` + `codex_patch_changed`) by patch,
+ * newest patch first. A name new in a patch is not listed as changed in it too.
+ */
+export function groupPatchHistory(
+  firstSeen: readonly { class_name?: string | null; first_patch?: string | null }[],
+  changed: readonly { class_name?: string | null; patch_version?: string | null }[],
+  compare: (a: string, b: string) => number,
+): PatchNewsGroup[] {
+  const by = new Map<string, PatchNewsGroup>();
+  const group = (patch: string) => {
+    let g = by.get(patch);
+    if (!g) by.set(patch, (g = { patch, added: [], changed: [] }));
+    return g;
+  };
+  for (const r of firstSeen) if (r.class_name && r.first_patch) group(r.first_patch).added.push(r.class_name);
+  for (const r of changed) {
+    if (!r.class_name || !r.patch_version) continue;
+    const g = group(r.patch_version);
+    if (!g.added.includes(r.class_name)) g.changed.push(r.class_name);
+  }
+  return [...by.values()].sort((a, b) => compare(b.patch, a.patch));
+}
+
 /** Class names in `current` that `previous` does not have, in `current` order. */
 export function addedClassNames(current: readonly string[], previous: readonly string[]): string[] {
   const before = new Set(previous);
@@ -69,6 +102,7 @@ export class CodexBuildDiffService {
   private namesMemo = new Map<string, Promise<string[]>>();
   private pairMemo: { buildId: string | null; pair: Promise<[CodexBuild, CodexBuild] | null> } | null = null;
   private newsMemo = new Map<string, Promise<PatchNews>>();
+  private historyMemo = new Map<string, Promise<PatchNewsGroup[]>>();
   /** Set once the RPC answered "not found" — later diffs skip straight to the paged path. */
   private rpcMissing = false;
 
@@ -147,6 +181,49 @@ export class CodexBuildDiffService {
       this.newsMemo.set(key, hit);
     }
     return hit;
+  }
+
+  /**
+   * Every recorded patch's news for one kind, newest patch first (admin feedback #318:
+   * when the current patch brought little, the Codex list goes on with the patches
+   * before it). Reads the two record tables directly (anon-readable, no payload).
+   * Best-effort: any failure yields `[]` (logged). Read once per build and kind.
+   */
+  patchHistoryMemo(kind: CodexKind): Promise<PatchNewsGroup[]> {
+    const key = `history:${this.codex.build()?.id ?? ''}:${kind}`;
+    let hit = this.historyMemo.get(key);
+    if (!hit) {
+      hit = this.patchHistory(kind);
+      this.historyMemo.set(key, hit);
+    }
+    return hit;
+  }
+
+  private async patchHistory(kind: CodexKind): Promise<PatchNewsGroup[]> {
+    if (!NEW_SORT_KINDS.includes(kind)) return [];
+    try {
+      const [seen, changed] = await Promise.all([
+        this.sb.client
+          .from('codex_patch_first_seen')
+          .select('class_name, first_patch')
+          .eq('kind', kind)
+          .not('first_patch', 'is', null)
+          .order('recorded_at', { ascending: false })
+          .limit(HISTORY_LIMIT),
+        this.sb.client
+          .from('codex_patch_changed')
+          .select('class_name, patch_version')
+          .eq('kind', kind)
+          .order('recorded_at', { ascending: false })
+          .limit(HISTORY_LIMIT),
+      ]);
+      if (seen.error) throw seen.error;
+      if (changed.error) throw changed.error;
+      return groupPatchHistory(seen.data ?? [], changed.data ?? [], comparePatchVersion);
+    } catch (error) {
+      logWarn('codex', `patch history (${kind}) failed`, error);
+      return [];
+    }
   }
 
   private async patchNews(kind: CodexKind): Promise<PatchNews> {

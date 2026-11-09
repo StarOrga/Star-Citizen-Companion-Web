@@ -1,7 +1,67 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.245.1",
+  "current": "0.247.0",
   "releases": [
+    {
+      "version": "0.247.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing: the \"neu in diesem Patch\" list keeps the current patch first and fills the remaining rows with items from earlier patches, each under its own patch heading, without growing the panel."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.246.1",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the separate tool row under the ship picture is gone; edition and livery pickers and the remaining actions now sit in the action row."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.246.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "New start screen: a quantum streak field with the animated app logo while the app loads."
+            },
+            {
+              "title": "",
+              "text": "A real \"not found\" page for unknown addresses (4 · logo · 4 with suggestions) instead of silently landing on Verse."
+            },
+            {
+              "title": "",
+              "text": "A calm \"Das dauert länger als sonst\" hint with retry when a page takes more than about 8 seconds."
+            },
+            {
+              "title": "",
+              "text": "Codex ship pages draw the ship's real silhouette while they load."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.245.1",
       "date": "2026-11-09",

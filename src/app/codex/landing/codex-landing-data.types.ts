@@ -46,6 +46,8 @@ export interface LandingCodexEntry {
   updated?: boolean;
   /** New in this patch (a real new entry, not a discovery pick) - rendered with the "neu" tag. */
   isNew?: boolean;
+  /** An earlier patch's entry (see {@link LandingCodexCategory.earlier}): the patch it was new or updated in. */
+  patch?: string;
 }
 
 /** One category row of the Codex list: its new and updated items of the current patch. */
@@ -59,6 +61,12 @@ export interface LandingCodexCategory {
   announced: number;
   /** Nothing new or updated: `entries` are picks of the category to discover (`count` is 0). */
   discover?: boolean;
+  /**
+   * New and updated items of the patches before the current one, newest patch first, each
+   * with its `patch` (admin feedback #318). The pane fills the space the current patch leaves
+   * with them; not counted in `count`.
+   */
+  earlier?: LandingCodexEntry[];
 }
 
 export interface LandingCodex {

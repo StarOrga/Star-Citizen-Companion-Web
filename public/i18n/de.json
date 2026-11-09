@@ -485,6 +485,8 @@
         "title": "Codex · neu in {{patch}}",
         "titleNoPatch": "Codex · neu",
         "titleDiscover": "Codex · {{patch}}",
+        "titleRecent": "Codex · zuletzt neu",
+        "patchGroup": "Patch {{patch}}",
         "announced": "angekündigt",
         "onTable": "auf dem Tisch",
         "categories": "Kategorien",

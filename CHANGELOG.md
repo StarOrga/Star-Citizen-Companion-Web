@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.247.0] - 2026-11-09
+
+### Changed
+- Codex landing: the "neu in diesem Patch" list keeps the current patch first and fills the remaining rows with items from earlier patches, each under its own patch heading, without growing the panel.
+
+## [0.246.1] - 2026-11-09
+
+### Changed
+- Codex classic ship view: the separate tool row under the ship picture is gone; edition and livery pickers and the remaining actions now sit in the action row.
+
 ## [0.246.0] - 2026-11-09
 
 ### Added

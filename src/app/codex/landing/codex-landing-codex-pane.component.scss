@@ -74,6 +74,14 @@
 .new { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1px; }
 .new li { flex: 0 0 auto; display: flex; align-items: stretch; border-radius: 2px; transition: background 0.15s ease, opacity 0.15s ease; }
 .new li.cut { visibility: hidden; }
+// The header of an earlier patch's group (#318): a row of the list's own height, so the count stays right.
+.new li.grp { align-items: flex-end; min-height: 28px; padding: 0 8px 3px; border-top: 1px solid var(--sc-border); }
+.new li.grp:first-child { border-top: 0; }
+.new li.grp:hover { background: none; }
+.grp-nm {
+  font: 600 max(9.5px, 0.58rem) / 1.2 var(--sc-font-display); letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--sc-fg-2); white-space: nowrap;
+}
 .new li:hover { background: rgba(82, 193, 230, 0.06); }
 .new a {
   display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 4px 8px; border-radius: 2px; text-decoration: none;
@@ -151,7 +159,8 @@
 // Touch screens: readable labels and 48px rows (mobile gate).
 @media (pointer: coarse) {
   .ph, .keys, .here, .soon, .upd, .more, .new a, .tab, .all { font-size: 12px; }
-  .tab, .new a, .more, .all, .keys, .more-slot { min-height: 48px; }
+  .tab, .new a, .new li.grp, .more, .all, .keys, .more-slot { min-height: 48px; }
+  .grp-nm { font-size: 11px; }
   .tab { min-width: 48px; padding: 0 4px; }
   .tab .nm { font-size: 11px; }
   .new a.go { min-width: 48px; }
