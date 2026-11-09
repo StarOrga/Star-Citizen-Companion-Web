@@ -61,6 +61,8 @@ const STARTED_HINT_MS = 6000;
   styles: [
     `
       :host { display: flex; }
+      /* Phones: the desktop app is not something to start or download from here. */
+      @media (max-width: 749px) { :host { display: none; } }
       /* Only Angular's comment anchors left (cannot install): take no room. */
       :host:empty { display: none; }
       .go { display: inline-flex; align-items: center; min-height: var(--sc-tap-min, 44px); text-decoration: none; }

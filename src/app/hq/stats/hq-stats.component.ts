@@ -213,6 +213,7 @@ export interface HqTile {
       }
       .o-title { margin: 0; font: 600 1.2rem / 1.3 var(--sc-font-display); }
       .o-text { margin: 0; color: var(--sc-fg-1); }
+      @media (max-width: 749px) { .o-actions { display: none; } }
       .o-actions { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); }
       .o-actions .sc-btn { min-height: var(--sc-tap-min, 44px); }
       .backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / 0.55); z-index: 40; }

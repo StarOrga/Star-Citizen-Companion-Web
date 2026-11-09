@@ -316,6 +316,7 @@ const UPCOMING = 4;
       .fresh { margin: 4px 0 0; color: var(--sc-fg-2); font-size: 0.78rem; }
       .connect { display: flex; flex-direction: column; gap: var(--sc-space-1, 4px); margin-top: auto; padding: var(--sc-space-3, 12px); color: var(--sc-fg); border: 1px dashed var(--sc-accent); border-radius: var(--sc-radius, 10px); }
       .connect-title { font-weight: 600; font-size: 1rem; color: var(--sc-accent); }
+      @media (max-width: 749px) { .connect { display: none; } }
       .connect-go { margin-top: var(--sc-space-2, 8px); }
       .h { margin: 0; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
       .log-head { display: flex; align-items: center; justify-content: space-between; }
