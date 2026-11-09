@@ -111,7 +111,7 @@ function areaCentroid(poly: [number, number][]): { area: number; cx: number; cy:
  * → "Corridors Middle Left 1".
  */
 export function humanizeRoomKey(key: string): string {
-  return key
+  const label = key
     .replace(/~\d+$/, '')
     .replace(/[-_]\d+$/, '')
     .replace(/_?Room_RN$/i, '')
@@ -120,12 +120,25 @@ export function humanizeRoomKey(key: string): string {
     .filter(Boolean)
     .join(' ')
     .replace(/\s+Room(\d*)$/i, ' $1')
-    .trim() || key;
+    .trim();
+  // A key with nothing readable left (`Room_RN-009`) gets no label rather than
+  // the raw entity name (holotisch concept 20261109-1745, note #3).
+  return isRawRoomToken(label) ? '' : label;
+}
+
+/** True for a label that is still an engine token, not a name a player would read. */
+function isRawRoomToken(label: string): boolean {
+  return label === '' || /^room(\s|_|-)?(rn)?[\s_-]*\d*$/i.test(label) || /_/.test(label);
 }
 
 function roomLabel(name: ShipDeckRoom['name'], key: string, lang: Lang): string {
   const primary = lang === 'de' ? cleanDeckName(name?.de) : cleanDeckName(name?.en);
-  return primary || cleanDeckName(name?.en) || cleanDeckName(name?.de) || humanizeRoomKey(key);
+  const named = primary || cleanDeckName(name?.en) || cleanDeckName(name?.de);
+  // Raw names from the data ("Room Corridor", "Room_RN-009") are engine tokens:
+  // strip the "Room" prefix, and hide what stays unreadable.
+  const cleaned = named?.replace(/^room[\s_]+/i, '').trim();
+  if (cleaned && !isRawRoomToken(cleaned)) return cleaned;
+  return humanizeRoomKey(key);
 }
 
 const r2 = (v: number) => Math.round(v * 100) / 100;

@@ -118,6 +118,10 @@ describe('humanizeRoomKey', () => {
     expect(humanizeRoomKey('Corridors_Middle_Left_Room1_Room_RN')).toBe('Corridors Middle Left 1');
     expect(humanizeRoomKey('Captains_Quarters_Room_Room_RN')).toBe('Captains Quarters');
     expect(humanizeRoomKey('Corridor_Room_RN~2')).toBe('Corridor');
-    expect(humanizeRoomKey('Room_RN')).toBe('Room_RN');
+  });
+
+  it('returns no label for keys with nothing readable left', () => {
+    expect(humanizeRoomKey('Room_RN')).toBe('');
+    expect(humanizeRoomKey('Room_RN-009')).toBe('');
   });
 });
