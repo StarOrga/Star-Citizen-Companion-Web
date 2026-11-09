@@ -13,6 +13,13 @@ export const SCC_APP_URI = 'star-citizen-companion://open';
 /** How long a launch attempt waits for the browser or the app to take the focus. */
 export const SCC_LAUNCH_WAIT_MS = 2500;
 
+/**
+ * The wait once this browser has seen the app answer. Nothing large hangs on the answer then (no download starts),
+ * so a cold start of several seconds, or a browser that always allows the app without its own prompt, still counts
+ * as an answer instead of "no response".
+ */
+export const SCC_LAUNCH_GRACE_MS = 15_000;
+
 const LAUNCHED_BEFORE_KEY = 'sc.sccApp.launchedBefore';
 
 /**
@@ -33,9 +40,12 @@ export class SccAppLauncherService {
   /** {@link launchedBefore} as a signal, so a button can follow it. */
   readonly remembered = signal(this.launchedBefore());
 
-  /** Tries to start the app. Resolves true once something took the focus, false when nothing did. */
-  launch(): Promise<boolean> {
-    this.inflight ??= this.attempt().finally(() => {
+  /**
+   * Tries to start the app. Resolves true once something took the focus within `waitMs`, false when nothing did.
+   * A call while an attempt runs joins it (and its wait).
+   */
+  launch(waitMs = SCC_LAUNCH_WAIT_MS): Promise<boolean> {
+    this.inflight ??= this.attempt(waitMs).finally(() => {
       this.inflight = null;
     });
     return this.inflight;
@@ -77,7 +87,7 @@ export class SccAppLauncherService {
     return () => frame.remove();
   }
 
-  private attempt(): Promise<boolean> {
+  private attempt(waitMs: number): Promise<boolean> {
     const view = this.doc.defaultView;
     if (!view) return Promise.resolve(false);
     return new Promise<boolean>((resolve) => {
@@ -95,7 +105,7 @@ export class SccAppLauncherService {
       const onVisibility = (): void => {
         if (this.doc.visibilityState === 'hidden') settle(true);
       };
-      const timer = view.setTimeout(() => settle(false), SCC_LAUNCH_WAIT_MS);
+      const timer = view.setTimeout(() => settle(false), waitMs);
       view.addEventListener('blur', onFocusTaken);
       view.addEventListener('pagehide', onFocusTaken);
       this.doc.addEventListener('visibilitychange', onVisibility);
