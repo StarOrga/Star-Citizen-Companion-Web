@@ -6,6 +6,7 @@ import {
   VerseFlightDirection,
   VerseWorld,
   verseFlightOf,
+  verseEmblemShown,
   verseFrameOf,
 } from './verse-world';
 import { Subscription } from 'rxjs';
@@ -55,6 +56,7 @@ export class VerseFlight {
   private readonly injector = inject(Injector);
   private readonly document = inject(DOCUMENT);
   private readonly verseBeta = inject(BetaService).isEnabled('verse');
+  private readonly shellBeta = inject(BetaService).isEnabled('shell');
 
   private lastUrl: string | null = null;
   private clicked: HTMLElement | null = null;
@@ -62,6 +64,13 @@ export class VerseFlight {
 
   /** Only the Verse β pages carry the emblem the flight lands on; swappable for specs. */
   enabled: () => boolean = () => this.verseBeta();
+  /**
+   * Shell β: the background scene carries the planet (camera push-in, scene
+   * kept out of the snapshot — styles.scss "VERSE FLIGHT"); the News, Patches
+   * and Galerie heads drop their emblem, so those hops name no planet-to-emblem
+   * pair. The Sternkarte keeps it. Swappable for specs.
+   */
+  shell: () => boolean = () => this.shellBeta();
   /** Swappable for specs. */
   reducedMotion: () => boolean = flightReducedMotion;
   /** Length of the aim step on `down`; 0 skips it. Swappable for specs. */
@@ -202,7 +211,7 @@ export class VerseFlight {
         afterNextRender(
           {
             read: () => {
-              if (dir === 'up' && from !== 'hub') {
+              if (dir === 'up' && from !== 'hub' && verseEmblemShown(from as VerseWorld, this.shell())) {
                 // Named until the flight is over (the cleanup drops it); the pull-out ends on this tile,
                 // which lands highlighted and un-dims with the cleanup.
                 const tile = this.source(from as VerseWorld);

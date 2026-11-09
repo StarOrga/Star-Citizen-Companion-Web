@@ -1,39 +1,7 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.248.0",
+  "current": "0.247.0",
   "releases": [
-    {
-      "version": "0.248.0",
-      "date": "2026-11-09",
-      "sections": [
-        {
-          "category": "Added",
-          "label": "",
-          "items": [
-            {
-              "title": "",
-              "text": "Classic ship view: saved loadouts become named layouts per ship (Layout 1, 2, …) with a switch, \"Neues Layout\", \"Layout speichern\" into the picked layout, and a button that copies a share link opening the layout as an unsaved draft for the receiver."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "version": "0.247.1",
-      "date": "2026-11-09",
-      "sections": [
-        {
-          "category": "Fixed",
-          "label": "",
-          "items": [
-            {
-              "title": "",
-              "text": "Codex landing: the Codex list on the left and the Datenblatt on the right now always share the hologram box, so both side panes are the same size and the Datenblatt frame fills its pane."
-            }
-          ]
-        }
-      ]
-    },
     {
       "version": "0.247.0",
       "date": "2026-11-09",

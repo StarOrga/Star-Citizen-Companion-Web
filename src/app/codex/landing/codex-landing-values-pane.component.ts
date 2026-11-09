@@ -85,8 +85,7 @@ interface BarRow {
       }
       .body {
         position: relative; display: flex; flex-direction: column; align-items: flex-start; text-align: left;
-        /* The sheet fills the pane, so its box is exactly as tall as the projector edge beside it (#320). */
-        flex: 1 1 auto; min-height: 0; overflow: hidden;
+        min-height: 0; overflow: hidden;
         padding: 16px 18px 16px 0;
         background: repeating-linear-gradient(180deg, rgba(150, 230, 255, 0.035) 0 1px, transparent 1px 4px);
         clip-path: inset(0 0 100% 0);

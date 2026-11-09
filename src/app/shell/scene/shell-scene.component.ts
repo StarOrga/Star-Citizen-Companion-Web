@@ -1,29 +1,37 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, ElementRef, NgZone, ViewEncapsulation, computed, effect, inject, untracked, viewChild } from '@angular/core';
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
 import { SlowMotionService } from '../../core/slow-motion.service';
 import { WindowFocusService } from '../../core/window-focus.service';
-import { POSES, SceneKind, SceneMode, flightMs, isSubPage, sceneOf, sceneStep } from './scene.model';
+import {
+  CameraPose,
+  POSES,
+  SCENE_FLIGHT_MS,
+  SCENE_OBJECTS,
+  SCENE_PUSH_MS,
+  SCENE_PUSH_VEIL,
+  SCENE_PUSH_ZOOM,
+  ScenePoseId,
+  sceneTargetOf,
+  zoomAbout,
+} from './scene.model';
+import { SceneCameraService } from './scene-camera.service';
 import { SPARKLE_COUNT, StarSparkle } from './star-sparkle';
-import { VerseWorld, verseWorldOf } from '../../verse/shared/verse-world';
 
-/** Reduced-motion check; a field so specs can swap it. */
-export function sceneReducedMotion(): boolean {
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
+/** Marker on `<html>` while the scene is on: the VERSE FLIGHT styles keep it out of every View Transition snapshot. */
+export const SCENE_HTML_ATTR = 'data-sc-scene';
 
 /**
- * `<sc-shell-scene>` — the app's background, one fixed layer behind the page
- * (beta `shell` only; renders nothing otherwise). One camera over the sky,
- * the Codex holo glow and the HQ night surface: a navigation to a main page
- * (`/verse`, `/hq`, `/codex`) moves the camera into that area's pose with CSS
- * transitions (duration from the pose distance), so every route flies directly
- * from wherever the camera stands, an interrupted flight re-targets without a jump; a sub-page target cuts to its main page's pose and
- * stays static; reduced motion dissolves instead of moving. A sub-page
- * (`data-sub`) shows only the dimmed sky of its area.
- *
- * No View Transitions: the pose is plain state on one element, the
- * transitions run in a hidden tab and in a spec alike.
+ * `<sc-shell-scene>` — the app's background (beta `shell` only; renders
+ * nothing otherwise): one world, one camera (`SceneCameraService`). Every
+ * route is a pose (`sceneTargetOf`); a navigation flies the camera on a
+ * straight path from wherever it stands — 1100 ms between named poses, a
+ * 700 ms push-in towards the clicked element for a page below its pose's page
+ * (back pulls out again), a retarget from the current pose when the user
+ * clicks on mid-flight. The flight starts on NavigationStart, so the camera is
+ * already moving while the page loads; a cancelled navigation flies back.
+ * Objects that do not belong to the target pose fade during the flight.
+ * Reduced motion: a 420 ms crossfade instead of any flight.
  */
 @Component({
   selector: 'sc-shell-scene',
@@ -37,66 +45,108 @@ export function sceneReducedMotion(): boolean {
 })
 export class ShellSceneComponent {
   private readonly router = inject(Router);
+  private readonly document = inject(DOCUMENT);
   readonly on = inject(BetaService).isEnabled('shell');
+  readonly cam = inject(SceneCameraService);
   private readonly skyEl = viewChild<ElementRef<HTMLElement>>('sky');
+  private readonly worldEl = viewChild<ElementRef<HTMLElement>>('world');
   private readonly focus = inject(WindowFocusService);
   private readonly slow = inject(SlowMotionService);
   private readonly zone = inject(NgZone);
   private sparkle: StarSparkle | null = null;
 
-  readonly scene = signal<SceneKind>(sceneOf(this.router.url));
-  readonly mode = signal<SceneMode>('still');
-  readonly from = signal<SceneKind | null>(null);
-  /** Not a main page: deep space without the area's set pieces. */
-  readonly sub = signal(isSubPage(this.router.url));
-  /** A Verse subpage: a faint halo in its planet's colour (concept 2026-10-28 §3). */
-  readonly world = signal<VerseWorld | null>(verseWorldOf(this.router.url));
-  /** Flips per dissolve so the fade animation restarts. */
-  readonly fadeTick = signal(0);
-  /** Length of the current flight, written to `--scene-move`. */
-  readonly moveMs = signal(0);
-  readonly pose = computed(() => POSES[this.scene()]);
+  /** Where the camera stands for the current URL (pose + push depth). */
+  private at = sceneTargetOf(this.router.url);
+  /** Last pointer-down in vw (the push-in aims there); null = centre of the view. */
+  private pointer: { x: number; y: number } | null = null;
 
-  /** Swappable for specs. */
-  reducedMotion: () => boolean = sceneReducedMotion;
+  /** Object opacities and veil as custom properties (the stylesheet transitions them over the flight). */
+  readonly vars = computed(() => {
+    const def = POSES[this.cam.target()];
+    const out: Record<string, string | number> = {
+      '--scene-veil': Math.min(0.8, def.veil + (this.cam.pushed() ? SCENE_PUSH_VEIL : 0)),
+      '--scene-move': `${this.cam.moveMs()}ms`,
+    };
+    for (const o of SCENE_OBJECTS) out[`--o-${o}`] = def.show[o] ?? 0;
+    return out;
+  });
 
   constructor() {
-    const sub = this.router.events.subscribe((e) => {
-      if (e instanceof NavigationEnd) this.apply(e.urlAfterRedirects);
+    const root = this.document.documentElement;
+    const subs = this.router.events.subscribe((e) => {
+      if (e instanceof NavigationStart) this.go(e.url);
+      else if (e instanceof NavigationCancel || e instanceof NavigationError || e instanceof NavigationSkipped) this.go(this.router.url);
+      else if (e instanceof NavigationEnd) this.go(e.urlAfterRedirects);
     });
+    const onDown = (e: PointerEvent) => {
+      const w = this.document.defaultView?.innerWidth || 1;
+      this.pointer = { x: (e.clientX / w) * 100, y: (e.clientY / w) * 100 };
+    };
+    this.zone.runOutsideAngular(() => this.document.addEventListener('pointerdown', onDown, { capture: true, passive: true }));
     const stopFocus = this.focus.onChange((focused) => (focused ? this.sparkle?.resume() : this.sparkle?.pause()));
-    const stopSlow = this.reducedMotion() ? null : this.slow.start();
+    const stopSlow = this.cam.reducedMotion() ? null : this.slow.start();
+    let detach: (() => void) | null = null;
     inject(DestroyRef).onDestroy(() => {
-      sub.unsubscribe();
+      subs.unsubscribe();
+      this.document.removeEventListener('pointerdown', onDown, { capture: true });
       stopFocus();
       stopSlow?.();
       this.sparkle?.stop();
+      detach?.();
+      root.removeAttribute(SCENE_HTML_ATTR);
     });
     effect(() => {
       const sky = this.skyEl()?.nativeElement;
+      const world = this.worldEl()?.nativeElement;
       untracked(() => {
+        detach?.();
+        detach = null;
         this.sparkle?.stop();
         this.sparkle = null;
-        if (!sky || this.reducedMotion() || typeof sky.animate !== 'function') return;
+        if (!sky || !world) {
+          root.removeAttribute(SCENE_HTML_ATTR);
+          return;
+        }
+        root.setAttribute(SCENE_HTML_ATTR, '');
+        detach = this.cam.attach(world, sky, this.at.pose);
+        this.cam.pushed.set(this.at.depth > 0);
+        if (this.cam.reducedMotion() || typeof sky.animate !== 'function') return;
         this.sparkle = this.zone.runOutsideAngular(() => new StarSparkle(sky, SPARKLE_COUNT, Math.random, (a) => this.slow.adopt(a)));
         if (!this.focus.focused()) this.sparkle.pause();
       });
     });
   }
 
-  /** One navigation: decide the step, set the pose. Exposed for the spec. */
-  apply(url: string): void {
-    this.sub.set(isSubPage(url));
-    this.world.set(verseWorldOf(url));
-    const step = sceneStep(this.scene(), url, this.reducedMotion());
-    if (!step) {
-      // Same pose: keep the last mode, so a running camera move is never cut short.
-      return;
+  /** One navigation step: fly to the URL's pose (exposed for the spec). */
+  go(url: string): void {
+    const next = sceneTargetOf(url);
+    const prev = this.at;
+    if (next.pose === prev.pose && next.depth === prev.depth) return;
+    this.at = next;
+    const base = POSES[next.pose].cam;
+    // Deeper than before: push in towards the click; shallower or a new pose: the pose itself (pull-out).
+    const pushIn = next.depth > 0 && (next.pose !== prev.pose || next.depth > prev.depth);
+    const dest: CameraPose = next.depth > 0 ? (pushIn ? this.pushPose(base) : this.cam.current()) : base;
+    const ms = next.pose !== prev.pose ? SCENE_FLIGHT_MS : SCENE_PUSH_MS;
+    this.cam.pushed.set(next.depth > 0);
+    this.pointer = null;
+    void this.flyNamed(next.pose, dest, ms, next.depth > 0 && next.pose === prev.pose && !pushIn);
+  }
+
+  private flyNamed(pose: ScenePoseId, dest: CameraPose, ms: number, stay: boolean): Promise<void> {
+    if (stay) {
+      // Sideways between two detail pages: the camera stays pushed in.
+      this.cam.target.set(pose);
+      return Promise.resolve();
     }
-    this.from.set(this.scene());
-    this.mode.set(step.mode);
-    this.moveMs.set(step.mode === 'move' ? flightMs(this.scene(), step.scene) : 0);
-    if (step.mode === 'fade') this.fadeTick.update((t) => t + 1);
-    this.scene.set(step.scene);
+    this.cam.target.set(pose);
+    return this.cam.flyTo(dest, { durationMs: ms });
+  }
+
+  private pushPose(base: CameraPose): CameraPose {
+    const w = this.document.defaultView;
+    const px = this.pointer?.x ?? 50;
+    const py = this.pointer?.y ?? (w ? ((w.innerHeight / (w.innerWidth || 1)) * 100) / 2 : 28);
+    return zoomAbout(base, SCENE_PUSH_ZOOM, px, py);
   }
 }

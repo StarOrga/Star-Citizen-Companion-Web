@@ -4,14 +4,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { DraftMap } from '../codex-loadout-draft';
 import { CodexSavedLoadoutsComponent } from './codex-saved-loadouts.component';
-import { decodeDraftParam } from '../codex-loadout-draft';
-import {
-  SAVED_LOADOUTS_STORAGE_KEY,
-  SavedLoadout,
-  SavedLoadoutsService,
-  layoutShareUrl,
-  nextLayoutNumber,
-} from './saved-loadouts.service';
+import { SAVED_LOADOUTS_STORAGE_KEY, SavedLoadout, SavedLoadoutsService } from './saved-loadouts.service';
 
 const SHIP = 'cnou_nomad';
 const PORT = 'hardpoint_weapon_top_left';
@@ -43,42 +36,6 @@ describe('SavedLoadoutsService', () => {
     const e = s.save(SHIP, 'Bounty', 'B1', new Map([[PORT, null]]))!;
     s.remove(e.id);
     expect(s.all().length).toBe(0);
-  });
-
-  it('keeps layouts in creation order and overwrites one in place', () => {
-    const s = new SavedLoadoutsService();
-    const one = s.save(SHIP, 'Layout 1', 'B1', new Map([[PORT, 'GUN_A']]))!;
-    const two = s.save(SHIP, 'Layout 2', 'B1', new Map([[PORT, 'GUN_B']]))!;
-    // Re-saving Layout 1 must not move it behind Layout 2.
-    s.overwrite(one.id, 'B2', new Map([[PORT, 'GUN_C']]));
-    const layouts = s.layoutsOf(SHIP);
-    expect(layouts.map((l) => l.id)).toEqual([one.id, two.id]);
-    expect(layouts[0].entries).toEqual([[PORT, 'GUN_C']]);
-    expect(layouts[0].buildId).toBe('B2');
-    expect(s.overwrite('missing', 'B1', new Map([[PORT, 'GUN_A']]))).toBeNull();
-    expect(s.overwrite(one.id, 'B1', new Map())).toBeNull();
-  });
-
-  it('picks the first free "Layout N" number', () => {
-    const nameFor = (n: number) => `Layout ${n}`;
-    expect(nextLayoutNumber([], nameFor)).toBe(1);
-    expect(nextLayoutNumber(['Layout 1', 'Mining', 'layout 3'], nameFor)).toBe(2);
-    expect(nextLayoutNumber(['Layout 1', 'Layout 2'], nameFor)).toBe(3);
-  });
-
-  it('builds a share link the ship page restores the layout from', () => {
-    const entry: SavedLoadout = {
-      id: 'x', shipClassName: SHIP, name: 'Layout 1', buildId: 'B1',
-      entries: [[PORT, 'GUN_A'], ['hardpoint_b', null]], savedAt: '2026-11-09T00:00:00Z',
-    };
-    const url = new URL(layoutShareUrl('https://example.test/codex/ship/cnou_nomad?tab=x#frag', entry)!);
-    expect(url.pathname).toBe('/codex/ship/cnou_nomad');
-    expect(url.searchParams.get('tab')).toBe('x');
-    expect(url.hash).toBe('');
-    const decoded = decodeDraftParam(url.searchParams.get('loadout'));
-    expect(decoded?.buildId).toBe('B1');
-    expect(decoded?.entries).toEqual([[PORT, 'GUN_A'], ['hardpoint_b', null]]);
-    expect(layoutShareUrl('https://example.test/', { ...entry, entries: [] })).toBeNull();
   });
 
   it('ignores a corrupt store instead of throwing', () => {
@@ -116,18 +73,18 @@ describe('CodexSavedLoadoutsComponent', () => {
   });
   afterEach(() => localStorage.removeItem(SAVED_LOADOUTS_STORAGE_KEY));
 
-  it('cannot start a layout from an empty or read-only draft', () => {
+  it('cannot save an empty or read-only draft', () => {
     let el = render(new Map());
-    expect((el.querySelector('.new') as HTMLButtonElement).disabled).toBe(true);
+    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBe(true);
     fixture.destroy();
     el = render(new Map([[PORT, 'GUN_A']]), true);
-    expect((el.querySelector('.new') as HTMLButtonElement).disabled).toBe(true);
+    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('"Neues Layout" saves under the prompted name, shows the switch and recalls on pick', async () => {
+  it('saves the draft under the prompted name and recalls it', async () => {
     const el = render(new Map([[PORT, 'GUN_A']]));
-    expect(el.querySelector('.layout')).toBeNull();
-    await fixture.componentInstance.saveNew();
+    expect(el.querySelector('sc-select')).toBeNull();
+    await fixture.componentInstance.saveCurrent();
     fixture.detectChanges();
 
     expect(prompt).toHaveBeenCalled();
@@ -135,9 +92,7 @@ describe('CodexSavedLoadoutsComponent', () => {
     const saved = store.all();
     expect(saved.length).toBe(1);
     expect(saved[0].name).toBe('Mining');
-    const chips = el.querySelectorAll('.layout');
-    expect(chips.length).toBe(1);
-    expect(chips[0].getAttribute('aria-pressed')).toBe('true');
+    expect(el.querySelector('sc-select')).not.toBeNull();
 
     const recalled: SavedLoadout[] = [];
     fixture.componentInstance.recall.subscribe((l) => recalled.push(l));
@@ -146,48 +101,11 @@ describe('CodexSavedLoadoutsComponent', () => {
     expect(recalled[0].entries).toEqual([[PORT, 'GUN_A']]);
   });
 
-  it('an empty name falls back to the suggested default name', async () => {
-    prompt.mockResolvedValue('   ');
-    render(new Map([[PORT, 'GUN_B']]));
-    const fallback = fixture.componentInstance.defaultName();
-    await fixture.componentInstance.saveNew();
-    expect(prompt).toHaveBeenCalledWith(expect.objectContaining({ initialValue: fallback }));
-    expect(TestBed.inject(SavedLoadoutsService).layoutsOf(SHIP).map((l) => l.name)).toEqual([fallback]);
-  });
-
   it('a cancelled prompt saves nothing', async () => {
     prompt.mockResolvedValue(null);
     render(new Map([[PORT, 'GUN_A']]));
-    await fixture.componentInstance.saveNew();
+    await fixture.componentInstance.saveCurrent();
     expect(TestBed.inject(SavedLoadoutsService).all().length).toBe(0);
-  });
-
-  it('"Layout speichern" writes the draft into the picked layout', () => {
-    const store = TestBed.inject(SavedLoadoutsService);
-    const e = store.save(SHIP, 'Bounty', 'B1', new Map([[PORT, 'GUN_A']]))!;
-    render(new Map([[PORT, 'GUN_B']]));
-    expect(fixture.nativeElement.querySelector('.save')).toBeNull();
-    fixture.componentInstance.pick(e.id);
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.save')).not.toBeNull();
-    fixture.componentInstance.saveCurrent();
-    expect(store.get(e.id)?.entries).toEqual([[PORT, 'GUN_B']]);
-    expect(store.all().length).toBe(1);
-  });
-
-  it('"Layout teilen" copies the layout link and reports a refused clipboard', async () => {
-    const store = TestBed.inject(SavedLoadoutsService);
-    const e = store.save(SHIP, 'Bounty', 'B1', new Map([[PORT, 'GUN_A']]))!;
-    const write = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
-    render(new Map());
-    await fixture.componentInstance.shareSelected(e);
-    const copied = new URL(write.mock.calls[0][0]);
-    expect(decodeDraftParam(copied.searchParams.get('loadout'))?.entries).toEqual([[PORT, 'GUN_A']]);
-    expect(fixture.componentInstance.statusKey()).toBe('codex.savedLoadouts.shareCopied');
-    write.mockRejectedValue(new Error('denied'));
-    await fixture.componentInstance.shareSelected(e);
-    expect(fixture.componentInstance.statusKey()).toBe('codex.savedLoadouts.shareFailed');
-    write.mockRestore();
   });
 
   it('deletes the selected loadout after the danger confirm', async () => {

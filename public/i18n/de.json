@@ -2691,26 +2691,20 @@
       }
     },
     "savedLoadouts": {
-      "group": "Layouts dieses Schiffs",
-      "save": "Layout speichern",
+      "group": "Gespeicherte Loadouts",
+      "save": "Loadout speichern",
       "saveNothing": "Erst einen Slot ändern, dann speichern.",
+      "saveTitle": "Loadout speichern",
+      "saveMessage": "Gespeichert wird in diesem Browser, für dieses Schiff. Gleicher Name überschreibt.",
       "nameLabel": "Name",
       "saveConfirm": "Speichern",
+      "pick": "Gespeichertes Loadout laden",
       "remove": "„{{name}}“ löschen",
-      "removeTitle": "Layout löschen?",
+      "removeTitle": "Loadout löschen?",
       "removeMessage": "„{{name}}“ wird aus diesem Browser entfernt.",
       "removeConfirm": "Löschen",
       "cart": "Komponenten in den Warenkorb",
-      "cartSoon": "Bald verfügbar: legt die Komponenten dieses Loadouts in den Warenkorb.",
-      "layouts": "Layout wählen",
-      "saveInto": "Die Änderungen in „{{name}}“ speichern.",
-      "newLayout": "Neues Layout",
-      "newTitle": "Neues Layout",
-      "newMessage": "Gespeichert wird in diesem Browser, für dieses Schiff. Ohne Namen heißt es so wie vorgeschlagen; gleicher Name überschreibt.",
-      "defaultName": "Layout {{n}}",
-      "share": "Link zu „{{name}}“ kopieren",
-      "shareCopied": "Link kopiert – wer ihn öffnet, sieht dieses Layout.",
-      "shareFailed": "Link konnte nicht kopiert werden."
+      "cartSoon": "Bald verfügbar: legt die Komponenten dieses Loadouts in den Warenkorb."
     }
   },
   "blueprint": {
