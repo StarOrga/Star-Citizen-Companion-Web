@@ -90,7 +90,6 @@ import {
     .layout {
       min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3); border: 1px solid var(--sc-border); border-radius: 999px;
       background: none; color: var(--sc-fg-2); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer;
-      max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .layout:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
     .layout:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
