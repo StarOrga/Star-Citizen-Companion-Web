@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { SCC_LAUNCH_GRACE_MS, SCC_LAUNCH_WAIT_MS, SccAppLauncherService } from '../desktop/scc-app-launcher.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
+import { useViewport } from '../testing/viewport';
 import { HqAppLaunchComponent } from './hq-app-launch.component';
 
 describe('HqAppLaunchComponent', () => {
@@ -117,5 +118,18 @@ describe('HqAppLaunchComponent', () => {
     f.componentInstance.dismiss();
     f.detectChanges();
     expect((f.nativeElement as HTMLElement).querySelector('.hint')).toBeNull();
+  });
+});
+
+describe('HqAppLaunchComponent on a phone', () => {
+  useViewport(375, 700);
+
+  it('takes no room: the desktop app is not started or downloaded from a phone', () => {
+    TestBed.configureTestingModule({
+      providers: [provideTranslateService(), { provide: SccAppLauncherService, useValue: { launchedBefore: () => false } }],
+    });
+    const f = TestBed.createComponent(HqAppLaunchComponent);
+    f.detectChanges();
+    expect(getComputedStyle(f.nativeElement as HTMLElement).display).toBe('none');
   });
 });

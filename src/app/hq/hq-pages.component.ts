@@ -102,6 +102,8 @@ import { HqStockComponent } from './stock/hq-stock.component';
       @media (min-width: 1024px) { .follow { --hq-page-h: calc(100svh - var(--sc-bar-h, 64px) - var(--sc-space-7, 48px) - var(--sc-space-8, 64px) - var(--sc-space-5, 24px)); } }
       /* Room after the last page, before the footer. */
       .last { padding-bottom: var(--sc-space-8, 64px); }
+      /* The shell footer follows in flow: the last page leaves its height out of the viewport-tall minimum, so page + footer fill exactly one screen and the document does not scroll on past the content. */
+      .last { min-height: calc(100svh - var(--sc-footer-h, 56px) - var(--sc-safe-bottom, 0px)); }
       /* The way on stands at the viewport's bottom edge on every page; the phone bar does that job below 1024px. */
       .page-cue { position: fixed; z-index: 3; inset-inline: 0; bottom: max(8px, 0.8vw); pointer-events: none; transition: opacity 0.25s, visibility 0.25s; }
       /* Like the Verse cue it has no ground, so it stands back while page content lies beneath it. */
