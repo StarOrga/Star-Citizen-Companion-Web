@@ -167,6 +167,8 @@ export class PackageScene {
   private height = 0;
   /** The user's zoom relative to the fitted distance; 1 = exactly fitted. */
   private zoom = 1;
+  /** Safe-area fit distance that holds from every view direction; null = solve again. */
+  private baseDistance: number | null = null;
   private readonly lastDir = new THREE.Vector3();
   private lastDist = 0;
   private readonly seenView = new THREE.Matrix4();
@@ -431,6 +433,7 @@ export class PackageScene {
     for (const node of this.placed.values()) box.expandByObject(node);
     if (box.isEmpty()) box.set(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
     this.contentBox.copy(box);
+    this.baseDistance = null;
     this.fitPoints = this.safe ? this.sampleFitPoints(box) : [];
     const center = box.getCenter(new THREE.Vector3());
     const radius = Math.max(box.getSize(this.tmp).length() / 2, 0.1);
@@ -439,7 +442,7 @@ export class PackageScene {
     this.camera.position.copy(center).addScaledVector(dir, radius);
     this.camera.lookAt(center);
     // The bounding sphere overestimates a flat, long hull; 0.8 fills the stage.
-    const dist = this.safe ? Math.max(this.fittedDistance(), 0.1) : (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 0.8;
+    const dist = this.safe ? Math.max(this.stableDistance(), 0.1) : (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 0.8;
     this.camera.position.copy(center).addScaledVector(dir, dist);
     this.camera.near = Math.max(dist / 200, 0.01);
     this.camera.far = dist * 20;
@@ -461,6 +464,7 @@ export class PackageScene {
   setSafeArea(safe: SafeArea | null): void {
     if (safe && !this.safe && !this.contentBox.isEmpty()) this.fitPoints = this.sampleFitPoints(this.contentBox);
     this.safe = safe;
+    this.baseDistance = null;
     this.applyViewOffset();
     this.refit();
   }
@@ -506,8 +510,38 @@ export class PackageScene {
     return out.filter((_, i) => i % thin === 0);
   }
 
-  /** Distance at which the framed model fits the safe area, from the current viewing direction. */
-  private fittedDistance(): number {
+  /**
+   * One distance for the whole orbit: the largest fit over a ring of view
+   * directions, so the model fits from every side and rotating never reads as
+   * zoom. Solved once per model / viewport / safe area (cached).
+   */
+  private stableDistance(): number {
+    if (this.baseDistance !== null) return this.baseDistance;
+    const saved = this.camera.quaternion.clone();
+    const up = new THREE.Vector3(0, 1, 0);
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const dir = new THREE.Vector3();
+    const zero = new THREE.Vector3();
+    let best = 0;
+    for (let x = -1; x <= 1; x++) {
+      for (let y = -1; y <= 1; y++) {
+        for (let z = -1; z <= 1; z++) {
+          if (x === 0 && y === 0 && z === 0) continue;
+          dir.set(x, y, z).normalize();
+          m.lookAt(dir, zero, Math.abs(dir.y) > 0.999 ? new THREE.Vector3(0, 0, -1) : up);
+          q.setFromRotationMatrix(m);
+          best = Math.max(best, this.fittedDistance(q));
+        }
+      }
+    }
+    this.camera.quaternion.copy(saved);
+    this.baseDistance = best;
+    return best;
+  }
+
+  /** Distance at which the framed model fits the safe area, seen with this camera orientation. */
+  private fittedDistance(orientation: THREE.Quaternion = this.camera.quaternion): number {
     const { min, max } = this.contentBox;
     const corners: THREE.Vector3[] = [];
     if (this.fitPoints.length > 0) corners.push(...this.fitPoints);
@@ -518,7 +552,7 @@ export class PackageScene {
         }
       }
     }
-    const q = this.camera.quaternion;
+    const q = orientation;
     return fitDistance(
       corners,
       this.contentBox.getCenter(new THREE.Vector3()),
@@ -554,15 +588,14 @@ export class PackageScene {
   private refit(): void {
     if (!this.safe || this.contentBox.isEmpty() || this.width <= 0) return;
     const dir = this.tmp.copy(this.camera.position).sub(this.controls.target).normalize().clone();
-    this.placeAt(dir, this.fittedDistance() * this.zoom);
+    this.placeAt(dir, this.stableDistance() * this.zoom);
     this.requestRender();
   }
 
   /**
-   * An orbit must not swing a long hull under a gutter: when the direction
-   * changed, re-solve the distance. A changed distance is the user's zoom
-   * (pinch, which can rotate a hair as well): it carries over. Neither happened
-   * (hover, selection): nothing moves.
+   * The orbit keeps its distance: rotating never re-solves it (that read as
+   * zoom). A changed distance is the user's zoom (pinch, wheel): it carries over.
+   * Nothing changed (hover, selection): nothing moves.
    */
   private keepFit(): void {
     if (!this.safe || this.contentBox.isEmpty() || this.width <= 0) return;
@@ -572,8 +605,7 @@ export class PackageScene {
     off.divideScalar(dist);
     const zoomed = Math.abs(dist - this.lastDist) > dist * 1e-4;
     if (zoomed && this.lastDist > 0) this.zoom *= dist / this.lastDist;
-    if (off.dot(this.lastDir) < 1 - 1e-7) this.placeAt(off.clone(), this.fittedDistance() * this.zoom);
-    else if (zoomed) this.noteCamera();
+    if (zoomed || off.dot(this.lastDir) < 1 - 1e-7) this.noteCamera();
   }
 
   /** Zoom by a wheel delta (positive = out), inside the controls' limits. */
@@ -584,7 +616,7 @@ export class PackageScene {
     if (dist <= 0) return;
     const next = THREE.MathUtils.clamp(dist * Math.exp(delta * 0.0015), this.controls.minDistance, this.controls.maxDistance);
     this.camera.position.copy(this.controls.target).addScaledVector(off.divideScalar(dist), next);
-    this.zoom = next / Math.max(this.fittedDistance(), 1e-3);
+    this.zoom = next / Math.max(this.stableDistance(), 1e-3);
     this.noteCamera();
     this.controls.update();
     this.requestRender();
@@ -597,6 +629,7 @@ export class PackageScene {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.baseDistance = null;
     this.applyViewOffset();
     this.refit();
     this.requestRender();
