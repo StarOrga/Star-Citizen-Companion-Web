@@ -37,7 +37,7 @@ function configPaths(routes: readonly Route[]): string[] {
       <h1 class="sc-sr-only">{{ 'notFoundPage.srTitle' | translate }}</h1>
       <div class="hero" aria-hidden="true">
         <sc-quantum-streaks class="fast" speed="fast" [fadeOut]="true" />
-        <span class="slow"><sc-quantum-streaks speed="slow" /></span>
+        <span class="slow-wrap"><sc-quantum-streaks speed="slow" /></span>
         <span class="dig dig-a">4</span>
         <span class="zero"><sc-app-logo size="0.82em" /></span>
         <span class="dig dig-b">4</span>
@@ -82,7 +82,7 @@ function configPaths(routes: readonly Route[]): string[] {
       font-size: clamp(96px, 26vw, 200px);
       line-height: 1;
     }
-    .slow { position: absolute; inset: 0; opacity: .85; animation: nf-in 1s ease-out .5s both; }
+    .slow-wrap { position: absolute; inset: 0; opacity: .85; animation: nf-in 1s ease-out .5s both; }
     .dig {
       position: relative;
       z-index: 2;
@@ -154,8 +154,8 @@ function configPaths(routes: readonly Route[]): string[] {
       100% { opacity: 1; transform: translateY(-.03em) scale(1); filter: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .slow, .dig, .zero { animation: none; opacity: 1; }
-      .slow { opacity: .85; }
+      .slow-wrap, .dig, .zero { animation: none; opacity: 1; }
+      .slow-wrap { opacity: .85; }
       .fast { display: none; }
     }
   `],
