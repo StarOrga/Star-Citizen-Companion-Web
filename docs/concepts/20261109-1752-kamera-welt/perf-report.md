@@ -243,3 +243,14 @@ findings after the consent seed was fixed. By eye:
 - open (data, not layout): the ship detail's "Einsatz" strip showed `500,74.488610 m/s` at 360 px — a
   number formatting slip, outside this wave.
 - not covered: toasts (no trigger without signed-in actions on production data).
+
+## Wave 11: HQ first render after a flight (stage-hq)
+
+Production build, headless Edge (`msedge`, `--enable-gpu --use-angle=d3d11 --ignore-gpu-blocklist`, ANGLE RTX 2080 SUPER D3D11), 1600 x 900, 3 runs each, 3 s of rAF gaps after the click, hover 400 ms before it (intent prefetch). The machine ran at 100 % CPU (parallel agents building), so counts carry load noise; both sides were measured back to back under the same load.
+
+- Cause, from long-animation-frame attribution and a trace: the route's first frame built all five HQ pages (one `FrameRequestCallback` of 130 to 147 ms, 72 to 86 ms of it forced layout: the cue measure in a constructor effect, the event-name fit and the stock deck measure pulled the whole page's first layout into that frame).
+- Change (`src/app/hq/hq-pages.component.ts`): the route renders Start only; Inventar, Jetzt, Planen, Statistik stand as empty viewport-tall sections and are built one per idle frame once `SceneCameraService.flying()` is false (at most 2.5 s after the first render). A scroll (`pageScrollY() > 0`, #336), a rail / bar / cue click, a hotkey, a deep link or back/forward to a follow page builds them all at once first. The cue measure moved to the next frame.
+- Verse to HQ: worst frame median 161 -> 83 ms (runs 184/161/156 -> 83/72/100); frames over 33 ms median 3 -> 5, of which 1 to 2 are now the build steps after landing (39 to 65 ms each, the stock page) and 1 a render-only frame (no script, no style) right after the route frame that was there before too.
+- Codex to HQ: worst frame median 156 -> 106 ms; frames over 33 ms median 1 -> 3 (the route chunk import, the render-only frame, one build step).
+- Not reached: 0 frames over 33 ms. What is left per frame: the click handler on the source page (13 to 19 ms), the route switch itself (44 to 64 ms rAF, 22 to 33 ms of it layout), render-only frames that point at raster / GPU under load, and the stock page build step. Next lever: split `hq-stock` itself (its deck measure forces about 39 ms of layout).
+- HQ scroll sweep (task 2), 6 runs each, same load: before 8/6/3/5/5/2, after 4/2/4/3/3/1. The long frames are almost all render-only (no script, no style); script in them stays under 31 ms (a document `animationstart` listener, not HQ code). qa-report-3's 1/5/2 vs 1/1/0 is load noise, not an HQ regression; a quiet machine was not available.
