@@ -8,7 +8,6 @@ import type { EquippedStat } from '../codex-equipped-stats';
 import { displayItemName } from '../codex-format';
 import { CodexService, manufacturerLabel, toLang } from '../codex.service';
 import type { CodexKind } from '../codex.service';
-import { ICON_PATHS } from '../codex-category-icon.component';
 import type { ShipModuleSection } from '../ship-module-sections';
 import type { PlacementRow } from '../asset-package/asset-package-viewer.component';
 import { resolveIcons } from '../search/search-cta';
@@ -165,9 +164,6 @@ function chipSize(pin: StagePin): number | null {
             <p class="mut">{{ 'codex.holo.stage.rawPortHint' | translate }}</p>
           }
           <div class="prev">
-            @if (part.className) {
-              <span class="th" aria-hidden="true"><svg viewBox="0 0 24 24"><path [attr.d]="sectionGlyph()" /></svg></span>
-            }
             <small>{{ 'codex.holo.stage.previewTitle' | translate }}</small>
             <ul>
               <li><span>{{ 'codex.holo.stage.previewMaker' | translate }}</span>{{ maker(part.manufacturerCode) ?? '—' }}</li>
@@ -373,9 +369,6 @@ function chipSize(pin: StagePin): number | null {
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); cursor: pointer; font: inherit; font-size: max(13px, var(--f)); font-weight: 600; transition: background 160ms ease; }
     .swap:hover { background: color-mix(in srgb, var(--sc-accent) 28%, transparent); }
     .prev { display: grid; gap: 7px; padding-block: 10px; border-block: 1px solid var(--hair); }
-    .th { display: grid; place-items: center; height: 72px; border-radius: 6px; color: var(--sc-accent);
-      background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--sc-accent) 14%, transparent), transparent 75%); }
-    .th svg { width: 48px; height: 48px; fill: none; stroke: currentColor; stroke-width: 0.9; stroke-linecap: round; stroke-linejoin: round; }
     .prev > small { font-size: max(10px, var(--f)); letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-fg-2); }
     .prev ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); }
     .prev li { display: flex; justify-content: space-between; gap: 8px; min-width: 0; text-align: end; }
@@ -502,16 +495,6 @@ export class CodexHoloInspectorComponent {
     return it ? partFocusOf(it, this.section()) : null;
   });
 
-  readonly sectionGlyph = computed(() => {
-    const s = this.section();
-    const key = s === 'weapons' || s === 'remoteTurrets' || s === 'missiles' || s === 'pod' ? 'weapon'
-      : s === 'shields' ? 'shield'
-      : s === 'powerPlants' ? 'power'
-      : s === 'coolers' ? 'cooler'
-      : s === 'quantum' ? 'quantum'
-      : 'component';
-    return ICON_PATHS[key] ?? ICON_PATHS['component'];
-  });
 
   readonly rowGroups = computed(() => {
     const groups = new Map<string, PlacementRow[]>();

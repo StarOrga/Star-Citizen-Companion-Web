@@ -1102,16 +1102,32 @@ export class CodexHoloTableComponent {
     const { w, h } = calloutSize(typeof window === 'undefined' ? 1920 : window.innerWidth);
     const inner = l.side === 'left' ? l.rect.x + l.rect.w : l.rect.x;
     const left = Math.min(Math.max(0, l.side === 'left' ? inner - w : inner), Math.max(0, this.frameW() - w));
-    const top = Math.min(Math.max(0, l.rect.y + l.rect.h / 2 - h / 2), Math.max(0, this.frameH() - h));
-    // The tags the full callout lies over step aside (C10): they hide while it is open.
-    const covered = new Set<string>();
-    for (const o of lay.labels) {
-      if (o.portName === port) continue;
-      const overX = o.rect.x < left + w && o.rect.x + o.rect.w > left;
-      // `h` is the callout's reserved box; its drawn card ends a few px earlier — a tag that only grazes it stays.
-      const overY = o.rect.y < top + h - 6 && o.rect.y + o.rect.h > top + 6;
-      if (overX && overY) covered.add(o.portName);
+    const maxTop = Math.max(0, this.frameH() - h);
+    const clampTop = (t: number) => Math.min(Math.max(0, t), maxTop);
+    // The tags a callout at `top` lies over; `h` is its reserved box, its drawn card ends a few px
+    // earlier — a tag that only grazes it stays.
+    const coveredAt = (top: number) => {
+      const covered = new Set<string>();
+      for (const o of lay.labels) {
+        if (o.portName === port) continue;
+        const overX = o.rect.x < left + w && o.rect.x + o.rect.w > left;
+        const overY = o.rect.y < top + h - 6 && o.rect.y + o.rect.h > top + 6;
+        if (overX && overY) covered.add(o.portName);
+      }
+      return covered;
+    };
+    // E12: the card may slide along its own label (it still covers that slot) to the spot that hides the
+    // fewest neighbouring tags — into a free gap of the column — ties go to the centred position.
+    const centre = clampTop(l.rect.y + l.rect.h / 2 - h / 2);
+    let top = centre;
+    let covered = coveredAt(centre);
+    const lo = clampTop(l.rect.y + l.rect.h - h);
+    const hi = clampTop(l.rect.y);
+    for (let t = lo; t <= hi && covered.size > 0; t += 2) {
+      const c = coveredAt(t);
+      if (c.size < covered.size || (c.size === covered.size && Math.abs(t - centre) < Math.abs(top - centre))) { top = t; covered = c; }
     }
+    // The tags the full callout still lies over step aside (C10): they hide while it is open.
     return { pin, left, top, covered };
   });
 }

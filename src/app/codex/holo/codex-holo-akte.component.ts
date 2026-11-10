@@ -116,17 +116,16 @@ export const AKTE_STANDARD_LIVERY = 'standard';
       repeating-linear-gradient(0deg, color-mix(in srgb, var(--sc-accent) 5%, transparent) 0 1px, transparent 1px 4px); }
     /* The CIG/RSI image is a plain image: shown as it is, cover — a livery render the same way, under the same card. */
     .ak-img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .ak-card { position: relative; z-index: 1; box-sizing: border-box; width: min(500px, 100%); height: var(--holo-card-h, min(100%, 540px));
+    .ak-card { position: relative; z-index: 1; box-sizing: border-box; width: min(500px, 100%); max-height: var(--holo-card-h, min(100%, 540px));
       display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 12px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 38%, transparent); border-radius: 14px;
       background: color-mix(in srgb, var(--sc-bg-0) 82%, transparent); backdrop-filter: blur(6px); }
-    .ak-card.shut { height: auto; }
-    .ak-tg { position: absolute; top: 10px; right: 10px; width: 124px; height: 26px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+        .ak-tg { position: absolute; top: 10px; right: 10px; width: 124px; height: 26px; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
       border: 1px solid var(--sc-border); border-radius: 13px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
       color: var(--sc-accent); font: inherit; font-size: max(11px, var(--sc-fs-floor)); white-space: nowrap; cursor: pointer; }
     .ak-tg:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .ak-tg:focus-visible, .ak-sw:focus-visible, .ak-rsi:focus-visible, .ak-txt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .ak-txt { flex: 1; min-height: 0; overflow: auto; padding-top: 28px; }
+    .ak-txt { flex: 0 1 auto; min-height: 0; overflow: auto; padding-top: 28px; }
     .ak-txt p { margin: 0; color: var(--sc-fg-0); font-size: max(13.5px, var(--sc-fs-floor)); line-height: 1.55; max-width: var(--sc-measure, 68ch); }
     .ak-txt p.muted { color: var(--sc-fg-2); }
     /* Label above value, two to a row: every value keeps one line ("Aegis Dynamics", "19,69 × 17,4 × 5,14 m"). */
@@ -139,13 +138,14 @@ export const AKTE_STANDARD_LIVERY = 'standard';
     .ak-sws { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 6px; min-width: 0; }
     .gl { width: 100%; font-size: max(9px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); }
     /* Image tiles, not chips: a small picture with the name under it (the filters are pills). */
-    .ak-sw { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 58px; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; text-decoration: none; }
+    .ak-sw { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 64px; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; text-decoration: none; }
     .ak-sw .t { position: relative; display: block; width: 58px; height: 34px; border-radius: 5px; overflow: hidden;
       border: 1px solid var(--sc-border); background: linear-gradient(170deg, var(--sc-bg-1), color-mix(in srgb, var(--sc-accent) 18%, var(--sc-bg-1))); }
     .ak-sw .t img { display: block; width: 100%; height: 100%; object-fit: contain; background: var(--sc-bg-0); }
     .ak-sw .t i { position: absolute; inset: 22% 30%; background: color-mix(in srgb, var(--sc-accent) 55%, transparent);
       clip-path: polygon(50% 0, 60% 29%, 100% 62%, 100% 73%, 65% 65%, 62% 86%, 72% 95%, 72% 100%, 50% 96%, 28% 100%, 28% 95%, 38% 86%, 35% 65%, 0 73%, 0 62%, 40% 29%); }
-    .ak-sw small { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ak-sw small { max-width: 64px; overflow: hidden; text-align: center; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto;
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .ak-sw:hover .t { border-color: color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border)); }
     .ak-sw.on .t { border-color: var(--sc-accent); box-shadow: 0 0 0 1.5px var(--sc-accent); }
     .ak-sw.on small { color: var(--sc-fg-0); }
