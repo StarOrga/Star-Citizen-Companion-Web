@@ -375,6 +375,33 @@ describe('CodexLoadoutDraftStore', () => {
       expect(offer).not.toHaveBeenCalled();
     });
 
+    it('overlapping autosaves are written one after the other, so the newer swap lands last', async () => {
+      let stored: unknown[] = [{ portName: 'kept', className: 'K', kind: 'item' }];
+      hangar.listConfigs.mockImplementation(async () => [{ id: 'c1', loadout: stored, isActive: true }]);
+      let firstWrite = true;
+      hangar.updateConfig.mockImplementation(async (id: string, patch: { loadout: unknown[] }) => {
+        if (firstWrite) {
+          firstWrite = false;
+          await new Promise((r) => setTimeout(r, AUTOSAVE_DEBOUNCE_MS * 3)); // the slow first write
+        }
+        stored = patch.loadout;
+        return { id, loadout: patch.loadout };
+      });
+      store.setAutosave(true);
+      store.applySwap(pick('BEHR_LaserCannon_S3'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS); // first save starts and hangs
+      store.applySwap(nestedPick('NESTED_GUN'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS); // second debounce fires while the first is in flight
+      expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS * 4);
+      expect(hangar.updateConfig).toHaveBeenCalledTimes(2);
+      expect(stored).toEqual([
+        { portName: 'kept', className: 'K', kind: 'item' },
+        { portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' },
+        { portName: `${PORT}.gun`, className: 'NESTED_GUN', kind: 'weapon' },
+      ]);
+    });
+
     it('a new loadout on the table flushes the pending save first', async () => {
       store.setAutosave(true);
       store.applySwap(pick('BEHR_LaserCannon_S3'));

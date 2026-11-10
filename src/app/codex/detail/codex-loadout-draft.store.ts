@@ -337,8 +337,29 @@ export class CodexLoadoutDraftStore implements OnDestroy {
     return { shipClass: d.classNameSlug, targetId, entries, touched };
   }
 
-  private async saveSnapshot(snap: SaveSnapshot | null): Promise<{ updated: HangarShipConfig; previous: ConfigLoadoutEntry[] } | null> {
-    if (!snap) return null;
+  /**
+   * Every write of the config goes through one queue: a save reads the stored
+   * loadout, merges and writes it back, so two overlapping saves (a slow
+   * autosave and the next debounce, an undo right behind a save) would
+   * otherwise let the older snapshot land last and drop the newer swap.
+   */
+  private writeQueue: Promise<unknown> = Promise.resolve();
+  /** A save that forked a followed config writes to the fork from then on — also for snapshots queued before it. */
+  private readonly forkedIds = new Map<string, string>();
+
+  private serialWrite<T>(run: () => Promise<T>): Promise<T> {
+    const next = this.writeQueue.then(run, run);
+    this.writeQueue = next.catch(() => undefined);
+    return next;
+  }
+
+  private saveSnapshot(snap: SaveSnapshot | null): Promise<{ updated: HangarShipConfig; previous: ConfigLoadoutEntry[] } | null> {
+    if (!snap) return Promise.resolve(null);
+    return this.serialWrite(() => this.writeSnapshot(snap));
+  }
+
+  private async writeSnapshot(queued: SaveSnapshot): Promise<{ updated: HangarShipConfig; previous: ConfigLoadoutEntry[] } | null> {
+    const snap = { ...queued, targetId: this.forkedIds.get(queued.targetId) ?? queued.targetId };
     this.savingState.set(true);
     this.saveErrorState.set(null);
     try {
@@ -364,6 +385,7 @@ export class CodexLoadoutDraftStore implements OnDestroy {
         this.saveErrorState.set(this.t.instant(this.hangar.error?.() ?? 'codex.loadout.saveErrorGeneric') as string);
         return null;
       }
+      if (updated.id !== snap.targetId) this.forkedIds.set(snap.targetId, updated.id);
       if (this.targetConfigId === snap.targetId) {
         this.targetConfigId = updated.id;
         this.savedPathsState.set(new Set(snap.entries.map((e) => e.portName)));
@@ -451,9 +473,13 @@ export class CodexLoadoutDraftStore implements OnDestroy {
   }
 
   /** "Rückgängig" on the autosave toast: the config gets its earlier loadout back and the table shows it. */
-  private async undoAutosave(configId: string, loadout: ConfigLoadoutEntry[]): Promise<void> {
+  private undoAutosave(configId: string, loadout: ConfigLoadoutEntry[]): Promise<void> {
     this.cancelAutosaveTimer();
     this.autosavePaths.clear();
+    return this.serialWrite(() => this.writeUndo(configId, loadout));
+  }
+
+  private async writeUndo(configId: string, loadout: ConfigLoadoutEntry[]): Promise<void> {
     this.savingState.set(true);
     this.saveErrorState.set(null);
     try {
