@@ -125,3 +125,40 @@ describe('humanizeRoomKey', () => {
     expect(humanizeRoomKey('Room_RN-009')).toBe('');
   });
 });
+
+describe('room labels from the translation pipeline (E14)', () => {
+  const room = (key: string, name: { en: string | null; de: string | null } | null, labelKey?: string) => ({
+    key, name, labelKey, pos: [0, 0, 0], floorZ: 0, height: 3, shapes: [[[0, 0], [4, 0], [4, 4], [0, 4]]],
+  });
+  const decks: ShipDeck[] = [{
+    key: 'Carrack_Deck_1', name: null, order: 0,
+    rooms: [
+      room('Mess_Hall_Room_RN', { en: 'Mess Hall', de: null }, 'scc_room_mess_hall'),
+      room('Habitation_Corridor_Room_RN', null, 'scc_room_habitation_corridor'),
+      room('Bridge_Room_RN', { en: 'Bridge', de: 'Brücke' }),
+      room('Garage_Room_RN', { en: 'Garage', de: null }, 'scc_room_garage'),
+    ],
+  }];
+  const translated = new Map([
+    ['scc_room_mess_hall', 'Messe'],
+    ['scc_room_habitation_corridor', 'Wohnkorridor'],
+    ['scc_room_bridge', 'Falsch'],
+  ]);
+  const labels = (lang: 'de' | 'en', t?: ReadonlyMap<string, string>) =>
+    Object.fromEntries(buildDeckPlans(decks, lang, t)!.decks[0].rooms.map((r) => [r.key, r.label]));
+
+  it('uses the translation for rooms the game ships without German', () => {
+    expect(labels('de', translated)).toEqual({
+      Mess_Hall_Room_RN: 'Messe',
+      Habitation_Corridor_Room_RN: 'Wohnkorridor',
+      Bridge_Room_RN: 'Brücke',
+      Garage_Room_RN: 'Garage',
+    });
+  });
+
+  it('keeps the English label without a translation and on the English page', () => {
+    expect(labels('de')['Mess_Hall_Room_RN']).toBe('Mess Hall');
+    expect(labels('de')['Habitation_Corridor_Room_RN']).toBe('Habitation Corridor');
+    expect(labels('en', translated)['Mess_Hall_Room_RN']).toBe('Mess Hall');
+  });
+});
