@@ -302,7 +302,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <sc-page-header class="crumbrow" [class.holo-on]="holoStageOn()" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
+      <sc-page-header class="crumbrow" [class.holo-on]="holoStageOn()" [class.ship-classic]="kind() === 'ship' && !holoStageOn()" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
         <!-- The head strip [Patch | Besitz] (concept codex-kopf-besitz C1) sits on the title's line: the
              Holotable's title row, the classic ship head row (.c-head), the item name. Items keep the
              old [Codex | Meine] switch here outside the shell beta. -->
@@ -1291,8 +1291,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .detail-page .sc-card,
     .detail-page .sc-card.block { border-radius: 4px; box-shadow: none; }
     .crumbrow { margin-bottom: 10px; }
-    /* Beta shell: the trail is in the Fusion bar, the aside in the Holotable's title row, nothing is left here. */
-    @media (min-width: 721px) { :host-context([data-layout]) .crumbrow.holo-on { display: none; } }
+    /* Beta shell: the trail is in the Fusion bar, the aside in the Holotable's title row, nothing is left here.
+       The classic ship view has no aside either (its head strip sits in .c-head), so its crumb row was an empty
+       28px band plus margin and gap above the maker line (#321: "ein Zwischenraum wofuer?"). */
+    @media (min-width: 721px) { :host-context([data-layout]) .crumbrow:is(.holo-on, .ship-classic) { display: none; } }
     .crumb-aside { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
     .c-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; margin-block-end: 12px; }
     .c-tt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }

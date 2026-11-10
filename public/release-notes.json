@@ -1,7 +1,87 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.247.0",
+  "current": "0.249.0",
   "releases": [
+    {
+      "version": "0.249.0",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex ship loadout: every missile shows its damage as the headline figure (rack total), plus range, speed and lock time, and a tag with its seeker signal (infrared, electromagnetic or cross-section); a value missing in the data leaves its line out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.248.2",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the empty crumb row above the headline is gone, so the maker and role line sits under the normal page spacing instead of a large gap."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.248.1",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Deck plans: rooms land on their deck (Data Uploader 0.77.1).",
+              "text": "Rooms the game data files under no deck now go to the deck of the authored rooms on their floor level, taken from the ship and its sister hulls. The Starlancer MAX shows its rooms on Deck 01 and Deck 02 instead of all 24 under \"All rooms\"; the Carrack keeps 5 rooms under \"Other rooms\" instead of 20, the Ironclad none instead of 7. Ships whose whole family names no deck for any room (890 Jump, Retaliator, Redeemer, Starlifter, Vulture) keep the \"All rooms\" deck. Takes effect with the next uploader run."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.248.0",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Classic ship view: saved loadouts become named layouts per ship (Layout 1, 2, …) with a switch, \"Neues Layout\", \"Layout speichern\" into the picked layout, and a button that copies a share link opening the layout as an unsaved draft for the receiver."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.247.1",
+      "date": "2026-11-09",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex landing: the Codex list on the left and the Datenblatt on the right now always share the hologram box, so both side panes are the same size and the Datenblatt frame fills its pane."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.247.0",
       "date": "2026-11-09",
