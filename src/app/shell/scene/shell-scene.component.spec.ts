@@ -285,7 +285,10 @@ describe('Shell scene — camera and component', () => {
     // The copy stands where the old camera stood, the live world already at the new pose.
     expect(ghost!.querySelector<HTMLElement>('.world')!.style.transform).not.toBe(poseTransform(POSES.hq.cam));
     expect(world().style.transform).toBe(poseTransform(POSES.hq.cam));
-    await new Promise((r) => setTimeout(r, 900));
+    // Wait for the fade itself, not a wall-clock guess: under a loaded full-suite run the 420 ms
+    // animation can finish well past 900 ms. The service's removal is chained on the same promise.
+    await fade.finished;
+    await Promise.resolve();
     expect(world().getAnimations()).toEqual([]);
     expect(el().querySelector('.scene-ghost')).toBeNull();
   });
