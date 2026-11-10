@@ -78,11 +78,21 @@ html[data-sc-scene] body { background: transparent; }
     transform: scale(1) translate(-100vw, -50vw);
     will-change: transform;
   }
+  // Each object fades over its own span (--f-<object>, the component): what the target pose shows
+  // over the whole flight, everything else gone by mid-flight (D7).
   .o {
     position: absolute;
     display: block;
-    transition: opacity var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1);
+    transition: opacity var(--f, var(--scene-move)) cubic-bezier(0.65, 0, 0.35, 1);
   }
+  .planet { --f: var(--f-planet); }
+  .hqst { --f: var(--f-hqst); }
+  .news { --f: var(--f-news); }
+  .patches { --f: var(--f-patches); }
+  .gallery { --f: var(--f-gallery); }
+  .starmap { --f: var(--f-starmap); }
+  .station { --f: var(--f-station); }
+  .holo { --f: var(--f-holo); }
   // Rectangles = WORLD_RECTS in scene.model.ts.
   .planet {
     left: 69.688vw; top: 85.75vw; width: 160vw; height: 160vw;
@@ -148,6 +158,30 @@ html[data-sc-scene] body { background: transparent; }
     background: radial-gradient(circle at 34% 30%, #f2fbff 0, #bfe6f7 20%, #78b4d2 46%, #2c5670 74%, #0a1822 100%);
     box-shadow: 0 0 1.2vw rgba(170, 222, 255, 0.28);
   }
+  // The living planet (scene-bodies.component, the hub's body engine) over the CSS art. The canvas is
+  // laid out 6x its piece and scaled back, so the engine draws it sharp where a pose blows the piece
+  // up to the big subpage planet. Shown while the engine warms up, then only where the piece shows:
+  // a hidden canvas does not intersect the view, so the engine pauses it.
+  .pl > .pl-gl {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 600%;
+    height: 600%;
+    transform-origin: 0 0;
+    scale: calc(1 / 6);
+    border-radius: 50%;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .pl > .pl-gl.on { opacity: 1; }
+  .scene:is([data-warm], [data-carry]) .pl > .pl-gl,
+  .scene[data-pose='news'] .news > .pl-gl,
+  .scene[data-pose='patches'] .patches > .pl-gl,
+  .scene[data-pose='gallery'] .gallery > .pl-gl { display: block; }
+  .pl:has(> .pl-gl.on) { box-shadow: none; }
+
   // Sternkarte: the constellation morphs into the star map at its pose (mock d5-starmap-morph).
   .starmap { left: 169vw; top: 76.688vw; width: 5.938vw; height: 4.375vw; opacity: var(--o-starmap, 0); }
   .starmap .const { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity calc(var(--scene-move) * 0.25) ease 0s; }
@@ -165,21 +199,11 @@ html[data-sc-scene] body { background: transparent; }
   .scene[data-pose='starmap'] .starmap .const { opacity: 0; transition-delay: calc(var(--scene-move) * 0.7); }
   .scene[data-pose='starmap'] .starmap .map { opacity: 1; transition-delay: calc(var(--scene-move) * 0.7); }
 
-  // Admin station in orbit above the limb.
+  // Admin station in orbit above the limb: the hub's station drawing (mock hi-station, rounds/05 #d5-admin).
+  // Only painted while a pose shows it or the camera flies, so its many SVG parts cost nothing elsewhere.
   .station { left: 124.313vw; top: 73.5vw; width: 6.063vw; height: 4.375vw; opacity: var(--o-station, 0); }
-  .station::before {
-    content: ''; position: absolute; left: 18%; top: 22%; width: 64%; height: 56%; border-radius: 50%;
-    border: 0.12vw solid rgba(190, 236, 255, 0.85);
-    box-shadow: 0 0 0.6vw rgba(76, 201, 240, 0.55), inset 0 0 0.4vw rgba(76, 201, 240, 0.4);
-  }
-  .station::after {
-    content: ''; position: absolute; left: 0; right: 0; top: 47%; height: 0.14vw;
-    background: linear-gradient(90deg, transparent, #9fe6ff 18%, #e6f8ff 50%, #9fe6ff 82%, transparent);
-  }
-  .station > i {
-    position: absolute; left: 42%; top: 36%; width: 16%; height: 28%; border-radius: 0.1vw;
-    background: linear-gradient(180deg, #e6f8ff, #4c8fb0); box-shadow: 0 0 0.5vw #4cc9f0;
-  }
+  .station > sc-briefing-station { visibility: hidden; }
+  .scene:is([data-pose='admin'], [data-flying]) .station > sc-briefing-station { visibility: visible; }
 
   // Codex: the holo glow the camera turns towards (the Codex stage draws its own hologram).
   .holo { left: 225vw; top: 37.5vw; width: 100vw; height: 56.25vw; opacity: var(--o-holo, 0); }
@@ -208,12 +232,12 @@ html[data-sc-scene] body { background: transparent; }
     position: absolute;
     inset: 0;
     opacity: var(--o-planet, 0);
-    transition: opacity var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1);
+    transition: opacity var(--f-planet, var(--scene-move)) cubic-bezier(0.65, 0, 0.35, 1);
   }
   .scene[data-live] .planet { background: none; box-shadow: none; }
   // Leaving the hub (data-carry): the doors' pieces stand where the hub's doors stood and ride the
   // camera to the next pose — shown at once, then the pose's own value over the flight.
-  .scene[data-carry] :is(.news, .patches, .gallery) { animation: sc-scene-carry var(--scene-move) cubic-bezier(0.65, 0, 0.35, 1) both; }
+  .scene[data-carry] :is(.news, .patches, .gallery) { animation: sc-scene-carry var(--f, var(--scene-move)) cubic-bezier(0.65, 0, 0.35, 1) both; }
   .scene[data-carry] .news { --carry-to: var(--o-news, 0); }
   .scene[data-carry] .patches { --carry-to: var(--o-patches, 0); }
   .scene[data-carry] .gallery { --carry-to: var(--o-gallery, 0); }
@@ -253,6 +277,11 @@ html[data-sc-scene] body { background: transparent; }
     .tilt.near { animation-name: sc-scene-tilt-near; }
   }
 
+  // D3: a full entrance ignites the scene from black at the entrance pose - the stars first, then the
+  // world (mock d5-pb-main-fadein: 0.2-1.6 s) - while the hub's dolly starts at 0.8 s.
+  .scene[data-ignite] .sky { animation: sc-scene-ignite 900ms ease-out both; }
+  .scene[data-ignite] :is(.world, .live-planet) { animation: sc-scene-ignite 1400ms ease-in-out 200ms both; }
+
   // Reduced motion: the camera jumps (SceneCameraService), the scene crossfades in 420 ms.
   .scene[data-fade='0'] { animation: sc-scene-fade-a 420ms ease-out both; }
   .scene[data-fade='1'] { animation: sc-scene-fade-b 420ms ease-out both; }
@@ -279,6 +308,14 @@ html[data-sc-brief-world] body { overflow: clip; }
 @keyframes sc-scene-beacon { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 @keyframes sc-scene-fade-a { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sc-scene-fade-b { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sc-scene-ignite { from { opacity: 0; } }
+// C8 / D9: the reduced-motion crossfade between two scene states (SceneCameraService.crossfade). The
+// global reduced-motion rule stills every View Transition; this one is the crossfade itself.
+html[data-sc-scene-fade]::view-transition-group(root) { animation: none !important; }
+html[data-sc-scene-fade]::view-transition-old(root) { animation: sc-scene-xf-out 420ms ease-in-out both !important; }
+html[data-sc-scene-fade]::view-transition-new(root) { animation: sc-scene-xf-in 420ms ease-in-out both !important; }
+@keyframes sc-scene-xf-out { to { opacity: 0; } }
+@keyframes sc-scene-xf-in { from { opacity: 0; } }
 @keyframes sc-scene-carry { from { opacity: 1; } to { opacity: var(--carry-to, 0); } }
 @keyframes sc-scene-tilt-far { to { transform: translateY(-3vh); } }
 @keyframes sc-scene-tilt-near { to { transform: translateY(-7vh) scale(1.015); } }

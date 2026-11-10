@@ -1,5 +1,8 @@
 import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, ElementRef, NgZone, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { BriefingPlanetComponent } from '../../verse/pages/briefing/briefing-planet.component';
+import { BriefingStationComponent } from '../../verse/pages/briefing/briefing-station.component';
+import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
+import { SceneBodiesComponent } from './scene-bodies.component';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router } from '@angular/router';
 import { BetaService } from '../../core/beta.service';
 import { SlowMotionService } from '../../core/slow-motion.service';
@@ -7,6 +10,7 @@ import { WindowFocusService } from '../../core/window-focus.service';
 import {
   CameraPose,
   POSES,
+  SCENE_FADE_OUT_SHARE,
   SCENE_FLIGHT_MS,
   SCENE_OBJECTS,
   SCENE_PUSH_MS,
@@ -19,6 +23,9 @@ import {
 } from './scene.model';
 import { SceneCameraService } from './scene-camera.service';
 import { SPARKLE_COUNT, StarSparkle } from './star-sparkle';
+
+/** How long the scene's ignite from black runs on a full entrance (sky 0–0.9 s, world 0.2–1.6 s, mock d5-pb-main-fadein). */
+const IGNITE_MS = 1700;
 
 /** Marker on `<html>` while the scene is on: the VERSE FLIGHT styles keep it out of every View Transition snapshot. */
 export const SCENE_HTML_ATTR = 'data-sc-scene';
@@ -39,7 +46,7 @@ export const SCENE_HTML_ATTR = 'data-sc-scene';
   selector: 'sc-shell-scene',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BriefingPlanetComponent],
+  imports: [BriefingPlanetComponent, BriefingStationComponent, SceneBodiesComponent],
   templateUrl: './shell-scene.component.html',
   styleUrl: './shell-scene.component.scss',
   // Global on purpose: it has to clear body's background (see the stylesheet); every rule is scoped by the host class.
@@ -56,7 +63,17 @@ export class ShellSceneComponent {
   private readonly focus = inject(WindowFocusService);
   private readonly slow = inject(SlowMotionService);
   private readonly zone = inject(NgZone);
+  private readonly chrome = inject(ShellChromeService);
   private sparkle: StarSparkle | null = null;
+
+  /**
+   * The full entrance of a bare-domain visit (the shell announced it at boot): the camera stands at
+   * `POSES.entrance` from the very first frame and the scene ignites from black (stars, then the
+   * world) — the hub dollies it in from there, so nothing ever shows the final pose first (D3).
+   */
+  readonly igniting = signal(false);
+  /** The pieces' body canvases show until the engine drew each once (scene-bodies.component). */
+  readonly warming = signal(true);
 
   /** Where the camera stands for the current URL (pose + push depth). */
   private at = sceneTargetOf(this.router.url);
@@ -83,11 +100,17 @@ export class ShellSceneComponent {
   /** Object opacities and veil as custom properties (the stylesheet transitions them over the flight). */
   readonly vars = computed(() => {
     const def = POSES[this.cam.target()];
+    const move = this.cam.moveMs();
     const out: Record<string, string | number> = {
       '--scene-veil': Math.min(0.8, def.veil + (this.cam.pushed() ? SCENE_PUSH_VEIL : 0)),
-      '--scene-move': `${this.cam.moveMs()}ms`,
+      '--scene-move': `${move}ms`,
     };
-    for (const o of SCENE_OBJECTS) out[`--o-${o}`] = def.show[o] ?? 0;
+    // What the target pose shows fades in over the whole flight; everything else is gone by mid-flight (D7).
+    for (const o of SCENE_OBJECTS) {
+      const v = def.show[o] ?? 0;
+      out[`--o-${o}`] = v;
+      out[`--f-${o}`] = `${v > 0 ? move : Math.round(move * SCENE_FADE_OUT_SHARE)}ms`;
+    }
     // The doors' pieces stand under the hub's doors (its lent layout).
     const doors = doorRects(this.cam.verseAnchors());
     for (const [d, r] of Object.entries(doors)) {
@@ -116,6 +139,14 @@ export class ShellSceneComponent {
             this.zone.run(() => this.planetParked.set(true));
           }, ms + 120);
         });
+      });
+    });
+    // The entrance ended without its dolly (skipped before it started, or no hub took the announced
+    // entrance over): the camera leaves the depth for the hub's pose instead of staying out there.
+    effect(() => {
+      const intro = this.chrome.heroIntro();
+      untracked(() => {
+        if (!intro?.full && this.cam.isHeld() && this.cam.target() === 'verse') void this.cam.flyTo('verse', { durationMs: 600 });
       });
     });
     const subs = this.router.events.subscribe((e) => {
@@ -154,13 +185,20 @@ export class ShellSceneComponent {
           return;
         }
         root.setAttribute(SCENE_HTML_ATTR, '');
-        detach = this.cam.attach(world, sky, this.at.pose);
+        const entrance = this.at.pose === 'verse' && this.at.depth === 0 && this.chrome.heroIntro()?.full === true && !this.cam.reducedMotion();
+        detach = this.cam.attach(world, sky, this.at.pose, entrance ? POSES.entrance.cam : undefined);
+        if (entrance) this.ignite();
         this.cam.pushed.set(this.at.depth > 0);
         if (this.cam.reducedMotion() || typeof sky.animate !== 'function') return;
         this.sparkle = this.zone.runOutsideAngular(() => new StarSparkle(sky, SPARKLE_COUNT, Math.random, (a) => this.slow.adopt(a)));
         if (!this.focus.focused()) this.sparkle.pause();
       });
     });
+  }
+
+  private ignite(): void {
+    this.igniting.set(true);
+    this.zone.runOutsideAngular(() => setTimeout(() => this.zone.run(() => this.igniting.set(false)), IGNITE_MS));
   }
 
   /** One navigation step: fly to the URL's pose (exposed for the spec). */
@@ -174,25 +212,34 @@ export class ShellSceneComponent {
     const pushIn = next.depth > 0 && (next.pose !== prev.pose || next.depth > prev.depth);
     const dest: CameraPose = next.depth > 0 ? (pushIn ? this.pushPose(base) : this.cam.current()) : base;
     const ms = next.pose !== prev.pose ? SCENE_FLIGHT_MS : SCENE_PUSH_MS;
-    this.cam.pushed.set(next.depth > 0);
     this.pointer = null;
     // Leaving the hub: its doors go with the page, the scene's pieces under them carry on with the camera.
     const token = ++this.carryToken;
-    this.carry.set(prev.pose === 'verse' && next.pose !== 'verse');
-    const flight = this.flyNamed(next.pose, dest, ms, next.depth > 0 && next.pose === prev.pose && !pushIn);
+    const carry = prev.pose === 'verse' && next.pose !== 'verse' && !this.cam.reducedMotion();
+    const apply = (): void => {
+      this.cam.pushed.set(next.depth > 0);
+      this.carry.set(carry);
+    };
+    const flight = this.flyNamed(next.pose, dest, ms, next.depth > 0 && next.pose === prev.pose && !pushIn, apply);
     void flight.then(() => {
       if (token === this.carryToken) this.carry.set(false);
     });
   }
 
-  private flyNamed(pose: ScenePoseId, dest: CameraPose, ms: number, stay: boolean): Promise<void> {
+  private flyNamed(pose: ScenePoseId, dest: CameraPose, ms: number, stay: boolean, apply: () => void): Promise<void> {
     if (stay) {
       // Sideways between two detail pages: the camera stays pushed in.
       this.cam.target.set(pose);
+      apply();
       return Promise.resolve();
     }
-    this.cam.target.set(pose);
-    return this.cam.flyTo(dest, { durationMs: ms });
+    return this.cam.flyTo(dest, {
+      durationMs: ms,
+      apply: () => {
+        this.cam.target.set(pose);
+        apply();
+      },
+    });
   }
 
   private pushPose(base: CameraPose): CameraPose {

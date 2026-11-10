@@ -99,8 +99,9 @@ export const POSES: Readonly<Record<ScenePoseId, ScenePoseDef>> = {
   hq: { cam: { s: 3.6, x: -162.986, y: -120.313 }, show: { planet: 1, hqst: 1 }, veil: 0.38 },
   // Further HQ pages continue straight below HQ (r3 „einfach darunter“).
   'hq-sub': { cam: { s: 3.6, x: -162.986, y: -135.938 }, show: { planet: 1, hqst: 1 }, veil: 0.38 },
-  // Only the station, big; no planet (r3).
-  admin: { cam: { s: 6, x: -115.365, y: -71.521 }, show: { station: 1 }, veil: 0 },
+  // Only the station, big; no planet (r3). It stands right of the cards, in the slot the admin hub
+  // lends (`adminSlot`); this default frames it where that slot sits at 1600 × 900.
+  admin: { cam: { s: 3.586, x: -105.959, y: -66.616 }, show: { station: 1 }, veil: 0 },
   // Pages outside the areas: the Verse view with its planet, under a veil (minor-page playbook dims the scene).
   deep: { cam: VERSE, show: { planet: 1, hqst: 1, holo: 1 }, veil: 0.45 },
 };
@@ -155,8 +156,21 @@ export function doorRects(anchors: VerseAnchors | null): Record<VerseDoor, reado
   return out;
 }
 
-/** A pose's camera, following the hub's layout where it has lent one. */
-export function poseCam(id: ScenePoseId, anchors: VerseAnchors | null): CameraPose {
+/**
+ * The pose that fits world `rect` into the viewport slot `slot` (vw, at scroll 0): as large as the
+ * slot allows, centred in it — the admin station in the free cell beside the hub's cards.
+ */
+export function framedInto(rect: readonly [number, number, number, number], slot: VwRect): CameraPose {
+  const [sl, st, sw, sh] = slot;
+  const s = Math.max(0.05, Math.min(sw / rect[2], sh / rect[3]));
+  const cx = sl + sw / 2;
+  const cy = st + sh / 2;
+  return { s, x: cx / s - (rect[0] + rect[2] / 2), y: cy / s - (rect[1] + rect[3] / 2) };
+}
+
+/** A pose's camera, following the layout a page has lent (the hub's planet and doors, the admin hub's station slot). */
+export function poseCam(id: ScenePoseId, anchors: VerseAnchors | null, adminSlot: VwRect | null = null): CameraPose {
+  if (id === 'admin') return adminSlot ? framedInto(WORLD_RECTS.station, adminSlot) : POSES.admin.cam;
   if (!anchors) return POSES[id].cam;
   if (id === 'verse') return verseCam(anchors);
   if (id === 'news' || id === 'patches' || id === 'gallery') return framedLike(doorRects(anchors)[id]);
@@ -175,6 +189,11 @@ export const SCENE_FLIGHT_MS = 1100;
 export const SCENE_PUSH_MS = 700;
 /** Reduced motion: crossfade instead of any flight. */
 export const SCENE_FADE_MS = 420;
+/**
+ * Share of a flight over which the objects the target pose does not show fade out: they are gone
+ * by mid-flight (r3 „nicht die andere planeten sehen“); objects the pose shows fade in over the whole flight.
+ */
+export const SCENE_FADE_OUT_SHARE = 0.45;
 /** Zoom factor of a push-in towards the clicked element. */
 export const SCENE_PUSH_ZOOM = 1.12;
 /** Extra veil on a pushed-in (detail) page. */
