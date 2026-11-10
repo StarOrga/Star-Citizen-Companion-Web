@@ -48,6 +48,23 @@ describe('CodexLoadoutSaveBarComponent', () => {
     return de.injector.get(ScTooltipDirective).scTooltip();
   }
 
+  it('compact (#322 classic Einsatz row): only the save control, no box, label, notice or discard', () => {
+    TestBed.resetTestingModule();
+    configure(false);
+    fixture = TestBed.createComponent(CodexLoadoutSaveBarComponent);
+    fixture.componentRef.setInput('changed', 2);
+    fixture.componentRef.setInput('saveable', 2);
+    fixture.componentRef.setInput('inHangar', true);
+    fixture.componentRef.setInput('compact', true);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.bar.sc-card')).toBeNull();
+    expect(el.querySelector('.label')).toBeNull();
+    expect(el.querySelector('.notice')).toBeNull();
+    expect(el.querySelector('.discard')).toBeNull();
+    expect(el.querySelector('.save')).not.toBeNull();
+  });
+
   it('renders nothing when the draft has no changes', () => {
     const el = render({ changed: 0, saveable: 0 });
     expect(el.querySelector('.bar')).toBeNull();
