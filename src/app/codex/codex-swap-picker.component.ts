@@ -25,6 +25,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
 import { ammoClassNameFor, ammoClassNamesFor, formatEquippedStat } from './codex-equipped-stats';
 import { CodexSwapCandidatesService } from './codex-swap-candidates.service';
+import { attachTypeLabel } from './detail/codex-detail-facts';
+import { partTypeKey } from './holo/holo-callout-values';
 import {
   ColumnDef,
   ColumnFacet,
@@ -190,7 +192,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                  (click)="$event.stopPropagation()">
           <header class="pick-head">
             <div class="pick-titles">
-              <h2 id="pick-title">{{ 'codex.picker.title' | translate: { port: t.port, size: t.size ?? '' } }}</h2>
+              <h2 id="pick-title">{{ 'codex.picker.title' | translate: { port: slotLabel(t), size: t.size ?? '' } }}</h2>
               @if (t.name) {
                 <p class="pick-installed">{{ 'codex.picker.installed' | translate: { name: t.name } }}</p>
               } @else {
@@ -199,7 +201,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
               @if (t.count > 1) {
                 <p class="pick-applies">{{ 'codex.swap.appliesToMany' | translate: { count: t.count, port: t.port } }}</p>
               } @else {
-                <p class="pick-applies">{{ 'codex.swap.appliesToOne' | translate: { port: t.port } }}</p>
+                <p class="pick-applies">{{ 'codex.swap.appliesToOne' | translate: { port: slotLabel(t) } }}</p>
               }
             </div>
             <button type="button" class="pick-clear" (click)="clearSlot()">
@@ -441,7 +443,10 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 <p class="pick-sorthint">{{ 'codex.swap.sortHint' | translate }}</p>
               }
 
-              <p class="pick-note">{{ 'codex.picker.dashNote' | translate }}</p>
+              <!-- Only the half of the note that a dash in the shown table needs (B13: not under a cooler). -->
+              @if (dashNoteKey(); as note) {
+                <p class="pick-note">{{ note | translate }}</p>
+              }
               @if (baselineOutOfSet()) {
                 <p class="pick-note baseline-note">{{ 'codex.picker.baselineOutOfSet' | translate }}</p>
               }
@@ -1069,6 +1074,33 @@ export class CodexSwapPickerComponent {
     this.columnDefFor(NAME_SORT_KEY),
     ...this.displayColumns().map((c) => c.def),
   ]);
+
+  /** Which "—" note the shown table needs: Ammo on an energy weapon, Spread, both or none. */
+  readonly dashNoteKey = computed<string | null>(() => {
+    const cols = new Set(this.displayColumns().map((c) => c.key));
+    const rows = this.rows();
+    const dash = (key: string) => cols.has(key) && rows.some((c) => swapCellState(c, key) === 'notApplicable');
+    const ammo = dash('codex.picker.col.ammo');
+    const spread = dash('codex.picker.col.spread');
+    if (ammo && spread) return 'codex.picker.dashNote';
+    if (ammo) return 'codex.picker.dashNoteAmmo';
+    return spread ? 'codex.picker.dashNoteSpread' : null;
+  });
+
+  /**
+   * The slot in words for the head: the port name without its engine prefix ("Hardpoint Cooler Left" →
+   * "Cooler Left"); a bare class port ("Hardpoint Class 2", a gun inside a mount) names what it holds — the
+   * weapon type ("Gatling"), else the attach type ("Schiffswaffe").
+   */
+  slotLabel(t: SwapTarget): string {
+    const bare = t.port.replace(/^hardpoint[\s_-]*/i, '').trim();
+    if (bare && !/^class\s*\d+$/i.test(bare)) return bare;
+    const types = t.rawTypes?.length ? t.rawTypes : (t.attachTypes ?? []);
+    const weaponKey = types.includes('WeaponGun') ? partTypeKey('weapons', t.className) : null;
+    if (weaponKey) return this.i18n.instant(weaponKey);
+    const typed = types.length ? attachTypeLabel(types[0], (k) => this.i18n.instant(k)) : null;
+    return typed ?? (bare || t.port);
+  }
 
   readonly rows = computed<SwapCandidate[]>(() =>
     applyColumnMenu(this.searched(), this.allMenuColumns(), this.columnMenu()),

@@ -39,6 +39,8 @@ export interface DeckPlanRoom {
 export interface DeckPlan {
   key: string;
   label: string;
+  /** The uploader's catch-all deck for rooms no authored deck claims ("Weitere Räume"). */
+  fallback: boolean;
   order: number;
   rooms: DeckPlanRoom[];
 }
@@ -127,6 +129,16 @@ export function humanizeRoomKey(key: string): string {
 }
 
 /** True for a label that is still an engine token, not a name a player would read. */
+/**
+ * One spelling for every room name, from the data or from the key: words spaced
+ * (`TurretAccess`, `turret_access` → "Turret Access"), single spaces, a capital
+ * first letter. A name with no German side stays English (B13).
+ */
+export function tidyRoomLabel(label: string): string {
+  const spaced = label.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_\s]+/g, ' ').trim();
+  return spaced ? spaced[0].toLocaleUpperCase() + spaced.slice(1) : spaced;
+}
+
 function isRawRoomToken(label: string): boolean {
   return label === '' || /^room(\s|_|-)?(rn)?[\s_-]*\d*$/i.test(label) || /_/.test(label);
 }
@@ -137,8 +149,8 @@ function roomLabel(name: ShipDeckRoom['name'], key: string, lang: Lang): string 
   // Raw names from the data ("Room Corridor", "Room_RN-009") are engine tokens:
   // strip the "Room" prefix, and hide what stays unreadable.
   const cleaned = named?.replace(/^room[\s_]+/i, '').trim();
-  if (cleaned && !isRawRoomToken(cleaned)) return cleaned;
-  return humanizeRoomKey(key);
+  if (cleaned && !isRawRoomToken(cleaned)) return tidyRoomLabel(cleaned);
+  return tidyRoomLabel(humanizeRoomKey(key));
 }
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -182,6 +194,7 @@ export function buildDeckPlans(decks: readonly ShipDeck[] | null | undefined, la
   const out: DeckPlan[] = parsed.map(({ deck, rooms }) => ({
     key: deck.key,
     label: deckLabel(deck, lang),
+    fallback: !!deck.fallback,
     order: deck.order ?? 0,
     rooms: rooms
       .map((room) => {

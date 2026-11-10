@@ -93,11 +93,26 @@ let nextDeckPlanId = 0;
                   @if (!r.paths.length && !r.mesh) {
                     <circle [attr.cx]="r.anchor.x" [attr.cy]="r.anchor.y" [attr.r]="fontSize() * 0.6" />
                   }
-                  @if (showsLabel(r)) {
-                    <text class="lbl" [attr.x]="r.anchor.x" [attr.y]="r.anchor.y" text-anchor="middle"
-                          dominant-baseline="middle" [attr.font-size]="labelSize()">{{ r.label }}</text>
-                  }
                 </g>
+              }
+              <!-- Labels in their own pass, over every footprint: a later room never draws across a name. -->
+              @for (r of d.rooms; track r.key) {
+                @if (r.label !== activeLabel() && labeled().has(r.key)) {
+                  <text class="lbl" [attr.x]="r.anchor.x" [attr.y]="r.anchor.y" text-anchor="middle"
+                        dominant-baseline="middle" [attr.font-size]="labelSize()">{{ r.label }}</text>
+                }
+              }
+              <!-- The selected room, unmistakable (B13): a room without a footprint gets a ring,
+                   every selected room its name on the plan. -->
+              @for (r of activeRooms(); track r.key) {
+                @if (!r.paths.length && !r.mesh) {
+                  <circle class="ring" [attr.cx]="r.anchor.x" [attr.cy]="r.anchor.y" [attr.r]="fontSize() * 1.5" />
+                }
+                @if ($first) {
+                  <text class="lbl on" [attr.x]="r.anchor.x + (r.paths.length || r.mesh ? 0 : fontSize() * 2)" [attr.y]="r.anchor.y"
+                        [attr.text-anchor]="r.paths.length || r.mesh ? 'middle' : 'start'"
+                        dominant-baseline="middle" [attr.font-size]="fontSize() * 0.9">{{ r.label }}</text>
+                }
               }
             </svg>
           </div>
@@ -163,8 +178,12 @@ let nextDeckPlanId = 0;
       vector-effect: non-scaling-stroke; }
     .room path.mesh { stroke: none; }
     .room circle { fill: var(--sc-fg-2); }
-    .room .lbl { fill: var(--sc-fg-1); pointer-events: none; }
-    .room:hover path, .room.on path { fill: color-mix(in srgb, var(--sc-accent) 30%, transparent); stroke: var(--sc-accent); }
+    .lbl { fill: var(--sc-fg-1); pointer-events: none; paint-order: stroke; stroke: var(--sc-bg-0); stroke-width: 3px; stroke-linejoin: round; }
+    .lbl.on { fill: var(--sc-accent); font-weight: 600; }
+    .ring { fill: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke: var(--sc-accent); stroke-width: 2px; vector-effect: non-scaling-stroke; pointer-events: none; }
+    .room:hover path { fill: color-mix(in srgb, var(--sc-accent) 30%, transparent); stroke: var(--sc-accent); }
+    .room.on path { fill: color-mix(in srgb, var(--sc-accent) 45%, transparent); stroke: var(--sc-accent); stroke-width: 2px;
+      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--sc-accent) 70%, transparent)); }
     .room:hover path.mesh, .room.on path.mesh { stroke: none; }
     .room:hover circle, .room.on circle { fill: var(--sc-accent); }
 
@@ -262,6 +281,31 @@ export class ShipDeckPlanComponent {
     const fs = this.labelSize();
     return r.box.w * 0.9 >= r.label.length * fs * 0.55 && r.box.h >= fs * 1.4;
   }
+
+  /**
+   * The rooms whose name sits on the plan: it fits ({@link showsLabel}) and no other room's
+   * footprint lies across it (the Carrack's "Turret Access" crossed a smaller box, B13).
+   */
+  readonly labeled = computed<ReadonlySet<string>>(() => {
+    const rooms = this.deck()?.rooms ?? [];
+    const fs = this.labelSize();
+    const out = new Set<string>();
+    for (const r of rooms) {
+      if (!r.label || !this.showsLabel(r)) continue;
+      const hw = (r.label.length * fs * 0.55) / 2;
+      const hh = fs * 0.7;
+      const crossed = rooms.some((o) => o !== r && o.box.w > 0 && o.box.w * o.box.h < r.box.w * r.box.h
+        && Math.abs(o.anchor.x - r.anchor.x) < hw + o.box.w / 2 && Math.abs(o.anchor.y - r.anchor.y) < hh + o.box.h / 2);
+      if (!crossed) out.add(r.key);
+    }
+    return out;
+  });
+
+  /** Every room of the active name (one name can cover several footprints). */
+  readonly activeRooms = computed<DeckPlanRoom[]>(() => {
+    const label = this.activeLabel();
+    return label ? (this.deck()?.rooms ?? []).filter((r) => r.label === label) : [];
+  });
 
   onTabKey(event: KeyboardEvent, decks: readonly DeckPlan[]): void {
     const i = decks.findIndex((d) => d.key === this.deck()?.key);

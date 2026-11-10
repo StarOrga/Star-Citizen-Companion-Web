@@ -8,6 +8,8 @@ import {
   RankProfileId,
   rankClassPluralKey,
   rankGroupName,
+  rankRoleReadsAsGroup,
+  rankBandOfPlace,
   rankProfileById,
   RankAxisResult,
   RankResult,
@@ -16,6 +18,7 @@ import {
 } from './codex-rank';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { formatNumber } from './codex-format';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { modelHintKey } from './codex-em-model';
 
@@ -116,10 +119,10 @@ function readShapePref(): 'hex' | 'bars' {
              "Vergleich mit" + the group as a list and the hexagon ⇄ bars switch. -->
         @if (result()!.rank) {
           <p class="holo-rank" tabindex="0"
-             [scTooltip]="result()!.overall !== null ? ('codex.holo.card.overallTip' | translate: { pct: result()!.overall }) : null" scTooltipTier="label">
+             [scTooltip]="result()!.overall !== null ? ('codex.holo.card.overallTip' | translate: { pct: pct(result()!.overall) }) : null" scTooltipTier="label">
             <b>{{ 'codex.holo.card.rank' | translate: { n: result()!.rank, m: result()!.cohortSize } }}</b>
             <span class="sep" aria-hidden="true">·</span><span class="grp">{{ activeScopeLabel() }}</span>
-            @if (result()!.bandKey; as band) { <span class="sep" aria-hidden="true">·</span><span class="band">{{ band | translate }}</span> }
+            @if (holoBandKey(); as band) { <span class="sep" aria-hidden="true">·</span><span class="band">{{ band | translate }}</span> }
           </p>
         }
         <!-- D6: one header block. The label (its info in the label's own tooltip) above,
@@ -214,7 +217,11 @@ function readShapePref(): 'hex' | 'bars' {
             <dd><b class="down">{{ copy().legendWorse | translate }}</b></dd>
           </dl>
           @if (holo()) {
-            <p class="rim-note">{{ 'codex.rank.rimNote' | translate }}</p>
+            <!-- The scale's footnote lives in its own tooltip: two full lines did not fit the fixed card (B13). -->
+            <span class="hc-label rim-i" tabindex="0" [scTooltip]="'codex.rank.rimNote' | translate">
+              {{ 'codex.rank.rimLabel' | translate }}<span class="hc-i" aria-hidden="true">i</span>
+              <span class="sr-only">{{ 'codex.rank.rimNote' | translate }}</span>
+            </span>
             @if (missionNoteKey(); as note) {
               <p class="rim-note">{{ note | translate }}</p>
             }
@@ -286,7 +293,7 @@ function readShapePref(): 'hex' | 'bars' {
                 </span>
                 <span class="bar-value">
                   @if (a.percentile != null && holo()) {
-                    <span class="bar-pct">{{ 'codex.rank.betterThan' | translate: { n: a.percentile } }}</span>
+                    <span class="bar-pct">{{ 'codex.rank.betterThan' | translate: { n: pct(a.percentile) } }}</span>
                   } @else if (a.percentile != null) {
                     {{ a.percentile }}%
                   } @else {
@@ -517,10 +524,11 @@ function readShapePref(): 'hex' | 'bars' {
     :host(.holo) .sub-head i { flex: 1; height: 1px; background: var(--sc-border); }
     :host(.holo) .bar-list { grid-template-columns: 1fr !important; }
     :host(.holo) .bar-row { grid-template-columns: 82px 1fr 40px; }
-    :host(.holo) .bar-label { font-size: max(11.5px, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; }
+    /* Whole words only: "QUERSCHNITT" never breaks as "QUERSCHNIT/T"; a compound breaks at its own hyphen. */
+    :host(.holo) .bar-label { font-size: max(11.5px, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; overflow-wrap: normal; word-break: normal; hyphens: manual; }
     :host(.holo) .bar-value { font-family: var(--font-monospace, monospace); }
     :host(.holo) .rank-skel { height: 180px; }
-    :host(.holo) .bar-row { grid-template-columns: 82px minmax(0, 1fr) auto; }
+    :host(.holo) .bar-row { grid-template-columns: 96px minmax(0, 1fr) auto; }
     :host(.holo) .bar-value { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; text-align: right; }
         :host(.holo) .bar-pct { font-family: var(--sc-font-body); font-size: max(11.5px, var(--sc-fs-floor)); color: var(--sc-fg-0); white-space: nowrap; }
     :host(.holo) .holo-rank { margin: 0; text-align: center; font-size: max(12px, var(--sc-fs-floor)); color: var(--sc-fg-1); }
@@ -540,6 +548,7 @@ function readShapePref(): 'hex' | 'bars' {
     :host(.holo) .hc-select { min-width: 0; }
     /* Same height as the compact picker beside it: both rows are 32px. */
     :host(.holo) .hc-shape { align-self: stretch; }
+    :host(.holo) .rim-i { align-self: flex-start; }
     .rim-note { margin: 0; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
   `],
 })
@@ -616,13 +625,29 @@ export class CodexRankCardComponent {
     this.langTick();
     const t = this.translate;
     const alle = (name: string) => t.instant('codex.rank.group.of', { name });
+    const lang = t.getCurrentLang() || 'de';
+    const roleGroup = (role: string) =>
+      rankRoleReadsAsGroup(role, lang) ? alle(rankGroupName(role, lang)) : t.instant('codex.rank.group.ofRole', { name: role.trim() });
     const cls = this.shipClass();
     const role = this.roleName();
     return {
       all: t.instant('codex.rank.scope.all'),
       career: cls ? alle(t.instant(rankClassPluralKey(cls))) : t.instant('codex.rank.scope.careerHolo'),
-      role: role ? alle(rankGroupName(role, t.getCurrentLang() || 'de')) : t.instant('codex.rank.scope.roleHolo'),
+      role: role ? roleGroup(role) : t.instant('codex.rank.scope.roleHolo'),
     };
+  });
+
+  /** A percentage in the reader's number format ("80,8" in German), one decimal at most. */
+  pct(n: number | null): string {
+    this.langTick();
+    return n == null ? '—' : formatNumber(n, undefined, 1);
+  }
+
+  /** Holo rank line: the band word agrees with the place ("Rang 1 von 16" is never "im Mittelfeld"). */
+  readonly holoBandKey = computed<string | null>(() => {
+    const r = this.result();
+    const band = r ? rankBandOfPlace(r.rank ?? null, r.cohortSize) : null;
+    return band ? `codex.rank.band.${band}` : null;
   });
 
   readonly activeScopeLabel = computed<string>(() => {

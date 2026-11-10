@@ -348,6 +348,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
             [labelPins]="labelPins()"
             [partFilter]="partFilter()"
             [diffPorts]="changedPorts()"
+            [hintHidden]="!!undoToast() || !!copyToast()"
             (portSwap)="onPortSwap($event)"
             [schemaView]="schemaView()"
             [orbit]="pinRing()"
@@ -882,7 +883,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .vw-ic svg { display: block; width: 100%; height: 100%; }
   .vw-ic path { fill: var(--a12); stroke: color-mix(in srgb, var(--sc-accent) 70%, var(--sc-fg-0)); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
   .vw-ic.akte { background: linear-gradient(170deg, var(--sc-bg-1), color-mix(in srgb, var(--holo-gold) 45%, var(--sc-bg-1)) 60%, color-mix(in srgb, var(--holo-gold) 70%, var(--sc-bg-1))); }
-  .vw-l { font-size: max(10px, var(--f)); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vw-l { font-size: max(10px, var(--f)); text-align: center; overflow: hidden; line-height: 1.15; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
   .vw-thumb:hover:not(.dis) .vw-ic { border-color: var(--l2); }
   .vw-thumb:hover:not(.dis) .vw-l { color: var(--sc-fg-0); }
   .vw-thumb.on .vw-ic { border-color: var(--sc-accent); box-shadow: 0 0 0 1px var(--sc-accent); }
@@ -976,6 +977,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   /* Wide: the draft sits in the fixed card, above "Details"; narrow: it floats above the strip. */
   .draft-card { flex: none; display: block; margin: 0 10px 8px; padding: 8px 10px; border: 1px solid var(--sc-accent); border-radius: 10px;
   background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); }
+  .draft-card:empty { display: none; }
   .draft-card ::ng-deep .bar { padding: 0; margin: 0; gap: 6px 8px; border: 0; background: none; }
   .draft-card ::ng-deep .notice { min-width: 0; flex-basis: 100%; }
   .draft-card ::ng-deep .actions { flex-basis: 100%; }
@@ -1436,7 +1438,8 @@ export class CodexHoloStageComponent {
       const only = set.decks[0];
       return [outside, { key: only.key, label: only.label, labelKey: only.label ? null : 'codex.holo.stage.deckInside' }];
     }
-    return [outside, ...set.decks.map((d) => ({ key: d.key, label: d.label, labelKey: null }))];
+    // The catch-all deck beside named decks reads "Weitere": "Weitere Räume" did not fit its thumbnail (B13).
+    return [outside, ...set.decks.map((d) => ({ key: d.key, label: d.label, labelKey: d.fallback ? 'codex.holo.stage.deckRest' : null }))];
   });
   /** What the table draws for the picked deck; null = the hull. */
   readonly tableDeck = computed<HoloDeckView | null>(() => {

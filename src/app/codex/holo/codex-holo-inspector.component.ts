@@ -20,6 +20,13 @@ import type { PortPinBadge } from './codex-holo-patch.component';
 import { PinGroup, StagePin } from './codex-holo-model';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloDiffMarkerComponent } from './holo-diff-marker';
+import { partTypeKey } from './holo-callout-values';
+
+/** Stat names too long for a third of the card get a short form; the rest keep their own label. */
+const SHORT_STAT: Readonly<Record<string, string>> = { projectileSpeed: 'codex.holo.stage.statShort.projectileSpeed' };
+function shortStatKey(key: string): string {
+  return SHORT_STAT[key.slice(key.lastIndexOf('.') + 1)] ?? key;
+}
 
 /** The part the panel talks about: what a pilot asks about, the gun rather than its mount. */
 export interface PartFocus {
@@ -345,7 +352,7 @@ function chipSize(pin: StagePin): number | null {
     /* minmax(0,1fr): a long label ("Geschossgeschwindigkeit") wraps inside its cell. */
     .insp-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px 6px; }
     .insp-stats div { display: grid; gap: 2px; align-content: space-between; min-width: 0; }
-    .insp-stats dt { font-family: inherit; text-transform: none; font-size: max(9.5px, var(--f)); color: var(--sc-fg-2); overflow-wrap: anywhere; hyphens: auto; }
+    .insp-stats dt { font-family: inherit; text-transform: none; font-size: max(9.5px, var(--f)); color: var(--sc-fg-2); overflow-wrap: normal; hyphens: manual; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .insp-stats dd { margin: 0; font-family: var(--m); font-size: 15px; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .insp-draft { margin: 0; display: flex; align-items: center; gap: 8px; }
     .tag.draft { font-size: max(10px, var(--f)); color: var(--sc-accent); border: 1px solid var(--sc-accent); border-radius: 2px; padding: 1px 6px; }
@@ -548,7 +555,10 @@ export class CodexHoloInspectorComponent {
 
   partMeta(part: PartFocus): string {
     const size = part.size != null ? `S${part.size}` : null;
-    return [size, part.typeLabel, this.maker(part.manufacturerCode)].filter((x): x is string => !!x).join(' · ');
+    // The type in the reader's language ("Gatling", "Kühler"), not the extract's English "Weapon Gun" (B13).
+    const typeKey = partTypeKey(this.section(), part.className);
+    const type = typeKey ? this.injector.get(TranslateService).instant(typeKey) : part.typeLabel;
+    return [size, type, this.maker(part.manufacturerCode)].filter((x): x is string => !!x).join(' · ');
   }
 
   /** The part's values: its size and grade, then what the extract knows about it. */
@@ -556,7 +566,7 @@ export class CodexHoloInspectorComponent {
     const out: { key: string; value: string }[] = [];
     if (part.size != null) out.push({ key: 'codex.holo.stage.partSize', value: `S${part.size}` });
     if (part.grade) out.push({ key: 'codex.holo.stage.partGrade', value: part.grade });
-    for (const st of part.stats.slice(0, 6 - out.length)) out.push({ key: st.labelKey, value: formatEquippedStat(st) });
+    for (const st of part.stats.slice(0, 6 - out.length)) out.push({ key: shortStatKey(st.labelKey), value: formatEquippedStat(st) });
     return out;
   }
 

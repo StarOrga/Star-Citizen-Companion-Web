@@ -1008,7 +1008,11 @@
         "filterMissiles": "Missiles",
         "filterComponents": "Components",
         "filterOther": "Other",
-        "filterAll": "All parts"
+        "filterAll": "All parts",
+        "deckRest": "Other",
+        "statShort": {
+          "projectileSpeed": "Bullet speed"
+        }
       },
       "strip": {
         "einsatz": "Mission",
@@ -1562,11 +1566,13 @@
       },
       "group": {
         "of": "All {{name}}",
-        "smallHint": "Only {{n}} ships in this group, so the comparison is rough."
+        "smallHint": "Only {{n}} ships in this group, so the comparison is rough.",
+        "ofRole": "{{name}} role"
       },
       "noMiningData": "Mining and salvage output: no data",
       "rimNote": "Outside = close to the group best (95 %), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67 %.",
-      "betterThan": "Better than {{n}} %"
+      "betterThan": "Better than {{n}} %",
+      "rimLabel": "Scale"
     },
     "detail": {
       "manufacturer": "Manufacturer",
@@ -1773,7 +1779,7 @@
       "close": "Close",
       "typeFilter": "Item type",
       "filterAll": "All",
-      "appliesToOne": "Applies to the {{port}} hardpoint",
+      "appliesToOne": "Applies to this slot only: {{port}}",
       "appliesToMany": "Applies to all {{count}} identical hardpoints",
       "sortHint": "Click a column to sort, Ctrl-click to add a secondary sort.",
       "installedNone": "Bay empty (stock)",
@@ -1918,7 +1924,9 @@
         "deg": "°",
         "perSec": "/s",
         "percent": "%"
-      }
+      },
+      "dashNoteAmmo": "Ammo reads “—” on energy weapons because they have no magazine. Not an extractor gap.",
+      "dashNoteSpread": "Spread reads “—” because the P4K only carries spread as a modifier. Not an extractor gap."
     },
     "hardpointMap": {
       "title": "Position on the hull",

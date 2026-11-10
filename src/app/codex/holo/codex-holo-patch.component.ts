@@ -180,7 +180,7 @@ export type HoloPatchSide = CodexBuild | 'active';
               <dt>{{ 'codex.holo.patch.schema.version' | translate }}</dt>
               <dd>{{ selected()?.schemaVersion }}</dd>
               <dt>{{ 'codex.holo.patch.schema.extractedAt' | translate }}</dt>
-              <dd>{{ selected()?.extractedAt ?? '—' }}</dd>
+              <dd>{{ extractedStamp() }}</dd>
               <dt>{{ 'codex.holo.patch.schema.entityCount' | translate }}</dt>
               <dd>{{ entityCount(selected()) ?? '—' }}</dd>
               @if (reExtractPending()) {
@@ -460,6 +460,12 @@ export class CodexHoloPatchComponent {
   }
 
   /** Localised date + time for a build stamp — never the raw ISO string (AUD-188). */
+  /** The admin schema row's "Extrahiert am" in the reader's date format, never the raw ISO string (B13). */
+  extractedStamp(): string {
+    const iso = this.selected()?.extractedAt;
+    return iso ? this.stamp(iso) : '—';
+  }
+
   private stamp(iso: string): string {
     return formatScDate(iso, { language: this.locale.language(), region: this.locale.region(), style: 'datetime' });
   }
