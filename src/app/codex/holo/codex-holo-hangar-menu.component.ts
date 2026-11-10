@@ -126,10 +126,10 @@ export interface HangarExemplar {
               </a>
             }
             <button type="button" role="menuitem" class="add" [disabled]="busy()" (click)="fire(addWish, null)">
-              ♡ {{ (wishQty() > 0 ? 'codex.holo.hangar.wishAgain' : 'codex.holo.hangar.toWishlist') | translate }}
+              <span class="wl"><span class="wt">♡ {{ (wishQty() > 0 ? 'codex.holo.hangar.wishAgain' : 'codex.holo.hangar.toWishlist') | translate }}</span>
               @if (activeId() === null && werkChanged() > 0) {
                 <small class="with">{{ (werkChanged() === 1 ? 'codex.holo.hangar.wishWithOne' : 'codex.holo.hangar.wishWithMany') | translate: { n: werkChanged() } }}</small>
-              }</button>
+              }</span></button>
           } @else {
             <hr />
             <a role="menuitem" class="go" routerLink="/login" (click)="open.set(false)">{{ 'codex.ownCard.signIn' | translate }} <span aria-hidden="true">›</span></a>
@@ -178,7 +178,10 @@ export interface HangarExemplar {
     .add { color: var(--sc-fg-0); }
     .add:disabled { opacity: 0.45; cursor: not-allowed; }
     .go { color: var(--sc-accent); }
-    .add .with { margin-inline-start: auto; align-self: center; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    /* The wish row: the label on one line, how many swaps it carries as a quiet second line under it. */
+    .add .wl { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: start; }
+    .add .wt { white-space: nowrap; }
+    .add .with { font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .note { margin: 0; padding: 0 10px; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .err { margin: 4px 10px 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-danger); }
     @media (pointer: coarse) { .hb { height: 48px; border-radius: 24px; } .row, .add, .go, .act { min-height: 48px; align-items: center; } }

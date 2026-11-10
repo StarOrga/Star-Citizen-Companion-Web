@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
-import { ExemplarAiService, loadoutHash, EXEMPLAR_NAME_TIMEOUT_MS } from './exemplar-ai.service';
+import { AI_COLUMNS_MISSING_KEY, ExemplarAiService, loadoutHash, EXEMPLAR_NAME_TIMEOUT_MS } from './exemplar-ai.service';
 
 const L = (portName: string, className: string) => ({ portName, className, kind: 'weapon' });
 const changes = [{ slot: 'Waffe 1', from: 'Omnisky VI', to: 'Laser Repeater S3' }];
@@ -22,7 +22,10 @@ describe('loadoutHash', () => {
 });
 
 describe('ExemplarAiService', () => {
-  function mount(opts: { data?: unknown; invokeError?: unknown; stored?: Record<string, unknown> | null; updateError?: unknown; readError?: unknown } = {}) {
+  afterEach(() => sessionStorage.removeItem(AI_COLUMNS_MISSING_KEY));
+
+  function mount(opts: { data?: unknown; invokeError?: unknown; stored?: Record<string, unknown> | null; updateError?: unknown; readError?: unknown; keepSession?: boolean } = {}) {
+    if (!opts.keepSession) sessionStorage.removeItem(AI_COLUMNS_MISSING_KEY);
     const invoke = vi.fn().mockResolvedValue({
       data: opts.data ?? { ok: true, status: 'generated', text: 'Laser-Jäger' },
       error: opts.invokeError ?? null,
@@ -79,6 +82,17 @@ describe('ExemplarAiService', () => {
     expect(r).toEqual({ summary: 'alt', hash: loadoutHash(loadout), regenerated: false, errorKey: null });
     expect(m.invoke).not.toHaveBeenCalled();
     expect(m.update).not.toHaveBeenCalled();
+  });
+
+  it('ensureSummary: a fresh load in the same browser session does not ask for the missing columns again', async () => {
+    const m = mount({ readError: { code: '42703', message: 'column hangar_ship_configs.ai_summary does not exist' } });
+    await m.svc.ensureSummary('c1', { shipName: 'Gladius', loadout, changes });
+    expect(sessionStorage.getItem(AI_COLUMNS_MISSING_KEY)).toBe('1');
+    const reloaded = mount({ keepSession: true });
+    const r = await reloaded.svc.ensureSummary('c1', { shipName: 'Gladius', loadout, changes });
+    expect(r.summary).toBeNull();
+    expect(reloaded.select).not.toHaveBeenCalled();
+    expect(reloaded.invoke).not.toHaveBeenCalled();
   });
 
   it('ensureSummary: different hash -> one call, text and hash written, clamped to 90', async () => {
