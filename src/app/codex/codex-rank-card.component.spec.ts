@@ -210,6 +210,29 @@ describe('CodexRankCardComponent', () => {
     const segs = Array.from(el.querySelectorAll('.compare-head .seg-btn')).map((b) => b.textContent?.trim());
     expect(segs).toContain('codex.rank.group.of');
   });
+
+  it('the classic card shows the small-group hint as a tooltip marker, never as a block line (#329)', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100, sustainedDps: 1, missiles: 1 } };
+    const other: RankShipInput = { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200, sustainedDps: 2, missiles: 2 } };
+    const base = rankShip(target, [target, other], { profile: 'combat', scope: 'all' });
+    fixture.componentRef.setInput('holoContent', true);
+    fixture.componentRef.setInput('shipClass', 'combat');
+    fixture.componentRef.setInput('result', { ...base, scope: 'all', scopeSizes: { all: 2, sizeClass: 2 } });
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // No small group: the marker's slot is reserved but invisible.
+    const slot = el.querySelector<HTMLElement>('.compare-head .small-group-mark');
+    expect(slot?.classList.contains('slot')).toBe(true);
+    expect(getComputedStyle(slot!).visibility).toBe('hidden');
+
+    fixture.componentRef.setInput('result', { ...base, scope: 'sizeClass', scopeSizes: { all: 2, sizeClass: 2 } });
+    fixture.detectChanges();
+    expect(el.querySelector('.small-group')).toBeNull();
+    const mark = el.querySelector<HTMLElement>('.compare-head button.small-group-mark');
+    expect(mark).toBeTruthy();
+    expect(mark!.getAttribute('aria-label')).toBe('codex.rank.group.smallHint');
+    expect(el.querySelector('.compare-head [role="status"]')?.textContent?.trim()).toBe('codex.rank.group.smallHint');
+  });
 });
 
 describe('CodexRankCardComponent - a gap axis is never invented', () => {
