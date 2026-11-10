@@ -1754,6 +1754,13 @@ html[data-sc-scene][data-verse-flight]::view-transition { background: none; }
 }
 /* The content group itself stays put (the page frame does not move); only its images fly. */
 html[data-sc-scene][data-verse-flight]::view-transition-group(vf-page) { animation: none; }
+/* Shell scene, down: the camera does the dive (SceneCameraService push-in). The hub's content only
+   leans in with it and is gone well before mid-flight, so none of its planets or its sun stands beside
+   the planet the camera flies to (D7, r3 "nicht die andere planeten sehen"). */
+html[data-sc-scene][data-verse-flight='down']::view-transition-old(vf-page) {
+  transform-origin: var(--vf-ox) var(--vf-oy);
+  animation: sc-flight-dive-scene 700ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
 /* Star streaks radiate from the tile while the old page dives (own layer, only in the old state). */
 .sc-flight-streaks {
   position: fixed;
@@ -1810,6 +1817,11 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
   0% { opacity: 1; transform: none; filter: none; }
   16% { opacity: 1; transform: scale(1.06); filter: none; }
   100% { opacity: 0; transform: scale(3); filter: blur(5px); }
+}
+@keyframes sc-flight-dive-scene {
+  0% { opacity: 1; transform: none; }
+  50% { opacity: 0; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1.3); }
 }
 @keyframes sc-flight-hold-in { 0%, 22% { opacity: 0; } 34%, 100% { opacity: 1; } }
 @keyframes sc-flight-pull-out { from { opacity: 0; transform: scale(3); filter: blur(5px); } 35% { opacity: 1; } to { opacity: 1; transform: none; filter: none; } }

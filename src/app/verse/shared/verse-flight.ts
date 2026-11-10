@@ -150,11 +150,14 @@ export class VerseFlight {
       this.setOrigin(aimTile);
       root.dataset['verseAim'] = to;
     }
-    const aimed = aimTile && this.aimMs > 0 ? this.aimMs : 0;
+    // Shell β: the scene's camera is the aim and the dive - it flies from the click on, so the hub
+    // does not hold its live page for an aim of its own (its doors would stand beside the scene's).
+    const aimed = aimTile && this.aimMs > 0 && !this.shell() ? this.aimMs : 0;
 
     const run = () => new Promise<null>((started) => {
       root.dataset['verseFlight'] = dir;
-      if (dir === 'down') {
+      // Shell β: no streaks - the camera pushes into the planet, nothing radiates (D6, rounds/05).
+      if (dir === 'down' && !this.shell()) {
         streaks = doc.createElement('div');
         streaks.className = 'sc-flight-streaks';
         streaks.setAttribute('aria-hidden', 'true');
