@@ -65,9 +65,15 @@ const CATALOG_SHARED = [
 export const SUBTHEMES: readonly Subtheme[] = [
   {
     key: 'strings',
-    revision: 1,
+    // 2: E14 — the English table gains the `scc_room_*` room labels
+    // (ship_rooms.py), the translation pipeline's input for room names.
+    revision: 2,
     phases: ['codex_locale_strings'],
-    sources: [...CATALOG_SHARED, 'data-uploader/python/sc_extract/localization.py'],
+    sources: [
+      ...CATALOG_SHARED,
+      'data-uploader/python/sc_extract/localization.py',
+      'data-uploader/python/sc_extract/ship_rooms.py',
+    ],
   },
   {
     key: 'ships',
@@ -94,7 +100,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 12: rooms without an interiorMapSection on a multi-deck ship take the
     // deck of the authored rooms on their floor level, this hull's and its
     // family's (Starlancer MAX from the TAC) — fewer rooms on "Other rooms".
-    revision: 12,
+    // 13: E14 — rooms carry `locKey` (the game's loc key) and, without a
+    // German string, `labelKey` (`scc_room_*`, translated by the pipeline).
+    revision: 13,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,

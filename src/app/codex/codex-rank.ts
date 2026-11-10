@@ -286,6 +286,26 @@ export function rankGroupName(roleLabel: string, lang: string): string {
   return words.join(' ');
 }
 
+/**
+ * Whether a role label names a kind of ship that reads after "Alle" ("Leichter Jäger", "Bomber")
+ * or an activity that does not ("Expedition", "Bergbau", "Schwere Reparatur" — "Alle Expedition"
+ * is wrong German). German only: an English label always takes the plural of {@link rankGroupName}.
+ */
+export function rankRoleReadsAsGroup(roleLabel: string, lang: string): boolean {
+  if (!lang.startsWith('de')) return true;
+  const words = roleLabel.trim().split(/\s+/);
+  return /er$/.test(words[words.length - 1] ?? '');
+}
+
+/**
+ * The band word from the place in the group, not from the mean percentile: "Rang 1 von 16"
+ * always reads "oberes Viertel", never "im Mittelfeld" (B13). Rank 1 = 100, last = 0.
+ */
+export function rankBandOfPlace(rank: number | null, size: number): RankBand | null {
+  if (rank == null || size < 2) return null;
+  return rankBandOf(((size - rank) / (size - 1)) * 100);
+}
+
 /** One cohort member — the ranking never sees payloads, only sheets. */
 export interface RankShipInput<K extends string = KpiKey> {
   className: string;
@@ -351,6 +371,9 @@ export interface RankResult<K extends string = KpiKey> {
   overall: number | null;
   band: RankBand | null;
   bandKey: string | null;
+  /** Place of the target in its group by `overall` (1 = best, ties share the
+   * better place); null when `overall` is null. Out of `cohortSize`. */
+  rank?: number | null;
   /** Which comparison groups the target can actually be put in — a scope
    * whose discriminator the ship lacks is offered disabled, never silently
    * widened behind the user's back. */
@@ -519,6 +542,34 @@ const WEAK_THRESHOLD = 45;
 /** The single authored "this axis has no value" string (R4). */
 export const RANK_AXIS_GAP_KEY = 'codex.rank.gapAxis';
 
+/** The target's place among `set` by the same mean-of-percentiles score as
+ * `overall`; the target's own cohort row (same className) is skipped, its
+ * sheet may carry a custom loadout. */
+function rankPlace<K extends string>(
+  target: RankShipInput<K>,
+  set: readonly RankShipInput<K>[],
+  overall: number,
+  axes: readonly { key: K; lowerIsBetter: boolean }[],
+  valueOf: (ship: RankShipInput<K>, key: K) => number | null,
+  numbersOf: (ships: readonly RankShipInput<K>[], key: K) => number[],
+): number {
+  const pools = axes.map((a) => ({ a, values: numbersOf(set, a.key) }));
+  let better = 0;
+  for (const ship of set) {
+    if (ship.className === target.className) continue;
+    const ps = pools
+      .map(({ a, values }) => {
+        const v = valueOf(ship, a.key);
+        return typeof v === 'number' && Number.isFinite(v) ? percentileOf(v, values, a.lowerIsBetter) : null;
+      })
+      .filter((p): p is number => p != null);
+    if (ps.length === 0) continue;
+    const score = Math.round((ps.reduce((s, p) => s + p, 0) / ps.length) * 10) / 10;
+    if (score > overall) better++;
+  }
+  return better + 1;
+}
+
 /**
  * Rank one ship against a cohort under one profile + scope. The maths knows
  * nothing about ships: a caller with its own axes (missiles, codex-missile.ts)
@@ -599,6 +650,7 @@ export function rankShip<K extends string = KpiKey>(
   const overall =
     ranked.length > 0 ? Math.round((ranked.reduce((s, p) => s + p, 0) / ranked.length) * 10) / 10 : null;
   const band = rankBandOf(overall);
+  const rank = overall == null ? null : rankPlace(target, set, overall, profile.axes, valueOf, numbersOf);
 
   // `axes` stays in the profile's fixed order — it drives the radar's spokes,
   // vertices and captions. Only the bar list is sorted by percentile desc,
@@ -615,6 +667,7 @@ export function rankShip<K extends string = KpiKey>(
     overall,
     band,
     bandKey: band ? `codex.rank.band.${band}` : null,
+    rank,
     scopeAvailable,
     scopeSizes: rankScopeSizes(target, cohort, groupOpts),
   };

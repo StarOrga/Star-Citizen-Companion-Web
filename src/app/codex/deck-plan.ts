@@ -39,6 +39,8 @@ export interface DeckPlanRoom {
 export interface DeckPlan {
   key: string;
   label: string;
+  /** The uploader's catch-all deck for rooms no authored deck claims ("Weitere Räume"). */
+  fallback: boolean;
   order: number;
   rooms: DeckPlanRoom[];
 }
@@ -71,6 +73,7 @@ function readPolygon(raw: unknown): [number, number][] | null {
 interface ParsedRoom {
   key: string;
   name: ShipDeckRoom['name'];
+  labelKey: string | null;
   pos: [number, number];
   shapes: [number, number][][];
   tris: [number, number][][];
@@ -82,7 +85,8 @@ function readRoom(raw: unknown): ParsedRoom | null {
   if (typeof r.key !== 'string' || !r.key || !Array.isArray(r.pos) || !num(r.pos[0]) || !num(r.pos[1])) return null;
   const polys = (v: unknown) =>
     Array.isArray(v) ? v.map(readPolygon).filter((s): s is [number, number][] => !!s) : [];
-  return { key: r.key, name: r.name ?? null, pos: [r.pos[0], r.pos[1]], shapes: polys(r.shapes), tris: polys(r.tris) };
+  const labelKey = typeof r.labelKey === 'string' && r.labelKey ? r.labelKey : null;
+  return { key: r.key, name: r.name ?? null, labelKey, pos: [r.pos[0], r.pos[1]], shapes: polys(r.shapes), tris: polys(r.tris) };
 }
 
 /** Signed-area-free polygon area + centroid (shoelace). */
@@ -111,7 +115,7 @@ function areaCentroid(poly: [number, number][]): { area: number; cx: number; cy:
  * → "Corridors Middle Left 1".
  */
 export function humanizeRoomKey(key: string): string {
-  return key
+  const label = key
     .replace(/~\d+$/, '')
     .replace(/[-_]\d+$/, '')
     .replace(/_?Room_RN$/i, '')
@@ -120,18 +124,59 @@ export function humanizeRoomKey(key: string): string {
     .filter(Boolean)
     .join(' ')
     .replace(/\s+Room(\d*)$/i, ' $1')
-    .trim() || key;
+    .trim();
+  // A key with nothing readable left (`Room_RN-009`) gets no label rather than
+  // the raw entity name (holotisch concept 20261109-1745, note #3).
+  return isRawRoomToken(label) ? '' : label;
 }
 
-function roomLabel(name: ShipDeckRoom['name'], key: string, lang: Lang): string {
+/** True for a label that is still an engine token, not a name a player would read. */
+/**
+ * One spelling for every room name, from the data or from the key: words spaced
+ * (`TurretAccess`, `turret_access` → "Turret Access"), single spaces, a capital
+ * first letter. A name with no German side stays English (B13).
+ */
+export function tidyRoomLabel(label: string): string {
+  const spaced = label.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_\s]+/g, ' ').trim();
+  return spaced ? spaced[0].toLocaleUpperCase() + spaced.slice(1) : spaced;
+}
+
+function isRawRoomToken(label: string): boolean {
+  return label === '' || /^room(\s|_|-)?(rn)?[\s_-]*\d*$/i.test(label) || /_/.test(label);
+}
+
+/**
+ * Room label for `lang`: the game's own string of that language, else the
+ * pipeline's translation of the room's `labelKey` (E14), else the English
+ * name, else the humanized entity name.
+ */
+function roomLabel(
+  name: ShipDeckRoom['name'],
+  key: string,
+  lang: Lang,
+  labelKey: string | null = null,
+  translated?: ReadonlyMap<string, string>,
+): string {
   const primary = lang === 'de' ? cleanDeckName(name?.de) : cleanDeckName(name?.en);
-  return primary || cleanDeckName(name?.en) || cleanDeckName(name?.de) || humanizeRoomKey(key);
+  const ai = lang !== 'en' && !primary && labelKey ? translated?.get(labelKey)?.trim() : undefined;
+  if (ai) return tidyRoomLabel(ai);
+  const named = primary || cleanDeckName(name?.en) || cleanDeckName(name?.de);
+  // Raw names from the data ("Room Corridor", "Room_RN-009") are engine tokens:
+  // strip the "Room" prefix, and hide what stays unreadable.
+  const cleaned = named?.replace(/^room[\s_]+/i, '').trim();
+  if (cleaned && !isRawRoomToken(cleaned)) return tidyRoomLabel(cleaned);
+  return tidyRoomLabel(humanizeRoomKey(key));
 }
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
 /** Every deck with at least one room, bottom-up, in one shared top-view frame. */
-export function buildDeckPlans(decks: readonly ShipDeck[] | null | undefined, lang: Lang): DeckPlanSet | null {
+export function buildDeckPlans(
+  decks: readonly ShipDeck[] | null | undefined,
+  lang: Lang,
+  /** `labelKey → translated label` (`RoomLabelTranslations.labels(lang)`); absent = English fallback. */
+  translated?: ReadonlyMap<string, string>,
+): DeckPlanSet | null {
   if (!Array.isArray(decks)) return null;
   const list: readonly ShipDeck[] = decks;
   const parsed = [...list]
@@ -169,6 +214,7 @@ export function buildDeckPlans(decks: readonly ShipDeck[] | null | undefined, la
   const out: DeckPlan[] = parsed.map(({ deck, rooms }) => ({
     key: deck.key,
     label: deckLabel(deck, lang),
+    fallback: !!deck.fallback,
     order: deck.order ?? 0,
     rooms: rooms
       .map((room) => {
@@ -201,7 +247,7 @@ export function buildDeckPlans(decks: readonly ShipDeck[] | null | undefined, la
         }
         return {
           key: room.key,
-          label: roomLabel(room.name, room.key, lang),
+          label: roomLabel(room.name, room.key, lang, room.labelKey, translated),
           paths: room.shapes.map(d),
           mesh: room.tris.map(d).join(''),
           anchor,

@@ -13,8 +13,15 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { CodexHoloCalloutComponent } from './codex-holo-callout.component';
+import { HoloDiffMarkerComponent } from './holo-diff-marker';
+import { calloutValuesOf, partTypeKey, shortStatKey } from './holo-callout-values';
+import { partFocusOf } from './codex-holo-inspector.component';
+import { displayItemName } from '../codex-format';
+import { isConfigurableSection } from '../ship-module-sections';
+import type { PlacementGroup } from '../asset-package/asset-package.model';
 import { HoloSilhouette } from '../holo-silhouette';
 import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { ShipBlueprintSchemaComponent, type SchemaCallout } from '../ship-blueprint/ship-blueprint-schema.component';
@@ -35,7 +42,7 @@ import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { AssetPackageViewerComponent, type CalloutValue, type PlacementSelection } from '../asset-package/asset-package-viewer.component';
 import type { HotspotScope } from '../asset-package/asset-package.model';
-import { calloutGutter } from '../asset-package/holo-overlay';
+import { calloutGutter, calloutSize } from '../asset-package/holo-overlay';
 import { AssetPackageService } from '../asset-package/asset-package.service';
 import type { AssetPackageRow } from '../asset-package/asset-package.model';
 import { logWarn } from '../../core/log';
@@ -50,6 +57,8 @@ export interface HoloDeckView {
   decks: readonly ShipDeck[];
   lang: Lang;
   key: string;
+  /** D5: the room picked in the bottom row (its key); null/absent = none. */
+  room?: string | null;
 }
 
 /**
@@ -66,6 +75,14 @@ export function filterSchemaMarkers<T extends Pick<SchemaMarker, 'port'>>(
   if (picked) keep.add(picked);
   const out = markers.filter((m) => keep.has(m.port));
   return out.length > 0 ? out : [...markers];
+}
+
+/** A pin's size: the held gun's for a mount, else the slot's own (the same rule the inspector's list follows). */
+function sizeOfPin(pin: StagePin): number | null {
+  const slot = pin.slot;
+  if (!slot) return null;
+  const held = pin.section === 'weapons' ? slot.children?.find((c) => !!c.name) : undefined;
+  return held?.size ?? slot.size ?? slot.portSize ?? null;
 }
 
 /** Closest two schema markers may sit, in % of the drawing's long side. */
@@ -167,7 +184,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
 @Component({
   selector: 'sc-codex-holo-table',
   standalone: true,
-  imports: [TranslatePipe, ShipHardpointMapComponent, ShipBlueprintSchemaComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, AssetPackageViewerComponent, FallbackImageComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ShipHardpointMapComponent, ShipBlueprintSchemaComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, AssetPackageViewerComponent, FallbackImageComponent, ScTooltipDirective, CodexHoloCalloutComponent, HoloDiffMarkerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.ph-wait]': "phase() === 'wait'",
@@ -200,7 +217,8 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
           @if (packageRow(); as row) {
             <sc-asset-package-viewer class="mode-viewer" animate.leave="surface-leave" [row]="row" [still]="still()"
               interaction="table" [safeArea]="safeArea()" [selectedPort]="selectedPart()" [swappablePorts]="swappablePorts()"
-              [relevantPorts]="relevantPorts()" [calloutValues]="calloutValues()" [calloutTitle]="calloutTitle()" [(hotspotScope)]="hotspotScope"
+              [relevantPorts]="relevantPorts()" [calloutValues]="calloutModel()?.values ?? calloutValues()" [calloutTitle]="calloutModel()?.title ?? calloutTitle()"
+              [calloutType]="calloutModel()?.type ?? null" [calloutDiff]="calloutModel()?.diff ?? false" [groupFilter]="viewerGroups()" [(hotspotScope)]="hotspotScope"
               [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)"
               (selectionChange)="partSelected.emit($event)" (swapRequested)="partSwap.emit($event)" />
           } @else if (packageRow() === null) {
@@ -220,7 +238,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp" [view]="schemaView()"
           [markers]="schemaMarkers()" [activePorts]="activePorts()" [inspectedPort]="inspectedPort()"
           [callout]="schemaCallout()" [listHidden]="true"
-          (hovered)="hovered.emit($event)" (inspect)="pinInspect.emit($event)" />
+          (hovered)="hovered.emit($event)" (inspect)="pinInspect.emit($event)" (swap)="portSwap.emit($event)" />
       } @else if (viewMode() === 'schema' && schemaBlueprintPending()) {
         <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
       } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
@@ -230,7 +248,8 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         <!-- Schema "Einfach" on a deck chip (concept r1-decks): the deck's
              rooms replace the hull; no part markers or callouts inside a deck. -->
         <sc-ship-deck-plan class="mode-viewer deck-sheet" animate.leave="surface-leave"
-          [decks]="dp.decks" [lang]="dp.lang" [deckKey]="dp.key" [bare]="true" />
+          [decks]="dp.decks" [lang]="dp.lang" [deckKey]="dp.key" [bare]="true"
+          [room]="dp.room ?? null" (roomChange)="deckRoomChange.emit($event)" />
       } @else if (showCanvas()) {
         <div class="shipwrap" animate.leave="surface-leave" [class.no-geometry]="!silhouette()" [class.dense]="keyMode()"
              [class.leader]="!!leader()" [style.width.px]="leader()?.hull?.w ?? null"
@@ -301,23 +320,28 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
               [attr.aria-pressed]="inspectedPort() === pin.portName"
               [attr.tabindex]="leader() ? -1 : null"
               [attr.aria-hidden]="leader() ? 'true' : null"
-              [scTooltip]="pin.resolved ? null : (pin.label + ' · ' + ('codex.holo.pinUnresolved' | translate))"
+              [attr.data-port]="pin.portName"
+              [attr.aria-label]="tagAria(pin)"
+              [scTooltip]="pin.label + (pin.resolved ? '' : ' · ' + ('codex.holo.pinUnresolved' | translate))"
               scTooltipTier="label"
               (mouseenter)="hover(pin.portName)"
               (mouseleave)="hover(null)"
               (focus)="hover(pin.portName)"
               (blur)="hover(null)"
               (click)="pinInspect.emit(pin.portName)">
-              <i aria-hidden="true">{{ pin.index }}</i>
+              <!-- No numbers on the table (C10/C11): the dot, then the tag "Typ + Größe". -->
+              <i aria-hidden="true"></i>
               <span class="pin-label">
-                {{ pin.label }}
-                @if (pin.short) {
-                  <!-- Always in the DOM, revealed by width: the label grows
-                       smoothly instead of jumping when the stat appears. -->
-                  <em>· {{ pin.short }}</em>
-                }
+                {{ tagOf(pin).text }}
+                @if (diffPorts().has(pin.portName)) { <sc-holo-diff-marker /> }
               </span>
             </button>
+          }
+          @if (!leader() && selectedPin(); as sp) {
+            <!-- The selected part is the full callout, beside its dot (the tag steps aside). -->
+            <sc-holo-callout class="pin-card" [class.to-left]="sp.x > 50" [style.left.%]="sp.x" [style.top]="'clamp(48px, ' + sp.y + '%, calc(100% - 48px))'"
+              [type]="tagOf(sp).type" [name]="calloutModel()?.title ?? sp.label" [values]="calloutModel()?.values ?? []"
+              [swappable]="calloutModel()?.swappable ?? false" [diff]="diffPorts().has(sp.portName)" (swap)="portSwap.emit(sp.portName)" />
           }
         </div>
         @if (leader(); as lay) {
@@ -330,14 +354,14 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
               <path [attr.d]="l.path" pathLength="1" [style.--i]="l.index"
                     [class.gold]="pinByPort().get(l.portName)?.tone === 'gold'"
                     [class.est]="!pinByPort().get(l.portName)?.resolved"
-                    [class.active]="lit(l.portName)" [class.sel]="inspectedPort() === l.portName" />
+                    [class.active]="lit(l.portName)" [class.sel]="inspectedPort() === l.portName" [class.under]="!!leaderCard()?.covered?.has(l.portName)" />
             }
           </svg>
           <ol class="leader-labels" animate.leave="surface-leave" [attr.aria-label]="'codex.holo.stage.pinLabels' | translate">
             @for (l of lay.labels; track l.portName) {
               @if (pinByPort().get(l.portName); as pin) {
                 <li>
-                  <button type="button" class="ll" [class.r]="l.side === 'right'" [class.q]="isQuiet(l.portName)"
+                  <button type="button" class="ll" [class.r]="l.side === 'right'" [class.q]="isQuiet(l.portName)" [class.under]="!!leaderCard()?.covered?.has(l.portName)"
                           [class.gold]="pin.tone === 'gold'"
                           [class.est]="!pin.resolved"
                           [class.active]="lit(l.portName)"
@@ -355,13 +379,20 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
                           (focus)="hover(l.portName)"
                           (blur)="hover(null)"
                           (click)="pinInspect.emit(l.portName)">
-                    <i aria-hidden="true">{{ l.index }}</i>
-                    <span class="ll-t">{{ pin.label }}@if (pin.short) {<em> · {{ pin.short }}</em>}</span>
+                    <i aria-hidden="true"></i>
+                    <span class="ll-t">{{ tagOf(pin).text }}</span>
+                    @if (diffPorts().has(l.portName)) { <sc-holo-diff-marker /> }
                   </button>
                 </li>
               }
             }
           </ol>
+          @if (leaderCard(); as lc) {
+            <!-- The selected part's full callout in the slot of its label. -->
+            <sc-holo-callout class="leader-card" [style.left.px]="lc.left" [style.top.px]="lc.top"
+              [type]="tagOf(lc.pin).type" [name]="calloutModel()?.title ?? lc.pin.label" [values]="calloutModel()?.values ?? []"
+              [swappable]="calloutModel()?.swappable ?? false" [diff]="diffPorts().has(lc.pin.portName)" (swap)="portSwap.emit(lc.pin.portName)" />
+          }
         }
       }
     </div>
@@ -382,7 +413,8 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
                     (focus)="hover(pin.portName)"
                     (blur)="hover(null)"
                     (click)="pinInspect.emit(pin.portName)">
-              <i aria-hidden="true">{{ pin.index }}</i><span>{{ pin.label }}</span>
+              <i aria-hidden="true"></i><span>{{ tagOf(pin).text }}</span>
+              @if (diffPorts().has(pin.portName)) { <sc-holo-diff-marker /> }
             </button>
           </li>
         }
@@ -398,7 +430,10 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         @if (hasUnresolved()) {
           <span><i class="u" aria-hidden="true"></i>{{ 'codex.holo.stage.legendUnresolved' | translate }}</span>
         }
-        <span class="legend-hint">{{ 'codex.holo.stage.legendHint' | translate }}</span>
+        @if (diffPorts().size > 0) {
+          <span class="legend-diff"><sc-holo-diff-marker />{{ 'codex.holo.table.legendDiff' | translate }}</span>
+        }
+        <span class="legend-hint" [style.visibility]="hintHidden() ? 'hidden' : null">{{ 'codex.holo.table.legendHint' | translate }}</span>
       </div>
     }
   `,
@@ -418,6 +453,8 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     @media (min-width: 1001px) { .silhouette-frame { min-height: 0; } }
     /* Not what the picked Einsatz is about: quiet, still reachable. */
     .pin.q, .ll.q { opacity: 0.35; }
+    /* Under the open callout: the tag steps aside (C10). */
+    .ll.under, .leaders path.under { opacity: 0; visibility: hidden; pointer-events: none; }
     .pin.q:is(:hover, :focus-visible, .active, .sel), .ll.q:is(:hover, :focus-visible, .active, .sel) { opacity: 1; }
     .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
     /* Parallax (concept cine-parallax / cx-parallax): the layers sit at three
@@ -584,8 +621,9 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
       .pin.pos-b { transform: translateX(calc(-50% + 24px)); }
       .pin.pos-t { transform: translate(calc(-50% + 24px), calc(-100% + 48px)); }
     }
-    .pin i { position: relative; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--pc); background: var(--ink);
-      color: var(--pc); font-family: var(--m); font-style: normal; font-size: 10px; display: grid; place-items: center; flex: none;
+    .pin i { position: relative; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--pc);
+      background: radial-gradient(circle, var(--pc) 0 3px, var(--ink) 3.5px);
+      color: var(--pc); font-style: normal; display: grid; place-items: center; flex: none;
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 12%, transparent), 0 0 12px color-mix(in srgb, var(--pc) 45%, transparent);
       transition: background var(--holo-t-fast) ease, color var(--holo-t-fast) ease, box-shadow var(--holo-t-fast) ease, scale var(--holo-t-fast) var(--e-out);
       animation: pin-dot var(--pin-dur) var(--e-out) backwards;
@@ -612,11 +650,14 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
       animation: pin-label calc(var(--pin-dur) + 80ms) var(--e-out) backwards;
       animation-delay: calc(var(--pin-delay) + 90ms + min(var(--i, 1), 16) * var(--pin-step)); }
     @keyframes pin-label { from { opacity: 0; translate: 0 4px; } }
-    .pin-label em { font-style: normal; color: var(--sc-fg-0); font-family: var(--m); letter-spacing: 0; text-transform: none;
-      display: inline-block; vertical-align: bottom; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
-      transition: max-width var(--holo-t-base) var(--e-out), opacity var(--holo-t-fast) ease; }
-    .pin:is(.active, .sel) .pin-label em { max-width: 12em; opacity: 1; }
-    .pin:is(.active, .sel) .pin-label { max-width: 260px; }
+    .pin-label { display: inline-flex; align-items: center; gap: 5px; }
+    .pin.sel .pin-label { max-width: 260px; }
+    /* The selected part is a full callout (sc-holo-callout), the tag steps aside. */
+    .shipwrap:not(.leader) .pin.sel .pin-label, .ll.sel { visibility: hidden; }
+    .pin-card, .leader-card { position: absolute; z-index: 5; --co-u: clamp(0.8px, calc(0.5px + 100vw / 3840), 1px); }
+    .pin-card { transform: translate(18px, -50%); }
+    .pin-card.to-left { transform: translate(calc(-100% - 18px), -50%); }
+    .legend-diff { display: inline-flex; align-items: center; gap: 5px; color: var(--sc-accent); }
     .pin:is(.active, :hover) .pin-label { border-color: var(--pc); color: var(--sc-fg-0); }
     .pin.sel .pin-label { color: var(--pc); border-color: var(--pc); }
     /* Dense tables keep the labels off the canvas — the key (or the
@@ -649,17 +690,14 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     /* A right-column label reads toward the hull: number on the inner edge. */
     .ll.r { flex-direction: row-reverse; padding: 0 3px 0 7px; text-align: right; }
     .ll.gold { --pc: var(--holo-gold); }
-    .ll i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--pc); color: var(--pc); font-family: var(--m); font-style: normal;
-      font-size: 9px; letter-spacing: 0; display: grid; place-items: center; flex: none; transition: background 160ms ease, color 160ms ease; }
+    .ll i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--pc); background: var(--pc); font-style: normal;
+      flex: none; transition: background 160ms ease, color 160ms ease; opacity: 0.8; }
     .ll.est i { border-style: dashed; }
     .ll-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ll-t em { font-style: normal; font-family: var(--m); letter-spacing: 0; text-transform: none; color: var(--sc-fg-0); display: none; }
-    /* Hovered, lit from its pin or selected: the label opens toward the hull
-       to its full text and the short value — above the line, never clipped. */
+    /* Hovered or lit from its pin: the tag opens toward the hull to its full text. */
     .ll:is(.active, .sel, :hover, :focus-visible) { max-width: calc(var(--w) + 180px); z-index: 1; border-color: var(--pc); color: var(--sc-fg-0); }
-    .ll:is(.active, .sel) .ll-t em { display: inline; }
     .ll.sel { color: var(--pc); }
-    .ll.sel i { background: var(--pc); color: var(--sc-bg-0); }
+    .ll.sel i { opacity: 1; }
     .ll:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
     /* ── Key + legend under the canvas ── */
@@ -669,12 +707,12 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
       font-size: max(9.5px, var(--f)); min-height: var(--sc-tap-min, 24px); max-width: 100%; transition: border-color 160ms ease, color 160ms ease;
       --pc: var(--sc-accent); }
     .pk:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .pk i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--pc); color: var(--pc); font-family: var(--m); font-style: normal;
-      font-size: 9px; display: grid; place-items: center; flex: none; transition: background 160ms ease, color 160ms ease; }
+    .pk i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--pc); background: var(--pc); font-style: normal;
+      flex: none; opacity: 0.8; transition: opacity 160ms ease; }
     .pk span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pk:hover, .pk.active { border-color: var(--pc); color: var(--sc-fg-0); }
     .pk.sel { border-color: var(--pc); color: var(--pc); }
-    .pk.sel i { background: var(--pc); color: var(--sc-bg-0); }
+    .pk.sel i { opacity: 1; }
     .legend { position: relative; z-index: 2; padding: 8px 12px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
       font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); }
     .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--sc-accent); vertical-align: middle; margin-right: 4px; }
@@ -721,11 +759,93 @@ export class CodexHoloTableComponent {
   readonly hotspotScope = model<HotspotScope>('swappable');
   readonly partSelected = output<PlacementSelection | null>();
   readonly partSwap = output<PlacementSelection>();
+  /**
+   * The swap icon of a callout that is not the 3D viewer's (Einfach, Oben, Seite, Front):
+   * the port whose part to swap. The stage runs the same flow as the inspector's swap.
+   */
+  readonly portSwap = output<string>();
+  /** Ports whose part differs from the stock loadout: their tag and callout carry the diamond (C19). */
+  readonly diffPorts = input<ReadonlySet<string>>(new Set());
+  /** A toast shows over the legend's corner: the "Klick = Bauteil wählen" hint hides meanwhile. */
+  readonly hintHidden = input(false);
+  /** The stage's component filters (null = all); the 3D model shows exactly these groups. */
+  readonly partFilter = input<ReadonlySet<'weapons' | 'missiles' | 'components' | 'other'> | null>(null);
+  readonly viewerGroups = computed<ReadonlySet<PlacementGroup> | null>(() => {
+    const f = this.partFilter();
+    if (!f) return null;
+    const out = new Set<PlacementGroup>();
+    if (f.has('weapons')) out.add('weapons');
+    if (f.has('missiles')) out.add('missiles');
+    if (f.has('components')) out.add('components');
+    if (f.has('other')) {
+      out.add('other');
+      out.add('attachments');
+    }
+    return out;
+  });
+
+  private readonly i18n = inject(TranslateService);
+
+  /** The tag of a part (C10): its TYPE ("Gatling", "Kühler"; the port category when unknown), then its size — no numbers beyond that. */
+  readonly tags = computed(() => {
+    const map = new Map<string, { type: string; text: string }>();
+    for (const p of [...(this.labelPins() ?? []), ...this.pins()]) {
+      if (map.has(p.portName)) continue;
+      const held = p.section === 'weapons' || p.section === 'remoteTurrets' ? p.slot?.children?.find((c) => !!c.name) : undefined;
+      // E6: an unresolved turret reads "Fernturm", not the section's long name ("Ferngesteuerte Türm…").
+      const typeKey = partTypeKey(p.section, held?.className ?? p.slot?.className ?? null)
+        ?? (p.section === 'remoteTurrets' ? 'codex.holo.partType.remoteTurret' : null);
+      const type = this.i18n.instant(typeKey ?? (p.section ? `codex.moduleSection.${p.section}` : 'codex.holo.stage.pinGroupOther'));
+      const size = sizeOfPin(p);
+      map.set(p.portName, { type, text: size != null ? `${type} S${size}` : type });
+    }
+    return map;
+  });
+
+  /** A callout value's short label ("Alpha", "EM"); the full label where no short one exists. */
+  private shortLabel(labelKey: string): string {
+    const key = shortStatKey(labelKey);
+    const short = this.i18n.instant(key);
+    return short && short !== key ? short : this.i18n.instant(labelKey);
+  }
+
+  tagOf(pin: StagePin): { type: string; text: string } {
+    return this.tags().get(pin.portName) ?? { type: pin.label, text: pin.label };
+  }
+
+  tagAria(pin: StagePin): string {
+    return `${this.tagOf(pin).text}: ${pin.label}`;
+  }
+
+  /** The pin whose part is picked, among the pins the canvas shows. */
+  readonly selectedPin = computed(() => {
+    const port = this.inspectedPort();
+    return port ? (this.pins().find((p) => p.portName === port) ?? null) : null;
+  });
+
+  /** The callout of the picked part, one model for every view: type, name, three values, swap, diamond. */
+  readonly calloutModel = computed<{ type: string; title: string; values: readonly CalloutValue[]; swappable: boolean; diff: boolean } | null>(() => {
+    const port = this.inspectedPort();
+    if (!port) return null;
+    const pin = (this.labelPins() ?? []).find((p) => p.portName === port) ?? this.pins().find((p) => p.portName === port);
+    if (!pin?.slot) return null;
+    const part = partFocusOf({ slot: pin.slot, count: 1, child: null, rawPorts: [port] }, pin.section);
+    const t = this.i18n;
+    return {
+      type: this.tagOf(pin).type,
+      title: part.name ? displayItemName(part.name) : pin.label,
+      values: calloutValuesOf(pin.section, part.stats, part.size, part.grade, (k) => this.shortLabel(k), t.instant('codex.holo.stage.partSize'), t.instant('codex.holo.stage.partGrade')),
+      swappable: !!pin.section && isConfigurableSection(pin.section),
+      diff: this.diffPorts().has(port),
+    };
+  });
 
   /** The callout's reserved gutters left and right of the model; none where the frame cannot spare them (phones). */
   readonly safeArea = computed(() => {
     const w = this.frameW();
-    const gutter = typeof window === 'undefined' ? 0 : calloutGutter(window.innerWidth);
+    // E4: the model may reach halfway into the callout gutters — a full gutter on both sides left the
+    // Gladius ~330 px wide in a 900 px stage. The callout card sits over the hull's tip at worst.
+    const gutter = typeof window === 'undefined' ? 0 : Math.round(calloutGutter(window.innerWidth) / 2);
     return w >= gutter * 2 + 280 ? { left: gutter, right: gutter, top: 4, bottom: 0 } : { left: 0, right: 0, top: 4, bottom: 0 };
   });
 
@@ -754,6 +874,8 @@ export class CodexHoloTableComponent {
   readonly labelPins = input<readonly StagePin[] | null>(null);
   /** A deck picked by the Schema chips (null = the hull from outside). */
   readonly deckPlan = input<HoloDeckView | null>(null);
+  /** D5: a room picked (or let go) on the deck plan — the bottom row's room chips follow it. */
+  readonly deckRoomChange = output<string | null>();
   readonly shipClassName = input('');
   readonly hardpointPortRefs = input<readonly HardpointPortRef[]>([]);
   readonly hardpointFrame = input<HardpointFrame | null>(null);
@@ -848,9 +970,12 @@ export class CodexHoloTableComponent {
       };
       measure();
       if (typeof ResizeObserver !== 'function') return;
-      const ro = new ResizeObserver(measure);
+      // In the next frame: the size moves the callout and the tags, a write inside the callback is a
+      // "ResizeObserver loop" (seen as an unhandled error after an exemplar was removed).
+      let raf = 0;
+      const ro = new ResizeObserver(() => { raf ||= requestAnimationFrame(() => { raf = 0; measure(); }); });
       ro.observe(frame);
-      destroyRef.onDestroy(() => ro.disconnect());
+      destroyRef.onDestroy(() => { ro.disconnect(); cancelAnimationFrame(raf); });
     });
     afterNextRender(() => {
       const frame = this.frameRef()?.nativeElement;
@@ -949,24 +1074,64 @@ export class CodexHoloTableComponent {
       markers.map((m) => ({ x: toPct(m.x, view.box.x), y: toPct(m.y, view.box.y) })),
       SCHEMA_MARKER_GAP,
     );
-    return filterSchemaMarkers(
-      markers.map((m, i) => ({
-        ...m,
-        x: view.box.x + (fanned[i].x / 100) * long,
-        y: view.box.y + (fanned[i].y / 100) * long,
-      })),
-      this.pins().map((p) => p.portName),
-      this.inspectedPort(),
-    );
+    const placed = markers.map((m, i) => ({
+      ...m,
+      x: view.box.x + (fanned[i].x / 100) * long,
+      y: view.box.y + (fanned[i].y / 100) * long,
+    }));
+    // Oben / Seite / Front show the parts Einfach shows (C12); "Alle Teile" reveals the raw ports too.
+    if (this.hotspotScope() === 'all') return placed;
+    return filterSchemaMarkers(placed, this.pins().map((p) => p.portName), this.inspectedPort());
   });
 
-  /** The callout of the part picked on the drawing or in the panel (r1-callout). */
+  /** The callout of the part picked on the drawing or in the panel: the same card as in 3D. */
   readonly schemaCallout = computed<SchemaCallout | null>(() => {
     const port = this.inspectedPort();
     if (!port) return null;
-    const pin = (this.labelPins() ?? this.pins()).find((p) => p.portName === port);
-    const marker = pin ? null : this.schemaMarkers().find((m) => m.port === port);
-    const title = pin?.label ?? marker?.label;
-    return title ? { port, title, meta: pin?.short ?? null } : null;
+    const model = this.calloutModel();
+    if (model) return { port, title: model.title, type: model.type, values: model.values, swappable: model.swappable, diff: model.diff };
+    // A raw port (Alle Teile) has no part behind it: its name is all the card says.
+    const marker = this.schemaMarkers().find((m) => m.port === port);
+    return marker ? { port, title: marker.label, type: null, values: [], swappable: false, diff: false } : null;
+  });
+
+  /** The selected part's label slot on the leader columns: where its full callout stands (frame px). */
+  readonly leaderCard = computed(() => {
+    const lay = this.leader();
+    const port = this.inspectedPort();
+    if (!lay || !port) return null;
+    const l = lay.labels.find((k) => k.portName === port);
+    const pin = this.pinByPort().get(port);
+    if (!l || !pin) return null;
+    const { w, h } = calloutSize(typeof window === 'undefined' ? 1920 : window.innerWidth);
+    const inner = l.side === 'left' ? l.rect.x + l.rect.w : l.rect.x;
+    const left = Math.min(Math.max(0, l.side === 'left' ? inner - w : inner), Math.max(0, this.frameW() - w));
+    const maxTop = Math.max(0, this.frameH() - h);
+    const clampTop = (t: number) => Math.min(Math.max(0, t), maxTop);
+    // The tags a callout at `top` lies over; `h` is its reserved box, its drawn card ends a few px
+    // earlier — a tag that only grazes it stays.
+    const coveredAt = (top: number) => {
+      const covered = new Set<string>();
+      for (const o of lay.labels) {
+        if (o.portName === port) continue;
+        const overX = o.rect.x < left + w && o.rect.x + o.rect.w > left;
+        const overY = o.rect.y < top + h - 6 && o.rect.y + o.rect.h > top + 6;
+        if (overX && overY) covered.add(o.portName);
+      }
+      return covered;
+    };
+    // E12: the card may slide along its own label (it still covers that slot) to the spot that hides the
+    // fewest neighbouring tags — into a free gap of the column — ties go to the centred position.
+    const centre = clampTop(l.rect.y + l.rect.h / 2 - h / 2);
+    let top = centre;
+    let covered = coveredAt(centre);
+    const lo = clampTop(l.rect.y + l.rect.h - h);
+    const hi = clampTop(l.rect.y);
+    for (let t = lo; t <= hi && covered.size > 0; t += 2) {
+      const c = coveredAt(t);
+      if (c.size < covered.size || (c.size === covered.size && Math.abs(t - centre) < Math.abs(top - centre))) { top = t; covered = c; }
+    }
+    // The tags the full callout still lies over step aside (C10): they hide while it is open.
+    return { pin, left, top, covered };
   });
 }

@@ -70,6 +70,54 @@ describe('CodexHoloTableComponent', () => {
     });
   });
 
+  describe('tags and callout (C9/C10/C19)', () => {
+    const slot = (over: Record<string, unknown> = {}) =>
+      ({ port: 'p', rawPort: 'hp_a', className: 'X', kind: null, name: 'Mantis Cooler', size: 2, grade: 'A', manufacturerCode: null, portSize: 2,
+         stats: [{ labelKey: 'codex.equipped.coolingRate', value: 1200, format: 'int' }], ...over }) as unknown as StagePin['slot'];
+    const typed = [
+      pin('hp_a', 1, { section: 'coolers', slot: slot() }),
+      pin('hp_b', 2, { section: 'weapons', slot: slot({ size: 3, portSize: 3, name: 'Gatling' }) }),
+    ];
+
+    it('names a part by its type and size, with no numbers on the pin', () => {
+      const f = setup({ pins: typed });
+      const labels = pinButtons(f).map((b) => b.querySelector('.pin-label')!.textContent!.trim());
+      expect(labels).toEqual(['codex.holo.partType.cooler S2', 'codex.moduleSection.weapons S3']);
+      expect(pinButtons(f).every((b) => b.querySelector('i')!.textContent!.trim() === '')).toBe(true);
+    });
+
+    it('shows the picked part as the full callout (type, name, values) and the tag steps aside', () => {
+      const f = setup({ pins: typed, inspectedPort: 'hp_a' });
+      const el = f.nativeElement as HTMLElement;
+      const co = el.querySelector('sc-holo-callout')!;
+      expect(co.querySelector('.k-t')!.textContent).toContain('codex.holo.partType.cooler');
+      expect(co.querySelector('.nm')!.textContent).toContain('Mantis Cooler');
+      expect(co.querySelectorAll('.v > span').length).toBe(3);
+      expect(el.querySelectorAll('sc-holo-callout').length).toBe(1);
+    });
+
+    it('swapping from the callout names the port', () => {
+      const f = setup({ pins: typed, inspectedPort: 'hp_a' });
+      const swaps: string[] = [];
+      f.componentInstance.portSwap.subscribe((p) => swaps.push(p));
+      (f.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('sc-holo-callout button.sw')!.click();
+      expect(swaps).toEqual(['hp_a']);
+    });
+
+    it('marks parts that differ from the stock loadout with the diamond, and legends it', () => {
+      const f = setup({ pins: typed, diffPorts: new Set(['hp_b']), viewMode: 'holo' });
+      const el = f.nativeElement as HTMLElement;
+      expect(pinButtons(f)[1].querySelector('sc-holo-diff-marker')).not.toBeNull();
+      expect(pinButtons(f)[0].querySelector('sc-holo-diff-marker')).toBeNull();
+      expect(el.querySelector('.legend-diff sc-holo-diff-marker')).not.toBeNull();
+    });
+
+    it('maps the stage filters to the viewer groups', () => {
+      const f = setup({ partFilter: new Set(['weapons', 'other']) });
+      expect([...f.componentInstance.viewerGroups()!].sort()).toEqual(['attachments', 'other', 'weapons']);
+    });
+  });
+
   describe('pins per phase', () => {
     for (const phase of ['wait', 'hero'] as HoloPhase[]) {
       it(`renders no pins while the arrival is in phase "${phase}"`, () => {
@@ -83,7 +131,7 @@ describe('CodexHoloTableComponent', () => {
       it(`renders every pin in phase "${phase}"`, () => {
         const fixture = setup({ phase });
         expect(pinButtons(fixture).length).toBe(3);
-        expect(pinButtons(fixture).map((b) => b.querySelector('i')!.textContent!.trim())).toEqual(['1', '2', '3']);
+        expect(pinButtons(fixture).map((b) => b.querySelector('i')!.textContent!.trim())).toEqual(['', '', '']); // no numbers (C10)
       });
     }
 
@@ -262,7 +310,7 @@ describe('CodexHoloTableComponent', () => {
     const labelFor = (f: ComponentFixture<CodexHoloTableComponent>, port: string) =>
       labels(f).find((b) => b.dataset['port'] === port)!;
     const pinFor = (f: ComponentFixture<CodexHoloTableComponent>, index: number) =>
-      pinButtons(f).find((b) => b.querySelector('i')!.textContent!.trim() === String(index))!;
+      pinButtons(f).find((b) => b.dataset['port'] === f.componentInstance.pins().find((p) => p.index === index)!.portName)!;
 
 
     it('labels every Nomad pin in a side column, joined by a leader line, instead of the key', () => {

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, model, signal , inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import type { Lang, ShipDeck } from './codex.types';
 import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
+import { RoomLabelTranslations } from './room-label-translations';
 
 /** Counter behind each plan's DOM id prefix. */
 let nextDeckPlanId = 0;
@@ -61,7 +62,7 @@ let nextDeckPlanId = 0;
           <div class="stage" [attr.id]="uid + '-panel'" [attr.role]="set.decks.length > 1 ? 'tabpanel' : null"
                [attr.aria-labelledby]="set.decks.length > 1 ? uid + '-tab-' + deckIndex() : null">
             <svg
-              [attr.viewBox]="set.viewBox"
+              [attr.viewBox]="fit()?.viewBox ?? set.viewBox"
               role="group"
               [attr.aria-label]="'codex.deckPlan.aria' | translate: { deck: d.label, count: d.rooms.length }"
             >
@@ -93,11 +94,26 @@ let nextDeckPlanId = 0;
                   @if (!r.paths.length && !r.mesh) {
                     <circle [attr.cx]="r.anchor.x" [attr.cy]="r.anchor.y" [attr.r]="fontSize() * 0.6" />
                   }
-                  @if (showsLabel(r)) {
-                    <text class="lbl" [attr.x]="r.anchor.x" [attr.y]="r.anchor.y" text-anchor="middle"
-                          dominant-baseline="middle" [attr.font-size]="labelSize()">{{ r.label }}</text>
-                  }
                 </g>
+              }
+              <!-- Labels in their own pass, over every footprint: a later room never draws across a name. -->
+              @for (r of d.rooms; track r.key) {
+                @if (r.label !== activeLabel() && labeled().has(r.key)) {
+                  <text class="lbl" [attr.x]="r.anchor.x" [attr.y]="r.anchor.y" text-anchor="middle"
+                        dominant-baseline="middle" [attr.font-size]="labelSize()">{{ r.label }}</text>
+                }
+              }
+              <!-- The selected room, unmistakable (B13): a room without a footprint gets a ring,
+                   every selected room its name on the plan. -->
+              @for (r of activeRooms(); track r.key) {
+                @if (!r.paths.length && !r.mesh) {
+                  <circle class="ring" [attr.cx]="r.anchor.x" [attr.cy]="r.anchor.y" [attr.r]="fontSize() * 1.5" />
+                }
+                @if ($first) {
+                  <text class="lbl on" [attr.x]="r.anchor.x + (r.paths.length || r.mesh ? 0 : fontSize() * 2)" [attr.y]="r.anchor.y"
+                        [attr.text-anchor]="r.paths.length || r.mesh ? 'middle' : 'start'"
+                        dominant-baseline="middle" [attr.font-size]="fontSize() * 0.9">{{ r.label }}</text>
+                }
               }
             </svg>
           </div>
@@ -135,7 +151,7 @@ let nextDeckPlanId = 0;
     :host(.deck-sheet) { display: flex; flex-direction: column; min-height: 0; }
     .deck-plan.bare { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
     .bare .stage { flex: 1; min-height: 0; background: transparent; border: 0; padding: 0; }
-    .bare svg { height: 100%; max-height: min(100%, 560px); }
+    .bare svg { height: 100%; max-height: 100%; }
     .bare-nose { margin: 0 0 6px; text-align: center; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .dp-head h2 { margin: 0 0 2px; }
     .hint { margin: 0 0 10px; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -163,8 +179,12 @@ let nextDeckPlanId = 0;
       vector-effect: non-scaling-stroke; }
     .room path.mesh { stroke: none; }
     .room circle { fill: var(--sc-fg-2); }
-    .room .lbl { fill: var(--sc-fg-1); pointer-events: none; }
-    .room:hover path, .room.on path { fill: color-mix(in srgb, var(--sc-accent) 30%, transparent); stroke: var(--sc-accent); }
+    .lbl { fill: var(--sc-fg-1); pointer-events: none; paint-order: stroke; stroke: var(--sc-bg-0); stroke-width: 3px; stroke-linejoin: round; }
+    .lbl.on { fill: var(--sc-accent); font-weight: 600; }
+    .ring { fill: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke: var(--sc-accent); stroke-width: 2px; vector-effect: non-scaling-stroke; pointer-events: none; }
+    .room:hover path { fill: color-mix(in srgb, var(--sc-accent) 30%, transparent); stroke: var(--sc-accent); }
+    .room.on path { fill: color-mix(in srgb, var(--sc-accent) 45%, transparent); stroke: var(--sc-accent); stroke-width: 2px;
+      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--sc-accent) 70%, transparent)); }
     .room:hover path.mesh, .room.on path.mesh { stroke: none; }
     .room:hover circle, .room.on circle { fill: var(--sc-accent); }
 
@@ -190,13 +210,14 @@ export class ShipDeckPlanComponent {
   /** No card, header, switcher or room chips: the plan alone, for the Holotable surface. */
   readonly bare = input(false);
 
-  readonly plans = computed(() => buildDeckPlans(this.decks(), this.lang()));
+  private readonly roomLabels = inject(RoomLabelTranslations);
+  readonly plans = computed(() => buildDeckPlans(this.decks(), this.lang(), this.roomLabels.labels(this.lang())));
 
   private readonly picked = signal<string | null>(null);
   /** Room under the pointer or a focused chip — transient. */
   readonly hovered = signal<string | null>(null);
   /** Room a click/tap selected — holds until another click or a deck switch. */
-  readonly pinned = signal<string | null>(null);
+  readonly pinned = model<string | null>(null, { alias: 'room' });
   /** What the plan highlights and the readout names: hover wins over the pin. */
   readonly active = computed(() => this.hovered() ?? this.pinned());
 
@@ -220,8 +241,38 @@ export class ShipDeckPlanComponent {
    */
   readonly fontSize = computed(() => {
     const set = this.plans();
-    const span = set ? Math.max(set.width, set.height * 0.6) : 40;
+    const fit = this.fit();
+    const span = fit ? Math.max(fit.w, fit.h * 0.6) : set ? Math.max(set.width, set.height * 0.6) : 40;
     return Math.max(span / 40, 0.6);
+  });
+
+  /**
+   * On the Holotable (bare) the plan zooms to fit the deck on the table: the viewBox hugs this
+   * deck's own rooms instead of the bounds of every deck (concept r7-plan = fit). The card keeps
+   * the shared box, so switching decks there keeps the scale.
+   */
+  readonly fit = computed<{ viewBox: string; w: number; h: number } | null>(() => {
+    if (!this.bare()) return null;
+    const rooms = this.deck()?.rooms ?? [];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of rooms) {
+      const nums = (r.paths.join(' ') + ' ' + r.mesh).match(/-?\d+(?:\.\d+)?/g) ?? [];
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        const x = +nums[i], y = +nums[i + 1];
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+      if (!r.paths.length && !r.mesh) {
+        minX = Math.min(minX, r.anchor.x); maxX = Math.max(maxX, r.anchor.x);
+        minY = Math.min(minY, r.anchor.y); maxY = Math.max(maxY, r.anchor.y);
+      }
+    }
+    if (!Number.isFinite(minX)) return null;
+    const w0 = Math.max(maxX - minX, 4), h0 = Math.max(maxY - minY, 4);
+    const pad = Math.max(w0, h0) * 0.06;
+    const w = w0 + 2 * pad, h = h0 + 2 * pad;
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    return { viewBox: `${r2(minX - pad)} ${r2(minY - pad)} ${r2(w)} ${r2(h)}`, w, h };
   });
 
   /** Inline room labels run smaller than the nose mark. */
@@ -262,6 +313,31 @@ export class ShipDeckPlanComponent {
     const fs = this.labelSize();
     return r.box.w * 0.9 >= r.label.length * fs * 0.55 && r.box.h >= fs * 1.4;
   }
+
+  /**
+   * The rooms whose name sits on the plan: it fits ({@link showsLabel}) and no other room's
+   * footprint lies across it (the Carrack's "Turret Access" crossed a smaller box, B13).
+   */
+  readonly labeled = computed<ReadonlySet<string>>(() => {
+    const rooms = this.deck()?.rooms ?? [];
+    const fs = this.labelSize();
+    const out = new Set<string>();
+    for (const r of rooms) {
+      if (!r.label || !this.showsLabel(r)) continue;
+      const hw = (r.label.length * fs * 0.55) / 2;
+      const hh = fs * 0.7;
+      const crossed = rooms.some((o) => o !== r && o.box.w > 0 && o.box.w * o.box.h < r.box.w * r.box.h
+        && Math.abs(o.anchor.x - r.anchor.x) < hw + o.box.w / 2 && Math.abs(o.anchor.y - r.anchor.y) < hh + o.box.h / 2);
+      if (!crossed) out.add(r.key);
+    }
+    return out;
+  });
+
+  /** Every room of the active name (one name can cover several footprints). */
+  readonly activeRooms = computed<DeckPlanRoom[]>(() => {
+    const label = this.activeLabel();
+    return label ? (this.deck()?.rooms ?? []).filter((r) => r.label === label) : [];
+  });
 
   onTabKey(event: KeyboardEvent, decks: readonly DeckPlan[]): void {
     const i = decks.findIndex((d) => d.key === this.deck()?.key);

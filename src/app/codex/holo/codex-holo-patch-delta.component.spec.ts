@@ -49,6 +49,6 @@ describe('CodexHoloPatchDeltaComponent', () => {
     expect(rows.length).toBe(1);
     expect(rows[0].classList.contains('up')).toBe(true);
     expect(rows[0].classList.contains('good')).toBe(true);
-    expect(rows[0].querySelector('.pct')?.textContent?.trim()).toBe('+20%');
+    expect(rows[0].querySelector('.pct')?.textContent?.trim()).toBe('+20\u00a0%');
   });
 });

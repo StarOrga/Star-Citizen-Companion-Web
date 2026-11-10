@@ -87,6 +87,10 @@ export interface LayoutChild {
    * numbers). Unlike `statsMissing` it renders even when some rows exist.
    */
   statsNoteKey?: string | null;
+  /** A nested draft (`mount.gun`) swapped this sub-slot's occupant — same states as `LayoutSlot.draftState`. */
+  draftState?: 'changed' | 'pending' | 'unresolved' | null;
+  /** The dotted `parent.child` draft path(s) behind `draftState`, for the revert action. */
+  draftPaths?: string[];
 }
 
 /**
