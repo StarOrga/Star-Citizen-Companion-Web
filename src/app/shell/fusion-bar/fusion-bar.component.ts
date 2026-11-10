@@ -16,6 +16,8 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { claimRootAttr, setRootVar } from '../../core/root-var';
+import { onScrollTick } from '../../core/scroll-tick';
 import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, Scroll } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
@@ -29,7 +31,8 @@ import { isEditableTarget } from '../../codex/search/codex-search-hub.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { BrandLogoComponent, BrandNameComponent } from '../brand/brand.component';
 import { FusionSearchComponent } from './fusion-search.component';
-import { ShellChromeService } from './shell-chrome.service';
+import { ShellChromeService, introBeatCss } from './shell-chrome.service';
+import { snapTravelPx } from '../../shared/snap-travel';
 import { STAGE_SLOT_MOVED } from './stage-hero.directive';
 import {
   AREA_ENTRIES,
@@ -65,6 +68,8 @@ export const ENTER_MS = 3100;
 export const SWEEP_MS = 1700;
 /** Longest wait for the router's scroll reset after a route change before the state settles anyway. */
 const NAV_SETTLE_MS = 400;
+/** A resize-driven height publish waits until the bar/body size has stood still this long. */
+const PUBLISH_SETTLE_MS = 140;
 /** Tokens shown inside the search field before the rest folds into "+n". */
 const MAX_TOKENS = 3;
 
@@ -110,6 +115,7 @@ const MAX_TOKENS = 3;
     '[class.intro-hold]': 'introHold()',
     '[class.intro-hidden]': 'introHidden()',
     '[style.--sc-intro-k]': 'introK()',
+    '[style.--sc-intro-search-at]': 'introSearchAt()',
     '[class.placed]': 'placed()',
     '[class.public]': "variant() === 'public'",
     '[class.phone]': 'phone()',
@@ -130,6 +136,7 @@ const MAX_TOKENS = 3;
     <div class="cap" [class.open]="panelShown()">
       <span class="skin" aria-hidden="true"></span>
       <span class="trace" aria-hidden="true"></span>
+      <span class="capline" aria-hidden="true"></span>
       <!-- Menu switch main → main: a white light head sweeps along the bar (concept r1 d1-s2). -->
       <span class="head" aria-hidden="true"></span>
       @if (mode() === 'stage') {
@@ -297,6 +304,10 @@ const MAX_TOKENS = 3;
     @if (phone() && variant() === 'app' && mode() !== 'stage') {
       <!-- Phone: the route line alone at the top; the bar itself sits at the thumb. -->
       <div class="route">
+        <!-- The logo stays on top with the route (S3); the thumb bar carries search and filters only. -->
+        <a class="rlogo" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate" (click)="onNav($event, '/verse')">
+          <sc-brand-logo />
+        </a>
         @if (trailLast(); as last) {
           <span class="cat">{{ last.label ?? (last.labelKey! | translate: (last.labelParams ?? undefined)) }}</span>
         } @else {
@@ -305,7 +316,7 @@ const MAX_TOKENS = 3;
       </div>
     }
   `,
-  styleUrl: './fusion-bar.component.scss',
+  styleUrls: ['./fusion-bar.component.scss', './fusion-bar.adapt.scss'],
 })
 export class FusionBarComponent {
   private readonly router = inject(Router);
@@ -343,6 +354,8 @@ export class FusionBarComponent {
     return !!h && h.full && (h.hold === true || this.mode() !== 'stage');
   });
   readonly introK = computed(() => this.chrome.heroIntro()?.k ?? 1);
+  /** The search field's own ignite beat (null = 2.3 s * k). */
+  readonly introSearchAt = computed(() => introBeatCss(this.chrome.heroIntro()?.searchAtMs));
   /** Main page scrolled past the threshold: the staged field docked as the subheader. */
   readonly docked = signal(false);
   /** Mid-condense (0 < progress < 1): the cap travels between the stage slot and the docked bar. */
@@ -437,7 +450,38 @@ export class FusionBarComponent {
   private pendingFlip: (() => void) | null = null;
 
   constructor() {
+    // The field's ignite counts from the moment the hub starts its sequence, the same clock as
+    // the header's beat. Its animation may already exist from the announced (held) entrance or
+    // from an earlier mount of the stage slot, and a running CSS animation keeps its own start
+    // when only its delay changes - the search grew ~0.4 s off its 3.5 s beat (QA E2).
+    // The field's ignite counts from the hub's clock: the menu switch's from the click (the hub
+    // passes searchAtMs relative to it), the entrance's from the hub's first painted frame, which
+    // the hub reports once its own build animations have started (setIntroClock). Aligned to the
+    // startHeroIntro call instead, the field rose ~0.2 s ahead of the title and header, because the
+    // hub's heavy first render lies between the two (QA E2). A running CSS animation keeps its own
+    // start when only its delay changes, so the start is set here, never left to the style change.
+    const align = (at: number | null): void => {
+      const el = this.host.nativeElement as HTMLElement;
+      for (const a of el.getAnimations({ subtree: true })) {
+        if (typeof CSSAnimation === 'undefined' || !(a instanceof CSSAnimation) || !/(^|_)(fi-|sub-trace)/.test(a.animationName)) continue;
+        if (at !== null && a.playState !== 'paused') a.startTime = at;
+        else a.currentTime = 0;
+      }
+    };
+    effect(() => {
+      const h = this.chrome.heroIntro();
+      if (!h || h.hold) return;
+      untracked(() => afterNextRender(() => align(this.chrome.introStartedAt), { injector: this.injector }));
+    });
+    effect(() => {
+      const at = this.chrome.introClock();
+      const h = this.chrome.heroIntro();
+      if (at === null || !h || h.hold) return;
+      untracked(() => afterNextRender(() => align(at), { injector: this.injector }));
+    });
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
+      // The menu switch's beats count from here (verse hub, QA E4).
+      if (e instanceof NavigationStart) this.chrome.markNavStart();
       if (e instanceof Scroll) {
         // The router's scroll reset has been applied: the route change is settled.
         this.runPendingFlip();
@@ -497,6 +541,11 @@ export class FusionBarComponent {
       });
     });
 
+    // Staged or not on <html> for the phone rules (html[data-sc-bar], never html:has(sc-fusion-bar…)).
+    // Coarse on purpose: every flip restyles the document, the hero's dock fade reads the
+    // hero's own attributes (StageHeroDirective).
+    effect(() => claimRootAttr('data-sc-bar', this, this.mode() === 'stage' ? 'stage' : 'bar'));
+
     // The stage slot comes and goes with the page: track it and stand on it.
     effect(() => {
       const anchor = this.chrome.stageAnchor();
@@ -545,6 +594,7 @@ export class FusionBarComponent {
     inject(DestroyRef).onDestroy(() => {
       if (this.morphTimer) clearTimeout(this.morphTimer);
       if (this.quietTimer) clearTimeout(this.quietTimer);
+      if (this.publishTimer) clearTimeout(this.publishTimer);
       this.pendingFlip = null;
       this.chrome.setSnap(false);
       if (this.enterTimer) clearTimeout(this.enterTimer);
@@ -558,6 +608,7 @@ export class FusionBarComponent {
       this.anchorRo?.disconnect();
       this.chrome.setBarHidden(false);
       this.chrome.setStageSearch('none');
+      claimRootAttr('data-sc-bar', this, null);
       if (typeof document !== 'undefined') {
         document.documentElement.style.removeProperty('--sc-topbar-h');
         document.documentElement.style.removeProperty('--sc-bar-stack-h');
@@ -567,39 +618,37 @@ export class FusionBarComponent {
 
   private listen(): void {
     if (typeof window === 'undefined') return;
-    // Scroll-linked: one progress update per frame, however many scroll events came in.
-    let scrollFrame = 0;
-    const onScroll = () => {
-      if (scrollFrame) return;
-      scrollFrame = requestAnimationFrame(() => {
-        scrollFrame = 0;
-        this.onScroll(pageScrollY());
-      });
-    };
     const onResize = () => {
       const phone = matches('(max-width: 720px)');
       if (phone !== this.phone()) this.zone.run(() => this.phone.set(phone));
       this.barH = readBarHeight();
+      this.condenseGeo = null;
       this.publishHeight();
       this.schedulePlace();
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
+    // Scroll-linked: one progress update per frame, on the app's shared scroll tick.
+    const offScroll = onScrollTick(() => this.onScroll(pageScrollY()));
     // The stack grows with the panel; the page above the slot can reflow — keep both true.
     const ro =
       typeof ResizeObserver === 'undefined'
         ? null
-        : new ResizeObserver(() => this.scheduleMeasure());
+        : new ResizeObserver(() => {
+            this.condenseGeo = null;
+            this.scheduleMeasure();
+          });
     ro?.observe(this.host.nativeElement as HTMLElement);
     ro?.observe(document.body);
     window.addEventListener('resize', onResize, { passive: true });
     // A main page's hero re-aligned its slot (late data around it): stand on it again.
-    const onSlotMoved = () => this.schedulePlace();
+    const onSlotMoved = () => {
+      this.condenseGeo = null;
+      this.schedulePlace();
+    };
     window.addEventListener(STAGE_SLOT_MOVED, onSlotMoved);
     this.publishHeight();
     this.onScroll(pageScrollY());
     this.injector.get(DestroyRef).onDestroy(() => {
-      window.removeEventListener('scroll', onScroll);
-      if (scrollFrame) cancelAnimationFrame(scrollFrame);
+      offScroll();
       window.removeEventListener('resize', onResize);
       window.removeEventListener(STAGE_SLOT_MOVED, onSlotMoved);
       ro?.disconnect();
@@ -615,7 +664,7 @@ export class FusionBarComponent {
         this.tracker.reset(y);
         return;
       }
-      if (!this.searchOpen()) this.condense(reducedMotion() ? (nextStageDocked(this.docked(), y) ? 1 : 0) : dockProgress(y));
+      if (!this.searchOpen()) this.condense(reducedMotion() ? (nextStageDocked(this.docked(), y) ? 1 : 0) : dockProgress(y, snapTravelPx()));
       this.tracker.reset(y);
       return;
     }
@@ -639,7 +688,9 @@ export class FusionBarComponent {
     const restoring = this.navQuiet || this.routeScroll.restoring;
     if (restoring) this.snap();
     // Stage geometry first: the cap's width and travel are measured against the slot.
-    if (mid) this.measureCondense();
+    // Fresh geometry for every morph; inside one, the cached rects plus scrollY are enough.
+    if (!mid) this.condenseGeo = null;
+    else this.measureCondense();
     if (dockedNow !== this.docked() || mid !== this.condensing()) {
       const wasFull = this.chrome.dockProgress === 1;
       this.zone.run(() => {
@@ -649,11 +700,29 @@ export class FusionBarComponent {
         if (p >= 1 && !wasFull && !restoring) this.pulse('morph');
       });
       this.flush();
+      // The state classes just changed the cap: measure the morph's geometry after them.
+      this.condenseGeo = null;
       if (mid) this.measureCondense();
       else if (!dockedNow) this.placeStage(true);
     }
     this.chrome.setDockProgress(p);
   }
+
+  /**
+   * The geometry the condense frames need, measured once per morph (and again on resize,
+   * a moved slot or a reflow) instead of every scroll frame: the slot's page position and
+   * the cap's untransformed offsets do not change while the page only scrolls.
+   */
+  private condenseGeo: {
+    anchor: Element;
+    w: number;
+    cx: number;
+    slotDocTop: number;
+    dockedCx: number;
+    dockedTop: number;
+    fixed: boolean;
+    lead: number;
+  } | null = null;
 
   /** The stage slot's width and the cap's offset from its docked rect, as CSS vars for the in-between frames. */
   private measureCondense(): void {
@@ -661,18 +730,43 @@ export class FusionBarComponent {
     const el = this.host.nativeElement as HTMLElement;
     const cap = this.capEl();
     if (!anchor || !anchor.isConnected || !cap) {
+      this.condenseGeo = null;
       setVar(el, '--_dx', '0px');
       setVar(el, '--_dy', '0px');
       return;
     }
-    const a = anchor.getBoundingClientRect();
-    const h = el.getBoundingClientRect();
-    setVar(el, '--_st-w', `${Math.round(a.width)}px`);
-    // offsetLeft/Top ignore the cap's own transform: where the docked bar would stand.
-    const dockedCx = h.left + cap.offsetLeft + cap.offsetWidth / 2;
-    const dockedTop = h.top + cap.offsetTop;
-    setVar(el, '--_dx', `${Math.round(a.left + a.width / 2 - dockedCx)}px`);
-    setVar(el, '--_dy', `${Math.round(a.top - dockedTop)}px`);
+    const y = window.scrollY;
+    let c = this.condenseGeo;
+    if (!c || c.anchor !== anchor) {
+      const a = anchor.getBoundingClientRect();
+      const h = el.getBoundingClientRect();
+      const fixed = getComputedStyle(el).position === 'fixed';
+      // offsetLeft/Top ignore the cap's own transform: where the docked bar would stand.
+      const search = cap.querySelector<HTMLElement>(':scope > .search');
+      const first = cap.querySelector<HTMLElement>(':scope > .blogo');
+      c = this.condenseGeo = {
+        anchor,
+        w: Math.round(a.width),
+        cx: a.left + a.width / 2,
+        slotDocTop: a.top + y,
+        dockedCx: h.left + cap.offsetLeft + cap.offsetWidth / 2,
+        // A fixed bar stays put while the page scrolls; an in-flow one moves with it.
+        dockedTop: h.top + cap.offsetTop + (fixed ? 0 : y),
+        fixed,
+        // How far the docked search starts right of the cap's first slot (logo, plate, divider): it
+        // slides left by this while staged, so the cap's layout never changes during the morph.
+        lead: search && first ? Math.max(0, Math.round(search.offsetLeft - first.offsetLeft)) : 0,
+      };
+    }
+    setVar(el, '--_st-w', `${c.w}px`);
+    setVar(el, '--_dx', `${Math.round(c.cx - c.dockedCx)}px`);
+    // Over a whole snap step the slot scrolls out of view long before the morph lands: the
+    // cap then starts where the slot stands at rest and travels in one straight line up into
+    // the bar (rounds/05 d5-pb-scroll), instead of riding the slot off screen and coming back.
+    const slotTop = snapTravelPx() ? c.slotDocTop : c.slotDocTop - y;
+    const dockedTop = c.fixed ? c.dockedTop : c.dockedTop - y;
+    setVar(el, '--_dy', `${Math.round(slotTop - dockedTop)}px`);
+    setVar(el, '--_lead', `${c.lead}px`);
   }
 
   /** Transitions off for the next two frames (bar + header), so a state change jumps. */
@@ -772,7 +866,7 @@ export class FusionBarComponent {
     if (typeof requestAnimationFrame !== 'function' || this.measureFrame) return;
     this.measureFrame = requestAnimationFrame(() => {
       this.measureFrame = 0;
-      this.publishHeight();
+      this.publishHeightSettled();
       this.placeStage();
     });
   }
@@ -859,15 +953,35 @@ export class FusionBarComponent {
    */
   private publishHeight(): void {
     if (typeof document === 'undefined') return;
+    if (this.publishTimer) clearTimeout(this.publishTimer);
+    this.publishTimer = null;
     const el = this.host.nativeElement as HTMLElement;
     const staged = this.mode() === 'stage';
     // The bar parks `--sc-chrome-top` (minus its 4px padding) below the viewport top: that lift counts.
     const lift = Math.max(0, (parseFloat(getComputedStyle(el).top) || 0) - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sc-imp-banner-h')) || 0));
-    const px = this.phone() || this.hidden() || staged ? 0 : Math.round(el.getBoundingClientRect().height + lift);
-    document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
+    // Layout height, not the rect: the morph scales the bar, and every in-between value
+    // written on <html> restyled the whole document in that frame.
+    const h = el.offsetHeight;
+    const px = this.phone() || this.hidden() || staged ? 0 : Math.round(h + lift);
+    setRootVar('--sc-topbar-h', `${px}px`);
     // Phone: the whole bottom stack (bar + panel) the page must keep free.
-    const stack = this.phone() && !staged ? Math.round(el.getBoundingClientRect().height) : 0;
-    document.documentElement.style.setProperty('--sc-bar-stack-h', `${stack}px`);
+    const stack = this.phone() && !staged ? Math.round(h) : 0;
+    setRootVar('--sc-bar-stack-h', `${stack}px`);
+  }
+
+  /**
+   * The ResizeObserver path: the bar and the body resize in every frame of a morph or a
+   * route swap, and each new value on <html> restyles the whole document (perf-report
+   * "Wave 2c root cause"). Publish once the size has stood still for {@link PUBLISH_SETTLE_MS};
+   * mode changes still publish at once.
+   */
+  private publishTimer: ReturnType<typeof setTimeout> | null = null;
+  private publishHeightSettled(): void {
+    if (this.publishTimer) clearTimeout(this.publishTimer);
+    this.publishTimer = setTimeout(() => {
+      this.publishTimer = null;
+      this.publishHeight();
+    }, PUBLISH_SETTLE_MS);
   }
 
   private pulse(kind: 'morph' | 'enter'): void {

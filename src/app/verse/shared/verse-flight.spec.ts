@@ -4,7 +4,17 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { VerseFlight, verseFlightResolver } from './verse-flight';
-import { verseFlightOf, verseFrameOf, verseWorldOf } from './verse-world';
+import { verseEmblemShown, verseFlightOf, verseFrameOf, verseWorldOf } from './verse-world';
+
+describe('verseEmblemShown (shell β, Kamera-Welt C5)', () => {
+  it('drops the head emblem where the scene shows the planet big; the Sternkarte keeps it', () => {
+    for (const w of ['news', 'patches', 'gallery'] as const) {
+      expect(verseEmblemShown(w, true), w).toBe(false);
+      expect(verseEmblemShown(w, false), w).toBe(true);
+    }
+    expect(verseEmblemShown('starmap', true)).toBe(true);
+  });
+});
 
 // Fixed: the flight only takes a tile in view, and leftovers on the shared test page can push a static one below it.
 @Component({ template: '<span class="src" data-verse-fly="news" style="display:block;position:fixed;top:0;width:40px;height:40px"></span>' })
@@ -89,6 +99,19 @@ describe('VerseFlight', () => {
     expect(document.documentElement.dataset['verseFlight']).toBeUndefined();
     expect(document.documentElement.dataset['verseAim']).toBeUndefined();
     expect(document.querySelector('.sc-flight-streaks')).toBeNull();
+  });
+
+  it('hub → subpage under the shell scene: no streaks and no aim hold, the camera does the dive (D6, D7)', async () => {
+    const flight = TestBed.inject(VerseFlight);
+    flight.shell = () => true;
+    flight.aimMs = 60;
+    const h = await RouterTestingHarness.create('/verse');
+    await h.navigateByUrl('/verse/news');
+    await settle(h);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('.sc-flight-streaks')).toBeNull();
+    finish();
+    await settle(h);
   });
 
   it('hub → subpage: aims at the clicked tile first (origin + highlighted world), then starts the transition', async () => {

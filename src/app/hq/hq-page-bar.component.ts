@@ -1,4 +1,5 @@
 import { EventHqService } from './events/event-hq.service';
+import { onScrollTick } from '../core/scroll-tick';
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, afterNextRender, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
@@ -59,8 +60,7 @@ export const PAGE_BAR_SLACK_PX = 12;
         padding: var(--sc-space-1, 4px);
         border: 1px solid var(--sc-border);
         border-radius: 14px;
-        background: color-mix(in srgb, var(--sc-bg-1) 92%, transparent);
-        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent);
       }
       .tab {
         display: flex;
@@ -134,8 +134,7 @@ export class HqPageBarComponent {
           zone.run(() => this.hidden.set(false));
         }
       };
-      zone.runOutsideAngular(() => window.addEventListener('scroll', onScroll, { passive: true }));
-      destroyRef.onDestroy(() => window.removeEventListener('scroll', onScroll));
+      destroyRef.onDestroy(onScrollTick({ read: onScroll }));
     });
   }
 }

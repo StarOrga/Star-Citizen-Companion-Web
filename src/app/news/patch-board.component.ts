@@ -297,8 +297,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
       background: linear-gradient(180deg, var(--sc-bg-0) 78%, transparent);
     }
     .search.active {
-      background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      background: color-mix(in srgb, var(--sc-bg-0) 96%, transparent);
       border-bottom: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent);
     }
     .s-label { font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
@@ -352,8 +351,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .card {
       position: relative; overflow: hidden;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 20%, var(--sc-border)); border-radius: 12px;
-      background: color-mix(in srgb, var(--sc-bg-1) 42%, transparent);
-      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      background: color-mix(in srgb, var(--sc-bg-1) 68%, transparent);
       color: var(--sc-fg-0);
     }
     .skeleton .card { border-radius: 10px; }

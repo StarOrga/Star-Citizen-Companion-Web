@@ -40,7 +40,8 @@ describe('SlowMotionService', () => {
     const a = only(el);
     expect(a.playState === 'paused' || a.pending).toBe(true);
     // Its first step ends a pending pause, whose time still follows the real clock.
-    tick(SLOW_TICK_MS);
+    // (The step runs in the frame after the timer: one 16 ms frame later.)
+    tick(SLOW_TICK_MS + 16);
     const t0 = Number(a.currentTime);
     tick(SLOW_TICK_MS * 3);
     expect(Number(a.currentTime) - t0).toBeCloseTo(SLOW_TICK_MS * 3, -1);

@@ -1134,7 +1134,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.loadout.saveErrorHangar');
     }));
 
-    it('closes the picker and drafts nothing when the pick carries no raw port', fakeAsync(() => {
+    it('drafts nothing when the pick carries no raw port', fakeAsync(() => {
       const { cmp } = renderDraftPage({ id: 'c1', loadout: [], isActive: false });
       cmp.onSwapPicked({
         className: 'BEHR_LaserCannon_S3',

@@ -1,6 +1,7 @@
 import { Injectable, InjectionToken, Injector, NgZone, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { logWarn } from '../core/log';
+import { readRpcInWorker } from './codex-swap-worker-link';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
 import { ammoClassNamesFor } from './codex-equipped-stats';
 import { isConfigurableSection } from './ship-module-sections';
@@ -145,6 +146,15 @@ export class CodexSwapCandidatesService {
   }
 
   /**
+   * Start the list of the slot the pointer or the focus is on, ahead of the queue — the
+   * picker it may open next then finds it loaded (or loading). Errors stay with `load()`.
+   */
+  prefetch(q: SwapSourceQuery): void {
+    if (this.rpcMissing) return;
+    this.load(q).catch(() => undefined);
+  }
+
+  /**
    * Warm the lists for these slots in the background. Already cached, loading
    * or queued keys are skipped; nothing happens once the RPC is known missing
    * (the fallback chain is several requests per list — too heavy to run for
@@ -242,12 +252,21 @@ export class CodexSwapCandidatesService {
 
   /** `null` = the RPC does not exist (yet) — the caller falls back. */
   private async fetchViaRpc(buildId: string, q: SwapSourceQuery): Promise<SwapSourceData | null> {
-    const { data, error, status } = await this.sb.client.rpc('codex_swap_candidates', {
-      p_build_id: buildId,
-      p_installed: q.installed,
-      p_types: cleanTypes(q.types),
-      p_size: q.size,
-    });
+    const args = { p_build_id: buildId, p_installed: q.installed, p_types: cleanTypes(q.types), p_size: q.size };
+    // Read and parsed in the swap worker where there is one: the list's JSON.parse took
+    // 100–300 ms in the frame the picker opened. Any worker failure but a missing RPC asks
+    // again through the page's client, which reports errors the usual way.
+    const rest = this.sb.publicRest;
+    if (rest) {
+      const viaWorker = await readRpcInWorker(rest.base, rest.key, 'codex_swap_candidates', args);
+      if (viaWorker && 'rows' in viaWorker) return parseSwapRpcRows(viaWorker.rows);
+      if (viaWorker && isMissingRpc({ code: viaWorker.code }, viaWorker.status)) {
+        this.rpcMissing = true;
+        logWarn('codex', 'codex_swap_candidates missing — falling back to the chained swap load', viaWorker);
+        return null;
+      }
+    }
+    const { data, error, status } = await this.sb.client.rpc('codex_swap_candidates', args);
     if (error) {
       if (isMissingRpc(error, status)) {
         this.rpcMissing = true;

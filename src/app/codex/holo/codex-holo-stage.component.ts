@@ -1,4 +1,5 @@
 import { BetaService } from '../../core/beta.service';
+import { onScrollTick } from '../../core/scroll-tick';
 import { logWarn } from '../../core/log';
 import {
   ChangeDetectionStrategy,
@@ -270,7 +271,7 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="holo-stage" [class.reduced-motion]="reducedMotion()" [class.arrived]="arrived()" [class.first]="!hadBody()"
+    <section class="holo-stage" [class.dock]="shellBeta() && !reducedMotion()" [class.reduced-motion]="reducedMotion()" [class.arrived]="arrived()" [class.first]="!hadBody()"
              [class.ph-wait]="phase() === 'wait'" [class.ph-hero]="phase() === 'hero'" [class.ph-reveal]="phase() === 'reveal'"
              [attr.data-mission]="activeMissionId()" [style.--holo-e]="missionHue()">
 
@@ -799,8 +800,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   /* One sheet of glass, one hairline. */
   .holo-panel { position: relative; z-index: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
   align-self: start; height: var(--holo-card-h);
-  border: 1px solid var(--hair); border-radius: 16px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  border: 1px solid var(--hair); border-radius: 16px; background: color-mix(in srgb, var(--sc-bg-0) 73%, transparent);
+ }
 
   /* ── Tabs: a glowing pill slides under the word ── */
   .ptabs { position: relative; flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 10px 10px 0; min-height: max(38px, var(--sc-tap-min, 0px));
@@ -826,6 +827,53 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   .ph-reveal .pbody { --rise-dur: 560ms; --rise-delay: 260ms; }
   .holo-stage:not(.first):is(.ph-wait, .ph-hero) :is(.holo-below, .pbody) { opacity: 0.35; }
   .pbody:focus-visible { outline: none; }
+
+  /* ── Docking (camera world D1, rounds/05 d5-pb-detail): the page pushes in 0.7 s with the header standing, the title scans
+     open, the ship materialises as a hologram (a brief flicker), the side panel docks with an overshoot and a light edge,
+     and the four part columns ignite left to right. Every open of a detail page plays it (shell beta); the session's very
+     first ship keeps its longer arrival (.first) and only adds the title scan and the columns once it is revealed. ── */
+  .dock { --dk-ease: cubic-bezier(0.16, 0.84, 0.24, 1); }
+  .dock:not(.first) :is(.holo-body, .holo-below) { transform-origin: 40% 50%; animation: dk-push 700ms var(--dk-ease) backwards; }
+  @keyframes dk-push { from { transform: scale(0.965); } }
+  .dock .holo-topbar .ht-title { position: relative; }
+  .dock .ht-name { position: relative; animation: dk-scan 760ms var(--dk-ease) 120ms backwards; }
+  .dock .ht-name::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px; transform-origin: left; pointer-events: none;
+  background: linear-gradient(90deg, var(--sc-accent), transparent); box-shadow: 0 0 10px var(--sc-accent); animation: dk-scan-line 1000ms var(--dk-ease) 120ms both; }
+  @keyframes dk-scan {
+    0% { clip-path: inset(-40% 100% -40% 0); opacity: 1; filter: brightness(2.2) drop-shadow(0 0 0 var(--sc-accent)); }
+    55% { clip-path: inset(-40% -10% -40% 0); filter: brightness(1.6) drop-shadow(0 0 10px var(--sc-accent)); }
+    100% { clip-path: inset(-40% -10% -40% 0); filter: none; }
+  }
+  @keyframes dk-scan-line { 0% { transform: scaleX(0); opacity: 0; } 12% { opacity: 1; } 58% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+  .dock:not(.first) .holo-table { transform-origin: 35% 55%; animation: dk-holo 1000ms linear 260ms backwards; }
+  @keyframes dk-holo {
+    0% { opacity: 0; transform: scale(1.03); filter: brightness(2) saturate(0.4); }
+    10% { opacity: 0.6; }
+    17% { opacity: 0.15; }
+    28% { opacity: 0.9; }
+    38% { opacity: 0.4; }
+    62%, 100% { opacity: 1; transform: none; filter: none; }
+  }
+  .dock:is(:not(.first), .ph-reveal) .holo-panel { animation: dk-dock 900ms var(--dk-ease) 560ms backwards; }
+  @keyframes dk-dock {
+    0% { opacity: 0; transform: translateX(46px); filter: brightness(1.7); }
+    52% { opacity: 1; transform: translateX(-6px); filter: brightness(1.4); }
+    76% { transform: translateX(1.5px); }
+    100% { transform: none; filter: none; }
+  }
+  .dock:is(:not(.first), .ph-reveal) .holo-panel::after { content: ''; position: absolute; z-index: 2; inset-block: 8% 8%; inset-inline-start: 0; width: 2px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--sc-accent), transparent); box-shadow: 0 0 12px var(--sc-accent); animation: dk-edge 1100ms ease-out 560ms both; }
+  @keyframes dk-edge { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+  .dock:is(:not(.first), .ph-reveal) .below-area { animation: dk-ignite 520ms var(--dk-ease) calc(1100ms + var(--dk-i, 0) * 70ms) backwards; }
+  .below-area[data-p="offensive"] { --dk-i: 0; }
+  .below-area[data-p="defensive"] { --dk-i: 1; }
+  .below-area[data-p="movement"] { --dk-i: 2; }
+  .below-area[data-p="signature"] { --dk-i: 3; }
+  @keyframes dk-ignite {
+    0% { opacity: 0; transform: translateY(6px) scale(0.985); filter: brightness(2.4); }
+    40% { opacity: 1; transform: none; filter: brightness(1.7); }
+    100% { opacity: 1; transform: none; filter: none; }
+  }
   .pdetails { flex: none; display: block; width: 100%; min-height: max(30px, var(--sc-tap-min, 0px)); background: none; border: 0; border-block-start: 1px solid var(--hair); color: var(--sc-fg-2); cursor: pointer;
   font: inherit; font-size: max(11px, var(--f)); transition: color 160ms ease; }
   .pdetails:hover { color: var(--sc-accent); }
@@ -1019,6 +1067,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   /* Beta shell: the search capsule floats at the bottom edge, the strip rides above it. */
   :host-context([data-layout]) .holo-stage { --holo-strip-lift: calc(var(--sc-float-bottom) + var(--sc-bar-h)); }
   .mobile-tabs { display: flex; }
+  /* The floating button column (β, view switch, share, feedback) stands at the inline end:
+     the hull and its pins keep that lane free instead of lying under it (QA Q4). */
+  .holo-table { padding-inline-end: var(--sc-fab-clear-inline); }
   .switch.mobile-only { display: inline-flex; }
   .holo-topbar { grid-template-columns: auto minmax(0, 1fr); }
   .ht-left { grid-column: 1 / -1; }
@@ -1602,9 +1653,16 @@ export class CodexHoloStageComponent {
               }, REVEAL_MS),
             );
           });
+        // β shell (Kamera-Welt): the camera's push-in is the arrival. No waiting
+        // frame and no hero photo before the table - they read as a bright slab,
+        // a photo flash and a blank frame ahead of the hologram (QA D11).
+        if (this.shellBeta()) {
+          reveal();
+          return;
+        }
         // A render is a hero; the game's flat top-down icon is not (a white
         // cut-out filling the table) — that one already IS the ghost hull.
-        const src = this.heroArt().find((u) => !!u && u !== this.previewSilhouette()) ?? null;
+        const src =this.heroArt().find((u) => !!u && u !== this.previewSilhouette()) ?? null;
         if (!src || typeof Image === 'undefined') {
           reveal();
           return;
@@ -1756,11 +1814,11 @@ export class CodexHoloStageComponent {
       };
       const queueJoin = (): void => { joinRaf ||= requestAnimationFrame(measureJoin); };
       queueJoin();
-      document.addEventListener('scroll', queueJoin, { capture: true, passive: true });
+      const offScroll = onScrollTick(measureJoin, { anyTarget: true });
       window.addEventListener('resize', queueJoin, { passive: true });
       this.destroyRef.onDestroy(() => {
         cancelAnimationFrame(joinRaf);
-        document.removeEventListener('scroll', queueJoin, { capture: true });
+        offScroll();
         window.removeEventListener('resize', queueJoin);
       });
       if (typeof ResizeObserver !== 'function') return;
