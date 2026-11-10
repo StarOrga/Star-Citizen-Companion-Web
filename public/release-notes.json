@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.251.1",
+  "current": "0.251.2",
   "releases": [
+    {
+      "version": "0.251.2",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the \"Nur n Schiffe in dieser Gruppe\" hint of the Einordnung is a small warning marker beside the group bar with the text as its tooltip, so picking a small group no longer shifts the card or the headline."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.251.1",
       "date": "2026-11-10",
