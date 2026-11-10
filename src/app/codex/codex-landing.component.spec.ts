@@ -417,16 +417,30 @@ describe('CodexLandingComponent', () => {
     describe(`at ${w} × ${h}`, () => {
       useViewport(w, h);
 
-      it('#320: the data sheet spans the hologram box, also after a switch', fakeAsync(() => {
+      it('#320: both side panes share the hologram box, also after a switch', fakeAsync(() => {
         setup(three());
         fixture.componentInstance.still.set(true);
         settle();
         const sheet = el.querySelector<HTMLElement>('sc-codex-landing-values-pane')!;
+        const list = el.querySelector<HTMLElement>('sc-codex-landing-codex-pane')!;
         const check = (ctx: string): void => {
           const box = piece().querySelector<HTMLElement>('.holo')!.getBoundingClientRect();
           const r = sheet.getBoundingClientRect();
+          const l = list.getBoundingClientRect();
+          // The two side projectors are one size: same top, same bottom.
+          expect(Math.abs(l.top - r.top), `${ctx}: list top ${l.top} vs sheet ${r.top}`).toBeLessThanOrEqual(1);
+          expect(Math.abs(l.bottom - r.bottom), `${ctx}: list bottom ${l.bottom} vs sheet ${r.bottom}`).toBeLessThanOrEqual(1);
+          // The data sheet's box fills its pane, so the box is as tall as its projector edge.
+          const body = sheet.querySelector<HTMLElement>('.body')!.getBoundingClientRect();
+          expect(Math.abs(body.top - r.top), `${ctx}: sheet box top ${body.top} vs pane ${r.top}`).toBeLessThanOrEqual(1);
+          expect(Math.abs(body.bottom - r.bottom), `${ctx}: sheet box bottom ${body.bottom} vs pane ${r.bottom}`).toBeLessThanOrEqual(1);
+          // Both start with the hologram box; they end with it unless the box is lower than a pane needs (260 px).
           expect(Math.abs(r.top - box.top), `${ctx}: top ${r.top} vs box ${box.top}`).toBeLessThanOrEqual(2);
-          expect(Math.abs(r.bottom - box.bottom), `${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeLessThanOrEqual(2);
+          if (box.height >= 262) {
+            expect(Math.abs(r.bottom - box.bottom), `${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeLessThanOrEqual(2);
+          } else {
+            expect(r.bottom, `${ctx}: bottom ${r.bottom} vs box ${box.bottom}`).toBeGreaterThanOrEqual(box.bottom - 2);
+          }
         };
         check('first item');
         fixture.componentInstance.pick(2);

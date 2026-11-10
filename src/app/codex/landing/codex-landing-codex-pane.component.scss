@@ -18,8 +18,8 @@
   content: ''; position: absolute; top: 42%; height: 16%; right: calc(100% + var(--cx-bleed, 40px) - 2px); width: 2px;
   background: rgba(220, 250, 255, 0.85); box-shadow: 0 0 12px 2px rgba(130, 220, 255, 0.7); border-radius: 1px;
 }
-// As tall as its content (the landing caps it): title and tabs at the top, the foot under
-// the list; on a capped pane only the middle gives, no scrollbar.
+// As tall as the shared side-pane box (the landing sets it, #320): title and tabs at the top,
+// the foot at the bottom; only the list in the middle gives, no scrollbar.
 .body {
   flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: 16px 0 14px 18px;
   container: cx-pane / inline-size;
