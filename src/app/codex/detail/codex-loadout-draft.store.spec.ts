@@ -192,6 +192,16 @@ describe('CodexLoadoutDraftStore', () => {
     expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }));
   });
 
+  it('a second adoptToHq while the first is in flight joins it — one exemplar, never two (E8)', async () => {
+    store.applySwap(pick('BEHR_LaserCannon_S3'));
+    const [a, b] = await Promise.all([store.adoptToHq(), store.adoptToHq()]);
+    expect(hangar.createConfig).toHaveBeenCalledTimes(1);
+    expect(a?.id).toBe('c1');
+    expect(b).toBe(a);
+    await store.adoptToHq();
+    expect(hangar.createConfig).toHaveBeenCalledTimes(2);
+  });
+
   it('writes nothing when the fork guard is declined', async () => {
     hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [], isActive: true }]);
     store.applyStoredLoadout([], { configId: 'c1' });

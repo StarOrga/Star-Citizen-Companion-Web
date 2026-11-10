@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input, output, signal, viewChild } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { formatNumber } from '../codex-format';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { CodexHoloCalloutComponent } from '../holo/codex-holo-callout.component';
@@ -44,7 +44,7 @@ export interface SchemaCallout {
 @Component({
   selector: 'sc-ship-blueprint-schema',
   standalone: true,
-  imports: [TranslatePipe, ScTooltipDirective, DecimalPipe, CodexHoloCalloutComponent],
+  imports: [TranslatePipe, ScTooltipDirective, CodexHoloCalloutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (current(); as t) {
@@ -90,7 +90,7 @@ export interface SchemaCallout {
         <figcaption>
           <span class="ttl">{{ 'codex.shipBlueprint.schema.title' | translate }}</span>
           @if (blueprint().extentM; as e) {
-            <span class="dim">{{ 'codex.shipBlueprint.schema.extent' | translate: { length: (e[0] | number: '1.0-1'), beam: (e[1] | number: '1.0-1'), height: (e[2] | number: '1.0-1') } }}</span>
+            <span class="dim">{{ 'codex.shipBlueprint.schema.extent' | translate: { length: dim(e[0]), beam: dim(e[1]), height: dim(e[2]) } }}</span>
           }
           <span class="legend">
             @for (g of groups(); track g) {
@@ -187,6 +187,11 @@ export interface SchemaCallout {
   `],
 })
 export class ShipBlueprintSchemaComponent {
+  /** One decimal in the page's number locale: "19,7 × 17,4 × 5,1 m", never the English point (round-7 E3). */
+  protected dim(v: number): string {
+    return formatNumber(v, undefined, 1);
+  }
+
   /** The full-detail drawing. */
   readonly blueprint = input.required<ShipBlueprint>();
   /** The view on the sheet; a drawing without it falls back to its top view. */
