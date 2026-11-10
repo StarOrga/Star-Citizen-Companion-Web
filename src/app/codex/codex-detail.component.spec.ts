@@ -389,7 +389,9 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(el.querySelector('.hero.stage sc-hangar-picker')).toBeNull();
     const top = el.querySelector('.hero-stack > .stage-top') as HTMLElement;
     expect(top).toBeTruthy();
-    expect(top.nextElementSibling?.matches('header.hero.stage')).toBe(true);
+    // The picture and the ownership card share one box (#334: the 3D overlay covers both).
+    expect(top.nextElementSibling?.matches('.hero-pair')).toBe(true);
+    expect(top.nextElementSibling?.firstElementChild?.matches('header.hero.stage')).toBe(true);
     // Same functions as before: the button is an anchor into the hangar.
     const btn = top.querySelector('sc-hangar-picker a.picker-btn') as HTMLAnchorElement;
     expect(btn?.getAttribute('href')).toContain('hangar');
@@ -1495,7 +1497,7 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-own-segment')).not.toBeNull();
       cmp.holoView.set(false);
       fixture.detectChanges();
-      expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card'), 'under the picture (#323)').not.toBeNull();
+      expect(el.querySelector('.hero-stack > .hero-pair > .hero-own sc-codex-own-card'), 'under the picture (#323)').not.toBeNull();
       expect(el.querySelector('.m-side sc-codex-own-card'), 'not in the headline side column').toBeNull();
       expect(el.querySelector('sc-item-path[level]')?.closest('.crumb-aside'), 'no path panel in the head').toBeFalsy();
     }));
