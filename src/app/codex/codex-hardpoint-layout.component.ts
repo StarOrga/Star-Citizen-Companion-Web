@@ -40,6 +40,7 @@ import {
   shipModuleGroupLabelKey,
   shipModuleGroupOf,
 } from './ship-module-sections';
+import { trackingSignalOf } from './codex-missile';
 import { displayItemName, formatNumber } from './codex-format';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { FeedbackSpotDirective } from '../feedback/feedback-spot.directive';
@@ -463,6 +464,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                               @for (ch of row.slot.damageChannels; track ch) {
                                 <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
                               }
+                              @if (seeker(row.slot.className, row.slot.stats); as sk) {
+                                <span class="tag seeker" [scTooltip]="sk.tipKey | translate">{{ sk.labelKey | translate }}</span>
+                              }
                               @if (row.slot.grade) { <span class="tag">{{ row.slot.grade }}</span> }
                               @if (row.slot.statChip) { <span class="tag accent">{{ row.slot.statChip }}</span> }
                             </span>
@@ -626,6 +630,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                       @if (kidMetaLine(kid); as m) { <span class="meta-txt">{{ m }}</span> }
                                       @for (ch of kid.damageChannels; track ch) {
                                         <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+                                      }
+                                      @if (seeker(kid.className, kid.stats, kid.rawTypes); as sk) {
+                                        <span class="tag seeker" [scTooltip]="sk.tipKey | translate">{{ sk.labelKey | translate }}</span>
                                       }
                                       @if (kid.grade) { <span class="tag">{{ kid.grade }}</span> }
                                     </span>
@@ -962,6 +969,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .tag.dmg { color: var(--sc-warn);
       border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent);
       background: color-mix(in srgb, var(--sc-warn) 10%, transparent); }
+    /* What a missile homes in on (IR / EM / cross section) — the one word that
+       decides which countermeasure beats it (feedback #331). */
+    .tag.seeker { color: var(--sc-accent);
+      border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     /* The concept's "tuned" edge (section 6): a slot that no longer holds its
        factory part wears a gold rail. The hover state it also asks for is
        already there on the card itself (button.slot-btn:hover above) and stays
@@ -1487,6 +1498,26 @@ export class CodexHardpointLayoutComponent {
 
   metaLine(row: GroupedSlot<LayoutSlot>): string {
     return [row.slot.manufacturerCode, row.slot.typeLabel].filter(Boolean).join(' · ');
+  }
+
+  /**
+   * The tracking signal of a missile, torpedo or rocket (feedback #331), as
+   * CIG's class name states it — the same source the missile's own page uses.
+   * Only for ordnance: a missile port, or a row whose stats are missile stats,
+   * so a gun whose class name happens to carry `_EM_` never gets the tag.
+   */
+  seeker(
+    className: string | null,
+    stats: readonly EquippedStat[] | undefined,
+    rawTypes: readonly string[] = [],
+  ): { labelKey: string; tipKey: string } | null {
+    const ordnance =
+      rawTypes.some((t) => t.trim().toLowerCase() === 'missile') ||
+      (stats ?? []).some((st) => st.labelKey.startsWith('codex.missile.stat.'));
+    const signal = ordnance ? trackingSignalOf(className) : null;
+    return signal
+      ? { labelKey: `codex.missile.signal.${signal}`, tipKey: `codex.missile.keywordTip.${signal}` }
+      : null;
   }
 
   /** The carried item's meta line, read the same way a top-level row's is. */
