@@ -325,14 +325,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
       @if (loading() && skeletonStage() && arrivalThumb(); as arrival) {
         <!-- The loading ship's real silhouette (silhouette only, no backdrop) when the build has it. -->
-        <div class="sc-card skel-stage arrival" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
+        <div class="sc-card skel-stage arrival" [class.bare]="shellBeta()" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
           <sc-ship-arrival [thumb]="arrival" />
         </div>
       } @else if (loading() && skeletonStage()) {
         <!-- Holodeck skeleton: the page frame + header are already up; the
              stage's own lock ring and scan line run until the ship arrives and
              the real stage replaces this box in place (same min-height). -->
-        <div class="sc-card skel-stage" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
+        <div class="sc-card skel-stage" [class.bare]="shellBeta()" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
           <i class="skel-ring" aria-hidden="true"></i>
           <i class="skel-scan" aria-hidden="true"></i>
         </div>
@@ -1585,6 +1585,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .skel-card { height: 260px; }
     .skel-stage { position: relative; min-height: 520px; overflow: hidden; }
     .skel-stage > i { position: absolute; pointer-events: none; }
+    /* β shell: the scene behind is the stage while the ship loads - no card slab before the hologram (QA D11). */
+    .skel-stage.bare { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .skel-ring { left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 60%, transparent);
       box-shadow: 0 0 22px color-mix(in srgb, var(--sc-accent) 30%, transparent), inset 0 0 14px color-mix(in srgb, var(--sc-accent) 20%, transparent);

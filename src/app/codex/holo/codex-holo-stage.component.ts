@@ -893,6 +893,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   /* Beta shell: the search capsule floats at the bottom edge, the strip rides above it. */
   :host-context([data-layout]) .holo-stage { --holo-strip-lift: calc(var(--sc-float-bottom) + var(--sc-bar-h)); }
   .mobile-tabs { display: flex; }
+  /* The floating button column (β, view switch, share, feedback) stands at the inline end:
+     the hull and its pins keep that lane free instead of lying under it (QA Q4). */
+  .holo-table { padding-inline-end: var(--sc-fab-clear-inline); }
   .switch.mobile-only { display: inline-flex; }
   .holo-topbar { flex-direction: column; align-items: stretch; }
   .ht-title { flex-wrap: wrap; gap: 2px 10px; }
@@ -1340,9 +1343,16 @@ export class CodexHoloStageComponent {
               }, REVEAL_MS),
             );
           });
+        // β shell (Kamera-Welt): the camera's push-in is the arrival. No waiting
+        // frame and no hero photo before the table - they read as a bright slab,
+        // a photo flash and a blank frame ahead of the hologram (QA D11).
+        if (this.shellBeta()) {
+          reveal();
+          return;
+        }
         // A render is a hero; the game's flat top-down icon is not (a white
         // cut-out filling the table) — that one already IS the ghost hull.
-        const src = this.heroArt().find((u) => !!u && u !== this.previewSilhouette()) ?? null;
+        const src =this.heroArt().find((u) => !!u && u !== this.previewSilhouette()) ?? null;
         if (!src || typeof Image === 'undefined') {
           reveal();
           return;
