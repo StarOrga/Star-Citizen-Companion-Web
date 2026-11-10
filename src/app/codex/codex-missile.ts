@@ -187,7 +187,8 @@ export function defaultMissileScope(target: MissileRecord, cohort: readonly Miss
  * Rank one missile on damage, speed, agility and range. An axis exists only where the target has a value and the
  * group actually differs on it — inside "same size" the size axis would read
  * 50 % for everyone. A group of one is no comparison, so it is offered disabled.
- * `null` = nothing to compare at all: the card shows its gap state.
+ * `null` = nothing to compare at all: the card shows its gap state. A narrower
+ * group with fewer than three differing values comes back with `thinKey`.
  */
 export function rankMissile(
   target: MissileRecord,
@@ -210,13 +211,20 @@ export function rankMissile(
     return new Set(values).size >= 2;
   });
   const axes = comparable;
-  if (axes.length < MIN_AXES) return null;
+  // Too few values for the whole field = nothing to rank. A narrower group
+  // (same size) that differs on too few of them stays picked: the card keeps
+  // its group bar and the bars it has, and says so instead of a verdict (#331).
+  const thin = axes.length < MIN_AXES;
+  if (thin && scope === 'all') return null;
   const profile: RankProfile<MissileMetric> = {
     id: 'combat',
     labelKey: '',
     axes: axes.map((axis) => ({ ...axis, labelKey: `codex.missile.axis.${axis.key}` })),
   };
-  return { ...rankShip(self, peers, { profile, scope }), scopeAvailable: available };
+  const ranked = { ...rankShip(self, peers, { profile, scope }), scopeAvailable: available };
+  return thin
+    ? { ...ranked, overall: null, band: null, bandKey: null, thinKey: 'codex.missile.rank.gapThinGroup' }
+    : ranked;
 }
 
 // ── keywords ─────────────────────────────────────────────────────────────────

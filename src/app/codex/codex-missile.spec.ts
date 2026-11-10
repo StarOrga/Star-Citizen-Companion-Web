@@ -132,6 +132,20 @@ describe('codex-missile', () => {
       expect(r.scope).toBe('all');
     });
 
+    it('keeps a same-size group that differs on too few values, without a verdict (#331)', () => {
+      // S2 missiles share speed, agility and range; only the warhead differs.
+      const s2 = (className: string, damage: number) =>
+        missile({ className, size: 2, metrics: { damage, speed: 900, agility: 60, range: 4000, size: 2 } });
+      const mixed = [s2('m1', 100), s2('m2', 200), s2('m3', 300), armed('big5', 5, { size: 5 })];
+      const r = rankMissile(mixed[1], mixed, 'sizeClass')!;
+      expect(r).not.toBeNull();
+      expect(r.scope).toBe('sizeClass');
+      expect(r.thinKey).toBe('codex.missile.rank.gapThinGroup');
+      expect(r.overall).toBeNull();
+      expect(r.axes.map((a) => a.key)).toEqual(['damage']);
+      expect(rankMissile(mixed[1], mixed, 'all')!.thinKey).toBeUndefined();
+    });
+
     it('marks the value below the group as weak, so the bar paints the warning colour', () => {
       const r = rankMissile(field[0], field, 'career')!;
       expect(r.axes.find((a) => a.key === 'damage')!.weak).toBe(true);

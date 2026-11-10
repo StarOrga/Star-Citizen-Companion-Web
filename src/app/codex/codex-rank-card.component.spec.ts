@@ -38,6 +38,38 @@ describe('CodexRankCardComponent', () => {
     expect(el.querySelector('.gap-note')?.textContent?.trim()).toBe('codex.missile.rank.gapNoData');
   });
 
+  it('keeps the group bar when the picked group has nothing to compare, so the way back stays (#331)', () => {
+    fixture.componentRef.setInput('result', null);
+    fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('scope', 'sizeClass');
+    fixture.componentRef.setInput('scopes', [
+      { id: 'all', labelKey: 'codex.missile.scope.all', reasonKey: '' },
+      { id: 'sizeClass', labelKey: 'codex.missile.scope.size', reasonKey: 'codex.missile.scopeOff' },
+    ]);
+    const emitted: string[] = [];
+    fixture.componentInstance.scopeChange.subscribe((v) => emitted.push(v));
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.gap-note')).toBeTruthy();
+    const segs = Array.from(el.querySelectorAll<HTMLButtonElement>('.compare-head .seg-btn'));
+    expect(segs.map((b) => b.textContent!.trim())).toEqual(['codex.missile.scope.all', 'codex.missile.scope.size']);
+    segs[0].click();
+    expect(emitted).toEqual(['all']);
+  });
+
+  it('says "not enough" in place of the verdict for a thin group and keeps bar and bars (#331)', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100 } };
+    const other: RankShipInput = { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200 } };
+    const ranked = rankShip(target, [target, other], { profile: 'combat', scope: 'sizeClass' });
+    fixture.componentRef.setInput('result', { ...ranked, overall: null, band: null, bandKey: null, thinKey: 'codex.missile.rank.gapThinGroup' });
+    fixture.componentRef.setInput('loading', false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.verdict.thin')?.textContent?.trim()).toBe('codex.missile.rank.gapThinGroup');
+    expect(el.querySelector('.compare-head sc-segmented')).not.toBeNull();
+    expect(el.querySelectorAll('.bar-row').length).toBe(ranked.bars.length);
+  });
+
   it('shows a loading skeleton instead of a gap note while fetching', () => {
     fixture.componentRef.setInput('result', null);
     fixture.componentRef.setInput('loading', true);

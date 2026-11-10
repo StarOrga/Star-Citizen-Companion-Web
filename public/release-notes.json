@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.250.4",
+  "current": "0.250.5",
   "releases": [
+    {
+      "version": "0.250.5",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex Einordnung: the scope bar (Alle/Art/Größe/Signal) always stays visible; a missile group with too few differing values keeps its scope and shows \"Nicht genug Vergleichswerte\" instead of the score, plus the bars for the values that still differ."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.250.4",
       "date": "2026-11-10",

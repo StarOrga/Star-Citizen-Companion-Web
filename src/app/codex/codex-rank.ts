@@ -358,6 +358,10 @@ export interface RankResult<K extends string = KpiKey> {
   /** Ships per group (target included) for every scope the target can filter
    * by — the Holotable says "nur N Schiffe" for a group under RANK_MIN_GROUP. */
   scopeSizes?: Partial<Record<RankScope, number>>;
+  /** Set when the group exists but differs on too few values for a verdict
+   * (S2 missiles among S2 missiles): the card keeps its group bar and the
+   * bars it has, and says this i18n key in place of the statistic. */
+  thinKey?: string | null;
 }
 
 /** Percentile band thresholds (MASTER §3). */
