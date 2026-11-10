@@ -100,6 +100,8 @@ export function isSoftwareRenderer(renderer: THREE.WebGLRenderer): boolean {
 /** How many points of the model the safe-area fit solves against. */
 const MAX_FIT_POINTS_PER_MESH = 256;
 const MAX_FIT_POINTS = 2500;
+/** How much the straight top/bottom view counts in the fixed orbit distance (E4). */
+const POLE_FIT_WEIGHT = 0.8;
 
 /** Soft radial falloff (white, alpha only) for the glow halo; tinted by the sprite colour. */
 function haloTexture(size = 64): THREE.DataTexture {
@@ -531,7 +533,11 @@ export class PackageScene {
           dir.set(x, y, z).normalize();
           m.lookAt(dir, zero, Math.abs(dir.y) > 0.999 ? new THREE.Vector3(0, 0, -1) : up);
           q.setFromRotationMatrix(m);
-          best = Math.max(best, this.fittedDistance(q));
+          // E4: straight down/up turns a long hull's length onto the stage's short (vertical) axis and
+          // used to set the distance for every side; it counts at POLE_FIT_WEIGHT, so the model fills
+          // the stage on the views one actually orbits through, and a pole view may graze the margin.
+          const pole = x === 0 && z === 0;
+          best = Math.max(best, this.fittedDistance(q) * (pole ? POLE_FIT_WEIGHT : 1));
         }
       }
     }

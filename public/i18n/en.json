@@ -1213,6 +1213,7 @@
       },
       "partType": {
         "gatling": "Gatling",
+        "remoteTurret": "Remote turret",
         "scattergun": "Scattergun",
         "massDriver": "Mass driver",
         "railgun": "Railgun",
@@ -1570,7 +1571,7 @@
         "ofRole": "{{name}} role"
       },
       "noMiningData": "Mining and salvage output: no data",
-      "rimNote": "Outside = close to the group best (95 %), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67 %.",
+      "rimNote": "Outside = close to the group best (95\u00a0%), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67\u00a0%.",
       "betterThan": "Better than {{n}} %",
       "rimLabel": "Scale"
     },

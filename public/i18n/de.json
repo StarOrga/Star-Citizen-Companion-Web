@@ -1213,6 +1213,7 @@
       },
       "partType": {
         "gatling": "Gatling",
+        "remoteTurret": "Fernturm",
         "scattergun": "Schrotkanone",
         "massDriver": "Massetreiber",
         "railgun": "Railgun",
@@ -1570,7 +1571,7 @@
         "ofRole": "Rolle {{name}}"
       },
       "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
-      "rimNote": "Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.",
+      "rimNote": "Außen = fast bester Wert der Gruppe (95\u00a0%), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67\u00a0%.",
       "betterThan": "Besser als {{n}} %",
       "rimLabel": "Skala"
     },
