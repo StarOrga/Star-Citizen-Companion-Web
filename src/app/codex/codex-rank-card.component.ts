@@ -109,7 +109,9 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
       </div>
 
 
-      @if (result()) {
+      <!-- The group bar stays in every settled state, the gap state included:
+           a group with nothing to compare must never take away the way back (#331). -->
+      @if (!loading()) {
         <!-- Comparison group as the panel's head line (concept round 3, L2):
              one segmented control, a group the ship has no data for stays
              visible but disabled and says why in its tooltip. -->
@@ -190,6 +192,8 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
           <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
         } @else if (!result()) {
           <p class="gap-note">{{ (gapKey() ?? 'codex.rank.gapAxis') | translate }}</p>
+        } @else if (result()!.thinKey) {
+          <p class="verdict gap thin" role="status">{{ result()!.thinKey! | translate }}</p>
         } @else if (holo()) {
           <!-- The panel's head says it once. -->
         } @else if (result()!.overall != null) {

@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.250.5] - 2026-11-10
+
+### Fixed
+- Codex Einordnung: the scope bar (Alle/Art/Größe/Signal) always stays visible; a missile group with too few differing values keeps its scope and shows "Nicht genug Vergleichswerte" instead of the score, plus the bars for the values that still differ.
+
 ## [0.250.4] - 2026-11-10
 
 ### Fixed
