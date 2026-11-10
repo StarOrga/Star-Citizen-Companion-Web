@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, model, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, model, signal , inject } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import type { Lang, ShipDeck } from './codex.types';
 import { buildDeckPlans, DeckPlan, DeckPlanRoom } from './deck-plan';
+import { RoomLabelTranslations } from './room-label-translations';
 
 /** Counter behind each plan's DOM id prefix. */
 let nextDeckPlanId = 0;
@@ -209,7 +210,8 @@ export class ShipDeckPlanComponent {
   /** No card, header, switcher or room chips: the plan alone, for the Holotable surface. */
   readonly bare = input(false);
 
-  readonly plans = computed(() => buildDeckPlans(this.decks(), this.lang()));
+  private readonly roomLabels = inject(RoomLabelTranslations);
+  readonly plans = computed(() => buildDeckPlans(this.decks(), this.lang(), this.roomLabels.labels(this.lang())));
 
   private readonly picked = signal<string | null>(null);
   /** Room under the pointer or a focused chip — transient. */

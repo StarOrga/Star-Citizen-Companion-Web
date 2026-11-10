@@ -69,6 +69,7 @@ export type { HoloSharedBanner } from './codex-holo-shared-banner.component';
 import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from './codex-holo-perspectives.component';
 import { CodexHoloTableComponent, type HoloDeckView } from './codex-holo-table.component';
 import { buildDeckPlans } from '../deck-plan';
+import { RoomLabelTranslations } from '../room-label-translations';
 import type { Lang, ShipDeck } from '../codex.types';
 import { CodexHoloInspectorComponent, partFocusOf } from './codex-holo-inspector.component';
 import { CodexHoloChangesComponent } from './codex-holo-changes.component';
@@ -1163,6 +1164,7 @@ export class CodexHoloStageComponent {
   /** A shared link's loadout is the draft: no swap, revert or save. */
   readonly readOnly = input(false);
   /** Draft paths already stored in the hangar config (e.g. after `?config=`). */
+  private readonly roomLabels = inject(RoomLabelTranslations);
   readonly savedPorts = input<ReadonlySet<string>>(new Set());
   /** Own exemplar with autosave on: the store shows its own "Gespeichert" toast, so no undo toast here. */
   readonly autosaving = input(false);
@@ -1415,7 +1417,7 @@ export class CodexHoloStageComponent {
   readonly deckView = signal<string | null>(null);
   /** Außen + one chip per deck with rooms; one deck = Außen/Innen; no rooms = none (r1-decks). */
   readonly deckChips = computed<readonly { key: string | null; label: string; labelKey: string | null }[]>(() => {
-    const set = buildDeckPlans(this.decks(), this.deckLang());
+    const set = buildDeckPlans(this.decks(), this.deckLang(), this.roomLabels.labels(this.deckLang()));
     if (!set || set.decks.length === 0) return [];
     const outside = { key: null, label: '', labelKey: 'codex.holo.stage.deckOutside' };
     // One deck (often the uploader's fallback "Alle Räume"): its own name, else "Innen".
@@ -1444,7 +1446,7 @@ export class CodexHoloStageComponent {
   readonly roomChips = computed<readonly { key: string; label: string }[]>(() => {
     const t = this.tableDeck();
     if (!t) return [];
-    const deck = buildDeckPlans(t.decks, t.lang)?.decks.find((d) => d.key === t.key);
+    const deck = buildDeckPlans(t.decks, t.lang, this.roomLabels.labels(t.lang))?.decks.find((d) => d.key === t.key);
     const seen = new Set<string>();
     // One chip per name: case and stray spaces don't make a second "Turret Rear Foyer".
     const norm = (l: string) => l.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
@@ -1458,7 +1460,7 @@ export class CodexHoloStageComponent {
     const key = this.deckRoom();
     const t = this.tableDeck();
     if (!key || !t) return null;
-    return buildDeckPlans(t.decks, t.lang)?.decks.find((d) => d.key === t.key)?.rooms.find((r) => r.key === key)?.label ?? null;
+    return buildDeckPlans(t.decks, t.lang, this.roomLabels.labels(t.lang))?.decks.find((d) => d.key === t.key)?.rooms.find((r) => r.key === key)?.label ?? null;
   });
   /** A room chip: picks the room on the plan, a second press lets it go. */
   pickRoom(key: string): void {
