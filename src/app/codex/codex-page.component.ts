@@ -11,6 +11,13 @@ import { CODEX_MORE_ANCHOR } from './codex-more-anchor';
 export type CodexPart = 'top' | 'more';
 
 export const CODEX_TOP_URL = '/codex';
+
+/** When the overview under the stage renders after arriving: past the camera flight (1100 ms) and its settle. */
+export const LOWER_AFTER_MS = 1300;
+
+function prefersReducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 export { CODEX_MORE_ANCHOR };
 
 /**
@@ -47,7 +54,9 @@ export function codexPartUrl(part: CodexPart, search: string): string {
       </div>
     </div>
     <section #more [id]="anchor" class="more sc-below-stage" [attr.aria-label]="'codex.page.moreAria' | translate">
-      <sc-codex-browse [headingLevel]="2" />
+      @if (lowerOn()) {
+        <sc-codex-browse [headingLevel]="2" />
+      }
     </section>
   `,
   styles: [
@@ -106,6 +115,12 @@ export class CodexPageComponent {
   private readonly opened: CodexPart = this.route.snapshot.fragment === CODEX_MORE_ANCHOR ? 'more' : 'top';
   /** True while a deep link to the overview waits for the page to grow tall enough to land on it. */
   private settling = false;
+  /**
+   * The overview under the stage renders once the camera stands: arriving at /codex it was
+   * the heaviest part of the flight's frames (the whole index list laid out mid-flight).
+   * At once for a deep link to #more, a step down (cue, scroll) or reduced motion.
+   */
+  readonly lowerOn = signal(this.opened === 'more' || prefersReducedMotion());
 
   constructor() {
     const destroy = inject(DestroyRef);
@@ -134,9 +149,20 @@ export class CodexPageComponent {
         window.removeEventListener('resize', measure);
       });
     }));
+    if (!this.lowerOn()) {
+      afterNextRender(() => this.zone.runOutsideAngular(() => {
+        const t = setTimeout(() => {
+          const show = (): void => this.zone.run(() => this.lowerOn.set(true));
+          if (typeof requestIdleCallback === 'function') requestIdleCallback(show, { timeout: 500 });
+          else show();
+        }, LOWER_AFTER_MS);
+        destroy.onDestroy(() => clearTimeout(t));
+      }));
+    }
     afterNextRender(() => {
       const g = wirePageGlide(() => this.lower().nativeElement, this.zone, (st) => {
         this.part.set(st);
+        if (st !== 'top' && !this.lowerOn()) this.zone.run(() => this.lowerOn.set(true));
         // While a deep link is still settling, the landing's state must not drop the #more anchor.
         if (this.settling && st !== 'docked') return;
         this.syncUrl(st);
@@ -161,6 +187,7 @@ export class CodexPageComponent {
 
   /** "Mehr in Codex": all the way down to the overview. */
   toMore(): void {
+    this.lowerOn.set(true);
     if (this.glide?.glide(1)) return;
     const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.lower().nativeElement.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
