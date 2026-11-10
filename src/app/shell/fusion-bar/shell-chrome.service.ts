@@ -1,4 +1,5 @@
-import { Injectable, TemplateRef, computed, signal } from '@angular/core';
+import { Injectable, TemplateRef, computed, inject, signal } from '@angular/core';
+import { NavigationStart, Router } from '@angular/router';
 import type { HqPageId } from '../../hq/hq-routes';
 import type { PageCrumb } from '../../shared/page-header/nav-origin.service';
 
@@ -109,6 +110,25 @@ export interface BarFilters {
  */
 @Injectable({ providedIn: 'root' })
 export class ShellChromeService {
+  /**
+   * `performance.now()` of the latest navigation start (the menu click), or null. A routed page
+   * that mounts after its chunk and the switch-out times its build from here, so a menu switch's
+   * beats (title 0.75 s, search 1.05 s ...) count from the click, not from the late mount (QA E4).
+   */
+  navStartedAt: number | null = null;
+
+  constructor() {
+    inject(Router, { optional: true })?.events.subscribe((e) => {
+      if (e instanceof NavigationStart) this.navStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    });
+  }
+
+  /** Milliseconds since the latest navigation started, capped at `max` (0 without one). */
+  sinceNavStart(max: number): number {
+    if (this.navStartedAt === null || typeof performance === 'undefined') return 0;
+    return Math.max(0, Math.min(max, performance.now() - this.navStartedAt));
+  }
+
   private readonly crumbOwners = signal<readonly { owner: object; value: ChromeCrumbs }[]>([]);
   private readonly toolbars = signal<readonly TemplateRef<unknown>[]>([]);
   private readonly stage = signal<StageSearchState>('none');

@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../../shared/tooltip/sc-tooltip.directive';
+import { isPlainLeftClick } from '../../../core/modified-click.util';
 import type { VerseDoor } from '../../data/verse.models';
 import { BodyCanvasDirective } from './bodies/body.directive';
 import type { BodyKind } from './bodies/body-engine';
@@ -205,7 +206,22 @@ export class BriefingTransmitComponent {
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
+    // Touch, first tap on a planet: the name, not the page (QA D2). RouterLink's own click
+    // listener on the anchor navigates whatever a sibling listener does, so the first tap is
+    // taken here, in the capture phase on the host, before it ever reaches the anchor.
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const onCapture = (ev: MouseEvent): void => {
+      const pl = (ev.target as Element | null)?.closest?.('a.pl[data-door]');
+      if (!pl || !host.contains(pl)) return;
+      const d = pl.getAttribute('data-door') as VerseDoor;
+      if (!this.firstTap(ev, d)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      this.zone.run(() => this.arm(d));
+    };
+    host.addEventListener('click', onCapture, true);
     inject(DestroyRef).onDestroy(() => {
+      host.removeEventListener('click', onCapture, true);
       document.removeEventListener('visibilitychange', onVisibility);
       this.stop();
       if (this.armedTimer) clearTimeout(this.armedTimer);
@@ -218,17 +234,26 @@ export class BriefingTransmitComponent {
 
   /** A planet was clicked. On touch the first tap only shows the name, the second one opens it. */
   tap(ev: MouseEvent, d: VerseDoor): void {
-    if (this.coarse && this.armed() !== d && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey && ev.button === 0) {
+    if (this.firstTap(ev, d)) {
       ev.preventDefault();
-      this.armed.set(d);
-      if (this.armedTimer) clearTimeout(this.armedTimer);
-      this.zone.runOutsideAngular(() => {
-        this.armedTimer = setTimeout(() => this.zone.run(() => this.armed.set(null)), NAME_ARMED_MS);
-      });
+      this.arm(d);
       return;
     }
     this.armed.set(null);
     this.door.emit(d);
+  }
+
+  /** A plain tap on touch on a planet whose name is not showing yet: it shows the name. Modified clicks pass. */
+  private firstTap(ev: MouseEvent, d: VerseDoor): boolean {
+    return this.coarse && this.armed() !== d && isPlainLeftClick(ev);
+  }
+
+  private arm(d: VerseDoor): void {
+    this.armed.set(d);
+    if (this.armedTimer) clearTimeout(this.armedTimer);
+    this.zone.runOutsideAngular(() => {
+      this.armedTimer = setTimeout(() => this.zone.run(() => this.armed.set(null)), NAME_ARMED_MS);
+    });
   }
 
 

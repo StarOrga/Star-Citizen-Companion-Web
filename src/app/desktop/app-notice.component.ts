@@ -4,9 +4,11 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import { ToastSlotDirective } from '../shared/toast-stack/toast-stack';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -16,6 +18,10 @@ import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { APP_NOTICE_DELAY_MS, AppNoticeService, NoticeApp } from './app-notice.service';
 import { DesktopReleaseService, RingRelease } from './desktop-release.service';
+import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
+
+/** The entrance's "rest" beat (header, Patches, notices) when the hub sets none. */
+const APP_NOTICE_REST_BEAT_MS = 4300;
 
 const STARSCAPE_FALLBACK_URL =
   'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-latest/starscape-wallpaper.exe';
@@ -120,6 +126,7 @@ export class AppNoticeComponent {
 
   private readonly notices = inject(AppNoticeService);
   private readonly device = inject(DesktopCapabilityService);
+  private readonly chrome = inject(ShellChromeService);
   private readonly releases = inject(DesktopReleaseService);
 
   readonly visible = signal(false);
@@ -143,10 +150,46 @@ export class AppNoticeComponent {
 
   constructor() {
     // Presence timer: leaving the page destroys the component and cancels it.
+    let due = false;
+    let beat: ReturnType<typeof setTimeout> | null = null;
+    let introAt: number | null = null;
+    const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    // During the Verse entrance the notice belongs to its "rest" beat (header, Patches ... at
+    // 4.3 s), never before the search (QA D12): it waits for that beat of the running entrance.
+    const show = (): void => {
+      if (!due || this.visible() || beat) return;
+      const intro = this.chrome.heroIntro();
+      if (intro?.full) {
+        if (intro.hold) return;
+        const wait = (introAt ?? now()) + (intro.headerAtMs ?? APP_NOTICE_REST_BEAT_MS) - now();
+        if (wait > 0) {
+          beat = setTimeout(() => {
+            beat = null;
+            reveal();
+          }, wait);
+          return;
+        }
+      }
+      reveal();
+    };
+    const reveal = (): void => {
+      if (!this.visible() && this.device.canInstall() && !this.notices.isSnoozed(this.app())) this.visible.set(true);
+    };
+    effect(() => {
+      const intro = this.chrome.heroIntro();
+      untracked(() => {
+        if (intro?.full && !intro.hold && introAt === null) introAt = now();
+        show();
+      });
+    });
     const timer = setTimeout(() => {
-      if (this.device.canInstall() && !this.notices.isSnoozed(this.app())) this.visible.set(true);
+      due = true;
+      show();
     }, APP_NOTICE_DELAY_MS);
-    inject(DestroyRef).onDestroy(() => clearTimeout(timer));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(timer);
+      if (beat) clearTimeout(beat);
+    });
   }
 
   expand(): void {

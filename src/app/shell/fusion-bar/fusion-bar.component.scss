@@ -225,7 +225,7 @@
 // stands at that hidden first frame; off the stage during a full entrance it is out
 // of sight altogether (.intro-hidden) — no field that shows, vanishes and comes back.
 :host(.hero-intro[data-mode='stage']) .cap {
-  animation: fi-open calc(0.75s * var(--sc-intro-k, 1)) cubic-bezier(0.65, 0, 0.25, 1) var(--sc-intro-search-at, calc(2.3s * var(--sc-intro-k, 1))) both;
+  animation: fi-open calc(0.75s * var(--sc-intro-k, 1)) cubic-bezier(0.22, 0.7, 0.3, 1) var(--sc-intro-search-at, calc(2.3s * var(--sc-intro-k, 1))) both;
 }
 :host(.intro-hold) .cap, :host(.intro-hold) .ifx { animation-play-state: paused; }
 :host(.intro-hidden) { opacity: 0; pointer-events: none; }
