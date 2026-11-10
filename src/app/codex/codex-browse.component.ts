@@ -9,6 +9,7 @@ import {
   OnInit,
   DestroyRef,
   ElementRef,
+  NgZone,
   afterNextRender,
   viewChild,
   computed,
@@ -118,6 +119,9 @@ import { BuyOption, UexShopService } from './uex-shop.service';
 type CodexGridRow = EditionGroupedRow<SkinGroupedRow<FoldedRow<CodexListRow>>>;
 
 const PAGE_SIZE = 60;
+/** progressive: rows of the first slice, then rows added per frame. */
+const FIRST_SLICE = 6;
+const ROW_SLICE = 6;
 const SEARCH_DEBOUNCE_MS = 250;
 /** Idle time after which a typed search counts as committed (history entry, L33). */
 export const SEARCH_COMMIT_MS = 1000;
@@ -319,7 +323,7 @@ export function blueprintCategoriesForGroup(
                 </ul>
               } @else {
                 <ul class="rows" role="list">
-                  @for (r of rows(); track r.classNameSlug; let i = $index) {
+                  @for (r of shownRows(); track r.classNameSlug; let i = $index) {
                     <li class="row" [class.pm-pop]="i < ROW_POPS" [style.--pm-i]="i < ROW_POPS ? i : null">
                       <a class="row-link" [routerLink]="['/codex', kind(), r.classNameSlug]">
                         @if (silhouetteOf(r); as s) {
@@ -875,11 +879,45 @@ export class CodexBrowseComponent implements OnInit {
   /** Beta "shell": kinds + filters move into the Fusion bar. */
   /** 2 when the overview is the lower half of /codex ("Mehr in Codex"): the landing above owns the <h1>. */
   readonly headingLevel = input<1 | 2>(1);
+  /**
+   * Build the first list in slices (FIRST_SLICE rows, then ROW_SLICE per frame) instead of in
+   * one frame. Set by /codex, where the overview is built under the stage right after a camera
+   * flight: one frame for all its cards was the flight's longest (concept 20261109-1752, r6).
+   */
+  readonly progressive = input(false);
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
   /** How many rows pop in one by one; further rows (and every later load) just appear. */
   protected readonly ROW_POPS = 14;
   /** The entrance of the index is running (shell beta, own page, first fill); dropped once it has played. */
   private readonly entering = signal(true);
+  private readonly zone = inject(NgZone);
+
+  /**
+   * progressive: the first time rows arrive, render FIRST_SLICE of them and add ROW_SLICE per
+   * frame until the list stands. Later loads (filters, load more) render at once. The list sits
+   * under the stage, out of view, so the slices are never seen arriving.
+   */
+  private sliceFirstList(): void {
+    let started = false;
+    let frame = 0;
+    inject(DestroyRef).onDestroy(() => cancelAnimationFrame(frame));
+    effect(() => {
+      const n = this.rows().length;
+      if (started || n === 0 || !this.progressive() || typeof requestAnimationFrame !== 'function') return;
+      started = true;
+      if (n <= FIRST_SLICE) return;
+      untracked(() => this.rowCap.set(FIRST_SLICE));
+      this.zone.runOutsideAngular(() => {
+        const step = (): void => {
+          const next = this.rowCap() + ROW_SLICE;
+          const done = next >= this.rows().length;
+          this.zone.run(() => this.rowCap.set(done ? Infinity : next));
+          frame = done ? 0 : requestAnimationFrame(step);
+        };
+        frame = requestAnimationFrame(step);
+      });
+    });
+  }
   protected readonly enter = computed(() => this.shellOn() && this.entering());
   /** The entrance has started: at once on an own page, when the list first scrolls into view as the lower half of /codex. */
   protected readonly go = signal(false);
@@ -1646,6 +1684,14 @@ export class CodexBrowseComponent implements OnInit {
    * pages can be folded, so this is a lower bound on the server count, never
    * below what is actually on screen.
    */
+  /** Rows in the DOM while the first list is still being built in slices; Infinity once it stands. */
+  private readonly rowCap = signal(Infinity);
+  readonly shownRows = computed<CodexGridRow[]>(() => {
+    const rows = this.rows();
+    const cap = this.rowCap();
+    return cap >= rows.length ? rows : rows.slice(0, cap);
+  });
+
   readonly total = computed(() =>
     Math.max(this.rows().length, this.serverTotal() - (this.rawRows().length - this.rows().length)),
   );
@@ -1939,6 +1985,7 @@ export class CodexBrowseComponent implements OnInit {
     inject(DestroyRef).onDestroy(() => {
       if (this.searchTimer) clearTimeout(this.searchTimer);
     });
+    this.sliceFirstList();
     // The entrance plays for the first fill of the list only: the rows take their turn after the sidebar (or right away when
     // the data arrived late), and the whole motion class is dropped when the last pop has landed.
     let filled = false;
