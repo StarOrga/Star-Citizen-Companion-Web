@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.251.1] - 2026-11-10
+
+### Fixed
+- Codex classic ship view: the hangar button sits in its own row above the headline, so the ship picture and the Einordnung start on the same line and the picture still ends level with the Einordnung.
+
 ## [0.251.0] - 2026-11-10
 
 ### Added
