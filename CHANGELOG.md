@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.250.6] - 2026-11-10
+
+### Changed
+- Codex classic ship view: the "Zelle & feste Systeme" block starts collapsed also under the default "Alles" Einsatz and opens with a click; every other block still starts expanded.
+
 ## [0.250.5] - 2026-11-10
 
 ### Fixed
