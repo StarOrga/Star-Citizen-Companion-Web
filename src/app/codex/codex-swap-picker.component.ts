@@ -183,7 +183,6 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
   template: `
     @if (target(); as t) {
       <div class="pick-veil">
-        <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
         <!-- [scDialog]: focus in, Tab trap, Escape, focus back to the opener
              (audit S15). An open sc-select consumes its own Escape first. -->
         <article class="pick-win" role="dialog" aria-modal="true"
@@ -472,11 +471,8 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-veil { position: fixed; inset: 0; z-index: 150;
       background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
       -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
-      display: grid; place-items: center; padding: 42px 58px; overflow-y: auto;
-      cursor: pointer; }
-    .pick-hint { position: absolute; top: 16px; left: 0; right: 0; text-align: center;
-      font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2); pointer-events: none; margin: 0; }
-    .pick-hint.inferred { position: static; pointer-events: auto; text-align: left; margin: 0 18px;
+      display: grid; place-items: center; padding: 42px 58px; overflow-y: auto; }
+    .pick-hint.inferred { text-align: left; margin: 0 18px; font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
       border-left: 2px solid color-mix(in srgb, var(--sc-warn) 55%, transparent); padding-left: 8px; }
 
     .pick-win { position: relative; width: 100%; max-width: var(--sc-ov-area); max-height: min(100%, var(--sc-ov-max-h));
@@ -899,6 +895,7 @@ export class CodexSwapPickerComponent {
 
   /** Translates the raw damage-channel id `sameFamily` carries into a word. */
   private resolveScopeParams(scope: SwapScope, params: Record<string, string | number>): Record<string, string | number> {
+    if (scope === 'sameClass' && typeof params['class'] === 'string') return { ...params, class: this.term(params['class']) };
     if (scope !== 'sameFamily') return params;
     const family = params['family'];
     if (typeof family !== 'string' || !family) return params;
@@ -959,7 +956,7 @@ export class CodexSwapPickerComponent {
       { value: TYPE_ALL, label: this.i18n.instant('codex.swap.filterAll') as string },
     ];
     for (const type of [...counts.keys()].sort()) {
-      opts.push({ value: type, label: `${type} (${counts.get(type)})` });
+      opts.push({ value: type, label: `${this.term(type)} (${counts.get(type)})` });
     }
     return opts;
   });
@@ -1094,12 +1091,39 @@ export class CodexSwapPickerComponent {
    */
   slotLabel(t: SwapTarget): string {
     const bare = t.port.replace(/^hardpoint[\s_-]*/i, '').trim();
-    if (bare && !/^class\s*\d+$/i.test(bare)) return bare;
+    if (bare && !/^class\s*\d+$/i.test(bare)) return this.term(bare);
     const types = t.rawTypes?.length ? t.rawTypes : (t.attachTypes ?? []);
     const weaponKey = types.includes('WeaponGun') ? partTypeKey('weapons', t.className) : null;
     if (weaponKey) return this.i18n.instant(weaponKey);
     const typed = types.length ? attachTypeLabel(types[0], (k) => this.i18n.instant(k)) : null;
-    return typed ?? (bare || t.port);
+    return typed ?? this.term(bare || t.port);
+  }
+
+  /**
+   * A game word in the UI language (round-7 E1): the whole phrase when it has a key ("Power Plant" →
+   * "Generator", "Ballistic Gatling"), else word by word ("Cooler Left" → "Kühler links"). A word
+   * without a key stays as the game spells it — a product name is not translated.
+   */
+  term(label: string | null | undefined): string {
+    if (!label) return '';
+    this.lang();
+    const look = (raw: string): string | null => {
+      const id = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!id) return null;
+      const key = `codex.picker.term.${id}`;
+      const hit = this.i18n.instant(key) as string;
+      return hit && hit !== key ? hit : null;
+    };
+    const whole = look(label);
+    if (whole) return whole;
+    const words = label.split(/[\s_]+/).filter(Boolean);
+    const out: string[] = [];
+    for (let i = 0; i < words.length; i++) {
+      const pair = i + 1 < words.length ? look(`${words[i]}${words[i + 1]}`) : null;
+      if (pair) { out.push(pair); i++; continue; }
+      out.push(look(words[i]) ?? words[i]);
+    }
+    return out.join(' ');
   }
 
   readonly rows = computed<SwapCandidate[]>(() =>
@@ -1284,6 +1308,7 @@ export class CodexSwapPickerComponent {
   cellText(c: SwapCandidate, v: SwapValueDef): string {
     if (v.key === 'codex.picker.col.deltaSustained') return this.deltaText(c);
     const state = swapCellState(c, v.key);
+    if (state === 'value' && v.key === 'codex.picker.col.archetype') return this.term(c.archetype);
     if (state === 'value') return swapCell(c, { key: v.key, format: v.format, derived: false });
     return this.i18n.instant('codex.picker.dashCell') as string;
   }
@@ -1306,7 +1331,7 @@ export class CodexSwapPickerComponent {
 
   /** "KLA · Laser Repeater · Grade A" — catalog data, so untranslated. */
   metaLine(c: SwapCandidate): string {
-    return [c.manufacturerCode, c.typeLabel, c.grade].filter(Boolean).join(' · ');
+    return [c.manufacturerCode, c.typeLabel ? this.term(c.typeLabel) : null, c.grade].filter(Boolean).join(' · ');
   }
 
   setQuery(ev: Event): void {

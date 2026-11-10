@@ -22,7 +22,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, TemplateRef, HostListen
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { LocaleService } from '../../core/locale/locale.service';
-import { formatScDate } from '../../core/locale/date-format';
+import { formatScLongDateTime } from '../../core/locale/date-format';
 import { CodexService } from '../codex.service';
 import { CodexBuild, isReExtractPending } from '../codex.types';
 import { CodexDetail } from '../codex.service';
@@ -467,7 +467,7 @@ export class CodexHoloPatchComponent {
   }
 
   private stamp(iso: string): string {
-    return formatScDate(iso, { language: this.locale.language(), region: this.locale.region(), style: 'datetime' });
+    return formatScLongDateTime(iso, this.locale.language(), this.locale.region());
   }
 
   /** Opens the left ("von") list — the P key and the left trigger. */
