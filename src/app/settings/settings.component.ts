@@ -21,6 +21,7 @@ import { RoleService } from '../auth/role.service';
 import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
+import { RoutineTintPrefsService } from '../admin/feedback/routine-tint-prefs.service';
 import { CodexPrefsService } from '../codex/codex-prefs.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { AnalyticsService } from '../core/analytics.service';
@@ -348,6 +349,36 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                       : 'settings.feedbackFab.show.descOff') | translate
                   }}
                 </p>
+                <!-- The liveness tint on the feedback panel's title (feedback
+                     #338): four states by default, or the original green / red
+                     yes/no. Per account (profiles.ui_prefs), so one admin's
+                     choice never repaints another's title. Only admins see the
+                     panel, so only admins get the row — its label carries the
+                     admin colour, the words stay for assistive tech only. -->
+                @if (roles.isAdmin()) {
+                  <div class="row">
+                    <span class="label elevated-hot">
+                      {{ 'settings.feedbackFab.routineTint.label' | translate }}
+                      <span class="sc-sr-only">{{ 'settings.feedbackFab.routineTint.audience' | translate }}</span>
+                    </span>
+                    <span class="value">
+                      <label class="consent-toggle">
+                        <input
+                          type="checkbox"
+                          [checked]="routineTintPrefs.binary()"
+                          (change)="onRoutineTintToggle($event)" />
+                        {{ (routineTintPrefs.binary() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+                      </label>
+                    </span>
+                  </div>
+                  <p class="consent-desc">
+                    {{
+                      (routineTintPrefs.binary()
+                        ? 'settings.feedbackFab.routineTint.descOn'
+                        : 'settings.feedbackFab.routineTint.descOff') | translate
+                    }}
+                  </p>
+                }
               </div>
 
               <!-- Codex: records a player cannot use (doors, seats, displays …) stay
@@ -610,6 +641,8 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     }
     .value { color: var(--sc-fg-0); min-width: 0; text-align: right; overflow-wrap: anywhere; }
     .label { flex: 0 0 auto; }
+    /* Admin-only row: the colour says it, never a word (CLAUDE.md). */
+    .label.elevated-hot { color: var(--sc-accent-hot); }
     .value.pills {
       display: flex;
       flex-wrap: wrap;
@@ -910,6 +943,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly consent = inject(ConsentService);
   readonly composerPrefs = inject(ComposerPrefsService);
   readonly feedbackFabPrefs = inject(FeedbackFabPrefsService);
+  readonly routineTintPrefs = inject(RoutineTintPrefsService);
   readonly codexPrefs = inject(CodexPrefsService);
   readonly locale = inject(LocaleService);
   private readonly sb = inject(SupabaseClientProvider);
@@ -1301,6 +1335,12 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     const on = (e.target as HTMLInputElement).checked;
     this.feedbackFabPrefs.setShow(on);
     this.analytics.capture('settings_feedback_fab_changed', { on });
+  }
+
+  onRoutineTintToggle(e: Event) {
+    const on = (e.target as HTMLInputElement).checked;
+    this.routineTintPrefs.setBinary(on);
+    this.analytics.capture('settings_routine_tint_changed', { on });
   }
 
   onShowNonUsableToggle(e: Event) {

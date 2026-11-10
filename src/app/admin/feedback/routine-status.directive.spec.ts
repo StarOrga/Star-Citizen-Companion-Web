@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslateService, provideTranslateService, TranslatePipe } from '@ngx-translate/core';
 import { HeartbeatState, RoutineHeartbeatService } from './routine-heartbeat.service';
 import { RoutineStatusDirective } from './routine-status.directive';
+import { RoutineTintPrefsService } from './routine-tint-prefs.service';
 
 const MIN = 60_000;
 const NOW = Date.parse('2026-07-30T12:00:00.000Z');
@@ -36,8 +37,15 @@ describe('RoutineStatusDirective', () => {
   let fixture: ComponentFixture<HostComponent>;
   let state: WritableSignal<HeartbeatState>;
   let note: WritableSignal<string | null>;
+  let binary: WritableSignal<boolean>;
 
-  async function setup(initial: HeartbeatState, seenAt: string | null, initialNote: string | null = null) {
+  async function setup(
+    initial: HeartbeatState,
+    seenAt: string | null,
+    initialNote: string | null = null,
+    binaryTint = false,
+  ) {
+    binary = signal(binaryTint);
     state = signal(initial);
     note = signal<string | null>(initialNote);
     const stub = {
@@ -52,7 +60,9 @@ describe('RoutineStatusDirective', () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [HostComponent],
-      providers: [provideTranslateService({ fallbackLang: 'en' }), { provide: RoutineHeartbeatService, useValue: stub }],
+      providers: [provideTranslateService({ fallbackLang: 'en' }), { provide: RoutineHeartbeatService, useValue: stub },
+        { provide: RoutineTintPrefsService, useValue: { binary, setBinary: (on: boolean) => binary.set(on) } },
+      ],
     }).compileComponents();
 
     const translate = TestBed.inject(TranslateService);
@@ -170,5 +180,31 @@ describe('RoutineStatusDirective', () => {
     expect(title().classList).not.toContain('is-online');
     expect(title().getAttribute('aria-label')).toBe('Feedback - Dev PC unreachable');
     expect(title().textContent).toBe('Feedback');
+  });
+
+  // Feedback #338: one admin reads the title as "is anyone working on my
+  // questions?" and wants the yes/no of the first cut back; the others keep
+  // the four-state palette. The colour collapses, the wording does not.
+  it('collapses to green / red when the account opted into the two-colour tint', async () => {
+    await setup('running', iso(MIN), null, true);
+    expect(title().classList).toContain('is-online');
+    expect(title().classList).not.toContain('is-running');
+    expect(title().getAttribute('aria-label')).toBe('Feedback - Dev PC is working right now');
+    await setup('paused', iso(MIN), null, true);
+    expect(title().classList).toContain('is-offline');
+    expect(title().classList).not.toContain('is-paused');
+    expect(title().getAttribute('aria-label')).toBe('Feedback - Routine paused');
+    await setup('unknown', null, null, true);
+    expect(title().classList).not.toContain('is-online');
+    expect(title().classList).not.toContain('is-offline');
+  });
+
+  it('switches palette live when the preference flips', async () => {
+    await setup('running', iso(MIN));
+    expect(title().classList).toContain('is-running');
+    binary.set(true);
+    fixture.detectChanges();
+    expect(title().classList).toContain('is-online');
+    expect(title().classList).not.toContain('is-running');
   });
 });

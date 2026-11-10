@@ -3564,6 +3564,12 @@
         "label": "Feedback-Button anzeigen",
         "descOn": "Der Feedback-Button liegt auf jeder Seite unten rechts.",
         "descOff": "Der Feedback-Button ist ausgeblendet — damit siehst du auch keine Antworten und Rückfragen des Teams mehr. Hier wieder einschalten, um dein Feedback zu öffnen."
+      },
+      "routineTint": {
+        "label": "Feedback-Titel nur grün / rot",
+        "audience": "(nur für Admins)",
+        "descOn": "Der Titel „Feedback“ leuchtet grün, solange die Routine läuft oder arbeitet, und rot, solange nichts bearbeitet wird. Gilt nur für deinen Account.",
+        "descOff": "Der Titel „Feedback“ zeigt vier Zustände: grün bereit, blau gerade in Arbeit, gelb pausiert, rot nicht erreichbar."
       }
     },
     "danger": {
