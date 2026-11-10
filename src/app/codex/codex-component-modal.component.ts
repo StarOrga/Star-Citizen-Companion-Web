@@ -1,12 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  EnvironmentInjector,
   computed,
+  inject,
   input,
   output,
   viewChild,
 } from '@angular/core';
-import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
+import { ScPopupMotionDirective, ensurePopupMotionStyles } from '../shared/popup-motion/sc-popup-motion.directive';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -266,6 +268,11 @@ export interface ComponentInspectEntry {
   `],
 })
 export class CodexComponentModalComponent {
+  constructor() {
+    // The stat sheet is a large popup: its stylesheet is in place before the first open.
+    ensurePopupMotionStyles(inject(EnvironmentInjector));
+  }
+
   /** The occupant to inspect; `null` renders nothing (closed). */
   readonly entry = input<ComponentInspectEntry | null>(null);
   readonly closed = output<void>();

@@ -49,6 +49,18 @@ export class ScPopupMotionStylesComponent {}
  */
 const stylesMounted = new WeakSet<ApplicationRef>();
 
+/**
+ * Mount the shared popup stylesheet now instead of with the first popup. Inserting a stylesheet
+ * re-matches every element of the document, so leaving it to the first open put a full-page style
+ * pass into the open's first frame. A page that hosts a large popup calls this when it is built.
+ */
+export function ensurePopupMotionStyles(env: EnvironmentInjector): void {
+  const app = env.get(ApplicationRef);
+  if (stylesMounted.has(app) || typeof document === 'undefined') return;
+  stylesMounted.add(app);
+  createComponent(ScPopupMotionStylesComponent, { environmentInjector: env });
+}
+
 /** Class on <html> while a large popup is open: the shell scene pushes in ~4 % and dims (P2 "Szene stößt vor"). */
 export const SCENE_PUSHIN_CLASS = 'sc-scene-pushin';
 let pushins = 0;
@@ -120,11 +132,7 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
   private pushing = false;
 
   constructor() {
-    const app = this.env.get(ApplicationRef);
-    if (!stylesMounted.has(app) && typeof document !== 'undefined') {
-      stylesMounted.add(app);
-      createComponent(ScPopupMotionStylesComponent, { environmentInjector: this.env });
-    }
+    ensurePopupMotionStyles(this.env);
     afterNextRender(() => this.index());
   }
 

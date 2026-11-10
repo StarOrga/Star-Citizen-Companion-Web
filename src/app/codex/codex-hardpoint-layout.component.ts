@@ -1081,6 +1081,8 @@ export class CodexHardpointLayoutComponent {
    * inside a gimbal mount opens the picker for the GUN, not for the mount).
    */
   readonly swapRequested = output<LayoutTarget>();
+  /** Press / focus on a card that opens the picker: the host may build the picker's list ahead of the click. */
+  readonly swapWarm = output<LayoutTarget>();
   /**
    * A card was clicked — the parent opens the component overlay. Emits the row
    * plus, for a sub-slot click, which child was picked.
@@ -1257,6 +1259,7 @@ export class CodexHardpointLayoutComponent {
   warmSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {
     if (!configurable || !row.slot.className) return;
     this.swapSource.prefetch({ installed: row.slot.className, types: [], size: row.slot.size });
+    this.swapWarm.emit({ slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) });
   }
 
   openSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {

@@ -681,7 +681,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 (reverted)="onRevertPaths($event)"
                 (hovered)="setActivePorts($event)"
                 (inspected)="openInspect($event)"
-                (swapRequested)="openSwapPicker($event)" />
+                (swapRequested)="openSwapPicker($event)"
+                (swapWarm)="prepareSwapPicker($event)" />
             </section>
           }
 
@@ -945,7 +946,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <!-- Full stat sheet for one clicked module (461288f9). Rendered last so
            its fixed-position backdrop sits above everything on the page. -->
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
-      <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
+      <sc-codex-swap-picker #swapPicker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" [shipSignature]="shipSignature()" (closed)="closeWeaponDetail()" />
 
       <ng-template #infoBlocks>
@@ -1236,7 +1237,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               (reverted)="onRevertPaths($event)"
               (hovered)="setActivePorts($event)"
               (inspected)="openInspect($event)"
-              (swapRequested)="openSwapPicker($event)" />
+              (swapRequested)="openSwapPicker($event)"
+                (swapWarm)="prepareSwapPicker($event)" />
           </section>
         }
       </ng-template>
@@ -1830,6 +1832,7 @@ export class CodexDetailComponent implements OnInit {
     return cls ? (this.hangar.ships().find((s) => s.shipClassName === cls && s.status === 'owned') ?? null) : null;
   });
   private readonly ownCardRef = viewChild(CodexOwnCardComponent);
+  private readonly swapPicker = viewChild<CodexSwapPickerComponent>('swapPicker');
   /** The head's "Nicht im Hangar / Inventar": the ownership card comes into view and lights up (C2). */
   revealOwnCard(): void {
     this.ownCardRef()?.reveal();
@@ -3357,7 +3360,18 @@ export class CodexDetailComponent implements OnInit {
    * targets the CHILD (the gun inside the gimbal), because that is the thing a
    * pilot swaps — the mount itself stays put.
    */
+  /** Press / focus on a slot card: the picker builds that slot's list before the click opens it. */
+  prepareSwapPicker(ev: LayoutTarget): void {
+    const t = this.swapTargetFor(ev);
+    if (t) this.swapPicker()?.prepare(t);
+  }
+
   openSwapPicker(ev: LayoutTarget): void {
+    const t = this.swapTargetFor(ev);
+    if (t) this.swapTarget.set(t);
+  }
+
+  private swapTargetFor(ev: LayoutTarget): SwapTarget | null {
     const src = ev.child ?? ev.slot;
     const port = ev.child ? ev.child.port : ev.slot.port;
     if (!src.className) {
@@ -3369,8 +3383,8 @@ export class CodexDetailComponent implements OnInit {
           ? { types: ev.child.rawTypes, size: ev.child.size, inferred: false }
           : null
         : this.emptyFits().get(ev.slot.rawPort ?? '');
-      if (!fit) return;
-      this.swapTarget.set({
+      if (!fit) return null;
+      return {
         port,
         count: ev.count,
         className: null,
@@ -3382,10 +3396,9 @@ export class CodexDetailComponent implements OnInit {
         fitInferred: fit.inferred,
         rawPorts: ev.rawPorts,
         rawTypes: fit.types,
-      });
-      return;
+      };
     }
-    this.swapTarget.set({
+    return {
       port,
       count: ev.count,
       className: src.className,
@@ -3395,7 +3408,7 @@ export class CodexDetailComponent implements OnInit {
       factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.draftStore.stockValueForPath(ev.rawPorts[0]) : null,
       rawPorts: ev.rawPorts,
       rawTypes: ev.child ? ev.child.rawTypes : (this.detail()?.ports.find((p) => p.portName === ev.slot.rawPort)?.types ?? []),
-    });
+    };
   }
 
   // ── loadout draft write path (PR B) ─────────────────────────────────────────
