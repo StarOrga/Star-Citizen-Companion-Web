@@ -69,6 +69,18 @@ the real cost from each batch result's `usage` (cache read 0.1×, 1 h cache writ
 Ledger rows are written before the status moves on, so a crash can only over-count a month, never
 under-count it.
 
+## Room labels (`scc_room_*`)
+
+The uploader adds room labels without German to the English table as `scc_room_*` keys
+(ARCHITECTURE.md § Room labels). The first upload after uploader subtheme `ships` 13 / `strings` 2
+makes them new keys, so that upload's normal delta job translates them — about 530 distinct labels,
+~10 600 English characters on the 2026-11-10 LIVE data, i.e. well under 1 USD (Sonnet tier), far
+below `upload_cap_usd`, so the job queues without an approval. Nothing to do by hand if
+`translation_settings.enabled` is on; if it is off, no job is created and the deck plan stays English.
+The website reads `translation-overlay/<lang>/rooms.json` (written with every `latest.json`), via
+`translation-overlay?lang=de&ns=rooms`. It appears with the first publish or seed import after the
+orchestrator deploy.
+
 ## Community seed ops (concept 2026-11-08)
 
 All with an admin JWT or the service role (`sync_sources` also with the publishable key, for pg_cron):
