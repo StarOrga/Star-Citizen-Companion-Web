@@ -73,6 +73,98 @@ are first-visit costs per route, not jank from the animation itself.
    popup push-in skip the `scale` on phones and low-end GPUs.
 4. Repeat every scenario 5× per build at 60 Hz and 144 Hz (display setting) and report medians.
 
+## Wave 2c root cause
+
+Method: CDP traces (`Tracing.start`, categories `devtools.timeline`, `disabled-by-default-devtools.timeline(.frame|.paint|.invalidationTracking|.stack)`,
+`blink`, `cc`, `gpu`, `viz`, `v8.cpu_profiler`) of 2a, 3a, 3b and 5 on the same machine and setup as above
+(headed Edge, RTX 2080 SUPER, the display now idles at 6.2–7 ms ≈ 150–160 Hz), split per frame into script /
+style / layout / paint / raster and per style recalc into the invalidations that caused it
+(`tmp/kw-perf/analyze.cjs`, `cause.cjs`, `cpu.cjs`, untracked). Numbers below are from `eeea37c4` unless noted.
+
+**Scroll stage → index (3a /codex, 3b /hq) — three causes, all main-thread, none in the scene's GPU work.**
+
+1. **The scroll never arrived — it bounced.** Recording `scrollY` per frame: eight wheel notches on `/codex`
+   went `16 → 116 → 74 → 16 → 114 → 98 → 29 → 16 …` and ended on the stage; `/hq` the same. `y mandatory`
+   snapping (S6, Wave 1) picks the snap position *closest* to where a scroll ends, so a notch or a short
+   touchpad swipe (100–140 px of a 900 px step) was pulled back to the stage. `main`'s scripted glide went
+   `0 → 900` in one move. Every bounce docked and undocked the header: the fusion bar's `data-mode` /
+   `.condensing` / `.placed`, the hero, the header's `data-ease` flipped **16 times in 3.3 s**, each flip a full
+   morph with change detection and DOM churn (header buttons, the search demo removed and re-added).
+2. **Every DOM change restyled the whole document (`:has()` on `<html>`).** 17 of the 23 long style recalcs
+   in 3a touched **2 290–2 330 elements, 25–90 ms each** (1 017 ms style in a 3.5 s window). Invalidation
+   tracking: `Affected by :has()` on `HTML` / `BODY`, followed by an invalidation set with
+   `allDescendantsMightBeInvalid` — every `insertBefore` / `removeChild` anywhere (Angular `@if`, leave
+   animations) re-checked the root's `:has()` arguments and restyled all descendants, because one of the
+   root rules ends in a universal compound (`html:has(sc-fusion-bar[data-mode='docked']) [data-stage-hero] > :not([data-stage-slot])`).
+   Rules on the root: `html:has([data-layout])` ×5, `html:has(sc-fusion-bar…)` ×4, the boot sky's
+   `html:has(.routed-content > router-outlet:last-child)` (a dead `html:has(.sc-boot)` beside it),
+   `body:has(.sc-shell-scene > .scene)`, `body:has(.brief-world)`, the footer's
+   `:host-context(html:has(sc-share-button .dock))`. Most of them exist on `main` too; the waves added the
+   DOM churn of point 1 that triggers them in every scroll frame.
+3. **Bar-height publishing restyled the document per morph frame.** The other 6 whole-document recalcs
+   (165 ms) followed `Inline CSS style declaration was mutated | HTML` from the fusion bar's
+   `publishHeight()`: the ResizeObserver on the bar and on `<body>` fired in every frame of the morph and of
+   the route swap, and the bar's *scaled* rect height (`getBoundingClientRect`) gave a new
+   `--sc-topbar-h` each time; a root custom property invalidates every element.
+
+What it was **not**: the camera flight of the world layer. With the three causes removed, 3a's remaining
+frames carry 2–12 ms of main-thread work and no raster spikes; compositor draws never stalled
+(`compositorGaps33` 0–5 in every trace). `animation-timeline: scroll()` tilt, the `.neb` blur and the
+world's raster did not show up as long frames.
+
+**Swap picker (5).** One 245–300 ms frame is `Response.text` → `JSON.parse` of the slot's candidate list on
+open (the background preload had not reached that slot yet); then **1.3 s of `findStat`**
+(`hangar/loadout-stats.ts`) in 140–200 ms timer tasks: it rebuilt a lower-cased key map of every stats
+struct on every call while the picker ranks the whole list. The remaining 55–100 ms "no script" frames are
+paint / raster while the large-popup motion scales `.scene` and fades its `::after` under the opening sheet.
+`main` has the same parse and the same `findStat` tasks (10 frames over budget there as well).
+
+**Flight verse → codex (2a).** Dominated by loading work in the frame (lazy chunks, the Codex data
+`Response.text`, a 200 ms frame when the Codex page first paints); unchanged by this wave and the same on
+`main` (9 frames).
+
+### Fixes (kw/jank)
+
+| cause | fix | what the user sees differently |
+|---|---|---|
+| 1 snap bounce | `wireSnap` (`verse/pages/briefing/briefing-dock.ts`) adds a directional step: a wheel step that mandatory snapping would bounce finishes the snap step in its direction (native smooth `scrollTo`, the snap keeps it), the rest of that gesture (more notches, touchpad inertia, 220 ms gap) is swallowed; inside an area taller than 1.3 viewports the wheel stays native. Snap positions honour the root's `scroll-padding`. Covers Codex, HQ and the Verse hub (all three use `wireSnap`). | One notch / one swipe now lands on the lower part (and back), as S6 asked ("same behaviour" as the old glide). No bouncing header. |
+| 2 root `:has()` | Root state as attributes, written only on change by the owner (`claimRootAttr`, `core/root-var.ts`): `html[data-sc-layout]` (shell, public layout), `html[data-sc-bar="stage"\|"bar"]` (fusion bar, coarse on purpose), `html[data-sc-share-dock]` (share button), `html[data-sc-brief-world]` (Verse hub), `html[data-sc-booting]` (app shell until the first route activates), `html[data-sc-scene]` (already set by the scene). The hero's dock fade keys on the hero itself (`[data-stage-hero][data-hero-docked\|data-hero-snap]`, `StageHeroDirective`), so a dock flip restyles the hero, not the document. The dead `.sc-boot` rules are gone. | Nothing. Same rules, same states. |
+| 3 height publish | `publishHeight()` measures `offsetHeight` (layout height, not the scaled rect) and the ResizeObserver path publishes once the size has stood still for 140 ms; mode changes still publish at once. | A page's own sticky bar that hangs off `--sc-topbar-h` takes its final place up to 140 ms after a bar resize instead of following every morph frame. |
+| 5 `findStat` | Lower-cased key maps cached per stats object (`WeakMap`); catalogue payloads are never mutated after load. | Nothing. |
+
+### Re-measure (3 interleaved runs per build, medians)
+
+`main` = `origin/main` (`b593c337` era build), `eeea37c4` = Waves 1 + 2a + 2b, `kw/jank` = this wave.
+Each cell: **median frames > 33 ms** (the three runs) · median p95 · median max (ms).
+
+| scenario | main | eeea37c4 | kw/jank |
+|---|---|---|---|
+| 1 entrance / | **7** (7/7/8) · 7.3 · 107.9 | **5** (5/5/3) · 7.5 · 74.5 | **3** (3/4/3) · 7.2 · 70.1 |
+| 2a flight verse→codex | **9** (9/9/11) · 18.7 · 219 | **9** (2/10/9) · 13.5 · 213.1 | **9** (9/9/11) · 18.7 · 203 |
+| 2b flight codex→hq | **2** (2/2/2) · 7.1 · 94.1 | **2** (2/2/2) · 7.1 · 94.7 | **2** (2/2/2) · 7.1 · 89.5 |
+| 3a scroll stage→index /codex | **5** (4/17/5) · 18.4 · 103.2 | **23** (23/25/23) · 76.4 · 108.3 | **3** (5/3/3) · 7.5 · 82 |
+| 3b scroll stage→index /hq | **1** (1/3/0) · 7.3 · 38.2 | **16** (16/16/16) · 53 · 60.5 | **0** (0/0/1) · 7.3 · 26.9 |
+| 4 codex index list scroll | **0** (0/2/0) · 12.7 · 33 | **1** (0/1/1) · 12.8 · 38.8 | **1** (1/1/1) · 12.3 · 56.6 |
+| 5 swap picker open/close | **10** (9/10/11) · 153 · 243.1 | **13** (13/8/14) · 146 · 235 | **15** (15/15/11) · 36.8 · 96.2 |
+
+Notes: on `eeea37c4` 3a/3b never reached the index (the bounce), on `kw/jank` they do (`/codex` 16 → 836,
+`/hq` 16 → 900), so those runs include the full header morph and the camera flight. Scenario 5 on
+`kw/jank` has *more* frames just over 33 ms but no frame over ~100 ms (p95 37 ms instead of 146–153): the
+seconds-long blocking `findStat` tasks are gone and the picker animates in more, shorter frames.
+
+### Still over budget (Q3 not done)
+
+- **5 swap picker**: the first open of a slot whose list is not yet preloaded parses ~1 MB of JSON on the
+  main thread (100–300 ms); the push-in (`scale` on the whole `.scene` + its dimming `::after`) costs
+  55–100 ms paint/raster frames while the sheet opens. Next: parse in a worker or prefetch the clicked
+  slot on hover/focus; push in a pre-rasterised snapshot layer or only dim on the scene.
+- **2a / 2b / 1**: loading work inside the flight (lazy chunk evaluation, the destination's data parse);
+  the same on `main`. Next: prefetch the destination chunk + data on nav-link hover, defer data parse
+  past the flight's end.
+- **3a**: 3 frames per run remain (a 55–80 ms `setInterval` task and a no-script raster frame during the
+  dock); 4: one 50 ms no-script frame per run (as on `eeea37c4`).
+- 60 Hz / 144 Hz runs: still open (display setting, not changed by an agent).
+
 ## Phones (Q4)
 
 `tmp/kw-perf/mobile.cjs` (untracked) walks 390 × 844 and 360 × 740 in Edge mobile emulation (touch, mobile UA)
