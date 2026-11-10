@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.249.0",
+  "current": "0.250.0",
   "releases": [
+    {
+      "version": "0.250.0",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the separate draft box is gone; the Einsatz row now carries a narrow layout dropdown (\"Neu\" plus the saved layouts), a save icon with an unsaved-changes dot, the share link and a cart icon (still disabled), while the Einsatz chips keep their size."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.249.0",
       "date": "2026-11-10",
