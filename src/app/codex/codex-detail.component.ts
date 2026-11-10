@@ -589,26 +589,38 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [capabilities]="shipCapabilities()"
               [changed]="draftChangedCount()"
               (missionChange)="setMission($event)" />
-            <sc-codex-loadout-save-bar
-              class="draft-controls"
-              [changed]="draftChangedCount()"
-              [saveable]="saveableEntries().length"
-              [saving]="saving()"
-              [error]="saveError()"
-              [inHangar]="personalMode()"
-              (save)="saveLoadoutDraft()"
-              (discard)="discardLoadoutDraft()"
-              (addAndSave)="addToHangar()" />
-            <!-- #322: named loadouts per ship (local) + the prepared cart action. -->
-            @if (detail(); as d) {
-              <sc-codex-saved-loadouts
-                class="saved-loadouts"
-                [shipClassName]="d.classNameSlug"
-                [buildId]="build()?.id ?? null"
-                [draft]="draft()"
-                [readOnly]="draftReadOnly()"
-                (recall)="recallSavedLoadout($event)" />
-            }
+            <!-- #322: the layout controls replaced the separate ENTWURF box here.
+                 One dropdown (Neu + this ship's layouts), save icon with the
+                 "not saved" dot, share link, cart icon — narrow, so the
+                 mission chips beside them keep their size. Discarding is the
+                 stage row's "Werks-Loadout". -->
+            <div class="draft-side">
+              @if (personalMode()) {
+                <!-- A hangar variant still saves into the hangar: only its
+                     save control stays, without the box. -->
+                <sc-codex-loadout-save-bar
+                  class="draft-controls"
+                  [compact]="true"
+                  [changed]="draftChangedCount()"
+                  [saveable]="saveableEntries().length"
+                  [saving]="saving()"
+                  [error]="saveError()"
+                  [inHangar]="true"
+                  (save)="saveLoadoutDraft()"
+                  (discard)="discardLoadoutDraft()"
+                  (addAndSave)="addToHangar()" />
+              }
+              @if (detail(); as d) {
+                <sc-codex-saved-loadouts
+                  class="saved-loadouts"
+                  [shipClassName]="d.classNameSlug"
+                  [buildId]="build()?.id ?? null"
+                  [draft]="draft()"
+                  [changed]="draftChangedCount()"
+                  [readOnly]="draftReadOnly()"
+                  (recall)="recallSavedLoadout($event)" />
+              }
+            </div>
           </div>
         }
 
@@ -1364,8 +1376,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .mission-draft-bar { display: flex; align-items: center; justify-content: space-between;
       gap: 12px; flex-wrap: wrap; }
     .mission-draft-bar sc-codex-mission-bar { flex: 1 1 auto; min-width: 0; }
-    .draft-controls { flex: 0 0 auto; }
-    .saved-loadouts { flex: 0 1 auto; margin-left: auto; }
+    .draft-side { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .draft-controls, .saved-loadouts { flex: 0 0 auto; }
 
     /* The ship stage's own hero chip row (.hchip, career/role/crew/cargo/mass)
        moved to sc-codex-ship-stage (AUD-062) along with everything else the
