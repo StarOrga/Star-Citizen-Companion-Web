@@ -74,6 +74,7 @@ import { CodexItemStageComponent } from './detail/codex-item-stage.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
 import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
 import { CodexHeroHoloOverlayComponent } from './detail/codex-hero-holo-overlay.component';
+import { CodexHeroPartPopupComponent, resolveHeroPart, type HeroPartPick } from './detail/codex-hero-part-popup.component';
 import { CodexVariantPickerComponent } from './detail/codex-variant-picker.component';
 import { CodexShipActionsComponent } from './detail/codex-ship-actions.component';
 import { CodexShipLinkFormComponent } from './detail/codex-ship-link-form.component';
@@ -307,7 +308,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [ShipArrivalComponent, CompareIconComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexHeroHoloOverlayComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent, CodexHoloAkteComponent, CodexHoloHangarMenuComponent],
+  imports: [ShipArrivalComponent, CompareIconComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexHeroHoloOverlayComponent, CodexHeroPartPopupComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent, CodexHoloAkteComponent, CodexHoloHangarMenuComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -534,8 +535,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [hardpointPortRefs]="hardpointPortRefs()"
               [activePorts]="activePorts()"
               (hovered)="setActivePorts($event)"
+              [selectedPart]="heroPart()?.id ?? null"
+              (partPicked)="heroPart.set($event)"
+              (fullChange)="heroFull.set($event)"
               (locatable)="glbLocatablePorts.set($event)"
-              (closed)="heroView3d.set(false)" />
+              (closed)="closeHero3d()" />
           }
         }
         </div>
@@ -592,6 +596,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         @if (kind() === 'ship') {
           <!-- The side column: the Einordnung (the ownership card moved under the picture, #323). -->
           <div class="m-side">
+          <!-- A hotspot picked in the 3D overlay (#334): its part in a small popup over the Einordnung, no scrim. -->
+          @if (heroView3d() && heroPartFocus(); as part) {
+            <sc-codex-hero-part-popup [part]="part" [still]="prefersReducedMotion()" [overFull]="heroFull()"
+              (closed)="heroPart.set(null)" />
+          }
           <sc-codex-rank-card
             [shipName]="displayName()"
             [sizeClass]="null"
@@ -1387,6 +1396,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        and the stage takes up the slack - its art is absolutely positioned, so
        a taller card is simply more picture. One column (<=1100px) keeps auto rows. */
     .m-top.ship-mode { align-items: stretch; }
+    .m-top.ship-mode > .m-side { position: relative; }
     .m-top.ship-mode > .hero-stack > .hero-pair, .m-top.ship-mode > .hero-stack > .hero-pair > .hero.stage { flex: 1 1 auto; }
 
     /* Loadout | Analyse (MASTER §1/§6/§7) */
@@ -1901,11 +1911,26 @@ export class CodexDetailComponent implements OnInit {
    * steps aside while it does, so only one glb is ever live (see the template).
    */
   readonly heroView3d = signal(false);
+  /** The part picked in the classic 3D overlay (#334): its popup sits over the Einordnung. */
+  readonly heroPart = signal<HeroPartPick | null>(null);
+  /** The classic 3D overlay is fullscreen: the part popup follows it above. */
+  readonly heroFull = signal(false);
+  readonly heroPartFocus = computed(() => {
+    const pick = this.heroPart();
+    return pick ? resolveHeroPart([...this.primaryModuleSections(), ...this.tailModuleSections()], pick) : null;
+  });
+  closeHero3d(): void {
+    this.heroView3d.set(false);
+    this.heroPart.set(null);
+    this.heroFull.set(false);
+  }
   /** The skin catalog actually has a 3D model — no model, no switch. */
   readonly has3dView = signal(false);
 
   toggleHeroView(): void {
     this.heroView3d.update((v) => !v);
+    this.heroPart.set(null);
+    this.heroFull.set(false);
   }
 
   /**
@@ -3150,7 +3175,7 @@ export class CodexDetailComponent implements OnInit {
     else this.initItemView();
     // A new ship is a new answer to "is there a model?" — see onArtAvailable.
     this.has3dView.set(false);
-    this.heroView3d.set(false);
+    this.closeHero3d();
     this.loading.set(true);
     this.error.set(null);
     this.expandedPort.set(null);
