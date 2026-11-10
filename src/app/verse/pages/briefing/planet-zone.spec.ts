@@ -19,13 +19,15 @@ import { HERO_MS, VerseBriefingComponent } from '../verse-briefing.component';
 import { WindowFocusService } from '../../../core/window-focus.service';
 import { BriefingBeaconsComponent, IDLE_HINT_MS, IDLE_SHOW_MS } from './briefing-beacons.component';
 import { ACC_SLOW_PX_PER_MS, ACC_STOP_MS, ACC_TRANSITION_MS, AccordionIntent } from './briefing-accordion';
-import { INTRO_FLAG, localDay } from './briefing.model';
+import { INTRO_FLAG, VERSE_DOCUMENT_ENTRY } from './briefing.model';
 import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
 import { VERSE_STAGED_BUILD } from './staged-build';
 import {
   holoBody, holoTitle, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
-import { TX_BUILD_MS, TX_CHARGE_MS, TX_HOLD_MS, TX_OUT_MS, TX_PULL_MS, TX_WRITE_MS } from './briefing-transmit.component';
+import {
+  TX_BUILD_MS, TX_CHARGE_MS, TX_GAP_MS, TX_HOLD_MS, TX_PULL_MS, TX_START_MS, TX_UNBUILD_MS, TX_UNCHARGE_MS, TX_UNWRITE_MS, TX_WRITE_MS,
+} from './briefing-transmit.component';
 
 @Component({ selector: 'sc-news-list', standalone: true, template: '' })
 class NewsListStub {}
@@ -178,10 +180,11 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   const feedNews = [1, 2, 3, 4, 5].map((i) => ({ id: `f${i}`, title: `News ${i}`, summary: 'Short summary.', thumbnail: null, publishedAt: '2026-10-20T10:00:00Z' }) as unknown as VerseNewsItem);
 
   beforeEach(() => {
-    localStorage.setItem(INTRO_FLAG, localDay());
+    sessionStorage.setItem(INTRO_FLAG, '1');
     TestBed.configureTestingModule({
       providers: [
         { provide: VERSE_STAGED_BUILD, useValue: false },
+        { provide: VERSE_DOCUMENT_ENTRY, useValue: () => ({ bare: true, revisit: false }) },
         provideRouter([]),
         provideTranslateService({}),
         // A real download settles outside fakeAsync's clock: generate the planet in fake time instead.
@@ -222,7 +225,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
-    localStorage.removeItem(INTRO_FLAG);
+    sessionStorage.removeItem(INTRO_FLAG);
   });
 
   it('builds in steps: the stage first, then doors and beacons, the hub last, and the page keeps its height meanwhile', async () => {
@@ -266,32 +269,31 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector('.cta, .sbar, .pause'), 'no CTA, story bars or pause').toBeNull();
     const planets = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pl')).map((a) => [a.dataset['door'], a.getAttribute('href')]);
     expect(planets).toEqual([['news', '/verse/news'], ['patches', '/verse/patches'], ['gallery', '/verse/gallery']]);
-    expect(el.querySelector<HTMLAnchorElement>('a.holo')?.getAttribute('href')).toBe('/verse/news?item=f1');
+    expect(el.querySelector<HTMLAnchorElement>('a.holo')?.getAttribute('href'), 'the newest content (the gallery picture) is first in turn').toBe('/verse/gallery?image=g1');
     fixture.destroy();
     discardPeriodicTasks();
   }));
 
-  it('on a later visit the first message stands at once, the next planet sends', fakeAsync(() => {
+  it('the page stands, 5 s later the first planet ignites; nothing is projected before', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.componentInstance.stands.set(true);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const tx = (): HTMLElement => el.querySelector<HTMLElement>('sc-briefing-transmit')!;
-    expect(tx().dataset['phase']).toBe('hold');
-    expect(tx().classList).toContain('stands');
-    tick(TX_HOLD_MS);
-    fixture.detectChanges();
-    expect(tx().dataset['phase']).toBe('out');
-    tick(TX_OUT_MS);
-    fixture.detectChanges();
-    expect(tx().dataset['phase']).toBe('charge');
-    expect(tx().classList).not.toContain('stands');
+    const phase = (): string | undefined => {
+      fixture.detectChanges();
+      return tx().dataset['phase'];
+    };
+    expect(phase()).toBe('rest');
+    tick(TX_START_MS);
+    expect(phase(), 'a short visit stands at once: its 5 s clock runs').toBe('charge');
     fixture.destroy();
     discardPeriodicTasks();
   }));
 
-  it('transmits News → Patches → Galerie: charge, build, write, pull back, hold', fakeAsync(() => {
+  it('cycles newest first: charge, build, write, pull back, hold 5 s, projected away, 5 s pause, the next planet', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
-    fixture.componentInstance.holoStands.set(false);
+    fixture.componentInstance.stands.set(true);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const holo = (): HTMLElement => el.querySelector<HTMLElement>('a.holo')!;
@@ -304,28 +306,36 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
       fixture.detectChanges();
       return el.querySelector('button.more-cue')!.classList.contains('gone');
     };
+    expect(phase()).toBe('rest');
+    tick(TX_START_MS);
     expect(phase()).toBe('charge');
     expect(cueGone(), 'no message on screen yet → the "more" cue stands').toBe(false);
-    expect(el.querySelector('a.pl[data-door="news"]')?.classList).toContain('send');
+    expect(el.querySelector('a.pl[data-door="gallery"]')?.classList, 'the newest content sends first').toContain('send');
     tick(TX_CHARGE_MS);
     expect(phase()).toBe('build');
     expect(cueGone(), 'the cue stands under a visible message too').toBe(false);
     tick(TX_BUILD_MS);
     expect(phase()).toBe('write');
-    expect(holo().querySelector('.b')?.textContent, 'the whole text is there, the scan line reveals it').toBe('Short summary.');
+    expect(holo().querySelector('.b')?.textContent, 'the whole text is there, the scan line reveals it').toBe('verse.gates.gallery.hook');
     tick(TX_WRITE_MS);
     expect(phase()).toBe('pull');
     tick(TX_PULL_MS);
     expect(phase()).toBe('hold');
-    expect(el.querySelector('a.pl[data-door="news"]')?.classList).not.toContain('send');
-    expect(cueGone()).toBe(false);
+    expect(el.querySelector('a.pl[data-door="gallery"]')?.classList).not.toContain('send');
     tick(TX_HOLD_MS);
-    expect(phase()).toBe('out');
-    expect(cueGone()).toBe(false);
-    tick(TX_OUT_MS);
+    expect(phase(), 'projected away with the projection reversed').toBe('unwrite');
+    tick(TX_UNWRITE_MS);
+    expect(phase()).toBe('unbuild');
+    tick(TX_UNBUILD_MS);
+    expect(phase()).toBe('uncharge');
+    tick(TX_UNCHARGE_MS);
+    expect(phase(), '5 s without projection and panel').toBe('rest');
+    tick(TX_GAP_MS - 1);
+    expect(phase()).toBe('rest');
+    tick(1);
+    expect(phase()).toBe('charge');
     fixture.detectChanges();
-    expect(holo().querySelector('.k')?.textContent).toContain('verse.gates.patches.topic');
-    expect(holo().getAttribute('href')).toBe('/verse/patches/4.3');
+    expect(holo().querySelector('.k')?.textContent, 'the next planet').not.toContain('verse.gates.gallery.topic');
     fixture.destroy();
     discardPeriodicTasks();
   }));
@@ -406,7 +416,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   }));
 
   it('spells the app name in letter spans for the entrance, exposes it once, then shows the story as plain text', fakeAsync(() => {
-    localStorage.removeItem(INTRO_FLAG);
+    sessionStorage.removeItem(INTRO_FLAG);
     // The shell announces the entrance at boot when the page opens on the hub.
     TestBed.inject(ShellChromeService).holdHeroIntro();
     const fixture = TestBed.createComponent(VerseBriefingComponent);

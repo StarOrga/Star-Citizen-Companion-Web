@@ -15,6 +15,7 @@ import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
 import { LocaleService } from '../core/locale/locale.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { BetaService } from '../core/beta.service';
 import { SettingsComponent } from './settings.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
@@ -68,6 +69,8 @@ describe('SettingsComponent layout', () => {
         // router and a location. Mocked, so nothing touches real history.
         provideRouter([{ path: 'settings', component: SettingsComponent }]),
         provideLocationMocks(),
+        // Shell beta off: the entrance motion is not under test here.
+        { provide: BetaService, useValue: { state: signal({ verse: true, codex: true, shell: false }), isEnabled: () => () => false } },
         {
           provide: AuthService,
           useValue: { user: signal(user), signOut: async () => undefined },
@@ -275,7 +278,7 @@ describe('SettingsComponent layout', () => {
   it('lists every section in the table of contents as a real fragment anchor', () => {
     const fixture = setup(makeUser(), '1100px');
     const el: HTMLElement = fixture.nativeElement;
-    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link'));
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('sc-section-rail a.stop'));
     const groups = fixture.componentInstance.groups;
     expect(links.length).toBe(groups.length);
     links.forEach((link, i) => {
@@ -294,7 +297,7 @@ describe('SettingsComponent layout', () => {
 
   it('points the rail at the settings url, not at the app root', async () => {
     const { harness, el } = await setupRouted();
-    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link'));
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('sc-section-rail a.stop'));
     const groups = (harness.routeDebugElement!.componentInstance as SettingsComponent).groups;
     expect(links.length).toBe(groups.length);
     links.forEach((link, i) => {
@@ -305,7 +308,7 @@ describe('SettingsComponent layout', () => {
   it('glides to the section on a plain left click and stays on /settings', async () => {
     const { harness, el } = await setupRouted();
     const component = harness.routeDebugElement!.componentInstance as SettingsComponent;
-    const link = el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link')[3];
+    const link = el.querySelectorAll<HTMLAnchorElement>('sc-section-rail a.stop')[3];
     const target = el.querySelector<HTMLElement>('#settings-danger')!;
     const scrollIntoView = vi.spyOn(target, 'scrollIntoView').mockReturnValue(undefined as never);
 
@@ -328,7 +331,7 @@ describe('SettingsComponent layout', () => {
 
   it('leaves a Ctrl/Cmd click to the browser so it can open a new tab', async () => {
     const { el } = await setupRouted();
-    const link = el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link')[2];
+    const link = el.querySelectorAll<HTMLAnchorElement>('sc-section-rail a.stop')[2];
     const target = el.querySelector<HTMLElement>('#settings-privacy')!;
     const scrollIntoView = vi.spyOn(target, 'scrollIntoView').mockReturnValue(undefined as never);
 
@@ -375,13 +378,13 @@ describe('SettingsComponent layout', () => {
   it('marks exactly one section as the active one in the rail', () => {
     const fixture = setup(makeUser(), '1100px');
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelectorAll('.toc-link.active').length).toBe(1);
+    expect(el.querySelectorAll('sc-section-rail a[aria-current]').length).toBe(1);
 
     fixture.componentInstance.activeGroup.set('privacy');
     fixture.detectChanges();
-    const active = el.querySelector<HTMLAnchorElement>('.toc-link.active')!;
+    const active = el.querySelector<HTMLAnchorElement>('sc-section-rail a[aria-current]')!;
     expect(active.getAttribute('href')!.endsWith('#settings-privacy')).toBe(true);
-    expect(active.getAttribute('aria-current')).toBe('true');
+    expect(active.getAttribute('aria-current')).toBe('location');
   });
 
   /**
@@ -390,29 +393,18 @@ describe('SettingsComponent layout', () => {
    * shorten what is ANNOUNCED — the full section title stays the entry's
    * accessible name in both shapes.
    */
-  it('shortens the rail labels when the rail is the pinned bar, never their accessible names', () => {
+  it('carries a short and a full name per stop, and always the full name as the accessible one', () => {
     const fixture = setup(makeUser(), '360px');
     const component = fixture.componentInstance;
     const el: HTMLElement = fixture.nativeElement;
-    const links = () => Array.from(el.querySelectorAll<HTMLAnchorElement>('.toc .toc-link'));
-
-    component.compactRail.set(false);
-    fixture.detectChanges();
-    const full = links().map((a) => a.textContent!.trim());
-
-    component.compactRail.set(true);
-    fixture.detectChanges();
-    const short = links().map((a) => a.textContent!.trim());
-
-    expect(short.length).toBe(component.groups.length);
-    expect(short).not.toEqual(full);
-    // Both shapes read from the SAME group list, so a section can never appear
-    // in one and not the other.
-    expect(short).toEqual(component.groups.map((g) => g.shortKey));
-    expect(full).toEqual(component.groups.map((g) => g.labelKey));
-    // The full section title is what a screen reader gets, either way.
-    links().forEach((link, i) => {
-      expect(link.getAttribute('aria-label')).toBe(full[i]);
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('sc-section-rail a.stop'));
+    expect(links.length).toBe(component.groups.length);
+    // Both shapes (edge rail, compact strip) read from the SAME group list, so a section can never appear in one and not the other.
+    expect(links.map((a) => a.querySelector('.short')!.textContent!.trim())).toEqual(component.groups.map((g) => g.shortKey));
+    expect(links.map((a) => a.querySelector('.full')!.textContent!.trim())).toEqual(component.groups.map((g) => g.labelKey));
+    // Shortening what is READ must not shorten what is ANNOUNCED.
+    links.forEach((link, i) => {
+      expect(link.getAttribute('aria-label')).toBe(component.groups[i].labelKey);
     });
   });
 

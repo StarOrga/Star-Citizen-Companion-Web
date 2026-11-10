@@ -1702,7 +1702,7 @@
     "picker": {
       "title": "Pick a component — {{port}} · S{{size}}",
       "installed": "fitted: {{name}}",
-      "hint": "Click beside the window to go back",
+      "hint": "Close with ✕ or Esc",
       "close": "Close",
       "searchPlaceholder": "Search … name, manufacturer, damage type",
       "searchLabel": "Search components",
