@@ -283,10 +283,23 @@ export class BriefingPlanetComponent {
     let suspendedDraw = 0;
     const resize = () => planet.resize(glCanvas.clientWidth, glCanvas.clientHeight, devicePixelRatio);
     /** The planet in the canvas's own coordinates (the canvas is sticky, the anchor scrolls). */
+    // In the canvas's LAYOUT pixels: a transform on a common ancestor (the scene's push-in under
+    // a large popup, `scale` 1 → 1.04) scales the drawn canvas as a whole already. Measured in
+    // screen pixels the planet seemed to move every frame of that push-in, was followed and
+    // redrawn at the display's rate (55–100 ms frames, Wave 2d) and grew twice (1.04²). Rounded
+    // to half pixels so the division's float noise never reads as motion.
+    const half = (x: number) => Math.round(x * 2) / 2;
     const geometry = (): PlanetView => {
       const a = this.anchor().getBoundingClientRect(), c = glCanvas.getBoundingClientRect();
+      const s = glCanvas.clientWidth > 0 && c.width > 0 ? c.width / glCanvas.clientWidth : 1;
       const r = a.width / 2;
-      return { cx: a.left + r - c.left, cy: a.top + r - c.top, r, h: c.height, w: c.width };
+      return {
+        cx: half((a.left + r - c.left) / s),
+        cy: half((a.top + r - c.top) / s),
+        r: half(r / s),
+        h: half(c.height / s),
+        w: half(c.width / s),
+      };
     };
     // Off screen (scrolled past the stage, the sticky canvas left with it) nothing is drawn that
     // anyone sees, but the loop kept stepping the trains and redrawing the GL planet. It pauses
