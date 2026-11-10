@@ -344,6 +344,56 @@ def is_unnamed(loc_key: Optional[str]) -> bool:
     return (loc_key or "").strip().lower() in _NULL_NAME_KEYS
 
 
+# Synthetic locale namespace for room labels the game ships without a German
+# string (E14, holotisch concept 20261109-1745). The uploader adds
+# ``scc_room_<slug> = <English label>`` to the English table it uploads, so the
+# translation pipeline's normal delta job picks the labels up as new keys and
+# translates them like any game string (TM dedupe by English text, cost
+# tracked, same caps). Contract: docs/translation/ARCHITECTURE.md § Room labels.
+ROOM_LABEL_PREFIX = "scc_room_"
+
+
+def humanize_room_key(key: str) -> str:
+    """Readable English label from a room's container entity name — the same
+    rules as ``humanizeRoomKey`` in ``src/app/codex/deck-plan.ts``:
+    ``MedicalBay_Office_Room_RN`` → "Medical Bay Office",
+    ``Corridors_Middle_Left_Room1_Room_RN`` → "Corridors Middle Left 1".
+    ``''`` when nothing readable is left (``Room_RN-009``)."""
+    label = re.sub(r"~\d+$", "", key or "")
+    label = re.sub(r"[-_]\d+$", "", label)
+    label = re.sub(r"_?Room_RN$", "", label, flags=re.I)
+    label = re.sub(r"([a-z])([A-Z])", r"\1 \2", label)
+    label = " ".join(p for p in label.split("_") if p)
+    label = re.sub(r"\s+Room(\d*)$", r" \1", label, flags=re.I).strip()
+    if (not label or re.match(r"^room(\s|_|-)?(rn)?[\s_-]*\d*$", label, re.I) or "_" in label):
+        return ""
+    return label
+
+
+def tidy_room_label(label: str) -> str:
+    """One spelling per label (``tidyRoomLabel`` in deck-plan.ts): words spaced,
+    single spaces, capital first letter."""
+    spaced = re.sub(r"[_\s]+", " ", re.sub(r"([a-z])([A-Z])", r"\1 \2", label or "")).strip()
+    return spaced[:1].upper() + spaced[1:] if spaced else spaced
+
+
+def room_label_key(label: str) -> Optional[str]:
+    """Stable synthetic locale key of an English room label, shared by every
+    room and ship with the same label: "Turret Access" → ``scc_room_turret_access``.
+    None for a label with no letters or digits."""
+    slug = re.sub(r"[^a-z0-9]+", "_", (label or "").lower()).strip("_")
+    return ROOM_LABEL_PREFIX + slug[:80] if slug else None
+
+
+def bare_loc_key(loc_key: Optional[str]) -> Optional[str]:
+    """The game's loc key without ``@``, lower-cased (the locale tables'
+    spelling); None for an unnamed room."""
+    if is_unnamed(loc_key):
+        return None
+    k = (loc_key or "").strip().lstrip("@").lower()
+    return k or None
+
+
 def bounds_of(rooms: Iterable[Dict[str, Any]]) -> Optional[Dict[str, List[float]]]:
     """2D ``{min: [x, y], max: [x, y]}`` over every room shape (or pin)."""
     xs: List[float] = []
