@@ -50,6 +50,20 @@ _ROUND = 2
 _FLAT_EPS_M = 0.05
 _FLOOR_BAND_M = 0.3
 _NULL_NAME_KEYS = {"", "@procedural_text_null", "@loc_empty", "@loc_placeholder"}
+# Height windows of deck_by_level for a room's floor (lowest footprint point)
+# and its entity origin. Leave-one-out over the 333 sectioned rooms of the
+# multi-deck hull families on LIVE 4.10.2 (probe 2026-11-10): the floor vote
+# alone picks the authored deck for 93 % of the rooms it decides, the origin
+# vote alone for 96 % — the misses are lifts, stairwells and turret rooms whose
+# authored deck is not the level they stand on (the ~95 % neighbour vote
+# rejected on 2026-10-25). The rule used: the floor decides, an origin that
+# votes for another deck vetoes it, a room without a volume has only its
+# origin — 188 rooms decided, 7 misses (96.3 %; 5 of them Hammerhead and
+# Gemini rooms whose sections are zones, not levels). Requiring floor AND
+# origin to agree is stricter (135 decided, 98.5 %) but leaves the Starlancer
+# MAX's whole lower deck empty: its origins sit 0.7 m off the TAC's.
+LEVEL_WINDOW_FLOOR_M = 0.5
+LEVEL_WINDOW_POS_M = 0.3
 
 
 # ── socpak (zip) access ─────────────────────────────────────────────────────
@@ -308,6 +322,22 @@ def cry_guid_to_record_id(guid: Optional[str]) -> Optional[str]:
     g1, g2, g3, tail = h[0:8], h[8:12], h[12:16], h[16:32]
     rev = "".join(tail[i:i + 2] for i in range(14, -2, -2))
     return f"{g2}{g3}-{g1[4:8]}-{g1[0:4]}-{rev[0:4]}-{rev[4:16]}"
+
+
+def deck_by_level(z: Optional[float], refs: Iterable[Tuple[Optional[float], str]],
+                  window: float) -> Optional[str]:
+    """The deck every reference room within ``window`` metres of height ``z``
+    is on, or None when no reference is that close or they disagree.
+
+    ``refs`` are ``(height, deck key)`` pairs of rooms whose deck the game data
+    names (``interiorMapSection``). A room without a section shares a deck
+    with the authored rooms on its own floor level — but a lift shaft or a
+    stairwell sits between levels, so a split vote decides nothing.
+    """
+    if z is None:
+        return None
+    decks = {deck for rz, deck in refs if rz is not None and abs(rz - z) <= window}
+    return decks.pop() if len(decks) == 1 else None
 
 
 def is_unnamed(loc_key: Optional[str]) -> bool:
