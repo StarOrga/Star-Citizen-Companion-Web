@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed,
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { BETA_AREAS, BetaArea, BetaService } from '../../core/beta.service';
+import { FeedbackFabPrefsService } from '../../core/feedback-fab-prefs.service';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
@@ -14,6 +15,11 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
  * (`area`, from `betaAreaOf`) in the normal accent, and no FAB where there is
  * no switch. Admins and collaborators get every area; their FAB is the
  * elevated-access red and names the role in its label.
+ *
+ * Staff share one corner setting with the feedback launcher (feedback #339):
+ * "Feedback-Button anzeigen" off hides this FAB too. A viewer's single area
+ * switch is not affected — their settings text never mentions the beta button,
+ * so the setting must not take it away from them either.
  */
 @Component({
   selector: 'sc-beta-fab',
@@ -110,6 +116,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 export class BetaFabComponent {
   protected readonly beta = inject(BetaService);
   protected readonly roles = inject(RoleService);
+  private readonly fabPrefs = inject(FeedbackFabPrefsService);
   private readonly host = inject(ElementRef<HTMLElement>);
 
   /** The area the reader is in (`betaAreaOf`); viewers get only this switch. */
@@ -117,7 +124,7 @@ export class BetaFabComponent {
   protected readonly open = signal(false);
   protected readonly staff = computed(() => this.roles.isCollaborator());
   protected readonly areas = computed<readonly BetaArea[]>(() => {
-    if (this.staff()) return BETA_AREAS;
+    if (this.staff()) return this.fabPrefs.show() ? BETA_AREAS : [];
     const a = this.area();
     return a ? [a] : [];
   });

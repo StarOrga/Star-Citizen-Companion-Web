@@ -328,10 +328,21 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                    is broken, so it must never be switchable off from a place
                    the user cannot find again. -->
               <div class="sc-card section">
-                <h3>{{ 'settings.feedbackFab.title' | translate }}</h3>
-                <p class="hint">{{ 'settings.feedbackFab.hint' | translate }}</p>
+                <!-- Staff (admin + collaborator) also get the beta FAB, and
+                     this one setting hides both (feedback #339). Only they read
+                     about the beta button: the staff wording carries the
+                     collaborator colour, the audience words stay sr-only. -->
+                <h3>{{ (roles.isCollaborator() ? 'settings.feedbackFab.staff.title' : 'settings.feedbackFab.title') | translate }}</h3>
+                <p class="hint">{{ (roles.isCollaborator() ? 'settings.feedbackFab.staff.hint' : 'settings.feedbackFab.hint') | translate }}</p>
                 <div class="row">
-                  <span class="label">{{ 'settings.feedbackFab.show.label' | translate }}</span>
+                  @if (roles.isCollaborator()) {
+                    <span class="label elevated-collab">
+                      {{ 'settings.feedbackFab.staff.label' | translate }}
+                      <span class="sc-sr-only">{{ 'settings.feedbackFab.staff.audience' | translate }}</span>
+                    </span>
+                  } @else {
+                    <span class="label">{{ 'settings.feedbackFab.show.label' | translate }}</span>
+                  }
                   <span class="value">
                     <label class="consent-toggle">
                       <input
@@ -344,9 +355,9 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                 </div>
                 <p class="consent-desc">
                   {{
-                    (feedbackFabPrefs.show()
-                      ? 'settings.feedbackFab.show.descOn'
-                      : 'settings.feedbackFab.show.descOff') | translate
+                    (roles.isCollaborator()
+                      ? (feedbackFabPrefs.show() ? 'settings.feedbackFab.staff.descOn' : 'settings.feedbackFab.staff.descOff')
+                      : (feedbackFabPrefs.show() ? 'settings.feedbackFab.show.descOn' : 'settings.feedbackFab.show.descOff')) | translate
                   }}
                 </p>
                 <!-- The liveness tint on the feedback panel's title (feedback
@@ -643,6 +654,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     .label { flex: 0 0 auto; }
     /* Admin-only row: the colour says it, never a word (CLAUDE.md). */
     .label.elevated-hot { color: var(--sc-accent-hot); }
+    .label.elevated-collab { color: var(--sc-accent-collab); }
     .value.pills {
       display: flex;
       flex-wrap: wrap;
