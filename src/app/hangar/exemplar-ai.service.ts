@@ -77,7 +77,7 @@ export class ExemplarAiService {
   private readonly inFlight = new Map<string, Promise<ExemplarSummaryResult>>();
   /** The summary columns are missing on this database (migration not pushed): checked once, then no more reads,
    * writes or function calls for the rest of the session — no repeated 400s. */
-  private columnsMissing = false;
+  private columnsMissing = readColumnsMissing();
 
   /**
    * A name suggestion for a new exemplar that differs from Werk. Returns null when nothing differs (no call is made),
@@ -126,6 +126,7 @@ export class ExemplarAiService {
     } catch (err) {
       if (isMissingColumnError(err)) {
         this.columnsMissing = true;
+        rememberColumnsMissing();
         return { summary: null, hash, regenerated: false, errorKey: null };
       }
       return { summary: stored?.summary ?? null, hash, regenerated: false, errorKey: toErrorKey('hangar', 'exemplar summary', err, { id }) };
@@ -181,5 +182,24 @@ export class ExemplarAiService {
     } finally {
       if (timer !== null) clearTimeout(timer);
     }
+  }
+}
+
+/** Session key: the summary columns are missing on this database. A reload in the same tab does not ask again. */
+export const AI_COLUMNS_MISSING_KEY = 'sc.exemplarAi.columnsMissing';
+
+function readColumnsMissing(): boolean {
+  try {
+    return sessionStorage.getItem(AI_COLUMNS_MISSING_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function rememberColumnsMissing(): void {
+  try {
+    sessionStorage.setItem(AI_COLUMNS_MISSING_KEY, '1');
+  } catch {
+    // Storage blocked (private mode, quota): the in-memory flag still holds for this page.
   }
 }

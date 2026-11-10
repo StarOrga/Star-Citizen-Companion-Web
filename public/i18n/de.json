@@ -1008,7 +1008,11 @@
         "filterMissiles": "Raketen",
         "filterComponents": "Komponenten",
         "filterOther": "Sonstiges",
-        "filterAll": "Alle Teile"
+        "filterAll": "Alle Teile",
+        "deckRest": "Weitere",
+        "statShort": {
+          "projectileSpeed": "Geschosstempo"
+        }
       },
       "strip": {
         "einsatz": "Einsatz",
@@ -1562,11 +1566,13 @@
       },
       "group": {
         "of": "Alle {{name}}",
-        "smallHint": "Nur {{n}} Schiffe in dieser Gruppe, der Vergleich ist entsprechend grob."
+        "smallHint": "Nur {{n}} Schiffe in dieser Gruppe, der Vergleich ist entsprechend grob.",
+        "ofRole": "Rolle {{name}}"
       },
       "noMiningData": "Abbau- und Bergungsleistung: keine Daten",
       "rimNote": "Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.",
-      "betterThan": "Besser als {{n}} %"
+      "betterThan": "Besser als {{n}} %",
+      "rimLabel": "Skala"
     },
     "detail": {
       "manufacturer": "Hersteller",
@@ -1773,7 +1779,7 @@
       "close": "Schließen",
       "typeFilter": "Teiletyp",
       "filterAll": "Alle",
-      "appliesToOne": "Gilt für den Hardpoint {{port}}",
+      "appliesToOne": "Gilt nur für diesen Platz: {{port}}",
       "appliesToMany": "Gilt für alle {{count}} identischen Hardpoints",
       "sortHint": "Spalte anklicken zum Sortieren, Strg-Klick für eine zweite Sortierung.",
       "installedNone": "Platz ab Werk leer",
@@ -1918,7 +1924,9 @@
         "deg": "°",
         "perSec": "/s",
         "percent": "%"
-      }
+      },
+      "dashNoteAmmo": "Ammo steht bei Energiewaffen als „—“, weil sie kein Magazin haben. Keine Extractor-Lücke.",
+      "dashNoteSpread": "Spread steht als „—“, weil die Streuung im P4K nur als Modifikator vorliegt. Keine Extractor-Lücke."
     },
     "hardpointMap": {
       "title": "Position an der Hülle",

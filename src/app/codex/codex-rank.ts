@@ -268,6 +268,26 @@ export function rankGroupName(roleLabel: string, lang: string): string {
   return words.join(' ');
 }
 
+/**
+ * Whether a role label names a kind of ship that reads after "Alle" ("Leichter Jäger", "Bomber")
+ * or an activity that does not ("Expedition", "Bergbau", "Schwere Reparatur" — "Alle Expedition"
+ * is wrong German). German only: an English label always takes the plural of {@link rankGroupName}.
+ */
+export function rankRoleReadsAsGroup(roleLabel: string, lang: string): boolean {
+  if (!lang.startsWith('de')) return true;
+  const words = roleLabel.trim().split(/\s+/);
+  return /er$/.test(words[words.length - 1] ?? '');
+}
+
+/**
+ * The band word from the place in the group, not from the mean percentile: "Rang 1 von 16"
+ * always reads "oberes Viertel", never "im Mittelfeld" (B13). Rank 1 = 100, last = 0.
+ */
+export function rankBandOfPlace(rank: number | null, size: number): RankBand | null {
+  if (rank == null || size < 2) return null;
+  return rankBandOf(((size - rank) / (size - 1)) * 100);
+}
+
 /** One cohort member — the ranking never sees payloads, only sheets. */
 export interface RankShipInput<K extends string = KpiKey> {
   className: string;

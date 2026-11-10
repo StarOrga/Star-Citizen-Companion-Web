@@ -80,6 +80,20 @@ import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
   `,
   styles: [`
     :host { display: block; }
+    /* The Holotisch's two places for the draft (moved here from the stage's styles, B13 budget).
+       Wide: in the fixed card, above "Details"; narrow: floating above the strip. */
+    :host(.draft-float) { pointer-events: auto; width: min(560px, calc(100vw - 32px)); padding: 8px 12px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
+      border-radius: 4px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
+    :host(.draft-card) { flex: none; margin: 0 10px 8px; padding: 8px 10px; border: 1px solid var(--sc-accent); border-radius: 10px;
+      background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); }
+    /* Autosave covers the change: no bar, so no empty outlined box either. */
+    :host(.draft-card:empty) { display: none; }
+    :host(.draft-card) .bar { padding: 0; margin: 0; gap: 6px 8px; border: 0; background: none; }
+    :host(.draft-card) .notice { min-width: 0; flex-basis: 100%; }
+    :host(.draft-card) .actions { flex-basis: 100%; }
+    :host(.draft-card) :is(.discard, .save) { flex: 1; min-height: max(34px, var(--sc-tap-min, 0px)); }
+    @media (min-width: 1001px) { :host(.draft-float) { display: none; } }
+    @media (max-width: 1000px) { :host(.draft-card) { display: none; } }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
       gap: 10px; padding: 10px 14px; margin-bottom: 10px;

@@ -430,6 +430,26 @@ describe('CodexSwapPickerComponent', () => {
     expect(el.querySelector('.pick-applies')?.textContent).toContain('codex.swap.appliesToOne');
   });
 
+  it('names the slot without the engine prefix, a bare class port by what it holds (B13)', async () => {
+    await open();
+    const c = fixture.componentInstance;
+    expect(c.slotLabel({ ...TARGET, port: 'Hardpoint Cooler Left' })).toBe('Cooler Left');
+    expect(c.slotLabel({ ...TARGET, port: 'Hardpoint Class 2', className: 'GATS_BallisticGatling_S3', rawTypes: ['WeaponGun'] }))
+      .toBe('codex.holo.partType.gatling');
+  });
+
+  it('picks the "—" note from the dashes the shown table really has (B13: not under a cooler)', async () => {
+    const el = await open();
+    const c = fixture.componentInstance;
+    const cols = new Set(c.displayColumns().map((col) => col.key));
+    const dash = (key: string) => cols.has(key) && el.querySelector(`td.gapc`) !== null && c.rows().some((r) => c.cellState(r, key) === 'notApplicable');
+    const ammo = dash('codex.picker.col.ammo');
+    const spread = dash('codex.picker.col.spread');
+    const expected = ammo && spread ? 'codex.picker.dashNote' : ammo ? 'codex.picker.dashNoteAmmo' : spread ? 'codex.picker.dashNoteSpread' : null;
+    expect(c.dashNoteKey()).toBe(expected);
+    expect(el.querySelector('.pick-note')?.textContent?.trim() ?? null).toBe(expected);
+  });
+
   it('shows the draft-disclosure hint under the Δ-baseline control (E-main-gap #39)', async () => {
     const el = await open();
     expect(el.querySelector('.pick-preview-hint')?.textContent).toContain('codex.swap.previewHint');
