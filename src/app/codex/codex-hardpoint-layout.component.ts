@@ -1111,8 +1111,8 @@ export class CodexHardpointLayoutComponent {
    */
   readonly foldedSections = input<ReadonlySet<ShipModuleSection>>(new Set());
   /**
-   * Start with EVERY block and every nested section open, the airframe
-   * included — the "Alles" lens (#240: *"Wenn man unter 'alles' ist beim
+   * Start with every block and every nested section open, the airframe
+   * excepted (#333) — the "Alles" lens (#240: *"Wenn man unter 'alles' ist beim
    * Einsatz, bitte auch alles ausgeklappt lassen"*). Manual folds still work;
    * like a mission switch, flipping this resets them.
    */
@@ -1146,8 +1146,12 @@ export class CodexHardpointLayoutComponent {
           .filter((s) => s.slots.length > 0)
           .map((s) => s.section);
         if (expandAll) {
-          this.openGroups.set(new Set(present.map((sec) => shipModuleGroupOf(sec))));
-          this.openSections.set(new Set(present));
+          // Everything open except the airframe: "Zelle & feste Systeme" is a
+          // hull inventory, not a decision, and starts folded even under
+          // "Alles" (#333: *"Standardgemäß eingeklappt!"*). A click opens it.
+          const open = present.filter((sec) => !FOLDABLE_SECTIONS.has(sec));
+          this.openGroups.set(new Set(open.map((sec) => shipModuleGroupOf(sec))));
+          this.openSections.set(new Set(open));
           return;
         }
         const closedDefault = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...folded]);
