@@ -91,7 +91,10 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // and count ore pods; no hull is "unmeasured" for a missing grid anymore.
     // 11: payload.sizeClass (S1-S6 from the vehicle's AttachDef.Size) for the
     // Codex index size filter.
-    revision: 11,
+    // 12: rooms without an interiorMapSection on a multi-deck ship take the
+    // deck of the authored rooms on their floor level, this hull's and its
+    // family's (Starlancer MAX from the TAC) — fewer rooms on "Other rooms".
+    revision: 12,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
