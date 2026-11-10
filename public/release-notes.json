@@ -1,7 +1,59 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.253.0",
+  "current": "0.254.0",
   "releases": [
+    {
+      "version": "0.254.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Holotisch: type callouts with a swap button, the ◆ marker for parts that differ from the stock loadout, a hangar menu for Werk, exemplars and wishes, AI name and summary per exemplar."
+            },
+            {
+              "title": "",
+              "text": "Holotisch: changes in your own exemplar save on their own with a short toast; parts inside gimbals can be saved; wishes keep their loadout."
+            },
+            {
+              "title": "",
+              "text": "Deck plan and room chips show translated room names."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Holotisch: one bottom row (Akte · Außen · Innen · part filters), a lighter header, a fixed right card (Einordnung · Bauteile · Änderungen) with rank, group picker, hexagon ⇄ bars and a single-line patch choice."
+            },
+            {
+              "title": "",
+              "text": "3D view keeps its distance while rotating."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Swap picker was empty for coolers, shields, quantum drives and life support, and wrapped item names letter by letter."
+            },
+            {
+              "title": "",
+              "text": "Opening an exemplar no longer leads to a dead hangar route; removing the active exemplar no longer leaves its draft behind."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.253.0",
       "date": "2026-11-11",

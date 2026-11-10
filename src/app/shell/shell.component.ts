@@ -680,7 +680,9 @@ import { avatarUrlOf } from './avatar-url';
       flex: 1 1 0;
       justify-content: flex-end;
     }
-    .profile-menu { position: relative; }
+    /* Flex, not block: a block would set the inline-flex avatar on a text line, whose
+       descender gap made the box ~45px and lifted the avatar 2–3px above apps and wishlist. */
+    .profile-menu { position: relative; display: flex; }
     .avatar-crest { position: absolute; right: -6px; bottom: -6px; z-index: 1; display: inline-flex; line-height: 0; }
     .avatar-btn {
       display: inline-flex;
