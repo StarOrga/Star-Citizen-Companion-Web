@@ -1,3 +1,4 @@
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { searchMatcher } from './codex-search';
@@ -176,17 +177,17 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [ItemPathComponent, TranslatePipe, RouterLink, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective],
+  imports: [ItemPathComponent, TranslatePipe, RouterLink, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
-      <div class="pick-veil">
+      <div class="pick-veil" scPopupMotion="large" scPopupMotionPlate=".pick-win" scPopupMotionFoot=".pick-foot">
         <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
         <!-- [scDialog]: focus in, Tab trap, Escape, focus back to the opener
              (audit S15). An open sc-select consumes its own Escape first. -->
         <article class="pick-win" role="dialog" aria-modal="true"
                  aria-labelledby="pick-title"
-                 scDialog (scDialogEscape)="closed.emit()"
+                 scDialog (scDialogEscape)="dismiss()"
                  (click)="$event.stopPropagation()">
           <header class="pick-head">
             <div class="pick-titles">
@@ -205,7 +206,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
             <button type="button" class="pick-clear" (click)="clearSlot()">
               {{ 'codex.swap.clearSlot' | translate }}
             </button>
-            <button type="button" class="pick-close" (click)="closed.emit()"
+            <button type="button" class="pick-close" (click)="dismiss()"
                     [attr.aria-label]="'codex.picker.close' | translate"
                     [scTooltip]="'codex.picker.close' | translate">✕</button>
           </header>
@@ -462,13 +463,12 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     /* Concept part-01:403-404. padding 3.2rem 4.5rem at the mock's 13px root
-       = 42px 58px, and cursor:pointer - the veil IS the close affordance, so it
-       has to read as clickable. The window takes the arrow back (part-01:406). */
+       = 42px 58px. The picker is a modal dialog: it closes only on its X or
+       Escape (#1025), never on the veil, so the veil does not read as clickable. */
     .pick-veil { position: fixed; inset: 0; z-index: 150;
       background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
       -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
-      display: grid; place-items: center; padding: 42px 58px; overflow-y: auto;
-      cursor: pointer; }
+      display: grid; place-items: center; padding: 42px 58px; overflow-y: auto; }
     .pick-hint { position: absolute; top: 16px; left: 0; right: 0; text-align: center;
       font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2); pointer-events: none; margin: 0; }
     .pick-hint.inferred { position: static; pointer-events: auto; text-align: left; margin: 0 18px;
@@ -697,6 +697,17 @@ export class CodexSwapPickerComponent {
   readonly typeFilter = signal<string>(TYPE_ALL);
 
   private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
+  private readonly motion = viewChild(ScPopupMotionDirective);
+  private dismissing = false;
+
+  /** Close through the horizon motion (the open reversed in 60 % of the time), then tell the host. */
+  dismiss(): void {
+    const m = this.motion();
+    if (!m) { this.closed.emit(); return; }
+    if (this.dismissing) return;
+    this.dismissing = true;
+    void m.exit().then(() => { this.dismissing = false; this.closed.emit(); });
+  }
   private loadToken = 0;
 
   /** Value keys that get a magnitude bar (MASTER §9: Alpha, DPS only). */
@@ -1281,16 +1292,18 @@ export class CodexSwapPickerComponent {
     this.query.set((ev.target as HTMLInputElement).value);
   }
 
-  /** Row click picks the component directly (MASTER §9). */
+  /** Row click picks the component directly (MASTER §9); the draft lands at once, the picker then closes through its reverse motion. */
   pick(c: SwapCandidate): void {
     const t = this.target();
-    if (!t) return;
+    if (!t || this.dismissing) return;
     this.picked.emit({ className: c.className, target: t });
+    this.dismiss();
   }
 
   clearSlot(): void {
     const t = this.target();
-    if (!t) return;
+    if (!t || this.dismissing) return;
     this.picked.emit({ className: null, target: t });
+    this.dismiss();
   }
 }

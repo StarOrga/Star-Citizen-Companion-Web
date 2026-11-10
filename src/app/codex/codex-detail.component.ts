@@ -1,5 +1,6 @@
 import { ShipArrivalComponent } from './ship-arrival/ship-arrival.component';
 import { SilThumbsService } from '../shared/sil-thumb/sil-thumbs.service';
+import { SILHOUETTE_HOLD_MS, arrivalThumbOf } from './ship-arrival/arrival-thumb';
 import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { PageCornerService, type PageShare, type PageViewToggle } from '../shell/corners/page-corner.service';
@@ -326,14 +327,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
       @if (loading() && skeletonStage() && arrivalThumb(); as arrival) {
         <!-- The loading ship's real silhouette (silhouette only, no backdrop) when the build has it. -->
-        <div class="sc-card skel-stage arrival" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
+        <div class="sc-card skel-stage arrival" [class.bare]="shellBeta()" animate.leave="skel-leave" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
           <sc-ship-arrival [thumb]="arrival" />
         </div>
       } @else if (loading() && skeletonStage()) {
         <!-- Holodeck skeleton: the page frame + header are already up; the
              stage's own lock ring and scan line run until the ship arrives and
              the real stage replaces this box in place (same min-height). -->
-        <div class="sc-card skel-stage" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
+        <div class="sc-card skel-stage" [class.bare]="shellBeta()" animate.leave="skel-leave" role="status" [attr.aria-label]="'codex.detail.loadingStage' | translate">
           <i class="skel-ring" aria-hidden="true"></i>
           <i class="skel-scan" aria-hidden="true"></i>
         </div>
@@ -1607,6 +1608,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .skel-card { height: 260px; }
     .skel-stage { position: relative; min-height: 520px; overflow: hidden; }
     .skel-stage > i { position: absolute; pointer-events: none; }
+    /* β shell: the scene behind is the stage while the ship loads - no card slab before the hologram (QA D11). */
+    .skel-stage.bare { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .skel-ring { left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 60%, transparent);
       box-shadow: 0 0 22px color-mix(in srgb, var(--sc-accent) 30%, transparent), inset 0 0 14px color-mix(in srgb, var(--sc-accent) 20%, transparent);
@@ -1617,7 +1620,12 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     @keyframes skel-lock { 0%, 100% { transform: scale(0.82); opacity: 0.45; } 50% { transform: scale(1); opacity: 1; } }
     @keyframes skel-scan { 0% { bottom: 14%; opacity: 0; } 15%, 85% { opacity: 1; } 100% { bottom: 86%; opacity: 0; } }
     @media (max-width: 720px) { .skel-stage { min-height: 360px; } }
-    @media (prefers-reduced-motion: reduce) { .skel-ring, .skel-scan { animation: none; } }
+    /* The skeleton hands over to the stage instead of vanishing: it takes no room while it
+       leaves (the stage enters in its place) and fades out under the stage's own view-in (D11). */
+    .skel-stage.skel-leave { margin-bottom: -520px; pointer-events: none; animation: skel-out 420ms var(--holo-e-out, ease-out) forwards; }
+    @media (max-width: 720px) { .skel-stage.skel-leave { margin-bottom: -360px; } }
+    @keyframes skel-out { to { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .skel-ring, .skel-scan { animation: none; } .skel-stage.skel-leave { animation-duration: 160ms; } }
     /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
     .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
@@ -1894,7 +1902,8 @@ export class CodexDetailComponent implements OnInit {
   /** The silhouette of the ship being loaded, once the (advisory, never awaited) batched read has answered. */
   readonly arrivalThumb = computed(() => {
     const cls = this.requestClass();
-    return cls && this.requestKind() === 'ship' ? this.silThumbs.thumbOf('ship', cls) : null;
+    if (!cls || this.requestKind() !== 'ship') return null;
+    return this.silThumbs.thumbOf('ship', cls) ?? arrivalThumbOf(this.shipSilhouette());
   });
   readonly skeletonStage = computed(() => this.requestKind() === 'ship' && this.holoView());
   private static readonly HOLO_VIEW_STORAGE_KEY = 'sc.codex.holoView';
@@ -2739,6 +2748,17 @@ export class CodexDetailComponent implements OnInit {
     this.foreignVariant.set(false);
     this.activeVariantId.set(null);
     this.mineFlag.set(!this.shellBeta() && (this.route.snapshot.queryParamMap?.has?.(HQ_MINE_PARAM) ?? false));
+    // Ships: the hull silhouette is read alongside the detail, not after it, so the
+    // skeleton can draw it and the Holotable enters with its hull (D11: no dark,
+    // empty table between the skeleton and the hologram). Memoised in the service.
+    const silEarly: Promise<unknown> =
+      kind === 'ship'
+        ? (this.svc.silhouette?.('ship', className) ?? Promise.resolve(null))
+            .then((sil) => {
+              if (seq === this.loadSeq && sil) this.shipSilhouette.set(sil);
+            })
+            .catch(() => undefined)
+        : Promise.resolve();
     try {
       const d = await this.svc.getDetail(kind, className);
       if (seq !== this.loadSeq) return;
@@ -2751,6 +2771,9 @@ export class CodexDetailComponent implements OnInit {
           this.resolveLocale(d, seq),
           this.resolveShipTech(d, seq),
         ]);
+        if (seq !== this.loadSeq) return;
+        // The stage waits (briefly) for its hull rather than entering on an empty table.
+        if (kind === 'ship') await Promise.race([silEarly, new Promise<void>((r) => setTimeout(r, SILHOUETTE_HOLD_MS))]);
         if (seq !== this.loadSeq) return;
         if (kind === 'ship') {
           this.activeMissionId.set(loadStoredMission(d.classNameSlug) ?? 'all');
@@ -3389,9 +3412,8 @@ export class CodexDetailComponent implements OnInit {
   readonly draftReadOnly = this.draftStore.readOnly;
   readonly draftSavedPaths = this.draftStore.savedPaths;
 
-  /** "Übernehmen" / "Slot leeren" from the picker — closes it, then drafts every covered path. */
+  /** "Übernehmen" / "Slot leeren" from the picker — drafts every covered path; the picker closes itself through its reverse motion and then emits `closed`. */
   onSwapPicked(pick: SwapPick): void {
-    this.swapTarget.set(null);
     this.draftStore.applySwap(pick);
   }
 

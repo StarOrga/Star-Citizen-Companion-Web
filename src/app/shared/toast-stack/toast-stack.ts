@@ -1,4 +1,14 @@
-import { Directive, ElementRef, Injectable, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Directive, ElementRef, Injectable, NgZone, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { POPUP_MOTION_CLOSE_SHARE, POPUP_MOTION_REDUCED_MS, POPUP_MOTION_TOTAL } from '../popup-motion/sc-popup-motion.directive';
+
+/**
+ * How long a closing toast keeps its slot: the small popup close (`animate.leave="pm-out"`,
+ * the open reversed in 60 % of the time) plus a frame, so the stack above it only closes the
+ * gap once the toast has really gone.
+ */
+export function toastLeaveMs(reduced: boolean): number {
+  return reduced ? POPUP_MOTION_REDUCED_MS : Math.round(POPUP_MOTION_TOTAL.small * POPUP_MOTION_CLOSE_SHARE) + 30;
+}
 
 /**
  * One toast stack (overlay sizes R8). The star toast, the undo toast and the
@@ -42,6 +52,7 @@ export class ToastStackService {
 export class ToastSlotDirective implements OnInit, OnDestroy {
   private readonly stack = inject(ToastStackService);
   private readonly el = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly zone = inject(NgZone);
   private readonly id = Symbol('toast');
   private ro?: ResizeObserver;
   private readonly offsetPx = this.stack.offset(this.id);
@@ -57,6 +68,9 @@ export class ToastSlotDirective implements OnInit, OnDestroy {
   }
   ngOnDestroy(): void {
     this.ro?.disconnect();
-    this.stack.remove(this.id);
+    // The element still plays its leave animation after the directive is destroyed; releasing the
+    // slot now would drop the toasts above it while this one is still closing.
+    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.zone.runOutsideAngular(() => setTimeout(() => this.stack.remove(this.id), toastLeaveMs(reduced)));
   }
 }

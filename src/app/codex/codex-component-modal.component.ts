@@ -4,7 +4,9 @@ import {
   computed,
   input,
   output,
+  viewChild,
 } from '@angular/core';
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -67,14 +69,14 @@ export interface ComponentInspectEntry {
 @Component({
   selector: 'sc-codex-component-modal',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective, ScDialogDirective],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, ScDialogDirective, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
-      <div class="cm-backdrop">
+      <div class="cm-backdrop" scPopupMotion="large" scPopupMotionPlate=".cm-panel" scPopupMotionRows=".cm-headline .hs, .cm-table tbody tr" scPopupMotionFoot=".cm-foot">
         <article class="cm-panel sc-card" role="dialog" aria-modal="true" tabindex="-1"
                  [attr.aria-label]="e.name" (click)="$event.stopPropagation()"
-                 scDialog scDialogInitialFocus="container" (scDialogEscape)="closed.emit()">
+                 scDialog scDialogInitialFocus="container" (scDialogEscape)="dismiss()">
           <header class="cm-head">
             <div class="cm-ident">
               @if (badge(); as b) { <span class="cm-size">{{ b }}</span> }
@@ -90,7 +92,7 @@ export interface ComponentInspectEntry {
                 <p class="cm-port">{{ 'codex.inspect.hardpoint' | translate }}: {{ e.port }}</p>
               </div>
             </div>
-            <button type="button" class="cm-close" (click)="closed.emit()"
+            <button type="button" class="cm-close" (click)="dismiss()"
                     [attr.aria-label]="'codex.inspect.close' | translate"
                     [scTooltip]="'codex.inspect.close' | translate">✕</button>
           </header>
@@ -267,6 +269,17 @@ export class CodexComponentModalComponent {
   /** The occupant to inspect; `null` renders nothing (closed). */
   readonly entry = input<ComponentInspectEntry | null>(null);
   readonly closed = output<void>();
+  private readonly motion = viewChild(ScPopupMotionDirective);
+  private dismissing = false;
+
+  /** Close through the horizon motion (the open reversed in 60 % of the time), then tell the host. */
+  dismiss(): void {
+    const mo = this.motion();
+    if (!mo) { this.closed.emit(); return; }
+    if (this.dismissing) return;
+    this.dismissing = true;
+    void mo.exit().then(() => { this.dismissing = false; this.closed.emit(); });
+  }
 
   // Focus in, Tab trap, Escape and focus return come from [scDialog]
   // (audit S15) — the panel itself takes focus, as before.

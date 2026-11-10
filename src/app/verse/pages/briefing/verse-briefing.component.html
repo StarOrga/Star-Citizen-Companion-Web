@@ -1,18 +1,15 @@
 @if (enabled()) {
   @if (shell()) {
-    <!-- The stage's own big planet (the bottom third of the stage, radius 80 %
-         of the width): its rim arcs into the lower corners, its night side
-         carries the hub columns further down — one cinematic picture. The live
-         WebGL planet draws over the CSS one once its world is generated; the
-         CSS planet stays as the fallback and as its geometry. -->
-    <div class="world-clip" aria-hidden="true" [class.quake]="quake()" [class.css-planet]="planet.failed()" [class.cinema]="titleIntro()">
+    <!-- The big planet's geometry (the bottom third of the stage, radius 80 % of
+         the width): invisible. The one planet is the scene's (camera world G1) —
+         the hub lends it this rect and its doors' rects (lendLayout), so the
+         world's live planet stands exactly here and a menu switch is a camera move. -->
+    <div class="world-clip" aria-hidden="true" [class.quake]="quake()" [class.cinema]="titleIntro()">
       <div class="brief-world" #world></div>
-      <div class="city"></div>
-      <sc-briefing-planet #planet [anchor]="world" (drawn)="onPlanetSettled()" (unavailable)="onPlanetSettled()" />
     </div>
     <!-- Easter egg: a double click on the empty sky left of the hero (see the component). -->
     <sc-briefing-asteroid #egg [planet]="world" (passing)="shake()" />
-    <section class="bstage" #stageEl [class.quake]="quake()" (mousedown)="egg.guard($event, stageEl)" (pointerup)="egg.tap($event, stageEl)" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [class.finale]="finale()" [class.calm-wait]="calm() === 'wait'" [class.calm-in]="calm() === 'in'" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
+    <section class="bstage" #stageEl [class.quake]="quake()" (mousedown)="egg.guard($event, stageEl)" (pointerup)="egg.tap($event, stageEl)" [class.short]="intro === 'short'" [class.intro]="titleIntro()" [class.nav]="navIn()" [class.held]="held()" [class.finale]="finale()" [class.calm-wait]="calm() === 'wait'" [class.calm-in]="calm() === 'in'" [attr.data-intro]="intro" [attr.aria-label]="'verse.briefing.stageAria' | translate">
       <div class="scn">
         <!-- Entrance only (CSS, gone after the sequence / under reduced motion): letterbox bars and the comet that lights the constellation. -->
         <i class="lb lb-t" aria-hidden="true"></i><i class="lb lb-b" aria-hidden="true"></i>
@@ -77,7 +74,7 @@
         </div>
 
         @if (buildStep() >= 1) {
-          <sc-briefing-transmit [items]="transmit()" [hold]="brand()" [stands]="holoStands()" [away]="dock() !== 'top'" [docked]="dockFlying() && dock() === 'docked'" (opened)="openTransmit($event)" (door)="openDoor($event)" />
+          <sc-briefing-transmit [items]="transmit()" [hold]="!stands()" [away]="dock() !== 'top'" [docked]="dockFlying() && dock() === 'docked'" (opened)="openTransmit($event)" (door)="openDoor($event)" />
         }
 
         <button type="button" class="more-cue" [class.gone]="dock() === 'docked'" [attr.aria-hidden]="dock() === 'docked' ? 'true' : null"

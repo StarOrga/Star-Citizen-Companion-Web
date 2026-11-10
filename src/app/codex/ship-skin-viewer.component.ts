@@ -26,6 +26,7 @@ import { HOLO_FALLBACK_ACCENT, HoloMaterial, applyHologram, parseRgbToken } from
 // three is already in this chunk through model-viewer (peer dependency, one copy).
 import * as THREE from 'three';
 import { HoloLook, countTriangles } from './holo-look';
+import { workerEdgeCompute } from './holo-edges-link';
 import { manufacturerAccent } from './holo-manufacturer';
 
 /** The slice of model-viewer's internal scene (`Symbol('scene')`) the concept look needs. */
@@ -908,6 +909,8 @@ export class ShipSkinViewerComponent {
    * skin catalog is what says whether a glb exists.
    */
   readonly available = output<boolean>();
+  /** The hull is on screen (model loaded) or will not come (load error): a host holding its previous view lets go. */
+  readonly drawn = output<void>();
 
   // Persist the collapsed/expanded state of the whole viewer (#137 part 2).
   // Default when the user never toggled it: expanded on desktop, collapsed on
@@ -1112,9 +1115,13 @@ export class ShipSkinViewerComponent {
     const target = event?.target ?? null;
     // Holo stage: the concept-hologram look on model-viewer's own three scene.
     // Anywhere else, or when the scene is not reachable, the PBR hologram tint.
-    if (this.holo() && this.dressModel(target)) return;
+    if (this.holo() && this.dressModel(target)) {
+      this.drawn.emit();
+      return;
+    }
     const materials = (target as { model?: { materials?: HoloMaterial[] } } | null)?.model?.materials;
     if (materials?.length) applyHologram(materials, this.accent());
+    this.drawn.emit();
   }
 
   /** The concept look is on the model; the CSS scan overlay steps aside. */
@@ -1136,7 +1143,17 @@ export class ShipSkinViewerComponent {
     // Fit first: the hull's line detail depends on its size and triangle count.
     look.fit(new THREE.Box3().setFromObject(scene.target), countTriangles(scene.target));
     // Only the glb's own meshes (standard materials) — never a shadow plane.
-    look.dress(scene.target, 'hull', (m) => !!(m.material as THREE.MeshStandardMaterial | undefined)?.isMeshStandardMaterial);
+    // The crease edges come from the edge worker: computed here they took 250 ms in the frame
+    // the model loaded, inside the camera flight to the Codex. The fill is on at once.
+    void look.dressAsync(
+      scene.target,
+      'hull',
+      workerEdgeCompute,
+      () => {
+        if (this.look === look) scene.queueRender();
+      },
+      (m) => !!(m.material as THREE.MeshStandardMaterial | undefined)?.isMeshStandardMaterial,
+    );
     this.look = look;
     this.lookScene = scene;
     this.shaderLook.set(true);
@@ -1202,6 +1219,7 @@ export class ShipSkinViewerComponent {
   onModelError(): void {
     this.modelLoading.set(false);
     this.modelError.set(true);
+    this.drawn.emit();
   }
 
   private applySelection(s: ShipSkin | null): void {

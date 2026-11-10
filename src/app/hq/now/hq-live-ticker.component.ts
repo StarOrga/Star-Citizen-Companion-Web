@@ -112,8 +112,7 @@ const TICK_MS = 30_000;
 
       .chip {
         display: inline-flex; align-items: center; gap: 2px; box-sizing: border-box; height: var(--_h); max-width: 100%; padding: 0 3px 0 0;
-        border: 1px solid var(--_ring); border-radius: 999px; background: color-mix(in srgb, var(--sc-bg-0) 88%, transparent);
-        -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+        border: 1px solid var(--_ring); border-radius: 999px; background: color-mix(in srgb, var(--sc-bg-0) 93%, transparent);
       }
       .face {
         display: inline-flex; align-items: center; gap: 8px; min-width: 0; height: 100%; padding: 0 10px; margin: 0;

@@ -1,0 +1,164 @@
+<section id="iter-6" data-iteration="6" data-iteration-template="free" data-final-report>
+  <p class="fr-sentence">Verse, Codex und HQ sind Orte in einer Szene, durch die die Kamera fährt – mit Auftritt, Kopfzeilen-Umbau, Popups, Vorladen und Handy-Fassung, hinter der Shell-Beta.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🎥</span><span><b>Eine Szene</b>: die Kamera fährt gerade von Seite zu Seite, ohne Wechsel.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🎬</span><span><b>Großer Auftritt</b> beim ersten Aufruf: Suche bei 3,5 s, Seite fertig bei 5,5 s.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">⚡</span><span><b>Scrollen ruckelt kaum noch</b>: auf /codex 23 → 4 Bilder über 33 ms.</span></li>
+      </ul>
+      <p class="fr-try-auth">🔑 Nur lokal: npm start (127.0.0.1:4200), Testkonto, Shell-Beta an. Nichts geshippt.</p>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="20261109-1752-kamera-welt/assets/today-verse.jpg" alt="Verse heute: Planetennamen sichtbar, Stadtlichter über die ganze Fläche"><figcaption>Verse heute: Namen immer sichtbar</figcaption></figure>
+      <figure class="fr-shot"><img src="20261109-1752-kamera-welt/shots/after.png" alt="Verse in der Kamera-Welt: Planeten ohne Namen, Patch-Tafel des Projektors, Station am Rand"><figcaption>Kamera-Welt: Namen nur bei Hover, Projektor zeigt Patches</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="low" style="--fr-fill: 28%" data-tip="Ziel: kein Bild über 33 ms. Scrollen auf /codex hat noch 4–5 Bilder darüber, die Fahrt Verse → Codex 3 (längstes ca. 105–117 ms), der Kaltstart HQ → Verse längstes 72 ms am Desktop und 117 ms am Handy, das große Popup öffnet mit 4–7 Bildern darüber. Gemessen headless mit echter GPU bei ca. 179 Hz und unter Last, 60 und 144 Hz fehlen; 33 ÷ 117 ms (geschätzt).">
+        <span class="fr-meter-name">⚡ Performance</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">117 ms</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Bei „Weniger Bewegung“ blendet nur die Szene über (420 ms, aus dem Code gelesen, nicht im Browser getaktet), es läuft keine Seiten-Überblendung, Klicks währenddessen gehen durch und nichts erscheint doppelt. Handy-Antippen zeigt erst den Namen. Kein Screenreader-Test (geschätzt).">
+        <span class="fr-meter-name">♿ Barrierefreiheit</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">Klicks frei</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 93%" data-tip="Alle Tests und der Build laufen durch, Konsole, Netz und Seitenbreite sind auf vier Seiten sauber. Dagegen: auf dem Handy deckt die Tastensäule an einer Schiffsseite die Hangar-Taste teilweise, und die Scroll-Stichprobe auf /hq ist leicht schlechter als zuvor, wohl Last, ohne ruhigen Lauf nicht ausgeschlossen. Anforderung: keine Regression (geschätzt).">
+        <span class="fr-meter-name">🧱 Stabilität</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6730 grün</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="4 / 6 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_local}} · ✓ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_live}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 4 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="r6-oq-first-render"
+          data-issue-title="[REFACTOR] Spread the first render of a destination page across several frames"
+          data-issue-type="refactor"
+          data-issue-body="Intent prefetch is built app-wide (src/app/core/prefetch/): hovering a nav link loads the route chunk at about +134 ms and the destination data before the click, with no console errors. The flight frames did not change (Verse to Codex: 3 frames over 33 ms, worst about 105-117 ms; HQ to Verse: 4). The worst frames are the destination page's first render, not loading. Not built: split that first render (lists, cards, heavy components) over several frames, e.g. by deferring below-the-fold blocks until the camera flight resolves. Own, riskier task: it touches every destination page's first paint."
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="riskant">
+        <span class="oq-label">Zielseite stückweise bauen</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Das Vorladen bringt Code und Daten schon vor den Klick, die langen Bilder der Fahrt bleiben aber. Es ist der erste Aufbau der Zielseite selbst, der blockiert; er gehört auf mehrere Bilder verteilt.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Menüwechsel, vor allem Verse → Codex (3 Bilder über 33 ms) und HQ → Verse (4)</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue – riskant: berührt den ersten Aufbau jeder Zielseite.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="r6-oq-popup-pushin"
+          data-issue-title="[BUG] Prepare the large popup on press so opening has fewer slow frames"
+          data-issue-type="bug"
+          data-issue-body="The push-in is now a perspective dolly x1.04 on the scene (no re-raster), the dim sits on its own layer and the veil fades by opacity. The fixer measured open 4 to 2 frames over 33 ms and close 1 to 0; the independent re-QA (qa-report-3.md, pop.cjs, 2 clean runs under load) measured open 7 and 4 frames (max 267 and 133 ms) and close 2 and 2. So the gain is not confirmed under load. Dim only would not help: the rest is the first draw of the dialog itself (about 1400 elements). Suggestion: build the dialog content on pointerdown or focus of a slot card (swap picker, compare, part sheet), so the first draw happens before the open animation starts."
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="Anlauf">
+        <span class="oq-label">Popup-Öffnen ruckelt noch</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Der Zoom ist jetzt eine leichte Kamerafahrt, das Abdunkeln liegt auf einer eigenen Ebene. Trotzdem: eigene Messung 2 ruckelnde Bilder beim Öffnen, die unabhängige Prüfung unter Last 4 und 7 (längstes 133 und 267 ms), beim Schließen 2. Nur Abdunkeln hilft nicht, der Rest ist das erste Zeichnen des Dialogs mit rund 1400 Elementen.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Bauteil wechseln, Vergleich, Teileblatt</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt – Vorschlag: den Dialog schon beim Drücken oder Fokussieren einer Slot-Karte vorbereiten; ob es hilft, zeigt erst die Messung.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="r6-oq-cold-frame"
+          data-issue-title="[BUG] Cold HQ to Verse switch still has frames over 33 ms"
+          data-issue-type="bug"
+          data-issue-body="Better after the refine wave (qa-report-3.md, d12.cjs, median of 3 cold runs): desktop longest frame 72 ms (was 60-138), phone 117 ms (was 375), about 5 frames over 33 ms in the 3 s after the click. Fixed causes: the SVG noise-filter fallback art under planets and sun, and a 6 px blur on the sun fade-in. The first run of each kind is the worst (cold GPU). Goal was no frame over 33 ms. What is left is probably the first render of Verse (see r6-oq-first-render); needs a profile of the remaining long frames."
+          data-oq-origin="shortfall"
+          data-route-default="issue"
+          data-route-reason="Messung">
+        <span class="oq-label">Kaltstart HQ→Verse ruckelt</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Besser, aber nicht null: der erste Wechsel von HQ nach Verse hat im Median noch 5 Bilder über 33 ms. Längstes Bild am Desktop 72 ms (vorher 60–138), am Handy 117 ms (vorher 375).</dd>
+          <dt>{{final.fund_where}}</dt><dd>HQ → Verse, kalt geladen; Handy am stärksten</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue – der Rest hängt wohl am ersten Aufbau der Zielseite und braucht erst eine genaue Messung.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="r6-oq-unverified"
+          data-issue-title="[CHORE] Verify the points the re-QA did not cover and fix the phone FAB overlap"
+          data-issue-type="chore"
+          data-issue-body="Still unverified after qa-report-3.md: projector newest-first order; Galerie planet banding; 60 and 144 Hz (cannot be forced headless; measured on the real GPU, RTX 2080 SUPER, headless at about 179 Hz). Also not re-checked: C4 moving span of the main flights, header morph played backwards, hand-over after the #1067 splash, Codex backgrounds not pixel-diffed against main, settings on phones show a chip row, not the HQ-style edge rail (M1). New from the re-QA: on a scrolled phone ship page (about 700 px) the FAB column (beta, layout, share, feedback at x 322-374) covers part of the Hangar button in the 'Haben?' card (minor, transient, same class as Q4). Scroll sweep /codex 5/4/4 and /hq 1/5/2 frames over 33 ms (was 5/3/0 and 1/1/0): probably load noise, not excluded without a quiet re-run."
+          data-oq-origin="shortfall"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Mehrere Punkte ungeprüft</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Nicht nachgeprüft: Projektor „Neuestes zuerst“, Galerie-Planet gebändert, 60 und 144 Hz (headless nicht erzwingbar, gemessen bei ca. 179 Hz). Neu und klein: auf dem Handy deckt die Tastensäule an einer gescrollten Schiffsseite die Hangar-Taste in der „Haben?“-Karte teilweise. Die Scroll-Stichprobe /codex 5/4/4 und /hq 1/5/2 Bilder über 33 ms ist leicht schlechter als zuvor, wohl Last.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Verse-Projektor, Galerie, Schiffsseite am Handy, Scrollen auf /codex und /hq</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt – Claude kann das meiste selbst nachholen; 60 und 144 Hz stehen bei „Von dir“.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>claude/main-pages-transition-animations-6e2170</code> @ <code>7af75010</code>, gepusht, nicht in main, nichts geshippt · Bereiche: Verse, Szene, Kopfzeile, Popups, Scroll, Vorladen · main zweimal eingemerged; zwei Änderungen aus main (#1070 Seitenfenster der Landing, #1071 benannte Layouts mit Teilen-Link), die ein früherer Merge verschluckt hatte, wiederhergestellt; main-Fix #336 (kein Kopfzeilen-Sprung hinter einem Modal) in den gemeinsamen Snap-/Dock-Code übernommen</li>
+      <li><code>core/prefetch/</code>, <code>core/root-var.ts</code>, <code>codex-swap.worker.ts</code>, <code>holo-edges.worker.ts</code></li>
+      <li>Tests: 6730 grün · Produktions-Build grün</li>
+      <li>Messung: headless Edge mit GPU-Schaltern (kein Fenster im Vordergrund), RTX 2080 SUPER, ca. 179 Hz, Median aus 3 Läufen, Rechner unter Last · vorher → jetzt (main): Scroll /codex 23 → 4 (5), /hq 16 → 2 (1), Picker 15 → 2 (12), Fahrt Verse → Codex längstes Bild 210 → 64 ms, mit Vorladen im Lauf ca. 105–117 ms, Kaltstart HQ → Verse 872 → 72 ms Desktop, 375 → 117 ms Handy, Popup öffnen 4 und 7, schließen 2 Bilder über 33 ms</li>
+      <li>Belege im Konzeptordner: <code>parity.md</code>, <code>perf-report.md</code>, <code>qa-report.md</code>, <code>qa-report-2.md</code>, <code>qa-report-3.md</code> (gilt bei Widerspruch)</li>
+      <li><b>Prüfliste</b> (✓ erfüllt · ▲ teilweise belegt · Beleg = Messskript / Bild aus <code>tmp/kw-qa</code>, <code>tmp/kw-qa2</code>, <code>tmp/kw-qa3</code>)</li>
+      <li>C1 Eine Szene, nur Kameraflüge: ✓ vier Flüge, <code>fl-1600.json</code>, Bildreihe <code>fl-v2hq-sheet.png</code></li>
+      <li>C2 Szene ohne Schnappschuss: ✓ gleiche Messung, Objekte behalten eine durchgehende Position</li>
+      <li>C3 Gerade Wege: ✓ <code>straight.cjs</code>, größte Abweichung 0,8–6,9 px bei 700–4200 px Weg, kein Rücklauf</li>
+      <li>C4 Hauptfahrt 1100 ms, Push-in: ▲ Push-in gerade und Streifen weg (<code>c4-news-sheet.png</code>); Fahrtdauer 950–980 ms (kalt 734 ms) nicht neu gemessen</li>
+      <li>C5 Unterseiten isoliert: ▲ News, Admin, Sternkarte belegt (<code>c4-news-sheet.png</code>, <code>d5-admin.png</code>, Sonde); Galerie-Planet nicht neu geprüft</li>
+      <li>C6 HQ auf dem Planeten, rechts: ✓ <code>pair-hq.png</code>, Sonde: Planet 1, Station 1, Schleier 0,38</li>
+      <li>C7 Codex-Hintergründe unverändert: ▲ <code>pair-cdx.png</code> sieht gleich aus, nicht pixelgenau gegen main verglichen</li>
+      <li>C8 Weniger Bewegung = Überblendung nur der Szene: ✓ <code>rm.cjs</code>, 0 View Transitions, Klick 200 ms nach dem Start navigiert, ein <code>h1</code>, kein doppelter Inhalt (<code>rm-mid.png</code>); 420 ms (<code>SCENE_FADE_MS</code>) aus dem Code gelesen</li>
+      <li>C9 Nur in der Shell-Beta: ✓ <code>c9.cjs</code>, ohne Beta kein <code>.scene</code> auf 4 Routen</li>
+      <li>E1 Auftritt nur bei Direktaufruf: ▲ <code>e1.cjs</code>, Tipp-Eingabe <code>d4.cjs</code> ✓; Übergabe nach dem #1067-Splash nicht geprüft</li>
+      <li>E2 Ablauf des Auftritts: ✓ <code>e2.cjs</code>, Suche startet bei 3,52 s und 3,53 s, Hinweis bei 4,26 s; Titel-Scan und Stand nicht neu per Auge gesehen</li>
+      <li>E3 Namen nur bei Hover: ✓ <code>d1.cjs</code> (Namen aus, scrollY 0), <code>d2.cjs</code> (Handy: Tipp 1 Name, Tipp 2 öffnet)</li>
+      <li>E4 Menüwechsel: ✓ <code>d12-sheet.png</code> / <code>e4-sheet.png</code>, Titel bei 0,9 s, Suche bei 1,1 s, Planeten zwischen 1,55 und 1,69 s; Bildabstand 150 ms, also eingegrenzt, nicht auf die Millisekunde</li>
+      <li>E5 Projektor-Zyklus: ▲ <code>d1.cjs</code> Zündung, Halten 5,1 s, Rückprojektion, Pause 5,1 s ✓; Reihenfolge „Neuestes zuerst“ nicht geprüft</li>
+      <li>S1 Kopfzeile wandert in die Leiste: ▲ <code>s1-cdx-hdr.png</code> ✓, rückwärts nicht bildweise geprüft</li>
+      <li>S2 Kein leeres Bild beim Andocken: ✓ <code>s1-cdx-sheet.png</code>, Konto-Icons in jedem Bild</li>
+      <li>S3 Handy: Suche in die Daumenleiste: ✓ <code>s1-cdxm-sheet.png</code></li>
+      <li>S4 Reihenfolge nach der Kopfzeile: ✓ <code>s4.cjs</code>, Zeilen im Abstand von ca. 70 ms</li>
+      <li>S5 Kamera neigt sich beim Scrollen: ✓ <code>s5.cjs</code>, ferne Ebene 16–27 px, nahe 39–63 px auf 900 px</li>
+      <li>S6 Natives Einrasten: ✓ <code>d1.cjs</code> scrollY 0 bei 1280/1600/1920, 1 Scroll-Abonnent außerhalb des Ticks</li>
+      <li>D1 Schiffsdetail: ✓ <code>d11-sheet.png</code>, <code>lum.cjs</code>: Helligkeit 19–34 im ganzen Auftritt, kein dunkles Bild, kein leeres Warten vor dem Hologramm, auch bei 390 px (<code>ph11-sheet.png</code>); ein feines graues Band bei 1,4 s bleibt</li>
+      <li>M1 HQ-Leiste am Rand: ▲ Einstellungen am Desktop ✓ (<code>mi-after.png</code>), am Handy Chip-Reihe statt Randleiste (<code>pair-ph1.png</code>)</li>
+      <li>M2 Titel und Karten bündig: ✓ <code>mi-after.png</code>, beide bei x = 187</li>
+      <li>M3 Nebenseiten-Auftritt: ✓ <code>mi-sheet.png</code>, ca. 1,5 s</li>
+      <li>P1 Kleine Popups und Hinweise: ✓ Öffnen (<code>p1-wish-z.png</code>), Hinweis bei 4,24 s (<code>ent.cjs</code>), Schließen als gestaffelter Rücklauf bei Wunschliste, Apps- und Konto-Menü (<code>menu.cjs</code>, nach Klasse und Deckkraft abgetastet, nicht bildweise)</li>
+      <li>P2 Großes Popup „Horizont“: ▲ <code>p2c.cjs</code>, Schließen als Rücklauf, Optik unverändert (<code>pop-open.png</code>); Öffnen 4 und 7 Bilder über 33 ms (Fund)</li>
+      <li>Q1 Unschärfe nur in Kopfzeile, Menüs, Dialogen: ✓ Suche im Code, Reste sind Schleier, Menüs, Dialoge</li>
+      <li>Q2 Ein gemeinsamer Scroll-Takt: ✓ ein Rest-Abonnent in <code>item-path.component.ts</code>, nur Desktop</li>
+      <li>Q3 Kein Bild über 33 ms: ▲ <code>q3.cjs</code> Scroll /codex 5/4/4, /hq 1/5/2; Fahrten, Picker 2, Kaltstart, Popup darüber; Vorladen ohne Bildgewinn; 60/144 Hz offen</li>
+      <li>Q4 Handy voll getestet: ▲ <code>ph.cjs</code> 9 Routen ✓, gescrollt /verse ✓ und /codex ohne Überlauf; gescrollte Schiffsseite: Tastensäule deckt die Hangar-Taste teilweise (<code>ph-ship-scrolled.png</code>, Fund)</li>
+      <li>Q5 Spezifikation und Regeln: ✓ <code>verse-aufbau-ui-spec.md</code> mit 5,5 s, <code>check-native-ui</code> und <code>check-raw-errors</code> bestanden</li>
+      <li>Zusatz Vorladen beim Hover: ✓ <code>rm.cjs</code>, Code bei +134 ms, Daten vor dem Klick, keine Konsolen- und Netzfehler auf 4 Seiten; Bildgewinn 0 (Fund)</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="r6-t-phone" data-crit="mid" data-guide="">Auf einem echten Handy durchspielen</li>
+    </ul>
+  </section>
+  <section data-handoffs hidden aria-label="{{final.group_handoffs}}">
+    <ul>
+      <li data-todo-id="r6-h-hz" data-crit="mid" data-guide="desktop">Messlauf bei 60 und 144 Hz am Monitor</li>
+    </ul>
+  </section>
+</section>

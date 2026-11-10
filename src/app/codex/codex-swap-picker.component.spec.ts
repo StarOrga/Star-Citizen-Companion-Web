@@ -173,7 +173,9 @@ describe('CodexSwapPickerComponent', () => {
     (el.querySelector('.pick-veil') as HTMLElement).click();
     expect(spy).not.toHaveBeenCalled();
     (el.querySelector('.pick-close') as HTMLElement).click();
-    expect(spy).toHaveBeenCalled();
+    // The close plays the horizon motion reversed first (60 % of the open), then tells the host.
+    expect(el.querySelector('.pick-veil')?.classList.contains('pm-out')).toBe(true);
+    await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('lists every compatible item as a row including the installed one', async () => {
@@ -271,6 +273,11 @@ describe('CodexSwapPickerComponent', () => {
     const emitted = vi.mocked(spy).mock.lastCall![0] as SwapPick;
     expect(emitted.className).toBe(FACTORY);
     expect(emitted.target).toBe(TARGET);
+    // The pick closes through the reverse horizon motion, then tells the host.
+    expect(el.querySelector('.pick-veil')?.classList.contains('pm-out')).toBe(true);
+    const closed = vi.fn();
+    fixture.componentInstance.closed.subscribe(closed);
+    await vi.waitFor(() => expect(closed).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('narrows the table by the free-text search', async () => {
@@ -338,7 +345,7 @@ describe('CodexSwapPickerComponent', () => {
     (el.querySelector('.pick-win') as HTMLElement).dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
     );
-    expect(spy).toHaveBeenCalled();
+    await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('titles a not-applicable dash cell (B-C16 medium finding)', async () => {
