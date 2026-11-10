@@ -138,6 +138,12 @@
 }
 .sun-gl.on { opacity: 1; }
 .sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) { opacity: 0; transition: opacity 1s ease-out; }
+// The CSS star is the fallback only: its first raster (three SVGs, blurred conics) is never paid
+// while the live sun can still come (QA D12) - unpainted until `art` (the planets' 2 s wait), and
+// once the live sun draws, gone from the paint after its crossfade.
+:host(:not(.art)) .sun:not(:has(> .sun-gl.on)) > :is(.corona, .streamers, .prom, .disc, .flash) { visibility: hidden; }
+.sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) { visibility: hidden; transition: opacity 1s ease-out, visibility 0s 1s; }
+:host(:not(.art)) .sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) { transition: none; }
 @keyframes corona { to { transform: rotate(360deg); } }
 @keyframes breathe { from { opacity: 0.78; scale: 0.97; } to { opacity: 1; scale: 1.04; } }
 @keyframes boil { from { transform: rotate(-7deg) scale(1); opacity: 0.1; } to { transform: rotate(9deg) scale(1.06); opacity: 0.3; } }
