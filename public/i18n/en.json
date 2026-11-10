@@ -1644,6 +1644,12 @@
       "heroView2d": "2D",
       "heroSwitchTo3d": "Switch to the 3D view",
       "heroSwitchTo2d": "Switch back to the 2D image",
+      "holoOverlay": {
+        "label": "3D view: {{name}}",
+        "fullscreen": "Fullscreen",
+        "exitFullscreen": "Exit fullscreen",
+        "close": "Close the 3D view"
+      },
       "stageLaunchers": "{{n}} launchers",
       "stageMissileRacks": "Missile racks",
       "stageRemoteTurret": "Remote turret",
@@ -2733,6 +2739,7 @@
         "note": "Compares only what the game data holds for this weapon.",
         "gapNoData": "The current data does not include damage, speed, agility and range yet. The comparison appears once a build is uploaded with Data Uploader 0.73.3 or later.",
         "gapTooFew": "Too few missiles differ in damage, speed, agility and range to rank this one.",
+        "gapThinGroup": "Not enough to compare: too few values differ in this group to rank this one.",
         "gapNoCohort": "The comparison group could not be loaded."
       },
       "data": {

@@ -1,7 +1,71 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.250.4",
+  "current": "0.251.1",
   "releases": [
+    {
+      "version": "0.251.1",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the hangar button sits in its own row above the headline, so the ship picture and the Einordnung start on the same line and the picture still ends level with the Einordnung."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.251.0",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: \"Zur 3D-Ansicht wechseln\" opens a small non-modal overlay over the picture and \"Dein Exemplar\" with the same 3D view as the Holotisch, nose front-left and a slow counter-clockwise turn over the front (still under reduced motion), plus a \"Vollbild\" button; X or Escape go back."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.250.6",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the \"Zelle & feste Systeme\" block starts collapsed also under the default \"Alles\" Einsatz and opens with a click; every other block still starts expanded."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.250.5",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex Einordnung: the scope bar (Alle/Art/Größe/Signal) always stays visible; a missile group with too few differing values keeps its scope and shows \"Nicht genug Vergleichswerte\" instead of the score, plus the bars for the values that still differ."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.250.4",
       "date": "2026-11-10",

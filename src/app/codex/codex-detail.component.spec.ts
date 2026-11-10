@@ -387,9 +387,16 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('header.hero.stage')).toBeTruthy();
     expect(el.querySelector('.hero.stage sc-hangar-picker')).toBeNull();
-    const top = el.querySelector('.hero-stack > .stage-top') as HTMLElement;
+    // A row of its own above the masthead grid (#335), so the picture and the
+    // Einordnung beside it start on one top line.
+    expect(el.querySelector('.hero-stack > .stage-top')).toBeNull();
+    const top = el.querySelector('.stage-top') as HTMLElement;
     expect(top).toBeTruthy();
-    expect(top.nextElementSibling?.matches('header.hero.stage')).toBe(true);
+    expect(top.nextElementSibling?.matches('.m-top.ship-mode')).toBe(true);
+    // The picture and the ownership card share one box (#334: the 3D overlay covers both).
+    const stack = el.querySelector('.m-top.ship-mode > .hero-stack') as HTMLElement;
+    expect(stack.firstElementChild?.matches('.hero-pair')).toBe(true);
+    expect(stack.firstElementChild?.firstElementChild?.matches('header.hero.stage')).toBe(true);
     // Same functions as before: the button is an anchor into the hangar.
     const btn = top.querySelector('sc-hangar-picker a.picker-btn') as HTMLAnchorElement;
     expect(btn?.getAttribute('href')).toContain('hangar');
@@ -1414,7 +1421,7 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('header.hero.stage')).toBeTruthy();
-    expect(el.querySelector('.hero-stack > .stage-top')).toBeNull();
+    expect(el.querySelector('.stage-top')).toBeNull();
     expect(el.querySelector('sc-hangar-picker')).toBeNull();
   });
 
@@ -1423,7 +1430,7 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
     const fixture = await setup('ship');
     fixture.componentInstance.holoView.set(false);
     fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('.hero-stack > .stage-top sc-hangar-picker')).toBeTruthy();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.stage-top sc-hangar-picker')).toBeTruthy();
   });
 
   describe('own-ship actions (C26)', () => {
@@ -1448,7 +1455,7 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       expect(el.querySelector('sc-codex-holo-stage sc-codex-own-segment'), 'no strip segment').toBeNull();
       cmp.holoView.set(false);
       fixture.detectChanges();
-      expect(el.querySelector('.hero-stack > .hero-own sc-codex-own-card'), 'under the picture (#323)').not.toBeNull();
+      expect(el.querySelector('.hero-stack > .hero-pair > .hero-own sc-codex-own-card'), 'under the picture (#323)').not.toBeNull();
       expect(el.querySelector('.m-side sc-codex-own-card'), 'not in the headline side column').toBeNull();
       expect(el.querySelector('sc-item-path[level]')?.closest('.crumb-aside'), 'no path panel in the head').toBeFalsy();
     }));

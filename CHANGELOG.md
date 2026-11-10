@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.251.1] - 2026-11-10
+
+### Fixed
+- Codex classic ship view: the hangar button sits in its own row above the headline, so the ship picture and the Einordnung start on the same line and the picture still ends level with the Einordnung.
+
+## [0.251.0] - 2026-11-10
+
+### Added
+- Codex classic ship view: "Zur 3D-Ansicht wechseln" opens a small non-modal overlay over the picture and "Dein Exemplar" with the same 3D view as the Holotisch, nose front-left and a slow counter-clockwise turn over the front (still under reduced motion), plus a "Vollbild" button; X or Escape go back.
+
+## [0.250.6] - 2026-11-10
+
+### Changed
+- Codex classic ship view: the "Zelle & feste Systeme" block starts collapsed also under the default "Alles" Einsatz and opens with a click; every other block still starts expanded.
+
+## [0.250.5] - 2026-11-10
+
+### Fixed
+- Codex Einordnung: the scope bar (Alle/Art/Größe/Signal) always stays visible; a missile group with too few differing values keeps its scope and shows "Nicht genug Vergleichswerte" instead of the score, plus the bars for the values that still differ.
+
 ## [0.250.4] - 2026-11-10
 
 ### Fixed

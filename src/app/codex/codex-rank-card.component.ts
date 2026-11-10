@@ -154,7 +154,7 @@ function readShapePref(): 'hex' | 'bars' {
         @if (smallGroupSize(); as n) {
           <p class="small-group" role="status">{{ 'codex.rank.group.smallHint' | translate: { n: n } }}</p>
         }
-      } @else if (result()) {
+      } @else if (!loading()) {
         <!-- Comparison group as the panel's head line (concept round 3, L2):
              one segmented control, a group the ship has no data for stays
              visible but disabled and says why in its tooltip. -->
@@ -244,6 +244,8 @@ function readShapePref(): 'hex' | 'bars' {
           <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
         } @else if (!result()) {
           <p class="gap-note">{{ (gapKey() ?? 'codex.rank.gapAxis') | translate }}</p>
+        } @else if (result()!.thinKey) {
+          <p class="verdict gap thin" role="status">{{ result()!.thinKey! | translate }}</p>
         } @else if (holo()) {
           <!-- The panel's head says it once. -->
         } @else if (result()!.overall != null) {

@@ -1644,6 +1644,12 @@
       "heroView2d": "2D",
       "heroSwitchTo3d": "Zur 3D-Ansicht wechseln",
       "heroSwitchTo2d": "Zurück zum 2D-Bild wechseln",
+      "holoOverlay": {
+        "label": "3D-Ansicht: {{name}}",
+        "fullscreen": "Vollbild",
+        "exitFullscreen": "Vollbild verlassen",
+        "close": "3D-Ansicht schließen"
+      },
       "stageLaunchers": "{{n}} Werfer",
       "stageMissileRacks": "Raketenwerfer",
       "stageRemoteTurret": "Ferngesteuerter Turm",
@@ -2733,6 +2739,7 @@
         "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten.",
         "gapNoData": "Der aktuelle Datenstand enthält noch keine Werte für Schaden, Geschwindigkeit, Wendigkeit und Reichweite. Die Einordnung erscheint, sobald ein Build mit dem Data Uploader 0.73.3 oder neuer hochgeladen ist.",
         "gapTooFew": "Zu wenige Lenkwaffen unterscheiden sich in Schaden, Geschwindigkeit, Wendigkeit und Reichweite, um diese hier einzuordnen.",
+        "gapThinGroup": "Nicht genug Vergleichswerte: in dieser Gruppe unterscheiden sich zu wenige Werte für eine Einordnung.",
         "gapNoCohort": "Die Vergleichsgruppe konnte nicht geladen werden."
       },
       "data": {

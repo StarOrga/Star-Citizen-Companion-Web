@@ -73,6 +73,7 @@ import { NACHSCHUB_ICON_PATHS } from '../hq/nachschub/step-icons';
 import { CodexItemStageComponent } from './detail/codex-item-stage.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
 import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
+import { CodexHeroHoloOverlayComponent } from './detail/codex-hero-holo-overlay.component';
 import { CodexVariantPickerComponent } from './detail/codex-variant-picker.component';
 import { CodexShipActionsComponent } from './detail/codex-ship-actions.component';
 import { CodexShipLinkFormComponent } from './detail/codex-ship-link-form.component';
@@ -306,7 +307,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [ShipArrivalComponent, CompareIconComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent, CodexHoloAkteComponent, CodexHoloHangarMenuComponent],
+  imports: [ShipArrivalComponent, CompareIconComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexHeroHoloOverlayComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent, CodexHoloAkteComponent, CodexHoloHangarMenuComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -461,6 +462,20 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             <ng-container [ngTemplateOutlet]="headStrip" />
           </header>
         }
+        @if (kind() === 'ship' && !shellBeta()) {
+          <!-- The hangar control sits ABOVE the picture (#239: "Hangar im
+               Bild raus, dafür gibt es über dem Bild einen Button") — the
+               same docked HangarPicker the Holotable carries in its table
+               head: the button opens the hangar, its chain switches to one
+               of the three recently chosen hulls. Nothing it offered inside
+               the picture is lost. It is a row of its own ABOVE the masthead
+               grid (#335): inside the left column it pushed only the picture
+               down, out of line with the Einordnung beside it. -->
+          <div class="stage-top">
+            <sc-hangar-picker kind="ship" [docked]="true" [items]="shipPickerItems()"
+              (pick)="onShipPickerPick($event)" (open)="onHangarPickerOpen()" />
+          </div>
+        }
         <div class="m-top" [class.ship-mode]="kind() === 'ship'" [class.missile-mode]="isMissile()" [scFeedbackSpot]="'feedbackSpot.headline'">
         <div class="hero-stack">
         <!-- ── Hero ───────────────────────────────────────────────────
@@ -473,18 +488,9 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              included (they existed nowhere else on the page).
              Every other codex kind keeps the two-column hero it always had: it
              has no analysis card to move its facts into. ── -->
-        @if (kind() === 'ship' && !shellBeta()) {
-          <!-- The hangar control sits ABOVE the picture (#239: "Hangar im
-               Bild raus, dafür gibt es über dem Bild einen Button") — the
-               same docked HangarPicker the Holotable carries in its table
-               head: the button opens the hangar, its chain switches to one
-               of the three recently chosen hulls. Nothing it offered inside
-               the picture is lost. -->
-          <div class="stage-top">
-            <sc-hangar-picker kind="ship" [docked]="true" [items]="shipPickerItems()"
-              (pick)="onShipPickerPick($event)" (open)="onHangarPickerOpen()" />
-          </div>
-        }
+        <!-- The picture and the ownership card are one positioned box, so the
+             3D overlay (#334) covers exactly the two of them and nothing else. -->
+        <div class="hero-pair">
         <header class="hero sc-card" [class.bay]="kind() === 'ship'" [class.stage]="kind() === 'ship'" [class.missile]="isMissile()">
           @if (kind() === 'ship') {
             <!-- Extracted to keep this file's component-style budget under the
@@ -496,7 +502,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [heroSub]="heroSub()"
               [heroArt]="heroArt()"
               [displayName]="displayName()"
-              [heroView3d]="heroView3d()"
+              [heroView3d]="false"
               [shipClassName]="shipClassName()"
               [hardpointPortRefs]="hardpointPortRefs()"
               [activePorts]="activePorts()"
@@ -517,6 +523,24 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                it had no business in the headline's side column). It takes its
                own height; the stretching stage above gives up the room. -->
           <div class="hero-own"><ng-container [ngTemplateOutlet]="ownCard" /></div>
+          <!-- "Zur 3D-Ansicht wechseln" (#334): the Holotisch's 3D view as a
+               non-modal panel over the picture and the card — no scrim, the
+               page around it stays usable; "Vollbild" enlarges it. -->
+          @if (heroView3d() && shipClassName(); as cls) {
+            <sc-codex-hero-holo-overlay
+              [shipClassName]="cls"
+              [displayName]="displayName()"
+              [still]="prefersReducedMotion()"
+              [hardpointPortRefs]="hardpointPortRefs()"
+              [activePorts]="activePorts()"
+              (hovered)="setActivePorts($event)"
+              (locatable)="glbLocatablePorts.set($event)"
+              (closed)="heroView3d.set(false)" />
+          }
+        }
+        </div>
+
+        @if (kind() === 'ship') {
 
           <!-- ── One action row directly under the picture ─────────────────
                The four frequent actions sat on the art until feedback 140dfb7e
@@ -1363,7 +1387,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        and the stage takes up the slack - its art is absolutely positioned, so
        a taller card is simply more picture. One column (<=1100px) keeps auto rows. */
     .m-top.ship-mode { align-items: stretch; }
-    .m-top.ship-mode > .hero-stack > .hero.stage { flex: 1 1 auto; }
+    .m-top.ship-mode > .hero-stack > .hero-pair, .m-top.ship-mode > .hero-stack > .hero-pair > .hero.stage { flex: 1 1 auto; }
 
     /* Loadout | Analyse (MASTER §1/§6/§7) */
     .m-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
@@ -1423,7 +1447,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        half, so the row sits directly under the stage rather than in the next
        grid track. */
     .hero-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-    .hero-stack > .hero-own { flex: 0 0 auto; display: flex; flex-direction: column; }
+    .hero-pair { position: relative; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .hero-pair > .hero-own { flex: 0 0 auto; display: flex; flex-direction: column; }
 
     /* ── BUEHNE (concept section 2) ── sc-codex-ship-stage (AUD-062) renders
        with display:contents inside this header, so its content becomes this
@@ -1442,7 +1467,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
     /* The hangar control directly ABOVE the stage (#239), left-aligned like the
        page's other rows; the picker itself lays out in normal flow (docked). */
-    .stage-top { display: flex; align-items: center; gap: 6px; }
+    .stage-top { display: flex; align-items: center; gap: 6px; margin-block-end: 10px; }
     /* The one action row directly under the stage: the four frequent actions,
        then Ausfuehrung / Lackierung and the rarer actions (the old tool row,
        folded in by #321). The pickers' compact sizing lives in
@@ -1871,7 +1896,8 @@ export class CodexDetailComponent implements OnInit {
   /**
    * Which view the hero stage shows. 2D is the default — the store render is
    * the picture of the ship, and it costs nothing. The switch on the card
-   * swaps in the interactive model, and the standalone livery section below
+   * opens the Holotisch's 3D view as an overlay over the picture and the
+   * ownership card (#334), and the standalone livery section below
    * steps aside while it does, so only one glb is ever live (see the template).
    */
   readonly heroView3d = signal(false);

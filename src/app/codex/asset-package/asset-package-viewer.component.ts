@@ -26,7 +26,7 @@ import { CodexService, type CodexKind } from '../codex.service';
 import { HOLO_FALLBACK_ACCENT, parseRgbToken } from '../ship-hologram';
 import { type Rgb, manufacturerAccent, rgbToken } from '../holo-manufacturer';
 import { AssetPackageService } from './asset-package.service';
-import type { PackageScene, ScreenPoint, StartFacing } from './asset-package-scene';
+import type { PackageScene, ScreenPoint, StartFacing, TurntableSpin } from './asset-package-scene';
 import {
   type CalloutPlacement,
   type LabelPlacement,
@@ -187,7 +187,7 @@ const WHEEL_LINE_PX = 33;
                [style.left.px]="co.left" [style.top.px]="co.top"
                [type]="calloutType()"
                [name]="co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : (calloutTitle() ?? co.row.name)"
-               [values]="calloutValues()" [swappable]="co.swappable" [diff]="calloutDiff()" (swap)="requestSwap()" />
+               [values]="calloutValues()" [swappable]="co.swappable && swapOffered()" [diff]="calloutDiff()" (swap)="requestSwap()" />
         }
 
         @if (wheelHint()) {
@@ -419,6 +419,10 @@ export class AssetPackageViewerComponent {
   readonly still = input(false);
   /** Start view: 'nose' turns the model so its nose faces the reader (missiles). */
   readonly facing = input<StartFacing>('side');
+  /** Idle turntable; never under reduced motion and never while a part is selected. */
+  readonly spin = input<TurntableSpin>('none');
+  /** false: the callout offers no swap icon (a host with nothing to swap into). */
+  readonly swapOffered = input(true);
   /** Hover, click, wheel and camera behaviour; see {@link ViewerInteraction}. */
   readonly interaction = input<ViewerInteraction>('classic');
   /** Insets the model stays out of, CSS px (table only). The chip row is reserved on top of `bottom` by the viewer itself. */
@@ -700,6 +704,11 @@ export class AssetPackageViewerComponent {
       untracked(() => this.armEscape(active));
     });
 
+    effect(() => {
+      const spin = this.effectiveSpin();
+      this.status();
+      untracked(() => this.scene?.setSpin(spin));
+    });
     effect(() => {
       const row = this.row();
       this.attempt();
@@ -1016,6 +1025,10 @@ export class AssetPackageViewerComponent {
     if (this.graceTimer) clearTimeout(this.graceTimer);
     this.graceTimer = null;
   }
+
+  private readonly effectiveSpin = computed<TurntableSpin>(() =>
+    this.still() || this.pinned() !== null || this.reducedMotion() ? 'none' : this.spin(),
+  );
 
   private reducedMotion(): boolean {
     return this.still() || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
