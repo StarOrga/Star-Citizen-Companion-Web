@@ -273,13 +273,30 @@ describe('Shell scene — camera and component', () => {
     reduced = true;
     const tick = cam.fadeTick();
     await go('/hq');
-    // A View Transition crossfades the old scene state into the new one (D9); without one the new scene fades in.
-    const viaTransition = document.documentElement.hasAttribute('data-sc-scene-fade');
-    expect(viaTransition || cam.fadeTick() === tick + 1).toBe(true);
+    // Only the scene layer crossfades (r6): a frozen copy of the old scene fades out over the new one,
+    // the page is never captured (no View Transition, so nothing blocks clicks or shows twice).
+    const ghost = el().querySelector<HTMLElement>('.scene.scene-ghost');
+    expect(ghost).not.toBeNull();
+    expect(cam.fadeTick()).toBe(tick);
+    expect(document.documentElement.hasAttribute('data-sc-scene-fade')).toBe(false);
+    const fade = ghost!.getAnimations()[0];
+    expect(fade.effect!.getTiming().duration).toBe(420);
+    expect((fade.effect as KeyframeEffect).getKeyframes().map((k) => k['opacity'])).toEqual(['1', '0']);
+    // The copy stands where the old camera stood, the live world already at the new pose.
+    expect(ghost!.querySelector<HTMLElement>('.world')!.style.transform).not.toBe(poseTransform(POSES.hq.cam));
+    expect(world().style.transform).toBe(poseTransform(POSES.hq.cam));
     await new Promise((r) => setTimeout(r, 900));
     expect(world().getAnimations()).toEqual([]);
-    expect(world().style.transform).toBe(poseTransform(POSES.hq.cam));
-    expect(document.documentElement.hasAttribute('data-sc-scene-fade')).toBe(false);
+    expect(el().querySelector('.scene-ghost')).toBeNull();
+  });
+
+  it('a second jump under reduced motion drops the running crossfade and starts its own', async () => {
+    reduced = true;
+    await go('/hq');
+    await go('/codex');
+    expect(el().querySelectorAll('.scene-ghost').length).toBe(1);
+    await new Promise((r) => setTimeout(r, 900));
+    expect(el().querySelector('.scene-ghost')).toBeNull();
   });
 
   it('flyTo is the public API: from a given pose, own duration, resolves when the camera stands', async () => {
