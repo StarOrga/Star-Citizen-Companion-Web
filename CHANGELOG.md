@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Deck plans: rooms land on their deck (Data Uploader 0.77.1).** Rooms the game data files under no deck now go to the deck of the authored rooms on their floor level, taken from the ship and its sister hulls. The Starlancer MAX shows its rooms on Deck 01 and Deck 02 instead of all 24 under "All rooms"; the Carrack keeps 5 rooms under "Other rooms" instead of 20, the Ironclad none instead of 7. Ships whose whole family names no deck for any room (890 Jump, Retaliator, Redeemer, Starlifter, Vulture) keep the "All rooms" deck. Takes effect with the next uploader run.
 
-## [0.248.1] - 2026-11-10
+## [0.248.2] - 2026-11-10
 
 ### Fixed
 - Codex classic ship view: the empty crumb row above the headline is gone, so the maker and role line sits under the normal page spacing instead of a large gap.
