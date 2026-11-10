@@ -454,6 +454,20 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             <ng-container [ngTemplateOutlet]="headStrip" />
           </header>
         }
+        @if (kind() === 'ship' && !shellBeta()) {
+          <!-- The hangar control sits ABOVE the picture (#239: "Hangar im
+               Bild raus, dafür gibt es über dem Bild einen Button") — the
+               same docked HangarPicker the Holotable carries in its table
+               head: the button opens the hangar, its chain switches to one
+               of the three recently chosen hulls. Nothing it offered inside
+               the picture is lost. It is a row of its own ABOVE the masthead
+               grid (#335): inside the left column it pushed only the picture
+               down, out of line with the Einordnung beside it. -->
+          <div class="stage-top">
+            <sc-hangar-picker kind="ship" [docked]="true" [items]="shipPickerItems()"
+              (pick)="onShipPickerPick($event)" (open)="onHangarPickerOpen()" />
+          </div>
+        }
         <div class="m-top" [class.ship-mode]="kind() === 'ship'" [class.missile-mode]="isMissile()" [scFeedbackSpot]="'feedbackSpot.headline'">
         <div class="hero-stack">
         <!-- ── Hero ───────────────────────────────────────────────────
@@ -466,18 +480,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              included (they existed nowhere else on the page).
              Every other codex kind keeps the two-column hero it always had: it
              has no analysis card to move its facts into. ── -->
-        @if (kind() === 'ship' && !shellBeta()) {
-          <!-- The hangar control sits ABOVE the picture (#239: "Hangar im
-               Bild raus, dafür gibt es über dem Bild einen Button") — the
-               same docked HangarPicker the Holotable carries in its table
-               head: the button opens the hangar, its chain switches to one
-               of the three recently chosen hulls. Nothing it offered inside
-               the picture is lost. -->
-          <div class="stage-top">
-            <sc-hangar-picker kind="ship" [docked]="true" [items]="shipPickerItems()"
-              (pick)="onShipPickerPick($event)" (open)="onHangarPickerOpen()" />
-          </div>
-        }
         <!-- The picture and the ownership card are one positioned box, so the
              3D overlay (#334) covers exactly the two of them and nothing else. -->
         <div class="hero-pair">
@@ -1438,7 +1440,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
     /* The hangar control directly ABOVE the stage (#239), left-aligned like the
        page's other rows; the picker itself lays out in normal flow (docked). */
-    .stage-top { display: flex; align-items: center; gap: 6px; }
+    .stage-top { display: flex; align-items: center; gap: 6px; margin-block-end: 10px; }
     /* The one action row directly under the stage: the four frequent actions,
        then Ausfuehrung / Lackierung and the rarer actions (the old tool row,
        folded in by #321). The pickers' compact sizing lives in
