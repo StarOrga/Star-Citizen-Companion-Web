@@ -57,6 +57,20 @@ describe('CodexRankCardComponent', () => {
     expect(emitted).toEqual(['all']);
   });
 
+  it('names a group by the page’s own label when it passes one (#331)', () => {
+    fixture.componentRef.setInput('result', null);
+    fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('scopes', [
+      { id: 'all', labelKey: 'codex.missile.scope.all', label: 'Alle Lenkraketen', reasonKey: '' },
+      { id: 'sizeClass', labelKey: 'codex.missile.scope.size', label: 'Alle S2-Lenkraketen', reasonKey: 'codex.missile.scopeOff' },
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const segs = Array.from(el.querySelectorAll<HTMLButtonElement>('.compare-head .seg-btn'));
+    expect(segs.map((b) => b.textContent!.trim())).toEqual(['Alle Lenkraketen', 'Alle S2-Lenkraketen']);
+    expect(fixture.componentInstance.activeScopeLabel()).toBe('Alle Lenkraketen');
+  });
+
   it('says "not enough" in place of the verdict for a thin group and keeps bar and bars (#331)', () => {
     const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100 } };
     const other: RankShipInput = { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200 } };

@@ -184,12 +184,12 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import type { RankCardCopy, RankCardScope } from './codex-rank-card.component';
 import {
   MissileRecord,
-  defaultMissileScope,
   hasCombatMetrics,
   isMissileRow,
   missileKeywords,
   missileRecordOf,
   missileStatGroups,
+  missileFieldKind,
   rankMissile,
 } from './codex-missile';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
@@ -1025,7 +1025,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         [result]="missileRank()"
         [loading]="missileCohortLoading()"
         [profiles]="[]"
-        [scopes]="missileRankScopes"
+        [scopes]="missileRankScopes()"
         [copy]="missileRankCopy"
         [gapKey]="missileRankGapKey()"
         [scope]="missileRankScope()"
@@ -2385,16 +2385,41 @@ export class CodexDetailComponent implements OnInit {
   readonly missileCohortLoading = signal(false);
   /** The group the reader picked; null = the page's default for this missile. */
   readonly missileScopeChoice = signal<RankScope | null>(null);
-  readonly missileRankScopes: readonly RankCardScope[] = [
-    { id: 'all', labelKey: 'codex.missile.scope.all', reasonKey: '' },
-    { id: 'career', labelKey: 'codex.missile.scope.kind', reasonKey: 'codex.missile.scopeOff' },
-    { id: 'sizeClass', labelKey: 'codex.missile.scope.size', reasonKey: 'codex.missile.scopeOff' },
-    { id: 'role', labelKey: 'codex.missile.scope.signal', reasonKey: 'codex.missile.scopeOff' },
-  ];
+  /** Re-reads the group names once translations load or the language changes. */
+  private readonly missileLangTick = signal(0);
+  /**
+   * The missile's groups, named like the cohort they hold (#331): all of its
+   * kind, the same tracking signal, exactly the same size — "Alle Lenkraketen",
+   * "Alle Infrarot-Lenkraketen", "Alle S2-Lenkraketen". The kind is the field
+   * itself, so it has no group of its own.
+   */
+  readonly missileRankScopes = computed<readonly RankCardScope[]>(() => {
+    this.missileLangTick();
+    const target = this.missileRecord();
+    const kind = target ? missileFieldKind(target, this.missileCohort() ?? []) : null;
+    const t = this.t;
+    const kindName = t.instant(`codex.missile.scope.plural.${kind ?? 'any'}`);
+    const signal = target?.signal ? t.instant(`codex.missile.signal.${target.signal}`) : null;
+    const size = target?.size ?? null;
+    return [
+      { id: 'all', labelKey: 'codex.missile.scope.all', label: t.instant('codex.missile.scope.allOf', { kind: kindName }), reasonKey: '' },
+      {
+        id: 'role',
+        labelKey: 'codex.missile.scope.signal',
+        label: signal ? t.instant('codex.missile.scope.signalOf', { signal, kind: kindName }) : undefined,
+        reasonKey: 'codex.missile.scopeOff',
+      },
+      {
+        id: 'sizeClass',
+        labelKey: 'codex.missile.scope.size',
+        label: size != null ? t.instant('codex.missile.scope.sizeOf', { size, kind: kindName }) : undefined,
+        reasonKey: 'codex.missile.scopeOff',
+      },
+    ];
+  });
   readonly missileRankCopy: RankCardCopy = {
     cohort: {
       all: 'codex.missile.rank.nAll',
-      career: 'codex.missile.rank.nKind',
       sizeClass: 'codex.missile.rank.nSize',
       role: 'codex.missile.rank.nSignal',
     },
@@ -2417,7 +2442,8 @@ export class CodexDetailComponent implements OnInit {
   });
   readonly missileRankScope = computed<RankScope>(() => {
     const target = this.missileRecord();
-    return this.missileScopeChoice() ?? (target ? defaultMissileScope(target, this.missileCohort() ?? []) : 'all');
+    // Opens on all of its kind; the reader narrows to signal or size.
+    return this.missileScopeChoice() ?? 'all';
   });
   readonly missileRank = computed(() => {
     const target = this.missileRecord();
@@ -2690,7 +2716,10 @@ export class CodexDetailComponent implements OnInit {
     });
     this.t.onLangChange
       .pipe(takeUntilDestroyed())
-      .subscribe((e) => this.lang.set(toLang(e.lang)));
+      .subscribe((e) => {
+        this.lang.set(toLang(e.lang));
+        this.missileLangTick.update((n) => n + 1);
+      });
   }
 
   /**

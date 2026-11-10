@@ -2499,9 +2499,18 @@
       "scopeOff": "Too few weapons to compare with in this group.",
       "scope": {
         "all": "All",
-        "kind": "Kind",
         "size": "Size",
-        "signal": "Signal"
+        "signal": "Signal",
+        "allOf": "All {{kind}}",
+        "signalOf": "All {{signal}} {{kind}}",
+        "sizeOf": "All S{{size}} {{kind}}",
+        "plural": {
+          "missile": "guided missiles",
+          "torpedo": "torpedoes",
+          "rocket": "rockets",
+          "ground": "ground vehicle missiles",
+          "any": "guided weapons"
+        }
       },
       "axis": {
         "damage": "DAMAGE",
@@ -2516,7 +2525,6 @@
       },
       "rank": {
         "nAll": "{{n}} guided weapons",
-        "nKind": "{{n}} guided weapons of the same kind",
         "nSize": "{{n}} guided weapons of size {{k}}",
         "nSignal": "{{n}} guided weapons with the same tracking signal",
         "verdict": "{{pct}} % — {{band}} against {{n}} guided weapons.",

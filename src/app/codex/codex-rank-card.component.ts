@@ -37,6 +37,8 @@ export interface RankCardCopy {
 export interface RankCardScope {
   id: RankScope;
   labelKey: string;
+  /** Ready-made group name ("Alle S2-Lenkraketen"); wins over `labelKey` when set. */
+  label?: string;
   /** Tooltip while the group is unavailable. */
   reasonKey: string;
 }
@@ -598,7 +600,7 @@ export class CodexRankCardComponent {
     const names = this.holoScopeNames();
     return this.scopes().map((s) => {
       const off = !!available && !available[s.id];
-      return { value: s.id, labelKey: s.labelKey, label: names?.[s.id], titleKey: off ? s.reasonKey : undefined, disabled: off };
+      return { value: s.id, labelKey: s.labelKey, label: names?.[s.id] ?? s.label, titleKey: off ? s.reasonKey : undefined, disabled: off };
     });
   });
 
@@ -622,7 +624,8 @@ export class CodexRankCardComponent {
     const names = this.holoScopeNames();
     const scope = this.activeScope();
     this.langTick();
-    return names?.[scope] ?? this.translate.instant(this.activeScopeLabelKey());
+    const own = this.scopes().find((s) => s.id === scope)?.label;
+    return names?.[scope] ?? own ?? this.translate.instant(this.activeScopeLabelKey());
   });
 
   readonly activeScopeLabelKey = computed<string>(
