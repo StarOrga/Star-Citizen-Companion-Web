@@ -136,6 +136,25 @@ describe('ShellComponent beta header across main ↔ subpage', () => {
     fixture.destroy();
   });
 
+  // #341: a block .profile-menu set the inline-flex avatar on a text line; its descender
+  // gap made the box taller than the avatar and lifted the avatar off the centre line.
+  it('keeps the profile picture on the header centre line (menu box = avatar box)', async () => {
+    const { fixture } = await setup();
+    const el = fixture.nativeElement as HTMLElement;
+    const menu = el.querySelector('sc-main-header .profile-menu') as HTMLElement;
+    const btn = menu.querySelector('.avatar-btn') as HTMLElement;
+    btn.classList.add('has-img');
+    const img = document.createElement('img');
+    img.width = 96;
+    img.height = 96;
+    btn.replaceChildren(img);
+    const m = menu.getBoundingClientRect();
+    const b = btn.getBoundingClientRect();
+    expect(m.height).toBeCloseTo(b.height, 1);
+    expect(m.top + m.height / 2).toBeCloseTo(b.top + b.height / 2, 1);
+    fixture.destroy();
+  });
+
   it('renders no shell-level stage slot above <main>', async () => {
     const { fixture } = await setup();
     const el = fixture.nativeElement as HTMLElement;
