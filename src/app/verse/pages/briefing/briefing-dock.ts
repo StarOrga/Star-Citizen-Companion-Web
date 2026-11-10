@@ -134,7 +134,10 @@ export function wireSnap(
   let marked: HTMLElement[] = [];
   const clear = (): void => {
     root.style.removeProperty('scroll-snap-type');
-    for (const el of marked) el.style.removeProperty('scroll-snap-align');
+    for (const el of marked) {
+      el.style.removeProperty('scroll-snap-align');
+      el.style.removeProperty('scroll-margin-top');
+    }
     marked = [];
     setSnapTravelPx(null);
   };
@@ -147,8 +150,16 @@ export function wireSnap(
       return;
     }
     for (const el of marked) el.style.setProperty('scroll-snap-align', 'start');
+    // The stage rests at the very top of the document (scrollY 0), not at its own top edge minus
+    // the root's scroll-padding: the shell's frame puts the stage ~80 px down and the padding is
+    // the docked bar's 64 px, so the snap held the page at 16 px - "not at the top" for everything
+    // that waits for it (the projector relay, the names at rest; QA D1). A scroll-margin as tall
+    // as the stage's offset puts its snap position above 0, which the browser clamps to 0.
+    const stageTop = Math.ceil(marked[0].getBoundingClientRect().top + window.scrollY);
+    if (stageTop > 0) marked[0].style.setProperty('scroll-margin-top', `${stageTop}px`);
     // The first snap step (stage → lower part): the header morph spans exactly this travel.
-    const travel = Math.round(marked[1].getBoundingClientRect().top + window.scrollY - (marked[0].getBoundingClientRect().top + window.scrollY));
+    const ps = snapPositions(marked);
+    const travel = ps.length > 1 ? ps[1] - ps[0] : Math.round(marked[1].getBoundingClientRect().top - marked[0].getBoundingClientRect().top);
     setSnapTravelPx(travel);
     const end = opts.end?.();
     if (end && !marked.includes(end)) {

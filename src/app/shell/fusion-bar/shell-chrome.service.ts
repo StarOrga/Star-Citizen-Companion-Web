@@ -109,6 +109,26 @@ export interface BarFilters {
  */
 @Injectable({ providedIn: 'root' })
 export class ShellChromeService {
+  /**
+   * `performance.now()` of the latest navigation start (the menu click), or null. A routed page
+   * that mounts after its chunk and the switch-out times its build from here, so a menu switch's
+   * beats (title 0.75 s, search 1.05 s ...) count from the click, not from the late mount (QA E4).
+   */
+  navStartedAt: number | null = null;
+  /** `performance.now()` when the running title sequence started: its beats count from here. */
+  introStartedAt: number | null = null;
+
+  /** A navigation started (the shell's bar reports every NavigationStart). */
+  markNavStart(): void {
+    this.navStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  }
+
+  /** Milliseconds since the latest navigation started, capped at `max` (0 without one). */
+  sinceNavStart(max: number): number {
+    if (this.navStartedAt === null || typeof performance === 'undefined') return 0;
+    return Math.max(0, Math.min(max, performance.now() - this.navStartedAt));
+  }
+
   private readonly crumbOwners = signal<readonly { owner: object; value: ChromeCrumbs }[]>([]);
   private readonly toolbars = signal<readonly TemplateRef<unknown>[]>([]);
   private readonly stage = signal<StageSearchState>('none');
@@ -217,6 +237,7 @@ export class ShellChromeService {
 
   /** The hub's title sequence starts (never call it under reduced motion). */
   startHeroIntro(k: number, full: boolean, beats?: HeroIntroBeats): void {
+    this.introStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
     this.introState.set(beats ? { k, full, ...beats } : { k, full });
   }
 

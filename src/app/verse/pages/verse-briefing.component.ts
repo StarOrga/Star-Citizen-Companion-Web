@@ -115,6 +115,10 @@ export const INTRO_FINALE_MS = 1200;
 export const NAV_STANDS_MS = 2300;
 /** The shell's search ignites at 2.3 s * k; k = 1.05 / 2.3 puts it at 1.05 s on a menu switch. */
 export const NAV_SEARCH_K = 0.4565;
+/** Menu switch: the search ignites this long after the click (2.3 s * k). */
+export const NAV_SEARCH_AT_MS = 1050;
+/** A mount later than this after the click is not shifted further (a cold chunk): the build plays from its start. */
+export const NAV_LAG_MAX_MS = 700;
 /** On the entrance the shell's search ignite runs at this pace (0.75 s * k open); its start is a beat of its own. */
 export const ENTRANCE_SEARCH_K = 1.52;
 /**
@@ -526,6 +530,7 @@ export class VerseBriefingComponent {
   private stopTracking: (() => void) | null = null;
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
+  private readonly ngZone = inject(NgZone);
 
   constructor() {
     // The hub's planet runs on past the page end: html[data-sc-brief-world] lets the body clip it.
@@ -709,6 +714,15 @@ export class VerseBriefingComponent {
   /** The hero title needed more than two lines even at the smallest size: it is cut with an ellipsis. */
   readonly titleClipped = signal(false);
   private introTimers: ReturnType<typeof setTimeout>[] = [];
+  /**
+   * Menu switch, camera still panning: the hub's heavy layer (the
+   * planets' WebGL bodies - measured as the whole cost - and the hub below) stays out of the paint. Their first raster on a cold
+   * /verse held the GPU for ~0.9 s and the pan showed an almost black screen (QA D12); the planets'
+   * own beat (1.55 s) comes after the 1.1 s pan anyway.
+   */
+  readonly held = computed(() => this.navIn() && this.camera.flying());
+  /** Menu switch: how late the hub mounted after the click (ms). */
+  private navLag = 0;
   private builtUp = false;
   private planetSettled = false;
 
@@ -723,13 +737,43 @@ export class VerseBriefingComponent {
    */
   private startNavIn(): void {
     if (!this.shell() || !this.enabled() || this.intro !== 'short' || !this.router.navigated || this.reducedMotion()) return;
+    // The beats count from the menu click: the hub mounts only after its chunk and the switch-out
+    // (~0.45 s late, QA E4), so everything that would start later starts that much further in.
+    const lag = this.navLag = Math.round(this.chrome.sinceNavStart(NAV_LAG_MAX_MS));
     this.navIn.set(true);
-    this.chrome.startHeroIntro(NAV_SEARCH_K, false);
+    this.chrome.startHeroIntro(NAV_SEARCH_K, false, { searchAtMs: Math.max(0, NAV_SEARCH_AT_MS - lag) });
+    if (lag > 0) this.alignNavBuild(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement, lag);
     this.introTimers.push(setTimeout(() => {
       this.navIn.set(false);
       this.chrome.endHeroIntro();
-    }, NAV_STANDS_MS));
+    }, NAV_STANDS_MS - lag));
     this.destroyRef.onDestroy(() => this.chrome.endHeroIntro());
+  }
+
+  /**
+   * Menu switch: every CSS animation of the build counts its delay from the click, also the
+   * parts that mount in later steps. One rAF loop outside the zone over the build's span; an
+   * element that mounts after its beat starts at once instead of jumping into the middle.
+   */
+  private alignNavBuild(host: HTMLElement, lag: number): void {
+    if (typeof requestAnimationFrame !== 'function' || typeof host.getAnimations !== 'function') return;
+    const aligned = new WeakSet<Animation>();
+    const clickAt = (typeof performance !== 'undefined' ? performance.now() : 0) - lag;
+    let raf = 0;
+    const step = (): void => {
+      const now = typeof performance !== 'undefined' ? performance.now() : 0;
+      for (const a of host.getAnimations({ subtree: true })) {
+        if (aligned.has(a) || a.startTime === null) continue;
+        aligned.add(a);
+        if (typeof CSSAnimation !== 'undefined' && !(a instanceof CSSAnimation)) continue;
+        const delay = Number(a.effect?.getTiming().delay ?? 0);
+        const start = Math.max(clickAt, now - delay);
+        if (start < Number(a.startTime)) a.startTime = start;
+      }
+      raf = now - clickAt < NAV_STANDS_MS ? requestAnimationFrame(step) : 0;
+    };
+    this.ngZone.runOutsideAngular(() => (raf = requestAnimationFrame(step)));
+    this.destroyRef.onDestroy(() => raf && cancelAnimationFrame(raf));
   }
 
   private reducedMotion(): boolean {
@@ -739,7 +783,7 @@ export class VerseBriefingComponent {
   /** When the page stands: the entrance ends it itself (endIntro); every other way is timed here. */
   private armStands(): void {
     if (this.titleIntro()) return;
-    const wait = this.navIn() ? NAV_STANDS_MS : this.calm() === 'wait' ? CALM_WAIT_MS + CALM_FADE_MS : 0;
+    const wait = this.navIn() ? NAV_STANDS_MS - this.navLag : this.calm() === 'wait' ? CALM_WAIT_MS + CALM_FADE_MS : 0;
     if (!wait) return this.stands.set(true);
     this.introTimers.push(setTimeout(() => this.stands.set(true), wait));
   }

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, viewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import {
   POPUP_MOTION_CLOSE_SHARE,
   POPUP_MOTION_TOTAL,
@@ -81,6 +82,31 @@ describe('ScPopupMotionDirective', () => {
       expect(m.exit()).toBe(m.exit());
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it('the close starts its animations over: the plate reverses from where it stands, no cut (QA D10)', async () => {
+    const f = mount();
+    const plate = f.nativeElement.querySelector('.win') as HTMLElement;
+    const large = f.debugElement.query(By.css('.veil')).injector.get(ScPopupMotionDirective);
+    // Let the open run past the plate's own animation (delay 450 + 560 ms).
+    await new Promise((r) => setTimeout(r, 1150));
+    void large.exit();
+    expect(getComputedStyle(plate).opacity).toBe('1');
+    const plateAnim = plate.getAnimations().find((a) => (a as CSSAnimation).animationName === 'pm-plate');
+    if (plateAnim) expect(Number(plateAnim.currentTime)).toBeLessThan(200);
+  });
+
+  it('animate.leave switching the class to pm-out starts the close over too (P1)', async () => {
+    const f = mount();
+    const el = f.nativeElement.querySelector('.small') as HTMLElement;
+    await new Promise((r) => setTimeout(r, 300));
+    el.classList.add('pm-out');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(el.classList.contains('pm-in')).toBe(false);
+    for (const a of el.getAnimations({ subtree: true })) {
+      if (a.effect?.getTiming().iterations === Infinity) continue;
+      expect(Number(a.currentTime)).toBeLessThan(150);
     }
   });
 

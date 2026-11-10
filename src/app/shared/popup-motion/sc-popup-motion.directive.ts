@@ -114,6 +114,8 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
 
   private timer: ReturnType<typeof setTimeout> | null = null;
   private observer: MutationObserver | null = null;
+  private leaveObserver: MutationObserver | null = null;
+  private leaving = false;
   private exiting: Promise<void> | null = null;
   private pushing = false;
 
@@ -142,6 +144,16 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
       if (typeof MutationObserver !== 'undefined') {
         this.observer = new MutationObserver(() => this.index());
         this.observer.observe(this.host, { childList: true, subtree: true });
+        // `animate.leave="pm-out"` switches the class itself (Angular then waits for the
+        // animations): the close has to start its animations over just like `exit()` does.
+        this.leaveObserver = new MutationObserver(() => {
+          if (this.exiting || this.leaving || !this.host.classList.contains('pm-out')) return;
+          this.leaving = true;
+          this.host.classList.remove('pm-in');
+          this.replay();
+          this.push(false);
+        });
+        this.leaveObserver.observe(this.host, { attributes: true, attributeFilter: ['class'] });
       }
     });
   }
@@ -155,6 +167,7 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
     const cl = this.host.classList;
     cl.remove('pm-in');
     cl.add('pm-out');
+    this.replay();
     // The scene pulls back out together with the close.
     this.push(false);
     const reduced = this.reduced();
@@ -173,6 +186,7 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
     cl.remove('pm-out');
     void this.host.offsetWidth;
     cl.add('pm-in');
+    this.replay();
     if (this.kind === 'large') this.push(true);
     this.clearTimer();
     this.zone.runOutsideAngular(() => {
@@ -182,8 +196,25 @@ export class ScPopupMotionDirective implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearTimer();
+    this.leaveObserver?.disconnect();
     this.observer?.disconnect();
     this.push(false);
+  }
+
+  /**
+   * Start every keyframe animation of the popup over after the in/out switch. The close keeps
+   * the open's animation names (only direction, duration and delay change), and a running or
+   * finished CSS animation does not restart for that: its clock already stood past the new
+   * end, so the reversed animation was over in its first frame - the plate went to opacity 0
+   * at once and the veil stood empty until removal (QA D10, P1). `getAnimations()` flushes the
+   * new timing first. Infinite ones (the star drift) keep running.
+   */
+  private replay(): void {
+    if (typeof this.host.getAnimations !== 'function') return;
+    for (const a of this.host.getAnimations({ subtree: true })) {
+      if (a.effect?.getTiming().iterations === Infinity) continue;
+      a.currentTime = 0;
+    }
   }
 
   private push(on: boolean): void {
