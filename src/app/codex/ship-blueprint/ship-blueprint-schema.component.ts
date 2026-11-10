@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, input, output, signal, viewChild } from '@angular/core';
+import { formatNumber } from '../codex-format';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { CodexHoloCalloutComponent } from '../holo/codex-holo-callout.component';
+import type { CalloutValue } from '../asset-package/asset-package-viewer.component';
+import { calloutSize } from '../asset-package/holo-overlay';
 import {
   type BlueprintViewName,
   type SchemaMarker,
@@ -11,11 +14,15 @@ import {
   viewBoxOf,
 } from './ship-blueprint.model';
 
-/** The callout of one marker: the part's name and its short stat. */
+/** The callout of one marker: the shared card's content (type header, name, three values, swap). */
 export interface SchemaCallout {
   port: string;
   title: string;
-  meta: string | null;
+  type: string | null;
+  values: readonly CalloutValue[];
+  swappable: boolean;
+  /** Differs from the stock loadout (C19). */
+  diff: boolean;
 }
 
 /**
@@ -37,13 +44,13 @@ export interface SchemaCallout {
 @Component({
   selector: 'sc-ship-blueprint-schema',
   standalone: true,
-  imports: [TranslatePipe, ScTooltipDirective, DecimalPipe],
+  imports: [TranslatePipe, ScTooltipDirective, CodexHoloCalloutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (current(); as t) {
       <figure class="schema">
-        <div class="sheet">
-          <svg class="plan" [attr.viewBox]="box()" preserveAspectRatio="xMidYMid meet" role="img"
+        <div class="sheet" #sheet>
+          <svg class="plan" #plan [attr.viewBox]="box()" preserveAspectRatio="xMidYMid meet" role="img"
                [attr.aria-label]="'codex.shipBlueprint.schema.topAria' | translate: { count: markers().length }">
             <path class="hull" fill-rule="evenodd" [attr.d]="t.hull" />
             @if (t.minor) { <path class="minor" [attr.d]="t.minor" /> }
@@ -68,29 +75,29 @@ export interface SchemaCallout {
                 <circle class="dot" [attr.r]="radius()" />
               </g>
             }
-            @if (calloutBox(); as co) {
-              <g class="co" aria-hidden="true">
-                <line class="co-line" [attr.x1]="co.ax" [attr.y1]="co.ay" [attr.x2]="co.lx" [attr.y2]="co.ly" />
-                <rect class="co-box" [attr.x]="co.x" [attr.y]="co.y" [attr.width]="co.w" [attr.height]="co.h" [attr.rx]="co.fs * 0.45" />
-                <text class="co-t" [attr.x]="co.x + co.pad" [attr.y]="co.y + co.pad + co.fs * 0.85" [attr.font-size]="co.fs">{{ co.title }}</text>
-                @if (co.meta) {
-                  <text class="co-m" [attr.x]="co.x + co.pad" [attr.y]="co.y + co.pad + co.fs * 2.05" [attr.font-size]="co.fs * 0.82">{{ co.meta }}</text>
-                }
-              </g>
-            }
           </svg>
+          @if (calloutBox(); as co) {
+            <!-- The same callout card as the 3D view (sc-holo-callout), in sheet pixels over the drawing. -->
+            <svg class="co-lead" aria-hidden="true">
+              <line [attr.x1]="co.ax" [attr.y1]="co.ay" [attr.x2]="co.lx" [attr.y2]="co.ly" />
+              <circle [attr.cx]="co.ax" [attr.cy]="co.ay" r="11" />
+            </svg>
+            <sc-holo-callout class="co-card" [style.left.px]="co.x" [style.top.px]="co.y"
+              [type]="co.type" [name]="co.title" [values]="co.values" [swappable]="co.swappable" [diff]="co.diff"
+              (swap)="swap.emit(co.port)" />
+          }
         </div>
         <figcaption>
           <span class="ttl">{{ 'codex.shipBlueprint.schema.title' | translate }}</span>
           @if (blueprint().extentM; as e) {
-            <span class="dim">{{ 'codex.shipBlueprint.schema.extent' | translate: { length: (e[0] | number: '1.0-1'), beam: (e[1] | number: '1.0-1'), height: (e[2] | number: '1.0-1') } }}</span>
+            <span class="dim">{{ 'codex.shipBlueprint.schema.extent' | translate: { length: dim(e[0]), beam: dim(e[1]), height: dim(e[2]) } }}</span>
           }
           <span class="legend">
             @for (g of groups(); track g) {
               <span class="lg"><i class="sw" [class]="'sw g-' + g" aria-hidden="true"></i>{{ ('codex.shipBlueprint.group.' + g) | translate }}</span>
             }
           </span>
-          <span class="hint">{{ (markers().length ? 'codex.shipBlueprint.schema.hint' : 'codex.shipBlueprint.schema.noPositions') | translate }}</span>
+          <span class="hint">{{ (markers().length ? hintKey() : 'codex.shipBlueprint.schema.noPositions') | translate }}</span>
         </figcaption>
         @if (markers().length) {
           <ol class="hp-list" [class.sr-list]="listHidden()" [attr.aria-label]="'codex.shipBlueprint.schema.listLabel' | translate">
@@ -141,12 +148,12 @@ export interface SchemaCallout {
     .mk .hit { fill: transparent; }
     .mk:focus { outline: none; }
     .mk:focus-visible .halo { stroke: var(--sc-fg-0); stroke-opacity: 1; stroke-width: 2px; }
-    /* The callout of the part picked on the drawing or in the panel. */
-    .co { pointer-events: none; }
-    .co-line { stroke: var(--sc-accent); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
-    .co-box { fill: color-mix(in srgb, var(--sc-bg-0) 92%, transparent); stroke: var(--sc-accent); stroke-width: 1px; vector-effect: non-scaling-stroke; }
-    .co-t { fill: var(--sc-fg-0); font-weight: 600; }
-    .co-m { fill: var(--sc-fg-2); font-family: var(--font-monospace, monospace); }
+    /* The callout of the part picked on the drawing or in the panel: a card over the sheet. */
+    .sheet { position: relative; }
+    .co-lead { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .co-lead line { stroke: var(--sc-accent); stroke-width: 1.4px; }
+    .co-lead circle { fill: none; stroke: var(--sc-accent); stroke-width: 1.4px; opacity: 0.8; }
+    .co-card { position: absolute; --co-u: clamp(0.8px, calc(0.5px + 100vw / 3840), 1px); }
     .mk .dot { fill: var(--mk); stroke: var(--sc-bg-0); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
     .mk .halo { fill: none; stroke: var(--mk); stroke-opacity: 0.35; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
     .mk:hover .halo, .mk.on .halo, .mk.sel .halo { stroke-opacity: 0.9; }
@@ -180,6 +187,11 @@ export interface SchemaCallout {
   `],
 })
 export class ShipBlueprintSchemaComponent {
+  /** One decimal in the page's number locale: "19,7 × 17,4 × 5,1 m", never the English point (round-7 E3). */
+  protected dim(v: number): string {
+    return formatNumber(v, undefined, 1);
+  }
+
   /** The full-detail drawing. */
   readonly blueprint = input.required<ShipBlueprint>();
   /** The view on the sheet; a drawing without it falls back to its top view. */
@@ -198,6 +210,11 @@ export class ShipBlueprintSchemaComponent {
   readonly inspect = output<string>();
 
   readonly current = computed(() => blueprintView(this.blueprint(), this.view()) ?? blueprintView(this.blueprint(), 'top'));
+  /** The caption names the view actually on the sheet (top: nose right; side: nose right, seen from port; front: seen nose-on). */
+  readonly hintKey = computed(() => {
+    const v = this.current()?.view ?? 'top';
+    return v === 'side' ? 'codex.shipBlueprint.schema.hintSide' : v === 'front' ? 'codex.shipBlueprint.schema.hintFront' : 'codex.shipBlueprint.schema.hint';
+  });
   readonly box = computed(() => {
     const v = this.current();
     return v ? viewBoxOf(v, this.radius() * 3) : '0 0 1 1';
@@ -212,24 +229,100 @@ export class ShipBlueprintSchemaComponent {
     return (['weapons', 'missiles', 'components', 'other'] as const).filter((g) => present.has(g));
   });
 
-  /** Callout geometry in drawing units, beside its marker and inside the sheet. */
+  /** Emitted when the callout's swap button is pressed. */
+  readonly swap = output<string>();
+
+  private readonly planRef = viewChild<ElementRef<SVGSVGElement>>('plan');
+  /** The drawing's box inside the sheet, CSS px (0 until measured). */
+  private readonly planPx = signal({ left: 0, top: 0, w: 0, h: 0, sheetW: 0, sheetH: 0 });
+
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (typeof ResizeObserver !== 'function') return;
+      let ro: ResizeObserver | null = null;
+      let watched: SVGSVGElement | null = null;
+      let raf = 0;
+      const measure = () => {
+        const el = watched;
+        const sheet = el?.parentElement;
+        if (!el || !sheet) return;
+        const r = el.getBoundingClientRect();
+        const s = sheet.getBoundingClientRect();
+        this.planPx.set({ left: r.left - s.left - sheet.clientLeft, top: r.top - s.top - sheet.clientTop, w: r.width, h: r.height, sheetW: sheet.clientWidth, sheetH: sheet.clientHeight });
+      };
+      // The drawing is rendered once the blueprint arrives: poll the view child through a cheap rAF until it exists.
+      const attach = () => {
+        const el = this.planRef()?.nativeElement ?? null;
+        if (el === watched) return;
+        ro?.disconnect();
+        watched = el;
+        if (!el) return;
+        // Next frame: the measured box moves the callout, a write inside the callback is a ResizeObserver loop.
+        ro = new ResizeObserver(() => { raf ||= requestAnimationFrame(() => { raf = 0; measure(); }); });
+        ro.observe(el);
+        if (el.parentElement) ro.observe(el.parentElement);
+        measure();
+      };
+      const mo = new MutationObserver(attach);
+      mo.observe(this.host.nativeElement, { childList: true, subtree: true });
+      attach();
+      destroyRef.onDestroy(() => { mo.disconnect(); ro?.disconnect(); cancelAnimationFrame(raf); });
+    });
+  }
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  /**
+   * Callout geometry in sheet px (the drawing is meet-scaled into its box). The card stands OUTSIDE
+   * the hull where the sheet has room (above, below, left or right of it), else on the free side with
+   * the fewest hardpoints under it — it never sits on the dots it is meant to explain.
+   */
   readonly calloutBox = computed(() => {
     const c = this.callout();
     const m = c ? this.markers().find((k) => k.port === c.port) : null;
-    if (!c || !m) return null;
+    const px = this.planPx();
+    const v = this.current();
+    if (!c || !m || !v || px.w <= 0 || px.h <= 0) return null;
     const [vx, vy, vw, vh] = this.box().split(' ').map(Number);
-    if (![vx, vy, vw, vh].every(Number.isFinite)) return null;
-    const r = this.radius();
-    const fs = r * 1.5;
-    const pad = fs * 0.6;
-    const longest = Math.max(c.title.length, c.meta?.length ?? 0);
-    const w = Math.min(vw, longest * fs * 0.56 + pad * 2);
-    const h = c.meta ? fs * 2.6 + pad * 1.4 : fs * 1.3 + pad * 1.4;
-    const right = m.x < vx + vw / 2;
-    const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
-    const x = clamp(right ? m.x + r * 3.5 : m.x - r * 3.5 - w, vx, vx + vw - w);
-    const y = clamp(m.y - r * 3.5 - h, vy, vy + vh - h);
-    return { title: c.title, meta: c.meta, fs, pad, x, y, w, h, ax: m.x, ay: m.y, lx: right ? x : x + w, ly: y + h };
+    if (![vx, vy, vw, vh].every(Number.isFinite) || vw <= 0 || vh <= 0) return null;
+    const s = Math.min(px.w / vw, px.h / vh);
+    const ox = px.left + (px.w - vw * s) / 2;
+    const oy = px.top + (px.h - vh * s) / 2;
+    const toPx = (x: number, y: number) => ({ x: ox + (x - vx) * s, y: oy + (y - vy) * s });
+    const a = toPx(m.x, m.y);
+    const hullA = toPx(v.box.x, v.box.y);
+    const hull = { l: hullA.x, t: hullA.y, r: hullA.x + v.box.w * s, b: hullA.y + v.box.h * s };
+    const { w, h } = calloutSize(typeof window === 'undefined' ? 1920 : window.innerWidth);
+    const gap = 14;
+    const pad = 6;
+    // Shot 05: the card keeps a margin to the sheet frame, never flush on its edge.
+    const edge = 12;
+    const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), Math.max(lo, hi));
+    const cx = clamp(a.x - w / 2, edge, px.sheetW - w - edge);
+    const cy = clamp(a.y - h / 2, edge, px.sheetH - h - edge);
+    const candidates = [
+      { x: cx, y: hull.t - gap - h },
+      { x: cx, y: hull.b + gap },
+      { x: hull.l - gap - w, y: cy },
+      { x: hull.r + gap, y: cy },
+      { x: a.x + 22, y: a.y - 22 - h },
+      { x: a.x - 22 - w, y: a.y - 22 - h },
+      { x: a.x + 22, y: a.y + 22 },
+      { x: a.x - 22 - w, y: a.y + 22 },
+    ].map((p) => ({ x: clamp(p.x, edge, px.sheetW - w - edge), y: clamp(p.y, edge, px.sheetH - h - edge) }));
+    const dots = this.markers().map((k) => toPx(k.x, k.y));
+    const score = (p: { x: number; y: number }) => {
+      let covered = 0;
+      for (const d of dots) if (d.x > p.x - pad && d.x < p.x + w + pad && d.y > p.y - pad && d.y < p.y + h + pad) covered++;
+      const overHull = Math.max(0, Math.min(p.x + w, hull.r) - Math.max(p.x, hull.l)) * Math.max(0, Math.min(p.y + h, hull.b) - Math.max(p.y, hull.t));
+      const dist = Math.hypot(p.x + w / 2 - a.x, p.y + h / 2 - a.y);
+      return covered * 1e7 + overHull * 10 + dist;
+    };
+    const best = candidates.reduce((b, p) => (score(p) < score(b) ? p : b));
+    // The leader ends on the card edge nearest the marker.
+    const lx = clamp(a.x, best.x, best.x + w);
+    const ly = clamp(a.y, best.y, best.y + h);
+    return { ...c, x: best.x, y: best.y, ax: a.x, ay: a.y, lx, ly };
   });
 
   /** Enter/Space on a focused marker: the same as a click. */

@@ -6,6 +6,7 @@ import {
   humanizeEditionSuffix,
   normalizeEditionName,
   resolveEditionGroup,
+  resolveModelVariants,
 } from './codex-edition-group';
 
 function row(partial: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
@@ -234,5 +235,39 @@ describe('resolveEditionGroup', () => {
     expect(resolveEditionGroup(cutlass, 'DRAK_Cutlass_Blue')).toBeNull();
     expect(resolveEditionGroup(cutlass, 'DRAK_Cutlass_Black_ShipShowdown')).toBeNull();
     expect(resolveEditionGroup(cutlass, 'ORIG_600i')).toBeNull();
+  });
+});
+
+describe('resolveModelVariants', () => {
+  const gladius = [
+    row({ classNameSlug: 'AEGS_Gladius', nameLocalized: 'Aegis Gladius' }),
+    row({ classNameSlug: 'AEGS_Gladius_Dunlevy', nameLocalized: 'Aegis Gladius Dunlevy' }),
+    row({ classNameSlug: 'AEGS_Gladius_PIR', nameLocalized: 'Aegis Gladius Pirate' }),
+    row({ classNameSlug: 'AEGS_Gladius_Valiant', nameLocalized: 'Aegis Gladius Valiant' }),
+  ];
+
+  it('lists the separate Gladius models, the base first (null label = Standard)', () => {
+    expect(resolveModelVariants(gladius, 'AEGS_Gladius_PIR')).toEqual([
+      { classNameSlug: 'AEGS_Gladius', label: null },
+      { classNameSlug: 'AEGS_Gladius_Dunlevy', label: 'Dunlevy' },
+      { classNameSlug: 'AEGS_Gladius_PIR', label: 'Pirate' },
+      { classNameSlug: 'AEGS_Gladius_Valiant', label: 'Valiant' },
+    ]);
+  });
+
+  it('folds editions away and is null for a single model', () => {
+    const rows = [
+      row({ classNameSlug: 'AEGS_Idris_P', nameLocalized: 'Aegis Idris-P' }),
+      row({ classNameSlug: 'AEGS_Idris_P_War', nameLocalized: 'Aegis Idris-P Wikelo War Special' }),
+    ];
+    expect(resolveModelVariants(rows, 'AEGS_Idris_P')).toBeNull();
+  });
+
+  it('has no Standard when no record is the bare family', () => {
+    const rows = [
+      row({ classNameSlug: 'DRAK_Cutlass_Red', nameLocalized: 'Drake Cutlass Red' }),
+      row({ classNameSlug: 'DRAK_Cutlass_Black', nameLocalized: 'Drake Cutlass Black' }),
+    ];
+    expect(resolveModelVariants(rows, 'DRAK_Cutlass_Red')?.map((m) => m.label)).toEqual(['Black', 'Red']);
   });
 });

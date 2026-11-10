@@ -25,6 +25,7 @@ export class CountUp {
   readonly tick = signal(0);
   private readonly runs = new Map<string, Run>();
   private raf: number | null = null;
+  private settle: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly still: boolean,
@@ -60,6 +61,8 @@ export class CountUp {
   dispose(): void {
     if (this.raf !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this.raf);
     this.raf = null;
+    if (this.settle !== null) clearTimeout(this.settle);
+    this.settle = null;
   }
 
   private at(run: Run, t: number): number {
@@ -70,6 +73,16 @@ export class CountUp {
   }
 
   private schedule(): void {
+    // A hidden or throttled tab runs no animation frames, so the number would stand at its
+    // START value until the next repaint — two looks at the same build read differently
+    // (round-7 E9). A timer still fires there: it lands every run on its target.
+    if (typeof setTimeout === 'function') {
+      if (this.settle !== null) clearTimeout(this.settle);
+      this.settle = setTimeout(() => {
+        this.settle = null;
+        this.tick.update((n) => n + 1);
+      }, this.ms + 20);
+    }
     if (this.raf !== null || typeof requestAnimationFrame !== 'function') return;
     const step = () => {
       this.raf = null;

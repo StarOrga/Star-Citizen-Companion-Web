@@ -297,6 +297,10 @@ export const routes: Routes = [
             // The old tab page (fleet dashboard). With the shell beta it is gone: HQ Bestand ▸ Hangar is the fleet,
             // so /hq/hangar leads there (2026-11-08). β off keeps the page. Redirecting canMatch, see ops below.
             path: 'hangar',
+            // 'full': with a prefix match Angular runs this redirecting canMatch for /hq/hangar/:id too
+            // (canMatch runs before the unconsumed segments are checked), so every own-ship page and
+            // exemplar link landed on the Bestand list.
+            pathMatch: 'full',
             data: { layout: 'tool', section: 'hangar' },
             canMatch: [() => (inject(BetaService).isEnabled('shell')() ? inject(Router).createUrlTree([HQ_ROOT], { queryParams: { [HQ_STOCK_TAB_PARAM]: 'hangar' }, fragment: 'inventar' }) : true)],
             loadComponent: () =>

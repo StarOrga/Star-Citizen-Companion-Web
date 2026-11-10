@@ -103,6 +103,15 @@ describe('comparison scope', () => {
     expect(options[1].available).toBe(false);
     expect(options[2].available).toBe(true);
   });
+
+  it('lists everything in the default scope when the fitted part has no archetype (cooler, shield, quantum drive, life support)', () => {
+    const bare: Partial<SwapCandidate> = { archetype: null, damageChannels: [] };
+    const cooler = cand('COOL_A', null, { ...bare, equipped: true });
+    const others = [cooler, cand('COOL_B', null, { ...bare }), cand('COOL_C', null, { ...bare })];
+    expect(applySwapScope(others, cooler, 'sameClass').length).toBe(3);
+    expect(applySwapScope(others, cooler, 'sameFamily').length).toBe(3);
+    expect(swapScopeOptions(others, cooler).map((o) => o.count)).toEqual([3, 3, 3]);
+  });
 });
 
 describe('column catalogue and chooser', () => {

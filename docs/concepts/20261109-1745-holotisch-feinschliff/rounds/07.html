@@ -1,0 +1,334 @@
+<section data-iteration="7" data-iteration-template="design" data-tab-label="Runde 7 · Review">
+<style>
+/* Round 7: real screenshots, one per screen, plus a caption. All classes carry the d1-r7 / mock-r7 prefix. */
+.d1-r7 { height: 100%; min-height: 600px; display: flex; flex-direction: column; box-sizing: border-box; background: #050d14; color: #c8e4f1; font: 13px/1.45 system-ui, "Segoe UI", sans-serif; }
+.d1-r7-img { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.d1-r7-img img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.d1-r7-cap { flex: 0 0 auto; margin: 0; padding: 8px 16px 10px; border-top: 1px solid rgba(82, 193, 230, .25); background: #0a1a26; }
+.d1-r7-cap b { color: #f2fafe; }
+.d1-r7-c { display: inline-block; margin-left: 6px; padding: 0 7px; border: 1px solid rgba(82, 193, 230, .45); border-radius: 10px; font-size: 11.5px; color: #7fd3f0; white-space: nowrap; }
+.d1-r7-rest { display: block; margin-top: 2px; font-size: 12.5px; color: #e8c15a; }
+/* Analysis view: compact checklists (custom "checklist" display) and screenshot crops as examples. */
+.mock-r7-ck { display: grid; grid-template-columns: 1fr; gap: 2px 18px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; line-height: 1.35; }
+.mock-r7-ck li { display: flex; gap: 6px; align-items: baseline; }
+.mock-r7-ck i { flex: 0 0 auto; width: 1.1em; font-style: normal; color: var(--success-color); }
+.mock-r7-ck.mock-r7-warn i { color: var(--warning-color); }
+.mock-r7-ck b { flex: 0 0 auto; min-width: 5.2em; font-weight: 600; color: var(--text-secondary); }
+.mock-r7-h { margin: 0 0 6px; font-weight: 600; }
+.mock-r7-crop { margin: 0; }
+.mock-r7-crop img { display: block; max-width: 100%; border: 1px solid var(--border-color); border-radius: 6px; }
+.mock-r7-crop p { margin: 4px 0 8px; font-size: 12px; color: var(--text-secondary); }
+.mock-r7-list { margin: 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12.5px; line-height: 1.45; }
+.mock-r7-list ul { margin: 0; padding-left: 18px; }
+.mock-r7-list code { font-size: 12px; }
+</style>
+<header class="iteration-intro">
+  <h2>Runde 7 · Review nach den Restpunkten</h2>
+  <p>23 echte Screenshots (1920 × 1080) vom Branch claude/batch-fb8929 nach dem Merge da88f82a: die zwölf Restpunkte aus Runde 6 sind behoben, main (v0.248.1) ist eingemischt. Nichts davon ist ausgeliefert. Setz mit Strg + Klick Notizen direkt aufs Bild; was noch offen ist und die drei Fragen stehen unter „Stand vor dem Ship“.</p>
+</header>
+
+<section data-design="d1" data-nav-label="Umsetzung 3" data-design-active="true" data-screen-fit="full" data-design-motto="Alles zusammen, nach den Restpunkten">
+
+<section id="r7-d1-s1" data-nav-label="Einfach · Einordnung" data-screen data-screen-active="true">
+  <div class="d1-r7" data-m="shot-01">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/01-einfach.png" width="1920" height="1080" alt="Gladius in der Ansicht Einfach, rechts die Karte Einordnung mit Hexagon, unter der Legende nur Skala mit Info-Symbol" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Einfach · Einordnung (Hexagon)</b> — Gladius in der Ansicht Einfach mit allen Beschriftungen außen. Rechts „Rang 9 von 26 · Alle Leichten Jäger · im Mittelfeld“, darunter „Vergleich mit ⓘ“, Auswahl und Hexagon | Balken in einer Reihe. Unter der Legende steht nur noch „Skala ⓘ“, die Fußnote liegt dahinter; der leere Kasten über „Details“ ist weg. <span class="d1-r7-c">Restpunkt Bild 01 · 13–15 aus Runde 6</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s2" data-nav-label="Einfach · Callout" data-screen hidden>
+  <div class="d1-r7" data-m="shot-02">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/02-einfach-callout.png" width="1920" height="1080" alt="Gatling am Bug gewählt, Callout links oben, rechts der Inspektor mit Mantis GT-220 Gatling" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Einfach · Callout und Inspektor</b> — Gatling am Bug gewählt: Callout „Mantis GT-220 Gatling“ mit DPS 853,33 · Alpha 32 · Kadenz 1.600. Der Inspektor führt die Typzeile auf Deutsch („S3 · Gatling · Gallenson Tactical Systems“) und heißt die Geschwindigkeit jetzt „Geschosstempo 1.332 m/s“, ohne Umbruch im Wort. <span class="d1-r7-c">Restpunkt Bild 10 · 15 aus Runde 6</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s3" data-nav-label="3D" data-screen hidden>
+  <div class="d1-r7" data-m="shot-03">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/03-3d.png" width="1920" height="1080" alt="3D-Ansicht der Gladius, Modell klein in der Mitte einer großen Bühne, Gatling am Bug markiert mit Callout rechts" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>3D</b> — das Hologramm der Gladius mit der markierten Gatling am Bug, der Callout steht rechts daneben. <span class="d1-r7-c">Ansicht 3D</span><span class="d1-r7-rest">Noch offen: Das Modell ist klein, rund ein Drittel der Bühnenbreite, und lässt viel leere Fläche.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s4" data-nav-label="Oben" data-screen hidden>
+  <div class="d1-r7" data-m="shot-04">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/04-oben.png" width="1920" height="1080" alt="Hardpoint-Schema von oben, Bug nach rechts, rechts der Bauteile-Reiter mit 17 Bauteilen" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Oben · Hardpoint-Schema</b> — von oben gesehen, Bug nach rechts; Marker für Waffen, Raketen und Komponenten. Rechts der Reiter Bauteile: „17 Bauteile“ nach Gruppen, von Bewaffnung bis Radar &amp; Sensoren. <span class="d1-r7-c">Ansicht Oben</span><span class="d1-r7-rest">Auffällig: Die Maße unter dem Schema stehen mit Punkt („19.7 × 17.4 × 5.1 m“), die Akte schreibt sie mit Komma (Bild 07).</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s5" data-nav-label="Seite" data-screen hidden>
+  <div class="d1-r7" data-m="shot-05">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/05-seite.png" width="1920" height="1080" alt="Hardpoint-Schema von der Seite, Gatling an der Nase gewählt, Callout darunter im Rahmen" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Seite · Callout</b> — Seitenansicht, Bug nach rechts, die Gatling an der Nase gewählt: der Callout steht unter dem Marker mit Abstand im Schema-Rahmen. Hinten am Flügel liegen die Marker dicht übereinander. <span class="d1-r7-c">Ansicht Seite</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s6" data-nav-label="Front" data-screen hidden>
+  <div class="d1-r7" data-m="shot-06">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/06-front.png" width="1920" height="1080" alt="Hardpoint-Schema von vorn mit Waffen-, Raketen- und Komponenten-Markern" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Front · Hardpoint-Schema</b> — von vorn gesehen, Bug zum Betrachter: Raketen an den Flügelenden, Waffen innen, Komponenten am Rumpf. Rechts dieselbe Bauteile-Liste wie in Bild 04. <span class="d1-r7-c">Ansicht Front</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s7" data-nav-label="Akte" data-screen hidden>
+  <div class="d1-r7" data-m="shot-07">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/07-akte.png" width="1920" height="1080" alt="Akte der Gladius: Beschreibungstext, Hersteller, Maße, Lackierungs-Kacheln über einem Pressebild" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Akte</b> — Beschreibung, darunter Hersteller, Besatzung, Abmessungen „19,69 × 17,4 × 5,14 m“, Masse der Ausrüstung, SCM- und Höchstgeschwindigkeit; Lackierung mit Standard · Frostbite Ca… · Timberline · Gladius RP, dazu „Vergleichen“ und „Bei RSI ansehen“. <span class="d1-r7-c">Akte</span><span class="d1-r7-rest">Auffällig: Zwischen Text und Daten bleibt eine große Leerfläche; der Kachelname „Frostbite Ca…“ ist gekürzt.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s8" data-nav-label="Akte · Frostbite" data-screen hidden>
+  <div class="d1-r7" data-m="shot-08">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/08-akte-livery.png" width="1920" height="1080" alt="Akte mit gewählter Lackierung Frostbite Camo, das Bild dahinter ist grob verpixelt" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Akte · Lackierung Frostbite</b> — die Kachel Frostbite Camo ist gewählt, das Bild hinter der Akte wechselt auf die weiße Lackierung. Der Tooltip über den Kacheln ist in diesem Bild nicht zu sehen. <span class="d1-r7-c">Restpunkt Bild 11 aus Runde 6</span><span class="d1-r7-rest">Noch offen: Das Bild ist grob verpixelt; so liefert es die RSI-Quelle.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s9" data-nav-label="Akte · Nur Bild" data-screen hidden>
+  <div class="d1-r7" data-m="shot-09">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/09-akte-bild.png" width="1920" height="1080" alt="Akte im Modus Nur Bild: oben eine schmale Leiste mit Lackierung und Text zeigen, darunter das Pressebild" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Akte · Nur Bild</b> — nach „Nur Bild“ schrumpft die Akte auf eine Leiste mit Lackierung, „Vergleichen“, „Bei RSI ansehen“ und „Text zeigen“; das Pressebild bekommt die ganze Bühne. Rechts die Einordnung mit Hexagon. <span class="d1-r7-c">Akte</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s10" data-nav-label="Einordnung · Balken" data-screen hidden>
+  <div class="d1-r7" data-m="shot-10">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/10-einordnung-balken.png" width="1920" height="1080" alt="Einordnung mit Balken: Besser als 80,8 Prozent bei Boost bis 28,8 Prozent bei Alpha" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Einordnung · Balken</b> — Stärken · Schwächen mit Komma: Boost „Besser als 80,8 %“, Schild HP 72 %, Wendigkeit 57,7 %, Dauer-DPS 51,9 %, Alpha 28,8 %, Raketen ohne Wert; darunter „Alle Schiffe ansehen ›“. Die Karte behält die Höhe der Hexagon-Ansicht. <span class="d1-r7-c">Weiterer Fund Bild 02 · 04 · 05 aus Runde 6</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s11" data-nav-label="Einordnung · Skala ⓘ" data-screen hidden>
+  <div class="d1-r7" data-m="shot-11">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/11-einordnung-skala-tooltip.png" width="1920" height="1080" alt="Hover auf Skala: Tooltip mit der Erklärung der Wurzelskala liegt über der Legende und über Beschriftungen des Schemas" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Einordnung · Skala ⓘ</b> — Hover auf „Skala ⓘ“ zeigt die frühere Fußnote: „Außen = fast bester Wert der Gruppe (95 %), stärkere enden dort. Wurzelskala: Kleine Werte bleiben sichtbar, die Ringe stehen für 33 und 67 %.“ <span class="d1-r7-c">Restpunkt Bild 01 aus Runde 6</span><span class="d1-r7-rest">Noch offen: Der Tooltip deckt die Legende ab und ragt links über die Beschriftungen „Raketenwerfer“ und „Kühler“ des Schemas.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s12" data-nav-label="Bauteile · Gatling" data-screen hidden>
+  <div class="d1-r7" data-m="shot-12">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/12-bauteile.png" width="1920" height="1080" alt="Reiter Bauteile mit der Mantis GT-220 Gatling: Werte, Bauteil tauschen, Vorschau der Detailseite" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Bauteile · Gatling</b> — Reiter Bauteile, Gatling gewählt: Größe S3, Klasse A, Alpha-Schaden 32, Feuerrate 1.600, DPS 853,33, Geschosstempo 1.332 m/s; „Bauteil tauschen“, „Alle Werte anzeigen“ und „Vorschau der Detailseite“. <span class="d1-r7-c">Restpunkt Bild 10 · 15 aus Runde 6</span><span class="d1-r7-rest">Auffällig: Zwischen „Alle Werte anzeigen“ und der Vorschau steht eine leere Fläche mit Fadenkreuz-Symbol; „Verbaut in“ wird am Kartenrand abgeschnitten.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s13" data-nav-label="Patch-Vergleich" data-screen hidden>
+  <div class="d1-r7" data-m="shot-13">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/13-patch.png" width="1920" height="1080" alt="Änderungen, Patch-Vergleich, unten der Kasten Schema-Version mit dem Datum 13 / Oktober / 2026 · 18:14" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Änderungen · Patch-Vergleich</b> — 4.10.2 #1860 Live → 4.10.2 Live ● aktuell mit Reset-Symbol; je Kategorie „Keine Änderungen“ oder die Tabelle, hier Ausrüstungsmasse 4.742 → 6.092 (+28%). Unten „Schema-Version 6“ und „Extrahiert am“ mit formatiertem Datum statt ISO-Wert. <span class="d1-r7-c">Weiterer Fund Bild 06 · 07 aus Runde 6</span><span class="d1-r7-rest">Noch offen: Das Datum lautet „13 / Oktober / 2026 · 18:14“, deutsch wäre „13. Oktober 2026, 18:14“.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s14" data-nav-label="Tausch · Gatling" data-screen hidden>
+  <div class="d1-r7" data-m="shot-14">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/14-picker-gatling.png" width="1920" height="1080" alt="Tausch-Auswahl Bauteil wählen, Gatling S3, Filter Nur Gatling, zwei von 34 Teilen" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Tausch-Auswahl · Gatling</b> — Kopf „Bauteil wählen — Gatling · S3“, „eingebaut: Mantis GT-220 Gatling“, „Gilt nur für diesen Platz: Gatling“ ohne doppeltes „Hardpoint“. Filter „Nur Gatling“: 2 von 34, Mantis (✓ verbaut) und Revenant Gatling. Der Hinweis zu Spread steht nur hier, wo er passt. <span class="d1-r7-c">Weiterer Fund Bild 08 · 09 aus Runde 6</span><span class="d1-r7-rest">Noch offen: Spalten und Typzeilen teils englisch („Power Seg“, „Grade“, „Ballistic Gatling“).</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s15" data-nav-label="Tausch · Kühler" data-screen hidden>
+  <div class="d1-r7" data-m="shot-15">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/15-picker-kuehler.png" width="1920" height="1080" alt="Tausch-Auswahl für den linken Kühler: Kopf Cooler Left S1, 24 von 24 Teilen" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Tausch-Auswahl · Kühler</b> — 24 von 24 Kühlern von ArcticStorm bis Endo, Bracer ✓ verbaut; kein Munitionshinweis mehr beim Kühler. <span class="d1-r7-c">Weiterer Fund Bild 08 · 09 aus Runde 6</span><span class="d1-r7-rest">Noch offen: Kopf und Platz englisch („Bauteil wählen — Cooler Left · S1“, „Gilt nur für diesen Platz: Cooler Left“), ebenso Spalten wie „Mindest-Power“ und Typzeilen wie „Cooler“.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s16" data-nav-label="Werk · Tausch" data-screen hidden>
+  <div class="d1-r7" data-m="shot-16">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/16-swap-werk.png" width="1920" height="1080" alt="Werk mit getauschtem Generator Charger, Entwurfs-Kasten 1 Slot geändert und Hinweis Geändert Charger Rückgängig" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Werk · Tausch</b> — Generator auf „Charger ◆“ getauscht: Inspektor mit „Geändert · Auf Werkszustand zurücksetzen“, Entwurf „1 Slot geändert · Nicht gespeichert. Nur diese Sitzung.“, „Änderungen 1“. Unten „Geändert: Charger · Rückgängig“; „Klick = Bauteil wählen“ ist solange ausgeblendet. <span class="d1-r7-c">Weiterer Fund Bild 12 aus Runde 6</span><span class="d1-r7-rest">Auffällig: Der Callout des Generators deckt links die Beschriftung „Lebenserhaltung S1“ ab.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s17" data-nav-label="Hangar-Menü · Werk" data-screen hidden>
+  <div class="d1-r7" data-m="shot-17">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/17-hangar-menu-werk.png" width="1920" height="1080" alt="Hangar-Menü auf Werk: Ungespeicherte Tausche 1, Umbau als Exemplar speichern, Auf die Wunschliste mit 1 getauschten Teil" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Hangar-Menü · Werk</b> — Werk „Ungespeicherte Tausche: 1“; unter Hangar „Umbau als Exemplar speichern“, „Noch eine Aegis Gladius in den Hangar“, „Im Hangar öffnen ›“. Unter Wunschliste steht „♡ Auf die Wunschliste“ in einer Zeile, darunter die Zählzeile „mit 1 getauschten Teil“. <span class="d1-r7-c">Restpunkt Bild 12 aus Runde 6</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s18" data-nav-label="Exemplar · Autosave" data-screen hidden>
+  <div class="d1-r7" data-m="shot-18">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/18-exemplar-autosave.png" width="1920" height="1080" alt="Eigenes Exemplar Gladius Runde7, Radar auf Capston getauscht, Toast Gespeichert 1 Änderung unten rechts" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Eigenes Exemplar · Autosave</b> — Exemplar „Gladius Runde7 ◆“ unter HQ › Hangar: Radar auf „Capston ◆“ getauscht, „Änderungen 2“. Unten rechts der Toast „Gespeichert · 1 Änderung · Rückgängig“, über dem Feedback-Knopf und nicht über der unteren Leiste. <span class="d1-r7-c">D3 · ai_summary einmal je Tab</span><span class="d1-r7-rest">Noch offen: In einem QA-Lauf legte das Speichern ein zweites Exemplar „Codex-Loadout“ an; Verdacht auf doppeltes Speichern aus dem Namensdialog.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s19" data-nav-label="Hangar-Menü · Exemplar" data-screen hidden>
+  <div class="d1-r7" data-m="shot-19">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/19-hangar-menu-exemplar.png" width="1920" height="1080" alt="Hangar-Menü mit Gladius Runde7, 2 Teile weichen vom Werk ab, Umbenennen, Notiz, Anpinnen, Entfernen" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Hangar-Menü · Exemplar</b> — „Gladius Runde7 · ◆ 2 Teile weichen vom Werk ab“ mit Umbenennen, Notiz, Oben im Hangar anpinnen, Exemplar entfernen; unter Hangar „Dieses Exemplar kopieren“, „Neues Exemplar aus Werk“, „Noch eine Aegis Gladius in den Hangar“. In diesem Lauf steht nur ein Exemplar in der Liste. <span class="d1-r7-c">D3 · D2</span><span class="d1-r7-rest">Noch offen: siehe Bild 18, das zweite Exemplar „Codex-Loadout“ aus dem QA-Lauf davor.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s20" data-nav-label="Carrack · Einordnung" data-screen hidden>
+  <div class="d1-r7" data-m="shot-20">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/20-carrack-einordnung.png" width="1920" height="1080" alt="Carrack in der Ansicht Einfach, Einordnung Rang 1 von 16 Rolle Expedition oberes Viertel, Beschriftungen Ferngesteuerte Türm… abgeschnitten" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Carrack · Einordnung</b> — „Rang 1 von 16 · Rolle Expedition · oberes Viertel“: das Band folgt dem Rang, und „Rolle Expedition“ ersetzt „Alle Expedition“. Unten unter Innen Deck 01 bis Deck 04 und „Weitere“ statt „Weitere Rä…“. <span class="d1-r7-c">Weiterer Fund Bild 04 · 05 aus Runde 6</span><span class="d1-r7-rest">Noch offen: Die Beschriftungen außen sind gekürzt („Ferngesteuerte Türm…“).</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s21" data-nav-label="Carrack · Innen" data-screen hidden>
+  <div class="d1-r7" data-m="shot-21">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/21-carrack-innen.png" width="1920" height="1080" alt="Carrack Innen Deck 01: kleiner Deckplan in der Mitte, Raum-Chips Cargo Pods Front Container, Cargo Pods Rear Container, Frachtraum" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Carrack · Innen, Deck 01</b> — „▲ Bug · Deck 01“ über dem Plan, über der Leiste „Kein Raum ausgewählt“, rechts die Räume als Chips: Cargo Pods Front Container, Cargo Pods Rear Container, Frachtraum. Die Balken zeigen „Querschnitt“ in einer Zeile. <span class="d1-r7-c">Restpunkt Bild 04 aus Runde 6 · Frage 2 · 3</span><span class="d1-r7-rest">Noch offen: Der Plan ist rund 100 px breit in einer großen Bühne; Raumnamen meist englisch, gemischt mit deutschen („Frachtraum“), im Plan „Turret Access“.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s22" data-nav-label="Carrack · Raum" data-screen hidden>
+  <div class="d1-r7" data-m="shot-22">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/22-carrack-raum.png" width="1920" height="1080" alt="Carrack Innen mit gewähltem Raum Turret Access: die Raumfläche ist cyan gefüllt, die Chip-Reihe wird rechts abgeschnitten" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Carrack · Raum gewählt</b> — Chip „Turret Access“ gewählt: die Raumfläche im Plan leuchtet cyan, die Beschriftung liegt obenauf, der Name steht links über der Leiste. <span class="d1-r7-c">Restpunkt Bild 05 aus Runde 6 · Frage 2 · 3</span><span class="d1-r7-rest">Noch offen: Die Chip-Reihe wird rechts abgeschnitten („Turret Rear Foye…“); „Turret Rear Foyer“ steht zweimal darin.</span></p>
+  </div>
+</section>
+
+<section id="r7-d1-s23" data-nav-label="Carrack · Balken" data-screen hidden>
+  <div class="d1-r7" data-m="shot-23">
+    <div class="d1-r7-img"><img src="20261109-1745-holotisch-feinschliff/shots-r7/23-carrack-balken.png" width="1920" height="1080" alt="Carrack Einordnung mit Balken: Q-Tempo und Fracht besser als 90,6 Prozent, Querschnitt in einer Zeile" loading="lazy" decoding="async"></div>
+    <p class="d1-r7-cap"><b>Carrack · Balken</b> — Q-Tempo und Fracht „Besser als 90,6 %“, Schild HP 81,3 %, Spool und Querschnitt 9,4 %, Quantum-Reichweite ohne Wert. „Querschnitt“ bricht nicht mehr um; „Quantum-Reichweite“ trennt am Bindestrich. <span class="d1-r7-c">Restpunkt Bild 04 aus Runde 6</span><span class="d1-r7-rest">Noch offen: dieselben gekürzten Außen-Beschriftungen wie in Bild 20.</span></p>
+  </div>
+</section>
+
+</section>
+
+<section data-view="r7-v-stand" data-view-kind="analysis" data-analysis="full" data-nav-label="Stand vor dem Ship" hidden>
+  <section id="r7-briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>Die zwölf Restpunkte aus Runde 6 sind behoben und fotografiert; acht Punkte aus den neuen Bildern sind noch offen. Drei Fragen bleiben vor dem Ship.</p>
+    <p data-briefing-why>Die Fragen klären den nächsten Schritt, die englischen Raumnamen und den kleinen Deckplan. Überall ist die Empfehlung vorbelegt.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"12 / 12","unit":"Restpunkte","label":"aus Runde 6 behoben"}'>12 / 12 Restpunkte</div>
+    <a data-briefing-topic="r7-t-offen" data-share="100">Offene Punkte und Fragen</a>
+    <p data-briefing-duration>≈ 3 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"12 / 12","unit":"Restpunkte","label":"behoben"}'></div><p>Alle zwölf Restpunkte stehen, acht neue Punkte sind offen, drei Fragen bleiben.</p></div>
+      <div data-slot="long">
+        <div data-viz="checklist" data-viz-spec='{"text":"Fest steht: eine Zeile je Bereich, mit den Bildnummern dieser Runde."}'>
+          <p class="mock-r7-h">Fest steht</p>
+          <ul class="mock-r7-ck">
+            <li><i aria-hidden="true">✓</i><b>Einordnung</b><span>Fußnote hinter „Skala ⓘ“, kein leerer Kasten über „Details“; Prozent mit Komma („80,8 %“); das Band folgt dem Rang („Rang 1 von 16 · Rolle Expedition · oberes Viertel“) (Bild 01, 10, 11, 20, 23)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Innen</b><span>Deck-Vorschau „Weitere“, gewählter Raum als cyan Fläche, Beschriftungen obenauf (Bild 20, 21, 22)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Patch</b><span>„Extrahiert am“ formatiert statt roher ISO-Wert (Bild 13)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Tausch</b><span>Kopf „Gatling · S3“ ohne doppeltes „Hardpoint“; der Munitionshinweis steht nur, wo er passt (Bild 14, 15)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Inspektor</b><span>„Geschosstempo“ ohne Umbruch im Wort, Typzeile auf Deutsch („S3 · Gatling · …“) (Bild 02, 12)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Werk</b><span>Der Tausch-Hinweis „Geändert: … · Rückgängig“ blendet „Klick = Bauteil wählen“ aus (Bild 16)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Wunschliste</b><span>„Auf die Wunschliste“ in einer Zeile, darunter die Zählzeile „mit 1 getauschten Teil“ (Bild 17)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Akte</b><span>Der Lackierungs-Tooltip sitzt über den Kacheln (nicht im Bild)</span></li>
+            <li><i aria-hidden="true">✓</i><b>Exemplar</b><span>Der 400 auf ai_summary wird je Browser-Tab gemerkt, nicht mehr bei jedem Aufruf wiederholt; Autosave-Toast wie in Runde 6 (Bild 18)</span></li>
+          </ul>
+        </div>
+        <p>Branch claude/batch-fb8929, Merge da88f82a. main steht auf v0.248.1 und ist eingemischt, samt Raum-Fix des Uploaders (<a href="https://github.com/StarOrga/Verse-Companion-Web/pull/1072" target="_blank" rel="noopener noreferrer">StarOrga/Verse-Companion-Web#1072</a>, gemergt); die Deck-Daten erreichen die Seite erst nach dem nächsten Uploader-Lauf. Nichts ist ausgeliefert: kein PR, kein DB-Push, kein Deploy.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="r7-t-offen" data-topic data-nav-label="Offene Punkte und Fragen">
+    <div data-alevel="2" data-title="Offene Punkte und Fragen">
+      <div data-slot="short"><p>Acht Punkte aus den Bildern dieser Runde sind offen, drei Fragen haben eine vorbelegte Empfehlung.</p></div>
+      <div data-slot="long">
+        <div data-viz="checklist" data-viz-spec='{"text":"Noch offen aus den Screenshots dieser Runde: acht Punkte, jeder mit der Bildnummer."}'>
+          <p class="mock-r7-h">Noch offen (aus den Screenshots dieser Runde)</p>
+          <ul class="mock-r7-ck mock-r7-warn">
+            <li><i aria-hidden="true">!</i><b>15 · 14</b><span>Kopfzeilen der Tausch-Auswahl und die Spalte Archetyp teils englisch: „Cooler Left · S1“, „Power Plant · S1“, „Archetyp / Power“</span></li>
+            <li><i aria-hidden="true">!</i><b>13</b><span>Datum „13 / Oktober / 2026 · 18:14“, deutsch wäre „13. Oktober 2026, 18:14“</span></li>
+            <li><i aria-hidden="true">!</i><b>21 · 22 · 20</b><span>Carrack: Raumnamen meist englisch aus den Spieldaten, gemischt mit deutschen; der Plan ist klein (rund 100 px breit), die Raum-Chips werden rechts abgeschnitten; Außen-Beschriftungen gekürzt („Ferngesteuerte Türm…“) (Frage 2 und 3)</span></li>
+            <li><i aria-hidden="true">!</i><b>03</b><span>3D-Modell klein in einer großen Bühne</span></li>
+            <li><i aria-hidden="true">!</i><b>08</b><span>Lackierungsbild Frostbite verpixelt; so liefert es die RSI-Quelle</span></li>
+            <li><i aria-hidden="true">!</i><b>11</b><span>Der Tooltip von „Skala ⓘ“ deckt die Legende ab</span></li>
+            <li><i aria-hidden="true">!</i><b>18 · 19</b><span>Speichern eines Exemplars legte in einem QA-Lauf ein zweites Exemplar „Codex-Loadout“ an; Verdacht auf doppeltes Speichern aus dem Namensdialog</span></li>
+            <li><i aria-hidden="true">!</i><b>–</b><span>Die Cloud-Datenbank hatte während des Laufs Statement-Timeouts (Rang-Kohorte, Tauschkandidaten), manche Ladevorgänge kamen ohne Einordnung oder Einsatz. Das liegt außerhalb dieses Branches.</span></li>
+          </ul>
+        </div>
+        <div data-viz="checklist" data-viz-spec='{"text":"Weitere Funde aus den Screenshots: sieben Beobachtungen, die noch nicht in der Liste stehen."}'>
+          <p class="mock-r7-h">Weitere Funde aus den Screenshots</p>
+          <ul class="mock-r7-ck mock-r7-warn">
+            <li><i aria-hidden="true">·</i><b>04–06 · 07</b><span>Maße unter dem Schema mit Punkt („19.7 × 17.4 × 5.1 m“), in der Akte mit Komma („19,69 × 17,4 × 5,14 m“); in Bild 13 „+28%“ ohne Leerzeichen</span></li>
+            <li><i aria-hidden="true">·</i><b>14 · 15</b><span>Die Tausch-Auswahl schließt weiter per Klick daneben („Klick neben das Fenster, um zurückzukommen“); der Spread-Hinweis spricht von „P4K“ und „Extractor-Lücke“</span></li>
+            <li><i aria-hidden="true">·</i><b>02 · 12 · 18</b><span>Im Inspektor eine leere Fläche mit Symbol zwischen „Alle Werte anzeigen“ und der Vorschau; die Vorschau wird am Kartenrand abgeschnitten</span></li>
+            <li><i aria-hidden="true">·</i><b>13</b><span>Unter „Extrahiert am“ wird eine dritte Zeile des Schema-Kastens am Kartenende abgeschnitten</span></li>
+            <li><i aria-hidden="true">·</i><b>16</b><span>Der Callout des Generators deckt die Beschriftung „Lebenserhaltung S1“ ab</span></li>
+            <li><i aria-hidden="true">·</i><b>16 · 17</b><span>Gleicher Entwurf, verschiedene EM-Werte unten: 11,9 km in Bild 16, 13,4 km in Bild 17</span></li>
+            <li><i aria-hidden="true">·</i><b>07</b><span>Akte: große Leerfläche zwischen Text und Daten, Kachelname „Frostbite Ca…“ gekürzt</span></li>
+          </ul>
+        </div>
+        <p>Die Zahl links ist die Bildnummer in „Umsetzung 3“. Gefragt wird nur, was eine Entscheidung braucht.</p>
+      </div>
+    </div>
+
+<section id="r7-ship" data-nav-label="Wie geht es weiter?" data-decision="r7-ship" data-decision-mode="single" data-label="Wie geht es weiter?" data-rec="fix-then-ship" data-rec-why="Die offenen Punkte sind klein und in den Bildern belegt; eine weitere Review-Runde brächte keine neue Frage, nur neue Fotos derselben Stellen." data-applies-to="Branch claude/batch-fb8929 (Holotisch-Beta und Hangar-Speicher)" data-finding="r7-ship-f">
+  <p data-applies>Gilt für: Branch claude/batch-fb8929 (Holotisch-Beta und Hangar-Speicher)</p>
+  <p data-situation>Wer jetzt ausliefert, bringt acht offene Punkte live, etwa englische Kopfzeilen in der Tausch-Auswahl und das falsch geschriebene Datum.</p>
+  <h3 data-question>Wie geht es nach dieser Runde weiter?</h3>
+  <p data-stakes>Ob die offenen Punkte vor oder nach dem Alpha-Ship behoben werden.</p>
+  <div data-options>
+    <label data-opt="fix-then-ship" data-recommended><input type="radio" name="dm-r7-ship" value="fix-then-ship" checked><span data-opt-label>Offene Punkte beheben, dann direkt shippen ohne weitere Review-Runde</span><span data-opt-consequence>Erst die offenen Punkte, dann Alpha-Ship samt DB-Push beider Migrationen und Deploy von exemplar-ai, ohne Runde 8.</span></label>
+    <label data-opt="ship-now"><input type="radio" name="dm-r7-ship" value="ship-now"><span data-opt-label>Jetzt shippen, Rest danach</span><span data-opt-consequence>Alles geht sofort live, auch beide Migrationen und exemplar-ai; die offenen Punkte folgen in einem eigenen Branch.</span></label>
+    <label data-opt="review"><input type="radio" name="dm-r7-ship" value="review"><span data-opt-label>Noch eine Runde</span><span data-opt-consequence>Ich behebe die offenen Punkte und zeige dir Runde 8 mit neuen Bildern, bevor etwas live geht.</span></label>
+  </div>
+  <textarea data-comment="r7-ship-note" placeholder="Notiz (optional)"></textarea>
+  <div data-alevel="3" data-title="Wie geht es weiter?">
+    <div data-slot="short"><p>Acht offene Punkte gingen mit einem Ship sofort live.</p></div>
+    <div data-slot="long">
+      <div data-viz="kpi" data-viz-spec='{"value":"8","unit":"offene Punkte","label":"aus den Bildern dieser Runde"}'></div>
+      <p>Ein Ship schiebt beide Migrationen in die Cloud-Datenbank, liefert die KI-Funktion aus und bringt ein Alpha-Release.</p>
+    </div>
+    <div data-example><div class="mock-r7-list">
+      <p class="mock-r7-h">Was ein Ship anfasst</p>
+      <ul>
+        <li>DB-Push: <code>20261109180000_hangar_config_ai_summary.sql</code> (KI-Zusammenfassung)</li>
+        <li>DB-Push: <code>20261110120000_hangar_config_wish_and_nested.sql</code> (Wunsch mit Ausstattung, Waffe in der Halterung)</li>
+        <li>Edge-Function-Deploy: <code>exemplar-ai</code> (Namensvorschlag und Zusammenfassung)</li>
+        <li>Alpha-Release des Branches auf main</li>
+      </ul>
+    </div></div>
+  </div>
+</section>
+
+<section id="r7-roomnames" data-nav-label="Englische Raumnamen" data-decision="r7-roomnames" data-decision-mode="single" data-label="Englische Raumnamen" data-rec="de-table" data-rec-why="Die häufigen Raumtypen decken den größten Teil der Chips ab; seltene Namen bleiben lesbar wie im Spiel, und die Tabelle wächst mit." data-applies-to="Raum-Chips und Raumnamen im Deckplan (Innen-Ansicht)" data-finding="r7-roomnames-f">
+  <p data-applies>Gilt für: Raum-Chips und Raumnamen im Deckplan (Innen-Ansicht)</p>
+  <p data-situation>Wer die Carrack innen öffnet, liest in einer Reihe englische und deutsche Raumnamen durcheinander, etwa „Cargo Pods Rear Container“ neben „Frachtraum“.</p>
+  <h3 data-question>Wie heißen die Räume auf der deutschen Seite?</h3>
+  <p data-stakes>Ob die Raumnamen zur übrigen deutschen Seite passen.</p>
+  <div data-options>
+    <label data-opt="de-table" data-recommended><input type="radio" name="dm-r7-roomnames" value="de-table" checked><span data-opt-label>Eigene deutsche Übersetzungstabelle für häufige Raumtypen (Hangar, Brücke, Kantine …), Rest bleibt Englisch</span><span data-opt-consequence>Häufige Räume heißen deutsch, seltene behalten den Namen aus den Spieldaten; die Tabelle pflegen wir selbst.</span></label>
+    <label data-opt="keep-en"><input type="radio" name="dm-r7-roomnames" value="keep-en"><span data-opt-label>Alles Englisch lassen, wie im Spiel</span><span data-opt-consequence>Jeder Raum heißt wie im Spiel, auch „Frachtraum“ würde wieder englisch; nichts zu pflegen.</span></label>
+    <label data-opt="mark-en"><input type="radio" name="dm-r7-roomnames" value="mark-en"><span data-opt-label>Nur Englisch und auf DE-Seite kennzeichnen</span><span data-opt-consequence>Alle Namen englisch, ein kleiner Hinweis auf der deutschen Seite sagt, dass sie aus dem Spiel stammen.</span></label>
+  </div>
+  <textarea data-comment="r7-roomnames-note" placeholder="Notiz (optional)"></textarea>
+  <div data-alevel="3" data-title="Englische Raumnamen">
+    <div data-slot="short"><p>Die Raumnamen mischen Englisch und Deutsch.</p></div>
+    <div data-slot="long">
+      <div data-viz="kpi" data-viz-spec='{"value":"1 von 7","unit":"Raumnamen","label":"in Bild 21 und 22 deutsch"}'></div>
+      <p>Die Namen kommen aus den Spieldaten; nur wenige Räume tragen schon einen deutschen Namen.</p>
+    </div>
+    <div data-example>
+      <div class="mock-r7-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r7/21-carrack-innen.png" alt="Ausschnitt Raum-Chips Cargo Pods Front Container, Cargo Pods Rear Container, Frachtraum" style="width:480px;height:50px;object-fit:none;object-position:-1110px -950px" loading="lazy"><p>Bild 21: zwei englische und ein deutscher Raumname in einer Reihe.</p></div>
+      <div class="mock-r7-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r7/22-carrack-raum.png" alt="Ausschnitt Raum-Chips Sub Deck Docking, Turret Access, Turret Rear Foyer" style="width:480px;height:50px;object-fit:none;object-position:-1110px -950px" loading="lazy"><p>Bild 22: dasselbe Deck, weiter gescrollt, nur englische Namen.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="r7-plan" data-nav-label="Kleiner Deckplan" data-decision="r7-plan" data-decision-mode="single" data-label="Kleiner Deckplan" data-rec="fit" data-rec-why="Die Bühne ist schon da; ein Plan in voller Größe zeigt Räume und Beschriftungen lesbar, und die Chip-Reihe verliert keinen Raum mehr am Rand." data-applies-to="Innen-Ansicht: Deckplan und Raum-Chips (Carrack, jedes Schiff mit Decks)" data-finding="r7-plan-f">
+  <p data-applies>Gilt für: Innen-Ansicht: Deckplan und Raum-Chips (Carrack, jedes Schiff mit Decks)</p>
+  <p data-situation>Wer ein Deck öffnet, sucht Räume in einem Plan von rund 100 px Breite mitten in einer großen Bühne, und rechts fehlen Chips am Rand.</p>
+  <h3 data-question>Wie groß zeigt die Bühne den Deckplan?</h3>
+  <p data-stakes>Ob man Räume im Plan erkennt und jeden Raum-Chip erreicht.</p>
+  <div data-options>
+    <label data-opt="fit" data-recommended><input type="radio" name="dm-r7-plan" value="fit" checked><span data-opt-label>Plan füllt die Bühne (zoom to fit), Raumleiste scrollt</span><span data-opt-consequence>Der Plan wird auf die Bühne skaliert; die Chip-Reihe scrollt seitlich, kein Chip wird mehr abgeschnitten.</span></label>
+    <label data-opt="keep"><input type="radio" name="dm-r7-plan" value="keep"><span data-opt-label>So lassen</span><span data-opt-consequence>Plan und Chip-Reihe bleiben wie in Bild 21 und 22.</span></label>
+  </div>
+  <textarea data-comment="r7-plan-note" placeholder="Notiz (optional)"></textarea>
+  <div data-alevel="3" data-title="Kleiner Deckplan">
+    <div data-slot="short"><p>Der Deckplan nutzt nur einen Bruchteil der Bühne.</p></div>
+    <div data-slot="long">
+      <div data-viz="kpi" data-viz-spec='{"value":"≈ 100 px","unit":"Planbreite","label":"in einer Bühne von rund 880 px (Bild 21)"}'></div>
+      <p>Bei Deck 01 der Carrack belegt der Plan etwa ein Neuntel der Bühnenbreite.</p>
+    </div>
+    <div data-example>
+      <div class="mock-r7-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r7/21-carrack-innen.png" alt="Ausschnitt der Bühne mit dem kleinen Deckplan der Carrack in der Mitte" style="width:440px;height:360px;object-fit:none;object-position:-550px -340px" loading="lazy"><p>Bild 21: Deck 01 mit drei Raumpunkten und wenigen Kästen, umgeben von leerer Bühne.</p></div>
+      <div class="mock-r7-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r7/22-carrack-raum.png" alt="Ausschnitt Chip-Reihe, rechts abgeschnitten bei Turret Rear Foye" style="width:300px;height:50px;object-fit:none;object-position:-1300px -950px" loading="lazy"><p>Bild 22: die Chip-Reihe endet mitten im Namen.</p></div>
+    </div>
+  </div>
+</section>
+  </section>
+</section>
+</section>
