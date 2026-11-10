@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.251.0",
+  "current": "0.251.1",
   "releases": [
+    {
+      "version": "0.251.1",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the hangar button sits in its own row above the headline, so the ship picture and the Einordnung start on the same line and the picture still ends level with the Einordnung."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.251.0",
       "date": "2026-11-10",
