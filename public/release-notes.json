@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.250.5",
+  "current": "0.250.6",
   "releases": [
+    {
+      "version": "0.250.6",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the \"Zelle & feste Systeme\" block starts collapsed also under the default \"Alles\" Einsatz and opens with a click; every other block still starts expanded."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.250.5",
       "date": "2026-11-10",
