@@ -1042,13 +1042,21 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(blocks).toEqual(['weapons', 'missiles', 'shields', 'systems']);
   });
 
-  it('opens every block, nested section and the airframe under the "Alles" lens (#240)', () => {
+  it('opens every block and nested section under the "Alles" lens (#240), the airframe stays folded (#333)', () => {
     fixture.componentRef.setInput('expandAll', true);
     const thruster = slot({ port: 'Hardpoint Thruster', className: 'T', kind: 'component', name: 'T' });
     const el = render([...FOUR_BLOCK_SHIP, { section: 'structure', slots: [thruster] }]);
     const all = Array.from(el.querySelectorAll<HTMLDetailsElement>('details.mod-sec, details.mod-sub'));
-    expect(all.length).toBeGreaterThan(5);
-    expect(all.every((d) => d.open)).toBe(true);
+    const rest = all.filter((d) => d.getAttribute('data-sec') !== 'structure');
+    expect(rest.length).toBeGreaterThan(5);
+    expect(rest.every((d) => d.open)).toBe(true);
+    const airframe = el.querySelector('.mod-sec[data-sec="structure"]') as HTMLDetailsElement;
+    expect(airframe.open).toBe(false);
+    expect(airframe.querySelector('.sec-rows')).toBeNull();
+
+    // A manual unfold still opens it.
+    fixture.componentInstance.toggleFold('structure');
+    fixture.detectChanges();
     expect(el.querySelector('.mod-sec[data-sec="structure"] .sec-rows')).toBeTruthy();
 
     // Leaving "Alles" restores the default folds (airframe + nested systems).
