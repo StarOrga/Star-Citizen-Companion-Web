@@ -290,6 +290,21 @@ describe('Shell scene — camera and component', () => {
     expect(el().querySelector('.scene-ghost')).toBeNull();
   });
 
+  it('pushes in 4 % under a large popup as a perspective dolly, never a scale (r6: no re-raster)', () => {
+    const root = document.documentElement;
+    root.classList.add('sc-scene-pushin');
+    try {
+      scene().style.transition = 'none';
+      const cs = getComputedStyle(scene());
+      expect(cs.scale).toBe('none');
+      expect(cs.transform.startsWith('matrix3d(')).toBe(true);
+      expect(1 / new DOMMatrix(cs.transform).m44).toBeCloseTo(1.04, 3);
+    } finally {
+      root.classList.remove('sc-scene-pushin');
+    }
+    expect(getComputedStyle(scene()).transform).toBe('none');
+  });
+
   it('a second jump under reduced motion drops the running crossfade and starts its own', async () => {
     reduced = true;
     await go('/hq');
