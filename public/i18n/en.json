@@ -3565,6 +3565,14 @@
         "descOn": "The feedback button sits in the bottom-right corner of every page.",
         "descOff": "The feedback button is hidden — replies and questions from the team stay out of sight with it. Switch it back on here to open your feedback."
       },
+      "staff": {
+        "title": "Feedback & beta buttons",
+        "hint": "The corner buttons: send feedback and see replies from the team, with the beta switch above it.",
+        "label": "Show the feedback and beta buttons",
+        "audience": "(admins and collaborators only)",
+        "descOn": "The feedback and beta buttons sit in the bottom-right corner of every page.",
+        "descOff": "The feedback and beta buttons are hidden — replies and questions from the team stay out of sight with them. Switch them back on here to open your feedback or the beta switches."
+      },
       "routineTint": {
         "label": "Feedback title green / red only",
         "audience": "(admins only)",
