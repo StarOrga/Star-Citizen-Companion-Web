@@ -33,8 +33,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from .dataforge import DataForge, Record
 from .localization import Localizer
 from .ship_decks import SHIP_SETUP, build_deck_index, project_decks, sections_for_class
-from .ship_rooms import (ang3_quat, bounds_of, cry_guid_to_record_id, decode_cryxml, is_unnamed,
-                         move, read_zip_entry, rooms_in_container, soc_entities, soc_entries)
+from .ship_rooms import (LEVEL_WINDOW_FLOOR_M, LEVEL_WINDOW_POS_M, ang3_quat, bounds_of,
+                         cry_guid_to_record_id, deck_by_level, decode_cryxml, is_unnamed, move,
+                         read_zip_entry, rooms_in_container, soc_entities, soc_entries)
 
 # ── Blueprint candidate-field lists (R1/R2: UNCONFIRMED — see extract_blueprints) ──────────
 # RISK HIGH: these leaf-field names are hypotheses derived from SC crafting data
@@ -1753,12 +1754,13 @@ class CodexExtractor:
         # Ordered deck list from the ship_setup interior-map sections (#796);
         # absent (never []) when the hull family has no authored decks.
         decks = self._ship_decks(base["className"]) or []
-        self._attach_deck_rooms(decks, vcp)
+        self._attach_deck_rooms(decks, vcp, base["className"])
         if decks:
             base["decks"] = decks
         return base
 
-    def _attach_deck_rooms(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any]) -> None:
+    def _attach_deck_rooms(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any],
+                           class_name: Optional[str] = None) -> None:
         """Room footprints per deck from the ship's object containers (#797).
 
         A deck gains ``rooms`` + ``bounds`` only when at least one room maps
@@ -1768,7 +1770,7 @@ class CodexExtractor:
         web app renders it like any other deck. A ship without decks gets
         just that one."""
         try:
-            self._attach_deck_rooms_unsafe(decks, vcp)
+            self._attach_deck_rooms_unsafe(decks, vcp, class_name)
         except Exception as exc:  # noqa: BLE001 — rooms are optional, never abort a ship
             self.on_log("warn", f"deck rooms failed: {exc}")
             decks[:] = [d for d in decks if not d.get("fallback")]
@@ -1776,26 +1778,55 @@ class CodexExtractor:
                 deck.pop("rooms", None)
                 deck.pop("bounds", None)
 
-    def _attach_deck_rooms_unsafe(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any]) -> None:
+    def _section_deck_key(self, section: Optional[str]) -> Optional[str]:
+        """Lower-cased deck key (record name) of a room's interiorMapSection."""
+        if not section:
+            return None
+        sec = (self.df.record_by_id(cry_guid_to_record_id(section) or "")
+               or self.df.record_by_id(section))
+        return sec.name.split(".", 1)[-1].lower() if sec is not None else None
+
+    def _attach_deck_rooms_unsafe(self, decks: List[Dict[str, Any]], vcp: Dict[str, Any],
+                                  class_name: Optional[str] = None) -> None:
         rooms = self._ship_rooms(vcp)
         if not rooms:
             return
         by_key = {d["key"].lower(): d for d in decks}
-        unassigned: List[Dict[str, Any]] = []
+        placed: List[Tuple[Dict[str, Any], Optional[Dict[str, Any]]]] = []
         for room in rooms:
-            sec = None
-            if room["section"]:
-                sec = (self.df.record_by_id(cry_guid_to_record_id(room["section"]) or "")
-                       or self.df.record_by_id(room["section"]))
-            key = sec.name.split(".", 1)[-1].lower() if sec is not None else None
+            key = self._section_deck_key(room["section"])
             deck = by_key.get(key) if key else None
             if deck is None and not room["section"] and len(decks) == 1:
                 # Many hulls leave interiorMapSection empty. With one deck the
-                # room can only be on it; with several there is no reliable way
-                # to pick one — floor height matched the real deck for only ~60 %
-                # of sectioned rooms on LIVE (probed 2026-10-25) — so those go
-                # to the fallback deck below.
+                # room can only be on it.
                 deck = decks[0]
+            placed.append((room, deck))
+        if len(decks) > 1 and any(d is None and not r["section"] for r, d in placed):
+            # With several decks an unsectioned room takes the deck the
+            # authored rooms on its floor level agree on — this hull's and
+            # its family's (the Starlancer MAX authors no section at all,
+            # the TAC on the same deck set does). No agreement → fallback.
+            floor_refs, pos_refs = self._family_level_refs(class_name, by_key)
+            for r, d in placed:
+                if d is not None and r["section"]:
+                    floor_refs.append((r["floorZ"], d["key"].lower()))
+                    pos_refs.append((r["pos"][2], d["key"].lower()))
+            for i, (r, d) in enumerate(placed):
+                if d is not None or r["section"]:
+                    continue
+                # The floor decides; an entity origin that votes for another
+                # deck vetoes it (lifts, stairwells — see ship_rooms). A room
+                # without a volume has only its origin.
+                by_origin = deck_by_level(r["pos"][2], pos_refs, LEVEL_WINDOW_POS_M)
+                key = by_origin
+                if r["floorZ"] is not None:
+                    key = deck_by_level(r["floorZ"], floor_refs, LEVEL_WINDOW_FLOOR_M)
+                    if by_origin is not None and by_origin != key:
+                        key = None
+                if key:
+                    placed[i] = (r, by_key[key])
+        unassigned: List[Dict[str, Any]] = []
+        for room, deck in placed:
             row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes", "tris")}
             row["name"] = None if is_unnamed(room["locKey"]) else self._deck_name(room["locKey"])
             if deck is None:
@@ -1848,6 +1879,59 @@ class CodexExtractor:
                     moved["floorZ"] = move([room["pos"][0], room["pos"][1], room["floorZ"]], rot, pos)[2]
                 out.append(moved)
         return out
+
+    def _family_level_refs(self, class_name: Optional[str], by_key: Dict[str, Any]
+                           ) -> Tuple[List[Tuple[Optional[float], str]],
+                                      List[Tuple[Optional[float], str]]]:
+        """``(floor refs, origin refs)`` — ``(height, deck key)`` of every
+        sectioned room in the hull family of ``class_name``: all vehicles that
+        ``sections_for_class`` maps to the same deck set. Variants of a hull
+        share the decks but not always the containers, and only some of them
+        author the sections. Built once per family; fresh lists per call."""
+        if not class_name or not hasattr(self, "_deck_index"):
+            return [], []
+        sections = sections_for_class(self._deck_index, class_name)
+        if not sections:
+            return [], []
+        if not hasattr(self, "_level_refs_cache"):
+            self._level_refs_cache: Dict[int, Tuple[list, list]] = {}
+        fam = id(sections)
+        if fam not in self._level_refs_cache:
+            floor: List[Tuple[Optional[float], str]] = []
+            pos: List[Tuple[Optional[float], str]] = []
+            keys = {s["key"].lower() for s in sections}
+            for rec in self._deck_family_members(fam):
+                try:
+                    comps = _components_of(self.df.record_to_dict(rec, max_depth=8))
+                    vcp = next((c for c in comps if c.get("_Type_") == _VEHICLE_COMPONENT), None)
+                    for room in self._ship_rooms(vcp or {}):
+                        key = self._section_deck_key(room["section"])
+                        if key in keys:
+                            floor.append((room["floorZ"], key))
+                            pos.append((room["pos"][2], key))
+                except Exception as exc:  # noqa: BLE001 — one bad sibling never drops the others
+                    self.on_log("warn", f"deck level refs from {rec.name} failed: {exc}")
+            self._level_refs_cache[fam] = (floor, pos)
+        floor, pos = self._level_refs_cache[fam]
+        return ([(z, k) for z, k in floor if k in by_key],
+                [(z, k) for z, k in pos if k in by_key])
+
+    def _deck_family_members(self, fam: int) -> List[Record]:
+        """Vehicle records whose class maps to the deck set with ``id()``
+        ``fam`` (one pass over the entity classes, then cached for every
+        family). The family prefix also matches the hull's own items
+        (``ANVL_Carrack_Thruster_*``), hence the vehicle-root filter."""
+        if not hasattr(self, "_deck_families"):
+            self._deck_families: Dict[int, List[Record]] = {}
+            for rec in self.df.records_by_type_name("EntityClassDefinition"):
+                cls = rec.name.split(".", 1)[-1]
+                if (not re.match(r"^[A-Za-z]{4}_", cls)
+                        or not _VEHICLE_ROOT_RE.search(_norm_path(rec.filename))):
+                    continue
+                hit = sections_for_class(self._deck_index, cls)
+                if hit:
+                    self._deck_families.setdefault(id(hit), []).append(rec)
+        return self._deck_families.get(fam, [])
 
     def _container_rooms(self, file_name: str) -> List[Dict[str, Any]]:
         """Rooms of one socpak in its own frame, cached per file (variants

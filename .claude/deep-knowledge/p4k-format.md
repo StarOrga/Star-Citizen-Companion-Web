@@ -253,6 +253,25 @@ against a LIVE archive** as of the ship — the first real run is a hand-off.
   neighbours within ±0.5 m only ~95 % even when unanimous, and position
   matching against a sectioned sibling hull (Starfarer ↔ Gemini) finds 4/48
   rooms within 0.5 m.
+- **Level vote with hull-family references (uploader, ships revision 12,
+  probe 2026-11-10).** The Starlancer MAX authors no section on any of its 24
+  rooms, the TAC on the same `Starlancer_Deck_1/_2` set authors 9 — so a ship
+  borrows the sectioned rooms of every vehicle `sections_for_class` maps to
+  its deck set. An unsectioned room takes the deck the reference rooms within
+  0.5 m of its floor agree on, vetoed when the references within 0.3 m of its
+  entity origin agree on another deck; a room without a volume uses the
+  origin alone. Leave-one-out over 333 sectioned rooms: 188 decided, 96.3 %
+  right (floor alone 93 %, the misses are Hammerhead/Gemini zone sections,
+  lifts and stairwells). Requiring both votes is 98.5 % on 135 but empties
+  the MAX's lower deck (its origins sit 0.7 m off the TAC's). Families with
+  no section anywhere (890 Jump, Retaliator, Redeemer, Starlifter, Vulture)
+  still have nothing to vote with and stay on the fallback deck. Deck numbers
+  are mostly bottom-up but not always (Reclaimer 2/3, Command Module 1/2), so
+  clustering heights onto deck numbers without a reference is not safe.
+- Room names: rooms without `roomName` carry nothing better. The
+  `TileAttachmentParams@ItemPortName` `[…_Visarea]` token is the surrounding
+  zone, not the room ("Toilet 1" → Foyer, "Room_RN_HangarFront" →
+  Engineering) — it would mislabel; the web humanizes the entity name.
 - **Fallback deck (uploader, ships revision 9).** Every room no deck takes is
   kept on one extra deck `{key: "unassigned", fallback: true}`, named by the
   uploader ("All rooms" when no room mapped, else "Other rooms"); a ship

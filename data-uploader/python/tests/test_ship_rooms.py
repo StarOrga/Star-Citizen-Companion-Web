@@ -18,7 +18,7 @@ import zipfile
 
 import pytest
 
-from sc_extract.ship_rooms import (ang3_quat, bounds_of, cry_guid_to_record_id, is_unnamed, move,
+from sc_extract.ship_rooms import (ang3_quat, bounds_of, cry_guid_to_record_id, deck_by_level, is_unnamed, move,
                                    read_zip_entry, rooms_in_container, rotate, soc_entities,
                                    soc_entries)
 
@@ -221,8 +221,9 @@ class TestSocpak:
 
 
 class _Rec:
-    def __init__(self, name):
+    def __init__(self, name, filename=None):
         self.name = name
+        self.filename = filename
 
 
 class TestAttachDeckRooms:
@@ -237,9 +238,10 @@ class TestAttachDeckRooms:
         ex.on_log = lambda lvl, m: ex.logs.append((lvl, m))
         return ex
 
-    def _room(self, key, section, loc="@vehicle_room_medical"):
-        return {"key": key, "locKey": loc, "section": section, "pos": [0.0, 1.0, 2.0],
-                "floorZ": 1.0, "height": 3.0, "shapes": [[[0.0, 0.0], [2.0, 0.0], [2.0, 2.0]]],
+    def _room(self, key, section, loc="@vehicle_room_medical", floor=1.0, z=2.0):
+        return {"key": key, "locKey": loc, "section": section, "pos": [0.0, 1.0, z],
+                "floorZ": floor, "height": 3.0,
+                "shapes": [[[0.0, 0.0], [2.0, 0.0], [2.0, 2.0]]] if floor is not None else [],
                 "tris": []}
 
     def test_rooms_land_on_their_deck_with_bounds(self):
@@ -248,7 +250,8 @@ class TestAttachDeckRooms:
         self._extractor([self._room("Zeta_Room_RN", DECK_MAIN),
                          self._room("Alpha_Room_RN", DECK_MAIN, "@procedural_text_null"),
                          self._room("Foreign_Room_RN", "00000000-0000-0000-0000-000000000000"),
-                         self._room("Loose_Room_RN", None)])._attach_deck_rooms(decks, {})
+                         self._room("Loose_Room_RN", None, floor=-6.0, z=-5.0)]
+                        )._attach_deck_rooms(decks, {})
         assert "rooms" not in decks[0] and "bounds" not in decks[0]
         rooms = decks[1]["rooms"]
         assert [r["key"] for r in rooms] == ["Alpha_Room_RN", "Zeta_Room_RN"]
@@ -299,6 +302,18 @@ class TestAttachDeckRooms:
         ex._attach_deck_rooms(decks, {})
         assert decks == [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
         assert ex.logs and ex.logs[0][0] == "warn"
+
+    def test_an_unsectioned_room_takes_the_deck_of_its_floor_level(self):
+        decks = [{"key": "Carrack_Deck_1", "name": None, "order": 0},
+                 {"key": "Carrack_Deck_2", "name": None, "order": 1}]
+        self._extractor([self._room("Medbay", DECK_MAIN, floor=-6.5),
+                         self._room("Corridor", None, floor=-6.2),     # same level → Deck 2
+                         self._room("Pin", None, floor=None, z=2.2),   # origin level → Deck 2
+                         self._room("Hold", None, floor=-12.0, z=-11)]  # no authored room there
+                        )._attach_deck_rooms(decks, {})
+        assert [r["key"] for r in decks[1]["rooms"]] == ["Corridor", "Medbay", "Pin"]
+        assert [r["key"] for r in decks[2]["rooms"]] == ["Hold"]
+        assert decks[2]["fallback"] is True
 
     def test_no_rooms_leaves_the_decks_alone(self):
         decks = [{"key": "Carrack_Deck_2", "name": None, "order": 0}]
@@ -354,3 +369,133 @@ class TestNestedContainers:
         ex.on_log = lambda lvl, m: ex.logs.append((lvl, m))
         assert ex._container_rooms("ObjectContainers/ships/x/middle.socpak") == []
         assert any(lvl == "warn" and "nested container" in m for lvl, m in ex.logs)
+
+
+class TestDeckByLevel:
+    REFS = [(-5.8, "deck_1"), (-5.7, "deck_1"), (-0.2, "deck_2"), (None, "deck_2")]
+
+    def test_the_level_everyone_agrees_on(self):
+        assert deck_by_level(-5.3, self.REFS, 0.5) == "deck_1"
+        assert deck_by_level(-0.5, self.REFS, 0.5) == "deck_2"
+
+    def test_no_reference_close_enough(self):
+        assert deck_by_level(-3.0, self.REFS, 0.5) is None
+        assert deck_by_level(None, self.REFS, 0.5) is None
+        assert deck_by_level(1.0, [], 0.5) is None
+
+    def test_a_split_vote_decides_nothing(self):
+        # a lift shaft whose floor sits between two authored levels
+        assert deck_by_level(-3.0, [(-3.2, "deck_1"), (-2.8, "deck_2")], 0.5) is None
+
+
+# LIVE 4.10.2 (probe 2026-11-10): MISC_Starlancer_Max authors no
+# interiorMapSection on any of its 24 rooms; MISC_Starlancer_TAC, on the same
+# Starlancer_Deck_1/_2 set, authors it on 9 (Deck 1 floors ≈ -5.8 m, Deck 2
+# ≈ -0.2 m). Heights below are the probe's.
+SL_DECK_1 = "2e015a49-9e77-450c-99ed-dddb4affdc06"  # record 9e77450c-5a49-2e01-06dc-ff4adbdded99
+SL_DECK_2 = "a5348830-20ff-4f43-9f28-c3aaf6e07b1d"  # record 20ff4f43-8830-a534-1d7b-e0f6aac3289f
+
+
+class TestHullFamilyLevels:
+    def _room(self, key, section, floor, z):
+        return {"key": key, "locKey": None, "section": section, "pos": [0.0, 0.0, z],
+                "floorZ": floor, "height": 3.0,
+                "shapes": [[[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]] if floor is not None else [],
+                "tris": []}
+
+    def _extractor(self):
+        from sc_extract.dataforge_extract import CodexExtractor
+        from sc_extract.ship_decks import build_deck_index
+
+        ex = CodexExtractor.__new__(CodexExtractor)
+        base = "libs/foundry/records/ui/map/sectiondefinitions/ship_setup/misc/starlancer/"
+        ex._deck_index = build_deck_index([
+            ("InteriorMapSectionDefinition.Starlancer_Deck_1", base + "starlancer_deck_1.xml", "@LOC_EMPTY"),
+            ("InteriorMapSectionDefinition.Starlancer_Deck_2", base + "starlancer_deck_2.xml", "@LOC_EMPTY"),
+        ])
+        sections = {cry_guid_to_record_id(SL_DECK_1): _Rec("InteriorMapSectionDefinition.Starlancer_Deck_1"),
+                    cry_guid_to_record_id(SL_DECK_2): _Rec("InteriorMapSectionDefinition.Starlancer_Deck_2")}
+        root = "libs/foundry/records/entities/spaceships/"
+        ships = [_Rec(f"EntityClassDefinition.{c}", root + c.lower() + ".xml") for c in
+                 ("MISC_Starlancer_Max", "MISC_Starlancer_TAC", "AEGS_Gladius", "Room_RN")]
+        # the hull's own item shares the family prefix but is no vehicle
+        ships.append(_Rec("EntityClassDefinition.MISC_Starlancer_Thruster_Main",
+                          "libs/foundry/records/entities/scitem/ships/thrusters/misc_starlancer_thruster_main.xml"))
+        resolves = []
+
+        def record_to_dict(rec, max_depth=64):
+            resolves.append(rec.name)
+            cls = rec.name.split(".", 1)[1]
+            return {"_RecordValue_": {"Components": [{"_Type_": "VehicleComponentParams",
+                                                      "objectContainers": [{"fileName": f"{cls}.socpak"}]}]}}
+
+        ex.df = type("DF", (), {
+            "record_by_id": staticmethod(lambda g: sections.get(g)),
+            "records_by_type_name": staticmethod(lambda t: ships if t == "EntityClassDefinition" else []),
+            "record_to_dict": staticmethod(record_to_dict)})()
+        per_file = {
+            "MISC_Starlancer_TAC.socpak": [
+                self._room("Room_RN-medbay", SL_DECK_1, -5.72, -4.15),
+                self._room("Room_RN-turretaccess", SL_DECK_1, -5.87, -4.15),
+                self._room("Room_RN_Bunks", SL_DECK_2, -0.19, 1.0),
+                self._room("Room_RN_Corridor", SL_DECK_2, -0.38, 1.52),
+                self._room("Room_RN-fury-hangar", SL_DECK_2, None, 4.09),
+            ],
+            "MISC_Starlancer_Max.socpak": [
+                self._room("Room_Corridor_002", None, -0.38, 1.52),
+                self._room("Room_RN-000", None, -0.05, 1.27),
+                self._room("Room_Hold", None, -5.3, -3.48),
+                self._room("Room_RN-006", None, -3.67, -2.4),     # armory, between the levels
+                self._room("Room_RN-019", None, None, 1.12),      # a pin on the upper level
+                self._room("Room_RN-liftshaftD1", None, None, -3.17),
+                # floor on the upper level, origin on the lower one: vetoed
+                self._room("Room_Lift", None, -0.3, -4.1),
+            ],
+        }
+        ex._container_rooms = lambda name: per_file.get(name, [])
+        ex._deck_name = lambda key: None
+        ex.logs = []
+        ex.on_log = lambda lvl, m: ex.logs.append((lvl, m))
+        return ex, resolves
+
+    def _decks(self):
+        return [{"key": "Starlancer_Deck_1", "name": None, "order": 0},
+                {"key": "Starlancer_Deck_2", "name": None, "order": 1}]
+
+    def test_the_max_takes_its_decks_from_the_tac(self):
+        ex, _ = self._extractor()
+        decks = self._decks()
+        vcp = {"objectContainers": [{"fileName": "MISC_Starlancer_Max.socpak"}]}
+        ex._attach_deck_rooms(decks, vcp, "MISC_Starlancer_Max")
+        assert [r["key"] for r in decks[0]["rooms"]] == ["Room_Hold"]
+        assert [r["key"] for r in decks[1]["rooms"]] == ["Room_Corridor_002", "Room_RN-000", "Room_RN-019"]
+        assert decks[0]["bounds"] and decks[1]["bounds"]
+        rest = decks[2]
+        assert rest["fallback"] is True
+        assert rest["name"] == {"en": "Other rooms", "de": "Weitere Räume"}
+        assert [r["key"] for r in rest["rooms"]] == ["Room_Lift", "Room_RN-006", "Room_RN-liftshaftD1"]
+        assert ex.logs == []
+
+    def test_the_family_is_resolved_once_and_only_its_members(self):
+        ex, resolves = self._extractor()
+        vcp = {"objectContainers": [{"fileName": "MISC_Starlancer_Max.socpak"}]}
+        ex._attach_deck_rooms(self._decks(), vcp, "MISC_Starlancer_Max")
+        ex._attach_deck_rooms(self._decks(), {"objectContainers": [{"fileName": "MISC_Starlancer_TAC.socpak"}]},
+                              "MISC_Starlancer_TAC")
+        assert sorted(resolves) == ["EntityClassDefinition.MISC_Starlancer_Max",
+                                    "EntityClassDefinition.MISC_Starlancer_TAC"]
+
+    def test_a_broken_sibling_is_logged_and_skipped(self):
+        ex, _ = self._extractor()
+
+        def boom(rec, max_depth=64):
+            if rec.name.endswith("TAC"):
+                raise ValueError("bad record")
+            return {"_RecordValue_": {"Components": []}}
+        ex.df.record_to_dict = staticmethod(boom)
+        decks = self._decks()
+        ex._attach_deck_rooms(decks, {"objectContainers": [{"fileName": "MISC_Starlancer_Max.socpak"}]},
+                              "MISC_Starlancer_Max")
+        assert [d["key"] for d in decks] == ["Starlancer_Deck_1", "Starlancer_Deck_2", "unassigned"]
+        assert len(decks[2]["rooms"]) == 7
+        assert any(lvl == "warn" and "MISC_Starlancer_TAC" in m for lvl, m in ex.logs)
