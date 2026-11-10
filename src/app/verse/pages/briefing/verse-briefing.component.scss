@@ -538,3 +538,8 @@
   // Nothing moves, so there is nothing to pause.
   .pause { display: none; }
 }
+
+/* Menu switch while the camera pans (verse-briefing.component.ts `held`): the heavy layers are not painted yet. */
+.bstage.held :is(sc-briefing-beacons, sc-briefing-transmit),
+.bstage.held ~ sc-briefing-hub,
+.bstage.held ~ * sc-briefing-hub { visibility: hidden; }

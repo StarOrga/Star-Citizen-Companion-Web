@@ -1,5 +1,4 @@
-import { Injectable, TemplateRef, computed, inject, signal } from '@angular/core';
-import { NavigationStart, Router } from '@angular/router';
+import { Injectable, TemplateRef, computed, signal } from '@angular/core';
 import type { HqPageId } from '../../hq/hq-routes';
 import type { PageCrumb } from '../../shared/page-header/nav-origin.service';
 
@@ -119,10 +118,9 @@ export class ShellChromeService {
   /** `performance.now()` when the running title sequence started: its beats count from here. */
   introStartedAt: number | null = null;
 
-  constructor() {
-    inject(Router, { optional: true })?.events.subscribe((e) => {
-      if (e instanceof NavigationStart) this.navStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    });
+  /** A navigation started (the shell's bar reports every NavigationStart). */
+  markNavStart(): void {
+    this.navStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
   }
 
   /** Milliseconds since the latest navigation started, capped at `max` (0 without one). */

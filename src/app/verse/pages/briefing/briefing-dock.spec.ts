@@ -93,6 +93,30 @@ describe('briefing-dock', () => {
     expect(a.style.scrollSnapAlign).toBe('');
   });
 
+  it('lets the stage rest at the very top of the document, not at its edge minus the bar (QA D1)', () => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '80px';
+    const a = document.createElement('div');
+    a.style.height = '400px';
+    const b = document.createElement('div');
+    b.style.height = '400px';
+    document.body.append(spacer, a, b);
+    const release = wireSnap(() => [a, b]);
+    try {
+      if (matchMedia('(min-width: 901px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const top = a.getBoundingClientRect().top + window.scrollY;
+        expect(parseFloat(a.style.scrollMarginTop)).toBeGreaterThanOrEqual(Math.floor(top));
+        expect(b.style.scrollMarginTop).toBe('');
+      }
+      release();
+      expect(a.style.scrollMarginTop).toBe('');
+    } finally {
+      spacer.remove();
+      a.remove();
+      b.remove();
+    }
+  });
+
   it('does not snap a page with fewer than two areas', () => {
     const release = wireSnap(() => [document.createElement('div'), null]);
     expect(document.documentElement.style.scrollSnapType).toBe('');

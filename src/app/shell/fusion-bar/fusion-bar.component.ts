@@ -467,6 +467,8 @@ export class FusionBarComponent {
       }, { injector: this.injector }));
     });
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
+      // The menu switch's beats count from here (verse hub, QA E4).
+      if (e instanceof NavigationStart) this.chrome.markNavStart();
       if (e instanceof Scroll) {
         // The router's scroll reset has been applied: the route change is settled.
         this.runPendingFlip();
