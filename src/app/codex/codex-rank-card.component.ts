@@ -143,7 +143,8 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
             } @else {
               <span class="small-group-mark slot" aria-hidden="true"></span>
             }
-            <span class="sr-only" role="status">{{ smallGroupSize() != null ? ('codex.rank.group.smallHint' | translate: { n: smallGroupSize() }) : '' }}</span>
+            <!-- Always mounted, so screen readers announce the hint when it appears. -->
+            <span class="sr-only" role="status">@if (smallGroupSize(); as n) { {{ 'codex.rank.group.smallHint' | translate: { n: n } }} }</span>
           }
         </div>
         <!-- A group under RANK_MIN_GROUP stays the picked group (concept
@@ -357,7 +358,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     @media (pointer: coarse) {
       .compare-info, .small-group-mark { width: var(--sc-tap-min); height: var(--sc-tap-min); }
     }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     .rank-skel { height: 220px; border-radius: 8px; }
     .gap-note { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
@@ -396,7 +397,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     .radar .connector.down { stroke: var(--sc-warning); }
     .radar text.up { fill: var(--sc-accent); font-weight: 700; }
     .radar text.down { fill: var(--sc-warning); font-weight: 700; }
-    .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .legend { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 5px 8px; align-items: center; margin: 0;
       font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     .legend dt, .legend dd { margin: 0; }
