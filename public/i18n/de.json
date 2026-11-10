@@ -1504,6 +1504,12 @@
         "exitFullscreen": "Vollbild verlassen",
         "close": "3D-Ansicht schließen"
       },
+      "partPopup": {
+        "label": "Bauteil: {{name}}",
+        "eyebrow": "Bauteil",
+        "close": "Bauteil schließen",
+        "noValues": "Für dieses Bauteil liegen keine Werte vor."
+      },
       "stageLaunchers": "{{n}} Werfer",
       "stageMissileRacks": "Raketenwerfer",
       "stageRemoteTurret": "Ferngesteuerter Turm",

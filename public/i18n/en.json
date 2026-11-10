@@ -1504,6 +1504,12 @@
         "exitFullscreen": "Exit fullscreen",
         "close": "Close the 3D view"
       },
+      "partPopup": {
+        "label": "Component: {{name}}",
+        "eyebrow": "Component",
+        "close": "Close component",
+        "noValues": "No values known for this component."
+      },
       "stageLaunchers": "{{n}} launchers",
       "stageMissileRacks": "Missile racks",
       "stageRemoteTurret": "Remote turret",
