@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.251.0] - 2026-11-10
+
+### Added
+- Codex classic ship view: "Zur 3D-Ansicht wechseln" opens a small non-modal overlay over the picture and "Dein Exemplar" with the same 3D view as the Holotisch, nose front-left and a slow counter-clockwise turn over the front (still under reduced motion), plus a "Vollbild" button; X or Escape go back.
+
 ## [0.250.6] - 2026-11-10
 
 ### Changed
