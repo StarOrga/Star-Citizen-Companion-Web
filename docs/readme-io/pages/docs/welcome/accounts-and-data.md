@@ -15,7 +15,7 @@ account gets you and what the project keeps. The binding version is the
 | Saved posts, news filters | — | ✅ |
 | Hangar, configurations, role sets, flagship | — | ✅ |
 | Settings (callsign, language, region) | — | ✅ |
-| Data Uploader downloads, Bundle History | — | collaborator / admin |
+| Verse Data Uploader downloads, Bundle History | — | collaborator / admin |
 | Admin: users, API tokens, telemetry, feedback | — | admin |
 
 ## Sign-up
