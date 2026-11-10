@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.252.0",
+  "current": "0.253.0",
   "releases": [
+    {
+      "version": "0.253.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Settings → Feedback-Button: an admin can switch the feedback title to a plain green/red routine light (working or reachable = green, offline or paused = red), saved per account; everyone else keeps the four-colour light."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.252.0",
       "date": "2026-11-11",
