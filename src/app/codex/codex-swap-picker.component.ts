@@ -126,9 +126,12 @@ export interface SwapPick {
 
 const COLUMN_STORAGE_KEY = 'scc-codex-picker-cols:v1';
 
-/** Rows in the open's first frame; the rest follow ROW_SLICE per frame while the plate is still invisible. */
-export const FIRST_ROWS = 8;
-export const ROW_SLICE = 8;
+/**
+ * Rows in the open's first frame (the 16 that cascade); a longer list follows ROW_SLICE per frame while
+ * the plate is still invisible. Each slice re-lays the table out, so a short list is never sliced.
+ */
+export const FIRST_ROWS = 16;
+export const ROW_SLICE = 16;
 /** A list built on a slot card's press is dropped when the picker is not opened within this time. */
 export const PREPARED_TTL_MS = 4000;
 
@@ -253,7 +256,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
             <div class="pick-scope">
               <label class="pick-search">
                 <span class="sr-only">{{ 'codex.picker.searchLabel' | translate }}</span>
-                <input #search type="search" autocomplete="off" [value]="query()"
+                <input #search cdkFocusInitial type="search" autocomplete="off" [value]="query()"
                        (input)="setQuery($event)"
                        [attr.placeholder]="'codex.picker.searchPlaceholder' | translate" />
               </label>
@@ -791,10 +794,17 @@ export class CodexSwapPickerComponent {
       void this.load(t, this.loadToken);
     });
 
+    // The search field takes focus. When it is there with the dialog's first render, [scDialog] focuses it
+    // (cdkFocusInitial) in the layout it reads anyway. When it comes later (the list loaded after the open),
+    // it is focused after the next frame: a focus() right in the render forced a second full layout of the
+    // freshly built table inside the open (about 40 ms, r6 popup frames).
     effect(() => {
-      if (this.candidates().length > 0 || this.loading()) {
-        queueMicrotask(() => this.search()?.nativeElement.focus());
-      }
+      const input = this.search()?.nativeElement;
+      if (!input || (this.candidates().length === 0 && !this.loading())) return;
+      if (typeof requestAnimationFrame !== 'function') { input.focus(); return; }
+      this.zone.runOutsideAngular(() => requestAnimationFrame(() => setTimeout(() => {
+        if (input.isConnected && document.activeElement !== input) input.focus({ preventScroll: true });
+      })));
     });
   }
 
