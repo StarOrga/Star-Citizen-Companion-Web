@@ -113,6 +113,9 @@ export type CodexKind =
   | 'manufacturer'
   | 'blueprint';
 
+/** How long a prefetched detail read stays usable for the page (see CodexService.prefetchDetail). */
+export const DETAIL_WARM_TTL_MS = 30_000;
+
 export const CODEX_KINDS: readonly CodexKind[] = [
   'ship',
   'weapon',
@@ -1580,6 +1583,42 @@ export class CodexService {
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
   async getDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
+    // A read the link press started (core/prefetch) is taken once, while it is fresh.
+    const key = `${kind}:${classNameSlug}`;
+    const warm = this.detailWarm.get(key);
+    if (warm) {
+      this.detailWarm.delete(key);
+      if (Date.now() - warm.at < DETAIL_WARM_TTL_MS) {
+        try {
+          return await warm.read;
+        } catch {
+          /* the prefetch failed: read again below, the page owns the error */
+        }
+      }
+    }
+    return this.readDetail(kind, classNameSlug);
+  }
+
+  /**
+   * Starts the detail read of an entry the reader is about to open (a press on its link,
+   * core/prefetch), so the page finds it in flight. The next {@link getDetail} for the
+   * same entry takes it once; an unused one expires after {@link DETAIL_WARM_TTL_MS}.
+   */
+  prefetchDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
+    const key = `${kind}:${classNameSlug}`;
+    const hit = this.detailWarm.get(key);
+    if (hit && Date.now() - hit.at < DETAIL_WARM_TTL_MS) return hit.read;
+    const read = this.readDetail(kind, classNameSlug);
+    read.catch(() => {
+      if (this.detailWarm.get(key)?.read === read) this.detailWarm.delete(key);
+    });
+    this.detailWarm.set(key, { at: Date.now(), read });
+    return read;
+  }
+
+  private readonly detailWarm = new Map<string, { at: number; read: Promise<CodexDetail | null> }>();
+
+  private async readDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
     const build = await this.buildOrThrow();
     if (!build) return null;
     return this.fetchDetailForBuild(kind, classNameSlug, build.id);
