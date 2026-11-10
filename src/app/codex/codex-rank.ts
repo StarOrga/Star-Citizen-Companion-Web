@@ -243,6 +243,24 @@ export function rankMissionNoteKey(missionId: string): string | null {
   return missionId === 'mining' || missionId === 'salvage' ? 'codex.rank.noMiningData' : null;
 }
 
+/**
+ * Who a ranking compares with, in the Holotable's words: "26 × Leichter Jäger",
+ * "41 Kampfschiffe", "120 Schiffe". Shared by the Holotable strip and the
+ * classic "Einordnung" card so both name the cohort the same way (#329).
+ */
+export function rankCohortLabel(
+  t: { instant(key: string, params?: Record<string, unknown>): string },
+  result: { cohortSize: number; scope: RankScope } | null,
+  roleName: string | null,
+  shipClass: RankClassId,
+): string | null {
+  if (!result) return null;
+  const n = result.cohortSize;
+  if (result.scope === 'role' && roleName) return t.instant('codex.holo.strip.cohortRole', { n, role: roleName });
+  if (result.scope === 'career') return `${n} ${t.instant(rankClassPluralKey(shipClass))}`;
+  return t.instant('codex.holo.strip.shipCount', { n });
+}
+
 // ── group names ─────────────────────────────────────────────────────────────
 
 /** A group smaller than this does not give a fair median: the role group falls
