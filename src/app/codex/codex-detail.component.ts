@@ -1867,7 +1867,8 @@ export class CodexDetailComponent implements OnInit {
   /**
    * Which view the hero stage shows. 2D is the default — the store render is
    * the picture of the ship, and it costs nothing. The switch on the card
-   * swaps in the interactive model, and the standalone livery section below
+   * opens the Holotisch's 3D view as an overlay over the picture and the
+   * ownership card (#334), and the standalone livery section below
    * steps aside while it does, so only one glb is ever live (see the template).
    */
   readonly heroView3d = signal(false);
