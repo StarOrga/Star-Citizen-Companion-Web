@@ -17,6 +17,7 @@ import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
 import { isPassiveShield, occupantDraw } from './codex-power';
 import type { SummaryOccupant } from './ship-summary-panels';
 import type { ShipModuleSection } from './ship-module-sections';
+import { sustainedDps, weaponParamsOf } from './codex-sustained-dps';
 
 export interface FoldPeekChip {
   /** stable id (dedupe key) — `<className>:<role>`. */
@@ -218,7 +219,8 @@ function buildAlphaPreview(
 }
 
 /**
- * Weapons / remote turrets: sustained DPS per chip, aggregate = Σ Dauer-DPS —
+ * Weapons / remote turrets: sustained DPS per chip (burst while a cycle is
+ * unknown), aggregate = Σ Dauer-DPS —
  * the same headline figure the concept's fold-peek and expanded row both
  * quote ("837 Dauer-DPS", concept/part-06.html:316 + :324). A salvo's alpha
  * answers "how much does one shot do"; the concept peek answers "how hard
@@ -229,23 +231,37 @@ export function buildWeaponPreview(
   section: ShipModuleSection = 'weapons',
 ): FoldPreview {
   const out = empty(section);
-  let sum = 0;
-  let known = false;
-  for (const o of occupants) {
+  // Sustained DPS when every gun's fire cycle is known (#343, same formula
+  // as the KPI band); otherwise the whole peek says Salven-DPS — never a
+  // burst number under the Dauer-DPS label.
+  const rows = occupants.map((o) => {
     const count = Math.max(1, o.count || 1);
     const alpha = alphaDamage(o.ammoPayload) ?? alphaDamage(o.payload);
-    const dps = alpha != null ? damagePerSecond(alpha, fireRateOf(o.ammoPayload) ?? fireRateOf(o.payload)) : null;
-    const total = dps != null ? Math.round(dps * count * 100) / 100 : null;
+    const rate = fireRateOf(o.ammoPayload) ?? fireRateOf(o.payload);
+    const burst = alpha != null ? damagePerSecond(alpha, rate) : null;
+    const sustained = sustainedDps(burst, rate, weaponParamsOf(o.payload)).value;
+    return { o, count, burst, sustained };
+  });
+  const useSustained = rows.some((r) => r.burst != null) && rows.every((r) => r.burst == null || r.sustained != null);
+  let sum = 0;
+  let known = false;
+  for (const r of rows) {
+    const dps = useSustained ? r.sustained : r.burst;
+    const total = dps != null ? Math.round(dps * r.count * 100) / 100 : null;
     if (total != null) {
       sum += total;
       known = true;
     }
-    out.chips.push(chip(o, null, total, 'dec', 'codex.equipped.sustainedDps'));
-    out.census.slots += count;
-    out.census.active += count;
+    out.chips.push(chip(r.o, null, total, 'dec', useSustained ? 'codex.equipped.sustainedDps' : 'codex.equipped.burstDps'));
+    out.census.slots += r.count;
+    out.census.active += r.count;
   }
   out.aggregate = known
-    ? aggregateChip('codex.module.peek.sustainedDpsTotal', Math.round(sum * 100) / 100, 'dec')
+    ? aggregateChip(
+        useSustained ? 'codex.module.peek.sustainedDpsTotal' : 'codex.module.peek.burstDpsTotal',
+        Math.round(sum * 100) / 100,
+        'dec',
+      )
     : null;
   return out;
 }

@@ -2596,6 +2596,10 @@ class CodexExtractor:
         # power draw. Flat `tractorBeam.*` keys, emitted only when the record
         # carries the leaf; see `_tractor_beam_params`.
         params.update(_tractor_beam_params(wcp))
+        # Sustained-fire cycle (feedback #343): the energy ammo pool and its
+        # regeneration, and the heat/overheat model. Both are nested structs
+        # that `_scalars(wcp)` drops, so the codex could only show burst DPS.
+        params.update(_weapon_cycle_params(wcp))
         return params
 
     def _project_component(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
@@ -3449,6 +3453,47 @@ def _find_tractor_action(node: Any, _depth: int = 0,
             if found is not None:
                 return found
     return None
+
+
+# ── sustained-fire cycle (feedback #343) ─────────────────────────────────────
+# Burst DPS (alpha × fire rate) ignores every pause; sustained DPS needs the
+# two structs that limit how long a gun keeps firing:
+#   weaponRegenConsumerParams              energy weapons: ammo pool size,
+#       regen per second, cooldown before regen starts, cost per shot
+#   connectionParams.simplifiedHeatParams  heat model: overheat temperature,
+#       cooling per second, overheat fix time
+# Both sit nested under SCItemWeaponComponentParams, so `_scalars(wcp)` never
+# kept them. UNVERIFIED leaf names (no live probe in this change): every
+# numeric scalar of each struct is copied verbatim under its prefix rather
+# than a hand-picked list, and the frontend searches candidate names — an
+# absent struct emits nothing, a field is never defaulted.
+_REGEN_PARAMS_PREFIX = "regen."
+_HEAT_PARAMS_PREFIX = "heat."
+
+
+def _numeric_scalars(d: Any, prefix: str) -> Dict[str, float]:
+    if not isinstance(d, dict):
+        return {}
+    out: Dict[str, float] = {}
+    for k, v in d.items():
+        if not isinstance(k, str) or k.startswith("_") or isinstance(v, bool):
+            continue
+        f = _to_float(v)
+        if f is not None:
+            out[prefix + k] = f
+    return out
+
+
+def _weapon_cycle_params(wcp: Dict[str, Any]) -> Dict[str, float]:
+    """Flat `regen.<key>` / `heat.<key>` scalars of a weapon's regen-consumer
+    and simplified-heat structs, or {} when the weapon carries neither."""
+    out = _numeric_scalars(wcp.get("weaponRegenConsumerParams"), _REGEN_PARAMS_PREFIX)
+    conn = wcp.get("connectionParams")
+    heat = conn.get("simplifiedHeatParams") if isinstance(conn, dict) else None
+    if heat is None:
+        heat = wcp.get("simplifiedHeatParams")
+    out.update(_numeric_scalars(heat, _HEAT_PARAMS_PREFIX))
+    return out
 
 
 def _tractor_beam_params(wcp: Dict[str, Any]) -> Dict[str, float]:

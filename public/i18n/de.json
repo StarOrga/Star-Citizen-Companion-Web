@@ -2184,6 +2184,7 @@
       "shieldNote": "Alle drei sind Schild-Generatoren und alle drei tauschbar. Der passive kostet keine Energie und zählt trotzdem voll in den Pool — er hängt aber an den aktiven: fallen die aus, ist auch der Ausgleich weg.",
       "peek": {
         "sustainedDpsTotal": "Dauer-DPS gesamt",
+        "burstDpsTotal": "Salven-DPS gesamt",
         "missileTotal": "Salve gesamt",
         "budget": "Reaktor-Budget",
         "coolingTotal": "Kühlung gesamt"
@@ -2209,6 +2210,7 @@
       "gap": {
         "noStockGuns": "Die Standardwaffen dieses Rumpfs stecken nicht im Extract — das Spiel legt die Werksbewaffnung in einem separaten Loadout-Record ab, den wir noch nicht auflösen. Die Aufhängungen unten zeigen deshalb den Platz statt der Waffe.",
         "noFireRate": "In diesem Extract{{patch}} fehlt die Feuerrate, deshalb lässt sich noch kein Dauerfeuer-DPS ableiten.",
+        "noSustainedCycle": "In diesem Extract{{patch}} fehlen Energie-Regeneration, Nachladezeit und Überhitzung der Waffen, deshalb lässt sich noch kein Dauer-DPS ableiten. Salven-DPS rechnet ohne Pausen.",
         "noShields": "Im Werks-Loadout dieses Schiffs steckt kein Schildgenerator.",
         "noHullHp": "Hüllen-HP sind noch nicht Teil des P4K-Extracts.",
         "noResistances": "Schadensresistenzen pro Kanal werden nicht extrahiert — kein Schiff und keine Panzerung trägt sie.",
@@ -2274,7 +2276,7 @@
       "deltaUp": "{{value}} besser als ab Werk",
       "deltaDown": "{{value}} schlechter als ab Werk",
       "tooltipBurstDps": "Dauerfeuer bis das Magazin leer ist — Nachladen nicht eingerechnet.",
-      "tooltipSustainedDps": "Über einen langen Kampf gemittelt — Nachladepausen eingerechnet.",
+      "tooltipSustainedDps": "Über einen langen Kampf gemittelt — Pausen für Energie-Regeneration, Nachladen und Überhitzung eingerechnet.",
       "short": {
         "alpha": "Alpha",
         "burstDps": "Burst-DPS",

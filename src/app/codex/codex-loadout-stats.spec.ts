@@ -20,6 +20,7 @@ function gun(opts: {
   lifetime?: number;
   count?: number;
   section?: 'weapons' | 'remoteTurrets';
+  cycle?: Record<string, number>;
 }): SummaryOccupant {
   return {
     section: opts.section ?? 'weapons',
@@ -28,7 +29,7 @@ function gun(opts: {
       entityKind: 'weapon',
       className: opts.className ?? 'KLWE_LaserRepeater_S3',
       size: opts.size ?? 3,
-      weaponParams: opts.fireRate != null ? { fireRate: opts.fireRate } : {},
+      weaponParams: { ...(opts.fireRate != null ? { fireRate: opts.fireRate } : {}), ...(opts.cycle ?? {}) },
     },
     ammoPayload: {
       impactDamage: { physical: opts.damage ?? 40 },
@@ -68,8 +69,25 @@ describe('codex-loadout-stats — computeKpiSheet', () => {
       null,
     );
     expect(sheet.alpha).toBe(80);
-    expect(sheet.sustainedDps).toBe(80); // 40dmg * 60rpm/60s * 2 guns
-    expect(sheet.burstDps).toBe(sheet.sustainedDps);
+    expect(sheet.burstDps).toBe(80); // 40dmg * 60rpm/60s * 2 guns
+  });
+
+  it('sustained DPS counts the energy regen pause, never copies burst (#343)', () => {
+    // 60 rpm = 1 shot/s, pool 10 → 10 s firing; 0.5 s cooldown + 10/2 = 5 s refill.
+    const cycle = { 'regen.maxAmmoLoad': 10, 'regen.requestedRegenPerSec': 2, 'regen.regenerationCooldown': 0.5 };
+    const sheet = computeKpiSheet(
+      [gun({ damage: 40, fireRate: 60, cycle }), gun({ damage: 40, fireRate: 60, cycle })],
+      null,
+    );
+    expect(sheet.burstDps).toBe(80);
+    expect(sheet.sustainedDps).toBeCloseTo(80 * 10 / 15.5, 1); // 51.61
+  });
+
+  it('leaves sustained DPS a gap when one gun has no known fire cycle', () => {
+    const cycle = { 'regen.maxAmmoLoad': 10, 'regen.requestedRegenPerSec': 2 };
+    const sheet = computeKpiSheet([gun({ damage: 40, fireRate: 60, cycle }), gun({ damage: 40, fireRate: 60 })], null);
+    expect(sheet.burstDps).toBe(80);
+    expect(sheet.sustainedDps).toBeNull();
   });
 
   it('leaves DPS a gap when no gun carries a fireRate, but keeps alpha', () => {

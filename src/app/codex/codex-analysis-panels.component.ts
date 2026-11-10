@@ -195,7 +195,7 @@ const PANEL_STYLES = `
                   <td>{{ 'codex.analysis.offensive.total' | translate }}</td>
                   <td></td>
                   @if (p.hasAlphaColumn) { <td>{{ p.footerAlpha != null ? num(p.footerAlpha) : '—' }}</td> }
-                  @if (p.hasDpsColumn) { <td>{{ p.footerDps != null ? num(p.footerDps) : '—' }}</td> }
+                  @if (p.hasDpsColumn) { <td>{{ p.footerSustainedDps != null ? num(p.footerSustainedDps) : '—' }}</td> }
                   @if (p.hasDpsColumn) { <td>{{ p.footerDps != null ? num(p.footerDps) : '—' }}</td> }
                 </tr>
               </tfoot>
