@@ -3558,6 +3558,12 @@
         "label": "Show the feedback button",
         "descOn": "The feedback button sits in the bottom-right corner of every page.",
         "descOff": "The feedback button is hidden — replies and questions from the team stay out of sight with it. Switch it back on here to open your feedback."
+      },
+      "routineTint": {
+        "label": "Feedback title green / red only",
+        "audience": "(admins only)",
+        "descOn": "The “Feedback” title glows green while the routine is up or working, and red while nothing is being worked on. Applies to your account only.",
+        "descOff": "The “Feedback” title shows four states: green ready, blue working right now, amber paused, red unreachable."
       }
     },
     "danger": {
