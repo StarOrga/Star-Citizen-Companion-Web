@@ -3,7 +3,7 @@ import { ItemPathService } from '../hq/data/item-path.service';
 import { fakeItemPath } from '../shared/item-path/item-path.testing';
 import { By } from '@angular/platform-browser';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
-import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
+import { CodexSwapPickerComponent, PREPARED_TTL_MS, SwapPick, SwapTarget } from './codex-swap-picker.component';
 import { CodexKind, CodexService, CompatibleItem, PortQuery } from './codex.service';
 import { SwapCandidate } from './swap-table';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -159,6 +159,34 @@ describe('CodexSwapPickerComponent', () => {
     expect(el.querySelector('.pick-win')).toBeNull();
   });
 
+  it('a list prepared on the slot card press is in the first render, without a loading state', async () => {
+    fixture.detectChanges();
+    fixture.componentInstance.prepare(TARGET);
+    await new Promise((r) => setTimeout(r, 50));
+    fixture.componentRef.setInput('target', TARGET);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(fixture.componentInstance.loading()).toBe(false);
+    expect(el.querySelectorAll('.pick-row').length).toBeGreaterThan(0);
+  });
+
+  it('prepares nothing visible and drops a press that was never opened', async () => {
+    vi.useFakeTimers();
+    try {
+      fixture.detectChanges();
+      fixture.componentInstance.prepare(TARGET);
+      await vi.advanceTimersByTimeAsync(50);
+      expect((fixture.nativeElement as HTMLElement).querySelector('.pick-veil')).toBeNull();
+      await vi.advanceTimersByTimeAsync(PREPARED_TTL_MS);
+      fixture.componentRef.setInput('target', TARGET);
+      fixture.detectChanges();
+      // Expired: the open loads again.
+      expect(fixture.componentInstance.loading()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('opens as a centred dialog over a veil', async () => {
     const el = await open();
     expect(el.querySelector('.pick-win[role="dialog"]')).toBeTruthy();
@@ -173,7 +201,9 @@ describe('CodexSwapPickerComponent', () => {
     (el.querySelector('.pick-veil') as HTMLElement).click();
     expect(spy).not.toHaveBeenCalled();
     (el.querySelector('.pick-close') as HTMLElement).click();
-    expect(spy).toHaveBeenCalled();
+    // The close plays the horizon motion reversed first (60 % of the open), then tells the host.
+    expect(el.querySelector('.pick-veil')?.classList.contains('pm-out')).toBe(true);
+    await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('lists every compatible item as a row including the installed one', async () => {
@@ -271,6 +301,11 @@ describe('CodexSwapPickerComponent', () => {
     const emitted = vi.mocked(spy).mock.lastCall![0] as SwapPick;
     expect(emitted.className).toBe(FACTORY);
     expect(emitted.target).toBe(TARGET);
+    // The pick closes through the reverse horizon motion, then tells the host.
+    expect(el.querySelector('.pick-veil')?.classList.contains('pm-out')).toBe(true);
+    const closed = vi.fn();
+    fixture.componentInstance.closed.subscribe(closed);
+    await vi.waitFor(() => expect(closed).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('narrows the table by the free-text search', async () => {
@@ -338,7 +373,7 @@ describe('CodexSwapPickerComponent', () => {
     (el.querySelector('.pick-win') as HTMLElement).dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
     );
-    expect(spy).toHaveBeenCalled();
+    await vi.waitFor(() => expect(spy).toHaveBeenCalled(), { timeout: 3000 });
   });
 
   it('titles a not-applicable dash cell (B-C16 medium finding)', async () => {

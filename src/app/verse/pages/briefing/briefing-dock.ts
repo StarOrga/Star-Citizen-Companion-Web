@@ -1,5 +1,8 @@
 import { NgZone, Signal, signal } from '@angular/core';
+import { onScrollTick } from '../../../core/scroll-tick';
+import { CDK_SCROLL_BLOCK_CLASS, pageScrollY } from '../../../core/page-scroll-y';
 import { TX_DOORS } from './briefing-transmit.component';
+import { setSnapTravelPx } from '../../../shared/snap-travel';
 
 /**
  * The scroll from the stage down to the hub (β shell): the page has two parts,
@@ -15,17 +18,16 @@ import { TX_DOORS } from './briefing-transmit.component';
  * leave a planet off its slot. Flight only with three hub columns (> 900px)
  * and without reduced motion; otherwise the hub keeps its own heads.
  *
- * With the flight on, the page knows only its two ends: a scroll gesture
- * (wheel, keys) glides all the way down or up ({@link DOCK_GLIDE_MS}), and a
- * scroll that stops half way (scrollbar, focus, find in page) finishes in the
- * direction it went — there is never a half-and-half picture.
+ * With the flight on, the page knows only its two ends — and the browser keeps
+ * it that way: the stage and the hub are native CSS scroll-snap areas of the
+ * document (`scroll-snap-type: y mandatory`, {@link wireSnap}), so a wheel turn,
+ * a key, a touch fling or a stopped scrollbar all finish on one of the two ends,
+ * on the compositor. (The scripted rAF glide this replaced re-set the scroll
+ * position on the main thread every frame and is gone.)
  */
 
 /** Columns stand side by side from here on (briefing-hub.component.scss). */
 export const DOCK_MIN_WIDTH = 901;
-
-/** Length of the glide from one end of the page to the other. */
-export const DOCK_GLIDE_MS = 1100;
 
 export type DockState = 'top' | 'fly' | 'docked';
 
@@ -80,38 +82,12 @@ export function labelMove(planetSrc: Box, src: Box, dst: Box, planet: Move, e: n
   };
 }
 
-/** easeInOutCubic: the glide starts and lands softly. */
-export function glideEase(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-}
-
 /** Where a gesture or a stopped scroll goes: the end in its direction (`dir` > 0 = down). */
 export function glideTarget(y: number, max: number, dir: number): number | null {
   if (max <= 1) return null;
   if (dir > 0) return y < max - 1 ? max : null;
   if (dir < 0) return y > 1 ? 0 : null;
   return null;
-}
-
-/** Keys that scroll the page, as a direction. */
-export function keyDirection(e: Pick<KeyboardEvent, 'key' | 'shiftKey'>): number {
-  switch (e.key) {
-    case 'ArrowDown': case 'PageDown': case 'End': return 1;
-    case 'ArrowUp': case 'PageUp': case 'Home': return -1;
-    case ' ': return e.shiftKey ? -1 : 1;
-    default: return 0;
-  }
-}
-
-/** True if `el` (up to the body) sits in something that scrolls itself — that gesture is not the page's. */
-export function inScroller(el: Element | null): boolean {
-  for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
-    if (n instanceof HTMLElement && n.scrollHeight > n.clientHeight + 1) {
-      const o = getComputedStyle(n).overflowY;
-      if (o === 'auto' || o === 'scroll') return true;
-    }
-  }
-  return false;
 }
 
 /** True in a field or dialog: its keys and wheel are not the page's. */
@@ -124,6 +100,214 @@ const css = (m: Move): string => `translate(${m.tx.toFixed(2)}px, ${m.ty.toFixed
 function box(el: Element): Box {
   const r = el.getBoundingClientRect();
   return { x: r.left, y: r.top, w: r.width, h: r.height };
+}
+
+/**
+ * Native scroll-snap for a page with a stage on top and one lower part under it: the
+ * document snaps (`y mandatory`) between `targets` (their top edges), only where the
+ * stage flight / glide mechanism is on — wide screens, no reduced motion. A target
+ * taller than the viewport (the Codex overview) scrolls freely inside itself, that is
+ * how the spec treats an oversized snap area. Returns `release` (restores every inline
+ * style it set).
+ *
+ * Options: `minWidth` (default {@link DOCK_MIN_WIDTH}) — below it the browser's own scroll
+ * stays; `end` — an element snapped with its END edge (the footer under the last page, so
+ * the end of the document stays a resting place); `zone` — the late re-checks run outside
+ * Angular, so they never keep the app (or a spec's `whenStable()`) busy.
+ *
+ * Direction: `mandatory` snapping picks the snap position CLOSEST to where a scroll ends,
+ * so a wheel notch or a short touchpad swipe on the stage (100–140 px of a 900 px step)
+ * was pulled back to the stage — measured on the real GPU (perf-report "Wave 2c root
+ * cause"): eight notches never reached the lower part, and every notch docked and undocked
+ * the header (a full morph each time). A wheel gesture that native snapping would bounce
+ * therefore finishes the step in its direction (a native smooth scroll to the next snap
+ * position, the snap keeps it there); the rest of that gesture is swallowed. Inside an
+ * area taller than the viewport the wheel scrolls natively.
+ */
+export function wireSnap(
+  targets: () => readonly (HTMLElement | null)[],
+  opts: { minWidth?: number; end?: () => HTMLElement | null; zone?: NgZone } = {},
+): () => void {
+  if (typeof document === 'undefined' || typeof matchMedia !== 'function') return () => undefined;
+  const root = document.documentElement;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const wide = matchMedia(`(min-width: ${opts.minWidth ?? DOCK_MIN_WIDTH}px)`);
+  let marked: HTMLElement[] = [];
+  const clear = (): void => {
+    root.style.removeProperty('scroll-snap-type');
+    for (const el of marked) {
+      el.style.removeProperty('scroll-snap-align');
+      el.style.removeProperty('scroll-margin-top');
+    }
+    marked = [];
+    setSnapTravelPx(null);
+  };
+  const apply = (): void => {
+    clear();
+    if (!wide.matches || reduce.matches) return;
+    marked = targets().filter((el): el is HTMLElement => !!el);
+    if (marked.length < 2) {
+      marked = [];
+      return;
+    }
+    for (const el of marked) el.style.setProperty('scroll-snap-align', 'start');
+    // The stage rests at the very top of the document (scrollY 0), not at its own top edge minus
+    // the root's scroll-padding: the shell's frame puts the stage ~80 px down and the padding is
+    // the docked bar's 64 px, so the snap held the page at 16 px - "not at the top" for everything
+    // that waits for it (the projector relay, the names at rest; QA D1). A scroll-margin as tall
+    // as the stage's offset puts its snap position above 0, which the browser clamps to 0.
+    const stageTop = Math.ceil(marked[0].getBoundingClientRect().top + window.scrollY);
+    if (stageTop > 0) marked[0].style.setProperty('scroll-margin-top', `${stageTop}px`);
+    // The first snap step (stage → lower part): the header morph spans exactly this travel.
+    const ps = snapPositions(marked);
+    const travel = ps.length > 1 ? ps[1] - ps[0] : Math.round(marked[1].getBoundingClientRect().top - marked[0].getBoundingClientRect().top);
+    setSnapTravelPx(travel);
+    const end = opts.end?.();
+    if (end && !marked.includes(end)) {
+      end.style.setProperty('scroll-snap-align', 'end');
+      marked.push(end);
+    }
+    root.style.setProperty('scroll-snap-type', 'y mandatory');
+  };
+  apply();
+  wide.addEventListener('change', apply);
+  reduce.addEventListener('change', apply);
+  // The targets can mount after the first call (the hub builds in steps): look again after layout settles.
+  const arm = (): ReturnType<typeof setTimeout>[] => [400, 1600, 4000].map((ms) => setTimeout(apply, ms));
+  const late = opts.zone ? opts.zone.runOutsideAngular(arm) : arm();
+  const stepper = snapStepper(() => marked);
+  const listen = (): void => window.addEventListener('wheel', stepper.onWheel, { passive: false });
+  if (opts.zone) opts.zone.runOutsideAngular(listen);
+  else listen();
+  return () => {
+    window.removeEventListener('wheel', stepper.onWheel);
+    stepper.stop();
+    late.forEach(clearTimeout);
+    wide.removeEventListener('change', apply);
+    reduce.removeEventListener('change', apply);
+    clear();
+  };
+}
+
+/** Snap positions (document y) of the marked targets: start-aligned tops (minus scroll-margin), end-aligned bottoms. */
+function snapPositions(marked: readonly HTMLElement[]): number[] {
+  const y = window.scrollY;
+  const vh = window.innerHeight;
+  const root = getComputedStyle(document.documentElement);
+  // The snapport is the viewport minus the root's scroll-padding (the docked bar's height).
+  const padTop = parseFloat(root.scrollPaddingTop) || 0;
+  const padBottom = parseFloat(root.scrollPaddingBottom) || 0;
+  const max = Math.max(0, document.documentElement.scrollHeight - vh);
+  const out = marked.map((el) => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const p = el.style.getPropertyValue('scroll-snap-align') === 'end'
+      ? r.bottom + y - vh + padBottom + (parseFloat(cs.scrollMarginBottom) || 0)
+      : r.top + y - padTop - (parseFloat(cs.scrollMarginTop) || 0);
+    return Math.round(Math.min(max, Math.max(0, p)));
+  });
+  return [...new Set(out)].sort((a, b) => a - b);
+}
+
+/**
+ * An area counts as taller than the viewport (free wheel inside) above this many viewports:
+ * a viewport-high stage measures up to ~1.1 viewports between its snap positions, because
+ * the docked header changes the layout above the lower part.
+ */
+const TALL_AREA = 1.3;
+
+/**
+ * Where a wheel step in `dir` goes from `y` between the snap positions `ps` (sorted), or
+ * null when the native scroll must run (an area taller than the viewport, no next position).
+ * An area of about one viewport is one step; from the end of a tall area the next step
+ * is the next position.
+ */
+export function snapStepTarget(y: number, dir: number, ps: readonly number[], vh: number): number | null {
+  if (!dir || ps.length < 2) return null;
+  const at = [...ps].reverse().find((p) => p <= y + 1) ?? ps[0];
+  const next = ps.find((p) => p > y + 1) ?? null;
+  if (dir > 0) {
+    if (next === null) return null;
+    const tall = next - at > vh * TALL_AREA;
+    return !tall || y + vh >= next - 1 ? next : null;
+  }
+  if (y > at + 1) {
+    // Between two positions: inside a tall area the wheel is free, a short one steps back to its start.
+    return next !== null && next - at > vh * TALL_AREA ? null : at;
+  }
+  const prev = [...ps].reverse().find((p) => p < at - 1) ?? null;
+  if (prev === null) return null;
+  // Up into a tall area scrolls natively (it is free inside); a short one is one step.
+  return at - prev > vh * TALL_AREA ? null : prev;
+}
+
+/** Nested scroll containers (a list, a panel) keep their own wheel. */
+function inOwnScroller(el: Element | null): boolean {
+  for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+    if (n.scrollHeight > n.clientHeight + 1) {
+      const o = getComputedStyle(n).overflowY;
+      if (o === 'auto' || o === 'scroll') return true;
+    }
+  }
+  return false;
+}
+
+/** How long after the last swallowed wheel event a gesture still counts as the same one (touchpad inertia). */
+const STEP_GESTURE_GAP_MS = 220;
+/** A step that never reports `scrollend` releases the wheel after this long. */
+const STEP_MAX_MS = 1400;
+
+function snapStepper(marked: () => readonly HTMLElement[]): { onWheel: (e: WheelEvent) => void; stop: () => void } {
+  let dir = 0;
+  let target = -1;
+  let lastWheel = 0;
+  let ended = true;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const done = (): void => {
+    ended = true;
+  };
+  const stop = (): void => {
+    dir = 0;
+    target = -1;
+    ended = true;
+    if (timer) clearTimeout(timer);
+    timer = null;
+    window.removeEventListener('scrollend', done);
+  };
+  const onWheel = (e: WheelEvent): void => {
+    if (e.defaultPrevented || e.ctrlKey || !e.deltaY) return;
+    // A modal overlay blocks the page scroll (#336): no step behind it.
+    if (document.documentElement.classList.contains(CDK_SCROLL_BLOCK_CLASS)) return;
+    const d = Math.sign(e.deltaY);
+    const now = performance.now();
+    // The rest of a step's own gesture (more notches, touchpad inertia): swallowed until it pauses.
+    if (dir === d && (!ended || now - lastWheel < STEP_GESTURE_GAP_MS)) {
+      lastWheel = now;
+      e.preventDefault();
+      return;
+    }
+    if (dir) stop();
+    const els = marked();
+    if (els.length < 2 || !document.documentElement.style.getPropertyValue('scroll-snap-type')) return;
+    if (inOwnScroller(e.target as Element | null) || (e.target as Element | null)?.closest?.('model-viewer')) return;
+    const to = snapStepTarget(window.scrollY, d, snapPositions(els), window.innerHeight);
+    if (to === null || Math.abs(to - window.scrollY) < 2) return;
+    e.preventDefault();
+    dir = d;
+    target = to;
+    lastWheel = now;
+    ended = false;
+    window.addEventListener('scrollend', done, { once: true });
+    timer = setTimeout(done, STEP_MAX_MS);
+    scrollToSmooth(target);
+  };
+  return { onWheel, stop };
+}
+
+/** Smooth native scroll to `top` (the "Mehr im Verse" cue); instant under reduced motion. */
+export function scrollToSmooth(top: number): void {
+  const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' });
 }
 
 /**
@@ -141,59 +325,24 @@ export function wireDock(
   const reduce = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   const wide = typeof matchMedia === 'function' ? matchMedia(`(min-width: ${DOCK_MIN_WIDTH}px)`) : null;
   let frame = 0;
-  let glideFrame = 0;
-  let lastY = window.scrollY;
-  let lastDir = 0;
   const maxScroll = (): number => document.documentElement.scrollHeight - window.innerHeight;
-  const active = (): boolean => !!wide?.matches && !reduce?.matches;
+  const active = (): boolean =>
+    !!wide?.matches && !reduce?.matches && !document.documentElement.classList.contains(CDK_SCROLL_BLOCK_CLASS);
 
-  const stopGlide = (): void => {
-    if (glideFrame) cancelAnimationFrame(glideFrame);
-    glideFrame = 0;
-  };
-  /** Glides to the end in `dir`; true if the page is (or already was) on its way there. */
+  /** The cue's click: a native smooth scroll to the end in `dir`; true if the page is (or already was) there. */
   const glide = (dir: number): boolean => {
     if (!active()) return false;
     const to = glideTarget(window.scrollY, maxScroll(), dir);
     if (to === null) return true;
-    stopGlide();
-    const from = window.scrollY;
-    const ms = Math.max(400, DOCK_GLIDE_MS * Math.min(1, Math.abs(to - from) / Math.max(1, maxScroll())));
-    const t0 = performance.now();
-    const step = (now: number): void => {
-      const t = Math.min(1, (now - t0) / ms);
-      window.scrollTo({ top: from + (to - from) * glideEase(t), behavior: 'instant' });
-      glideFrame = t < 1 ? requestAnimationFrame(step) : 0;
-    };
-    zone.runOutsideAngular(() => (glideFrame = requestAnimationFrame(step)));
+    scrollToSmooth(to);
     return true;
   };
-
-  const onWheel = (e: WheelEvent): void => {
-    if (!active() || e.ctrlKey || !e.deltaY || inScroller(e.target as Element | null)) return;
-    // While gliding (and for the touchpad's inertia after it) the page is not moved by hand.
-    if (glideFrame || glide(Math.sign(e.deltaY))) e.preventDefault();
-  };
-  const onKey = (e: KeyboardEvent): void => {
-    const dir = keyDirection(e);
-    if (!dir || !active() || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || typing(e.target as Element | null)) return;
-    // Space on a control presses it, it does not scroll.
-    if (e.key === ' ' && (e.target as Element | null)?.closest?.('button, a, summary, [role="button"]')) return;
-    if (glideFrame || glide(dir)) e.preventDefault();
-  };
-  const onScroll = (): void => {
-    const y = window.scrollY;
-    if (y !== lastY) lastDir = Math.sign(y - lastY);
-    lastY = y;
-    schedule();
-  };
-  // A scroll that stopped half way (scrollbar, focus, find in page) finishes in its direction.
-  const onScrollEnd = (): void => {
-    if (glideFrame || !active()) return;
-    const y = window.scrollY;
-    const max = maxScroll();
-    if (y > 1 && y < max - 1) glide(lastDir || (y > max / 2 ? 1 : -1));
-  };
+  // Stage and hub are the two snap areas; the browser finishes every gesture on one of them.
+  const releaseSnap = wireSnap(() => [
+    host.querySelector<HTMLElement>('section'),
+    host.querySelector<HTMLElement>('sc-briefing-hub'),
+  ], { zone });
+  let offScroll = (): void => undefined;
 
   const parts = () =>
     TX_DOORS.map((d) => ({
@@ -215,7 +364,8 @@ export function wireDock(
   const update = (): void => {
     frame = 0;
     const doc = document.documentElement;
-    const p = dockProgress(window.scrollY, doc.scrollHeight - window.innerHeight);
+    // pageScrollY: while a modal blocks the scroll, window.scrollY reads 0 and the doors would fly home (#336).
+    const p = dockProgress(pageScrollY(), doc.scrollHeight - window.innerHeight);
     const on = active();
     const st = dockState(p);
     // On the one element that reads it: on the host, a new value recalculated the whole page's
@@ -253,10 +403,7 @@ export function wireDock(
   };
 
   zone.runOutsideAngular(() => {
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('scrollend', onScrollEnd);
-    window.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('keydown', onKey);
+    offScroll = onScrollTick(update);
     window.addEventListener('resize', schedule);
   });
   wide?.addEventListener('change', schedule);
@@ -271,11 +418,8 @@ export function wireDock(
     glide,
     destroy: () => {
       if (frame) cancelAnimationFrame(frame);
-      stopGlide();
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('scrollend', onScrollEnd);
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('keydown', onKey);
+      releaseSnap();
+      offScroll();
       window.removeEventListener('resize', schedule);
       wide?.removeEventListener('change', schedule);
       reduce?.removeEventListener('change', schedule);

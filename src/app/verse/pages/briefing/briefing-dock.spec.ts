@@ -1,4 +1,35 @@
-import { dockEase, dockProgress, dockState, glideEase, glideTarget, keyDirection, labelMove, planetMove } from './briefing-dock';
+import { NgZone } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { wireHqPageScroll } from '../../../hq/hq-page-scroll';
+import { dockEase, dockProgress, dockState, glideTarget, labelMove, planetMove, snapStepTarget, wireSnap } from './briefing-dock';
+
+describe('snapStepTarget (a wheel step that mandatory snapping would bounce)', () => {
+  // Codex: stage at 16, the tall overview from 900 (2400 px), the footer end at 3300; viewport 900.
+  const ps = [16, 900, 3300];
+  it('steps from the stage down to the lower part instead of snapping back', () => {
+    expect(snapStepTarget(16, 1, ps, 900)).toBe(900);
+    expect(snapStepTarget(116, 1, ps, 900)).toBe(900);
+  });
+  it('scrolls natively inside an area taller than the viewport', () => {
+    expect(snapStepTarget(900, 1, ps, 900)).toBeNull();
+    expect(snapStepTarget(1500, -1, ps, 900)).toBeNull();
+  });
+  it('steps from the lower part start back up to the stage', () => {
+    expect(snapStepTarget(900, -1, ps, 900)).toBe(16);
+    expect(snapStepTarget(500, -1, ps, 900)).toBe(16);
+  });
+  it('leaves the ends to the browser', () => {
+    expect(snapStepTarget(16, -1, ps, 900)).toBeNull();
+    expect(snapStepTarget(3300, 1, ps, 900)).toBeNull();
+    expect(snapStepTarget(16, 1, [16], 900)).toBeNull();
+  });
+  it('steps through viewport-high sections one by one (HQ)', () => {
+    const hq = [0, 900, 1800];
+    expect(snapStepTarget(0, 1, hq, 900)).toBe(900);
+    expect(snapStepTarget(900, 1, hq, 900)).toBe(1800);
+    expect(snapStepTarget(1800, -1, hq, 900)).toBe(900);
+  });
+});
 
 describe('briefing-dock', () => {
   it('maps the scroll range to 0…1 and the states', () => {
@@ -42,15 +73,71 @@ describe('briefing-dock', () => {
     expect(glideTarget(800, 800, 1)).toBeNull();
     expect(glideTarget(0, 800, -1)).toBeNull();
     expect(glideTarget(0, 0, 1)).toBeNull();
-    expect(glideEase(0)).toBe(0);
-    expect(glideEase(1)).toBe(1);
-    expect(glideEase(0.5)).toBeCloseTo(0.5, 6);
   });
 
-  it('reads the scrolling keys as a direction', () => {
-    expect(keyDirection({ key: 'PageDown', shiftKey: false })).toBe(1);
-    expect(keyDirection({ key: 'Home', shiftKey: false })).toBe(-1);
-    expect(keyDirection({ key: ' ', shiftKey: true })).toBe(-1);
-    expect(keyDirection({ key: 'a', shiftKey: false })).toBe(0);
+  it('makes the stage and the lower part native scroll-snap areas and releases them again', () => {
+    const a = document.createElement('div');
+    const b = document.createElement('div');
+    const release = wireSnap(() => [a, b]);
+    const wide = matchMedia('(min-width: 901px)').matches;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (wide && !reduce) {
+      expect(document.documentElement.style.scrollSnapType).toContain('y');
+      expect(a.style.scrollSnapAlign).toContain('start');
+      expect(b.style.scrollSnapAlign).toContain('start');
+    } else {
+      expect(document.documentElement.style.scrollSnapType).toBe('');
+    }
+    release();
+    expect(document.documentElement.style.scrollSnapType).toBe('');
+    expect(a.style.scrollSnapAlign).toBe('');
+  });
+
+  it('lets the stage rest at the very top of the document, not at its edge minus the bar (QA D1)', () => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '80px';
+    const a = document.createElement('div');
+    a.style.height = '400px';
+    const b = document.createElement('div');
+    b.style.height = '400px';
+    document.body.append(spacer, a, b);
+    const release = wireSnap(() => [a, b]);
+    try {
+      if (matchMedia('(min-width: 901px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const top = a.getBoundingClientRect().top + window.scrollY;
+        expect(parseFloat(a.style.scrollMarginTop)).toBeGreaterThanOrEqual(Math.floor(top));
+        expect(b.style.scrollMarginTop).toBe('');
+      }
+      release();
+      expect(a.style.scrollMarginTop).toBe('');
+    } finally {
+      spacer.remove();
+      a.remove();
+      b.remove();
+    }
+  });
+
+  it('does not snap a page with fewer than two areas', () => {
+    const release = wireSnap(() => [document.createElement('div'), null]);
+    expect(document.documentElement.style.scrollSnapType).toBe('');
+    release();
+  });
+
+  it('snaps every HQ page and the footer end, with the late re-checks outside the zone', () => {
+    const zone = TestBed.inject(NgZone);
+    const pages = [document.createElement('section'), document.createElement('section'), document.createElement('section')];
+    const footer = document.createElement('sc-footer');
+    document.body.append(footer);
+    const release = zone.run(() => wireHqPageScroll(() => pages, zone));
+    expect(zone.hasPendingMacrotasks, 'no timer keeps the app busy').toBe(false);
+    if (matchMedia('(min-width: 1024px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      expect(pages.every((p) => p.style.scrollSnapAlign.includes('start'))).toBe(true);
+      expect(footer.style.scrollSnapAlign).toContain('end');
+      expect(document.documentElement.style.scrollSnapType).toContain('mandatory');
+    }
+    release();
+    expect(document.documentElement.style.scrollSnapType).toBe('');
+    expect(footer.style.scrollSnapAlign).toBe('');
+    footer.remove();
   });
 });

@@ -1,9 +1,31 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { StageSearchDirective } from '../shell/fusion-bar/stage-search.directive';
 import { StageHeroDirective } from '../shell/fusion-bar/stage-hero.directive';
+import { SceneCameraService } from '../shell/scene/scene-camera.service';
+import { VwRect, toVwRect } from '../shell/scene/scene.model';
+
+/**
+ * The cell the scene's admin station stands in (concept Kamera-Welt, rounds/05 #d5-admin): the free
+ * third column beside the first two groups, which hold two tiles each — big, right of the cards and
+ * never over one. Null where no such cell is free (two columns and fewer): the camera keeps its default.
+ */
+export function adminStationSlot(host: HTMLElement, scrollY: number, viewportW: number): VwRect | null {
+  const groups = Array.from(host.querySelectorAll<HTMLElement>('.group'));
+  const col = groups.find((g) => g.querySelectorAll('.tile').length >= 3)?.querySelectorAll<HTMLElement>('.tile')[2];
+  const upper = groups.filter((g) => g.querySelectorAll('.tile').length < 3);
+  if (!col || !upper.length) return null;
+  const c = col.getBoundingClientRect();
+  const firstTiles = upper[0].querySelector<HTMLElement>('.tiles')?.getBoundingClientRect();
+  const lastTiles = upper[upper.length - 1].querySelector<HTMLElement>('.tiles')?.getBoundingClientRect();
+  if (!firstTiles || !lastTiles) return null;
+  // Three columns only: the third tile of the full group stands right of the upper groups' tiles.
+  if (c.left < firstTiles.left + firstTiles.width * 0.5 || c.top < lastTiles.bottom) return null;
+  const top = firstTiles.top;
+  return toVwRect({ left: c.left, top, width: c.width, height: lastTiles.bottom - top }, scrollY, viewportW);
+}
 
 /** One admin page reachable from the hub. */
 export interface AdminHubTile {
@@ -198,8 +220,7 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = ADMIN_HUB_GROUPS.flatMap
         padding: var(--sc-space-4);
         border-radius: 14px;
         border: 1px solid color-mix(in srgb, var(--sc-accent-hot) 30%, var(--sc-border));
-        background: color-mix(in srgb, var(--sc-bg-2) 72%, transparent);
-        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-2) 85%, transparent);
         color: var(--sc-fg-0);
         text-decoration: none;
         transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
@@ -244,4 +265,21 @@ export const ADMIN_HUB_TILES: readonly AdminHubTile[] = ADMIN_HUB_GROUPS.flatMap
 })
 export class AdminHubComponent {
   readonly groups = ADMIN_HUB_GROUPS;
+
+  constructor() {
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const camera = inject(SceneCameraService);
+    const zone = inject(NgZone);
+    const destroyRef = inject(DestroyRef);
+    // Lend the scene the station's cell (measured at the top of the page; on resize again).
+    afterNextRender(() => {
+      const measure = (): void => {
+        if (window.scrollY > 2) return;
+        camera.setAdminSlot(adminStationSlot(host, window.scrollY, window.innerWidth));
+      };
+      measure();
+      zone.runOutsideAngular(() => window.addEventListener('resize', measure, { passive: true }));
+      destroyRef.onDestroy(() => window.removeEventListener('resize', measure));
+    });
+  }
 }

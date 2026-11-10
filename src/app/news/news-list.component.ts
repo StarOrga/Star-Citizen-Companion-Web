@@ -479,9 +479,8 @@ const SAFE_SVG = new Map<string, SafeHtml>();
       position: absolute; right: 20px; bottom: 20px; z-index: 5;
       width: min(320px, calc(100% - 40px));
       padding: 12px 14px; border-radius: 8px;
-      background: color-mix(in srgb, var(--sc-bg-1) 88%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-1) 93%, transparent);
       border: 1px solid var(--sc-border);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
     }
     .verdict-label {
@@ -699,9 +698,8 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     /* On artwork the two controls need a surface of their own to stay readable. */
     .stage-actions .act {
       color: var(--sc-fg-1);
-      background: color-mix(in srgb, var(--sc-bg-0) 58%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-0) 77%, transparent);
       border-color: color-mix(in srgb, var(--sc-border) 85%, transparent);
-      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     }
     .stage-actions .act.on { color: var(--sc-warning); }
 

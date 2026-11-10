@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { flushScrollTick } from '../core/scroll-tick';
 import { ResizeDriver, installResizeDriver } from '../testing/frames';
 import { ScScrollHintDirective } from './scroll-hint.directive';
 
@@ -36,6 +37,7 @@ describe('ScScrollHintDirective', () => {
   const scrollTo = (x: number) => {
     strip.scrollLeft = x;
     strip.dispatchEvent(new Event('scroll'));
+    flushScrollTick();
     fixture.detectChanges();
   };
 
