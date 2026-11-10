@@ -7648,7 +7648,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
 </section>
 </section>
 
-<section data-iteration="5" data-iteration-template="design" data-tab-label="Runde 5 · Review" id="iter-5" data-active>
+<section data-iteration="5" data-iteration-template="design" data-tab-label="Runde 5 · Review" data-baked id="iter-5" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"userPins":[{"id":"up-mw9vc55nc0r7","design":"d1","screen":"r5-d1-s7","x":42.3,"y":18.4,"target":"img","text":"RÄUME SOLLTEN AUCH UNTEN IN INNEN SEIN; SO WIE ES AUCH AUssen gibt!","attachments":[]},{"id":"up-mw9vcz48y8wz","design":"d1","screen":"r5-d1-s11","x":70.2,"y":35.8,"target":"img","text":"das ist hier noch nicht hübsch aufgabeut mit der vergleich mit und hexagon vs balken!","attachments":[]},{"id":"up-mw9vdtza5mu5","design":"d1","screen":"r5-d1-s15","x":66.8,"y":42.9,"target":"img","text":"vergleich beenden benötigt es nicht, einfach ein reset icon rechts neben den beiden auswahlne und fertig ohne aufklappen zu müssen","attachments":[]}]}</script>
 <style>
 /* Round 5: real screenshots, one per screen, plus a caption. All classes carry the d1-r5 / mock- prefix. */
 .d1-r5 { height: 100%; min-height: 600px; display: flex; flex-direction: column; box-sizing: border-box; background: #050d14; color: #c8e4f1; font: 13px/1.45 system-ui, "Segoe UI", sans-serif; }
@@ -7900,17 +7901,17 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </div>
 
-<section id="r5-wish" data-nav-label="Wunschliste mit Ausstattung" data-decision="r5-wish" data-decision-mode="single" data-label="Wunschliste mit Ausstattung" data-rec="loadout" data-rec-why="Auf der Werk-Seite darfst du frei tauschen und den Umbau als Wunsch behalten; ohne Ausstattung ist ein Wunsch nur ein Lesezeichen auf den Rumpf." data-applies-to="Wunschliste im Hangar-Knopf (C23)" data-finding="r5-wish-f">
+<section id="r5-wish" data-nav-label="Wunschliste mit Ausstattung" data-decision="r5-wish" data-decision-mode="single" data-label="Wunschliste mit Ausstattung" data-rec="loadout" data-rec-why="Auf der Werk-Seite darfst du frei tauschen und den Umbau als Wunsch behalten; ohne Ausstattung ist ein Wunsch nur ein Lesezeichen auf den Rumpf." data-applies-to="Wunschliste im Hangar-Knopf (C23)" data-finding="r5-wish-f"><input type="hidden" name="dm-r5-wish-hes" value="{&quot;ms&quot;:17457,&quot;revisits&quot;:0,&quot;median&quot;:17457}" disabled>
   <p data-applies>Gilt für: Wunschliste im Hangar-Knopf (C23)</p>
   <p data-situation>Wer einen Umbau auf die Wunschliste setzt, verliert die getauschten Teile, denn gespeichert wird nur der Rumpf. Die Wunschliste hat keinen Speicher für eine Ausstattung.</p>
   <h3 data-question>Was speichert ein Eintrag auf der Wunschliste?</h3>
   <p data-stakes>Ob ein Wunsch-Umbau so wiederkommt, wie du ihn gebaut hast.</p>
   <div data-options>
-    <label data-opt="hull"><input type="radio" name="dm-r5-wish" value="hull"><span data-opt-label>Nur den Rumpf wie bisher</span><span data-opt-consequence>Kein Umbau am Speicher; getauschte Teile gehen beim Merken verloren.</span></label>
-    <label data-opt="loadout" data-recommended><input type="radio" name="dm-r5-wish" value="loadout" checked><span data-opt-label>Rumpf samt Ausstattung speichern</span><span data-opt-consequence>Die Wunschliste bekommt ein Feld für die Ausstattung (Schema-Erweiterung); der Wunsch zeigt deinen Umbau mit ◆.</span></label>
-    <label data-opt="exemplar"><input type="radio" name="dm-r5-wish" value="exemplar"><span data-opt-label>Ein Exemplar mit der Marke „gewünscht“</span><span data-opt-consequence>Kein neuer Speicher; Wünsche stehen dann bei den Exemplaren, Hangar und Wunschliste rücken zusammen.</span></label>
+    <label data-opt="hull"><input type="radio" name="dm-r5-wish" value="hull" disabled><span data-opt-label>Nur den Rumpf wie bisher</span><span data-opt-consequence>Kein Umbau am Speicher; getauschte Teile gehen beim Merken verloren.</span></label>
+    <label data-opt="loadout" data-recommended><input type="radio" name="dm-r5-wish" value="loadout" checked disabled><span data-opt-label>Rumpf samt Ausstattung speichern</span><span data-opt-consequence>Die Wunschliste bekommt ein Feld für die Ausstattung (Schema-Erweiterung); der Wunsch zeigt deinen Umbau mit ◆.</span></label>
+    <label data-opt="exemplar"><input type="radio" name="dm-r5-wish" value="exemplar" disabled><span data-opt-label>Ein Exemplar mit der Marke „gewünscht“</span><span data-opt-consequence>Kein neuer Speicher; Wünsche stehen dann bei den Exemplaren, Hangar und Wunschliste rücken zusammen.</span></label>
   </div>
-  <textarea data-comment="r5-wish-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r5-wish-note" placeholder="Notiz (optional)" readonly></textarea>
   <div data-alevel="3" data-title="Wunschliste mit Ausstattung">
     <div data-slot="short"><p>Ein Wunsch merkt sich nur den Rumpf.</p></div>
     <div data-slot="long">
@@ -7920,16 +7921,16 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </div>
 </section>
 
-<section id="r5-nested" data-nav-label="Waffen in Halterungen" data-decision="r5-nested" data-decision-mode="single" data-label="Waffen in Halterungen speichern" data-rec="nested" data-rec-why="An der Gladius sitzen alle drei Waffen in Halterungen; ohne verschachtelte Plätze ist jeder Waffen-Umbau nur ein Entwurf." data-applies-to="Waffen in Halterungen, z. B. Gatling am Bug und Laser-Repetierer" data-finding="r5-nested-f">
+<section id="r5-nested" data-nav-label="Waffen in Halterungen" data-decision="r5-nested" data-decision-mode="single" data-label="Waffen in Halterungen speichern" data-rec="nested" data-rec-why="An der Gladius sitzen alle drei Waffen in Halterungen; ohne verschachtelte Plätze ist jeder Waffen-Umbau nur ein Entwurf." data-applies-to="Waffen in Halterungen, z. B. Gatling am Bug und Laser-Repetierer" data-finding="r5-nested-f"><input type="hidden" name="dm-r5-nested-hes" value="{&quot;ms&quot;:52638,&quot;revisits&quot;:0,&quot;median&quot;:17457}" disabled>
   <p data-applies>Gilt für: Waffen in Halterungen, z. B. Gatling am Bug und Laser-Repetierer</p>
   <p data-situation>Eine getauschte Waffe in einer Halterung geht beim Speichern verloren: sie trägt ◆, landet aber nicht im Exemplar. Die Hangar-Konfiguration hat keinen Platz für Teile in Halterungen.</p>
   <h3 data-question>Wie gehen wir mit Waffen in Halterungen um?</h3>
   <p data-stakes>Ob Umbauten an Gatling und Repetierern im Exemplar bleiben.</p>
   <div data-options>
-    <label data-opt="nested" data-recommended><input type="radio" name="dm-r5-nested" value="nested" checked><span data-opt-label>Konfiguration um verschachtelte Plätze erweitern</span><span data-opt-consequence>Ein Tausch in der Halterung wird gespeichert wie jeder andere; Speicherformat und Laden ändern sich mit.</span></label>
-    <label data-opt="draft"><input type="radio" name="dm-r5-nested" value="draft"><span data-opt-label>Nur im Entwurf, mit klarem Hinweis</span><span data-opt-consequence>Kein Umbau am Speicher; beim Speichern sagt ein Hinweis, dass Waffen in Halterungen nicht mitkommen.</span></label>
+    <label data-opt="nested" data-recommended><input type="radio" name="dm-r5-nested" value="nested" checked disabled><span data-opt-label>Konfiguration um verschachtelte Plätze erweitern</span><span data-opt-consequence>Ein Tausch in der Halterung wird gespeichert wie jeder andere; Speicherformat und Laden ändern sich mit.</span></label>
+    <label data-opt="draft"><input type="radio" name="dm-r5-nested" value="draft" disabled><span data-opt-label>Nur im Entwurf, mit klarem Hinweis</span><span data-opt-consequence>Kein Umbau am Speicher; beim Speichern sagt ein Hinweis, dass Waffen in Halterungen nicht mitkommen.</span></label>
   </div>
-  <textarea data-comment="r5-nested-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r5-nested-note" placeholder="Notiz (optional)" readonly>also wenn man nicht in codex, aber in seinem eigenen schiff arbeitet sollte jede änderung direkt gespeichert werden gern mit toast rechts unten (leicht verzögert, falls man mehrere dinge direkt in wenigen sekunden setzt)</textarea>
   <div data-alevel="3" data-title="Waffen in Halterungen speichern">
     <div data-slot="short"><p>Alle Waffen der Gladius sitzen in Halterungen.</p></div>
     <div data-slot="long">
@@ -7939,16 +7940,16 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </div>
 </section>
 
-<section id="r5-ai" data-nav-label="KI-Name &amp; Zusammenfassung" data-decision="r5-ai" data-decision-mode="single" data-label="KI-Name &amp; KI-Zusammenfassung" data-rec="with" data-rec-why="Code, Migration und Funktion sind fertig geschrieben; mit ausgeliefert zeigt das Menü sofort je Exemplar eine Zeile, und der Namensdialog wartet nicht mehr auf eine fehlende Funktion." data-applies-to="Hangar-Menü und Namensdialog (C24, C25)" data-finding="r5-ai-f">
+<section id="r5-ai" data-nav-label="KI-Name &amp; Zusammenfassung" data-decision="r5-ai" data-decision-mode="single" data-label="KI-Name &amp; KI-Zusammenfassung" data-rec="with" data-rec-why="Code, Migration und Funktion sind fertig geschrieben; mit ausgeliefert zeigt das Menü sofort je Exemplar eine Zeile, und der Namensdialog wartet nicht mehr auf eine fehlende Funktion." data-applies-to="Hangar-Menü und Namensdialog (C24, C25)" data-finding="r5-ai-f"><input type="hidden" name="dm-r5-ai-hes" value="{&quot;ms&quot;:10600,&quot;revisits&quot;:0,&quot;median&quot;:17457}" disabled>
   <p data-applies>Gilt für: Hangar-Menü und Namensdialog (C24, C25)</p>
   <p data-situation>Das Hangar-Menü zeigt keine Zusammenfassung je Exemplar, und der Namensdialog wartet Sekunden auf eine Funktion, die online fehlt. Code, Migration und Edge Function sind geschrieben, aber nicht ausgeliefert.</p>
   <h3 data-question>Gehen KI-Name und KI-Zusammenfassung mit diesem Branch live?</h3>
   <p data-stakes>Ob das Menü von Anfang an eine Zeile je Exemplar zeigt.</p>
   <div data-options>
-    <label data-opt="with" data-recommended><input type="radio" name="dm-r5-ai" value="with" checked><span data-opt-label>Zusammen mit dem Ship dieses Branches ausliefern</span><span data-opt-consequence>Migration und Funktion gehen mit live; Namensvorschlag und Zusammenfassung erscheinen sofort.</span></label>
-    <label data-opt="without"><input type="radio" name="dm-r5-ai" value="without"><span data-opt-label>Aus dem ersten Ship herauslassen</span><span data-opt-consequence>Menü und Dialog bleiben ohne KI; Name und Exemplare funktionieren trotzdem.</span></label>
+    <label data-opt="with" data-recommended><input type="radio" name="dm-r5-ai" value="with" checked disabled><span data-opt-label>Zusammen mit dem Ship dieses Branches ausliefern</span><span data-opt-consequence>Migration und Funktion gehen mit live; Namensvorschlag und Zusammenfassung erscheinen sofort.</span></label>
+    <label data-opt="without"><input type="radio" name="dm-r5-ai" value="without" disabled><span data-opt-label>Aus dem ersten Ship herauslassen</span><span data-opt-consequence>Menü und Dialog bleiben ohne KI; Name und Exemplare funktionieren trotzdem.</span></label>
   </div>
-  <textarea data-comment="r5-ai-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r5-ai-note" placeholder="Notiz (optional)" readonly></textarea>
   <div data-alevel="3" data-title="KI-Name &amp; KI-Zusammenfassung">
     <div data-slot="short"><p>Die KI-Funktion antwortet online mit 404.</p></div>
     <div data-slot="long">
@@ -7958,16 +7959,16 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </div>
 </section>
 
-<section id="r5-bugs" data-nav-label="Fehler schon auf main" data-decision="r5-bugs" data-decision-mode="single" data-label="Bekannte Fehler, die schon auf main sind" data-rec="fix" data-rec-why="Der Holotisch macht das Tauschen zum zentralen Weg; ein Tausch, der für vier Bauteil-Arten nichts findet, fiele im ersten Review sofort auf." data-applies-to="Tausch-Auswahl im Holotisch" data-finding="r5-bugs-f" data-no-example="Diese Runde enthält kein Bild der Tausch-Auswahl.">
+<section id="r5-bugs" data-nav-label="Fehler schon auf main" data-decision="r5-bugs" data-decision-mode="single" data-label="Bekannte Fehler, die schon auf main sind" data-rec="fix" data-rec-why="Der Holotisch macht das Tauschen zum zentralen Weg; ein Tausch, der für vier Bauteil-Arten nichts findet, fiele im ersten Review sofort auf." data-applies-to="Tausch-Auswahl im Holotisch" data-finding="r5-bugs-f" data-no-example="Diese Runde enthält kein Bild der Tausch-Auswahl."><input type="hidden" name="dm-r5-bugs-hes" value="{&quot;ms&quot;:15687,&quot;revisits&quot;:0,&quot;median&quot;:17457}" disabled>
   <p data-applies>Gilt für: Tausch-Auswahl im Holotisch</p>
   <p data-situation>Kühler, Schild, Quantenantrieb und Lebenserhaltung lassen sich nicht tauschen, die Auswahl meldet „0 von N — Kein Teil passt“. In der Gatling-Auswahl bricht die Namensspalte Buchstabe für Buchstabe um. Beides steht schon auf main.</p>
   <h3 data-question>Wo beheben wir die zwei Fehler der Tausch-Auswahl?</h3>
   <p data-stakes>Ob der Tausch beim ersten Ship für alle Bauteil-Arten funktioniert.</p>
   <div data-options>
-    <label data-opt="fix" data-recommended><input type="radio" name="dm-r5-bugs" value="fix" checked><span data-opt-label>In diesem Branch vor dem Ship beheben</span><span data-opt-consequence>Der Ship bringt einen Tausch, der für alle Teile funktioniert; der Branch wird etwas größer.</span></label>
-    <label data-opt="separate"><input type="radio" name="dm-r5-bugs" value="separate"><span data-opt-label>Als eigene Aufgabe angehen</span><span data-opt-consequence>Der Branch bleibt schlank; beide Fehler bleiben live, bis die Aufgabe erledigt ist.</span></label>
+    <label data-opt="fix" data-recommended><input type="radio" name="dm-r5-bugs" value="fix" checked disabled><span data-opt-label>In diesem Branch vor dem Ship beheben</span><span data-opt-consequence>Der Ship bringt einen Tausch, der für alle Teile funktioniert; der Branch wird etwas größer.</span></label>
+    <label data-opt="separate"><input type="radio" name="dm-r5-bugs" value="separate" disabled><span data-opt-label>Als eigene Aufgabe angehen</span><span data-opt-consequence>Der Branch bleibt schlank; beide Fehler bleiben live, bis die Aufgabe erledigt ist.</span></label>
   </div>
-  <textarea data-comment="r5-bugs-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r5-bugs-note" placeholder="Notiz (optional)" readonly></textarea>
   <div data-alevel="3" data-title="Bekannte Fehler, die schon auf main sind">
     <div data-slot="short"><p>Vier Bauteil-Arten finden in der Auswahl kein Teil.</p></div>
     <div data-slot="long">
@@ -7976,22 +7977,306 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </div>
 </section>
 
-<section id="r5-rooms" data-nav-label="Räume der Gladius / Starlancer" data-decision="r5-rooms" data-decision-mode="single" data-label="Räume der Gladius / Starlancer" data-rec="uploader" data-rec-why="Die Zuordnung Raum → Deck entsteht im Uploader; der Holotisch kann sie nicht erfinden und zeigt Decks, sobald die Daten stimmen." data-applies-to="Innen-Ansicht aller Schiffe (C26)" data-finding="r5-rooms-f">
+<section id="r5-rooms" data-nav-label="Räume der Gladius / Starlancer" data-decision="r5-rooms" data-decision-mode="single" data-label="Räume der Gladius / Starlancer" data-rec="uploader" data-rec-why="Die Zuordnung Raum → Deck entsteht im Uploader; der Holotisch kann sie nicht erfinden und zeigt Decks, sobald die Daten stimmen." data-applies-to="Innen-Ansicht aller Schiffe (C26)" data-finding="r5-rooms-f"><input type="hidden" name="dm-r5-rooms-hes" value="{&quot;ms&quot;:51403,&quot;revisits&quot;:0,&quot;median&quot;:17457}" disabled>
   <p data-applies>Gilt für: Innen-Ansicht aller Schiffe (C26)</p>
   <p data-situation>Die Innen-Ansicht kann keine Decks zeigen: die Räume von Gladius und Starlancer liegen im Ersatz-Deck „Alle Räume“. Der Upload vom 08.11.2026 ist nicht angekommen.</p>
   <h3 data-question>Wie kommen die Räume auf ihre Decks?</h3>
   <p data-stakes>Ob die Innen-Ansicht Decks zeigt oder eine einzige Raumliste.</p>
   <div data-options>
-    <label data-opt="uploader" data-recommended><input type="radio" name="dm-r5-rooms" value="uploader" checked><span data-opt-label>Zuordnung im Uploader als eigene Aufgabe reparieren</span><span data-opt-consequence>Decks bekommen ihre Räume mit dem nächsten Upload; der Holotisch braucht dafür keine Änderung.</span></label>
-    <label data-opt="accept"><input type="radio" name="dm-r5-rooms" value="accept"><span data-opt-label>Ersatz-Deck vorerst so lassen</span><span data-opt-consequence>Die Innen-Ansicht zeigt weiter ein Deck „Alle Räume“; kein Umbau am Uploader.</span></label>
+    <label data-opt="uploader" data-recommended><input type="radio" name="dm-r5-rooms" value="uploader" checked disabled><span data-opt-label>Zuordnung im Uploader als eigene Aufgabe reparieren</span><span data-opt-consequence>Decks bekommen ihre Räume mit dem nächsten Upload; der Holotisch braucht dafür keine Änderung.</span></label>
+    <label data-opt="accept"><input type="radio" name="dm-r5-rooms" value="accept" disabled><span data-opt-label>Ersatz-Deck vorerst so lassen</span><span data-opt-consequence>Die Innen-Ansicht zeigt weiter ein Deck „Alle Räume“; kein Umbau am Uploader.</span></label>
   </div>
-  <textarea data-comment="r5-rooms-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r5-rooms-note" placeholder="Notiz (optional)" readonly></textarea>
   <div data-alevel="3" data-title="Räume der Gladius / Starlancer">
     <div data-slot="short"><p>Alle Räume hängen im Ersatz-Deck.</p></div>
     <div data-slot="long">
       <div data-viz="bars" data-viz-spec='{"items":[{"label":"Ersatz-Deck","value":24},{"label":"Starlancer_Deck_1","value":0},{"label":"Starlancer_Deck_2","value":0}],"unit":"Räume","hl":"Ersatz-Deck","text":"MISC_Starlancer_Max: 24 Räume im Ersatz-Deck, 0 auf den zwei Decks."}'></div>
     </div>
     <div data-example><div class="mock-crop"><img src="20261109-1745-holotisch-feinschliff/shots/07-innen.png" alt="Ausschnitt Innen-Ansicht: blasse Silhouette unter Bug · Alle Räume" style="width:360px;height:460px;object-fit:none;object-position:-590px -190px" loading="lazy"><p>Bild 07: „▲ Bug · Alle Räume“ über einer blassen Silhouette, kein Deck zur Auswahl.</p></div></div>
+  </div>
+</section>
+  </section>
+</section>
+</section>
+
+<section data-iteration="6" data-iteration-template="design" data-tab-label="Runde 6 · Review" id="iter-6" data-active>
+<style>
+/* Round 6: real screenshots, one per screen, plus a caption. All classes carry the d1-r6 / mock-r6 prefix. */
+.d1-r6 { height: 100%; min-height: 600px; display: flex; flex-direction: column; box-sizing: border-box; background: #050d14; color: #c8e4f1; font: 13px/1.45 system-ui, "Segoe UI", sans-serif; }
+.d1-r6-img { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.d1-r6-img img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.d1-r6-cap { flex: 0 0 auto; margin: 0; padding: 8px 16px 10px; border-top: 1px solid rgba(82, 193, 230, .25); background: #0a1a26; }
+.d1-r6-cap b { color: #f2fafe; }
+.d1-r6-c { display: inline-block; margin-left: 6px; padding: 0 7px; border: 1px solid rgba(82, 193, 230, .45); border-radius: 10px; font-size: 11.5px; color: #7fd3f0; white-space: nowrap; }
+.d1-r6-rest { display: block; margin-top: 2px; font-size: 12.5px; color: #e8c15a; }
+/* Analysis view: compact checklists (custom "checklist" display) and screenshot crops as examples. */
+.mock-r6-ck { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 18px; margin: 0; padding: 0; list-style: none; font-size: 12.5px; line-height: 1.35; }
+.mock-r6-ck.mock-r6-one { grid-template-columns: 1fr; }
+.mock-r6-ck li { display: flex; gap: 6px; align-items: baseline; }
+.mock-r6-ck i { flex: 0 0 auto; width: 1.1em; font-style: normal; color: var(--success-color); }
+.mock-r6-ck.mock-r6-warn i { color: var(--warning-color); }
+.mock-r6-ck b { flex: 0 0 auto; min-width: 3.4em; font-weight: 600; color: var(--text-secondary); }
+.mock-r6-h { margin: 0 0 6px; font-weight: 600; }
+.mock-r6-crop { margin: 0; }
+.mock-r6-crop img { display: block; max-width: 100%; border: 1px solid var(--border-color); border-radius: 6px; }
+.mock-r6-crop p { margin: 4px 0 8px; font-size: 12px; color: var(--text-secondary); }
+.mock-r6-list { margin: 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12.5px; line-height: 1.45; }
+.mock-r6-list ul { margin: 0; padding-left: 18px; }
+.mock-r6-list code { font-size: 12px; }
+</style>
+<header class="iteration-intro">
+  <h2>Runde 6 · Review der zweiten Umsetzung</h2>
+  <p>15 echte Screenshots (1920 × 1080) vom Branch claude/batch-fb8929, Stand dd3ba5db: deine Entscheidungen aus Runde 5 an Gladius und Carrack. Nichts davon ist ausgeliefert. Setz mit Strg + Klick Notizen direkt aufs Bild; die drei offenen Fragen stehen unter „Stand &amp; nächster Schritt“.</p>
+</header>
+
+<section data-design="d1" data-nav-label="Umsetzung 2" data-design-active="true" data-screen-fit="full" data-design-motto="Deine Runde-5-Entscheidungen, echt umgesetzt">
+
+<section id="r6-d1-s1" data-nav-label="Einordnung · Hexagon" data-screen data-screen-active="true">
+  <div class="d1-r6" data-m="shot-01">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/01-einordnung-hexagon.png" width="1920" height="1080" alt="Gladius, Karte Einordnung mit Kopfzeile Vergleich mit, Auswahl Alle Leichten Jäger und Umschalter Hexagon gewählt" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Einordnung · Hexagon</b> — über der Grafik eine aufgeräumte Kopfzeile: „Vergleich mit ⓘ“, darunter in einer Reihe die Auswahl „Alle Leichten Jäger“ und der Umschalter Hexagon | Balken, gleich hoch und bündig; darüber „Rang 9 von 26 · Alle Leichten Jäger · im Mittelfeld“. Darunter das Hexagon mit Legende „besser“ / „schwächer“. <span class="d1-r6-c">Pin s11 Einordnung · D6</span><span class="d1-r6-rest">Restpunkt: Die Fußnote der Legende („Außen = fast bester Wert der Gruppe …“) wird am unteren Kartenrand abgeschnitten.</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s2" data-nav-label="Einordnung · Balken" data-screen hidden>
+  <div class="d1-r6" data-m="shot-02">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/02-einordnung-balken.png" width="1920" height="1080" alt="Gladius, Karte Einordnung mit derselben Kopfzeile, Balken gewählt, Stärken und Schwächen" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Einordnung · Balken</b> — dieselbe Kopfzeile, Balken gewählt: Stärken · Schwächen von Boost „Besser als 80.8 %“ bis Alpha „Besser als 28.8 %“, Raketen ohne Wert, darunter „Alle Schiffe ansehen ›“. Die Karte behält die Höhe der Hexagon-Ansicht, „Details“ steht an derselben Stelle. <span class="d1-r6-c">Pin s11 Einordnung · D6</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s3" data-nav-label="Innen · Gladius" data-screen hidden>
+  <div class="d1-r6" data-m="shot-03">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/03-innen-gladius.png" width="1920" height="1080" alt="Gladius Innen: unten ein Vorschaubild Alle Räume und rechts daneben der Raum-Chip Cockpit" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Innen · Gladius (ohne Decks)</b> — unten unter Innen ein Vorschaubild „Alle Räume“ wie heute, rechts daneben „Räume“ mit dem Chip „Cockpit“, an der Stelle, an der bei Außen die Teile-Filter stehen. Oben „▲ Bug · Alle Räume“, über der Leiste „Kein Raum ausgewählt“. <span class="d1-r6-c">Pin s7 Innen · D5</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s4" data-nav-label="Innen · Carrack" data-screen hidden>
+  <div class="d1-r6" data-m="shot-04">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/04-innen-carrack.png" width="1920" height="1080" alt="Carrack Innen: Vorschaubilder Deck 01 bis Deck 04 und Weitere Räume, Raum-Chips des Decks 01" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Innen · Carrack (mit Decks)</b> — wie Außen je Ansicht zeigt Innen ein Vorschaubild je Deck: Deck 01 (gewählt) · Deck 02 · Deck 03 · Deck 04 · „Weitere Räume“; daneben die Räume des Decks als Chips: Cargo Pods Front Container, Cargo Pods Rear Container, Frachtraum. Oben „▲ Bug · Deck 01“ über dem Deckplan. <span class="d1-r6-c">Pin s7 Innen · D5</span><span class="d1-r6-rest">Restpunkt: Auf der Balken-Karte bricht „QUERSCHNITT“ mitten im Wort um.</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s5" data-nav-label="Innen · Carrack · Raum" data-screen hidden>
+  <div class="d1-r6" data-m="shot-05">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/05-innen-carrack-raum.png" width="1920" height="1080" alt="Carrack Innen mit gewähltem Raum Frachtraum, ein Punkt im Deckplan ist cyan" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Innen · Carrack · Frachtraum</b> — Chip „Frachtraum“ gewählt: sein Name steht links über der Leiste, im Deckplan färbt sich ein Punkt cyan. Die Zuordnung Raum → Deck bleibt Sache des Uploaders (eigene Aufgabe, Starlancer-PR #1072 offen). <span class="d1-r6-c">Pin s7 Innen · D5 · r5-rooms</span><span class="d1-r6-rest">Restpunkt: Die Hervorhebung ist schwach, nur ein Punkt wird cyan, der Plan hat dort keine Raumfläche (Frage 3).</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s6" data-nav-label="Patch-Vergleich" data-screen hidden>
+  <div class="d1-r6" data-m="shot-06">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/06-patch.png" width="1920" height="1080" alt="Änderungen, Patch-Vergleich: zwei Patch-Auswahlen in einer Zeile und rechts daneben ein Reset-Symbol" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Änderungen · Patch-Vergleich</b> — zwei Auswahlen „4.10.2 #1860 Live“ → „4.10.2 Live ● aktuell“ in einer Zeile, rechts daneben das Reset-Symbol ↺. Kein „Vergleich beenden“ mehr, nichts muss aufgeklappt werden; darunter „Was sich an der Aegis Gladius geändert hat“ mit Ausrüstungsmasse 4.742 → 6.092 (+28 %). <span class="d1-r6-c">Pin s15 Patch · D7 · D8</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s7" data-nav-label="Patch · Reset" data-screen hidden>
+  <div class="d1-r6" data-m="shot-07">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/07-patch-reset-tooltip.png" width="1920" height="1080" alt="Hover auf das Reset-Symbol mit Tooltip Auf Standardvergleich zurücksetzen" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Patch · Reset-Symbol</b> — Hover auf ↺ zeigt den Tooltip „Auf Standardvergleich zurücksetzen“; ein Klick setzt beide Auswahlen auf den Standardvergleich zurück. Der Tooltip liegt unter dem Knopf über dem Ende der Überschrift, kein Tab und keine Auswahl ist verdeckt. <span class="d1-r6-c">Pin s15 Patch · D7 · D8</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s8" data-nav-label="Tausch · Kühler" data-screen hidden>
+  <div class="d1-r6" data-m="shot-08">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/08-picker-kuehler.png" width="1920" height="1080" alt="Tausch-Auswahl für den linken Kühler mit 24 von 24 Teilen" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Tausch-Auswahl · Kühler</b> — „Bauteil wählen — Hardpoint Cooler Left · S1“ findet „24 von 24“: ArcticStorm, Berian, BlastChill, Bracer (✓ verbaut), BriskAir IC-10, Cryo-Star, Eco-Flow … Vorher stand hier „0 von N — Kein Teil passt“; die Ursache saß in den Kategorie-Filtern, der Fix gilt auch für Schild, Quantenantrieb und Lebenserhaltung. <span class="d1-r6-c">r5-bugs · D4</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s9" data-nav-label="Tausch · Gatling" data-screen hidden>
+  <div class="d1-r6" data-m="shot-09">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/09-picker-gatling.png" width="1920" height="1080" alt="Tausch-Auswahl der Gatling mit Filter Nur Gatling, zwei Treffer, Namen brechen nach Wörtern um" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Tausch-Auswahl · Gatling</b> — „Bauteil wählen — Hardpoint Class 2 · S3“ mit Filter „Nur Gatling“: „2 von 34“, Mantis GT-220 Gatling (✓ verbaut) und Revenant Gatling. Die Namensspalte bricht nach Wörtern um („Mantis GT-220 / Gatling“), nicht mehr Buchstabe für Buchstabe. <span class="d1-r6-c">r5-bugs · D4</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s10" data-nav-label="Seite · Callout" data-screen hidden>
+  <div class="d1-r6" data-m="shot-10">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/10-seite.png" width="1920" height="1080" alt="Seitensicht mit Callout der Gatling, der Callout steht mit Abstand im Schema-Rahmen" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Seite · Callout</b> — Seitensicht mit gewählter Gatling: der Callout „Mantis GT-220 Gatling“ (DPS 853,33 · Alpha 32 · Kadenz 1.600) steht mit Abstand innerhalb des Schema-Rahmens, nicht mehr bündig am rechten Rand. <span class="d1-r6-c">D8 (Bild 05 aus Runde 5)</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s11" data-nav-label="Akte · Lackierung" data-screen hidden>
+  <div class="d1-r6" data-m="shot-11">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/11-akte-livery-tooltip.png" width="1920" height="1080" alt="Akte mit Hover auf die Lackierungs-Kachel Frostbite Camo, Tooltip unter der Kachel" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Akte · Lackierungs-Tooltip</b> — Hover auf die Kachel Frostbite Camo: der Tooltip erscheint unter der Kachel statt über dem Label „Lackierung“; dort deckt er die Beschriftungen „Standard“ und „Timberline“ zur Hälfte ab. <span class="d1-r6-c">D8 (Bild 09 aus Runde 5)</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s12" data-nav-label="Wunschliste · Werk" data-screen hidden>
+  <div class="d1-r6" data-m="shot-12">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/12-wunsch-menu.png" width="1920" height="1080" alt="Hangar-Menü auf Werk mit Auf die Wunschliste mit 2 getauschten Teilen und Entwurfs-Kasten 2 Slots geändert" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Wunschliste · Werk mit zwei Tauschen</b> — Hangar-Menü: Werk „Ungespeicherte Tausche: 2“, unter Wunschliste „Auf die Wunschliste · mit 2 getauschten Teilen“. Werk bleibt Sandkasten: Entwurf „2 Slots geändert · Nicht gespeichert. Nur diese Sitzung.“ mit Verwerfen / Kopie anlegen, Kühler „ArcticStorm ◆“, unten „Geändert: ArcticStorm · Rückgängig“. <span class="d1-r6-c">r5-wish · D1 (teilweise) · D3</span><span class="d1-r6-rest">Restpunkt: Der Eintrag bricht um („Auf die / Wunschliste“). Den Wunsch samt Ausstattung speichert erst die Migration; bis dahin behält er nur den Rumpf, und das Menü sagt das.</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s13" data-nav-label="Exemplar · Autosave" data-screen hidden>
+  <div class="d1-r6" data-m="shot-13">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/13-exemplar-autosave.png" width="1920" height="1080" alt="Eigenes Exemplar Gladius Testlauf, Radar auf Abetti getauscht, Toast Gespeichert 1 Änderung unten rechts" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Eigenes Exemplar · Autosave</b> — Exemplar „Gladius Testlauf“ (Hangar-Knopf „1× im Hangar · Gladius Testlauf ◆“): Radar auf Abetti getauscht. Nach etwa 1,9 s speichert es von selbst, ein Toast unten rechts „Gespeichert · 1 Änderung“ mit Rückgängig, über dem Feedback-Knopf und nicht über der unteren Leiste. Mehrere Tausche in wenigen Sekunden ergeben einen Toast. <span class="d1-r6-c">Notiz zu r5-nested (Autosave) · D3</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s14" data-nav-label="Exemplar · nach Neuladen" data-screen hidden>
+  <div class="d1-r6" data-m="shot-14">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/14-exemplar-nach-reload.png" width="1920" height="1080" alt="Nach dem Neuladen: Hangar-Menü mit Gladius Testlauf, 3 Teile weichen vom Werk ab" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Exemplar · nach dem Neuladen</b> — Radar, Generator und Kühler tragen weiter ◆; das Menü zeigt „Gladius Testlauf · ◆ 3 Teile weichen vom Werk ab“ mit Umbenennen, Notiz, Oben im Hangar anpinnen, Exemplar entfernen; unter Hangar „Dieses Exemplar kopieren“ und „Neues Exemplar aus Werk“. <span class="d1-r6-c">D3 · D2</span><span class="d1-r6-rest">Restpunkt (nicht im Bild): Bis die Migration gepusht ist, antwortet jeder Exemplar-Aufruf einmal mit 400 auf ai_summary.</span></p>
+  </div>
+</section>
+
+<section id="r6-d1-s15" data-nav-label="Gatling in der Halterung" data-screen hidden>
+  <div class="d1-r6" data-m="shot-15">
+    <div class="d1-r6-img"><img src="20261109-1745-holotisch-feinschliff/shots-r6/15-gatling-nested.png" width="1920" height="1080" alt="Exemplar mit getauschter Gatling in der Halterung am Bug: Revenant Gatling mit Raute" loading="lazy" decoding="async"></div>
+    <p class="d1-r6-cap"><b>Gatling in der Halterung</b> — die Gatling in der Halterung am Bug ist auf „Revenant Gatling ◆“ getauscht: Callout mit DPS 1.054 · Alpha 52,7 · Kadenz 1.200, rechts der Inspektor, „Änderungen“ zählt 4. Gespeichert als hardpoint_gun_nose.hardpoint_class_2 im vorhandenen Speicherformat; laut QA bleibt der Tausch nach Autosave und Neuladen. <span class="d1-r6-c">r5-nested · D2</span></p>
+  </div>
+</section>
+
+</section>
+
+<section data-view="r6-v-stand" data-view-kind="analysis" data-analysis="full" data-nav-label="Stand &amp; nächster Schritt" hidden>
+  <section id="r6-briefing" data-analysis-briefing data-nav-label="Briefing">
+    <p data-briefing-what>D2 bis D7 sind gebaut und fotografiert; die Wunschliste mit Ausstattung (D1) ist gebaut, braucht aber ihre Migration. Drei Fragen bleiben vor dem Ship.</p>
+    <p data-briefing-why>Sechs Restpunkte sind bekannt, die Fragen klären nächsten Schritt, Toast-Zähler und Raum-Hervorhebung. Überall ist die Empfehlung vorbelegt.</p>
+    <div data-briefing-potential data-viz="kpi" data-viz-spec='{"value":"6 / 7","unit":"Punkte","label":"fertig, D1 wartet auf die Migration"}'>6 / 7 Punkte</div>
+    <a data-briefing-topic="r6-t-offen" data-share="100">Restpunkte und Fragen</a>
+    <p data-briefing-duration>≈ 3 min</p>
+    <div data-alevel="1" data-title="Briefing">
+      <div data-slot="short"><div data-viz="kpi" data-viz-spec='{"value":"6 / 7","unit":"Punkte","label":"fertig"}'></div><p>6 Punkte stehen, D1 wartet auf die Migration, 6 Restpunkte sind bekannt, 3 Fragen offen.</p></div>
+      <div data-slot="long">
+        <div data-viz="checklist" data-viz-spec='{"text":"Fest steht: D2 bis D7 sind gebaut, D1 ist gebaut und braucht die Migration."}'>
+          <p class="mock-r6-h">Fest steht</p>
+          <ul class="mock-r6-ck mock-r6-one">
+            <li><i aria-hidden="true">✓</i><b>D2</b><span>Waffe in der Halterung wird gespeichert: die Revenant Gatling bleibt nach Autosave und Neuladen, als hardpoint_gun_nose.hardpoint_class_2 im vorhandenen Format (Bild 15)</span></li>
+            <li><i aria-hidden="true">✓</i><b>D3</b><span>Autosave im eigenen Exemplar: ein Toast „Gespeichert · 1 Änderung“ nach etwa 1,9 s unten rechts; Werk bleibt Sandkasten (Bild 12, 13, 14)</span></li>
+            <li><i aria-hidden="true">✓</i><b>D4</b><span>Tausch-Auswahl: Kühler 24 von 24, die Gatling-Namen brechen nach Wörtern um (Bild 08, 09)</span></li>
+            <li><i aria-hidden="true">✓</i><b>D5</b><span>Innen in der unteren Leiste: Carrack Deck 01–04 mit Raum-Chips, Gladius „Alle Räume“ mit Cockpit (Bild 03, 04, 05)</span></li>
+            <li><i aria-hidden="true">✓</i><b>D6</b><span>Einordnung: „Vergleich mit“ und Hexagon | Balken in einer Kopfzeile, gleiche Kartenhöhe (Bild 01, 02)</span></li>
+            <li><i aria-hidden="true">✓</i><b>D7</b><span>Patch-Vergleich ohne „Vergleich beenden“, Reset-Symbol rechts neben den beiden Auswahlen (Bild 06, 07)</span></li>
+            <li><i aria-hidden="true">◐</i><b>D8</b><span>Teilweise belegt: Callout mit Abstand zum Rahmen (Bild 10), Lackierungs-Tooltip unter der Kachel (Bild 11), Patch-Auswahl ohne verdeckten Knopf (Bild 06); der 2-s-Timeout des Namensdialogs ist nicht im Bild</span></li>
+            <li><i aria-hidden="true">✓</i><b>QA</b><span>Behoben nach QA: Entfernen des offenen Exemplars trug seine Tausche nicht mehr in den Werk-Entwurf</span></li>
+          </ul>
+          <ul class="mock-r6-ck mock-r6-one mock-r6-warn">
+            <li><i aria-hidden="true">◐</i><b>D1</b><span>Wunschliste mit Ausstattung: das Menü zeigt „Auf die Wunschliste · mit 2 getauschten Teilen“ (Bild 12); speichern kann sie erst die Migration 20261110120000_hangar_config_wish_and_nested.sql, die nicht gepusht ist. Bis dahin behält ein Wunsch nur den Rumpf.</span></li>
+          </ul>
+        </div>
+        <p>Räume aus der Uploader-Sitzung: <a href="https://github.com/StarOrga/Verse-Companion-Web/pull/1072" target="_blank" rel="noopener noreferrer">StarOrga/Verse-Companion-Web#1072</a> verteilt die Räume der Starlancer MAX neu (Deck 1 / Deck 2 / Ersatz-Deck: 0 / 0 / 24 → 1 / 15 / 8). Der PR ist offen, CI läuft, nicht gemergt.</p>
+        <p>Stand dd3ba5db, QA-Welle 10: Lint 0 Fehler; Specs Codex 2667, Hangar 192, HQ 712, Shared 181 grün; Build grün. Nichts ist ausgeliefert: kein main, kein PR, kein DB-Push, kein Deploy.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="r6-t-offen" data-topic data-nav-label="Restpunkte und Fragen">
+    <div data-alevel="2" data-title="Restpunkte und Fragen">
+      <div data-slot="short"><p>Sechs Restpunkte sind bekannt, drei Fragen haben eine vorbelegte Empfehlung.</p></div>
+      <div data-slot="long">
+        <div data-viz="checklist" data-viz-spec='{"text":"Bekannte Restpunkte: sechs Punkte, jeder mit der Bildnummer."}'>
+          <p class="mock-r6-h">Bekannte Restpunkte</p>
+          <ul class="mock-r6-ck mock-r6-one mock-r6-warn">
+            <li><i aria-hidden="true">!</i><b>05</b><span>Raum-Hervorhebung der Carrack schwach: nur ein Punkt wird cyan, der Plan hat dort keine Raumfläche (Frage 3)</span></li>
+            <li><i aria-hidden="true">!</i><b>01</b><span>Fußnote der Hexagon-Legende am unteren Kartenrand abgeschnitten</span></li>
+            <li><i aria-hidden="true">!</i><b>04</b><span>„QUERSCHNITT“ bricht auf den Balken der Carrack um</span></li>
+            <li><i aria-hidden="true">!</i><b>12</b><span>Die Wunschlisten-Zeile im Menü bricht um („Auf die / Wunschliste“)</span></li>
+            <li><i aria-hidden="true">!</i><b>13 · 14</b><span>Ein 400 auf ai_summary je Exemplar-Aufruf, bis die Migration gepusht ist (nicht im Bild)</span></li>
+            <li><i aria-hidden="true">!</i><b>–</b><span>Stage-CSS 2,85 kB über seinem Budget (Build-Warnung)</span></li>
+          </ul>
+        </div>
+        <div data-viz="checklist" data-viz-spec='{"text":"Weitere Funde aus den Screenshots: elf Beobachtungen, jede mit der Bildnummer."}'>
+          <p class="mock-r6-h">Weitere Funde aus den Screenshots</p>
+          <ul class="mock-r6-ck mock-r6-one mock-r6-warn">
+            <li><i aria-hidden="true">·</i><b>02 · 04 · 05</b><span>Prozentwerte mit Punkt („80.8 %“), sonst steht ein Komma („48,55 t“)</span></li>
+            <li><i aria-hidden="true">·</i><b>04 · 05</b><span>„Rang 1 von 16 … im Mittelfeld“ widerspricht sich; „Alle Expedition“ ist grammatisch unvollständig</span></li>
+            <li><i aria-hidden="true">·</i><b>04</b><span>Deck-Vorschaubild „Weitere Rä…“ abgeschnitten; Raumnamen englisch, „Turret Access“ überlappt im Plan einen Kasten</span></li>
+            <li><i aria-hidden="true">·</i><b>06 · 07</b><span>Kasten „Schema-Version“ am Kartenende abgeschnitten, Zeitstempel als roher ISO-Wert</span></li>
+            <li><i aria-hidden="true">·</i><b>08 · 09</b><span>Kopf „Gilt für den Hardpoint Hardpoint …“ doppelt, Slotnamen englisch; Hinweis zu Energiewaffen auch bei Kühler und ballistischer Gatling</span></li>
+            <li><i aria-hidden="true">·</i><b>08 · 09</b><span>„Klick neben das Fenster, um zurückzukommen“: die Auswahl schließt per Klick daneben</span></li>
+            <li><i aria-hidden="true">·</i><b>10 · 15</b><span>„Geschossgeschwindig-keit“ bricht im Wort um; Typ „Weapon Gun“ englisch</span></li>
+            <li><i aria-hidden="true">·</i><b>11</b><span>Lackierungs-Tooltip deckt die Beschriftungen „Standard“ und „Timberline“ halb ab</span></li>
+            <li><i aria-hidden="true">·</i><b>12</b><span>Tausch-Hinweis „Geändert: ArcticStorm“ liegt über „Klick = Bauteil wählen“</span></li>
+            <li><i aria-hidden="true">·</i><b>13 · 14 · 15</b><span>Leerer umrandeter Kasten über „Details“; in 13 schneidet er die Zeile darüber ab</span></li>
+            <li><i aria-hidden="true">·</i><b>03 · 13–15</b><span>Aus Runde 5 noch offen: Innen-Silhouette der Gladius blass und schematisch; Exemplar öffnet weiter unter /hq/hangar</span></li>
+          </ul>
+        </div>
+        <p>Die Zahl links ist die Bildnummer in „Umsetzung 2“. Gefragt wird nur, was eine Entscheidung braucht.</p>
+      </div>
+    </div>
+
+<section id="r6-ship" data-nav-label="Wie geht es weiter?" data-decision="r6-ship" data-decision-mode="single" data-label="Wie geht es weiter?" data-rec="fix-then-ship" data-rec-why="Die Restpunkte sind klein und sichtbar; mit ihnen ginge jeder gleich in die Alpha, und eine weitere Review-Runde brächte keine neue Frage." data-applies-to="Branch claude/batch-fb8929 (Holotisch-Beta und Hangar-Speicher)" data-finding="r6-ship-f">
+  <p data-applies>Gilt für: Branch claude/batch-fb8929 (Holotisch-Beta und Hangar-Speicher)</p>
+  <p data-situation>Wer jetzt ausliefert, bringt sechs bekannte Restpunkte live, etwa den umgebrochenen Wunschlisten-Eintrag.</p>
+  <h3 data-question>Wie geht es nach dieser Runde weiter?</h3>
+  <p data-stakes>Ob die Restpunkte vor oder nach dem Alpha-Ship behoben werden.</p>
+  <div data-options>
+    <label data-opt="fix-then-ship" data-recommended><input type="radio" name="dm-r6-ship" value="fix-then-ship" checked><span data-opt-label>Restpunkte beheben, dann shippen</span><span data-opt-consequence>Erst die sechs Restpunkte, dann Alpha-Ship samt DB-Push beider Migrationen und Deploy von exemplar-ai.</span></label>
+    <label data-opt="ship-now"><input type="radio" name="dm-r6-ship" value="ship-now"><span data-opt-label>Jetzt shippen, Restpunkte danach</span><span data-opt-consequence>Alles geht sofort live, auch beide Migrationen und exemplar-ai; die Restpunkte folgen in einem eigenen Branch.</span></label>
+    <label data-opt="review"><input type="radio" name="dm-r6-ship" value="review"><span data-opt-label>Noch eine Review-Runde</span><span data-opt-consequence>Ich behebe die Restpunkte und zeige dir Runde 7 mit neuen Bildern, bevor etwas live geht.</span></label>
+  </div>
+  <textarea data-comment="r6-ship-note" placeholder="Notiz (optional)"></textarea>
+  <div data-alevel="3" data-title="Wie geht es weiter?">
+    <div data-slot="short"><p>Sechs bekannte Restpunkte gingen mit einem Ship sofort live.</p></div>
+    <div data-slot="long">
+      <div data-viz="kpi" data-viz-spec='{"value":"6","unit":"Restpunkte","label":"bekannt, vier davon im Bild sichtbar"}'></div>
+      <p>Ein Ship schiebt beide Migrationen in die Cloud-Datenbank, liefert die KI-Funktion aus und braucht den Anthropic-Schlüssel als Secret, der für die Nachschub-Namen schon existiert.</p>
+    </div>
+    <div data-example><div class="mock-r6-list">
+      <p class="mock-r6-h">Was ein Ship anfasst</p>
+      <ul>
+        <li>DB-Push: <code>20261109180000_hangar_config_ai_summary.sql</code> (KI-Zusammenfassung, r5-ai)</li>
+        <li>DB-Push: <code>20261110120000_hangar_config_wish_and_nested.sql</code> (Wunsch mit Ausstattung, D1)</li>
+        <li>Edge-Function-Deploy: <code>exemplar-ai</code> (Namensvorschlag und Zusammenfassung)</li>
+        <li>Secret <code>ANTHROPIC_API_KEY</code>: liegt schon vor, <code>nachschub-names</code> nutzt es</li>
+      </ul>
+    </div></div>
+  </div>
+</section>
+
+<section id="r6-toast" data-nav-label="Was zählt der Toast?" data-decision="r6-toast" data-decision-mode="single" data-label="Was zählt der Speichern-Toast?" data-rec="slots" data-rec-why="So zeigen Toast, Entwurfs-Kasten und Änderungen-Zähler dieselbe Zahl; ein Tausch, der zurückgenommen wurde, zählt nicht mit." data-applies-to="Toast „Gespeichert · N Änderungen“ im eigenen Exemplar (D3)" data-finding="r6-toast-f">
+  <p data-applies>Gilt für: Toast „Gespeichert · N Änderungen“ im eigenen Exemplar (D3)</p>
+  <p data-situation>Wer dasselbe Teil zweimal hintereinander tauscht, kann „2 Änderungen“ lesen, obwohl nur ein Platz anders ist.</p>
+  <h3 data-question>Was zählt der Speichern-Toast?</h3>
+  <p data-stakes>Ob die Zahl im Toast zum Entwurfs-Zähler passt.</p>
+  <div data-options>
+    <label data-opt="slots" data-recommended><input type="radio" name="dm-r6-toast" value="slots" checked><span data-opt-label>Geänderte Slots</span><span data-opt-consequence>Die Zahl nennt, wie viele Plätze seit dem letzten Speichern anders sind, wie „2 Slots geändert“ im Entwurf.</span></label>
+    <label data-opt="clicks"><input type="radio" name="dm-r6-toast" value="clicks"><span data-opt-label>Klicks</span><span data-opt-consequence>Jeder Tausch zählt einzeln, auch zwei Tausche am selben Platz oder ein Tausch zurück.</span></label>
+  </div>
+  <textarea data-comment="r6-toast-note" placeholder="Notiz (optional)"></textarea>
+  <div data-alevel="3" data-title="Was zählt der Speichern-Toast?">
+    <div data-slot="short"><p>Toast und Entwurfs-Kasten können verschiedene Zahlen zeigen.</p></div>
+    <div data-slot="long">
+      <div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Änderung","label":"im Toast nach einem Tausch (Bild 13)"}'></div>
+      <p>Der Entwurfs-Kasten auf Werk zählt Plätze: „2 Slots geändert“.</p>
+    </div>
+    <div data-example>
+      <div class="mock-r6-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r6/13-exemplar-autosave.png" alt="Ausschnitt Toast Gespeichert 1 Änderung mit Rückgängig" style="width:400px;height:76px;object-fit:none;object-position:-1505px -815px" loading="lazy"><p>Bild 13: der Toast im eigenen Exemplar nach einem Tausch.</p></div>
+      <div class="mock-r6-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r6/12-wunsch-menu.png" alt="Ausschnitt Entwurfs-Kasten 2 Slots geändert" style="width:350px;height:110px;object-fit:none;object-position:-1245px -590px" loading="lazy"><p>Bild 12: der Entwurfs-Kasten auf Werk zählt die geänderten Plätze.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="r6-roomhl" data-nav-label="Raum im Deckplan" data-decision="r6-roomhl" data-decision-mode="single" data-label="Raum-Hervorhebung im Deckplan" data-rec="area-later" data-rec-why="Eine Fläche zeigt den Raum, wie er ist; ein Ring jetzt wäre Code, der wegfällt, sobald der Uploader Flächen liefert." data-applies-to="Innen-Ansicht, gewählter Raum im Deckplan (D5)" data-finding="r6-roomhl-f">
+  <p data-applies>Gilt für: Innen-Ansicht, gewählter Raum im Deckplan (D5)</p>
+  <p data-situation>Wer in der Carrack einen Raum wählt, sieht nur einen Punkt cyan werden und nicht, welche Fläche der Raum belegt.</p>
+  <h3 data-question>Wie hebt der Deckplan einen gewählten Raum hervor?</h3>
+  <p data-stakes>Ob man im Deckplan sieht, wo der gewählte Raum liegt.</p>
+  <div data-options>
+    <label data-opt="area-later" data-recommended><input type="radio" name="dm-r6-roomhl" value="area-later" checked><span data-opt-label>Raumfläche füllen, sobald die Uploader-Daten Flächen liefern; bis dahin Punkt + Name</span><span data-opt-consequence>Kein Zwischenbau; bis die Flächen kommen, bleibt es beim cyanen Punkt und dem Namen über der Leiste.</span></label>
+    <label data-opt="ring"><input type="radio" name="dm-r6-roomhl" value="ring"><span data-opt-label>Jetzt einen Ring um den Punkt zeichnen</span><span data-opt-consequence>Sofort deutlicher sichtbar; der Ring ist Code, der wegfällt, sobald Flächen kommen.</span></label>
+  </div>
+  <textarea data-comment="r6-roomhl-note" placeholder="Notiz (optional)"></textarea>
+  <div data-alevel="3" data-title="Raum-Hervorhebung im Deckplan">
+    <div data-slot="short"><p>Ein gewählter Raum färbt nur einen Punkt.</p></div>
+    <div data-slot="long">
+      <div data-viz="kpi" data-viz-spec='{"value":"1","unit":"Punkt","label":"wird beim gewählten Raum cyan, keine Fläche"}'></div>
+      <p>Die Uploader-Daten liefern für Räume bisher nur Punkte, keine Umrisse.</p>
+    </div>
+    <div data-example>
+      <div class="mock-r6-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r6/05-innen-carrack-raum.png" alt="Ausschnitt Deckplan der Carrack, ein Punkt ist cyan" style="width:360px;height:330px;object-fit:none;object-position:-600px -370px" loading="lazy"><p>Bild 05: „Frachtraum“ gewählt, im Plan wird nur der mittlere Punkt cyan.</p></div>
+      <div class="mock-r6-crop"><img src="20261109-1745-holotisch-feinschliff/shots-r6/05-innen-carrack-raum.png" alt="Ausschnitt Raum-Chips mit gewähltem Frachtraum" style="width:480px;height:56px;object-fit:none;object-position:-1110px -948px" loading="lazy"><p>Bild 05: die Raum-Chips des Decks 01, Frachtraum gewählt.</p></div>
+    </div>
   </div>
 </section>
   </section>
@@ -8212,7 +8497,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
 <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Runde 2</button>
 <button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false" aria-controls="iter-3">Runde 3</button>
 <button class="iteration-tab" role="tab" data-iteration="4" aria-selected="false" aria-controls="iter-4">Runde 4</button>
-<button class="iteration-tab" role="tab" data-iteration="5" aria-selected="true" aria-controls="iter-5">Runde 5 · Review</button>
+<button class="iteration-tab" role="tab" data-iteration="5" aria-selected="false" aria-controls="iter-5">Runde 5 · Review</button>
+<button class="iteration-tab" role="tab" data-iteration="6" aria-selected="true" aria-controls="iter-6">Runde 6 · Review</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC

@@ -1,4 +1,5 @@
-<section data-iteration="5" data-iteration-template="design" data-tab-label="Runde 5 · Review">
+<section data-iteration="5" data-iteration-template="design" data-tab-label="Runde 5 · Review" data-baked>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"userPins":[{"id":"up-mw9vc55nc0r7","design":"d1","screen":"r5-d1-s7","x":42.3,"y":18.4,"target":"img","text":"RÄUME SOLLTEN AUCH UNTEN IN INNEN SEIN; SO WIE ES AUCH AUssen gibt!","attachments":[]},{"id":"up-mw9vcz48y8wz","design":"d1","screen":"r5-d1-s11","x":70.2,"y":35.8,"target":"img","text":"das ist hier noch nicht hübsch aufgabeut mit der vergleich mit und hexagon vs balken!","attachments":[]},{"id":"up-mw9vdtza5mu5","design":"d1","screen":"r5-d1-s15","x":66.8,"y":42.9,"target":"img","text":"vergleich beenden benötigt es nicht, einfach ein reset icon rechts neben den beiden auswahlne und fertig ohne aufklappen zu müssen","attachments":[]}]}</script>
 <style>
 /* Round 5: real screenshots, one per screen, plus a caption. All classes carry the d1-r5 / mock- prefix. */
 .d1-r5 { height: 100%; min-height: 600px; display: flex; flex-direction: column; box-sizing: border-box; background: #050d14; color: #c8e4f1; font: 13px/1.45 system-ui, "Segoe UI", sans-serif; }
@@ -250,7 +251,7 @@
       </div>
     </div>
 
-<section id="r5-wish" data-nav-label="Wunschliste mit Ausstattung" data-decision="r5-wish" data-decision-mode="single" data-label="Wunschliste mit Ausstattung" data-rec="loadout" data-rec-why="Auf der Werk-Seite darfst du frei tauschen und den Umbau als Wunsch behalten; ohne Ausstattung ist ein Wunsch nur ein Lesezeichen auf den Rumpf." data-applies-to="Wunschliste im Hangar-Knopf (C23)" data-finding="r5-wish-f">
+<section id="r5-wish" data-nav-label="Wunschliste mit Ausstattung" data-decision="r5-wish" data-decision-mode="single" data-label="Wunschliste mit Ausstattung" data-rec="loadout" data-rec-why="Auf der Werk-Seite darfst du frei tauschen und den Umbau als Wunsch behalten; ohne Ausstattung ist ein Wunsch nur ein Lesezeichen auf den Rumpf." data-applies-to="Wunschliste im Hangar-Knopf (C23)" data-finding="r5-wish-f"><input type="hidden" name="dm-r5-wish-hes" value="{&quot;ms&quot;:17457,&quot;revisits&quot;:0,&quot;median&quot;:17457}">
   <p data-applies>Gilt für: Wunschliste im Hangar-Knopf (C23)</p>
   <p data-situation>Wer einen Umbau auf die Wunschliste setzt, verliert die getauschten Teile, denn gespeichert wird nur der Rumpf. Die Wunschliste hat keinen Speicher für eine Ausstattung.</p>
   <h3 data-question>Was speichert ein Eintrag auf der Wunschliste?</h3>
@@ -270,7 +271,7 @@
   </div>
 </section>
 
-<section id="r5-nested" data-nav-label="Waffen in Halterungen" data-decision="r5-nested" data-decision-mode="single" data-label="Waffen in Halterungen speichern" data-rec="nested" data-rec-why="An der Gladius sitzen alle drei Waffen in Halterungen; ohne verschachtelte Plätze ist jeder Waffen-Umbau nur ein Entwurf." data-applies-to="Waffen in Halterungen, z. B. Gatling am Bug und Laser-Repetierer" data-finding="r5-nested-f">
+<section id="r5-nested" data-nav-label="Waffen in Halterungen" data-decision="r5-nested" data-decision-mode="single" data-label="Waffen in Halterungen speichern" data-rec="nested" data-rec-why="An der Gladius sitzen alle drei Waffen in Halterungen; ohne verschachtelte Plätze ist jeder Waffen-Umbau nur ein Entwurf." data-applies-to="Waffen in Halterungen, z. B. Gatling am Bug und Laser-Repetierer" data-finding="r5-nested-f"><input type="hidden" name="dm-r5-nested-hes" value="{&quot;ms&quot;:52638,&quot;revisits&quot;:0,&quot;median&quot;:17457}">
   <p data-applies>Gilt für: Waffen in Halterungen, z. B. Gatling am Bug und Laser-Repetierer</p>
   <p data-situation>Eine getauschte Waffe in einer Halterung geht beim Speichern verloren: sie trägt ◆, landet aber nicht im Exemplar. Die Hangar-Konfiguration hat keinen Platz für Teile in Halterungen.</p>
   <h3 data-question>Wie gehen wir mit Waffen in Halterungen um?</h3>
@@ -279,7 +280,7 @@
     <label data-opt="nested" data-recommended><input type="radio" name="dm-r5-nested" value="nested" checked><span data-opt-label>Konfiguration um verschachtelte Plätze erweitern</span><span data-opt-consequence>Ein Tausch in der Halterung wird gespeichert wie jeder andere; Speicherformat und Laden ändern sich mit.</span></label>
     <label data-opt="draft"><input type="radio" name="dm-r5-nested" value="draft"><span data-opt-label>Nur im Entwurf, mit klarem Hinweis</span><span data-opt-consequence>Kein Umbau am Speicher; beim Speichern sagt ein Hinweis, dass Waffen in Halterungen nicht mitkommen.</span></label>
   </div>
-  <textarea data-comment="r5-nested-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r5-nested-note" placeholder="Notiz (optional)">also wenn man nicht in codex, aber in seinem eigenen schiff arbeitet sollte jede änderung direkt gespeichert werden gern mit toast rechts unten (leicht verzögert, falls man mehrere dinge direkt in wenigen sekunden setzt)</textarea>
   <div data-alevel="3" data-title="Waffen in Halterungen speichern">
     <div data-slot="short"><p>Alle Waffen der Gladius sitzen in Halterungen.</p></div>
     <div data-slot="long">
@@ -289,7 +290,7 @@
   </div>
 </section>
 
-<section id="r5-ai" data-nav-label="KI-Name &amp; Zusammenfassung" data-decision="r5-ai" data-decision-mode="single" data-label="KI-Name &amp; KI-Zusammenfassung" data-rec="with" data-rec-why="Code, Migration und Funktion sind fertig geschrieben; mit ausgeliefert zeigt das Menü sofort je Exemplar eine Zeile, und der Namensdialog wartet nicht mehr auf eine fehlende Funktion." data-applies-to="Hangar-Menü und Namensdialog (C24, C25)" data-finding="r5-ai-f">
+<section id="r5-ai" data-nav-label="KI-Name &amp; Zusammenfassung" data-decision="r5-ai" data-decision-mode="single" data-label="KI-Name &amp; KI-Zusammenfassung" data-rec="with" data-rec-why="Code, Migration und Funktion sind fertig geschrieben; mit ausgeliefert zeigt das Menü sofort je Exemplar eine Zeile, und der Namensdialog wartet nicht mehr auf eine fehlende Funktion." data-applies-to="Hangar-Menü und Namensdialog (C24, C25)" data-finding="r5-ai-f"><input type="hidden" name="dm-r5-ai-hes" value="{&quot;ms&quot;:10600,&quot;revisits&quot;:0,&quot;median&quot;:17457}">
   <p data-applies>Gilt für: Hangar-Menü und Namensdialog (C24, C25)</p>
   <p data-situation>Das Hangar-Menü zeigt keine Zusammenfassung je Exemplar, und der Namensdialog wartet Sekunden auf eine Funktion, die online fehlt. Code, Migration und Edge Function sind geschrieben, aber nicht ausgeliefert.</p>
   <h3 data-question>Gehen KI-Name und KI-Zusammenfassung mit diesem Branch live?</h3>
@@ -308,7 +309,7 @@
   </div>
 </section>
 
-<section id="r5-bugs" data-nav-label="Fehler schon auf main" data-decision="r5-bugs" data-decision-mode="single" data-label="Bekannte Fehler, die schon auf main sind" data-rec="fix" data-rec-why="Der Holotisch macht das Tauschen zum zentralen Weg; ein Tausch, der für vier Bauteil-Arten nichts findet, fiele im ersten Review sofort auf." data-applies-to="Tausch-Auswahl im Holotisch" data-finding="r5-bugs-f" data-no-example="Diese Runde enthält kein Bild der Tausch-Auswahl.">
+<section id="r5-bugs" data-nav-label="Fehler schon auf main" data-decision="r5-bugs" data-decision-mode="single" data-label="Bekannte Fehler, die schon auf main sind" data-rec="fix" data-rec-why="Der Holotisch macht das Tauschen zum zentralen Weg; ein Tausch, der für vier Bauteil-Arten nichts findet, fiele im ersten Review sofort auf." data-applies-to="Tausch-Auswahl im Holotisch" data-finding="r5-bugs-f" data-no-example="Diese Runde enthält kein Bild der Tausch-Auswahl."><input type="hidden" name="dm-r5-bugs-hes" value="{&quot;ms&quot;:15687,&quot;revisits&quot;:0,&quot;median&quot;:17457}">
   <p data-applies>Gilt für: Tausch-Auswahl im Holotisch</p>
   <p data-situation>Kühler, Schild, Quantenantrieb und Lebenserhaltung lassen sich nicht tauschen, die Auswahl meldet „0 von N — Kein Teil passt“. In der Gatling-Auswahl bricht die Namensspalte Buchstabe für Buchstabe um. Beides steht schon auf main.</p>
   <h3 data-question>Wo beheben wir die zwei Fehler der Tausch-Auswahl?</h3>
@@ -326,7 +327,7 @@
   </div>
 </section>
 
-<section id="r5-rooms" data-nav-label="Räume der Gladius / Starlancer" data-decision="r5-rooms" data-decision-mode="single" data-label="Räume der Gladius / Starlancer" data-rec="uploader" data-rec-why="Die Zuordnung Raum → Deck entsteht im Uploader; der Holotisch kann sie nicht erfinden und zeigt Decks, sobald die Daten stimmen." data-applies-to="Innen-Ansicht aller Schiffe (C26)" data-finding="r5-rooms-f">
+<section id="r5-rooms" data-nav-label="Räume der Gladius / Starlancer" data-decision="r5-rooms" data-decision-mode="single" data-label="Räume der Gladius / Starlancer" data-rec="uploader" data-rec-why="Die Zuordnung Raum → Deck entsteht im Uploader; der Holotisch kann sie nicht erfinden und zeigt Decks, sobald die Daten stimmen." data-applies-to="Innen-Ansicht aller Schiffe (C26)" data-finding="r5-rooms-f"><input type="hidden" name="dm-r5-rooms-hes" value="{&quot;ms&quot;:51403,&quot;revisits&quot;:0,&quot;median&quot;:17457}">
   <p data-applies>Gilt für: Innen-Ansicht aller Schiffe (C26)</p>
   <p data-situation>Die Innen-Ansicht kann keine Decks zeigen: die Räume von Gladius und Starlancer liegen im Ersatz-Deck „Alle Räume“. Der Upload vom 08.11.2026 ist nicht angekommen.</p>
   <h3 data-question>Wie kommen die Räume auf ihre Decks?</h3>
