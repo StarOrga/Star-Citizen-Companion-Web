@@ -1,5 +1,6 @@
 import { NgZone, Signal, signal } from '@angular/core';
 import { onScrollTick } from '../../../core/scroll-tick';
+import { CDK_SCROLL_BLOCK_CLASS, pageScrollY } from '../../../core/page-scroll-y';
 import { TX_DOORS } from './briefing-transmit.component';
 import { setSnapTravelPx } from '../../../shared/snap-travel';
 
@@ -275,6 +276,8 @@ function snapStepper(marked: () => readonly HTMLElement[]): { onWheel: (e: Wheel
   };
   const onWheel = (e: WheelEvent): void => {
     if (e.defaultPrevented || e.ctrlKey || !e.deltaY) return;
+    // A modal overlay blocks the page scroll (#336): no step behind it.
+    if (document.documentElement.classList.contains(CDK_SCROLL_BLOCK_CLASS)) return;
     const d = Math.sign(e.deltaY);
     const now = performance.now();
     // The rest of a step's own gesture (more notches, touchpad inertia): swallowed until it pauses.
@@ -323,7 +326,8 @@ export function wireDock(
   const wide = typeof matchMedia === 'function' ? matchMedia(`(min-width: ${DOCK_MIN_WIDTH}px)`) : null;
   let frame = 0;
   const maxScroll = (): number => document.documentElement.scrollHeight - window.innerHeight;
-  const active = (): boolean => !!wide?.matches && !reduce?.matches;
+  const active = (): boolean =>
+    !!wide?.matches && !reduce?.matches && !document.documentElement.classList.contains(CDK_SCROLL_BLOCK_CLASS);
 
   /** The cue's click: a native smooth scroll to the end in `dir`; true if the page is (or already was) there. */
   const glide = (dir: number): boolean => {
@@ -360,7 +364,8 @@ export function wireDock(
   const update = (): void => {
     frame = 0;
     const doc = document.documentElement;
-    const p = dockProgress(window.scrollY, doc.scrollHeight - window.innerHeight);
+    // pageScrollY: while a modal blocks the scroll, window.scrollY reads 0 and the doors would fly home (#336).
+    const p = dockProgress(pageScrollY(), doc.scrollHeight - window.innerHeight);
     const on = active();
     const st = dockState(p);
     // On the one element that reads it: on the host, a new value recalculated the whole page's

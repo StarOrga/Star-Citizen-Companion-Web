@@ -1,7 +1,87 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.249.0",
+  "current": "0.250.4",
   "releases": [
+    {
+      "version": "0.250.4",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ inventory: all containers share one tile size instead of a quantity-based one, and Hangar and Sammlung tiles keep a fixed height; long names and details are shortened instead of growing the tile."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.250.3",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the Loadout column drops its outer card; like Analyse, only the heading (Loadout, count, info) sits above the individual area boxes, which keep their backgrounds."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.250.2",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the Einordnung card shows the same content as on the Holotisch (group names, comparison line, \"Besser als n %\", side note and the same values) while keeping its classic layout and position."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.250.1",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ: a dialog that blocks page scroll (e.g. \"Einträge löschen?\") no longer makes the collapsed headline expand as if the page were back at the top."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.250.0",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the separate draft box is gone; the Einsatz row now carries a narrow layout dropdown (\"Neu\" plus the saved layouts), a save icon with an unsaved-changes dot, the share link and a cart icon (still disabled), while the Einsatz chips keep their size."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.249.0",
       "date": "2026-11-10",
