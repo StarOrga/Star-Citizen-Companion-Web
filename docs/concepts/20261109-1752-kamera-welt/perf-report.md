@@ -165,6 +165,67 @@ seconds-long blocking `findStat` tasks are gone and the picker animates in more,
   dock); 4: one 50 ms no-script frame per run (as on `eeea37c4`).
 - 60 Hz / 144 Hz runs: still open (display setting, not changed by an agent).
 
+## Wave 2d — the remaining frame budget (kw/budget)
+
+Same machine and harness as Wave 2c (headed Edge, RTX 2080 SUPER, display idling at 6.2–6.6 ms ≈ 155 Hz),
+plus `tmp/kw-perf/longtask.cjs` (CPU samples per long main-thread task, main-thread profile only),
+`gpuwin.cjs` (GPU / raster threads in a time window), `paintinv.cjs` (invalidation tracking) and a
+`--css=<file>` switch in `measure.cjs` that injects a stylesheet, used to try one suspect at a time.
+
+### Causes found (CDP traces of `ac31bd31`)
+
+| scenario | what the trace showed | fix |
+|---|---|---|
+| 5 picker | **Most of the "parse" frames were not the list.** In the harness the swap RPC is a POST and gets `[]`; the 40–98 ms tasks (`Response.text.then`, then `setTimeout`) are `CodexService.getRankCohort()` scoring the whole fleet for the rank card (`findStat` / `computeKpiSheet`), 25 ships per task. | Cohort scoring yields on a **6 ms time budget** instead of every 25 ships (`codex.service.ts`, `COHORT_SLICE_MS`). |
+| 5 picker | The 55–100 ms "no script" frames were the **live WebGL planet**: it measures its anchor with `getBoundingClientRect`; under the push-in (`scale` 1 → 1.04 on `.scene`, which also holds the planet's canvas) the anchor seemed to move every frame, so the planet was followed and redrawn at the display's rate — and drawn 1.04² too big, because the compositor scaled the canvas again. Hiding the planet (`--css`) took the scenario from 14 to 2 frames; `will-change` on `.scene`, dropping the veil's backdrop blur or the nebula blur did not help. | The planet's geometry is measured in the **canvas's layout pixels** (divided by its rendered/layout width ratio, rounded to half pixels): under the push-in it stands still, the compositor scales canvas and world together (`briefing-planet.component.ts`). |
+| 5 picker (live) | On production data the RPC list is up to ~1 MB of JSON, parsed by supabase-js on the main thread when the picker opens before the idle preload reached that slot. | The list is read and parsed in a **worker** (`codex-swap.worker.ts`), rows come back in slices of 12 (each a few ms of structured-clone decode); any worker failure but a missing RPC falls back to the page's client. Pressing or focusing a picker card starts its list at once (`warmSlot`, not on hover — a sweep over a loadout would fire a read per card). |
+| 2a flight | One 210–260 ms frame: `onModelLoad → dressModel → HoloLook.edgesFor` — the crease edges of the Codex landing's hull, computed synchronously in the frame the model loaded, mid-flight. | Crease edges in a **worker** (`holo-edges.worker.ts`, plain-array port `holo-edges.ts`, same result as before — the existing `creaseEdges` spec against `THREE.EdgesGeometry` now runs through it); the fill material is on at once, the lines follow when they arrive (`HoloLook.dressAsync`). |
+| 3a scroll | The `setInterval` task was **`SlowMotionService.tick`**: from the timer it read `playState` / `currentTime` of every driven CSS animation — each read flushes pending style, so mid-morph the first read forced a whole-document recalc (2 325 elements) and every later read after a write another one (23 ms script + 22 ms style). | The 15 Hz step now runs **in the next frame** (timer schedules a rAF, like the hold check already did) and reads every state before it writes (`slow-motion.service.ts`). |
+
+What the user sees differently: the holo hull's crease lines appear a moment (one worker round trip,
+~100–300 ms on a big hull) after its fill instead of together with it; the planet under an open large popup
+is now scaled once (1.04, like the world) instead of 1.04². Nothing else.
+
+### Re-measure (3 interleaved runs per build, medians)
+
+`main` = `origin/main`, `ac31bd31` = all Kamera-Welt waves up to 2c, `kw/budget` = this wave.
+Each cell: **median frames > 33 ms** (the three runs) · median p95 · median max (ms).
+
+| scenario | main | ac31bd31 | kw/budget |
+|---|---|---|---|
+| 1 entrance / | **8** (8/7/9) · 7.2 · 109.5 | **3** (3/3/3) · 7.2 · 70.5 | **4** (3/5/4) · 7.2 · 71 |
+| 2a flight verse→codex | **9** (8/10/9) · 18.5 · 235.3 | **9** (8/9/10) · 13.4 · 210.4 | **8** (9/6/8) · 18.6 · 63.7 |
+| 2b flight codex→hq | **2** (2/2/2) · 7.1 · 91.2 | **2** (2/2/2) · 7.1 · 90.4 | **2** (2/2/2) · 7.1 · 89.6 |
+| 3a scroll stage→index /codex | **4** (5/4/2) · 12.8 · 81.5 | **4** (2/4/4) · 7.2 · 62.4 | **4** (4/2/4) · 7.5 · 62.9 |
+| 3b scroll stage→index /hq | **1** (1/0/1) · 7.2 · 38.7 | **0** (1/0/0) · 7.2 · 31.3 | **1** (1/1/2) · 7.1 · 37.1 |
+| 4 codex index list scroll | **0** (0/1/0) · 12.8 · 31.8 | **1** (1/0/1) · 10.9 · 50.9 | **1** (1/1/1) · 8.4 · 49.6 |
+| 5 swap picker open/close | **12** (14/12/12) · 162.6 · 228.4 | **15** (15/14/15) · 39.1 · 90.2 | **2** (3/2/2) · 7.5 · 81.8 |
+
+### Still over budget (Q3 not done)
+
+- **5 swap picker: 2 frames (54 / 78 ms, no script).** GPU raster at the start of the push-in
+  (`RasterDecoderImpl::DoEndRasterCHROMIUM::Flush` ≈ 85 ms on `CrGpuMain` in the first 170 ms): the
+  scale animation on `.scene` changes the raster scale of its big layers (`.world` 350vw × 262.5vw,
+  `.sky` with its bleed), which are re-rastered once when the animation starts. Not tried yet: keep
+  those layers' raster scale fixed (scale a sibling snapshot layer, or only dim the scene and push in
+  the small objects).
+- **2a flight: 8 frames (51–67 ms).** `Response.text.then` tasks in rAF callbacks = the Codex landing's
+  own data (catalog / build reads) parsed by supabase-js on the main thread while the camera flies, plus a
+  ~53 ms `setTimeout` task inside zone.js (`Y@polyfills`), not traced to its source in this wave. Route chunks are already preloaded at idle
+  (`IdlePreloadingStrategy`), so the chunk itself is not the cost. **Not built:** warming the
+  destination's data on nav-link hover/focus and holding the landing's heavy render until
+  `SceneCameraService.flyTo` resolves.
+- **2b flight: 2 frames** (85 ms `setTimeout`, 76 ms rAF) — the HQ page's first render; same on `main`.
+- **1 entrance: 3–5 frames** (`import.then` 56 ms = the first lazy chunk evaluation, a `fetch` parse 52 ms,
+  one 51 ms no-script frame) — first-visit costs; same order on every build.
+- **3a: 4 frames, no script (62–87 ms)**: the setInterval task is gone, what remains is paint — the
+  root layer (the whole 1595 × 4080 page) repaints in every frame of the dock (≈ 320 paints / 160 ms per
+  run); invalidation tracking points at the holotable's leader lines (`.leaders path.real`, *SVG resource
+  invalidated* 438× — `filter: drop-shadow` + `vector-effect: non-scaling-stroke` under a moving
+  ancestor). Next: give `.leaders` its own layer or drop the per-path drop-shadow during the dock.
+- **4: 1 frame (50 ms, no script)** per run, as on `ac31bd31`.
+- 60 Hz / 144 Hz runs: still open (display setting, not changed by an agent).
+
 ## Phones (Q4)
 
 `tmp/kw-perf/mobile.cjs` (untracked) walks 390 × 844 and 360 × 740 in Edge mobile emulation (touch, mobile UA)
