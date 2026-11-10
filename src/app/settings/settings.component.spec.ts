@@ -15,6 +15,7 @@ import { ComposerPrefsService } from '../core/composer-prefs.service';
 import { ConsentService } from '../core/consent.service';
 import { LocaleService } from '../core/locale/locale.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { RoutineTintPrefsService } from '../admin/feedback/routine-tint-prefs.service';
 import { SettingsComponent } from './settings.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
@@ -113,6 +114,11 @@ describe('SettingsComponent layout', () => {
           },
         },
         { provide: AnalyticsService, useValue: { capture: () => undefined } },
+        // Account-synced (profiles.ui_prefs): stubbed so the spec never reads a profile.
+        {
+          provide: RoutineTintPrefsService,
+          useValue: { binary: signal(false), setBinary: () => undefined },
+        },
         {
           provide: SupabaseClientProvider,
           useValue: {
