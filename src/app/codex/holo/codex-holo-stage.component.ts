@@ -37,7 +37,7 @@ import {
   RankScope,
   RankShipInput,
   rankClassLabelKey,
-  rankClassPluralKey,
+  rankCohortLabel,
   rankMissionNoteKey,
   rankProfileForMission,
 } from '../codex-rank';
@@ -1135,15 +1135,9 @@ export class CodexHoloStageComponent {
   readonly missionLabelKey = computed(() => (this.activeMissionId() === 'all' ? this.rankClassLabel() : 'codex.mission.' + this.activeMissionId()));
   readonly missionHue = computed(() => missionColor(this.activeMissionId()));
   /** Who the Einsatz cell compares with: "26 × Leichter Jäger", "41 Kampfschiffe", "120 Schiffe". */
-  readonly cohortLabel = computed<string | null>(() => {
-    const r = this.rankResult();
-    if (!r) return null;
-    const n = r.cohortSize;
-    const role = this.roleName();
-    if (r.scope === 'role' && role) return this.t.instant('codex.holo.strip.cohortRole', { n, role });
-    if (r.scope === 'career') return `${n} ${this.t.instant(rankClassPluralKey(this.rankShipClass()))}`;
-    return this.t.instant('codex.holo.strip.shipCount', { n });
-  });
+  readonly cohortLabel = computed<string | null>(() =>
+    rankCohortLabel(this.t, this.rankResult(), this.roleName(), this.rankShipClass()),
+  );
   readonly rankDisabledReasons = input<Partial<Record<RankProfileId, string | null>>>({});
   readonly rankCohort = input<readonly RankShipInput[] | null>(null);
   readonly recentlyViewedShips = input<readonly string[]>([]);

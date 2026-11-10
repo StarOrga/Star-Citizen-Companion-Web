@@ -15,6 +15,7 @@ import {
   RankResult,
   RankScope,
   rankBandOf,
+  rankCohortLabel,
 } from './codex-rank';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -93,7 +94,7 @@ function readShapePref(): 'hex' | 'bars' {
   standalone: true,
   imports: [TranslatePipe, ScSegmentedComponent, ScTooltipDirective, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.holo]': 'holo()' },
+  host: { '[class.holo]': 'holo()', '[class.holo-text]': 'holoText()' },
   template: `
     <section class="rank-card" [class.sc-card]="!holo()">
       <div class="rank-head">
@@ -106,7 +107,11 @@ function readShapePref(): 'hex' | 'bars' {
         }
         @if (result()) {
           <p class="cohort-line">
-            {{ cohortLineKey() | translate: { n: result()!.cohortSize, k: sizeClass() } }}
+            @if (holoCohortLine(); as line) {
+              {{ line }}
+            } @else {
+              {{ cohortLineKey() | translate: { n: result()!.cohortSize, k: sizeClass() } }}
+            }
           </p>
         } @else {
           <p class="cohort-line gap">{{ 'codex.kpi.gap' | translate }}</p>
@@ -197,7 +202,7 @@ function readShapePref(): 'hex' | 'bars' {
               <line class="connector" [class.up]="c.up" [class.down]="!c.up" [attr.x1]="c.x1" [attr.y1]="c.y1" [attr.x2]="c.x2" [attr.y2]="c.y2" />
             }
             @for (cap of axisCaptions(); track cap.key) {
-              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="cap.anchor" [class.gap]="cap.gap" [class.up]="cap.trend === 'up'" [class.down]="cap.trend === 'down'">{{ (holo() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holo() && cap.gap) { ·—}</text>
+              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="cap.anchor" [class.gap]="cap.gap" [class.up]="cap.trend === 'up'" [class.down]="cap.trend === 'down'">{{ (holoText() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holoText() && cap.gap) { ·—}</text>
             }
           </svg>
           <dl class="sr-only axis-mirror">
@@ -216,12 +221,16 @@ function readShapePref(): 'hex' | 'bars' {
             <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="2" x2="10" y2="8" class="sw-down" /></svg></dt>
             <dd><b class="down">{{ copy().legendWorse | translate }}</b></dd>
           </dl>
-          @if (holo()) {
-            <!-- The scale's footnote lives in its own tooltip: two full lines did not fit the fixed card (B13). -->
-            <span class="hc-label rim-i" tabindex="0" [scTooltip]="'codex.rank.rimNote' | translate">
-              {{ 'codex.rank.rimLabel' | translate }}<span class="hc-i" aria-hidden="true">i</span>
-              <span class="sr-only">{{ 'codex.rank.rimNote' | translate }}</span>
-            </span>
+          @if (holoText()) {
+            @if (holo()) {
+              <!-- The scale's footnote lives in its own tooltip: two full lines did not fit the fixed card (B13). -->
+              <span class="hc-label rim-i" tabindex="0" [scTooltip]="'codex.rank.rimNote' | translate">
+                {{ 'codex.rank.rimLabel' | translate }}<span class="hc-i" aria-hidden="true">i</span>
+                <span class="sr-only">{{ 'codex.rank.rimNote' | translate }}</span>
+              </span>
+            } @else {
+              <p class="rim-note">{{ 'codex.rank.rimNote' | translate }}</p>
+            }
             @if (missionNoteKey(); as note) {
               <p class="rim-note">{{ note | translate }}</p>
             }
@@ -292,7 +301,7 @@ function readShapePref(): 'hex' | 'bars' {
                   }
                 </span>
                 <span class="bar-value">
-                  @if (a.percentile != null && holo()) {
+                  @if (a.percentile != null && holoText()) {
                     <span class="bar-pct">{{ 'codex.rank.betterThan' | translate: { n: pct(a.percentile) } }}</span>
                   } @else if (a.percentile != null) {
                     {{ a.percentile }}%
@@ -549,6 +558,9 @@ function readShapePref(): 'hex' | 'bars' {
     /* Same height as the compact picker beside it: both rows are 32px. */
     :host(.holo) .hc-shape { align-self: stretch; }
     :host(.holo) .rim-i { align-self: flex-start; }
+    /* Classic card with Holotable wording: "Besser als 62 %" does not fit the 34px value column. */
+    :host(.holo-text:not(.holo)) .bar-row { grid-template-columns: 74px minmax(0, 1fr) auto; }
+    :host(.holo-text:not(.holo)) .bar-pct { white-space: nowrap; }
     .rim-note { margin: 0; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
   `],
 })
@@ -579,7 +591,23 @@ export class CodexRankCardComponent {
   /** An honest line under the hexagon (Bergbau/Bergung: no data), an i18n key. */
   readonly missionNoteKey = input<string | null>(null);
   /** The holotable's rim is the group's 95th percentile, the classic card's its best value. */
-  readonly compareInfoKey = computed(() => (this.holo() ? 'codex.rank.compare.infoHolo' : this.copy().compareInfo));
+  readonly compareInfoKey = computed(() => (this.holoText() ? 'codex.rank.compare.infoHolo' : this.copy().compareInfo));
+
+  /** The classic ship card in the Holotable's words (#329): group names, cohort
+   * line, rim note, "Besser als n %" and the gap captions — the classic layout
+   * stays. The page must then rank with the Holotable's options too (p95 rim,
+   * career = class), since the rim note and the root scale describe those. */
+  readonly holoContent = input(false);
+  /** Holotable wording on: the Holotable itself, or the classic card opting in. */
+  readonly holoText = computed(() => this.holo() || this.holoContent());
+
+  /** Classic card with Holotable wording: "7 × Leichter Jäger" as the cohort line. */
+  readonly holoCohortLine = computed<string | null>(() => {
+    const cls = this.shipClass();
+    if (this.holo() || !this.holoContent() || !cls) return null;
+    this.langTick();
+    return rankCohortLabel(this.translate, this.result(), this.roleName(), cls);
+  });
 
   private readonly translate = inject(TranslateService);
   private readonly langTick = signal(0);
@@ -621,7 +649,7 @@ export class CodexRankCardComponent {
   /** Holo group names; null = classic wording. Role/career fall back to a
    * neutral phrase ("Gleiche Art"), never to the words Karriere/Rolle. */
   private readonly holoScopeNames = computed<Partial<Record<RankScope, string>> | null>(() => {
-    if (!this.holo()) return null;
+    if (!this.holoText()) return null;
     this.langTick();
     const t = this.translate;
     const alle = (name: string) => t.instant('codex.rank.group.of', { name });
@@ -670,7 +698,7 @@ export class CodexRankCardComponent {
 
   /** Holotable: the active group's size when it is under RANK_MIN_GROUP, else null. */
   readonly smallGroupSize = computed<number | null>(() => {
-    if (!this.holo()) return null;
+    if (!this.holoText()) return null;
     const r = this.result();
     const n = r?.scopeSizes?.[r.scope];
     return r && r.scope !== 'all' && n != null && n < RANK_MIN_GROUP ? n : null;
@@ -807,7 +835,7 @@ export class CodexRankCardComponent {
    * centre. The numbers (`norm`, `delta`) stay linear; the classic card stays linear.
    */
   private radial(value: number): number {
-    return this.holo() ? Math.sqrt(value / 100) : value / 100;
+    return this.holoText() ? Math.sqrt(value / 100) : value / 100;
   }
 
   vertexAt(percentile: number, i: number, n: number): string {

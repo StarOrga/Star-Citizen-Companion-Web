@@ -223,6 +223,7 @@ import {
   narrowestRankScope,
   readRankScopePref,
   rankShip,
+  rankMissionNoteKey,
   resolveCareerLabel,
   writeRankScopePref,
 } from './codex-rank';
@@ -574,6 +575,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [profile]="rankProfile()"
             [scope]="rankScope()"
             [disabledReasons]="rankDisabledReasons()"
+            [holoContent]="true"
+            [shipClass]="rankShipClass()"
+            [roleName]="rankRoleName()"
+            [missionNoteKey]="rankMissionNote()"
             (profileChange)="rankProfile.set($event)"
             (scopeChange)="setRankScope($event)" />
           </div>
@@ -596,26 +601,38 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [capabilities]="shipCapabilities()"
               [changed]="draftChangedCount()"
               (missionChange)="setMission($event)" />
-            <sc-codex-loadout-save-bar
-              class="draft-controls"
-              [changed]="draftChangedCount()"
-              [saveable]="saveableEntries().length"
-              [saving]="saving()"
-              [error]="saveError()"
-              [inHangar]="personalMode()"
-              (save)="saveLoadoutDraft()"
-              (discard)="discardLoadoutDraft()"
-              (addAndSave)="addToHangar()" />
-            <!-- #322: named loadouts per ship (local) + the prepared cart action. -->
-            @if (detail(); as d) {
-              <sc-codex-saved-loadouts
-                class="saved-loadouts"
-                [shipClassName]="d.classNameSlug"
-                [buildId]="build()?.id ?? null"
-                [draft]="draft()"
-                [readOnly]="draftReadOnly()"
-                (recall)="recallSavedLoadout($event)" />
-            }
+            <!-- #322: the layout controls replaced the separate ENTWURF box here.
+                 One dropdown (Neu + this ship's layouts), save icon with the
+                 "not saved" dot, share link, cart icon — narrow, so the
+                 mission chips beside them keep their size. Discarding is the
+                 stage row's "Werks-Loadout". -->
+            <div class="draft-side">
+              @if (personalMode()) {
+                <!-- A hangar variant still saves into the hangar: only its
+                     save control stays, without the box. -->
+                <sc-codex-loadout-save-bar
+                  class="draft-controls"
+                  [compact]="true"
+                  [changed]="draftChangedCount()"
+                  [saveable]="saveableEntries().length"
+                  [saving]="saving()"
+                  [error]="saveError()"
+                  [inHangar]="true"
+                  (save)="saveLoadoutDraft()"
+                  (discard)="discardLoadoutDraft()"
+                  (addAndSave)="addToHangar()" />
+              }
+              @if (detail(); as d) {
+                <sc-codex-saved-loadouts
+                  class="saved-loadouts"
+                  [shipClassName]="d.classNameSlug"
+                  [buildId]="build()?.id ?? null"
+                  [draft]="draft()"
+                  [changed]="draftChangedCount()"
+                  [readOnly]="draftReadOnly()"
+                  (recall)="recallSavedLoadout($event)" />
+              }
+            </div>
           </div>
         }
 
@@ -631,7 +648,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           <!-- ── Ship modules, configurable blocks first (461288f9), now
                mission-ordered/folded (PR C) ── -->
           @if (primaryModuleSections().length > 0) {
-            <section class="sc-card block col-loadout col-stick" scHeightVar="--_h" [scFeedbackSpot]="'codex.detail.columnLoadout'">
+            <!-- No outer card (#332): like the Analyse column beside it, the
+                 heading stands bare above the area boxes (Bewaffnung, Raketen,
+                 Türme, …), which keep their own boxes and backgrounds. -->
+            <section class="col-loadout col-stick" scHeightVar="--_h" [scFeedbackSpot]="'codex.detail.columnLoadout'">
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
                 <span class="n">{{ moduleCount() }}</span>
@@ -1390,8 +1410,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .mission-draft-bar { display: flex; align-items: center; justify-content: space-between;
       gap: 12px; flex-wrap: wrap; }
     .mission-draft-bar sc-codex-mission-bar { flex: 1 1 auto; min-width: 0; }
-    .draft-controls { flex: 0 0 auto; }
-    .saved-loadouts { flex: 0 1 auto; margin-left: auto; }
+    .draft-side { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .draft-controls, .saved-loadouts { flex: 0 0 auto; }
 
     /* The ship stage's own hero chip row (.hchip, career/role/crew/cargo/mass)
        moved to sc-codex-ship-stage (AUD-062) along with everything else the
@@ -4333,17 +4353,24 @@ export class CodexDetailComponent implements OnInit {
     const target = this.rankShipInput();
     const cohort = this.rankCohort();
     if (!target || !cohort) return null;
-    // Holotable: rim at the group's 95th percentile, a "Karriere" group is the
-    // class, and the picked group applies even under RANK_MIN_GROUP (the card
-    // says "nur N Schiffe", concept r1-small). The classic card keeps the
-    // best-value rim and the raw career.
-    const holo = this.holoView();
+    // Both views rank the Holotable way (#329): rim at the group's 95th
+    // percentile, a "Karriere" group is the class, and the picked group applies
+    // even under RANK_MIN_GROUP (the card says "nur N Schiffe", concept
+    // r1-small). The classic card shows the same content in its own layout.
     return rankShip(target, cohort, {
       profile: this.rankProfile(),
       scope: this.rankScope(),
-      ...(holo ? { rim: 'p95' as const, careerByClass: true } : {}),
+      rim: 'p95',
+      careerByClass: true,
     });
   });
+
+  /** The role as the page shows it ("Leichter Jäger") — names the role group. */
+  readonly rankRoleName = computed<string | null>(
+    () => this.heroChips().find((c) => c.key === 'role')?.text?.trim() || null,
+  );
+  /** The honest line under the hexagon for an Einsatz without data. */
+  readonly rankMissionNote = computed<string | null>(() => rankMissionNoteKey(this.activeMissionId()));
 
   readonly rankDisabledReasons = computed<Partial<Record<RankProfileId, string | null>>>(() => {
     if (this.kind() !== 'ship') return {};

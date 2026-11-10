@@ -34,20 +34,26 @@ import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (changed() > 0 && !autosaveCovers()) {
-      <div class="bar sc-card">
-        <!-- The three parts the concept draws, and nothing else. -->
-        <div class="lead">
-          <span class="label">{{ 'codex.detail.draftLabel' | translate }}</span>
-          <span class="chip">{{ (changed() === 1 ? 'codex.detail.draftChanged' : 'codex.detail.draftChangedPlural') | translate: { n: changed() } }}</span>
-        </div>
-        <p class="notice">{{ 'codex.detail.draftNotice' | translate }}</p>
+      <div class="bar" [class.sc-card]="!compact()" [class.compact]="compact()">
+        <!-- The three parts the concept draws, and nothing else. The compact
+             form (classic ship view, #322) drops them: the layout controls
+             beside it carry the "not saved" state as a dot. -->
+        @if (!compact()) {
+          <div class="lead">
+            <span class="label">{{ 'codex.detail.draftLabel' | translate }}</span>
+            <span class="chip">{{ (changed() === 1 ? 'codex.detail.draftChanged' : 'codex.detail.draftChangedPlural') | translate: { n: changed() } }}</span>
+          </div>
+          <p class="notice">{{ 'codex.detail.draftNotice' | translate }}</p>
+        }
         @if (error()) {
           <p class="err">{{ error() }}</p>
         }
         <div class="actions">
-          <button type="button" class="discard" [disabled]="saving()" (click)="discard.emit()">
-            {{ 'codex.detail.draftDiscard' | translate }}
-          </button>
+          @if (!compact()) {
+            <button type="button" class="discard" [disabled]="saving()" (click)="discard.emit()">
+              {{ 'codex.detail.draftDiscard' | translate }}
+            </button>
+          }
           <button
             type="button"
             class="save"
@@ -98,6 +104,11 @@ import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
     .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
       gap: 10px; padding: 10px 14px; margin-bottom: 10px;
       border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent); }
+    .bar.compact { position: relative; padding: 0; margin: 0; border: 0; flex-wrap: nowrap; }
+    .bar.compact .save { min-height: 32px; padding: 4px 12px; }
+    @media (pointer: coarse) { .bar.compact .save { min-height: 48px; } }
+    .bar.compact .reason { position: absolute; top: calc(100% + 4px); right: 0; z-index: 5; max-width: 22rem;
+      background: var(--sc-bg-1); padding: 6px 8px; border-radius: 6px; }
     .lead { display: flex; align-items: center; gap: 8px; flex: none; }
     .label { font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
     .chip { padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--sc-warn) 22%, var(--sc-bg-2)); color: var(--sc-warn); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; }
@@ -129,6 +140,8 @@ export class CodexLoadoutSaveBarComponent {
   readonly error = input<string | null>(null);
   /** Personal mode (`?v=`): the button saves into the variant; codex mode offers "In dein HQ übernehmen". */
   readonly inHangar = input(false);
+  /** Only the save control, no ENTWURF box — the classic ship view's Einsatz row (#322). */
+  readonly compact = input(false);
 
   readonly save = output<void>();
   readonly discard = output<void>();

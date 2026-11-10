@@ -2,6 +2,7 @@ import { EventHqService } from './events/event-hq.service';
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, afterNextRender, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
+import { pageScrollY } from '../core/page-scroll-y';
 import { HQ_PAGE_ICONS, HqPageNavService } from './hq-page-nav.service';
 
 /** Scroll distance (px) in one direction before the bar follows it. */
@@ -117,10 +118,10 @@ export class HqPageBarComponent {
     const zone = inject(NgZone);
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => {
-      let last = window.scrollY;
+      let last = pageScrollY();
       let run = 0;
       const onScroll = () => {
-        const y = window.scrollY;
+        const y = pageScrollY();
         const dy = y - last;
         last = y;
         // Direction changes restart the run; the bar follows a run longer than the slack.
