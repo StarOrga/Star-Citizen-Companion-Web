@@ -312,8 +312,11 @@ describe('Shell scene — camera and component', () => {
     reduced = true;
     await go('/hq');
     await go('/codex');
-    expect(el().querySelectorAll('.scene-ghost').length).toBe(1);
-    await new Promise((r) => setTimeout(r, 900));
+    const ghosts = el().querySelectorAll<HTMLElement>('.scene-ghost');
+    expect(ghosts.length).toBe(1);
+    // Wait for the second fade itself, not a wall-clock guess (a loaded CI runner finished it past 900 ms).
+    await ghosts[0].getAnimations()[0].finished;
+    await Promise.resolve();
     expect(el().querySelector('.scene-ghost')).toBeNull();
   });
 
