@@ -433,8 +433,7 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
       /* Slides down under sc-impersonation-banner while a preview is active —
          see that component's constructor, which owns this var (0px = no-op). */
       position: sticky; top: var(--sc-imp-banner-h, 0px); z-index: 2; padding: 8px 0;
-      background: color-mix(in srgb, var(--sc-bg-0) 88%, transparent);
-      backdrop-filter: blur(6px);
+      background: color-mix(in srgb, var(--sc-bg-0) 93%, transparent);
     }
     .kb-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .devices { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }

@@ -1,4 +1,5 @@
 import { rankBySearch } from './codex-search';
+import { onScrollTick } from '../core/scroll-tick';
 import { CompareIconComponent } from './compare-icon.component';
 import { CodexBuildDiffService, NEW_SORT_KINDS } from './codex-build-diff.service';
 import { toErrorKey } from '../core/describe-error';
@@ -8,6 +9,7 @@ import {
   OnInit,
   DestroyRef,
   ElementRef,
+  NgZone,
   afterNextRender,
   viewChild,
   computed,
@@ -84,6 +86,7 @@ import { CodexSearchTriggerComponent } from './search/codex-search-trigger.compo
 import { CODEX_ROOT_CRUMB, PageCrumb } from '../shared/page-header/nav-origin.service';
 import { BarFacet, BarFilterToken, ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
 import { BetaService } from '../core/beta.service';
+import { PAGE_MOTION_STYLES } from '../shared/page-motion/page-motion.styles';
 import {
   CREW_BANDS,
   CREW_BAND_RANGE,
@@ -116,6 +119,9 @@ import { BuyOption, UexShopService } from './uex-shop.service';
 type CodexGridRow = EditionGroupedRow<SkinGroupedRow<FoldedRow<CodexListRow>>>;
 
 const PAGE_SIZE = 60;
+/** progressive: rows of the first slice, then rows added per frame. */
+const FIRST_SLICE = 6;
+const ROW_SLICE = 6;
 const SEARCH_DEBOUNCE_MS = 250;
 /** Idle time after which a typed search counts as committed (history entry, L33). */
 export const SEARCH_COMMIT_MS = 1000;
@@ -182,7 +188,7 @@ export function blueprintCategoriesForGroup(
   imports: [CompareIconComponent, ItemPathComponent, NgTemplateOutlet, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, ScActionDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="browse">
+    <section class="browse" [class.pm-on]="enter()" [class.pm-hold]="!go()">
       <!-- Two columns that start at the top (package B, 2026-11-06): title + area tree on the
            left, filter bar + list on the right, so the list is not pushed below the title. -->
       <div class="layout">
@@ -225,7 +231,7 @@ export function blueprintCategoriesForGroup(
               <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
             </div>
           } @else {
-            <div class="list sc-card">
+            <div class="list sc-card" [style.--pm-delay]="rowBase() + 'ms'">
               <div class="list-head">
                 <span class="count" role="status">
                   @if (listLoading() && listLength() === 0) {
@@ -299,8 +305,8 @@ export function blueprintCategoriesForGroup(
                 </div>
               } @else if (isUpcoming()) {
                 <ul class="rows" role="list">
-                  @for (s of upcomingRows(); track s.id) {
-                    <li class="row">
+                  @for (s of upcomingRows(); track s.id; let i = $index) {
+                    <li class="row" [class.pm-pop]="i < ROW_POPS" [style.--pm-i]="i < ROW_POPS ? i : null">
                       <a class="row-link" [routerLink]="['/codex/upcoming', s.id]" (click)="openUpcoming($event)">
                         <span class="sil icon" aria-hidden="true"><sc-codex-icon kind="ship" /></span>
                         <span class="main">
@@ -317,8 +323,8 @@ export function blueprintCategoriesForGroup(
                 </ul>
               } @else {
                 <ul class="rows" role="list">
-                  @for (r of rows(); track r.classNameSlug) {
-                    <li class="row">
+                  @for (r of shownRows(); track r.classNameSlug; let i = $index) {
+                    <li class="row" [class.pm-pop]="i < ROW_POPS" [style.--pm-i]="i < ROW_POPS ? i : null">
                       <a class="row-link" [routerLink]="['/codex', kind(), r.classNameSlug]">
                         @if (silhouetteOf(r); as s) {
                           <span class="sil" aria-hidden="true">
@@ -578,8 +584,20 @@ export function blueprintCategoriesForGroup(
       </ul>
     </ng-template>
   `,
-  styles: [`
+  styles: [PAGE_MOTION_STYLES + `
     :host { display: block; }
+    /* ── Index entrance (camera world S4, rounds/05 d5-pb-scroll left/rows): after the header has transformed there is a
+       gap, then the sidebar and the role filters arrive, then the rows pop one by one (70 ms apart) with a light edge. The
+       whole thing runs once per open (.pm-on is dropped after it); rows loaded later, filtering and scrolling never replay it. ── */
+    .pm-on { --pm-side-at: 900ms; }
+    /* Held until the entrance starts: a paused animation in its delay phase keeps the hidden start frame. */
+    .pm-hold :is(.side, .filterbar, .list-head, .row) { animation-play-state: paused; }
+    .pm-on .side { animation: pm-rise 560ms var(--pm-ease) var(--pm-side-at) backwards; }
+    .pm-on .filterbar { animation: pm-rise 560ms var(--pm-ease) calc(var(--pm-side-at) + 140ms) backwards; }
+    .pm-on .list-head { animation: pm-fade 420ms ease-out calc(var(--pm-side-at) + 260ms) backwards; }
+    @media (prefers-reduced-motion: reduce) {
+      .pm-on .side, .pm-on .filterbar, .pm-on .list-head { animation: pm-fade 200ms ease-out backwards; }
+    }
     .browse { display: flex; flex-direction: column; gap: var(--sc-space-4, 16px); padding-bottom: 80px; }
     .layout { display: grid; grid-template-columns: 256px minmax(0, 1fr); gap: var(--sc-space-4, 16px); align-items: stretch; }
     /* Left column: title, then the sticky area tree under it. */
@@ -861,7 +879,53 @@ export class CodexBrowseComponent implements OnInit {
   /** Beta "shell": kinds + filters move into the Fusion bar. */
   /** 2 when the overview is the lower half of /codex ("Mehr in Codex"): the landing above owns the <h1>. */
   readonly headingLevel = input<1 | 2>(1);
+  /**
+   * Build the first list in slices (FIRST_SLICE rows, then ROW_SLICE per frame) instead of in
+   * one frame. Set by /codex, where the overview is built under the stage right after a camera
+   * flight: one frame for all its cards was the flight's longest (concept 20261109-1752, r6).
+   */
+  readonly progressive = input(false);
   protected readonly shellOn = inject(BetaService).isEnabled('shell');
+  /** How many rows pop in one by one; further rows (and every later load) just appear. */
+  protected readonly ROW_POPS = 14;
+  /** The entrance of the index is running (shell beta, own page, first fill); dropped once it has played. */
+  private readonly entering = signal(true);
+  private readonly zone = inject(NgZone);
+
+  /**
+   * progressive: the first time rows arrive, render FIRST_SLICE of them and add ROW_SLICE per
+   * frame until the list stands. Later loads (filters, load more) render at once. The list sits
+   * under the stage, out of view, so the slices are never seen arriving.
+   */
+  private sliceFirstList(): void {
+    let started = false;
+    let frame = 0;
+    inject(DestroyRef).onDestroy(() => cancelAnimationFrame(frame));
+    effect(() => {
+      const n = this.rows().length;
+      if (started || n === 0 || !this.progressive() || typeof requestAnimationFrame !== 'function') return;
+      started = true;
+      if (n <= FIRST_SLICE) return;
+      untracked(() => this.rowCap.set(FIRST_SLICE));
+      this.zone.runOutsideAngular(() => {
+        const step = (): void => {
+          const next = this.rowCap() + ROW_SLICE;
+          const done = next >= this.rows().length;
+          this.zone.run(() => this.rowCap.set(done ? Infinity : next));
+          frame = done ? 0 : requestAnimationFrame(step);
+        };
+        frame = requestAnimationFrame(step);
+      });
+    });
+  }
+  protected readonly enter = computed(() => this.shellOn() && this.entering());
+  /** The entrance has started: at once on an own page, when the list first scrolls into view as the lower half of /codex. */
+  protected readonly go = signal(false);
+  private goAt = 0;
+  private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
+  /** When the first row pops, in ms after the open: later than the sidebar, but never long after the data is there. */
+  protected readonly rowBase = signal(1350);
+  private entryTimer: ReturnType<typeof setTimeout> | undefined;
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   readonly rsi = inject(UpcomingShipsService);
@@ -1224,13 +1288,13 @@ export class CodexBrowseComponent implements OnInit {
     const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
     afterNextRender(() => {
       measure();
-      window.addEventListener('scroll', schedule, { passive: true });
+      const offScroll = onScrollTick(measure);
       window.addEventListener('resize', schedule, { passive: true });
       const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule);
       const el = this.sideEl()?.nativeElement;
       if (ro && el?.parentElement) ro.observe(el.parentElement);
       this.destroyRef.onDestroy(() => {
-        window.removeEventListener('scroll', schedule);
+        offScroll();
         window.removeEventListener('resize', schedule);
         ro?.disconnect();
         if (frame) cancelAnimationFrame(frame);
@@ -1620,6 +1684,14 @@ export class CodexBrowseComponent implements OnInit {
    * pages can be folded, so this is a lower bound on the server count, never
    * below what is actually on screen.
    */
+  /** Rows in the DOM while the first list is still being built in slices; Infinity once it stands. */
+  private readonly rowCap = signal(Infinity);
+  readonly shownRows = computed<CodexGridRow[]>(() => {
+    const rows = this.rows();
+    const cap = this.rowCap();
+    return cap >= rows.length ? rows : rows.slice(0, cap);
+  });
+
   readonly total = computed(() =>
     Math.max(this.rows().length, this.serverTotal() - (this.rawRows().length - this.rows().length)),
   );
@@ -1912,6 +1984,48 @@ export class CodexBrowseComponent implements OnInit {
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       if (this.searchTimer) clearTimeout(this.searchTimer);
+    });
+    this.sliceFirstList();
+    // The entrance plays for the first fill of the list only: the rows take their turn after the sidebar (or right away when
+    // the data arrived late), and the whole motion class is dropped when the last pop has landed.
+    let filled = false;
+    effect(() => {
+      if (filled || !this.go() || this.listLength() === 0) return;
+      filled = true;
+      untracked(() => {
+        const elapsed = typeof performance !== 'undefined' ? performance.now() - this.goAt : 0;
+        const base = Math.max(300, 1350 - elapsed);
+        this.rowBase.set(base);
+        const end = setTimeout(() => this.entering.set(false), base + this.ROW_POPS * 70 + 900);
+        this.entryTimer = end;
+      });
+    });
+    inject(DestroyRef).onDestroy(() => {
+      if (this.entryTimer) clearTimeout(this.entryTimer);
+    });
+    // Starts the entrance: at once when the index is its own page; as the lower half of /codex ("Mehr in Codex") when its top
+    // first comes into view, once. Sections appear once: scrolling back up and down never replays it.
+    const start = (): void => {
+      this.goAt = typeof performance !== 'undefined' ? performance.now() : 0;
+      this.go.set(true);
+    };
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (!this.enter()) return;
+      if (this.headingLevel() === 1 || typeof IntersectionObserver === 'undefined') {
+        start();
+        return;
+      }
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return;
+          io.disconnect();
+          start();
+        },
+        { rootMargin: '0px 0px -35% 0px' },
+      );
+      io.observe(this.hostEl.nativeElement);
+      destroyRef.onDestroy(() => io.disconnect());
     });
     this.fitAreaPanel();
     // Beta shell: kind switch, filter tokens, hit count and the panel footer live in the bar.

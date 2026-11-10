@@ -11,8 +11,10 @@ import {
   model,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
+import { onScrollTick } from '../../core/scroll-tick';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { CodexHoloCalloutComponent } from './codex-holo-callout.component';
@@ -46,6 +48,9 @@ import { calloutGutter, calloutSize } from '../asset-package/holo-overlay';
 import { AssetPackageService } from '../asset-package/asset-package.service';
 import type { AssetPackageRow } from '../asset-package/asset-package.model';
 import { logWarn } from '../../core/log';
+
+/** Longest the table keeps its hull under a 3D layer that has not drawn yet; then the viewer's own loader shows. */
+export const VIEWER_HOLD_MAX_MS = 6000;
 import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import type { PortPinBadge } from './codex-holo-patch.component';
@@ -149,13 +154,13 @@ function bindParallax(frame: HTMLElement, still: () => boolean): () => void {
   };
   frame.addEventListener('pointermove', onMove, { passive: true });
   frame.addEventListener('pointerleave', onLeave, { passive: true });
-  window.addEventListener('scroll', queue, { passive: true, capture: true });
+  const offScroll = onScrollTick(apply, { anyTarget: true });
   queue();
   return () => {
     if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
     frame.removeEventListener('pointermove', onMove);
     frame.removeEventListener('pointerleave', onLeave);
-    window.removeEventListener('scroll', queue, { capture: true });
+    offScroll();
   };
 }
 
@@ -212,10 +217,13 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         <img class="hero-art" [src]="src" alt="" aria-hidden="true" />
       }
       @if (viewMode() === '3d') {
-        <!-- @defer: the viewer chunk loads only in 3D mode (AUD-048). -->
+        <!-- @defer: the viewer chunk loads only in 3D mode (AUD-048). Until the hull is drawn the
+             layer stays transparent over the table, which keeps its hull: no "loading" frame between
+             the schema and the 3D hologram (D11). -->
+        <div class="viewer-hold" [class.held]="!viewerDrawn()">
         @defer (on immediate) {
           @if (packageRow(); as row) {
-            <sc-asset-package-viewer class="mode-viewer" animate.leave="surface-leave" [row]="row" [still]="still()"
+            <sc-asset-package-viewer class="mode-viewer" animate.leave="surface-leave" (drawn)="markDrawn()" [row]="row" [still]="still()"
               interaction="table" [safeArea]="safeArea()" [selectedPort]="selectedPart()" [swappablePorts]="swappablePorts()"
               [relevantPorts]="relevantPorts()" [calloutValues]="calloutModel()?.values ?? calloutValues()" [calloutTitle]="calloutModel()?.title ?? calloutTitle()"
               [calloutType]="calloutModel()?.type ?? null" [calloutDiff]="calloutModel()?.diff ?? false" [groupFilter]="viewerGroups()" [(hotspotScope)]="hotspotScope"
@@ -223,7 +231,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
               (selectionChange)="partSelected.emit($event)" (swapRequested)="partSwap.emit($event)" />
           } @else if (packageRow() === null) {
             <!-- Legacy path (hulls uploaded before asset packages): model-viewer + browser-side port/node join. -->
-            <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
+            <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" (drawn)="markDrawn()" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
               [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
               (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" />
           } @else {
@@ -232,7 +240,9 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         } @placeholder {
           <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
         }
-      } @else if (viewMode() === 'schema' && schemaBlueprint(); as bp) {
+        </div>
+      }
+      @if (viewMode() === 'schema' && schemaBlueprint(); as bp) {
         <!-- The ship's own blueprint with every hardpoint on it; the box map
              below stays the view for hulls without a drawing. -->
         <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp" [view]="schemaView()"
@@ -250,7 +260,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         <sc-ship-deck-plan class="mode-viewer deck-sheet" animate.leave="surface-leave"
           [decks]="dp.decks" [lang]="dp.lang" [deckKey]="dp.key" [bare]="true"
           [room]="dp.room ?? null" (roomChange)="deckRoomChange.emit($event)" />
-      } @else if (showCanvas()) {
+      } @else if (showCanvas() && (viewMode() !== '3d' || !viewerDrawn())) {
         <div class="shipwrap" animate.leave="surface-leave" [class.no-geometry]="!silhouette()" [class.dense]="keyMode()"
              [class.leader]="!!leader()" [style.width.px]="leader()?.hull?.w ?? null"
              [class.empty]="pins().length === 0" [class.has-orbit]="!!orbit()">
@@ -483,6 +493,10 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     :host(.ph-wait) .rings, :host(.ph-hero) .rings { opacity: 0.4; }
     /* Surfaces stack on one spot, so a view swap crossfades (the outgoing
        one leaves while the next enters) instead of cutting to bare rings. */
+    /* 3D layer: transparent while the hull loads, the table keeps its hull under it (D11). */
+    .viewer-hold { display: contents; }
+    .viewer-hold > .mode-viewer { transition: opacity var(--holo-t-base) var(--holo-e-out); }
+    .viewer-hold.held > .mode-viewer { opacity: 0; pointer-events: none; }
     .mode-viewer { position: absolute; inset: 0; z-index: 1; animation: fade-in var(--holo-t-base) var(--holo-e-out) backwards; }
     .mode-viewer.is-placeholder { animation: none; }
     /* While the viewer chunk / the hull's asset row resolves, the projector already
@@ -939,6 +953,19 @@ export class CodexHoloTableComponent {
 
   /** The hull, the orbit and the pins exist from the reveal on — see the class comment. */
   readonly showCanvas = computed(() => this.phase() === 'reveal' || this.phase() === 'done');
+  /**
+   * The 3D viewer has drawn its hull (or given up). Until then its layer stays transparent and the
+   * table keeps showing the hull it had, so switching to 3D never passes through a loading frame (D11).
+   * Reset whenever 3D is left or the ship changes; {@link VIEWER_HOLD_MAX_MS} caps the wait.
+   */
+  readonly viewerDrawn = signal(false);
+  private viewerHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
+  markDrawn(): void {
+    if (this.viewerHoldTimer) clearTimeout(this.viewerHoldTimer);
+    this.viewerHoldTimer = null;
+    this.viewerDrawn.set(true);
+  }
   /** The table is scrolled out of view — its loops (sweep, band, halo, ping) pause. */
   readonly offscreen = signal(false);
 
@@ -952,6 +979,15 @@ export class CodexHoloTableComponent {
   private packageLookup = 0;
 
   constructor() {
+    effect((onCleanup) => {
+      const in3d = this.viewMode() === '3d';
+      this.shipClassName();
+      untracked(() => this.viewerDrawn.set(false));
+      if (!in3d) return;
+      const t = setTimeout(() => this.markDrawn(), VIEWER_HOLD_MAX_MS);
+      this.viewerHoldTimer = t;
+      onCleanup(() => clearTimeout(t));
+    });
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const destroyRef = inject(DestroyRef);
     if (typeof matchMedia === 'function') {
