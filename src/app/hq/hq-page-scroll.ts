@@ -1,6 +1,7 @@
 import { NgZone } from '@angular/core';
 import { glideEase, inScroller, keyDirection, typing } from '../verse/pages/briefing/briefing-dock';
 import { HQ_PAGES, HqPageId } from './hq-routes';
+import { CDK_SCROLL_BLOCK_CLASS, pageScrollY } from '../core/page-scroll-y';
 
 /** Length of a glide from one HQ page to the next. */
 export const PAGE_GLIDE_MS = 700;
@@ -59,7 +60,9 @@ export function wireHqPageScroll(sections: () => readonly HTMLElement[], zone: N
   let lastY = window.scrollY;
   let lastDir = 0;
 
-  const active = (): boolean => !!wide?.matches && !reduce?.matches;
+  // A modal overlay blocks the page scroll: no glide behind it, and its frozen offset is no stop.
+  const active = (): boolean =>
+    !!wide?.matches && !reduce?.matches && !document.documentElement.classList.contains(CDK_SCROLL_BLOCK_CLASS);
   const maxScroll = (): number => document.documentElement.scrollHeight - window.innerHeight;
 
   const ranges = (): PageRange[] => {
@@ -127,7 +130,7 @@ export function wireHqPageScroll(sections: () => readonly HTMLElement[], zone: N
   };
 
   const onScroll = (): void => {
-    const y = window.scrollY;
+    const y = pageScrollY();
     if (y !== lastY) lastDir = Math.sign(y - lastY);
     lastY = y;
   };

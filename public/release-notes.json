@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.250.0",
+  "current": "0.250.1",
   "releases": [
+    {
+      "version": "0.250.1",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "HQ: a dialog that blocks page scroll (e.g. \"Einträge löschen?\") no longer makes the collapsed headline expand as if the page were back at the top."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.250.0",
       "date": "2026-11-10",

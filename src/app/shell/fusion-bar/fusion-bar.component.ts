@@ -22,6 +22,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { LayoutService } from '../../core/layout/layout.service';
 import { OverlayRouteScrollService } from '../../core/overlay-route-scroll';
+import { pageScrollY } from '../../core/page-scroll-y';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
 import { isEditableTarget } from '../../codex/search/codex-search-hub.service';
@@ -572,7 +573,7 @@ export class FusionBarComponent {
       if (scrollFrame) return;
       scrollFrame = requestAnimationFrame(() => {
         scrollFrame = 0;
-        this.onScroll(window.scrollY);
+        this.onScroll(pageScrollY());
       });
     };
     const onResize = () => {
@@ -595,7 +596,7 @@ export class FusionBarComponent {
     const onSlotMoved = () => this.schedulePlace();
     window.addEventListener(STAGE_SLOT_MOVED, onSlotMoved);
     this.publishHeight();
-    this.onScroll(window.scrollY);
+    this.onScroll(pageScrollY());
     this.injector.get(DestroyRef).onDestroy(() => {
       window.removeEventListener('scroll', onScroll);
       if (scrollFrame) cancelAnimationFrame(scrollFrame);
@@ -706,7 +707,7 @@ export class FusionBarComponent {
     const done = () => {
       this.navQuiet = false;
       // Catch up with where the page really stands now (a reload restore, a kept scroll).
-      if (!this.pendingFlip && typeof window !== 'undefined') this.onScroll(window.scrollY);
+      if (!this.pendingFlip && typeof window !== 'undefined') this.onScroll(pageScrollY());
     };
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(done));
     else done();
