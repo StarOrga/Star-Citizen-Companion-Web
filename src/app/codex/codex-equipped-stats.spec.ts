@@ -882,6 +882,36 @@ describe('codex-equipped-stats', () => {
       expect(byKey.get('codex.equipped.missileCount')?.value).toBe(4);
       expect(formatEquippedStat(byKey.get('codex.equipped.missileSize')!)).toBe('S2');
     });
+
+    // feedback #331: the missile ON the rack shows its warhead first, like a gun its alpha
+    it('gives a carried missile damage, range, speed and lock time, damage first', () => {
+      const missile = {
+        entityKind: 'item',
+        attachType: 'Missile',
+        subType: 'Missile',
+        stats: {
+          SCItemMissileParams: {
+            'GCSParams.linearSpeed': 1029,
+            'targetingParams.lockRangeMax': 5000,
+            'targetingParams.lockTime': 2.5,
+            'explosionParams.damage.DamagePhysical': 1370,
+          },
+        },
+      };
+      const stats = equippedStats({ kind: 'item', payload: missile });
+      expect(stats.map((s) => s.labelKey)).toEqual([
+        'codex.missile.stat.damage',
+        'codex.missile.stat.range',
+        'codex.missile.stat.speed',
+        'codex.missile.stat.lockTime',
+      ]);
+      expect(stats.map(formatEquippedStat)).toEqual(['1,370', '5,000 m', '1,029 m/s', '2.5 s']);
+    });
+
+    it('leaves a missile from a build without flight numbers bare', () => {
+      const old = { entityKind: 'item', attachType: 'Missile', subType: 'Missile' };
+      expect(equippedStats({ kind: 'item', payload: old })).toEqual([]);
+    });
   });
 
   // ── countermeasure rounds (admin request 1add86a4) ─────────────────────────
