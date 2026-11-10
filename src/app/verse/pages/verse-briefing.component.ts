@@ -715,10 +715,10 @@ export class VerseBriefingComponent {
   readonly titleClipped = signal(false);
   private introTimers: ReturnType<typeof setTimeout>[] = [];
   /**
-   * Menu switch, camera still panning: the hub's heavy layers (beacons with the sun, the
-   * planets' canvases, the hub below) stay out of the paint. Their first raster on a cold
-   * /verse held the GPU for ~0.9 s and the pan showed an almost black screen (QA D12); their
-   * own beats (1.3 s, 1.55 s) come after the 1.1 s pan anyway.
+   * Menu switch, camera still panning: the hub's heavy layer (the
+   * planets' WebGL bodies - measured as the whole cost - and the hub below) stays out of the paint. Their first raster on a cold
+   * /verse held the GPU for ~0.9 s and the pan showed an almost black screen (QA D12); the planets'
+   * own beat (1.55 s) comes after the 1.1 s pan anyway.
    */
   readonly held = computed(() => this.navIn() && this.camera.flying());
   /** Menu switch: how late the hub mounted after the click (ms). */
