@@ -12,6 +12,8 @@ import {
   untracked,
 } from '@angular/core';
 import { onScrollTick } from '../core/scroll-tick';
+import { pageScrollY } from '../core/page-scroll-y';
+import { SceneCameraService } from '../shell/scene/scene-camera.service';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, Scroll } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -33,6 +35,13 @@ import { HqStartComponent } from './start/hq-start.component';
 import { HqStatsComponent } from './stats/hq-stats.component';
 import { HqStockComponent } from './stock/hq-stock.component';
 
+/** Inventar, Jetzt, Planen, Statistik: the pages after Start. */
+const FOLLOW_PAGES = HQ_PAGES.length - 1;
+/** At the latest this long after the route's first render the follow pages are built, flight or not. */
+const FLIGHT_WAIT_MS = 2500;
+/** An idle callback that never comes (a busy page) runs the next build step after this long. */
+const BUILD_IDLE_TIMEOUT_MS = 400;
+
 /**
  * The HQ landing (beta shell, concept D1–D6): ONE route, five Verse-like scroll stages —
  * Start · Bestand · Jetzt · Planen · Statistik — as `<section id="…">`, so `/hq#planen` is a real
@@ -48,6 +57,11 @@ import { HqStockComponent } from './stock/hq-stock.component';
  * - The footer is the shell's own and comes after the last page, Statistik.
  * - One page at a time (`hq-page-scroll.ts`): native CSS scroll-snap finishes every wheel, key or
  *   touch gesture on a page; the cue at the viewport's bottom edge leads to the next one.
+ * - Built in steps (Kamera-Welt r6-oq-first-render): the route renders Start only, so the frame the
+ *   camera flight starts in stays short. The four follow pages lie below the fold in their
+ *   viewport-tall sections; they are built one per idle frame once the flight has landed
+ *   (`SceneCameraService.flying()` false). Anything that heads for them (a scroll, a rail / bar /
+ *   cue click, a hotkey, a deep link, back/forward) builds them all at once first.
  */
 @Component({
   selector: 'sc-hq-pages',
@@ -71,16 +85,16 @@ import { HqStockComponent } from './stock/hq-stock.component';
       <sc-hq-start [patch]="feed.patchHit()" />
     </section>
     <section id="inventar" class="page follow sc-below-stage" data-hq-page="inventar" aria-labelledby="hq-stock-title">
-      <sc-hq-stock />
+      @if (built() > 0) { <sc-hq-stock /> }
     </section>
     <section id="jetzt" class="page follow sc-below-stage" data-hq-page="jetzt" aria-labelledby="hq-now-title">
-      <sc-hq-now />
+      @if (built() > 1) { <sc-hq-now /> }
     </section>
     <section id="planen" class="page follow sc-below-stage" data-hq-page="planen" aria-labelledby="hq-plan-title">
-      <sc-hq-plan />
+      @if (built() > 2) { <sc-hq-plan /> }
     </section>
     <section id="statistik" class="page follow last sc-below-stage" data-hq-page="statistik" aria-labelledby="hq-stats-title">
-      <sc-hq-stats />
+      @if (built() > 3) { <sc-hq-stats /> }
     </section>
     @if (nextPage(); as next) {
       <sc-hq-cue class="page-cue" [class.gone]="!cueFree()" [target]="next" />
@@ -138,6 +152,13 @@ export class HqPagesComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly camera = inject(SceneCameraService);
+
+  /** How many follow pages (Inventar, Jetzt, Planen, Statistik) stand: Start comes with the route. */
+  protected readonly built = signal(0);
+  /** Cancels the pending step of the stepwise build. */
+  private stopBuild: (() => void) | null = null;
+  private cueFrame = 0;
 
   /** Where the cue leads: the page after the one in view; the last page has none. */
   protected readonly nextPage = computed<HqPageId | null>(() => {
@@ -152,9 +173,13 @@ export class HqPagesComponent {
   private readonly stockReady = signal(false);
 
   constructor() {
+    // A deep link to a follow page: every page up to it must stand before the landing scroll.
+    const deep = hqPageOfFragment(this.route.snapshot.fragment);
+    if ((deep && deep !== 'start') || typeof requestAnimationFrame !== 'function') this.built.set(FOLLOW_PAGES);
     effect(() => {
       this.chrome.hqPage();
-      this.measureCue();
+      // A frame later: a rect read in the route's first frame would force its whole layout early.
+      this.queueCue();
     });
     // A finished Nachschub archives itself: whenever Inventar or Hangar change, close the lines that rose (r4 s3-a1).
     // Only against stock that really loaded: a baseline taken from an empty, not yet loaded stock would close lines later.
@@ -182,6 +207,8 @@ export class HqPagesComponent {
       const land = () => {
         // The address bar, not the router URL: rail clicks move the fragment past the router.
         const page = hqPageOfFragment(typeof window === 'undefined' ? null : window.location.hash.slice(1)) ?? 'start';
+        // The route's own arrival lands on Start and leaves the stepwise build alone.
+        if (page !== 'start') this.buildAll();
         this.scrollTo(page, false);
         this.chrome.setHqPage(page);
       };
@@ -195,6 +222,8 @@ export class HqPagesComponent {
       this.destroyRef.onDestroy(() => window.removeEventListener('resize', onResize));
     }
     this.destroyRef.onDestroy(() => {
+      this.stopBuild?.();
+      if (this.cueFrame) cancelAnimationFrame(this.cueFrame);
       detach();
       this.chrome.setHqPage(null);
     });
@@ -213,6 +242,64 @@ export class HqPagesComponent {
       this.destroyRef.onDestroy(unwire);
       this.destroyRef.onDestroy(this.watchCue());
       this.destroyRef.onDestroy(wireHqPageHotkeys((p) => this.goTo(p), this.zone));
+      this.buildInSteps();
+    });
+  }
+
+  /** Builds every follow page now, ahead of a scroll or a jump to one of them. */
+  private buildAll(): void {
+    if (this.built() >= FOLLOW_PAGES) return;
+    this.stopBuild?.();
+    this.zone.run(() => this.built.set(FOLLOW_PAGES));
+  }
+
+  /**
+   * Builds the follow pages one per idle frame once the camera flight has landed. The first frames
+   * after the route only wait: the flight starts in them. A flight that never reports its end does
+   * not hold the pages back past FLIGHT_WAIT_MS.
+   */
+  private buildInSteps(): void {
+    if (this.built() >= FOLLOW_PAGES || typeof requestAnimationFrame !== 'function') return;
+    const idle = typeof requestIdleCallback === 'function';
+    const since = performance.now();
+    let frames = 0;
+    let frame = 0;
+    let idleId = 0;
+    const stop = (): void => {
+      cancelAnimationFrame(frame);
+      if (idleId) cancelIdleCallback(idleId);
+      frame = idleId = 0;
+      this.stopBuild = null;
+    };
+    const step = (): void => {
+      idleId = 0;
+      if (this.built() < FOLLOW_PAGES) this.zone.run(() => this.built.update((n) => n + 1));
+      // The next page in a later frame, so this one lays out and paints on its own.
+      if (this.built() < FOLLOW_PAGES) frame = requestAnimationFrame(next);
+      else stop();
+    };
+    const next = (): void => {
+      frame = 0;
+      if (idle) idleId = requestIdleCallback(step, { timeout: BUILD_IDLE_TIMEOUT_MS });
+      else frame = requestAnimationFrame(step);
+    };
+    const wait = (): void => {
+      frames += 1;
+      if ((frames > 2 && !this.camera.flying()) || performance.now() - since > FLIGHT_WAIT_MS) next();
+      else frame = requestAnimationFrame(wait);
+    };
+    this.stopBuild = stop;
+    this.zone.runOutsideAngular(() => (frame = requestAnimationFrame(wait)));
+  }
+
+  private queueCue(): void {
+    if (typeof requestAnimationFrame !== 'function') return this.measureCue();
+    if (this.cueFrame) return;
+    this.zone.runOutsideAngular(() => {
+      this.cueFrame = requestAnimationFrame(() => {
+        this.cueFrame = 0;
+        this.measureCue();
+      });
     });
   }
 
@@ -222,6 +309,7 @@ export class HqPagesComponent {
 
   /** Plain left click on a rail / bar / cue anchor: scroll there and add ONE history entry. */
   private goTo(page: HqPageId): void {
+    this.buildAll();
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.scrollTo(page, !reduced);
     const url = this.urlFor(page);
@@ -249,23 +337,20 @@ export class HqPagesComponent {
   /** A long page keeps the cue away until its end is in view: on scroll, and when its content grows. */
   private watchCue(): () => void {
     if (typeof window === 'undefined') return () => undefined;
-    let frame = 0;
-    const queue = (): void => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        this.measureCue();
-      });
-    };
+    const queue = (): void => this.queueCue();
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(queue);
     this.zone.runOutsideAngular(() => {
       window.addEventListener('resize', queue, { passive: true });
       ro?.observe(this.host.nativeElement);
     });
-    const offScroll = onScrollTick(() => this.measureCue());
-    this.measureCue();
+    const offScroll = onScrollTick(() => {
+      // Scrolled away from Start before the stepwise build is done: the pages below are wanted now.
+      // pageScrollY, not window.scrollY: under a modal's scroll block that reads 0 (#336).
+      if (pageScrollY() > 0) this.buildAll();
+      this.measureCue();
+    });
+    this.queueCue();
     return () => {
-      cancelAnimationFrame(frame);
       offScroll();
       window.removeEventListener('resize', queue);
       ro?.disconnect();
