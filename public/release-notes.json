@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.250.2",
+  "current": "0.250.3",
   "releases": [
+    {
+      "version": "0.250.3",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the Loadout column drops its outer card; like Analyse, only the heading (Loadout, count, info) sits above the individual area boxes, which keep their backgrounds."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.250.2",
       "date": "2026-11-10",
