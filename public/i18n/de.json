@@ -1498,6 +1498,12 @@
       "heroView2d": "2D",
       "heroSwitchTo3d": "Zur 3D-Ansicht wechseln",
       "heroSwitchTo2d": "Zurück zum 2D-Bild wechseln",
+      "holoOverlay": {
+        "label": "3D-Ansicht: {{name}}",
+        "fullscreen": "Vollbild",
+        "exitFullscreen": "Vollbild verlassen",
+        "close": "3D-Ansicht schließen"
+      },
       "stageLaunchers": "{{n}} Werfer",
       "stageMissileRacks": "Raketenwerfer",
       "stageRemoteTurret": "Ferngesteuerter Turm",
