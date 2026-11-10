@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { AssetPackageViewerComponent } from '../asset-package/asset-package-viewer.component';
+import { AssetPackageViewerComponent, type PlacementSelection } from '../asset-package/asset-package-viewer.component';
+import type { HeroPartPick } from './codex-hero-part-popup.component';
 import { AssetPackageService } from '../asset-package/asset-package.service';
 import type { AssetPackageRow } from '../asset-package/asset-package.model';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
@@ -52,7 +53,8 @@ import { logWarn } from '../../core/log';
           @if (packageRow(); as row) {
             <sc-asset-package-viewer class="hho-viewer" [row]="row" [still]="still()"
               interaction="table" facing="nose" spin="ccw" [swapOffered]="false"
-              [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" />
+              [activePorts]="activePorts()" [selectedPort]="selectedPart()"
+              (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" (selectionChange)="onSelection($event)" />
           } @else if (packageRow() === null) {
             <sc-ship-skin-viewer class="hho-viewer" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
               [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
@@ -97,6 +99,14 @@ export class CodexHeroHoloOverlayComponent {
   readonly closed = output<void>();
   readonly hovered = output<string[] | null>();
   readonly locatable = output<string[]>();
+  /** A hotspot click (or Escape in the model) picked a part, with its mount chain; null clears it. */
+  readonly partPicked = output<HeroPartPick | null>();
+  /** The panel went fullscreen or back. */
+  readonly fullChange = output<boolean>();
+  /** The part the host shows: its placement id or raw port, null = none. */
+  readonly selectedPart = input<string | null>(null);
+
+  private readonly viewer = viewChild(AssetPackageViewerComponent);
 
   /** Panel over the hero (false) or fullscreen popup (true). */
   readonly full = signal(false);
@@ -129,11 +139,29 @@ export class CodexHeroHoloOverlayComponent {
 
   toggleFull(): void {
     this.full.update((v) => !v);
+    this.fullChange.emit(this.full());
+  }
+
+  /** The viewer picked a part: add the port names up its mount chain, so the host finds the loadout slot. */
+  onSelection(sel: PlacementSelection | null): void {
+    if (!sel) {
+      this.partPicked.emit(null);
+      return;
+    }
+    const byId = this.viewer()?.byId();
+    const chain: string[] = [sel.portName];
+    for (let up = byId?.get(sel.id)?.parentPort; up; up = byId?.get(up)?.parentPort) {
+      const port = byId?.get(up)?.portName;
+      if (port) chain.push(port);
+    }
+    this.partPicked.emit({ ...sel, portChain: chain });
   }
 
   /** Escape steps back one level: fullscreen → panel, panel → closed. */
   onEscape(): void {
-    if (this.full()) this.full.set(false);
-    else this.closed.emit();
+    if (this.full()) {
+      this.full.set(false);
+      this.fullChange.emit(false);
+    } else this.closed.emit();
   }
 }
