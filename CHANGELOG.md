@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.250.4] - 2026-11-10
+
+### Fixed
+- HQ inventory: all containers share one tile size instead of a quantity-based one, and Hangar and Sammlung tiles keep a fixed height; long names and details are shortened instead of growing the tile.
+
 ## [0.250.3] - 2026-11-10
 
 ### Changed
