@@ -843,7 +843,9 @@ export class CodexHoloTableComponent {
   /** The callout's reserved gutters left and right of the model; none where the frame cannot spare them (phones). */
   readonly safeArea = computed(() => {
     const w = this.frameW();
-    const gutter = typeof window === 'undefined' ? 0 : calloutGutter(window.innerWidth);
+    // E4: the model may reach halfway into the callout gutters — a full gutter on both sides left the
+    // Gladius ~330 px wide in a 900 px stage. The callout card sits over the hull's tip at worst.
+    const gutter = typeof window === 'undefined' ? 0 : Math.round(calloutGutter(window.innerWidth) / 2);
     return w >= gutter * 2 + 280 ? { left: gutter, right: gutter, top: 4, bottom: 0 } : { left: 0, right: 0, top: 4, bottom: 0 };
   });
 

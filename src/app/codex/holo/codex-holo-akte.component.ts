@@ -135,7 +135,7 @@ export const AKTE_STANDARD_LIVERY = 'standard';
     .ak-facts dd { margin: 0; min-width: 0; color: var(--sc-fg-0); font-family: var(--sc-font-mono, monospace); font-weight: 600; font-size: max(12px, var(--sc-fs-floor)); white-space: nowrap; }
     .ak-foot { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; padding-top: 8px; border-top: 1px solid var(--sc-border); }
     .shut .ak-foot { border-top: 0; padding-top: 0; padding-inline-end: 132px; }
-    .ak-sws { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 6px; min-width: 0; }
+    .ak-sws { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; min-width: 0; }
     .gl { width: 100%; font-size: max(9px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); }
     /* Image tiles, not chips: a small picture with the name under it (the filters are pills). */
     .ak-sw { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 64px; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; text-decoration: none; }
