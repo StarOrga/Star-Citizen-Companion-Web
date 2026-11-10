@@ -134,13 +134,28 @@
   left: -25%; width: 150%; top: 72%; height: 90%;
   z-index: 0;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 0%, #1c4a63 0, #0b2333 6%, #06141f 20%, #030a10 55%);
-  box-shadow:
-    0 -6px 26px rgba(110, 210, 245, 0.7),
-    0 -22px 80px color-mix(in srgb, var(--pm-glow) 35%, transparent),
-    inset 0 4px 14px rgba(170, 232, 255, 0.55);
+  // Rim light and glow are gradients, not blurred box-shadows: an 80px shadow blur round a
+  // 150vw ellipse was the costliest raster of the open (r6). Same light, painted in one pass.
+  background:
+    radial-gradient(closest-side, transparent 96.6%, rgba(170, 232, 255, 0.55) 99.2%, rgba(170, 232, 255, 0.2) 100%),
+    radial-gradient(ellipse at 50% 0%, #1c4a63 0, #0b2333 6%, #06141f 20%, #030a10 55%);
   opacity: 0;
   animation-name: pm-horizon;
+  &::before {
+    // The glow above the limb: an ellipse 16 % larger, lit only in the band just outside the rim.
+    content: '';
+    position: absolute;
+    inset: -8%;
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      transparent 85.8%,
+      rgba(110, 210, 245, 0.62) 86.3%,
+      color-mix(in srgb, var(--pm-glow) 30%, transparent) 89%,
+      color-mix(in srgb, var(--pm-glow) 10%, transparent) 94%,
+      transparent 100%
+    );
+  }
 }
 .pm-plate {
   position: relative;
@@ -212,7 +227,10 @@
   60% { opacity: 1; filter: brightness(1.4); }
   100% { opacity: 1; filter: none; }
 }
-@keyframes pm-veil { from { background-color: transparent; -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+// The veil fades in as a whole (opacity, compositor only). Animating the backdrop blur's radius and
+// the background colour instead re-painted the veil and re-blurred the full viewport in every frame
+// of the open (r6 push-in frames); its stars, horizon and plate start under it anyway.
+@keyframes pm-veil { from { opacity: 0; } }
 @keyframes pm-horizon {
   0% { opacity: 0; transform: translateY(34vh); }
   20% { opacity: 1; }

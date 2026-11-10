@@ -244,10 +244,18 @@ html[data-sc-scene] body { background: transparent; }
 
   // ── P2 "Szene stößt vor": while a large popup is open (html.sc-scene-pushin, set by
   // [scPopupMotion="large"]) the scene pushes in ~4 % and dims; the close reverses it in
-  // 60 % of the time. `scale` (not `transform`) so the camera's own transform stays untouched.
+  // 60 % of the time. The camera moves .world / .sky; the push-in transforms their parent.
+  //
+  // Cost (r6, perf-report wave 2d): a `scale` on .scene changed the raster scale of the big world and
+  // sky layers, so they were re-rastered when the push-in started and again when the pull-out ended
+  // (54–120 ms frames). The same 4 % push-in as a perspective dolly — translateZ(38.46px) under
+  // perspective(1000px) = 1000 / 961.54 = ×1.04 about the centre, the same picture — lets the
+  // compositor scale the layers it already has: no re-raster at either end. Under the open veil's
+  // 4px backdrop blur the 4 % texture zoom does not show. Only while pushed in, so the camera's own
+  // zoom elsewhere keeps its sharp raster.
   .scene {
-    scale: 1;
-    transition: scale 560ms cubic-bezier(0.4, 0, 0.2, 1);
+    transform: none;
+    transition: transform 560ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   .scene::after {
     content: '';
@@ -255,10 +263,12 @@ html[data-sc-scene] body { background: transparent; }
     inset: 0;
     background: #02070d;
     opacity: 0;
+    // Its own layer from the start: the dim fades on the compositor and never repaints the scene.
+    will-change: opacity;
     transition: opacity 560ms ease-out;
   }
   :root.sc-scene-pushin & .scene {
-    scale: 1.04;
+    transform: perspective(1000px) translateZ(38.4615px);
     transition-duration: 940ms;
   }
   :root.sc-scene-pushin & .scene::after {
@@ -294,7 +304,7 @@ html[data-sc-scene] body { background: transparent; }
   @media (prefers-reduced-motion: reduce) {
     .o, .veil, .starmap .const, .starmap .map { transition: none !important; }
     .tilt, .hqst > i, .planet .lights { animation: none !important; }
-    .scene { scale: none !important; transition: none; }
+    .scene { transform: none !important; transition: none; }
     .scene::after { transition-duration: 160ms !important; }
   }
   @media (prefers-reduced-motion: no-preference) {
