@@ -118,6 +118,19 @@ export class ShellChromeService {
   /** `performance.now()` when the running title sequence started: its beats count from here. */
   introStartedAt: number | null = null;
 
+  /**
+   * The running title sequence's real clock (`document.timeline` ms), once the hub knows it: its
+   * build animations start in the frame after its first render, which can lie well after the
+   * `startHeroIntro` call. The bar re-aligns its field to it.
+   */
+  readonly introClock = signal<number | null>(null);
+
+  /** The hub reports when its sequence really started (the shell's beats follow it). */
+  setIntroClock(at: number): void {
+    this.introStartedAt = at;
+    this.introClock.set(at);
+  }
+
   /** A navigation started (the shell's bar reports every NavigationStart). */
   markNavStart(): void {
     this.navStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -238,6 +251,7 @@ export class ShellChromeService {
   /** The hub's title sequence starts (never call it under reduced motion). */
   startHeroIntro(k: number, full: boolean, beats?: HeroIntroBeats): void {
     this.introStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
+    this.introClock.set(null);
     this.introState.set(beats ? { k, full, ...beats } : { k, full });
   }
 

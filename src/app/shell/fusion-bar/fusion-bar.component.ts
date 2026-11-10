@@ -453,18 +453,30 @@ export class FusionBarComponent {
     // the header's beat. Its animation may already exist from the announced (held) entrance or
     // from an earlier mount of the stage slot, and a running CSS animation keeps its own start
     // when only its delay changes - the search grew ~0.4 s off its 3.5 s beat (QA E2).
+    // The field's ignite counts from the hub's clock: the menu switch's from the click (the hub
+    // passes searchAtMs relative to it), the entrance's from the hub's first painted frame, which
+    // the hub reports once its own build animations have started (setIntroClock). Aligned to the
+    // startHeroIntro call instead, the field rose ~0.2 s ahead of the title and header, because the
+    // hub's heavy first render lies between the two (QA E2). A running CSS animation keeps its own
+    // start when only its delay changes, so the start is set here, never left to the style change.
+    const align = (at: number | null): void => {
+      const el = this.host.nativeElement as HTMLElement;
+      for (const a of el.getAnimations({ subtree: true })) {
+        if (typeof CSSAnimation === 'undefined' || !(a instanceof CSSAnimation) || !/(^|_)(fi-|sub-trace)/.test(a.animationName)) continue;
+        if (at !== null && a.playState !== 'paused') a.startTime = at;
+        else a.currentTime = 0;
+      }
+    };
     effect(() => {
       const h = this.chrome.heroIntro();
       if (!h || h.hold) return;
-      untracked(() => afterNextRender(() => {
-        const el = this.host.nativeElement as HTMLElement;
-        const at = this.chrome.introStartedAt;
-        for (const a of el.getAnimations({ subtree: true })) {
-          if (typeof CSSAnimation === 'undefined' || !(a instanceof CSSAnimation) || !/^(fi-|sub-trace)/.test(a.animationName)) continue;
-          if (at !== null && a.playState !== 'paused') a.startTime = at;
-          else a.currentTime = 0;
-        }
-      }, { injector: this.injector }));
+      untracked(() => afterNextRender(() => align(this.chrome.introStartedAt), { injector: this.injector }));
+    });
+    effect(() => {
+      const at = this.chrome.introClock();
+      const h = this.chrome.heroIntro();
+      if (at === null || !h || h.hold) return;
+      untracked(() => afterNextRender(() => align(at), { injector: this.injector }));
     });
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       // The menu switch's beats count from here (verse hub, QA E4).
