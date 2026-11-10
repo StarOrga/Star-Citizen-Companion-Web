@@ -13,7 +13,40 @@ through the concept exactly like the local `docs/concepts/*.html` pages
 (choices, notes, submit). The local pages need a Python bridge on his machine;
 the routine has none. So the page is **hosted**: the html lives in
 `public.concept_pages`, the `concept-page` edge function serves it and answers
-the engine's bridge protocol, and the Angular route `/concept/<id>` frames it.
+the engine's bridge protocol, and the Angular route `/concept/<id>` frames it
+through the app's static loader `/concept-frame/<id>.html`.
+
+### Why the loader (#330)
+
+The first version framed the function URL directly. That never rendered in
+production: Supabase serves every `text/html` GET response of an edge function
+on the default `*.supabase.co` domain as `Content-Type: text/plain` with
+`content-security-policy: default-src 'none'; sandbox` (checked live on
+2026-11-10), so the admin saw the html **source**. `srcdoc`/`blob:` are no way
+out either — such documents inherit the app's CSP, which forbids inline
+scripts. So the document is rendered on the **app origin**:
+
+1. `/concept/<id>` mints the ticket and frames
+   `/concept-frame/<id>.html#<encoded ticketed function URL>`.
+2. `vercel.json` rewrites `/concept-frame/:file` to `public/concept-frame.html`
+   and gives that path its own header set (CSP with `script-src 'self'
+   'unsafe-inline'`, `connect-src https://*.supabase.co`, `frame-ancestors
+   'self'`, `X-Frame-Options: SAMEORIGIN`, `no-store`, `noindex`); the app's
+   main rule excludes the path and allows `frame-src 'self'`.
+3. The loader checks that the fragment is our own `concept-page` URL for the
+   id in its path, fetches it as text (no credentials) and writes it into
+   itself with `document.write`. The concept's own `<meta>` CSP applies on top.
+4. The function bakes the **absolute** function URL and the ticket into the
+   injected shim, so `/decisions`, `/reload`, `/heartbeat`, `/draft` (also
+   `location.origin + '/heartbeat'`) go to the function (CORS `*`).
+   `location.reload()` reloads the loader, which fetches the new iteration.
+
+The path ends in the concept id on purpose: the engine keys its
+`localStorage` on `location.pathname`, so each concept keeps its own state.
+The fragment never reaches a server, so the ticket stays out of Vercel's logs.
+The heartbeat Worker inside the engine fetches the app origin and fails
+quietly; the main-thread poll (shimmed) keeps the pill green. Local `ng serve`
+does not apply the rewrite — check a hosted page on a deployment.
 
 ## The pieces
 
@@ -21,7 +54,8 @@ the engine's bridge protocol, and the Angular route `/concept/<id>` frames it.
 |---|---|---|
 | Table `concept_pages` | `supabase/migrations/20260914160000_concept_pages.sql` | `html`, `decisions` (what the page submitted), `draft` (note mirror), `submitted_at`, `processed_at`, `reload_counter`. Admin-only SELECT, **no client write policy** — the routine and the function write with the service role |
 | Edge function `concept-page` | `supabase/functions/concept-page/` | `POST /ticket` (admin JWT → 12-h HMAC ticket + document URL), `GET /:id?t=` (the html with the shim injected), `/:id/decisions`, `/reload`, `/heartbeat`, `/draft`, `/attachments` (501) — the exact protocol the concept engine expects from the local bridge |
-| Angular route `/concept/:id` | `src/app/admin/concepts/` | `roleGuard('admin')`; mints the ticket with the session and renders the document in an iframe. Back link to `/admin/feedback`, "open in new tab" |
+| Angular route `/concept/:id` | `src/app/admin/concepts/` | `roleGuard('admin')`; mints the ticket with the session and frames the loader `/concept-frame/<id>.html#<function URL>`. Back link to `/admin/feedback`, "open in new tab" (same loader URL) |
+| Loader | `public/concept-frame.html` + `vercel.json` (rewrite + own headers) | Fetches the ticketed document as text and writes it into its app-origin document (#330) |
 | Routine tooling | `scripts/routine-gate.mjs concept-publish` / `concept-read` | Publish/republish a page, read the submission back |
 
 The **link shape** the admin sees is always `https://versecompanion-alpha.vercel.app/concept/<uuid>`.
@@ -124,6 +158,11 @@ echo that failed): a run has to look on its own —
   routine posts only the `/concept/<id>` link.
 - The stored html is trusted (routine-written). Page POST bodies land in
   jsonb, capped at 1 MB, never rendered as markup.
-- Response headers on the document: `Cache-Control: no-store`,
-  `X-Robots-Tag: noindex`, `Content-Security-Policy: frame-ancestors <app origins>`.
-  The app's own CSP (`vercel.json`) allows `frame-src https://*.supabase.co`.
+- Response headers on the function's document: `Cache-Control: no-store`,
+  `X-Robots-Tag: noindex` (the platform replaces the content type and CSP, see
+  above). The loader path has its own header set in `vercel.json`; the app's
+  CSP allows `frame-src 'self'`.
+- The loader iframe keeps `allow-same-origin`: the engine needs `localStorage`.
+  That gives the concept html the app origin — acceptable only because the html
+  is routine-written trusted content (never browser input). Never publish html
+  from anywhere else through `concept-publish`.

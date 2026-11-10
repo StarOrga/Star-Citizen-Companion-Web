@@ -38,8 +38,8 @@ function scriptJson(value: unknown): string {
   return JSON.stringify(value)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
-    .replace(/ /g, '\\u2028')
-    .replace(/ /g, '\\u2029');
+    // U+2028/U+2029 end a line inside a script in older engines.
+    .replace(/[\u2028\u2029]/g, (c) => '\\u' + c.charCodeAt(0).toString(16));
 }
 
 /** The shim's body without the <script> wrapper — exported for the tests. */
