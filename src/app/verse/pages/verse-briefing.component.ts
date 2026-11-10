@@ -776,6 +776,31 @@ export class VerseBriefingComponent {
     this.destroyRef.onDestroy(() => raf && cancelAnimationFrame(raf));
   }
 
+  /**
+   * Entrance: the title scan's start is the sequence's real t = 0 (its delay is the 2.2 s beat).
+   * It starts in the frame after the stage's first render, ~0.2 s after startHeroIntro; the shell
+   * times the search (3.5 s) from the same moment (QA E2). One rAF watch outside the zone, ~1 s.
+   */
+  private reportEntranceClock(host: HTMLElement): void {
+    if (typeof requestAnimationFrame !== 'function' || typeof host.getAnimations !== 'function') return;
+    let raf = 0;
+    let tries = 0;
+    const step = (): void => {
+      raf = 0;
+      const scan = host.getAnimations({ subtree: true }).find(
+        (a) => typeof CSSAnimation !== 'undefined' && a instanceof CSSAnimation && /(^|_)kw-scan$/.test(a.animationName) && a.startTime !== null,
+      );
+      if (scan) {
+        const at = Number(scan.startTime);
+        this.ngZone.run(() => this.chrome.setIntroClock(at));
+        return;
+      }
+      if (++tries < 90) raf = requestAnimationFrame(step);
+    };
+    this.ngZone.runOutsideAngular(() => (raf = requestAnimationFrame(step)));
+    this.destroyRef.onDestroy(() => raf && cancelAnimationFrame(raf));
+  }
+
   private reducedMotion(): boolean {
     return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
@@ -822,7 +847,10 @@ export class VerseBriefingComponent {
     this.titleIntro.set(true);
     this.brand.set(true);
     // Opened on the hub: the shell reveals its search field (3.5 s) and only then its main header (4.3 s), in step with it.
-    if (this.chrome.heroIntro()?.hold) this.chrome.startHeroIntro(ENTRANCE_SEARCH_K, true, ENTRANCE_BEATS);
+    if (this.chrome.heroIntro()?.hold) {
+      this.chrome.startHeroIntro(ENTRANCE_SEARCH_K, true, ENTRANCE_BEATS);
+      this.reportEntranceClock(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
+    }
     // Hook for the scene camera: it dollies from depth while this attribute stands (see the handoff note).
     document.documentElement.dataset['kwEntrance'] = 'dolly';
     // The scene's camera dollies from depth (0.8 s, 2.7 s) - started after the first NavigationEnd, or the router's own move retargets it.
