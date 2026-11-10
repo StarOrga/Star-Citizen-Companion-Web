@@ -253,6 +253,7 @@ import {
   ComponentInspectEntry,
 } from './codex-component-modal.component';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
+import { carriedWithDraft } from './detail/carried-draft';
 import { CodexWeaponDetailComponent, ShipSignature, WeaponDetailEntry } from './codex-weapon-detail.component';
 import { borrowedCountermeasureNameKey } from './codex-countermeasure';
 import { ShipDeckPlanComponent } from './ship-deck-plan.component';
@@ -2460,13 +2461,15 @@ export class CodexDetailComponent implements OnInit {
     try {
       created = await this.adoptAndOpen();
       if (!created) this.addFailed.set(true);
+      this.ownershipSvc.invalidate();
+      // Busy stays up through the name offer: its AI suggestion takes seconds, and a second save
+      // click in that wait used to create a second "Codex-Loadout" (round-7 E8).
+      if (created) await this.offerExemplarName(created.id, created.name, created.loadout);
     } catch {
-      this.addFailed.set(true);
+      if (!created) this.addFailed.set(true);
     } finally {
       this.addBusy.set(false);
     }
-    this.ownershipSvc.invalidate();
-    if (created) await this.offerExemplarName(created.id, created.name, created.loadout);
   }
 
   private async offerExemplarName(id: string, current: string, loadout: readonly ConfigLoadoutEntry[]): Promise<void> {
@@ -2578,17 +2581,27 @@ export class CodexDetailComponent implements OnInit {
   }
 
   private async createExemplar(shipId: string, name: string, role: ShipConfigRole, loadout: readonly ConfigLoadoutEntry[]): Promise<void> {
-    let created: HangarShipConfig | null = null;
-    await this.runMenu(async () => {
-      created = await this.hangar.createConfig(shipId, name, role, [...loadout]);
-      if (!created) throw new Error('create failed');
-    }, 'createConfig');
-    const c = created as HangarShipConfig | null;
-    if (!c) return;
-    const link = this.exemplarLink(shipId, c.id);
-    await this.router.navigate(link.commands as unknown[], { queryParams: link.queryParams });
-    await this.offerExemplarName(c.id, c.name, c.loadout);
+    // The whole create → navigate → name flow is one action: a repeat click while the name
+    // offer waits for its AI suggestion must not create a second exemplar (round-7 E8).
+    if (this.exemplarFlowBusy) return;
+    this.exemplarFlowBusy = true;
+    try {
+      let created: HangarShipConfig | null = null;
+      await this.runMenu(async () => {
+        created = await this.hangar.createConfig(shipId, name, role, [...loadout]);
+        if (!created) throw new Error('create failed');
+      }, 'createConfig');
+      const c = created as HangarShipConfig | null;
+      if (!c) return;
+      const link = this.exemplarLink(shipId, c.id);
+      await this.router.navigate(link.commands as unknown[], { queryParams: link.queryParams });
+      await this.offerExemplarName(c.id, c.name, c.loadout);
+    } finally {
+      this.exemplarFlowBusy = false;
+    }
   }
+
+  private exemplarFlowBusy = false;
 
   async addHangarCopy(): Promise<void> {
     const d = this.detail();
@@ -4159,7 +4172,7 @@ export class CodexDetailComponent implements OnInit {
         },
       ];
       if (draftEntry === undefined) {
-        out.push(...this.carriedOccupants(r.section, r.item.carried, r.item.nested));
+        out.push(...this.carriedDraftOccupants(r.section, r.item.port, r.item.carried, r.item.nested ?? [], configurable));
       }
       return out;
     }),
@@ -4474,7 +4487,7 @@ export class CodexDetailComponent implements OnInit {
         });
       }
       if (draftEntry === undefined) {
-        for (const occ of this.carriedOccupants(r.section, r.item.carried)) push(occ);
+        for (const occ of this.carriedDraftOccupants(r.section, r.item.port, r.item.carried, [], configurable)) push(occ);
       }
     }
     const grouped = new Map<ShipModuleSection, readonly SummaryOccupant[]>();
@@ -4735,6 +4748,37 @@ export class CodexDetailComponent implements OnInit {
    * `nested` adds what sits one level deeper still (a manned turret's gimbal →
    * its gun, feedback #225): those guns draw weapon power and deal damage too.
    */
+  /** `carriedOccupants` with the nested draft (`mount.gun`) applied — what the strip and panels aggregate (E9). */
+  private carriedDraftOccupants(
+    section: ShipModuleSection,
+    topPort: string,
+    carried: ReadonlyMap<string, string>,
+    nested: readonly string[],
+    configurable: boolean,
+  ): SummaryOccupant[] {
+    if (!configurable) return this.carriedOccupants(section, carried, nested);
+    const ammo = this.ammoPayloads();
+    const payloads = this.loadoutPayloads();
+    const items = carriedWithDraft(
+      topPort,
+      carried,
+      this.draft(),
+      (className) => {
+        const hit = payloads.get(className);
+        return hit ? { kind: hit.kind, payload: hit.payload, ammoPayload: ammo.get(ammoClassNameFor(className, hit.payload) ?? '') } : null;
+      },
+      (path, value) => {
+        const o = this.draftOverlayFor(path, value, { kind: null, payload: null, ammoPayload: undefined });
+        if (o.state === 'pending') return 'pending';
+        return o.item.payload == null ? null : o.item;
+      },
+    );
+    return [
+      ...items.map((i) => ({ section, kind: i.kind as CodexKind | null, payload: i.payload, ammoPayload: i.ammoPayload, count: 1 })),
+      ...this.carriedOccupants(section, new Map(), nested),
+    ];
+  }
+
   private carriedOccupants(
     section: ShipModuleSection,
     carried: ReadonlyMap<string, string>,

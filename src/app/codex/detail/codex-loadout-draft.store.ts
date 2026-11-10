@@ -492,7 +492,18 @@ export class CodexLoadoutDraftStore implements OnDestroy {
    * stock loadout when nothing changed). Resolves the new config — the page
    * then opens it as `?v=<id>` — or null when anything was refused.
    */
-  async adoptToHq(): Promise<HangarShipConfig | null> {
+  adoptToHq(): Promise<HangarShipConfig | null> {
+    // One write per click burst: a second call while the first is in flight joins it instead of
+    // creating a second "Codex-Loadout" (round-7 E8 — the name dialog's AI wait looked like nothing happened).
+    this.adoptInFlight ??= this.runAdoptToHq().finally(() => {
+      this.adoptInFlight = null;
+    });
+    return this.adoptInFlight;
+  }
+
+  private adoptInFlight: Promise<HangarShipConfig | null> | null = null;
+
+  private async runAdoptToHq(): Promise<HangarShipConfig | null> {
     const d = this.src.detail();
     if (d?.kind !== 'ship') return null;
     this.savingState.set(true);
