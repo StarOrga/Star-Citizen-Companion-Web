@@ -101,6 +101,19 @@ describe('VerseFlight', () => {
     expect(document.querySelector('.sc-flight-streaks')).toBeNull();
   });
 
+  it('hub → subpage under the shell scene: no streaks and no aim hold, the camera does the dive (D6, D7)', async () => {
+    const flight = TestBed.inject(VerseFlight);
+    flight.shell = () => true;
+    flight.aimMs = 60;
+    const h = await RouterTestingHarness.create('/verse');
+    await h.navigateByUrl('/verse/news');
+    await settle(h);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('.sc-flight-streaks')).toBeNull();
+    finish();
+    await settle(h);
+  });
+
   it('hub → subpage: aims at the clicked tile first (origin + highlighted world), then starts the transition', async () => {
     const flight = TestBed.inject(VerseFlight);
     flight.aimMs = 60;

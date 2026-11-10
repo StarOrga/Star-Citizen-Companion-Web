@@ -240,7 +240,16 @@ export class SceneCameraService {
       const vt = doc.startViewTransition(cut);
       vt.ready.catch(() => undefined);
       vt.updateCallbackDone.catch(cut);
-      const done = (): void => root.removeAttribute(SCENE_FADE_ATTR);
+      // Never hold the marker (or a stalled transition) past the fade: a hidden or busy page may not finish it.
+      const guard = setTimeout(() => {
+        cut();
+        vt.skipTransition();
+        root.removeAttribute(SCENE_FADE_ATTR);
+      }, SCENE_FADE_MS + 300);
+      const done = (): void => {
+        clearTimeout(guard);
+        root.removeAttribute(SCENE_FADE_ATTR);
+      };
       return vt.finished.then(done, () => {
         cut();
         done();

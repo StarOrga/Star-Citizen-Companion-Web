@@ -12,6 +12,7 @@ import {
   WORLD_RECTS,
   doorRects,
   easeInOutCubic,
+  framedInto,
   framedLikeNews,
   poseAt,
   poseCam,
@@ -55,8 +56,26 @@ describe('Shell scene — model', () => {
     expect(POSES.codex.cam).toEqual({ s: 1, x: -225, y: -37.5 });
     expect(POSES.hq.cam).toEqual({ s: 3.6, x: -162.986, y: -120.313 });
     expect(POSES['hq-sub'].cam.y).toBeLessThan(POSES.hq.cam.y); // below HQ
-    expect(POSES.admin.cam.s).toBe(6);
+    // Admin: the station big in the free third column beside the cards (1600 x 900: x 63.7-89.7 vw, y 24.7-40.4 vw).
+    const [sx, sy, sw, sh] = WORLD_RECTS.station;
+    const [ax, ay] = screen(POSES.admin.cam, sx + sw / 2, sy + sh / 2);
+    expect(ax).toBeCloseTo(76.69, 1);
+    expect(ay).toBeCloseTo(32.53, 1);
     expect(POSES.hq.veil).toBe(0.38);
+  });
+
+  it('fits the station into the slot the admin hub lends, centred, as large as the slot allows', () => {
+    const slot = [60, 20, 30, 18] as const;
+    const p = framedInto(WORLD_RECTS.station, slot);
+    const [x, y, w, h] = WORLD_RECTS.station;
+    const [l, t] = screen(p, x, y);
+    const [r, b] = screen(p, x + w, y + h);
+    expect(r - l).toBeLessThanOrEqual(30 + 1e-6);
+    expect(b - t).toBeCloseTo(18, 4); // the slot's height binds
+    expect((l + r) / 2).toBeCloseTo(75, 4);
+    expect((t + b) / 2).toBeCloseTo(29, 4);
+    expect(poseCam('admin', null, slot)).toEqual(p);
+    expect(poseCam('admin', null, null)).toEqual(POSES.admin.cam);
   });
 
   it('frames Patches and Galerie exactly like News: big at the left edge', () => {
@@ -254,9 +273,13 @@ describe('Shell scene — camera and component', () => {
     reduced = true;
     const tick = cam.fadeTick();
     await go('/hq');
+    // A View Transition crossfades the old scene state into the new one (D9); without one the new scene fades in.
+    const viaTransition = document.documentElement.hasAttribute('data-sc-scene-fade');
+    expect(viaTransition || cam.fadeTick() === tick + 1).toBe(true);
+    await new Promise((r) => setTimeout(r, 900));
     expect(world().getAnimations()).toEqual([]);
     expect(world().style.transform).toBe(poseTransform(POSES.hq.cam));
-    expect(cam.fadeTick()).toBe(tick + 1);
+    expect(document.documentElement.hasAttribute('data-sc-scene-fade')).toBe(false);
   });
 
   it('flyTo is the public API: from a given pose, own duration, resolves when the camera stands', async () => {
@@ -267,6 +290,17 @@ describe('Shell scene — camera and component', () => {
     await done;
     expect(cam.flying()).toBe(false);
     expect(world().style.transform).toBe(poseTransform(POSES.verse.cam));
+  });
+
+  it('fades what the target pose hides by mid-flight, what it shows over the whole flight (D7)', async () => {
+    await go('/verse/news');
+    expect(scene().style.getPropertyValue('--f-news')).toBe(`${SCENE_FLIGHT_MS}ms`);
+    expect(scene().style.getPropertyValue('--f-patches')).toBe(`${Math.round(SCENE_FLIGHT_MS * 0.45)}ms`);
+    expect(scene().style.getPropertyValue('--f-planet')).toBe(`${Math.round(SCENE_FLIGHT_MS * 0.45)}ms`);
+  });
+
+  it('draws the admin station with the hub station drawing (D5)', () => {
+    expect(el().querySelector('.station sc-briefing-station svg')).not.toBeNull();
   });
 
   it('paints the stars as one image (no per-star gradient layers)', () => {
