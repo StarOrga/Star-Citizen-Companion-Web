@@ -244,10 +244,18 @@ html[data-sc-scene] body { background: transparent; }
 
   // ── P2 "Szene stößt vor": while a large popup is open (html.sc-scene-pushin, set by
   // [scPopupMotion="large"]) the scene pushes in ~4 % and dims; the close reverses it in
-  // 60 % of the time. `scale` (not `transform`) so the camera's own transform stays untouched.
+  // 60 % of the time. The camera moves .world / .sky; the push-in transforms their parent.
+  //
+  // Cost (r6, perf-report wave 2d): a `scale` on .scene changed the raster scale of the big world and
+  // sky layers, so they were re-rastered when the push-in started and again when the pull-out ended
+  // (54–120 ms frames). The same 4 % push-in as a perspective dolly — translateZ(38.46px) under
+  // perspective(1000px) = 1000 / 961.54 = ×1.04 about the centre, the same picture — lets the
+  // compositor scale the layers it already has: no re-raster at either end. Under the open veil's
+  // 4px backdrop blur the 4 % texture zoom does not show. Only while pushed in, so the camera's own
+  // zoom elsewhere keeps its sharp raster.
   .scene {
-    scale: 1;
-    transition: scale 560ms cubic-bezier(0.4, 0, 0.2, 1);
+    transform: none;
+    transition: transform 560ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   .scene::after {
     content: '';
@@ -255,10 +263,12 @@ html[data-sc-scene] body { background: transparent; }
     inset: 0;
     background: #02070d;
     opacity: 0;
+    // Its own layer from the start: the dim fades on the compositor and never repaints the scene.
+    will-change: opacity;
     transition: opacity 560ms ease-out;
   }
   :root.sc-scene-pushin & .scene {
-    scale: 1.04;
+    transform: perspective(1000px) translateZ(38.4615px);
     transition-duration: 940ms;
   }
   :root.sc-scene-pushin & .scene::after {
@@ -282,7 +292,11 @@ html[data-sc-scene] body { background: transparent; }
   .scene[data-ignite] .sky { animation: sc-scene-ignite 900ms ease-out both; }
   .scene[data-ignite] :is(.world, .live-planet) { animation: sc-scene-ignite 1400ms ease-in-out 200ms both; }
 
-  // Reduced motion: the camera jumps (SceneCameraService), the scene crossfades in 420 ms.
+  // Reduced motion: the camera jumps (SceneCameraService), the scene crossfades in 420 ms: a frozen
+  // copy of the old scene (.scene-ghost) fades out over the new one. Only this layer fades; the page
+  // above it is never captured, so it stays clickable and never shows twice (C8 / D9 / r6).
+  .scene-ghost { will-change: opacity; }
+  .scene-ghost * { transition: none !important; }
   .scene[data-fade='0'] { animation: sc-scene-fade-a 420ms ease-out both; }
   .scene[data-fade='1'] { animation: sc-scene-fade-b 420ms ease-out both; }
   .scene:not([data-fade]) { animation: none; }
@@ -290,7 +304,7 @@ html[data-sc-scene] body { background: transparent; }
   @media (prefers-reduced-motion: reduce) {
     .o, .veil, .starmap .const, .starmap .map { transition: none !important; }
     .tilt, .hqst > i, .planet .lights { animation: none !important; }
-    .scene { scale: none !important; transition: none; }
+    .scene { transform: none !important; transition: none; }
     .scene::after { transition-duration: 160ms !important; }
   }
   @media (prefers-reduced-motion: no-preference) {
@@ -309,13 +323,6 @@ html[data-sc-brief-world] body { overflow: clip; }
 @keyframes sc-scene-fade-a { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sc-scene-fade-b { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sc-scene-ignite { from { opacity: 0; } }
-// C8 / D9: the reduced-motion crossfade between two scene states (SceneCameraService.crossfade). The
-// global reduced-motion rule stills every View Transition; this one is the crossfade itself.
-html[data-sc-scene-fade]::view-transition-group(root) { animation: none !important; }
-html[data-sc-scene-fade]::view-transition-old(root) { animation: sc-scene-xf-out 420ms ease-in-out both !important; }
-html[data-sc-scene-fade]::view-transition-new(root) { animation: sc-scene-xf-in 420ms ease-in-out both !important; }
-@keyframes sc-scene-xf-out { to { opacity: 0; } }
-@keyframes sc-scene-xf-in { from { opacity: 0; } }
 @keyframes sc-scene-carry { from { opacity: 1; } to { opacity: var(--carry-to, 0); } }
 @keyframes sc-scene-tilt-far { to { transform: translateY(-3vh); } }
 @keyframes sc-scene-tilt-near { to { transform: translateY(-7vh) scale(1.015); } }

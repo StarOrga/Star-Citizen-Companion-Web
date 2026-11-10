@@ -14,8 +14,8 @@ import {
   skyTransform,
 } from './scene.model';
 
-/** Marker on `<html>` while the reduced-motion crossfade runs (the scene stylesheet times it to 420 ms). */
-export const SCENE_FADE_ATTR = 'data-sc-scene-fade';
+/** Class of the frozen old scene that fades out over the new one under reduced motion. */
+export const SCENE_GHOST_CLASS = 'scene-ghost';
 
 /** Keyframes per flight: enough that the linear segments between them read as the curve. */
 const SAMPLES = 32;
@@ -54,7 +54,7 @@ export function cameraReducedMotion(): boolean {
  *
  * A call mid-flight retargets from the current pose — nothing waits for a
  * flight to end (C3). The path is straight (`poseAt`, eased in-out cubic).
- * Under reduced motion the camera jumps and the scene crossfades in 420 ms.
+ * Under reduced motion the camera jumps and only the scene layer crossfades in 420 ms.
  * The shell scene component attaches its layers; without them (shell beta off)
  * every call resolves at once.
  */
@@ -88,6 +88,8 @@ export class SceneCameraService {
   private flight: Flight | null = null;
   private anims: Animation[] = [];
   private settle: (() => void) | null = null;
+  /** The old scene's frozen copy while a reduced-motion crossfade runs. */
+  private ghost: HTMLElement | null = null;
   /** The camera stands at a pose other than its target's until the next flight (the entrance's depth). */
   private held = false;
 
@@ -105,6 +107,7 @@ export class SceneCameraService {
     this.held = !!standAt;
     return () => {
       this.stop();
+      this.dropGhost();
       if (this.world === world) this.world = this.sky = null;
     };
   }
@@ -214,51 +217,39 @@ export class SceneCameraService {
 
   /**
    * Reduced motion: no flight — the scene crossfades in 420 ms from the old camera state to the new
-   * one (C8). A View Transition captures the old state, the camera jumps and the new state is
-   * applied inside its update; the old picture fades out over the live new one. Without the API (or
-   * while another transition runs) the new scene fades in instead.
+   * one (C8). Only the scene layer takes part: a frozen copy of the old scene (`.scene-ghost`, its
+   * canvases copied pixel for pixel) stands over the live one, the camera jumps and the new state is
+   * applied under it, then the copy fades out on the compositor and is removed. The page is never
+   * captured, so it stays clickable through the whole fade and can never show twice (r6). Without a
+   * scene element the new scene fades in instead (`data-fade`).
    */
   private crossfade(dest: CameraPose, apply: () => void): Promise<void> {
-    const doc = this.world?.ownerDocument;
-    const root = doc?.documentElement;
-    const busy = !!root && ('verseFlight' in root.dataset || root.hasAttribute(SCENE_FADE_ATTR));
-    if (!doc || !root || typeof doc.startViewTransition !== 'function' || doc.visibilityState !== 'visible' || busy) {
-      apply();
-      this.jump(dest);
+    this.dropGhost();
+    const scene = this.world?.closest<HTMLElement>('.scene') ?? null;
+    const ghost = scene ? freezeScene(scene) : null;
+    apply();
+    this.jump(dest);
+    if (!ghost || typeof ghost.animate !== 'function') {
+      ghost?.remove();
       this.fadeTick.update((n) => n + 1);
       return new Promise((r) => setTimeout(r, SCENE_FADE_MS));
     }
-    root.setAttribute(SCENE_FADE_ATTR, '');
-    let applied = false;
-    const cut = (): void => {
-      if (applied) return;
-      applied = true;
-      apply();
-      this.jump(dest);
+    this.ghost = ghost;
+    const fade = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SCENE_FADE_MS, easing: 'ease-in-out', fill: 'forwards' });
+    const done = (): void => {
+      if (this.ghost === ghost) this.ghost = null;
+      ghost.remove();
     };
-    try {
-      const vt = doc.startViewTransition(cut);
-      vt.ready.catch(() => undefined);
-      vt.updateCallbackDone.catch(cut);
-      // Never hold the marker (or a stalled transition) past the fade: a hidden or busy page may not finish it.
-      const guard = setTimeout(() => {
-        cut();
-        vt.skipTransition();
-        root.removeAttribute(SCENE_FADE_ATTR);
-      }, SCENE_FADE_MS + 300);
-      const done = (): void => {
-        clearTimeout(guard);
-        root.removeAttribute(SCENE_FADE_ATTR);
-      };
-      return vt.finished.then(done, () => {
-        cut();
-        done();
-      });
-    } catch {
-      root.removeAttribute(SCENE_FADE_ATTR);
-      cut();
-      return Promise.resolve();
-    }
+    return fade.finished.then(done, done);
+  }
+
+  /** Ends a running crossfade at once (the next jump starts its own from what the screen shows). */
+  private dropGhost(): void {
+    const g = this.ghost;
+    this.ghost = null;
+    if (!g) return;
+    g.getAnimations().forEach((a) => a.cancel());
+    g.remove();
   }
 
   /** Stands the camera at `p` without motion (inline transform, running animations dropped). */
@@ -285,4 +276,33 @@ export class SceneCameraService {
 
 function same(a: CameraPose, b: CameraPose): boolean {
   return Math.abs(a.s - b.s) < 1e-6 && Math.abs(a.x - b.x) < 1e-4 && Math.abs(a.y - b.y) < 1e-4;
+}
+
+/**
+ * A frozen copy of the scene as the screen shows it: the same classes and inline state (camera
+ * transforms, pose variables), no entrance or fade animations, canvases copied (a cloned canvas is
+ * blank). Inserted right after the live scene, so it paints over it inside the shell scene layer.
+ */
+function freezeScene(scene: HTMLElement): HTMLElement | null {
+  const parent = scene.parentElement;
+  if (!parent) return null;
+  const ghost = scene.cloneNode(true) as HTMLElement;
+  ghost.classList.add(SCENE_GHOST_CLASS);
+  for (const a of ['data-fade', 'data-ignite', 'data-carry', 'data-warm']) ghost.removeAttribute(a);
+  ghost.setAttribute('aria-hidden', 'true');
+  const from = scene.querySelectorAll('canvas');
+  const to = ghost.querySelectorAll('canvas');
+  from.forEach((src, i) => {
+    const dst = to[i];
+    if (!dst || !src.width || !src.height) return;
+    try {
+      dst.width = src.width;
+      dst.height = src.height;
+      dst.getContext('2d')?.drawImage(src, 0, 0);
+    } catch {
+      /* a canvas that cannot be read stays blank in the copy */
+    }
+  });
+  scene.after(ghost);
+  return ghost;
 }
