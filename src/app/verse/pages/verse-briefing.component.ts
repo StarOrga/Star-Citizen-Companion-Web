@@ -530,6 +530,7 @@ export class VerseBriefingComponent {
   private stopTracking: (() => void) | null = null;
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
+  private readonly ngZone = inject(NgZone);
 
   constructor() {
     // The hub's planet runs on past the page end: html[data-sc-brief-world] lets the body clip it.
@@ -734,20 +735,38 @@ export class VerseBriefingComponent {
     const lag = this.navLag = Math.round(this.chrome.sinceNavStart(NAV_LAG_MAX_MS));
     this.navIn.set(true);
     this.chrome.startHeroIntro(NAV_SEARCH_K, false, { searchAtMs: Math.max(0, NAV_SEARCH_AT_MS - lag) });
-    if (lag > 0) {
-      const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-      afterNextRender(() => {
-        for (const a of host.getAnimations({ subtree: true })) {
-          if (typeof CSSAnimation !== 'undefined' && !(a instanceof CSSAnimation)) continue;
-          a.currentTime = Number(a.currentTime ?? 0) + lag;
-        }
-      }, { injector: this.injector });
-    }
+    if (lag > 0) this.alignNavBuild(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement, lag);
     this.introTimers.push(setTimeout(() => {
       this.navIn.set(false);
       this.chrome.endHeroIntro();
     }, NAV_STANDS_MS - lag));
     this.destroyRef.onDestroy(() => this.chrome.endHeroIntro());
+  }
+
+  /**
+   * Menu switch: every CSS animation of the build counts its delay from the click, also the
+   * parts that mount in later steps. One rAF loop outside the zone over the build's span; an
+   * element that mounts after its beat starts at once instead of jumping into the middle.
+   */
+  private alignNavBuild(host: HTMLElement, lag: number): void {
+    if (typeof requestAnimationFrame !== 'function' || typeof host.getAnimations !== 'function') return;
+    const aligned = new WeakSet<Animation>();
+    const clickAt = (typeof performance !== 'undefined' ? performance.now() : 0) - lag;
+    let raf = 0;
+    const step = (): void => {
+      const now = typeof performance !== 'undefined' ? performance.now() : 0;
+      for (const a of host.getAnimations({ subtree: true })) {
+        if (aligned.has(a) || a.startTime === null) continue;
+        aligned.add(a);
+        if (typeof CSSAnimation !== 'undefined' && !(a instanceof CSSAnimation)) continue;
+        const delay = Number(a.effect?.getTiming().delay ?? 0);
+        const start = Math.max(clickAt, now - delay);
+        if (start < Number(a.startTime)) a.startTime = start;
+      }
+      raf = now - clickAt < NAV_STANDS_MS ? requestAnimationFrame(step) : 0;
+    };
+    this.ngZone.runOutsideAngular(() => (raf = requestAnimationFrame(step)));
+    this.destroyRef.onDestroy(() => raf && cancelAnimationFrame(raf));
   }
 
   private reducedMotion(): boolean {

@@ -449,6 +449,23 @@ export class FusionBarComponent {
   private pendingFlip: (() => void) | null = null;
 
   constructor() {
+    // The field's ignite counts from the moment the hub starts its sequence, the same clock as
+    // the header's beat. Its animation may already exist from the announced (held) entrance or
+    // from an earlier mount of the stage slot, and a running CSS animation keeps its own start
+    // when only its delay changes - the search grew ~0.4 s off its 3.5 s beat (QA E2).
+    effect(() => {
+      const h = this.chrome.heroIntro();
+      if (!h || h.hold) return;
+      untracked(() => afterNextRender(() => {
+        const el = this.host.nativeElement as HTMLElement;
+        const at = this.chrome.introStartedAt;
+        for (const a of el.getAnimations({ subtree: true })) {
+          if (typeof CSSAnimation === 'undefined' || !(a instanceof CSSAnimation) || !/^(fi-|sub-trace)/.test(a.animationName)) continue;
+          if (at !== null && a.playState !== 'paused') a.startTime = at;
+          else a.currentTime = 0;
+        }
+      }, { injector: this.injector }));
+    });
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof Scroll) {
         // The router's scroll reset has been applied: the route change is settled.

@@ -116,6 +116,8 @@ export class ShellChromeService {
    * beats (title 0.75 s, search 1.05 s ...) count from the click, not from the late mount (QA E4).
    */
   navStartedAt: number | null = null;
+  /** `performance.now()` when the running title sequence started: its beats count from here. */
+  introStartedAt: number | null = null;
 
   constructor() {
     inject(Router, { optional: true })?.events.subscribe((e) => {
@@ -237,6 +239,7 @@ export class ShellChromeService {
 
   /** The hub's title sequence starts (never call it under reduced motion). */
   startHeroIntro(k: number, full: boolean, beats?: HeroIntroBeats): void {
+    this.introStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
     this.introState.set(beats ? { k, full, ...beats } : { k, full });
   }
 
