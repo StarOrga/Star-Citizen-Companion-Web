@@ -352,7 +352,7 @@ function chipSize(pin: StagePin): number | null {
     /* minmax(0,1fr): a long label ("Geschossgeschwindigkeit") wraps inside its cell. */
     .insp-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px 6px; }
     .insp-stats div { display: grid; gap: 2px; align-content: space-between; min-width: 0; }
-    .insp-stats dt { font-family: inherit; text-transform: none; font-size: max(9.5px, var(--f)); color: var(--sc-fg-2); overflow-wrap: normal; hyphens: manual; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .insp-stats dt { font-family: inherit; text-transform: none; font-size: max(9.5px, var(--f)); color: var(--sc-fg-2); overflow-wrap: normal; word-break: normal; hyphens: manual; }
     .insp-stats dd { margin: 0; font-family: var(--m); font-size: 15px; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .insp-draft { margin: 0; display: flex; align-items: center; gap: 8px; }
     .tag.draft { font-size: max(10px, var(--f)); color: var(--sc-accent); border: 1px solid var(--sc-accent); border-radius: 2px; padding: 1px 6px; }
