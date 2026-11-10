@@ -433,7 +433,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
         @if (diffPorts().size > 0) {
           <span class="legend-diff"><sc-holo-diff-marker />{{ 'codex.holo.table.legendDiff' | translate }}</span>
         }
-        <span class="legend-hint" [class.quiet]="hintHidden()">{{ 'codex.holo.table.legendHint' | translate }}</span>
+        <span class="legend-hint" [style.visibility]="hintHidden() ? 'hidden' : null">{{ 'codex.holo.table.legendHint' | translate }}</span>
       </div>
     }
   `,
@@ -718,9 +718,7 @@ function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
     .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--sc-accent); vertical-align: middle; margin-right: 4px; }
     .legend i.g { border-color: var(--holo-gold); }
     .legend i.u { border-style: dashed; border-color: var(--sc-fg-2); }
-    .legend-hint { margin-inline-start: auto; transition: opacity 160ms ease; }
-    /* A toast stands over the hint's corner: the hint steps back until it is gone. */
-    .legend-hint.quiet { opacity: 0; }
+    .legend-hint { margin-inline-start: auto; }
 
     @media (orientation: landscape) and (max-width: 1000px) and (max-height: 600px) {
       .silhouette-frame { min-height: 320px; }

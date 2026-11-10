@@ -972,18 +972,8 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   @media (min-width: 901px) {
     .toasts { bottom: calc(var(--holo-strip-h, 64px) + var(--holo-views-h, 0px) + 12px + var(--holo-strip-lift, 0px)); }
   }
-  .draft-float { pointer-events: auto; width: min(560px, calc(100vw - 32px)); padding: 8px 12px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
-  border-radius: 4px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
-  /* Wide: the draft sits in the fixed card, above "Details"; narrow: it floats above the strip. */
-  .draft-card { flex: none; display: block; margin: 0 10px 8px; padding: 8px 10px; border: 1px solid var(--sc-accent); border-radius: 10px;
-  background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); }
-  .draft-card:empty { display: none; }
-  .draft-card ::ng-deep .bar { padding: 0; margin: 0; gap: 6px 8px; border: 0; background: none; }
-  .draft-card ::ng-deep .notice { min-width: 0; flex-basis: 100%; }
-  .draft-card ::ng-deep .actions { flex-basis: 100%; }
-  .draft-card ::ng-deep :is(.discard, .save) { flex: 1; min-height: max(34px, var(--sc-tap-min, 0px)); }
-  @media (min-width: 1001px) { .draft-float { display: none; } }
-  @media (max-width: 1000px) { .draft-card { display: none; } }
+  /* The draft's two places (.draft-card in the card, .draft-float above the strip) style themselves:
+     codex-loadout-save-bar.component.ts, :host(.draft-card) / :host(.draft-float) — stage CSS budget (B13). */
   .undo-toast { pointer-events: auto;
   display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
