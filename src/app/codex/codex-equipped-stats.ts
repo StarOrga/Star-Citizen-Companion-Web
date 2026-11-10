@@ -45,6 +45,7 @@ import {
   resourceKey,
   tractorBeamKey,
 } from './codex.types';
+import { isMissileRow, readCombatMetrics } from './codex-missile';
 
 /** How the UI renders a raw stat value (source units documented per case). */
 export type EquippedStatFormat =
@@ -664,6 +665,23 @@ function componentStats(kind: string, payload: unknown): EquippedStat[] {
   return out;
 }
 
+/**
+ * A missile, torpedo or rocket on a rack (feedback #331): the warhead leads —
+ * it is the row's headline figure — then reach, speed and lock time, read from
+ * `stats.SCItemMissileParams` exactly as the missile's own page reads them. A
+ * build uploaded before items revision 5 carries none of these, so the row
+ * stays bare instead of printing zeros.
+ */
+function missileStats(payload: unknown): EquippedStat[] {
+  const m = readCombatMetrics(payload);
+  const out: EquippedStat[] = [];
+  push(out, 'codex.missile.stat.damage', m.damage ?? null, 'int');
+  push(out, 'codex.missile.stat.range', m.range ?? null, 'metres');
+  push(out, 'codex.missile.stat.speed', m.speed ?? null, 'mps');
+  push(out, 'codex.missile.stat.lockTime', m.lockTime ?? null, 'seconds');
+  return out;
+}
+
 /** How many stats a single hardpoint row shows before it hurts readability. */
 export const MAX_STATS_PER_SLOT = 6;
 
@@ -696,6 +714,8 @@ export function equippedStats(item: EquippedItem, limit = MAX_STATS_PER_SLOT): E
     rows = weaponStats(payload, ammoPayload);
   } else if (entityKind === 'component') {
     rows = componentStats((payload as { kind?: string }).kind ?? '', payload);
+  } else if (isMissileRow({ attach_type: (payload as { attachType?: unknown }).attachType })) {
+    rows = missileStats(payload);
   } else {
     // Plain items (controllers, seats, racks…) carry no performance stats.
     rows = [];

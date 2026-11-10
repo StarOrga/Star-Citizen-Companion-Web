@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.249.0] - 2026-11-10
+
+### Added
+- Codex ship loadout: every missile shows its damage as the headline figure (rack total), plus range, speed and lock time, and a tag with its seeker signal (infrared, electromagnetic or cross-section); a value missing in the data leaves its line out.
+
 ## [0.248.2] - 2026-11-10
 
 ### Fixed

@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.248.2",
+  "current": "0.249.0",
   "releases": [
+    {
+      "version": "0.249.0",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex ship loadout: every missile shows its damage as the headline figure (rack total), plus range, speed and lock time, and a tag with its seeker signal (infrared, electromagnetic or cross-section); a value missing in the data leaves its line out."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.248.2",
       "date": "2026-11-10",
