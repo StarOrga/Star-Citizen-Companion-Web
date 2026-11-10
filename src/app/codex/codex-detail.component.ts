@@ -636,7 +636,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           <!-- ── Ship modules, configurable blocks first (461288f9), now
                mission-ordered/folded (PR C) ── -->
           @if (primaryModuleSections().length > 0) {
-            <section class="sc-card block col-loadout col-stick" scHeightVar="--_h" [scFeedbackSpot]="'codex.detail.columnLoadout'">
+            <!-- No outer card (#332): like the Analyse column beside it, the
+                 heading stands bare above the area boxes (Bewaffnung, Raketen,
+                 Türme, …), which keep their own boxes and backgrounds. -->
+            <section class="col-loadout col-stick" scHeightVar="--_h" [scFeedbackSpot]="'codex.detail.columnLoadout'">
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
                 <span class="n">{{ moduleCount() }}</span>
