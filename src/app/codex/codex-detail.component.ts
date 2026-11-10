@@ -216,6 +216,7 @@ import {
   narrowestRankScope,
   readRankScopePref,
   rankShip,
+  rankMissionNoteKey,
   resolveCareerLabel,
   writeRankScopePref,
 } from './codex-rank';
@@ -567,6 +568,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [profile]="rankProfile()"
             [scope]="rankScope()"
             [disabledReasons]="rankDisabledReasons()"
+            [holoContent]="true"
+            [shipClass]="rankShipClass()"
+            [roleName]="rankRoleName()"
+            [missionNoteKey]="rankMissionNote()"
             (profileChange)="rankProfile.set($event)"
             (scopeChange)="setRankScope($event)" />
           </div>
@@ -3911,17 +3916,24 @@ export class CodexDetailComponent implements OnInit {
     const target = this.rankShipInput();
     const cohort = this.rankCohort();
     if (!target || !cohort) return null;
-    // Holotable: rim at the group's 95th percentile, a "Karriere" group is the
-    // class, and the picked group applies even under RANK_MIN_GROUP (the card
-    // says "nur N Schiffe", concept r1-small). The classic card keeps the
-    // best-value rim and the raw career.
-    const holo = this.holoView();
+    // Both views rank the Holotable way (#329): rim at the group's 95th
+    // percentile, a "Karriere" group is the class, and the picked group applies
+    // even under RANK_MIN_GROUP (the card says "nur N Schiffe", concept
+    // r1-small). The classic card shows the same content in its own layout.
     return rankShip(target, cohort, {
       profile: this.rankProfile(),
       scope: this.rankScope(),
-      ...(holo ? { rim: 'p95' as const, careerByClass: true } : {}),
+      rim: 'p95',
+      careerByClass: true,
     });
   });
+
+  /** The role as the page shows it ("Leichter Jäger") — names the role group. */
+  readonly rankRoleName = computed<string | null>(
+    () => this.heroChips().find((c) => c.key === 'role')?.text?.trim() || null,
+  );
+  /** The honest line under the hexagon for an Einsatz without data. */
+  readonly rankMissionNote = computed<string | null>(() => rankMissionNoteKey(this.activeMissionId()));
 
   readonly rankDisabledReasons = computed<Partial<Record<RankProfileId, string | null>>>(() => {
     if (this.kind() !== 'ship') return {};

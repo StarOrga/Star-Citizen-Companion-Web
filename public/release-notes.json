@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.250.1",
+  "current": "0.250.2",
   "releases": [
+    {
+      "version": "0.250.2",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: the Einordnung card shows the same content as on the Holotisch (group names, comparison line, \"Besser als n %\", side note and the same values) while keeping its classic layout and position."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.250.1",
       "date": "2026-11-10",
