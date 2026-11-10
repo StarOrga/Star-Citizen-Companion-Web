@@ -638,9 +638,13 @@ function scopePredicate(scope: SwapScope, fitted: SwapCandidate | undefined) {
   return (c: SwapCandidate): boolean => {
     if (scope === 'allSize') return true;
     if (!fitted) return true;
-    if (scope === 'sameClass') return fitted.archetype != null && c.archetype === fitted.archetype;
+    // A scope without a basis restricts nothing. Coolers, shields, quantum
+    // drives and life support carry no archetype and no damage family; the
+    // old strict test emptied the default `sameClass` list for them ("0 of
+    // 24") while the segment itself was hidden as unavailable.
+    if (scope === 'sameClass') return fitted.archetype == null || c.archetype === fitted.archetype;
     const family = fitted.damageChannels[0] ?? null;
-    return family != null && c.damageChannels.includes(family);
+    return family == null || c.damageChannels.includes(family);
   };
 }
 

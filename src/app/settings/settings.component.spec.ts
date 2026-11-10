@@ -75,7 +75,7 @@ describe('SettingsComponent layout', () => {
         },
         {
           provide: RoleService,
-          useValue: { role: signal(isAdmin ? 'admin' : 'viewer'), isAdmin: signal(isAdmin) },
+          useValue: { role: signal(isAdmin ? 'admin' : 'viewer'), isAdmin: signal(isAdmin), isCollaborator: signal(isAdmin) },
         },
         { provide: ScConfirmService, useValue: { confirm } },
         {
@@ -369,6 +369,20 @@ describe('SettingsComponent layout', () => {
     // Identity, the username editor and the password form.
     expect(sections[0].querySelectorAll('.sc-card').length).toBe(3);
     expect(sections[1].querySelector('.locale-grid')).toBeTruthy();
+  });
+
+  // Feedback #339: one setting hides the feedback and the beta button; only
+  // staff (who have a beta FAB) read about the beta button, in the collab colour.
+  it('names the beta button in the feedback-button setting for staff only', () => {
+    const staff: HTMLElement = setup(makeUser(), '1100px', { isAdmin: true }).nativeElement;
+    const label = staff.querySelector('.label.elevated-collab');
+    expect(label?.textContent).toContain('settings.feedbackFab.staff.label');
+    expect(staff.textContent).not.toContain('settings.feedbackFab.show.label');
+
+    TestBed.resetTestingModule();
+    const viewer: HTMLElement = setup(makeUser(), '1100px', { isAdmin: false }).nativeElement;
+    expect(viewer.textContent).toContain('settings.feedbackFab.show.label');
+    expect(viewer.innerHTML).not.toContain('settings.feedbackFab.staff');
   });
 
   it('mentions no friends anywhere in Settings', () => {

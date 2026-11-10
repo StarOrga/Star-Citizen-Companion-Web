@@ -1,4 +1,14 @@
-import { formatScDate, formatScTime, intlLocaleOf, toDateOrNull } from './date-format';
+import { formatScDate, formatScLongDateTime, formatScTime, intlLocaleOf, toDateOrNull } from './date-format';
+
+describe('formatScLongDateTime (round-7 E2)', () => {
+  it('writes the German long form with a comma before the time', () => {
+    expect(formatScLongDateTime(new Date(2026, 9, 13, 18, 14), 'de', 'DE')).toBe('13. Oktober 2026, 18:14');
+  });
+
+  it('returns an empty string for missing input', () => {
+    expect(formatScLongDateTime(null, 'de', 'DE')).toBe('');
+  });
+});
 
 // Built from local parts on purpose: the formatter renders in the viewer's own
 // zone, so an ISO string with a fixed offset would make the assertions depend
