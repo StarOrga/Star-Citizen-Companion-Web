@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { Component, signal } from '@angular/core';
 import { TestBed, discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -22,6 +23,7 @@ import { ACC_SLOW_PX_PER_MS, ACC_STOP_MS, ACC_TRANSITION_MS, AccordionIntent } f
 import { INTRO_FLAG, VERSE_DOCUMENT_ENTRY } from './briefing.model';
 import { BriefingGalleryFillService } from './briefing-gallery-fill.service';
 import { VERSE_STAGED_BUILD } from './staged-build';
+import { SceneCameraService } from '../../../shell/scene/scene-camera.service';
 import {
   holoBody, holoTitle, hubChannel, hubChannels, hubGallery, kickerVersion, lineOf, patchImage, previousLine,
 } from './briefing-hub';
@@ -244,6 +246,37 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector('sc-briefing-beacons')).not.toBeNull();
     expect(el.querySelector('sc-briefing-hub')).not.toBeNull();
     expect(el.querySelector('.hub-hold')).toBeNull();
+    // The columns are painted one by one after their images decoded, all three in the end.
+    for (let i = 0; i < 80 && el.querySelector('sc-briefing-hub')?.getAttribute('data-cols') !== '3'; i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      fixture.detectChanges();
+    }
+    expect(el.querySelector('sc-briefing-hub')?.getAttribute('data-cols')).toBe('3');
+    fixture.destroy();
+  });
+
+  it('mounts the hub columns only once the camera stands', async () => {
+    TestBed.overrideProvider(VERSE_STAGED_BUILD, { useValue: true });
+    const camera = TestBed.inject(SceneCameraService);
+    // No scene in the test bed: the hub's anchors would stand the (absent) camera at once.
+    vi.spyOn(camera, 'setVerseAnchors').mockImplementation(() => undefined);
+    camera.flying.set(true);
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      fixture.detectChanges();
+    }
+    expect(el.querySelector('sc-briefing-beacons')).not.toBeNull();
+    expect(el.querySelector('sc-briefing-hub')).toBeNull();
+    expect(el.querySelector('.hub-hold')).not.toBeNull();
+    camera.flying.set(false);
+    for (let i = 0; i < 40 && !el.querySelector('sc-briefing-hub'); i++) {
+      await new Promise((r) => setTimeout(r, 25));
+      fixture.detectChanges();
+    }
+    expect(el.querySelector('sc-briefing-hub')).not.toBeNull();
     fixture.destroy();
   });
 

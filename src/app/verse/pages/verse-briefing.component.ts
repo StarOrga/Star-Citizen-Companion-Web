@@ -41,7 +41,9 @@ import { BriefingHubComponent } from './briefing/briefing-hub.component';
 import { toVwRect } from '../../shell/scene/scene.model';
 import { BriefingAsteroidComponent } from './briefing/briefing-asteroid.component';
 import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
-import { VERSE_BUILD_STEPS, VERSE_STAGED_BUILD, afterPaint } from './briefing/staged-build';
+import {
+  HUB_COLUMNS, HUB_DECODE_CAP_MS, HUB_IDLE_TIMEOUT_MS, VERSE_BUILD_STEPS, VERSE_STAGED_BUILD, afterPaint, decodeImages, whenIdle,
+} from './briefing/staged-build';
 import {
   BriefingStatus,
   IntroMode,
@@ -266,6 +268,12 @@ export class VerseBriefingComponent {
   readonly total = STARS_PER_PATCH;
   /** How far the hub has built: 0 stage and hero, 1 doors and beacons, 2 the columns below (staged-build). */
   readonly buildStep = signal(inject(VERSE_STAGED_BUILD) ? 0 : VERSE_BUILD_STEPS);
+  /**
+   * How many hub columns are painted (0 to HUB_COLUMNS): mounted, they stay unpainted until their images are decoded (staged-build
+   * `decodeImages`): their first raster is no longer one of the switch's frames.
+   */
+  readonly hubShown = signal(this.buildStep() >= VERSE_BUILD_STEPS ? HUB_COLUMNS : 0);
+  private readonly hubEl = viewChild(BriefingHubComponent, { read: ElementRef });
 
   readonly top = this.api.topItems;
 
@@ -567,18 +575,7 @@ export class VerseBriefingComponent {
     this.startNavIn();
     this.armStands();
     this.destroyRef.onDestroy(() => this.introTimers.forEach(clearTimeout));
-    afterNextRender(() => {
-      let cancel = (): void => undefined;
-      const next = (): void => {
-        if (this.buildStep() >= VERSE_BUILD_STEPS) return;
-        cancel = afterPaint(() => {
-          this.buildStep.update((s) => s + 1);
-          next();
-        });
-      };
-      next();
-      this.destroyRef.onDestroy(() => cancel());
-    });
+    afterNextRender(() => this.stageBuild());
 
     // One viewport: the stage is 100dvh minus whatever chrome sits above it
     // (topbar height differs per width, banners come and go), measured here
@@ -615,6 +612,48 @@ export class VerseBriefingComponent {
       const sub = this.translate.stream('verse.crumb').subscribe((t: string) => origin.rememberTitle('/verse', t));
       inject(DestroyRef).onDestroy(() => sub.unsubscribe());
     }
+  }
+
+  /**
+   * The staged build (staged-build.ts): doors and beacons one painted frame after the stage; the
+   * hub columns below the fold only once the camera stands (`SceneCameraService.flying()`
+   * false), in an idle slot, and painted only after their images decoded. Every beat stays where it
+   * was: the beats run on CSS clocks counted from the click (`alignNavBuild`), not on these steps.
+   */
+  private stageBuild(): void {
+    if (this.buildStep() >= VERSE_BUILD_STEPS) return;
+    const cancels: (() => void)[] = [];
+    let gone = false;
+    this.destroyRef.onDestroy(() => {
+      gone = true;
+      cancels.forEach((c) => c());
+    });
+    // One column per painted frame and idle slot, each after its own images decoded: the GPU
+    // takes the hub's first raster (shaders, textures) in three small bites, not one long frame.
+    const show = (): void => {
+      const n = this.hubShown();
+      if (gone || n >= HUB_COLUMNS) return;
+      const col = (this.hubEl()?.nativeElement as HTMLElement | undefined)?.querySelectorAll('.col')[n];
+      void (col ? decodeImages(col, HUB_DECODE_CAP_MS) : Promise.resolve()).then(() => {
+        if (gone) return;
+        this.hubShown.set(n + 1);
+        cancels.push(afterPaint(() => cancels.push(whenIdle(show, HUB_IDLE_TIMEOUT_MS))));
+      });
+    };
+    cancels.push(afterPaint(() => {
+      this.buildStep.set(1);
+      let armed = false;
+      const landed = effect(() => {
+        if (armed || this.camera.flying()) return;
+        armed = true;
+        untracked(() => cancels.push(whenIdle(() => {
+          landed.destroy();
+          this.buildStep.set(VERSE_BUILD_STEPS);
+          cancels.push(afterPaint(show));
+        }, HUB_IDLE_TIMEOUT_MS)));
+      }, { injector: this.injector });
+      cancels.push(() => landed.destroy());
+    }));
   }
 
   /** β shell: stability load, the hero's auto switch, the title fit, language bumps. */

@@ -85,7 +85,7 @@
     </section>
 
     @if (buildStep() >= 2) {
-      <sc-briefing-hub id="verse-hub" class="hub sc-below-stage"
+      <sc-briefing-hub id="verse-hub" class="hub sc-below-stage" [attr.data-cols]="hubShown()"
                        [news]="hubNews()" [newsLoading]="news.loading()" [newsError]="news.error()"
                        [live]="hubLive()" [liveDays]="liveDays()" [patchImage]="hubPatchImage()" [channels]="hubChannels()"
                        [gallery]="hubGallery()" [incoming]="dockFlying() && dock() !== 'docked'"

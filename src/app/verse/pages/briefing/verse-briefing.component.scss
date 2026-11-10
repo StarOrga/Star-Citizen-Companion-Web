@@ -541,5 +541,9 @@
 
 /* Menu switch while the camera pans (verse-briefing.component.ts `held`): the heavy layers are not painted yet. */
 .bstage.held sc-briefing-transmit,
+.bstage.held sc-briefing-beacons,
 .bstage.held ~ sc-briefing-hub,
 .bstage.held ~ * sc-briefing-hub { visibility: hidden; }
+
+/* The hub columns below the fold: mounted and laid out (the page keeps its height), each painted once its images decoded (stageBuild). */
+sc-briefing-hub[data-cols='0'] { visibility: hidden; }
