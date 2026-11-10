@@ -1498,6 +1498,12 @@
       "heroView2d": "2D",
       "heroSwitchTo3d": "Switch to the 3D view",
       "heroSwitchTo2d": "Switch back to the 2D image",
+      "holoOverlay": {
+        "label": "3D view: {{name}}",
+        "fullscreen": "Fullscreen",
+        "exitFullscreen": "Exit fullscreen",
+        "close": "Close the 3D view"
+      },
       "stageLaunchers": "{{n}} launchers",
       "stageMissileRacks": "Missile racks",
       "stageRemoteTurret": "Remote turret",

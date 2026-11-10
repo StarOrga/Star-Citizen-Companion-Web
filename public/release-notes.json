@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.250.6",
+  "current": "0.251.0",
   "releases": [
+    {
+      "version": "0.251.0",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex classic ship view: \"Zur 3D-Ansicht wechseln\" opens a small non-modal overlay over the picture and \"Dein Exemplar\" with the same 3D view as the Holotisch, nose front-left and a slow counter-clockwise turn over the front (still under reduced motion), plus a \"Vollbild\" button; X or Escape go back."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.250.6",
       "date": "2026-11-10",

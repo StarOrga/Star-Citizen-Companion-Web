@@ -42,6 +42,18 @@ export interface ScreenPoint {
  */
 export type StartFacing = 'side' | 'nose';
 
+/**
+ * Idle turntable seen from above: 'ccw' turns the model counter-clockwise, so a
+ * 'nose' start (nose front-left) swings its nose across the front; 'cw' the
+ * other way round; 'none' keeps it where the reader leaves it.
+ */
+export type TurntableSpin = 'none' | 'ccw' | 'cw';
+
+/** Turntable rate, degrees per second (the landing hologram's model-viewer uses the same 14deg). */
+const SPIN_DEG_PER_S = 14;
+/** After the reader lets go of the model, the turntable waits this long before it picks up again. */
+const SPIN_RESUME_MS = 2200;
+
 /** Camera direction (from the orbit centre, not normalised) of the start view. */
 export function startViewDir(facing: StartFacing): readonly [number, number, number] {
   return facing === 'nose' ? [-1, 0.55, -1.25] : [1, 0.55, 1.25];
@@ -158,6 +170,10 @@ export class PackageScene {
   private frameId = 0;
   private disposed = false;
   private paused = false;
+  /** Wanted turntable; the controls' autoRotate follows it except while the reader drags. */
+  private spin: TurntableSpin = 'none';
+  private spinTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastFrameAt = 0;
   private readonly tmp = new THREE.Vector3();
 
   // Safe-area framing (holotable). Null: the classic framing, untouched.
@@ -241,6 +257,19 @@ export class PackageScene {
     this.controls.enableDamping = !reducedMotion;
     this.controls.dampingFactor = 0.12;
     this.controls.addEventListener('change', () => this.requestRender());
+    // A grab stops the turntable; it resumes a moment after the reader lets go.
+    this.controls.addEventListener('start', () => {
+      this.clearSpinTimer();
+      this.controls.autoRotate = false;
+    });
+    this.controls.addEventListener('end', () => {
+      this.clearSpinTimer();
+      if (this.spin === 'none') return;
+      this.spinTimer = setTimeout(() => {
+        this.spinTimer = null;
+        this.applySpin();
+      }, SPIN_RESUME_MS);
+    });
     void this.disposed;
   }
 
@@ -650,6 +679,30 @@ export class PackageScene {
     return rectOf(pts);
   }
 
+  /**
+   * Idle turntable. OrbitControls' autoRotate orbits the CAMERA, so a positive
+   * speed (camera clockwise) reads as the model turning counter-clockwise.
+   */
+  setSpin(spin: TurntableSpin): void {
+    if (this.spin === spin) return;
+    this.spin = spin;
+    this.clearSpinTimer();
+    this.applySpin();
+  }
+
+  private applySpin(): void {
+    const on = this.spin !== 'none';
+    this.controls.autoRotate = on;
+    // autoRotateSpeed 1 = one orbit per 60 s = 6 degrees per second.
+    this.controls.autoRotateSpeed = (this.spin === 'cw' ? -1 : 1) * (SPIN_DEG_PER_S / 6);
+    if (on) this.requestRender();
+  }
+
+  private clearSpinTimer(): void {
+    if (this.spinTimer) clearTimeout(this.spinTimer);
+    this.spinTimer = null;
+  }
+
   /** Pause the frame loop (viewer off screen / tab hidden); resuming draws a frame at once. */
   setPaused(paused: boolean): void {
     if (this.paused === paused) return;
@@ -666,7 +719,12 @@ export class PackageScene {
     if (this.frameId || this.disposed || this.paused) return;
     this.frameId = this.outsideZone(() => requestAnimationFrame(() => {
       this.frameId = 0;
-      const moving = this.controls.enableDamping && this.controls.update();
+      const now = performance.now();
+      const spinning = this.controls.autoRotate;
+      // The turntable advances by real time, so a 144 Hz screen does not spin it faster.
+      const dt = this.lastFrameAt ? Math.min((now - this.lastFrameAt) / 1000, 0.1) : 1 / 60;
+      this.lastFrameAt = now;
+      const moving = (this.controls.enableDamping || spinning) && this.controls.update(spinning ? dt : null);
       this.keepFit();
       const t = this.elapsed();
       this.look.tick(t);
@@ -681,6 +739,7 @@ export class PackageScene {
 
   dispose(): void {
     this.disposed = true;
+    this.clearSpinTimer();
     if (this.frameId) cancelAnimationFrame(this.frameId);
     this.controls.dispose();
     for (const g of this.geometries) g.dispose();
