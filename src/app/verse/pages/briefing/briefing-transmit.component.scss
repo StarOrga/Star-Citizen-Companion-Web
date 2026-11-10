@@ -122,6 +122,13 @@
   .pl:has(.pl-gl.on) { animation: door-in 0.3s ease-out backwards; }
 }
 @keyframes door-in { from { opacity: 0; } }
+// The CSS art (an SVG full of feTurbulence filters) is only the fallback, and its first raster
+// is the most expensive paint of the page: on a cold menu switch the three discs held the GPU
+// for ~0.9 s right after the camera landed (QA D12). So it is never painted while the living
+// planet can still come: not at all once the canvas draws, and before that only after the same
+// 2 s the door itself waits (`art`, no WebGL / maps failing).
+.pl { background-image: none; }
+:host(.art) .pl:not(:has(.pl-gl.on)) { background-image: var(--tex); }
 .pl:hover { scale: 1.06; }
 // Away from the top: the relay rests (no cone, no waves, no holo), the planets only fly.
 :host(.away) .pl:hover { scale: none; }

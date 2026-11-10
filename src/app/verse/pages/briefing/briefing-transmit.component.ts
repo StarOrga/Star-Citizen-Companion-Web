@@ -28,6 +28,8 @@ export const TX_UNCHARGE_MS = 1000;
 export const TX_GAP_MS = 5000;
 /** The first planet ignites this long after the page stands (rounds/05 d5-pb-cycle: 5 s). */
 export const TX_START_MS = 5000;
+/** A planet whose WebGL body has not drawn by now shows its CSS art (the door's own fallback wait). */
+export const TX_ART_MS = 2000;
 /** A held panel (pointer / focus) is asked again after this long. */
 const TX_HELD_RECHECK_MS = 500;
 /** Touch: the first tap's name stays this long before the second tap is a first tap again. */
@@ -100,7 +102,7 @@ export function newestFirst(items: readonly TransmitItem[]): TransmitItem[] {
   imports: [RouterLink, TranslatePipe, NgTemplateOutlet, BodyCanvasDirective, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-transmit.component.scss',
-  host: { '[class.away]': 'away()', '[class.docked]': 'docked()', '[class.waits]': 'hold()', '[attr.data-phase]': 'phase()' },
+  host: { '[class.art]': 'art()', '[class.away]': 'away()', '[class.docked]': 'docked()', '[class.waits]': 'hold()', '[attr.data-phase]': 'phase()' },
   template: `
     @let c = cur();
     <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null"><i class="wide"><i class="fill"></i></i><i class="soft"><i class="fill"></i><i class="wave"></i></i></span>
@@ -161,6 +163,11 @@ export class BriefingTransmitComponent {
   readonly sending = computed(() => ['charge', 'build', 'write', 'pull'].includes(this.phase()));
   /** Pointer / focus on the holo: the relay waits. */
   readonly held = signal(false);
+  /**
+   * The CSS art may paint: {@link TX_ART_MS} after mount. Before that only the living planet can
+   * show - the art's first raster (SVG feTurbulence) held the GPU ~0.9 s on a cold menu switch (QA D12).
+   */
+  readonly art = signal(false);
   /** Touch: the planet whose name the first tap showed. */
   readonly armed = signal<VerseDoor | null>(null);
   /** The projection order: the planet with the newest content first. */
@@ -220,7 +227,9 @@ export class BriefingTransmitComponent {
       this.zone.run(() => this.arm(d));
     };
     host.addEventListener('click', onCapture, true);
+    const artTimer = this.zone.runOutsideAngular(() => setTimeout(() => this.art.set(true), TX_ART_MS));
     inject(DestroyRef).onDestroy(() => {
+      clearTimeout(artTimer);
       host.removeEventListener('click', onCapture, true);
       document.removeEventListener('visibilitychange', onVisibility);
       this.stop();
