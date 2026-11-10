@@ -2,12 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { ConceptPageComponent } from './concept-page.component';
+import { ConceptPageComponent, conceptFrameUrl } from './concept-page.component';
 import { ConceptPageService, ConceptTicket, ConceptTicketFailure } from './concept-page.service';
 
 /**
  * `/concept/:id` (admin feedback #224): the page mints a ticket for the
- * concept id and frames the document the edge function serves. It never
+ * concept id and frames the app's loader for the document the edge function
+ * serves (#330). It never
  * renders concept content itself, so the assertions are about the frame
  * and the three failure copies.
  */
@@ -38,7 +39,15 @@ async function mount(mint: () => Promise<ConceptTicket>) {
 describe('ConceptPageComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
 
-  it('frames the ticketed document once the ticket is minted', async () => {
+  it('builds the same-origin loader URL with the function URL only in the fragment', () => {
+    const frame = conceptFrameUrl(ID.toUpperCase(), TICKET.url);
+    expect(frame).toBe(`/concept-frame/${ID}.html#${encodeURIComponent(TICKET.url)}`);
+    // The ticket never sits in the path or query the server sees.
+    expect(frame.split('#')[0]).not.toContain('t=abc');
+    expect(decodeURIComponent(frame.split('#')[1])).toBe(TICKET.url);
+  });
+
+  it('frames the loader for the ticketed document once the ticket is minted (#330)', async () => {
     const mint = vi.fn().mockName('mintTicket').mockResolvedValue(TICKET);
     const { cmp, el } = await mount(mint);
 
@@ -46,7 +55,9 @@ describe('ConceptPageComponent', () => {
     expect(cmp.state()).toBe('ready');
     const frame = el.querySelector('iframe.frame') as HTMLIFrameElement | null;
     expect(frame).not.toBeNull();
-    expect(frame!.getAttribute('src')).toBe(TICKET.url);
+    // Never the function URL itself: Supabase serves its html as text/plain.
+    expect(frame!.getAttribute('src')).toBe(conceptFrameUrl(ID, TICKET.url));
+    expect(frame!.getAttribute('src')).not.toMatch(/^https:/);
     // The document runs its own scripts and same-origin fetches, nothing more.
     expect(frame!.getAttribute('sandbox')).toContain('allow-scripts');
     expect(frame!.getAttribute('sandbox')).toContain('allow-same-origin');
@@ -61,7 +72,7 @@ describe('ConceptPageComponent', () => {
     expect(back!.getAttribute('href')).toBe('/admin/feedback');
     const open = el.querySelector('a.open') as HTMLAnchorElement | null;
     expect(open).not.toBeNull();
-    expect(open!.getAttribute('href')).toBe(TICKET.url);
+    expect(open!.getAttribute('href')).toBe(conceptFrameUrl(ID, TICKET.url));
     expect(open!.getAttribute('target')).toBe('_blank');
     expect(open!.getAttribute('rel')).toContain('noopener');
   });

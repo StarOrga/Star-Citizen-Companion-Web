@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konzept</title>
+<!--
+  Loader for hosted concept pages (admin feedback #330).
+
+  Served as /concept-frame/<concept-id>.html (vercel.json rewrite, own CSP
+  header) and framed by the app's /concept/<id> route — or opened directly in
+  a new tab. The fragment carries the ticketed concept-page function URL
+  (never sent to any server by the browser).
+
+  Why a loader: Supabase serves every text/html response of an edge function
+  on *.supabase.co as text/plain with a sandbox CSP, so framing the function
+  URL showed the admin the html SOURCE. Here the document is fetched as text
+  and written into this app-origin document, under this file's CSP plus the
+  concept's own <meta> CSP. The function's injected shim points the engine's
+  bridge calls (/decisions, /reload, /heartbeat, /draft) at the absolute
+  function URL. The path ends in the concept id on purpose: the engine keys
+  its localStorage on location.pathname, so every concept keeps its own state.
+-->
+<style>
+  body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center;
+         font: 15px/1.5 system-ui, sans-serif; background: #0b0f14; color: #e6edf3; }
+  p { max-width: 40ch; text-align: center; padding: 1rem; }
+</style>
+</head>
+<body>
+<p id="msg" role="status"></p>
+<script>
+(function () {
+  var de = /^de\b/i.test(navigator.language || 'de');
+  var COPY = {
+    loading: de ? 'Konzept wird geladen …' : 'Loading concept …',
+    broken: de ? 'Dieser Link ist ungültig. Bitte die Konzeptseite im Companion neu öffnen.'
+               : 'This link is invalid. Please reopen the concept page in the Companion.',
+    failed: de ? 'Das Konzept konnte nicht geladen werden. Bitte die Seite neu laden.'
+               : 'The concept could not be loaded. Please reload the page.'
+  };
+  var msg = document.getElementById('msg');
+  function say(text, isError) {
+    msg.textContent = text;
+    if (isError) msg.setAttribute('role', 'alert');
+  }
+
+  var UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+  var id = (location.pathname.split('/').pop() || '').replace(/\.html$/i, '').toLowerCase();
+  var src = '';
+  try { src = decodeURIComponent(location.hash.slice(1)); } catch (e) { src = ''; }
+  // Only our own concept-page function, for exactly this concept id.
+  var allowed = new RegExp(
+    '^(https://[a-z0-9-]+\\.supabase\\.co|http://(127\\.0\\.0\\.1|localhost):\\d+)' +
+    '/functions/v1/concept-page/' + UUID + '\\?t=[^#\\s]+$', 'i');
+  if (!new RegExp('^' + UUID + '$').test(id) || !allowed.test(src) ||
+      src.toLowerCase().indexOf('/concept-page/' + id + '?') === -1) {
+    say(COPY.broken, true);
+    return;
+  }
+
+  say(COPY.loading, false);
+  fetch(src, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
+    .then(function (res) { return res.text(); })
+    .then(function (html) {
+      // The function answers html for the document and for an expired ticket;
+      // anything else (a gateway JSON error) is not a page.
+      if (!/<html[\s>]/i.test(html)) throw new Error('not html');
+      document.open();
+      document.write(html);
+      document.close();
+    })
+    .catch(function () { say(COPY.failed, true); });
+})();
+</script>
+</body>
+</html>

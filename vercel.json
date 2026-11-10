@@ -13,11 +13,12 @@
   "rewrites": [
     { "source": "/ingest/static/(.*)", "destination": "https://eu-assets.i.posthog.com/static/$1" },
     { "source": "/ingest/(.*)", "destination": "https://eu.i.posthog.com/$1" },
+    { "source": "/concept-frame/:file", "destination": "/concept-frame.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/((?!concept-frame/).*)",
       "headers": [
         { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
@@ -27,8 +28,21 @@
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com https://eu-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://media.robertsspaceindustries.com https://robertsspaceindustries.com https://theverse.robertsspaceindustries.com https://*.ytimg.com https://*.supabase.co https://sc-assets.sc-assets-worker.workers.dev https://cdn.discordapp.com https://*.googleusercontent.com; connect-src 'self' blob: https://fonts.googleapis.com https://fonts.gstatic.com http://127.0.0.1:* https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://api.star-citizen.wiki https://media.robertsspaceindustries.com https://robertsspaceindustries.com https://theverse.robertsspaceindustries.com https://status.robertsspaceindustries.com https://*.ytimg.com https://eu.i.posthog.com https://eu-assets.i.posthog.com https://sc-assets.sc-assets-worker.workers.dev https://cdn.discordapp.com https://*.googleusercontent.com; frame-src https://accounts.google.com https://*.supabase.co star-citizen-companion:; manifest-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' http://127.0.0.1:*; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com https://eu-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://media.robertsspaceindustries.com https://robertsspaceindustries.com https://theverse.robertsspaceindustries.com https://*.ytimg.com https://*.supabase.co https://sc-assets.sc-assets-worker.workers.dev https://cdn.discordapp.com https://*.googleusercontent.com; connect-src 'self' blob: https://fonts.googleapis.com https://fonts.gstatic.com http://127.0.0.1:* https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://api.star-citizen.wiki https://media.robertsspaceindustries.com https://robertsspaceindustries.com https://theverse.robertsspaceindustries.com https://status.robertsspaceindustries.com https://*.ytimg.com https://eu.i.posthog.com https://eu-assets.i.posthog.com https://sc-assets.sc-assets-worker.workers.dev https://cdn.discordapp.com https://*.googleusercontent.com; frame-src 'self' https://accounts.google.com https://*.supabase.co star-citizen-companion:; manifest-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' http://127.0.0.1:*; frame-ancestors 'none'"
         }
+      ]
+    },
+    {
+      "source": "/concept-frame/(.*)",
+      "headers": [
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Robots-Tag", "value": "noindex" },
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co http://127.0.0.1:*; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'" }
       ]
     }
   ]
