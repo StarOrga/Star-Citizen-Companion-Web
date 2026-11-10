@@ -561,6 +561,11 @@ function readShapePref(): 'hex' | 'bars' {
     /* Same height as the compact picker beside it: both rows are 32px. */
     :host(.holo) .hc-shape { align-self: stretch; }
     :host(.holo) .rim-i { align-self: flex-start; }
+    /* Touch: the focusable tooltip triggers (rank line, labels) reach the 48px tap size. */
+    @media (pointer: coarse) {
+      :host(.holo) .holo-rank { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; min-block-size: 48px; }
+      :host(.holo) .hc-label { min-block-size: 48px; }
+    }
     /* Classic card with Holotable wording: "Besser als 62 %" does not fit the 34px value column. */
     :host(.holo-text:not(.holo)) .bar-row { grid-template-columns: 74px minmax(0, 1fr) auto; }
     :host(.holo-text:not(.holo)) .bar-pct { white-space: nowrap; }

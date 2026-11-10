@@ -184,7 +184,7 @@ export interface HangarExemplar {
     .add .with { font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .note { margin: 0; padding: 0 10px; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .err { margin: 4px 10px 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-danger); }
-    @media (pointer: coarse) { .hb { height: 48px; border-radius: 24px; } .row, .add, .go, .act { min-height: 48px; align-items: center; } }
+    @media (pointer: coarse) { .hb { height: 48px; min-width: 48px; flex-shrink: 0; border-radius: 24px; } .row, .add, .go, .act { min-height: 48px; align-items: center; } }
   `],
 })
 export class CodexHoloHangarMenuComponent {

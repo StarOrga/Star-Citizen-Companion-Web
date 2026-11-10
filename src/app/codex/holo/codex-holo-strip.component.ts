@@ -369,7 +369,7 @@ let uidSeq = 0;
       .hs-toggle:hover .bar, .hs-toggle .bar.open { background: var(--sc-accent); inline-size: 64px; }
       .hs-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
       /* Touch: the bar keeps its look, the row under it grows to a reachable target. */
-      @media (pointer: coarse) { .hs-toggle { block-size: 24px; min-block-size: 24px; } }
+      @media (pointer: coarse) { .hs-toggle { block-size: 48px; min-block-size: 48px; } }
       /* The dock: over the page, docked on the row (concept r1-dock-open
          "both": the arrow opens it anywhere). Energy is its own row on top
          (r1-dock-energy "row"), the four areas under it. Capped to the
