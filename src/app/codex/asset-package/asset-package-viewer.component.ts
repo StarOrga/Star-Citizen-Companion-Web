@@ -512,6 +512,8 @@ export class AssetPackageViewerComponent {
   readonly selectionChange = output<PlacementSelection | null>();
   /** Table: the callout's swap icon. */
   readonly swapRequested = output<PlacementSelection>();
+  /** The hull is on screen or will not come (error): a host holding its previous view lets go. */
+  readonly drawn = output<void>();
 
   private readonly service = inject(AssetPackageService);
   private readonly codex = inject(CodexService);
@@ -1132,12 +1134,14 @@ export class AssetPackageViewerComponent {
       scene.setFocus(this.focusIds(), this.seeThrough());
       scene.setQuiet(this.quietIds());
       this.status.set('ready');
+      this.drawn.emit();
       this.locatable.emit(hotspotPlacements(m).map((p) => p.portName));
       void this.resolveItems(m);
     } catch (err) {
       if (token !== this.loadToken) return;
       this.errorKey.set(toErrorKey('asset-package', 'load', err, { manifest: row.manifestSha256 }));
       this.status.set('error');
+      this.drawn.emit();
     }
   }
 

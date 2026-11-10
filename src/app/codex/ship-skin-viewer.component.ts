@@ -909,6 +909,8 @@ export class ShipSkinViewerComponent {
    * skin catalog is what says whether a glb exists.
    */
   readonly available = output<boolean>();
+  /** The hull is on screen (model loaded) or will not come (load error): a host holding its previous view lets go. */
+  readonly drawn = output<void>();
 
   // Persist the collapsed/expanded state of the whole viewer (#137 part 2).
   // Default when the user never toggled it: expanded on desktop, collapsed on
@@ -1113,9 +1115,13 @@ export class ShipSkinViewerComponent {
     const target = event?.target ?? null;
     // Holo stage: the concept-hologram look on model-viewer's own three scene.
     // Anywhere else, or when the scene is not reachable, the PBR hologram tint.
-    if (this.holo() && this.dressModel(target)) return;
+    if (this.holo() && this.dressModel(target)) {
+      this.drawn.emit();
+      return;
+    }
     const materials = (target as { model?: { materials?: HoloMaterial[] } } | null)?.model?.materials;
     if (materials?.length) applyHologram(materials, this.accent());
+    this.drawn.emit();
   }
 
   /** The concept look is on the model; the CSS scan overlay steps aside. */
@@ -1213,6 +1219,7 @@ export class ShipSkinViewerComponent {
   onModelError(): void {
     this.modelLoading.set(false);
     this.modelError.set(true);
+    this.drawn.emit();
   }
 
   private applySelection(s: ShipSkin | null): void {
