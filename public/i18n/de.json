@@ -3781,6 +3781,14 @@
         "descOn": "Der Feedback-Button liegt auf jeder Seite unten rechts.",
         "descOff": "Der Feedback-Button ist ausgeblendet — damit siehst du auch keine Antworten und Rückfragen des Teams mehr. Hier wieder einschalten, um dein Feedback zu öffnen."
       },
+      "staff": {
+        "title": "Feedback- & Beta-Button",
+        "hint": "Die Knöpfe unten rechts: Feedback schicken und Antworten des Teams sehen, darüber der Beta-Schalter.",
+        "label": "Feedback- & Beta-Button anzeigen",
+        "audience": "(nur für Admins und Collaborators)",
+        "descOn": "Feedback-Button und Beta-Button liegen auf jeder Seite unten rechts.",
+        "descOff": "Feedback-Button und Beta-Button sind ausgeblendet — damit siehst du auch keine Antworten und Rückfragen des Teams mehr. Hier wieder einschalten, um dein Feedback oder die Beta-Schalter zu öffnen."
+      },
       "routineTint": {
         "label": "Feedback-Titel nur grün / rot",
         "audience": "(nur für Admins)",
