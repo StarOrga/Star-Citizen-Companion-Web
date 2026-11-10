@@ -224,6 +224,9 @@ describe('CodexRankCardComponent', () => {
     const slot = el.querySelector<HTMLElement>('.compare-head .small-group-mark');
     expect(slot?.classList.contains('slot')).toBe(true);
     expect(getComputedStyle(slot!).visibility).toBe('hidden');
+    // The live region is mounted up front (so it announces later) but says nothing yet.
+    expect(el.querySelector('.compare-head [role="status"]')?.textContent?.trim()).toBe('');
+    const slotBox = slot!.getBoundingClientRect();
 
     fixture.componentRef.setInput('result', { ...base, scope: 'sizeClass', scopeSizes: { all: 2, sizeClass: 2 } });
     fixture.detectChanges();
@@ -232,6 +235,9 @@ describe('CodexRankCardComponent', () => {
     expect(mark).toBeTruthy();
     expect(mark!.getAttribute('aria-label')).toBe('codex.rank.group.smallHint');
     expect(el.querySelector('.compare-head [role="status"]')?.textContent?.trim()).toBe('codex.rank.group.smallHint');
+    // The marker takes exactly the reserved slot's box: nothing beside it moves.
+    expect(mark!.getBoundingClientRect().width).toBe(slotBox.width);
+    expect(mark!.getBoundingClientRect().height).toBe(slotBox.height);
   });
 });
 
