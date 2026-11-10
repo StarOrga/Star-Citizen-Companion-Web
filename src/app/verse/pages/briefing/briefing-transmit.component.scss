@@ -49,7 +49,11 @@
 :host([data-phase='write']) { --tx-r: 0; --tx-o: 1; --tx-q: 1; --tx-p: 1; animation: tx-write 1320ms cubic-bezier(0.35, 0, 0.45, 1) both; }
 :host([data-phase='pull']) { --tx-p: 1; --tx-w: 1; animation: tx-pull 2000ms linear both; }
 :host([data-phase='hold']) { --tx-p: 1; --tx-w: 1; }
-:host([data-phase='out']) { --tx-p: 1; --tx-w: 1; animation: tx-out 700ms ease-in both; }
+// The pause: no cone, no panel. The projection away is the projection reversed (same keyframes, direction reverse).
+:host([data-phase='rest']) { --tx-a: 0; }
+:host([data-phase='unwrite']) { --tx-p: 1; animation: tx-unwrite 900ms linear both; }
+:host([data-phase='unbuild']) { --tx-r: 0; --tx-o: 1; --tx-q: 1; animation: tx-build 700ms linear reverse both; }
+:host([data-phase='uncharge']) { animation: tx-charge 1000ms linear reverse both; }
 // Exponential: the cone hardly moves at first, then shoots.
 @keyframes tx-charge {
   0% { --tx-r: 1; --tx-o: 0; --tx-q: 0; animation-timing-function: ease-in; }
@@ -70,14 +74,14 @@
   85% { --tx-r: 1; --tx-o: 1; --tx-q: 0; animation-timing-function: ease-out; }
   100% { --tx-r: 1; --tx-o: 0; --tx-q: 0; }
 }
-@keyframes tx-out { from { --tx-a: 1; } to { --tx-a: 0; } }
-
-// The first message simply stands (input `stands`).
-:host(.stands) .holo { animation: holo-stand 0.35s ease-out backwards; }
-@keyframes holo-stand { from { opacity: 0; } }
-// Nothing shows yet: nothing to click either. During the entrance the host's own float-in
-// takes the place of tx-out, so the holo is hidden here as well.
-:host([data-phase='out']) .holo { pointer-events: none; }
+// The cone shoots out to the line at the top, then the line runs down and takes the text with it (tx-write reversed).
+@keyframes tx-unwrite {
+  0% { --tx-r: 1; --tx-o: 1; --tx-q: 0; --tx-s: 0; --tx-w: 1; animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  30% { --tx-r: 0; --tx-o: 1; --tx-q: 1; --tx-s: 0; --tx-w: 1; animation-timing-function: cubic-bezier(0.35, 0, 0.45, 1); }
+  100% { --tx-r: 0; --tx-o: 1; --tx-q: 1; --tx-s: 1; --tx-w: 0; }
+}
+// In the pause nothing shows and nothing is to click.
+:host([data-phase='rest']) .holo { pointer-events: none; visibility: hidden; }
 :host(.waits) .holo { visibility: hidden; }
 
 // ── Planets ─────────────────────────────────────────────────────────────
@@ -118,6 +122,13 @@
   .pl:has(.pl-gl.on) { animation: door-in 0.3s ease-out backwards; }
 }
 @keyframes door-in { from { opacity: 0; } }
+// The CSS art (an SVG full of feTurbulence filters) is only the fallback, and its first raster
+// is the most expensive paint of the page: on a cold menu switch the three discs held the GPU
+// for ~0.9 s right after the camera landed (QA D12). So it is never painted while the living
+// planet can still come: not at all once the canvas draws, and before that only after the same
+// 2 s the door itself waits (`art`, no WebGL / maps failing).
+.pl { background-image: none; }
+:host(.art) .pl:not(:has(.pl-gl.on)) { background-image: var(--tex); }
 .pl:hover { scale: 1.06; }
 // Away from the top: the relay rests (no cone, no waves, no holo), the planets only fly.
 :host(.away) .pl:hover { scale: none; }
@@ -128,7 +139,12 @@
 .pl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 // Charging: the sender's atmosphere brightens (a glow, no rings).
 .pl.send { box-shadow: 0 0 calc(var(--s) * 0.32) rgba(150, 225, 255, 0.6); transition: scale 0.25s, box-shadow 0.84s ease-in; }
+// The name shows only on hover / focus (the scTooltip) - and on touch after the first tap (.tap) or while the
+// planet flies into the hub head on scroll (:host(.away), briefing-dock moves this very element).
 .plab {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
   position: absolute;
   left: 50%;
   top: calc(100% + 8px);
@@ -140,7 +156,27 @@
   text-transform: uppercase;
   color: var(--sc-fg-1);
 }
-.pl:hover .plab { color: var(--sc-fg-0); }
+.pl.tap .plab, :host(.away) .plab { opacity: 1; color: var(--sc-fg-0); }
+
+// Menu switch (rounds/05 d5-pb-nav): the planets send their impulses one after another from 1.55 s.
+@media (prefers-reduced-motion: no-preference) {
+  :host-context(.bstage.nav) .pl { animation: door-in 0.3s ease-out 1.55s backwards; }
+  :host-context(.bstage.nav) .pl[data-door='patches'] { animation-delay: 1.65s; }
+  :host-context(.bstage.nav) .pl[data-door='gallery'] { animation-delay: 1.75s; }
+  :host-context(.bstage.nav) .pl::before {
+    content: '';
+    position: absolute;
+    inset: -30%;
+    border-radius: 50%;
+    border: 1px solid rgba(150, 225, 255, 0.7);
+    box-shadow: 0 0 12px rgba(82, 193, 230, 0.5);
+    pointer-events: none;
+    animation: kw-impulse 0.65s ease-out 1.55s backwards;
+  }
+  :host-context(.bstage.nav) .pl[data-door='patches']::before { animation-delay: 1.65s; }
+  :host-context(.bstage.nav) .pl[data-door='gallery']::before { animation-delay: 1.75s; }
+}
+@keyframes kw-impulse { from { opacity: 1; transform: scale(0.35); } to { opacity: 0; transform: scale(1.6); } }
 
 // ── Light cone: from the sender to the scan line, whose width it takes at every height ──
 .cone {
@@ -170,7 +206,8 @@
 .cone[data-door='patches'] { --px: var(--patches-x); --py: var(--patches-y); --ps: var(--patches-s); }
 .cone[data-door='gallery'] { --px: var(--gallery-x); --py: var(--gallery-y); --ps: var(--gallery-s); --x1: var(--lx); --x2: var(--rx); }
 // Only while it runs: it repaints window-sized layers, and nothing of it shows in between.
-:host([data-phase='charge']) .cone, :host([data-phase='build']) .cone, :host([data-phase='write']) .cone, :host([data-phase='pull']) .cone { display: block; }
+:host([data-phase='charge']) .cone, :host([data-phase='build']) .cone, :host([data-phase='write']) .cone, :host([data-phase='pull']) .cone,
+:host([data-phase='unwrite']) .cone, :host([data-phase='unbuild']) .cone, :host([data-phase='uncharge']) .cone { display: block; }
 .wide, .soft, .fill, .wave { position: absolute; inset: 0; display: block; }
 .wide { filter: blur(1.1cqw); opacity: 0.5; }
 .soft { filter: blur(0.28cqw); }

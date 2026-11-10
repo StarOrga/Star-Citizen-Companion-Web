@@ -154,8 +154,15 @@ committen → pushen → hier abhaken.
 6. ~~**Gezieltes Vorladen**~~ — erledigt (`core/idle-preloading.strategy.ts`):
    Routen mit `data: { preload: true }` (Verse-Start, Codex-Landing,
    Codex-Detail, HQ + HQ-Landing) laden ≥ 3 s nach dem Start im Leerlauf,
-   nacheinander, nur eingeloggt, nie bei Save-Data/2G. Offen als Ergänzung:
-   Vorladen bei Hover/Touch eines Links (braucht URL→Route-Zuordnung).
+   nacheinander, nur eingeloggt, nie bei Save-Data/2G. Ergänzt um Vorladen
+   bei Absicht (`core/prefetch/`, app-weit): Hover ≥ 80 ms, Fokus oder
+   Druck auf einen App-Link lädt den Code der Zielroute (URL → Router-Config,
+   `loadComponent`/`loadChildren`, je Route einmal) und — eingeloggt — die
+   ersten Daten über registrierte Warmer (`PREFETCH_WARMERS`: Codex-Landing,
+   Schiffs-Silhouette, Codex-Detail nur bei Druck, Verse-Hub). Hover/Fokus im
+   Leerlauf und nie während einer Navigation plus 1,3 s Flugfenster; Save-Data
+   und 2G nichts, 3G nur Code. Neuer Warmer: `PrefetchWarmer` mit `import()`
+   im `warm`, damit das Boot-Bundle schlank bleibt.
    Ursprüngliche Notiz:
    eigene `PreloadingStrategy` — nach dem ersten Paint im Leerlauf die
    Nachbarbereiche der Einstiegsseite (Verse → Codex-Landing, HQ; Codex →

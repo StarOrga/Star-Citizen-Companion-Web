@@ -3,6 +3,9 @@
 // The scene's star fields, reused for the boot sky below (same seeds, same tiles).
 @use 'app/shell/scene/starfield' as boot-stars;
 
+// The two shared star fields as custom properties (_starfield.scss): one copy for the boot sky and the scene.
+:root { @include boot-stars.shared-fields; }
+
 /* StarOrga shared design system — single source of truth for tokens, fonts and
    base visuals. The local --sc-* tokens below are now thin aliases onto StarUI
    tokens, so every component (which references var(--sc-*)) adopts the StarOrga
@@ -159,7 +162,7 @@
      container pads only what the frame's own gutter leaves short of it (see hq-pages). */
   --hq-rail-clear: calc(max(var(--sc-fab-inset, 24px), env(safe-area-inset-left, 0px)) + 36px + 12px);
 }
-html:has([data-layout]) {
+html[data-sc-layout] {
   --sc-page-gutter: var(--sc-rand);
   --sc-content-max: min(max(80rem, 67vw), 200vh);
   --sc-b-gutter: var(--sc-rand);
@@ -171,10 +174,10 @@ html:has([data-layout]) {
   font-size: clamp(16px, 100vh / 90, 32px);
 }
 /* Body text keeps today's 15px at the 16px root and scales with it. */
-html:has([data-layout]) body { font-size: 0.9375rem; }
+html[data-sc-layout] body { font-size: 0.9375rem; }
 @media (max-width: 720px) {
   /* Phones: the chip is not beside the subheader (that is the thumb bar). */
-  html:has([data-layout]) { --sc-b-gutter: var(--sc-rand); }
+  html[data-sc-layout] { --sc-b-gutter: var(--sc-rand); }
 }
 /* Scroll-linked condense of the main header into the subheader (0 = header
    expanded, 1 = docked): set per frame on the header, the bar and the β chip
@@ -263,7 +266,7 @@ html:has([data-layout]) body { font-size: 0.9375rem; }
 /* Phone, beta shell: the top carries the subheader's route line (category + ◂ back) —
    the page header's own crumbs would repeat it right below. */
 @media (max-width: 720px) {
-  html:has(sc-fusion-bar) sc-page-header nav.crumbs { display: none; }
+  html[data-sc-bar] sc-page-header nav.crumbs { display: none; }
 }
 /* The subheader's light trace runs its conic edge around once (needs a typed angle). */
 @property --sc-sub-trace-ang {
@@ -296,9 +299,9 @@ html:has([data-layout]) body { font-size: 0.9375rem; }
 
 /* Anchors / focus never hide under the bar (WCAG 2.4.11): the bar is on top
    on desktop and at the bottom on phones. */
-html:has([data-layout]) { scroll-padding-top: var(--sc-bar-h); }
+html[data-sc-layout] { scroll-padding-top: var(--sc-bar-h); }
 @media (max-width: 720px) {
-  html:has([data-layout]) { scroll-padding-top: 0; scroll-padding-bottom: var(--sc-bar-h); }
+  html[data-sc-layout] { scroll-padding-top: 0; scroll-padding-bottom: var(--sc-bar-h); }
 }
 
 /* The frame (β only: the shell's <main> and the public layout's carry
@@ -944,9 +947,10 @@ body::before {
    the app has rendered but its lazily loaded page has not), the page background
    IS the shell scene's sky — same base colour, same nebula, the very same star
    fields (seeds and tiles of shell-scene.component.scss, box of its .sky) — so
-   the scene takes over without a seam instead of after a flat blue frame. */
-html:has(.sc-boot),
-html:has(.routed-content > router-outlet:last-child) {
+   the scene takes over without a seam instead of after a flat blue frame.
+   html[data-sc-booting] = AppComponent rendered, first page not activated yet (an attribute,
+   not html:has(): a :has() on the root restyles the whole document on every DOM change). */
+html[data-sc-booting] {
   background-color: #02070d;
   background-image:
     radial-gradient(ellipse 34% 26% at 22% 30%, rgba(46, 120, 190, 0.36), transparent 70%),
@@ -964,7 +968,7 @@ html:has(.routed-content > router-outlet:last-child) {
   body::before {
     inset: -8% -24% -8% -8%;
     opacity: 0.55;
-    @include boot-stars.field-image(170, 1931, 1213, 7, (1px, 1px, 1.4px, 1px), (#fff, #cfe8ff, #fff, #9cc));
+    @include boot-stars.far-field;
   }
   body::after {
     content: '';
@@ -973,14 +977,9 @@ html:has(.routed-content > router-outlet:last-child) {
     z-index: -1;
     pointer-events: none;
     opacity: 0.7; // the scene's near stars (shell-scene), so the handover does not dim them
-    @include boot-stars.field-image(56, 2203, 1381, 101, (1.6px, 1.3px, 1.8px, 1.2px), (#fff, #ffe7c4, #d9f2ff, #fff));
+    @include boot-stars.near-field;
   }
 }
-/* The splash (index.html) lets the sky through; its ring and word wait 1.2 s, so a
-   quick start shows nothing but stars and a slow one still says it is loading. */
-html .sc-boot { background: transparent; }
-html .sc-boot > * { animation: sc-boot-late 0.4s ease-out 1.2s both; }
-@keyframes sc-boot-late { from { opacity: 0; } to { opacity: 1; } }
 
 h1, h2, h3, h4 {
   font-family: var(--sc-font-display);
@@ -1682,8 +1681,7 @@ button {
 .item-page .it-stage { min-height: 0; }
 .item-page .it-panel {
   position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
-  border: 1px solid var(--sc-border); border-radius: 16px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--sc-border); border-radius: 16px; background: color-mix(in srgb, var(--sc-bg-0) 73%, transparent);
 }
 .item-page .it-path { flex: none; padding: 12px 12px 0; }
 .item-page .it-tabs { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin: 10px 12px 0; border: 1px solid color-mix(in srgb, var(--sc-accent) 24%, transparent); border-radius: 19px; overflow: hidden; }
@@ -1732,17 +1730,36 @@ button {
 
 /* Deep space behind the flight, where neither page covers the view. */
 html[data-verse-flight]::view-transition { background: #02070d; }
-html[data-verse-flight='side']::view-transition-old(root) { animation: sc-flight-away-up 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
-html[data-verse-flight='side']::view-transition-new(root) { animation: sc-flight-fade-in 420ms ease-out 240ms both; }
-html[data-verse-flight='down']::view-transition-old(root) {
-  transform-origin: var(--vf-ox) var(--vf-oy);
-  animation: sc-flight-dive 700ms var(--vf-cam) both;
+/* Shell scene (beta shell, concept 2026-11-09 Kamera-Welt C2): the background
+   scene is taken out of every snapshot. The root drops its name, so nothing but
+   the page content (#sc-main, named vf-page) is captured; the scene, header and
+   menus stay live underneath the transition and the camera keeps moving
+   (SceneCameraService) while only the content flies. No backdrop over it. */
+html[data-sc-scene][data-verse-flight] { view-transition-name: none; }
+html[data-sc-scene][data-verse-flight] #sc-main { view-transition-name: vf-page; }
+html[data-sc-scene][data-verse-flight]::view-transition { background: none; }
+@each $vf in root, vf-page {
+  html[data-verse-flight='side']::view-transition-old(#{$vf}) { animation: sc-flight-away-up 560ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+  html[data-verse-flight='side']::view-transition-new(#{$vf}) { animation: sc-flight-fade-in 420ms ease-out 240ms both; }
+  html[data-verse-flight='down']::view-transition-old(#{$vf}) {
+    transform-origin: var(--vf-ox) var(--vf-oy);
+    animation: sc-flight-dive 700ms var(--vf-cam) both;
+  }
+  html[data-verse-flight='down']::view-transition-new(#{$vf}) { animation: sc-flight-hold-in 1800ms linear both; }
+  html[data-verse-flight='up']::view-transition-old(#{$vf}) { animation: sc-flight-sink 520ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
+  html[data-verse-flight='up']::view-transition-new(#{$vf}) {
+    transform-origin: var(--vf-ox) var(--vf-oy);
+    animation: sc-flight-pull-out 1500ms var(--vf-cam) both;
+  }
 }
-html[data-verse-flight='down']::view-transition-new(root) { animation: sc-flight-hold-in 1800ms linear both; }
-html[data-verse-flight='up']::view-transition-old(root) { animation: sc-flight-sink 520ms cubic-bezier(0.55, 0, 0.75, 0.2) both; }
-html[data-verse-flight='up']::view-transition-new(root) {
+/* The content group itself stays put (the page frame does not move); only its images fly. */
+html[data-sc-scene][data-verse-flight]::view-transition-group(vf-page) { animation: none; }
+/* Shell scene, down: the camera does the dive (SceneCameraService push-in). The hub's content only
+   leans in with it and is gone well before mid-flight, so none of its planets or its sun stands beside
+   the planet the camera flies to (D7, r3 "nicht die andere planeten sehen"). */
+html[data-sc-scene][data-verse-flight='down']::view-transition-old(vf-page) {
   transform-origin: var(--vf-ox) var(--vf-oy);
-  animation: sc-flight-pull-out 1500ms var(--vf-cam) both;
+  animation: sc-flight-dive-scene 700ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 /* Star streaks radiate from the tile while the old page dives (own layer, only in the old state). */
 .sc-flight-streaks {
@@ -1801,6 +1818,11 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
   16% { opacity: 1; transform: scale(1.06); filter: none; }
   100% { opacity: 0; transform: scale(3); filter: blur(5px); }
 }
+@keyframes sc-flight-dive-scene {
+  0% { opacity: 1; transform: none; }
+  50% { opacity: 0; transform: scale(1.3); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
 @keyframes sc-flight-hold-in { 0%, 22% { opacity: 0; } 34%, 100% { opacity: 1; } }
 @keyframes sc-flight-pull-out { from { opacity: 0; transform: scale(3); filter: blur(5px); } 35% { opacity: 1; } to { opacity: 1; transform: none; filter: none; } }
 @keyframes sc-flight-streaks { 0% { opacity: 0; transform: scale(0.8); } 30% { opacity: 0.85; } 100% { opacity: 0; transform: scale(2.2); } }
@@ -1844,11 +1866,13 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
   transition: opacity 220ms ease-in-out;
 }
 /* Part two: the new page's title swaps its text in place, the rest rises in
-   from 22 px (mock-sw-in, 400 ms ease-out) behind it. */
-#sc-main.switch-in:not(:has(.bstage.intro)) :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
+   from 22 px (mock-sw-in, 400 ms ease-out) behind it. A page that builds itself on a menu switch (the Verse hub's
+   own d5-pb-nav sequence, `.bstage.nav`; its entrance, `.bstage.intro`) is left alone: one sequence, never two
+   animations stacked on the same elements. */
+#sc-main.switch-in:not(:has(.bstage:is(.intro, .nav))) :is(*:has(h1, [data-stage-slot])) > :not(:has(h1, [data-stage-slot]), h1, [data-stage-slot]) {
   animation: sc-switch-in 400ms 160ms ease-out both;
 }
-#sc-main.switch-in h1 {
+#sc-main.switch-in:not(:has(.bstage:is(.intro, .nav))) h1 {
   animation: sc-switch-title 260ms ease-out both;
 }
 @keyframes sc-switch-in {
@@ -1902,12 +1926,12 @@ html[data-verse-flight='down'] .sc-enter-stagger > * {
 [data-stage-hero] > :not([data-stage-slot]) {
   transition: opacity 1s ease-in-out, transform 1s ease-in-out;
 }
-html:has(sc-fusion-bar[data-mode='docked']) [data-stage-hero] > :not([data-stage-slot]) {
+[data-stage-hero][data-hero-docked] > :not([data-stage-slot]) {
   opacity: 0;
   transform: translateY(-40px);
   transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
 }
-html:has(sc-fusion-bar.snap) [data-stage-hero] > :not([data-stage-slot]) {
+[data-stage-hero][data-hero-snap] > :not([data-stage-slot]) {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1916,7 +1940,7 @@ html:has(sc-fusion-bar.snap) [data-stage-hero] > :not([data-stage-slot]) {
 /* Phone: the route line sits fixed at the top while the bar is docked at the thumb —
    the page keeps that strip free so its own chips never slide under it. */
 @media (max-width: 720px) {
-  html:has(sc-fusion-bar:not([data-mode='stage'])) #sc-main {
+  html[data-sc-bar]:not([data-sc-bar='stage']) #sc-main {
     padding-top: calc(env(safe-area-inset-top, 0px) + 48px);
   }
 }

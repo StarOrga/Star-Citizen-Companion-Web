@@ -11,6 +11,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { onScrollTick } from '../core/scroll-tick';
 import { Location } from '@angular/common';
 import { ActivatedRoute, Router, Scroll } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -45,8 +46,8 @@ import { HqStockComponent } from './stock/hq-stock.component';
  *   stand under the docked subheader: the bar condenses by scroll depth like on every main page,
  *   and the page column is the subheader's width (`.sc-below-stage` = `--sc-b-w`).
  * - The footer is the shell's own and comes after the last page, Statistik.
- * - One page at a time (`hq-page-scroll.ts`): wheel and keys glide from page to page, the cue at the
- *   viewport's bottom edge leads to the next one.
+ * - One page at a time (`hq-page-scroll.ts`): native CSS scroll-snap finishes every wheel, key or
+ *   touch gesture on a page; the cue at the viewport's bottom edge leads to the next one.
  */
 @Component({
   selector: 'sc-hq-pages',
@@ -258,14 +259,14 @@ export class HqPagesComponent {
     };
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(queue);
     this.zone.runOutsideAngular(() => {
-      window.addEventListener('scroll', queue, { passive: true });
       window.addEventListener('resize', queue, { passive: true });
       ro?.observe(this.host.nativeElement);
     });
+    const offScroll = onScrollTick(() => this.measureCue());
     this.measureCue();
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener('scroll', queue);
+      offScroll();
       window.removeEventListener('resize', queue);
       ro?.disconnect();
     };

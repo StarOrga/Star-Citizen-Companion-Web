@@ -15,10 +15,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { AppNoticeComponent } from '../../desktop/app-notice.component';
-import { Router, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { SceneCameraService } from '../../shell/scene/scene-camera.service';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../core/analytics.service';
 import { BetaService } from '../../core/beta.service';
+import { claimRootAttr } from '../../core/root-var';
 import { WindowFocusService } from '../../core/window-focus.service';
 import { AuthService } from '../../auth/auth.service';
 import { NewsListComponent } from '../../news/news-list.component';
@@ -36,13 +38,14 @@ import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import { BriefingBeaconsComponent } from './briefing/briefing-beacons.component';
 import { BriefingGalleryFillService } from './briefing/briefing-gallery-fill.service';
 import { BriefingHubComponent } from './briefing/briefing-hub.component';
-import { BriefingPlanetComponent } from './briefing/briefing-planet.component';
+import { toVwRect } from '../../shell/scene/scene.model';
 import { BriefingAsteroidComponent } from './briefing/briefing-asteroid.component';
 import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
 import { VERSE_BUILD_STEPS, VERSE_STAGED_BUILD, afterPaint } from './briefing/staged-build';
 import {
   BriefingStatus,
   IntroMode,
+  VERSE_DOCUMENT_ENTRY,
   briefingStatus,
   claimIntro,
   explorerLit,
@@ -75,34 +78,54 @@ export const HERO_MS = 7000;
 /** The hero title never takes a third line: it shrinks down to this scale first. */
 export const TITLE_MIN_SCALE = 0.55;
 
-/** Entrance length in seconds: the full "Anflug" once per session, a short one afterwards. */
-export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 1 };
+/** Entrance length in seconds: the full "Anflug" on a direct call of the bare domain, a short one otherwise. */
+export const INTRO_SECONDS: Readonly<Record<IntroMode, number>> = { full: 3.4, short: 0.8 };
 
 /*
- * β shell entrance (owner brief 2026-11-04), played on the first visit of a session or a
- * reload when the page opened on the hub; coming back shows the final state at once.
- * Stars only, then the app's name sharpens in the hero (0.35 s +45 ms/letter), the bars
- * open, the main header (1.9 s) and the search field (2.3 s) arrive, the sun (2.6 s) and
- * the doors and news float in (2.9 s). The planet slides in from below whenever it is
- * ready — it no longer holds anything up. The comet comes last, once all of that stood
- * AND the planet did (or the wait ran out); it lights the constellation and hands the
- * hero from the app's name to the first story.
+ * β shell entrance ("Kamera-Welt" concept 2026-11-09, rounds/05 d5-pb-main), played on a direct
+ * call of the bare domain, once per tab; the page then stands at 5.5 s. Seconds from the start
+ * (after the boot splash has handed over - the hub only renders once the app removed it):
+ *   0     stars ignite             0.8–3.5  camera dolly from depth (CSS, `.cinema`; the scene
+ *                                            camera follows the `data-kw-entrance` hook on <html>)
+ *   2.2   title: light-edge scan + afterglow
+ *   3.5   search grows out of the title, usable (shell)
+ *   4.3   header (shell), Patches, the rest; the planets float in
+ *   4.3+  finale: the comet lights the constellation, the app's name hands over to the first story
+ *   5.0   "Mehr im Verse" breathes in   5.5  the page stands (the projector cycle's clock starts)
+ * The planet slides in from below whenever it is ready - it holds nothing up. Any input hurries
+ * everything still on its way to its end within {@link INTRO_SKIP_MS}.
  */
 /** Everything but the planet and the finale stands this long after the entrance started. */
-export const INTRO_BUILD_MS = 3600;
+export const INTRO_BUILD_MS = 4300;
 /** Longest the finale waits for the planet; past it the planet slides in whenever it arrives. */
 export const INTRO_PLANET_WAIT_MS = 7000;
 /** Into the finale: the comet has landed, the hero switches from the app's name to the first story. */
-export const INTRO_SWITCH_MS = 800;
+export const INTRO_SWITCH_MS = 600;
 /** A reader's input ends the entrance: everything still on its way arrives within this time. */
 export const INTRO_SKIP_MS = 300;
 /** A reload shows the stars until the hub's story is there, at most this long. */
-export const CALM_WAIT_MS = 800;
-/** Length of the hub's fade-in after a reload (verse-briefing-planet.scss, .calm). */
+export const CALM_WAIT_MS = 400;
+/** Length of the hub's fade-in after a reload (verse-briefing-planet.scss, .calm): wait + fade stay within 0.8 s. */
 const CALM_FADE_MS = 400;
 
-/** Into the finale: the constellation finished building, the entrance is over. */
-export const INTRO_FINALE_MS = 2800;
+/** Into the finale: the constellation finished building, the entrance is over (4.3 s + 1.2 s = 5.5 s). */
+export const INTRO_FINALE_MS = 1200;
+
+/** Menu switch (rounds/05 d5-pb-nav): the planets' last impulse has faded, the page stands. */
+export const NAV_STANDS_MS = 2300;
+/** The shell's search ignites at 2.3 s * k; k = 1.05 / 2.3 puts it at 1.05 s on a menu switch. */
+export const NAV_SEARCH_K = 0.4565;
+/** Menu switch: the search ignites this long after the click (2.3 s * k). */
+export const NAV_SEARCH_AT_MS = 1050;
+/** A mount later than this after the click is not shifted further (a cold chunk): the build plays from its start. */
+export const NAV_LAG_MAX_MS = 700;
+/** On the entrance the shell's search ignite runs at this pace (0.75 s * k open); its start is a beat of its own. */
+export const ENTRANCE_SEARCH_K = 1.52;
+/**
+ * The entrance's two shell beats (rounds/05 d5-pb-main), set apart instead of one shared factor:
+ * title 2.2 s (the hub's own scan), search usable at 3.5 s, then the header with the rest at 4.3 s.
+ */
+export const ENTRANCE_BEATS = { searchAtMs: 3500, headerAtMs: 4300 } as const;
 
 interface Gate {
   door: VerseDoor;
@@ -216,9 +239,11 @@ export function hurry(a: Animation, ms: number): void {
     StageSearchDirective,
     StageHeroDirective,
     RouterLink, TranslatePipe, ScTooltipDirective, AppNoticeComponent, NewsListComponent, BriefingMoonComponent, BriefingSkyComponent,
-    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, BriefingPlanetComponent, BriefingAsteroidComponent,
+    BriefingBeaconsComponent, BriefingTransmitComponent, BriefingHubComponent, BriefingAsteroidComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // The camera leaves the hub (NavigationStart): the doors hand over to the scene's pieces at once (G1).
+  host: { '[class.kw-leaving]': "shell() && camera.target() !== 'verse'" },
   templateUrl: './briefing/verse-briefing.component.html',
   styleUrls: ['./briefing/verse-briefing.component.scss', './briefing/verse-briefing-planet.scss'],
 })
@@ -234,6 +259,7 @@ export class VerseBriefingComponent {
   private readonly chrome = inject(ShellChromeService);
   private readonly windowFocus = inject(WindowFocusService);
   private readonly router = inject(Router);
+  protected readonly camera = inject(SceneCameraService);
   readonly enabled = this.beta.isEnabled('verse');
   /** β "shell": the "Funkfeuer 2" stage and the hub columns below it. */
   readonly shell = this.beta.isEnabled('shell');
@@ -463,7 +489,7 @@ export class VerseBriefingComponent {
     if (n) {
       out.push({
         key: `news:${n.id}`, door: 'news', title: holoTitle(n.title), body: holoBody(n.summary || t('verse.gates.news.hook')),
-        internal: true, path: '/verse/news', query: { item: n.id },
+        internal: true, path: '/verse/news', query: { item: n.id }, at: Date.parse(n.publishedAt) || 0,
       });
     } else if (dn) {
       out.push(this.txItem(dn, 'news', t('verse.gates.news.hook')));
@@ -504,8 +530,12 @@ export class VerseBriefingComponent {
   private stopTracking: (() => void) | null = null;
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
+  private readonly ngZone = inject(NgZone);
 
   constructor() {
+    // The hub's planet runs on past the page end: html[data-sc-brief-world] lets the body clip it.
+    effect(() => claimRootAttr('data-sc-brief-world', this, this.enabled() && this.shell() ? '' : null));
+    inject(DestroyRef).onDestroy(() => claimRootAttr('data-sc-brief-world', this, null));
     if (this.api.digestState() === 'idle') void this.api.loadDigest();
     void this.api.loadSeen();
     if (this.shell()) void this.galleryFill.load();
@@ -534,6 +564,9 @@ export class VerseBriefingComponent {
     inject(DestroyRef).onDestroy(() => this.stopTracking?.());
 
     this.startCalm();
+    this.startNavIn();
+    this.armStands();
+    this.destroyRef.onDestroy(() => this.introTimers.forEach(clearTimeout));
     afterNextRender(() => {
       let cancel = (): void => undefined;
       const next = (): void => {
@@ -616,6 +649,7 @@ export class VerseBriefingComponent {
     });
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const zone = inject(NgZone);
+    if (this.shell()) this.lendLayout(host, zone);
     afterNextRender(() => {
       const d = wireDock(host, zone);
       this.glide = d.glide;
@@ -641,7 +675,7 @@ export class VerseBriefingComponent {
     const l = verseItemLink(item.url);
     return {
       key: item.key, door, title: holoTitle(item.title), body: holoBody(item.summary || fallback),
-      internal: l?.internal ?? true, path: l?.path ?? `/verse/${door}`, query: (l?.query as Record<string, string> | null) ?? null,
+      internal: l?.internal ?? true, path: l?.path ?? `/verse/${door}`, query: (l?.query as Record<string, string> | null) ?? null, at: Date.parse(item.at ?? '') || 0,
     };
   }
 
@@ -666,8 +700,13 @@ export class VerseBriefingComponent {
   readonly titleIntro = signal(false);
   /** The app's name stands in the hero while the entrance builds up; the first story takes over in the finale. */
   readonly brand = signal(false);
-  /** The holo's first message stands at once. On the day's entrance it is sent, after the comet. */
-  readonly holoStands = signal(this.intro !== 'full');
+  /**
+   * The page stands (entrance over, menu-switch build done, reload shown): the projector cycle
+   * (briefing-transmit) starts its 5 s clock from here, whichever way the reader came.
+   */
+  readonly stands = signal(false);
+  /** A menu switch into the hub (rounds/05 d5-pb-nav): title, search, Patches, planets build one after another. */
+  readonly navIn = signal(false);
   /** A reload's hub: waiting behind the stars, then fading in; null once it stands. */
   readonly calm = signal<'wait' | 'in' | null>(null);
   /** The entrance's last beat: the comet flies in and lights the constellation. */
@@ -675,11 +714,103 @@ export class VerseBriefingComponent {
   /** The hero title needed more than two lines even at the smallest size: it is cut with an ellipsis. */
   readonly titleClipped = signal(false);
   private introTimers: ReturnType<typeof setTimeout>[] = [];
+  /**
+   * Menu switch, camera still panning: the hub's heavy layer (the
+   * planets' WebGL bodies - measured as the whole cost - and the hub below) stays out of the paint. Their first raster on a cold
+   * /verse held the GPU for ~0.9 s and the pan showed an almost black screen (QA D12); the planets'
+   * own beat (1.55 s) comes after the 1.1 s pan anyway.
+   */
+  readonly held = computed(() => this.navIn() && this.camera.flying());
+  /** Menu switch: how late the hub mounted after the click (ms). */
+  private navLag = 0;
   private builtUp = false;
   private planetSettled = false;
 
   private decideIntro(): IntroMode {
-    return claimIntro();
+    return claimIntro(undefined, inject(VERSE_DOCUMENT_ENTRY));
+  }
+
+  /**
+   * Arriving through the menu (from Codex / HQ ...): the header stands, the stage builds like the
+   * first visit, only faster - title scan 0.75 s, search 1.05 s, Patches 1.3 s, the planets send
+   * their impulses one after another from 1.55 s (CSS `.bstage.nav`).
+   */
+  private startNavIn(): void {
+    if (!this.shell() || !this.enabled() || this.intro !== 'short' || !this.router.navigated || this.reducedMotion()) return;
+    // The beats count from the menu click: the hub mounts only after its chunk and the switch-out
+    // (~0.45 s late, QA E4), so everything that would start later starts that much further in.
+    const lag = this.navLag = Math.round(this.chrome.sinceNavStart(NAV_LAG_MAX_MS));
+    this.navIn.set(true);
+    this.chrome.startHeroIntro(NAV_SEARCH_K, false, { searchAtMs: Math.max(0, NAV_SEARCH_AT_MS - lag) });
+    if (lag > 0) this.alignNavBuild(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement, lag);
+    this.introTimers.push(setTimeout(() => {
+      this.navIn.set(false);
+      this.chrome.endHeroIntro();
+    }, NAV_STANDS_MS - lag));
+    this.destroyRef.onDestroy(() => this.chrome.endHeroIntro());
+  }
+
+  /**
+   * Menu switch: every CSS animation of the build counts its delay from the click, also the
+   * parts that mount in later steps. One rAF loop outside the zone over the build's span; an
+   * element that mounts after its beat starts at once instead of jumping into the middle.
+   */
+  private alignNavBuild(host: HTMLElement, lag: number): void {
+    if (typeof requestAnimationFrame !== 'function' || typeof host.getAnimations !== 'function') return;
+    const aligned = new WeakSet<Animation>();
+    const clickAt = (typeof performance !== 'undefined' ? performance.now() : 0) - lag;
+    let raf = 0;
+    const step = (): void => {
+      const now = typeof performance !== 'undefined' ? performance.now() : 0;
+      for (const a of host.getAnimations({ subtree: true })) {
+        if (aligned.has(a) || a.startTime === null) continue;
+        aligned.add(a);
+        if (typeof CSSAnimation !== 'undefined' && !(a instanceof CSSAnimation)) continue;
+        const delay = Number(a.effect?.getTiming().delay ?? 0);
+        const start = Math.max(clickAt, now - delay);
+        if (start < Number(a.startTime)) a.startTime = start;
+      }
+      raf = now - clickAt < NAV_STANDS_MS ? requestAnimationFrame(step) : 0;
+    };
+    this.ngZone.runOutsideAngular(() => (raf = requestAnimationFrame(step)));
+    this.destroyRef.onDestroy(() => raf && cancelAnimationFrame(raf));
+  }
+
+  /**
+   * Entrance: the title scan's start is the sequence's real t = 0 (its delay is the 2.2 s beat).
+   * It starts in the frame after the stage's first render, ~0.2 s after startHeroIntro; the shell
+   * times the search (3.5 s) from the same moment (QA E2). One rAF watch outside the zone, ~1 s.
+   */
+  private reportEntranceClock(host: HTMLElement): void {
+    if (typeof requestAnimationFrame !== 'function' || typeof host.getAnimations !== 'function') return;
+    let raf = 0;
+    let tries = 0;
+    const step = (): void => {
+      raf = 0;
+      const scan = host.getAnimations({ subtree: true }).find(
+        (a) => typeof CSSAnimation !== 'undefined' && a instanceof CSSAnimation && /(^|_)kw-scan$/.test(a.animationName) && a.startTime !== null,
+      );
+      if (scan) {
+        const at = Number(scan.startTime);
+        this.ngZone.run(() => this.chrome.setIntroClock(at));
+        return;
+      }
+      if (++tries < 90) raf = requestAnimationFrame(step);
+    };
+    this.ngZone.runOutsideAngular(() => (raf = requestAnimationFrame(step)));
+    this.destroyRef.onDestroy(() => raf && cancelAnimationFrame(raf));
+  }
+
+  private reducedMotion(): boolean {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  /** When the page stands: the entrance ends it itself (endIntro); every other way is timed here. */
+  private armStands(): void {
+    if (this.titleIntro()) return;
+    const wait = this.navIn() ? NAV_STANDS_MS - this.navLag : this.calm() === 'wait' ? CALM_WAIT_MS + CALM_FADE_MS : 0;
+    if (!wait) return this.stands.set(true);
+    this.introTimers.push(setTimeout(() => this.stands.set(true), wait));
   }
 
   /**
@@ -707,7 +838,7 @@ export class VerseBriefingComponent {
 
   /** Starts the entrance on a full visit (never under reduced motion); otherwise the final state shows at once. */
   private startTitleIntro(): void {
-    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = this.reducedMotion();
     if (reduce || !this.enabled() || this.intro !== 'full') {
       // An announced entrance that will not play must not keep the header hidden.
       if (this.chrome.heroIntro()?.hold) this.chrome.endHeroIntro();
@@ -715,8 +846,27 @@ export class VerseBriefingComponent {
     }
     this.titleIntro.set(true);
     this.brand.set(true);
-    // Opened on the hub: the shell reveals its main header (1.9 s) and search field (2.3 s) in step with it.
-    if (this.chrome.heroIntro()?.hold) this.chrome.startHeroIntro(1, true);
+    // Opened on the hub: the shell reveals its search field (3.5 s) and only then its main header (4.3 s), in step with it.
+    if (this.chrome.heroIntro()?.hold) {
+      this.chrome.startHeroIntro(ENTRANCE_SEARCH_K, true, ENTRANCE_BEATS);
+      this.reportEntranceClock(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
+    }
+    // Hook for the scene camera: it dollies from depth while this attribute stands (see the handoff note).
+    document.documentElement.dataset['kwEntrance'] = 'dolly';
+    // The scene's camera dollies from depth (0.8 s, 2.7 s) - started after the first NavigationEnd, or the router's own move retargets it.
+    const dolly = (): void => {
+      this.introTimers.push(setTimeout(() => void this.camera.flyTo('verse', { from: 'entrance', durationMs: 2700 }), 800));
+    };
+    if (this.router.navigated) dolly();
+    else {
+      const sub = this.router.events.subscribe((e) => {
+        if (e instanceof NavigationEnd) {
+          sub.unsubscribe();
+          dolly();
+        }
+      });
+      this.destroyRef.onDestroy(() => sub.unsubscribe());
+    }
     this.armIntroSkip();
     this.introTimers.push(
       setTimeout(() => {
@@ -729,6 +879,7 @@ export class VerseBriefingComponent {
       this.introTimers.forEach(clearTimeout);
       this.disarmIntroSkip();
       this.chrome.endHeroIntro();
+      delete document.documentElement.dataset['kwEntrance'];
     });
   }
 
@@ -751,7 +902,6 @@ export class VerseBriefingComponent {
     this.disarmIntroSkip();
     this.introTimers.forEach(clearTimeout);
     this.introTimers = [];
-    this.holoStands.set(true);
     document.getAnimations().filter(inEntrance).forEach((a) => hurry(a, INTRO_SKIP_MS));
     this.introTimers.push(setTimeout(() => this.endIntro(), INTRO_SKIP_MS));
   }
@@ -762,6 +912,48 @@ export class VerseBriefingComponent {
     this.finale.set(false);
     this.titleIntro.set(false);
     this.chrome.endHeroIntro();
+    delete document.documentElement.dataset['kwEntrance'];
+    // The page stands: the projector cycle's 5 s clock starts here.
+    this.stands.set(true);
+  }
+
+  /**
+   * G1: the hub draws no planet of its own. It lends the scene its layout — the planet geometry
+   * (.brief-world) and its three doors, measured at the top of the page — so the world's one
+   * planet stands exactly here and its pieces under the doors. Measured again when the page
+   * stands, on resize and when the font or the doors move; never mid-scroll (the dock flight
+   * moves the doors). The scene's live planet reports when it is drawn, which the finale waits for.
+   */
+  private lendLayout(host: HTMLElement, zone: NgZone): void {
+    const measure = (): void => {
+      if (this.dock() !== 'top' || window.scrollY > 2) return;
+      const world = host.querySelector<HTMLElement>('.brief-world');
+      if (!world) return;
+      const w = window.innerWidth, y = window.scrollY;
+      const doors: Partial<Record<'news' | 'patches' | 'gallery', readonly [number, number, number, number]>> = {};
+      for (const d of ['news', 'patches', 'gallery'] as const) {
+        const el = host.querySelector<HTMLElement>(`sc-briefing-transmit .pl[data-door="${d}"]`);
+        if (el && !el.style.transform) doors[d] = toVwRect(el.getBoundingClientRect(), y, w);
+      }
+      this.camera.setVerseAnchors({ planet: toVwRect(world.getBoundingClientRect(), y, w), doors });
+    };
+    afterRenderEffect(() => {
+      this.stands();
+      this.buildStep();
+      measure();
+    });
+    afterNextRender(() => {
+      const timers = [600, 2400, 6000].map((ms) => zone.runOutsideAngular(() => setTimeout(measure, ms)));
+      window.addEventListener('resize', measure, { passive: true });
+      this.destroyRef.onDestroy(() => {
+        timers.forEach(clearTimeout);
+        window.removeEventListener('resize', measure);
+      });
+    });
+    effect(() => {
+      const s = this.camera.planetState();
+      if (s !== 'pending') untracked(() => this.onPlanetSettled());
+    });
   }
 
   /** Planet output: it stands (drawn) or will not come (no WebGL) — the finale may follow. */
