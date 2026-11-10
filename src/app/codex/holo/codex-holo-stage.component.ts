@@ -909,8 +909,9 @@ const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'
   /* D5: the rooms take the filters' slot and the rest of the row; overflow scrolls sideways, the row stays one line. */
   .vr { flex: 1 1 auto; }
   .vr-row { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity;
-  scrollbar-width: thin; mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); padding-inline-end: 24px; }
-  .vr-chip { padding: 0 11px; scroll-snap-align: start; }
+  scrollbar-width: thin; mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); padding-inline-end: 40px; }
+  /* A chip never shrinks: it keeps its whole name and the row scrolls (E5). */
+  .vr-chip { flex: none; white-space: nowrap; padding: 0 11px; scroll-snap-align: start; }
   .vr-none { font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); line-height: 26px; }
   /* The fixed card's patch slot (C18): only on the Änderungen tab. */
   .patch-slot { margin-bottom: 10px; }
@@ -1445,9 +1446,11 @@ export class CodexHoloStageComponent {
     if (!t) return [];
     const deck = buildDeckPlans(t.decks, t.lang)?.decks.find((d) => d.key === t.key);
     const seen = new Set<string>();
+    // One chip per name: case and stray spaces don't make a second "Turret Rear Foyer".
+    const norm = (l: string) => l.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
     return [...(deck?.rooms ?? [])]
       .sort((a, b) => a.label.localeCompare(b.label))
-      .filter((r) => r.label && (seen.has(r.label) ? false : (seen.add(r.label), true)))
+      .filter((r) => r.label.trim() && (seen.has(norm(r.label)) ? false : (seen.add(norm(r.label)), true)))
       .map((r) => ({ key: r.key, label: r.label }));
   });
   /** The label of the picked room — every chip of that name reads as on. */

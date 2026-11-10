@@ -223,8 +223,9 @@ function readShapePref(): 'hex' | 'bars' {
           </dl>
           @if (holoText()) {
             @if (holo()) {
-              <!-- The scale's footnote lives in its own tooltip: two full lines did not fit the fixed card (B13). -->
-              <span class="hc-label rim-i" tabindex="0" [scTooltip]="'codex.rank.rimNote' | translate">
+              <!-- The scale's footnote lives in its own tooltip: two full lines did not fit the fixed card (B13).
+                   It opens below, so it never lies over the legend and the chart's axis labels (E7). -->
+              <span class="hc-label rim-i" tabindex="0" [scTooltip]="'codex.rank.rimNote' | translate" scTooltipPlacement="below">
                 {{ 'codex.rank.rimLabel' | translate }}<span class="hc-i" aria-hidden="true">i</span>
                 <span class="sr-only">{{ 'codex.rank.rimNote' | translate }}</span>
               </span>

@@ -61,7 +61,7 @@ let nextDeckPlanId = 0;
           <div class="stage" [attr.id]="uid + '-panel'" [attr.role]="set.decks.length > 1 ? 'tabpanel' : null"
                [attr.aria-labelledby]="set.decks.length > 1 ? uid + '-tab-' + deckIndex() : null">
             <svg
-              [attr.viewBox]="set.viewBox"
+              [attr.viewBox]="fit()?.viewBox ?? set.viewBox"
               role="group"
               [attr.aria-label]="'codex.deckPlan.aria' | translate: { deck: d.label, count: d.rooms.length }"
             >
@@ -150,7 +150,7 @@ let nextDeckPlanId = 0;
     :host(.deck-sheet) { display: flex; flex-direction: column; min-height: 0; }
     .deck-plan.bare { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
     .bare .stage { flex: 1; min-height: 0; background: transparent; border: 0; padding: 0; }
-    .bare svg { height: 100%; max-height: min(100%, 560px); }
+    .bare svg { height: 100%; max-height: 100%; }
     .bare-nose { margin: 0 0 6px; text-align: center; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .dp-head h2 { margin: 0 0 2px; }
     .hint { margin: 0 0 10px; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -239,8 +239,38 @@ export class ShipDeckPlanComponent {
    */
   readonly fontSize = computed(() => {
     const set = this.plans();
-    const span = set ? Math.max(set.width, set.height * 0.6) : 40;
+    const fit = this.fit();
+    const span = fit ? Math.max(fit.w, fit.h * 0.6) : set ? Math.max(set.width, set.height * 0.6) : 40;
     return Math.max(span / 40, 0.6);
+  });
+
+  /**
+   * On the Holotable (bare) the plan zooms to fit the deck on the table: the viewBox hugs this
+   * deck's own rooms instead of the bounds of every deck (concept r7-plan = fit). The card keeps
+   * the shared box, so switching decks there keeps the scale.
+   */
+  readonly fit = computed<{ viewBox: string; w: number; h: number } | null>(() => {
+    if (!this.bare()) return null;
+    const rooms = this.deck()?.rooms ?? [];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of rooms) {
+      const nums = (r.paths.join(' ') + ' ' + r.mesh).match(/-?\d+(?:\.\d+)?/g) ?? [];
+      for (let i = 0; i + 1 < nums.length; i += 2) {
+        const x = +nums[i], y = +nums[i + 1];
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+      if (!r.paths.length && !r.mesh) {
+        minX = Math.min(minX, r.anchor.x); maxX = Math.max(maxX, r.anchor.x);
+        minY = Math.min(minY, r.anchor.y); maxY = Math.max(maxY, r.anchor.y);
+      }
+    }
+    if (!Number.isFinite(minX)) return null;
+    const w0 = Math.max(maxX - minX, 4), h0 = Math.max(maxY - minY, 4);
+    const pad = Math.max(w0, h0) * 0.06;
+    const w = w0 + 2 * pad, h = h0 + 2 * pad;
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    return { viewBox: `${r2(minX - pad)} ${r2(minY - pad)} ${r2(w)} ${r2(h)}`, w, h };
   });
 
   /** Inline room labels run smaller than the nose mark. */

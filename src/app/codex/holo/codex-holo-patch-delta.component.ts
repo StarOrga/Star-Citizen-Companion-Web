@@ -76,7 +76,7 @@ const KPI_LABEL_KEYS: Record<string, string> = {
                 <th scope="row">{{ kpiLabelKey(row.key) | translate }}</th>
                 <td>{{ fmt(row.from) }}</td>
                 <td>{{ fmt(row.to) }}</td>
-                <td class="pct">{{ row.delta?.pctText ?? '—' }}</td>
+                <td class="pct">{{ pct(row.delta?.pctText) }}</td>
               </tr>
             }
           </tbody>
@@ -115,6 +115,10 @@ export class CodexHoloPatchDeltaComponent {
 
   readonly labelKey = computed(() => PERSPECTIVE_LABEL_KEYS[this.group().perspective]);
   readonly rows = computed(() => this.group().cells.filter((c) => c.delta !== null));
+  /** German typography: "+28 %" with a no-break space before the sign (E3); the shared pctText stays "+28%". */
+  pct(text: string | null | undefined): string {
+    return text ? text.replace(/\s*%$/, '\u00a0%') : '—';
+  }
 
   kpiLabelKey(key: string): string {
     return KPI_LABEL_KEYS[key] ?? key;
