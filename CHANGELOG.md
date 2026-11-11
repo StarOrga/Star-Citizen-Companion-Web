@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.257.1] - 2026-11-11
+
+### Fixed
+- Kennzahlen: Dauer-DPS is no longer a copy of Salven-DPS. It now counts the pauses for reloading, energy regeneration and overheating; where a weapon has no known cycle yet, the cell says so instead of repeating the burst value.
+
 ## [0.257.0] - 2026-11-11
 
 ### Changed

@@ -20,6 +20,7 @@ import {
 import { equippedMass, itemMass, SummaryOccupant } from './ship-summary-panels';
 import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
 import { KpiKey, MissionDef } from './codex-mission';
+import { sustainedDps, weaponParamsOf } from './codex-sustained-dps';
 
 export type { SummaryOccupant };
 
@@ -150,6 +151,8 @@ export function computeKpiSheet(
 
   let totalAlpha = 0;
   let totalDps = 0;
+  let totalSustained = 0;
+  let sustainedComplete = true;
   let gunCount = 0;
   let missileDamage = 0;
   let missileCount = 0;
@@ -169,7 +172,12 @@ export function computeKpiSheet(
           ] ?? null,
         );
         const dps = damagePerSecond(alpha, fireRate);
-        if (dps !== null) totalDps += dps * o.count;
+        if (dps !== null) {
+          totalDps += dps * o.count;
+          const sus = sustainedDps(dps, fireRate, weaponParamsOf(o.payload)).value;
+          if (sus === null) sustainedComplete = false;
+          else totalSustained += sus * o.count;
+        }
       }
     }
     if (o.section === 'missiles') {
@@ -196,12 +204,12 @@ export function computeKpiSheet(
   }
 
   sheet.alpha = gunCount > 0 ? usable(totalAlpha) : null;
-  // The extract does not distinguish a "burst" fire rate from the sustained
-  // one — a weapon fires at its one documented `fireRate` until it stops, so
-  // both KPI cells show the SAME derived continuous-fire number rather than
-  // inventing a separate burst figure.
+  // Burst = every gun firing without a pause. Sustained counts the pauses
+  // (energy regen, reload, overheat — `codex-sustained-dps.ts`) and is only
+  // shown when EVERY gun with a burst figure has a known cycle: a partial sum
+  // would read as a weaker loadout, a copy of burst as no pauses at all (#343).
   sheet.burstDps = totalDps > 0 ? usable(totalDps) : null;
-  sheet.sustainedDps = sheet.burstDps;
+  sheet.sustainedDps = sheet.burstDps !== null && sustainedComplete ? usable(totalSustained) : null;
   sheet.missiles = missileCount > 0 ? usable(missileDamage) : null;
   sheet.shieldHp = shieldCount > 0 ? usable(shieldHp) : null;
   sheet.shieldRegen = shieldCount > 0 ? usable(shieldRegen) : null;
@@ -299,7 +307,7 @@ const KPI_META: Record<KpiKey, KpiMeta> = {
   sustainedDps: {
     labelKey: 'codex.kpi.sustainedDps',
     format: 'perSec',
-    gapKey: 'codex.summary.gap.noFireRate',
+    gapKey: 'codex.summary.gap.noSustainedCycle',
   },
   missiles: { labelKey: 'codex.kpi.missiles', format: 'dec', gapKey: 'codex.summary.gap.noMissiles' },
   shieldHp: { labelKey: 'codex.kpi.shieldHp', format: 'int', gapKey: 'codex.summary.gap.noShields' },
@@ -381,6 +389,8 @@ export interface OffensivePanel {
   hasDpsColumn: boolean;
   footerAlpha: number | null;
   footerDps: number | null;
+  /** Σ sustained DPS — null unless every gun with a burst figure has a known cycle (#343). */
+  footerSustainedDps: number | null;
   damageChannelTotals: { channel: string; value: number }[];
   effectiveRange: number | null;
   longestRangeGun: string | null;
@@ -403,6 +413,8 @@ export function buildOffensivePanel(occupants: readonly SummaryOccupant[]): Offe
   const rows: WeaponRow[] = [];
   let footerAlpha = 0;
   let footerDps = 0;
+  let footerSustained = 0;
+  let sustainedComplete = true;
   let hasAlpha = false;
   let hasDps = false;
   const channelTotals = new Map<string, number>();
@@ -417,12 +429,13 @@ export function buildOffensivePanel(occupants: readonly SummaryOccupant[]): Offe
     if (alpha === null) continue;
     const fireRate = toFiniteNumber(p?.weaponParams?.['fireRate'] ?? null);
     const dps = damagePerSecond(alpha, fireRate);
+    const sustained = sustainedDps(dps, fireRate, p?.weaponParams).value;
     for (let i = 0; i < o.count; i++) {
       rows.push({
         className: classNameOf(p) || 'unknown',
         size: toFiniteNumber(p?.size ?? null),
         alpha,
-        sustainedDps: dps,
+        sustainedDps: sustained,
         burstDps: dps,
       });
     }
@@ -431,6 +444,8 @@ export function buildOffensivePanel(occupants: readonly SummaryOccupant[]): Offe
     if (dps !== null) {
       footerDps += dps * o.count;
       hasDps = true;
+      if (sustained === null) sustainedComplete = false;
+      else footerSustained += sustained * o.count;
     }
 
     for (const c of impactDamageChannels(o.ammoPayload ?? o.payload)) {
@@ -488,6 +503,7 @@ export function buildOffensivePanel(occupants: readonly SummaryOccupant[]): Offe
     hasDpsColumn: hasDps,
     footerAlpha: hasAlpha ? footerAlpha : null,
     footerDps: hasDps ? footerDps : null,
+    footerSustainedDps: hasDps && sustainedComplete ? Math.round(footerSustained * 100) / 100 : null,
     damageChannelTotals: [...channelTotals.entries()].map(([channel, value]) => ({ channel, value })),
     effectiveRange,
     longestRangeGun,

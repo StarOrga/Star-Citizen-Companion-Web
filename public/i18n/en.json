@@ -2184,6 +2184,7 @@
       "shieldNote": "All three are shield generators and all three can be swapped. The passive one costs no power and still counts fully towards the pool — but it hangs off the active ones: if they fail, the backup goes with them.",
       "peek": {
         "sustainedDpsTotal": "Total sustained DPS",
+        "burstDpsTotal": "Total burst DPS",
         "missileTotal": "Full salvo",
         "budget": "Reactor budget",
         "coolingTotal": "Total cooling"
@@ -2209,6 +2210,7 @@
       "gap": {
         "noStockGuns": "This hull's stock guns are not in the extract — the game keeps default weapon fits in a separate loadout record we do not resolve yet, so the mounts below show the seat rather than the gun.",
         "noFireRate": "No fire rate in this extract{{patch}}, so sustained DPS cannot be derived yet.",
+        "noSustainedCycle": "No energy regen, reload time or overheat data for the weapons in this extract{{patch}}, so sustained DPS cannot be derived yet. Burst DPS counts no pauses.",
         "noShields": "No shield generator in this ship's stock loadout.",
         "noHullHp": "Hull HP is not part of the P4K extract yet.",
         "noResistances": "Per-channel damage resistances are not extracted — no ship or armour entity carries them.",
@@ -2274,7 +2276,7 @@
       "deltaUp": "{{value}} better than factory",
       "deltaDown": "{{value}} worse than factory",
       "tooltipBurstDps": "Continuous fire until the magazine is empty — reloading not counted.",
-      "tooltipSustainedDps": "Averaged over a long fight — reload pauses counted.",
+      "tooltipSustainedDps": "Averaged over a long fight — pauses for energy regen, reloading and overheating counted.",
       "short": {
         "alpha": "Alpha",
         "burstDps": "Burst DPS",
