@@ -872,7 +872,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // retry — instead of treating a whole multi-hour run as failed. 503 +
     // Retry-After also stops any generic client from hammering it.
     const err = e as { code?: string; message?: string };
-    const msg = err?.message ?? String(e);
+    const rawMsg = err?.message ?? String(e);
+    // An upstream 520/502 arrives as a whole HTML page; keep one line.
+    const msg = /<\s*(!doctype|html)b/i.test(rawMsg)
+      ? `[HTML error page: ${(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(rawMsg)?.[1] ?? 'no title').replace(/\s+/g, ' ').trim().slice(0, 160)}]`
+      : rawMsg.slice(0, 500);
     const timedOut = err?.code === '57014' || /statement timeout|canceling statement/i.test(msg);
     if (timedOut) {
       return new Response(

@@ -44,9 +44,21 @@ import {
   type PortRow,
   type KeybindData,
 } from '../lib/catalog-map.js';
+import { collapseErrorBody } from '../lib/error-body.js';
 import { isCarryTable, planCarry, rowsToSend } from '../lib/catalog-carry.js';
 
 const CHUNK = 500; // entity/string rows per request
+/**
+ * Tables whose rows are heavy enough that CHUNK times out in Postgres. Field log
+ * (2026-11, ~50 timeouts): codex_ships only ever succeeded at 45-90 rows,
+ * blueprints and items at 250. Starting there skips the timeout + backoff + split
+ * ladder each run used to climb; sendSlice still halves further when needed.
+ */
+const ENTITY_CHUNK: Record<string, number> = {
+  codex_ships: 90,
+  codex_blueprints: 250,
+  codex_items: 250,
+};
 const LOCALE_CHUNK = 1000; // locale rows per request (small rows)
 
 // ── transient-failure handling ───────────────────────────────────────────────
@@ -88,7 +100,7 @@ export class IngestHttpError extends Error {
     readonly code: string,
     readonly serverMessage: string,
   ) {
-    super(`${op} → HTTP ${status} ${code} ${serverMessage}`.trim());
+    super(`${op} → HTTP ${status} ${code} ${collapseErrorBody(serverMessage)}`.trim());
   }
 
   /**
@@ -534,7 +546,7 @@ export async function uploadCatalog(
   };
 
   const sendEntity = async (table: string, rows: unknown[], buildId: string): Promise<number> =>
-    sendChunks(table, rows, CHUNK, (slice) =>
+    sendChunks(table, rows, ENTITY_CHUNK[table] ?? CHUNK, (slice) =>
       sendIncremental(table, buildId, slice, (r) => post('upsert', { table, rows: r })),
     );
 
