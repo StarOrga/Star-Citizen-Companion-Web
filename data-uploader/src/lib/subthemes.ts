@@ -139,7 +139,8 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 6: codex_blueprints.payload.missionSource + codex_missions gains the
     //    career/list contracts that award a blueprint (blueprint_sources.py).
     // 7: codex_blueprints gains dismantle_yield / dismantlable (HQ Bestand, #1058).
-    revision: 7,
+    // 8: codex_entity_strings — names behind a `,P`-marked loc key resolve.
+    revision: 8,
     phases: [
       'codex_manufacturers',
       'codex_blueprints',
