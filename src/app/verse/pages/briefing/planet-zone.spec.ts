@@ -295,6 +295,9 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector<HTMLAnchorElement>('a.hq-l')?.getAttribute('href')).toBe('/hq');
     expect(el.querySelector('a.hq-l')?.getAttribute('aria-label')).toBe('verse.hub.hq · verse.hub.hqCalm');
     expect(el.querySelectorAll('a.hq-l .lab-v').length).toBe(1);
+    // HQ is the ground station on the planet (Kamera-Welt C6): the space station is the Admin place and never stands here.
+    expect(el.querySelector('sc-briefing-beacons sc-briefing-station'), 'no space station labelled HQ on the hub').toBeNull();
+    expect(el.querySelector('a.hq-l .ground')).not.toBeNull();
     expect(el.querySelector<HTMLAnchorElement>('.hrow h1 a.tl')?.getAttribute('href')).toBe('/verse/news?item=n1');
     expect(el.querySelector('.kick')?.textContent).toContain('verse.hub.area.news');
     expect(el.querySelectorAll('.hrow button.step').length).toBe(2);
@@ -302,6 +305,11 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelector('.cta, .sbar, .pause'), 'no CTA, story bars or pause').toBeNull();
     const planets = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pl')).map((a) => [a.dataset['door'], a.getAttribute('href')]);
     expect(planets).toEqual([['news', '/verse/news'], ['patches', '/verse/patches'], ['gallery', '/verse/gallery']]);
+    // Their names rise as a label under the planet like the sun's, never as a tooltip.
+    for (const a of Array.from(el.querySelectorAll<HTMLAnchorElement>('a.pl'))) {
+      expect(a.querySelector('.plab')?.textContent?.trim()).toBe(`verse.gates.${a.dataset['door']}.topic`);
+      expect(a.hasAttribute('aria-describedby'), 'no tooltip on a planet').toBe(false);
+    }
     expect(el.querySelector<HTMLAnchorElement>('a.holo')?.getAttribute('href'), 'the newest content (the gallery picture) is first in turn').toBe('/verse/gallery?image=g1');
     fixture.destroy();
     discardPeriodicTasks();

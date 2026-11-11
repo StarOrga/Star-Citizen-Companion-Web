@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, com
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ScTooltipDirective } from '../../../shared/tooltip/sc-tooltip.directive';
 import { isPlainLeftClick } from '../../../core/modified-click.util';
 import type { VerseDoor } from '../../data/verse.models';
 import { BodyCanvasDirective } from './bodies/body.directive';
@@ -90,8 +89,8 @@ export function newestFirst(items: readonly TransmitItem[]): TransmitItem[] {
  * zone. Pointer or focus on the holo holds the panel; a hidden tab or reduced motion
  * stops the cycle (the planets stay links).
  *
- * Planet names show only on hover / focus (`scTooltip`, like the sun); on touch the
- * first tap shows the name, the second opens.
+ * Planet names show only on hover / focus, as a label rising under the planet like the sun's
+ * (never a tooltip); on touch the first tap shows the name, the second opens.
  *
  * Away from the top of the page (`away`, briefing-dock) the relay rests, `hold` keeps it
  * from starting until the page stands - back at the top it starts its clock again.
@@ -99,7 +98,7 @@ export function newestFirst(items: readonly TransmitItem[]): TransmitItem[] {
 @Component({
   selector: 'sc-briefing-transmit',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, NgTemplateOutlet, BodyCanvasDirective, ScTooltipDirective],
+  imports: [RouterLink, TranslatePipe, NgTemplateOutlet, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-transmit.component.scss',
   host: { '[class.art]': 'art()', '[class.away]': 'away()', '[class.docked]': 'docked()', '[class.waits]': 'hold()', '[attr.data-phase]': 'phase()' },
@@ -108,8 +107,7 @@ export function newestFirst(items: readonly TransmitItem[]): TransmitItem[] {
     <span class="cone" aria-hidden="true" [attr.data-door]="c?.door ?? null"><i class="wide"><i class="fill"></i></i><i class="soft"><i class="fill"></i><i class="wave"></i></i></span>
     @for (d of doors; track d) {
       <a class="pl" [attr.data-door]="d" [attr.data-verse-fly]="d" [class.send]="c?.door === d && sending()" [class.tap]="armed() === d"
-         [routerLink]="'/verse/' + d" [attr.aria-label]="('verse.gates.' + d + '.topic') | translate"
-         [scTooltip]="('verse.gates.' + d + '.topic') | translate" scTooltipTier="label" (click)="tap($event, d)">
+         [routerLink]="'/verse/' + d" [attr.aria-label]="('verse.gates.' + d + '.topic') | translate" (click)="tap($event, d)">
         <canvas class="pl-gl" [scBody]="bodyOf[d]"></canvas>
         <span class="plab" aria-hidden="true">{{ ('verse.gates.' + d + '.topic') | translate }}</span>
       </a>
