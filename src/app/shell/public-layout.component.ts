@@ -49,7 +49,7 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
       <header class="public-topbar">
         <a class="home" routerLink="/">
           <span class="arrow" aria-hidden="true">←</span>
-          <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="32" height="32" />
+          <img class="logo" src="icons/brand/vc-mark.svg" alt="" width="32" height="32" />
           <span class="label">{{ 'nav.backToHome' | translate }}</span>
         </a>
       </header>

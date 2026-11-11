@@ -123,7 +123,7 @@ import { avatarUrlOf } from './avatar-url';
         routerLink="/verse"
         [attr.aria-label]="'nav.brandAria' | translate"
         (click)="onNavActivate($event, '/verse')">
-        <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="36" height="36" />
+        <img class="logo" src="icons/brand/vc-mark.svg" alt="" width="36" height="36" />
         <span class="wordmark">
           <span class="title">{{ brandName }}</span>
           <span class="alpha-badge">{{ 'nav.phaseBadge' | translate }}</span>

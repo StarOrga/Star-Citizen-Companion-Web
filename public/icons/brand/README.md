@@ -1,6 +1,6 @@
 # Brand marks
 
-Everything in this directory except `scc-mark.svg` is **generated**. Do not hand-edit it —
+Everything in this directory except `vc-mark.svg` is **generated**. Do not hand-edit it —
 `npm run check:brand-icons` runs in `prebuild` and will fail the build.
 
 ```bash
@@ -10,7 +10,7 @@ npm run check:brand-icons    # verify the working tree matches (what CI runs)
 
 ## The master
 
-`scc-mark.svg` is the Verse Companion **desktop app's** icon, vendored byte-for-byte from
+`vc-mark.svg` is the Verse Companion **desktop app's** icon, vendored byte-for-byte from
 
     Star-Citizen-Companion-App/modules/desktop/resources/app-icon-taskbar.svg
 
@@ -19,10 +19,18 @@ It is the only authored file here. The desktop app owns the artwork; this repo c
 **When the desktop app changes its icon**, re-vendor and regenerate:
 
 ```bash
-cp ../Star-Citizen-Companion-App/modules/desktop/resources/app-icon-taskbar.svg \
-   public/icons/brand/scc-mark.svg
+git -C ../Star-Citizen-Companion-App show origin/main:modules/desktop/resources/app-icon-taskbar.svg \
+   > public/icons/brand/vc-mark.svg
 npm run gen:brand-icons
 ```
+
+Then give the changed files new names (see "Filenames are cache-busting" below) and update
+every reference — otherwise browsers and the CDN keep the old icon.
+
+`npm run check:brand-upstream` (part of `prebuild`) fails when `vc-mark.svg` no longer matches
+the app's `origin/main`. It runs wherever a `Star-Citizen-Companion-App` checkout sits next to
+this repo (or `VC_APP_REPO` points at one) and skips on CI and Vercel. It exists because the app
+redrew its icon on 2026-10-14 (#1450) and the web showed the old one for a month (feedback #344).
 
 The web app ships that file **unchanged at every size** — browser tab, PWA icon, header logo,
 boot splash, extension — exactly as the desktop app does for its taskbar icon. It is the icon
@@ -39,7 +47,7 @@ icon — fix the marker in `marks.mjs` and re-run.
 
 | Product | Mark | What it is |
 |---|---|---|
-| Verse Companion (app + web) | `scc-mark*` | The master, untouched. |
+| Verse Companion (app + web) | `vc-mark*` | The master, untouched. |
 | Data Uploader | `uploader-mark*` | The master, untouched, with an **upward arrow** badge over the core — it pushes extracted data up into SCC. |
 | Starscape | `starscape-mark*` | The master, untouched, with a **monitor** badge over the core — it paints the verse across the desktop. |
 
@@ -83,7 +91,12 @@ The legend therefore lives here:
 `public/icons/` is copied unhashed and — until this change — was matched by no ngsw asset
 group at all. Overwriting a mark in place would leave the CDN and every browser cache serving
 the old artwork indefinitely, so the retired `verse-compass*.svg` / `icon-192.png` /
-`icon-512.png` were **deleted and replaced under new names** rather than edited.
+`icon-512.png` were **deleted and replaced under new names** rather than edited. The same
+happened in 2026-11 (#344): the `scc-*` files became `vc-*`, and the apps menu's hand-extracted
+`starscape-tray.png` / `uploader-tray.png` became the generated `*-tray-48.png`. The product key
+in the generator stays `scc`; only the file prefix changed (`FILE_PREFIX` in
+`scripts/build-brand-icons.mjs`). `public/favicon.ico` keeps its fixed name, because browsers
+request it by that path.
 
 Already-installed PWAs keep their old home-screen icon regardless; the OS caches it at install
 time. `manifest.webmanifest`'s `"id": "/"` must not change — that would orphan those installs.

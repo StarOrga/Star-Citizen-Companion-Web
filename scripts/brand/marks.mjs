@@ -11,7 +11,7 @@
  *
  * ## The system
  *
- * MASTER: `public/icons/brand/scc-mark.svg` is the desktop app's icon,
+ * MASTER: `public/icons/brand/vc-mark.svg` is the desktop app's icon,
  * vendored byte-for-byte. It is the single source of the family's identity:
  * the dark verse disc (StarUI `--surface-canvas` #0d2635), the nebula wisps,
  * the tilted accretion disk and the glowing cyan core. The web app ships it
@@ -248,7 +248,7 @@ export function deriveAppMark(masterSvg, product, tier = 'app') {
   if (!MARK_END_RE.test(masterSvg)) {
     throw new Error(
       'master mark no longer ends with its "end <n>% margin scale group" close marker. ' +
-        'The upstream artwork was restructured — re-vendor scc-mark.svg and update ' +
+        'The upstream artwork was restructured — re-vendor vc-mark.svg and update ' +
         'scripts/brand/marks.mjs before shipping.',
     );
   }

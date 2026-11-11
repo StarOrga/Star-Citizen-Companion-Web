@@ -21,7 +21,7 @@ import { BRAND_NAME } from '../../core/brand';
   selector: 'sc-brand-logo',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<img class="logo" src="icons/brand/scc-mark.svg" alt="" width="32" height="32" />`,
+  template: `<img class="logo" src="icons/brand/vc-mark.svg" alt="" width="32" height="32" />`,
   styles: [
     `
       :host {
