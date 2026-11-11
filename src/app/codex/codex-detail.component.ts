@@ -2866,7 +2866,6 @@ export class CodexDetailComponent implements OnInit {
     return known ?? missileRecordOf({ ...d.row, class_name: d.classNameSlug }, d.payload, null);
   });
   readonly missileRankScope = computed<RankScope>(() => {
-    const target = this.missileRecord();
     // Opens on all of its kind; the reader narrows to signal or size.
     return this.missileScopeChoice() ?? 'all';
   });

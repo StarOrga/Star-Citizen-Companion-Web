@@ -60,6 +60,7 @@ describe('CodexRankCardComponent', () => {
   it('names a group by the page’s own label when it passes one (#331)', () => {
     fixture.componentRef.setInput('result', null);
     fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('scope', 'all');
     fixture.componentRef.setInput('scopes', [
       { id: 'all', labelKey: 'codex.missile.scope.all', label: 'Alle Lenkraketen', reasonKey: '' },
       { id: 'sizeClass', labelKey: 'codex.missile.scope.size', label: 'Alle S2-Lenkraketen', reasonKey: 'codex.missile.scopeOff' },
