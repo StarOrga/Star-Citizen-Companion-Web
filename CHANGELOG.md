@@ -4,6 +4,49 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.0] - 2026-11-11
+
+### Added
+- Ships without authored decks (Idris) get decks derived from floor height, marked as derived in the deck plan, the hull facts and the Holotable; stairs, ladders and lifts appear on every level they connect and name where they lead (uploader 0.80.0).
+
+## [0.258.1] - 2026-11-11
+
+### Fixed
+- Admin feedback, Alt+click picker: a click in the header, the bar, a navigation, a menu or a dialog now names that region ("Kopfzeile", "Menü „Konto“") instead of the page's route, and the Codex view only stands in front of clicks inside the page. An icon or image inside a button or link names the button or link ("Button „Profilbild (Konto-Menü)“" for the avatar) instead of a nameless "Bild".
+
+## [0.258.0] - 2026-11-11
+
+### Fixed
+- Data Uploader 0.79.0: ship values validated against the wiki and erkul (Starlancer MAX/TAC, ROC/ROC-DS, Idris-M/P) — armour from the fitted armour item, ore pods by their real capacity, ground-vehicle top and reverse speed, fuel capacity, liveries from the game data (names, which ship they fit, 3D hull for the Starlancer), Wikelo special names, mission/event copies of a ship no longer listed as ships, no more hull-mass warning per variant.
+- Codex ship facts show hull HP, hull mass and armour instead of a gap.
+
+## [0.257.4] - 2026-11-11
+
+### Fixed
+- Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher.
+
+## [0.257.3] - 2026-11-11
+
+### Fixed
+- Verse hub (shell beta): the HQ link and label sit on the ground station on the planet; the space station no longer says HQ.
+- Verse hub: News, Patches and Galerie show their name under the planet on hover, like the sun, instead of a tooltip.
+- Verse hub: the placeholder below the stage has the hub's height, so the scrollbar no longer jumps when the hub appears.
+
+## [0.257.2] - 2026-11-11
+
+### Fixed
+- Missile Einordnung: the comparison groups now hold what their names say. "Alle Lenkraketen" compares against every missile of its kind (no torpedoes, no rockets), "Alle Infrarot-Lenkraketen" only against the same tracking signal (IR, EM or cross-section), and "Alle S2-Lenkraketen" only against exactly the same size.
+
+## [0.257.1] - 2026-11-11
+
+### Fixed
+- Kennzahlen: Dauer-DPS is no longer a copy of Salven-DPS. It now counts the pauses for reloading, energy regeneration and overheating; where a weapon has no known cycle yet, the cell says so instead of repeating the burst value.
+
+## [0.257.0] - 2026-11-11
+
+### Changed
+- The Data Uploader is now called Verse Data Uploader everywhere: on the site, in the app's window and tray, and in the Windows start menu.
+
 ## [0.256.1] - 2026-11-11
 
 ### Fixed

@@ -544,5 +544,29 @@
       "views": {}
     },
     "annotations": []
+  },
+  {
+    "iteration": 8,
+    "action": "finalize",
+    "at": "2026-11-11T16:41:23.640Z",
+    "implemented": [
+      "oq-subtypes"
+    ],
+    "ship": true,
+    "shipped": [
+      "v0.254.0 (#1086)",
+      "v0.256.1 (#1095)"
+    ],
+    "disposition": "discard",
+    "tests": [
+      {
+        "id": "t-autosave",
+        "mode": "self"
+      },
+      {
+        "id": "t-rooms",
+        "mode": "skip"
+      }
+    ]
   }
 ]

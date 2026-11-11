@@ -170,7 +170,7 @@ after every usable hit, never among them.
 Ships filter by **role** (Combat, Transport, Exploration, Industrial, Support,
 Competition, Ground, Multirole — RSI's grouping of the game's career field),
 **crew** (1, 2–3, 4–8, 9+) and **size** (S1–S6, the game's own size class of
-the vehicle; it fills in once a build has been uploaded with Data Uploader
+the vehicle; it fills in once a build has been uploaded with Verse Data Uploader
 0.75.0 or later). Every filter is part of the address.
 
 **Where to buy:** a ship row shows its cheapest in-game price and how many
@@ -289,7 +289,7 @@ picker says when its list was inferred from a sibling bay.
   it manages the generators. The extract carries no "physical vs. logical slot"
   flag, so the page names what it does know — generator or controller.
 - **Missile racks** show what they *carry* (`4` missiles at `S2`) next to their
-  own size (`S4`), and — on a build extracted with a current Data Uploader —
+  own size (`S4`), and — on a build extracted with a current Verse Data Uploader —
   which missile is loaded in each station.
 - **Guns mounted through a gimbal** name both parts: the mount is what bolts to
   the hull, and the gun it holds is listed under it as the sub-slot's occupant.
@@ -307,7 +307,7 @@ data, so the Codex omits them rather than showing a guess or a zero:
   yet — every ship weapon reports a fire rate of `0`. Without a fire rate there
   is no honest DPS.
 - **Cooling rate and power output** for coolers and power plants.
-- **Stock guns, on builds extracted by an older Data Uploader.** Those hulls
+- **Stock guns, on builds extracted by an older Verse Data Uploader.** Those hulls
   show their gun mounts as unfitted, labelled "no stock weapon in this extract"
   and counted in a note on the Weapons block. The gap was on our side — the game
   names most factory-fitted items by an internal reference the extractor skipped
@@ -401,7 +401,7 @@ placeholder silhouette only appears once every candidate has failed.
 ## Where the data comes from
 
 The Codex is populated from bundles produced by the
-[Data Uploader](doc:desktop-tools) against a real `Data.p4k`, tagged with the
+[Verse Data Uploader](doc:desktop-tools) against a real `Data.p4k`, tagged with the
 patch version and channel (LIVE / PTU / EPTU) they were extracted from. The
 Codex is therefore exactly as current as the newest ingested bundle — the
 freshness stamp on the hero tells you which build you are looking at.

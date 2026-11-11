@@ -174,17 +174,28 @@ function asRankInput(m: MissileRecord): RankShipInput<MissileMetric> {
 const MIN_GROUP = 3;
 
 /**
- * The group a missile opens on: its own kind, because "S2 rocket vs. S12
- * torpedo" mostly measures the size gap. A kind too small to compare with
- * (the one rocket) falls back to everything.
+ * The field a missile is compared in: its own kind, because "S2 missile vs. S12
+ * torpedo" mostly measures the size gap and a rocket is no guided missile. So
+ * "Alle" reads "Alle Lenkraketen" and the signal and size groups narrow that
+ * field, never the whole catalogue (#331). A kind too small to compare with
+ * (the one ground-vehicle missile) or an unknown kind = every guided weapon;
+ * `null` here.
  */
-export function defaultMissileScope(target: MissileRecord, cohort: readonly MissileRecord[]): RankScope {
-  const sameKind = filterCohort(asRankInput(target), cohort.map(asRankInput), 'career');
-  return target.category != null && sameKind.length >= MIN_GROUP ? 'career' : 'all';
+export function missileFieldKind(target: MissileRecord, cohort: readonly MissileRecord[]): MissileCategory | null {
+  if (target.category == null) return null;
+  const sameKind = cohort.filter((m) => m.category === target.category && m.className !== target.className);
+  return sameKind.length + 1 >= MIN_GROUP ? target.category : null;
+}
+
+function missileField(target: MissileRecord, cohort: readonly MissileRecord[]): MissileRecord[] {
+  const kind = missileFieldKind(target, cohort);
+  return kind == null ? [...cohort] : cohort.filter((m) => m.category === kind);
 }
 
 /**
- * Rank one missile on damage, speed, agility and range. An axis exists only where the target has a value and the
+ * Rank one missile on damage, speed, agility and range, inside its own kind
+ * (`missileFieldKind`): "all" = all of that kind, "role" = the same tracking
+ * signal, "sizeClass" = exactly the same size. An axis exists only where the target has a value and the
  * group actually differs on it — inside "same size" the size axis would read
  * 50 % for everyone. A group of one is no comparison, so it is offered disabled.
  * `null` = nothing to compare at all: the card shows its gap state. A narrower
@@ -196,9 +207,12 @@ export function rankMissile(
   requested: RankScope,
 ): RankResult<MissileMetric> | null {
   const self = asRankInput(target);
-  const peers = cohort.map(asRankInput);
+  const peers = missileField(target, cohort).map(asRankInput);
   const available = rankScopeAvailability(self);
+  // The kind is the field itself (see missileField): no group of its own.
+  available.career = false;
   for (const scope of Object.keys(available) as RankScope[]) {
+    // Signal and size are exact: an IR missile meets IR missiles only, an S2 only S2s.
     available[scope] &&= filterCohort(self, peers, scope).length >= 2;
   }
   const scope = available[requested] ? requested : 'all';

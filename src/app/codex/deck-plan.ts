@@ -34,6 +34,8 @@ export interface DeckPlanRoom {
   area: number;
   /** Width/height of the largest footprint's box (m) — whether a label fits inline. */
   box: { w: number; h: number };
+  /** A stair, ladder or lift: the labels of the OTHER decks it leads to; empty for a plain room. */
+  connects: string[];
 }
 
 export interface DeckPlan {
@@ -41,6 +43,8 @@ export interface DeckPlan {
   label: string;
   /** The uploader's catch-all deck for rooms no authored deck claims ("Weitere Räume"). */
   fallback: boolean;
+  /** Grouped by floor height by the uploader, not a deck the game names. */
+  derived: boolean;
   order: number;
   rooms: DeckPlanRoom[];
 }
@@ -77,6 +81,7 @@ interface ParsedRoom {
   pos: [number, number];
   shapes: [number, number][][];
   tris: [number, number][][];
+  connects: string[];
 }
 
 function readRoom(raw: unknown): ParsedRoom | null {
@@ -86,7 +91,16 @@ function readRoom(raw: unknown): ParsedRoom | null {
   const polys = (v: unknown) =>
     Array.isArray(v) ? v.map(readPolygon).filter((s): s is [number, number][] => !!s) : [];
   const labelKey = typeof r.labelKey === 'string' && r.labelKey ? r.labelKey : null;
-  return { key: r.key, name: r.name ?? null, labelKey, pos: [r.pos[0], r.pos[1]], shapes: polys(r.shapes), tris: polys(r.tris) };
+  const connects = Array.isArray(r.connects) ? r.connects.filter((k): k is string => typeof k === 'string' && !!k) : [];
+  return {
+    key: r.key,
+    name: r.name ?? null,
+    labelKey,
+    pos: [r.pos[0], r.pos[1]],
+    shapes: polys(r.shapes),
+    tris: polys(r.tris),
+    connects,
+  };
 }
 
 /** Signed-area-free polygon area + centroid (shoelace). */
@@ -211,10 +225,12 @@ export function buildDeckPlans(
   const sx = (x: number) => r2(x - minX + PAD_M);
   const sy = (y: number) => r2(maxY - y + PAD_M);
 
+  const labels = new Map(parsed.map(({ deck }) => [deck.key, deckLabel(deck, lang)]));
   const out: DeckPlan[] = parsed.map(({ deck, rooms }) => ({
     key: deck.key,
-    label: deckLabel(deck, lang),
+    label: labels.get(deck.key) ?? deck.key,
     fallback: !!deck.fallback,
+    derived: !!deck.derived,
     order: deck.order ?? 0,
     rooms: rooms
       .map((room) => {
@@ -253,6 +269,10 @@ export function buildDeckPlans(
           anchor,
           area: r2(area),
           box,
+          connects: room.connects
+            .filter((k) => k !== deck.key)
+            .map((k) => labels.get(k))
+            .filter((l): l is string => !!l),
         };
       })
       // Largest first, so a small room drawn later stays on top and hoverable.

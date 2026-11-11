@@ -129,7 +129,8 @@ describe('buildFoldPreview dispatch', () => {
     const preview = buildFoldPreview('weapons', [gun]);
     // 43.65 alpha * 750 rpm / 60 = 545.625 DPS per gun, ×2 guns.
     expect(preview.chips[0].figure).toBe(1091.25);
-    expect(preview.aggregate?.labelKey).toBe('codex.module.peek.sustainedDpsTotal');
+    // No regen/heat cycle in the payload → the peek says burst, not Dauer (#343).
+    expect(preview.aggregate?.labelKey).toBe('codex.module.peek.burstDpsTotal');
     expect(preview.aggregate?.figure).toBe(1091.25);
   });
 

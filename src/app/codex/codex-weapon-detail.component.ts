@@ -23,6 +23,7 @@ import { countermeasureKind, decoysToOutshine, isCountermeasureLauncher } from '
 import { toFiniteNumber } from '../hangar/loadout-stats';
 import { swapAimStats, swapResourceStats } from './swap-table';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { sustainedDps } from './codex-sustained-dps';
 
 /** Everything the weapon detail window needs about one hardpoint occupant. */
 export interface WeaponDetailEntry {
@@ -220,16 +221,17 @@ export class CodexWeaponDetailComponent {
       { labelKey: 'codex.weaponDetail.row.range', value: num(range, 'metres') },
     ];
 
-    // derived — both DPS figures share the same source until magazine data
-    // exists (owner decision, MASTER §15): sustained and burst read the same
-    // fire rate, and say so via the same value rather than diverging guesses.
+    // derived — burst = alpha × fire rate; sustained counts the regen /
+    // reload / overheat pauses (`codex-sustained-dps.ts`, #343) and stays a
+    // dash while the payload carries no cycle, never a copy of burst.
     // Alpha/Durchschlag join them here (concept #h3: Abgeleitet = Alpha ·
     // Burst-DPS · Dauer-DPS · Durchschlag), not under Feuer & Ballistik.
     const dps = alpha !== null && fireRate !== null ? (alpha * fireRate) / 60 : null;
+    const sustained = sustainedDps(dps, fireRate, weaponParams).value;
     const derived: DetailRow[] = [
       { labelKey: 'codex.weaponDetail.row.alpha', value: num(alpha, 'dec') },
       { labelKey: 'codex.weaponDetail.row.burstDps', value: num(dps, 'dec') },
-      { labelKey: 'codex.weaponDetail.row.sustainedDps', value: num(dps, 'dec') },
+      { labelKey: 'codex.weaponDetail.row.sustainedDps', value: num(sustained, 'dec') },
       { labelKey: 'codex.weaponDetail.row.penetration', value: num(penetration, 'metresDec') },
     ];
 

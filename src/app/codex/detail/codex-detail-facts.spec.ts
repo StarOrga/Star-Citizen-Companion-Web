@@ -1,6 +1,7 @@
 import type { Dimensions, ShipDeck } from '../codex.types';
 import type { CodexDetail } from '../codex.service';
 import { computeKpiSheet } from '../codex-loadout-stats';
+import { formatNumber } from '../codex-format';
 import type { LayoutSection, LayoutSlot } from '../codex-hardpoint-layout.component';
 import { NOMAD_SHIP_STATS, nomadOccupants } from '../testing/nomad-power.fixture';
 import {
@@ -14,6 +15,7 @@ import {
   humanizeDeckKey,
   isTractorBeamSlot,
   shipDeckNames,
+  shipDecksDerived,
 } from './codex-detail-facts';
 
 /** A translate stand-in that shows what was asked for: `key|{params}`. */
@@ -80,7 +82,53 @@ describe('codex-detail facts', () => {
         ['codex.hull.crew', '2'],
         ['codex.hull.decks', 'Lower Deck · Main Deck · Upper Deck'],
         ['codex.hull.hullHp', null],
+        ['codex.hull.hullMass', null],
+        ['codex.hull.armorHp', null],
       ]);
+    });
+
+    it('marks decks the uploader derived from floor height (LIVE 4.10.2 Idris)', () => {
+      const decks: ShipDeck[] = [
+        { ...deck('level_1', 0, 'Level 1', 'Ebene 1'), derived: true },
+        { ...deck('level_2', 1, 'Level 2', 'Ebene 2'), derived: true },
+        { ...deck('unassigned', 2, 'Other rooms'), fallback: true },
+      ];
+      expect(shipDecksDerived({ decks })).toBe(true);
+      expect(shipDecksDerived({ decks: [deck('Polaris_Main_Deck', 0, 'Main Deck')] })).toBe(false);
+      expect(shipDecksDerived(null)).toBe(false);
+      const rows = buildShipFactGroups(
+        {
+          detail: detail('ship', {}, { crew: { size: 2 } }), dimensions: null, techStats: null,
+          kpiSheet: computeKpiSheet([], null), occupants: [], decks: shipDeckNames({ decks }, 'de'), decksDerived: true,
+        },
+        t,
+      ).find((g) => g.titleKey === 'codex.analysis.ship.hull')!.rows;
+      expect(rows.find((r) => r.labelKey === 'codex.hull.decks')!.value)
+        .toBe(`Ebene 1 · Ebene 2 (${t('codex.hull.decksDerived')})`);
+    });
+
+    it('shows the extract hull HP, hull mass and armour instead of a gap (LIVE 4.10.2 Starlancer MAX)', () => {
+      const rows = buildShipFactGroups(
+        {
+          detail: detail('ship', {}, { crew: { size: 4 }, hull: { hp: 84200, mass: 498070.5 }, armorHp: 12100 }),
+          dimensions: null, techStats: null, kpiSheet: computeKpiSheet([], null), occupants: [],
+        },
+        t,
+      ).find((g) => g.titleKey === 'codex.analysis.ship.hull')!.rows;
+      const byKey = Object.fromEntries(rows.map((r) => [r.labelKey, r.value]));
+      expect(byKey['codex.hull.hullHp']).toBe(formatNumber(84200));
+      expect(byKey['codex.hull.hullMass']).toBe(`${formatNumber(498070.5)} kg`);
+      expect(byKey['codex.hull.armorHp']).toBe(formatNumber(12100));
+    });
+
+    it('adds a reverse-speed row for a wheeled vehicle only', () => {
+      const flightRows = (flight: Record<string, number | null>) =>
+        buildShipFactGroups(
+          { detail: detail('ship', {}, { flight }), dimensions: null, techStats: null, kpiSheet: computeKpiSheet([], null), occupants: [] },
+          t,
+        ).find((g) => g.titleKey === 'codex.analysis.ship.flightPerformance')!.rows.map((r) => r.labelKey);
+      expect(flightRows({ maxSpeed: 32, reverseSpeed: 19 })).toContain('codex.hull.reverseSpeed');
+      expect(flightRows({ scmSpeed: 160, maxSpeed: 990 })).not.toContain('codex.hull.reverseSpeed');
     });
   });
 

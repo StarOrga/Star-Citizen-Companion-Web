@@ -1,7 +1,147 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.256.0",
+  "current": "0.258.1",
   "releases": [
+    {
+      "version": "0.258.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin feedback, Alt+click picker: a click in the header, the bar, a navigation, a menu or a dialog now names that region (\"Kopfzeile\", \"Menü „Konto“\") instead of the page's route, and the Codex view only stands in front of clicks inside the page. An icon or image inside a button or link names the button or link (\"Button „Profilbild (Konto-Menü)“\" for the avatar) instead of a nameless \"Bild\"."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.258.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader 0.79.0: ship values validated against the wiki and erkul (Starlancer MAX/TAC, ROC/ROC-DS, Idris-M/P) — armour from the fitted armour item, ore pods by their real capacity, ground-vehicle top and reverse speed, fuel capacity, liveries from the game data (names, which ship they fit, 3D hull for the Starlancer), Wikelo special names, mission/event copies of a ship no longer listed as ships, no more hull-mass warning per variant."
+            },
+            {
+              "title": "",
+              "text": "Codex ship facts show hull HP, hull mass and armour instead of a gap."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.257.4",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.257.3",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Verse hub (shell beta): the HQ link and label sit on the ground station on the planet; the space station no longer says HQ."
+            },
+            {
+              "title": "",
+              "text": "Verse hub: News, Patches and Galerie show their name under the planet on hover, like the sun, instead of a tooltip."
+            },
+            {
+              "title": "",
+              "text": "Verse hub: the placeholder below the stage has the hub's height, so the scrollbar no longer jumps when the hub appears."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.257.2",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Missile Einordnung: the comparison groups now hold what their names say. \"Alle Lenkraketen\" compares against every missile of its kind (no torpedoes, no rockets), \"Alle Infrarot-Lenkraketen\" only against the same tracking signal (IR, EM or cross-section), and \"Alle S2-Lenkraketen\" only against exactly the same size."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.257.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Kennzahlen: Dauer-DPS is no longer a copy of Salven-DPS. It now counts the pauses for reloading, energy regeneration and overheating; where a weapon has no known cycle yet, the cell says so instead of repeating the burst value."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.257.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Data Uploader is now called Verse Data Uploader everywhere: on the site, in the app's window and tray, and in the Windows start menu."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.256.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Swap picker: coolers, shields and drives show their type (\"Kühler\") under the name instead of repeating the product name in English."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.256.0",
       "date": "2026-11-11",

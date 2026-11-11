@@ -12,7 +12,7 @@ building it.
 **Phase 1 — foundation. Shipped.**
 Accounts, the [Verse News](doc:verse-news) feed with live RSI service status,
 [Starscape](doc:starscape) plus the Starscape App, the
-[Data Uploader](doc:desktop-tools) with discovery cascade and verified upload,
+[Verse Data Uploader](doc:desktop-tools) with discovery cascade and verified upload,
 the [Codex](doc:codex) built from ingested bundles, the personal
 [Hangar](doc:hangar), and the read-only [Public API](doc:getting-started).
 

@@ -1,15 +1,15 @@
 ---
 title: Desktop tools
-excerpt: The Data Uploader that keeps the Codex current, and the Starscape App that rotates your wallpaper.
+excerpt: The Verse Data Uploader that keeps the Codex current, and the Starscape App that rotates your wallpaper.
 ---
 
 Two of Verse Companion's pieces run on your own machine, because they need access
 to things a browser cannot reach: your local Star Citizen installation, and
 your desktop wallpaper.
 
-## Data Uploader
+## Verse Data Uploader
 
-The **Data Uploader** is the reason the [Codex](doc:codex) has data at all. It
+The **Verse Data Uploader** is the reason the [Codex](doc:codex) has data at all. It
 is a standalone Electron desktop tool — separate from the web app — that scans
 the `Data.p4k` of your own Star Citizen install and uploads a *pre-digested
 bundle* of extracted metadata.

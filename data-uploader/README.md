@@ -1,4 +1,4 @@
-# Verse Companion - Data Uploader
+# Verse Data Uploader
 
 Lokaler P4K-Scanner mit Live-Progress, Quality-Score und gegenseitig-verifiziertem
 Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App

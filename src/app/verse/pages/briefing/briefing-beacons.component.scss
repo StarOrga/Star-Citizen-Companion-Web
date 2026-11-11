@@ -16,7 +16,18 @@
 }
 .sun-l { right: 5cqw; top: 14%; width: max(7.6cqw, 72px); aspect-ratio: 1; }
 .const-l { right: 25cqw; top: 43%; width: max(5.2cqw, 56px); aspect-ratio: 8 / 5.6; border-radius: 12px; }
-.hq-l { left: 25cqw; top: 38%; width: max(5cqw, 54px); aspect-ratio: 5 / 3; border-radius: 8px; }
+// HQ = the scene's ground station (shell-scene .hqst, WORLD_RECTS.hqst) on the planet's right limb. The
+// planet's geometry is the hub's .brief-world (160 vw wide, centred on the viewport, its top at --rim), so the
+// station's centre stands at 74.062 vw from the viewport's left and 3.375 vw below the rim (beacon light
+// included). This anchor is the hit area over it; the drawing itself is the scene's.
+.hq-l {
+  left: calc(50% - 50vw + 74.062vw);
+  top: calc(var(--rim, 60%) + 3.375vw);
+  width: max(4.5vw, 48px);
+  height: max(3.6vw, 44px);
+  translate: -50% -50%;
+  border-radius: 50%;
+}
 :is(.sun-l, .const-l, .hq-l):focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 
 // ── Sun: warm, the one warm tone on the stage ───────────────────────────
@@ -193,19 +204,17 @@
 .fig > * { width: 100%; height: 100%; }
 .const-l:hover .fig, .const-l:focus-visible .fig { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
 
-// ── HQ station: slow drift (14 s), 1.1× on hover like the sun ─────────────
-// The drawing and its position lights: briefing-station.component.
-.obj {
+// ── HQ ground station: a warm glow over the scene's station on hover / focus ──
+.ground {
   position: absolute;
-  inset: 0;
-  display: block;
-  rotate: -8deg;
-  transition: filter 0.3s, scale 0.35s ease;
-  animation: hq-drift 14s ease-in-out infinite;
-  animation-play-state: var(--sc-brief-play, running);
+  inset: 12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 196, 130, 0.42), rgba(255, 184, 107, 0.12) 60%, transparent);
+  opacity: 0;
+  scale: 0.7;
+  transition: opacity 0.3s, scale 0.35s ease;
 }
-.hq-l:is(:hover, :focus-visible) .obj { scale: 1.1; filter: brightness(1.15) drop-shadow(0 0 0.45cqw rgba(140, 220, 250, 0.5)); }
-@keyframes hq-drift { 0%, 100% { translate: 0 0; } 50% { translate: 0 -0.3cqw; } }
+.hq-l:is(:hover, :focus-visible) .ground { opacity: 1; scale: 1.15; }
 
 // ── Labels: rise letter by letter under the beacon ──────────────────────
 .lab {
@@ -254,9 +263,8 @@
 @media (max-width: 720px) {
   .sun-l { right: 5%; top: 33%; width: 64px; }
   .const-l { right: calc(50% - 28px); top: 35%; }
-  .hq-l { left: 5%; top: 35%; }
   .sun-l .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
-  .hq-l .lab { left: 0; transform: none; align-items: flex-start; }
+  .hq-l .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
 }
 
 // Entrance (the stage carries .intro only while the sequence plays and never
@@ -283,8 +291,7 @@
 @keyframes bk-ignite { 0% { opacity: 0; filter: brightness(2.4) blur(4px); } 35% { opacity: 1; filter: brightness(2) drop-shadow(0 0 14px rgba(150, 225, 255, 0.8)); } 100% { opacity: 1; filter: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .sun, .flare, .lab, .obj { transition: none; }
-  .obj { animation: none; }
+  .sun, .flare, .lab, .ground { transition: none; }
   .glow, .corona, .streamers, .disc::before, .disc::after, .flash { animation: none; }
   // Standing storms: the loops stay visible, mid-rise.
   .prom > i { animation: none; opacity: 0.8; }

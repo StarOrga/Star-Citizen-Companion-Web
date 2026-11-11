@@ -18,7 +18,8 @@ import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Dict, List, Optional
+from dataclasses import field
+from typing import Any, Dict, List, Optional
 
 from .hull3d import Paint, ShipSpec
 
@@ -52,6 +53,13 @@ class ShipRef:
     ship: str           # ship folder, e.g. "Cutlass"
     series_token: str   # icon/localization token, e.g. "Cutlass"
     root: str = SHIPS_ROOT   # mesh root the hull lives under (ships vs ground vehicles)
+    # Authoritative liveries from the DataCore (see
+    # CodexExtractor._datacore_paints): the ship entity's geometry lists one
+    # SubGeometry per paint tag with that paint's .mtl, and the paint ITEM
+    # carries the store name. None = the extract did not supply them (an old
+    # manifest, the single-ship CLI) -> the icon/filename heuristics below.
+    paints: Optional[List[Dict[str, Any]]] = field(default=None)
+    base_mtl: Optional[str] = None
 
 
 class ShipDiscovery:
@@ -237,15 +245,28 @@ class ShipDiscovery:
         shortest remaining candidate (the base name is always a prefix of its
         `_pirate` / `_camo_digi` livery siblings).
         """
+        if ref.base_mtl:
+            return ref.base_mtl
         by_stem = {Path(m).stem.lower(): m for m in mtls}
         exact = by_stem.get(ref.ship_id.lower())
         if exact:
             return exact
         if hull_cga:
-            mesh_stem = Path(hull_cga.replace("\\", "/")).stem.lower()
+            norm = hull_cga.replace("\\", "/")
+            mesh_stem = Path(norm).stem.lower()
             sibling = by_stem.get(mesh_stem)
             if sibling:
                 return sibling
+            # `<mesh>_ext.mtl` next to the mesh is the exterior base material
+            # of hulls that file every material under `exterior/` with an
+            # `_ext` stem (VERIFIED LIVE 4.10.2: misc_starlancer.cga ->
+            # misc_starlancer_ext.mtl). `_ship_mtls` drops `_ext` names as
+            # sub-parts, so the Starlancer had NO material and no 3D hull.
+            parent = norm.rsplit("/", 1)[0].lower() if "/" in norm else ""
+            for stem in (f"{mesh_stem}_ext", mesh_stem):
+                info = self._lower.get(f"{parent}/{stem}.mtl")
+                if info is not None:
+                    return info.filename
         if not mtls:
             return None
         return min(mtls, key=lambda m: (len(Path(m).stem), m.lower()))
@@ -264,6 +285,16 @@ class ShipDiscovery:
                                 description="Factory-standard finish.",
                                 source="factory"))
 
+        if ref.paints is not None:
+            for p in ref.paints:
+                paints.append(Paint(
+                    mtl=p.get("mtl") or std_mtl or "", id=p["id"],
+                    name=p.get("name") or p["id"],
+                    description=p.get("description") or "",
+                    icon_dds=p.get("icon"), source=p.get("source") or "store",
+                    name_verified=bool(p.get("name_verified", True)),
+                ))
+            icons = {}
         for tok, icon in sorted(icons.items()):
             name, desc = self._loc_lookup(ref.series_token, tok)
             mtl = self._match_mtl(tok, mtls, ref)

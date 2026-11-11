@@ -131,6 +131,26 @@ def test_armor_hp_reads_the_per_hull_armour_item() -> None:
     assert seen == ["ARMR_CNOU_Nomad"]
 
 
+def test_armor_hp_follows_the_loadout_armour_item_of_a_variant() -> None:
+    # LIVE 4.10.2: MISC_Starlancer_Max fits ARMR_MISC_Starlancer (12 100 HP,
+    # erkul/FleetYards); ARMR_MISC_Starlancer_Max does not exist, so the old
+    # class-name guess left the MAX without any armour value.
+    ex = _extractor()
+    seen = []
+    table = {"ARMR_MISC_Starlancer": 12100.0}
+
+    def _comps(class_name: str):
+        seen.append(class_name)
+        hp = table.get(class_name)
+        return [{"_Type_": "SHealthComponentParams", "Health": hp}] if hp else []
+
+    ex._entity_class_comps = _comps
+    loadout = [{"itemPortName": "hardpoint_armour",
+                "entityClassName": "ARMR_MISC_Starlancer"}]
+    assert ex._armor_hp("MISC_Starlancer_Max", loadout) == 12100.0
+    assert seen == ["ARMR_MISC_Starlancer"]
+
+
 def test_armor_hp_is_none_without_an_armour_item() -> None:
     ex = _extractor()
     ex._entity_class_comps = lambda class_name: []
@@ -276,6 +296,23 @@ def test_ore_pods_count_by_their_resource_container_capacity() -> None:
     assert ex._cargo_scu(loadout) == 32.0
 
 
+def test_an_ore_pod_with_an_inventory_box_counts_its_ore_capacity() -> None:
+    """VERIFIED LIVE 4.10.2: the ROC-DS ore pod carries BOTH a 3.4 SCU
+    `ResourceContainer` and a hand-load inventory box of 1.28 SCU. The ore
+    capacity is the one the wiki / erkul list; the box understated it."""
+    ex = _extractor()
+    comps = {"Cargo_GroundVehicleMining_Pod_ROC_DS": [
+        {"_Type_": "ResourceContainer",
+         "capacity": {"_Type_": "SStandardCargoUnit", "standardCargoUnits": 3.4}},
+        {"_Type_": "SCItemInventoryContainerComponentParams",
+         "containerParams": {"interiorDimensions": {"x": 1.25, "y": 1.25, "z": 1.6}}},
+    ]}
+    ex._entity_class_comps = lambda c: comps.get(c, [])
+    loadout = [{"itemPortName": "hardpoint_cargogrid_main",
+                "entityClassName": "Cargo_GroundVehicleMining_Pod_ROC_DS"}]
+    assert ex._cargo_scu(loadout) == 3.4
+
+
 def test_a_grid_without_a_container_holds_nothing() -> None:
     """VERIFIED LIVE 4.10.2: the Ursa Rover's and Javelin's grids carry
     `containerParams: null` — no container in the game files, so no hold."""
@@ -297,3 +334,43 @@ def test_cargo_status_unmeasured_only_for_an_unresolvable_container_record() -> 
     loadout = [{"itemPortName": "hardpoint_cargo_grid", "entityClassName": "X_CargoGrid"}]
     assert ex._cargo_scu(loadout) is None
     assert ex._cargo_status(loadout) == "unmeasured"
+
+
+ROC_XML = b"""<?xml version="1.0"?>
+<Vehicle name="GRIN_ROC">
+  <Parts><Part name="GRIN_ROC" mass="2000"/></Parts>
+  <MovementParams id="xmlMovement"><PhysicalWheeled><Handling>
+    <Power acceleration="10" decceleration="10" topSpeed="32" reverseSpeed="19"/>
+  </Handling></PhysicalWheeled></MovementParams>
+</Vehicle>
+"""
+
+
+def test_a_ground_vehicle_gets_its_top_speed_from_the_vehicle_xml() -> None:
+    path = "scripts/entities/vehicles/implementations/xml/grin_roc.xml"
+    ex = _extractor({"Data/" + path: ROC_XML})
+    empty = {k: None for k in ("scmSpeed", "maxSpeed", "boostSpeed", "pitch", "yaw", "roll")}
+    vcp = {"vehicleDefinition": path, "movementClass": "ArcadeWheeled"}
+    out = ex._ground_speed(vcp, empty)
+    assert out["maxSpeed"] == 32.0 and out["reverseSpeed"] == 19.0
+    assert out["scmSpeed"] is None
+
+
+def test_a_spaceship_flight_block_is_left_alone() -> None:
+    ex = _extractor({})
+    flight = {"scmSpeed": 160.0, "maxSpeed": 990.0}
+    assert ex._ground_speed({"movementClass": "Spaceship"}, flight) is flight
+
+
+def test_fuel_capacity_sums_the_stock_tanks() -> None:
+    ex = _extractor({})
+
+    def tank(scu: float) -> list:
+        return [{"_Type_": "ResourceContainer",
+                 "capacity": {"_Type_": "SStandardCargoUnit", "standardCargoUnits": scu}}]
+    comps = {"HTNK_MISC_Starlancer": tank(32.1), "QTNK_MISC_Starlancer": tank(8.6)}
+    ex._entity_class_comps = lambda c: comps.get(c, [])
+    loadout = [{"itemPortName": "hardpoint_fuel_1", "entityClassName": "HTNK_MISC_Starlancer"},
+               {"itemPortName": "hardpoint_quantum_fuel_1", "entityClassName": "QTNK_MISC_Starlancer"}]
+    assert ex._fuel_capacity(loadout) == {"hydrogen": 32.1, "quantum": 8.6}
+    assert ex._fuel_capacity([]) == {"hydrogen": None, "quantum": None}

@@ -1,9 +1,9 @@
 import {
   MissileRecord,
-  defaultMissileScope,
   hasCombatMetrics,
   isMissileRow,
   missileCategoryOf,
+  missileFieldKind,
   missileKeywords,
   missileMeasures,
   missileRecordOf,
@@ -92,14 +92,49 @@ describe('codex-missile', () => {
       missile({ className, metrics: { damage: n, speed: n * 2, agility: n * 3, range: n * 4, length: n, size: n }, ...extra });
     const field = [armed('p', 1), armed('q', 2), armed('r', 3), armed('s', 4)];
 
-    it('opens on the same kind, or on everything when the kind is too small', () => {
-      expect(defaultMissileScope(COHORT[0], COHORT)).toBe('career');
-      expect(defaultMissileScope(COHORT[5], COHORT)).toBe('all');
+    it('compares inside the own kind, or among everything when the kind is too small (#331)', () => {
+      expect(missileFieldKind(COHORT[0], COHORT)).toBe('missile');
+      expect(missileFieldKind(COHORT[5], COHORT)).toBeNull();
+      expect(missileFieldKind(missile({ className: 'x', category: null }), COHORT)).toBeNull();
+    });
+
+    it('"all" holds all missiles of the kind, never the torpedoes (#331)', () => {
+      const torps = [armed('t1', 7, { category: 'torpedo' }), armed('t2', 8, { category: 'torpedo' })];
+      const r = rankMissile(field[2], [...field, ...torps], 'all')!;
+      expect(r.scope).toBe('all');
+      expect(r.cohortSize).toBe(4);
+    });
+
+    it('the signal group holds only the same tracking signal (#331)', () => {
+      const em = [armed('e1', 5, { signal: 'em' }), armed('e2', 6, { signal: 'em' }), armed('c1', 7, { signal: 'cs' })];
+      const r = rankMissile(field[2], [...field, ...em], 'role')!;
+      expect(r.scope).toBe('role');
+      expect(r.cohortSize).toBe(4);
+      expect(rankMissile(field[2], [...field, ...em], 'all')!.cohortSize).toBe(7);
+    });
+
+    it('the size group holds exactly the same size, no neighbours (#331)', () => {
+      const sized = [
+        armed('s2a', 1, { size: 2 }),
+        armed('s2b', 2, { size: 2 }),
+        armed('s2c', 3, { size: 2 }),
+        armed('s1', 4, { size: 1 }),
+        armed('s3', 5, { size: 3 }),
+      ];
+      const r = rankMissile(sized[1], sized, 'sizeClass')!;
+      expect(r.scope).toBe('sizeClass');
+      expect(r.cohortSize).toBe(3);
+    });
+
+    it('offers no separate kind group: the kind is the field (#331)', () => {
+      const r = rankMissile(field[2], field, 'career')!;
+      expect(r.scopeAvailable.career).toBe(false);
+      expect(r.scope).toBe('all');
     });
 
     it('ranks damage, speed, agility and range against the chosen group only', () => {
-      const r = rankMissile(field[2], field, 'career')!;
-      expect(r.scope).toBe('career');
+      const r = rankMissile(field[2], field, 'all')!;
+      expect(r.scope).toBe('all');
       expect(r.cohortSize).toBe(4);
       expect(r.axes.map((a) => a.key)).toEqual(['damage', 'speed', 'agility', 'range']);
       const range = r.axes.find((a) => a.key === 'range')!;
@@ -147,7 +182,7 @@ describe('codex-missile', () => {
     });
 
     it('marks the value below the group as weak, so the bar paints the warning colour', () => {
-      const r = rankMissile(field[0], field, 'career')!;
+      const r = rankMissile(field[0], field, 'all')!;
       expect(r.axes.find((a) => a.key === 'damage')!.weak).toBe(true);
     });
   });

@@ -106,6 +106,7 @@ function offensivePanel(rows: OffensivePanel['weaponRows']): OffensivePanel {
     hasDpsColumn: true,
     footerAlpha: 500.7,
     footerDps: 2359.5,
+    footerSustainedDps: null,
     damageChannelTotals: [],
     effectiveRange: null,
     longestRangeGun: null,

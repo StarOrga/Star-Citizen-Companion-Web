@@ -79,7 +79,7 @@ describe('trayTooltip', () => {
   it('joins the lines onto one line with the app name', () => {
     const hub = new ProgressHub();
     hub.update('extract', 'datacore', 42);
-    expect(trayTooltip(hub.get(), 'SC Data Uploader')).toBe('SC Data Uploader — Extraction: datacore 42%');
+    expect(trayTooltip(hub.get(), 'Verse Data Uploader')).toBe('Verse Data Uploader — Extraction: datacore 42%');
   });
 });
 
