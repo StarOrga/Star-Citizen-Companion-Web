@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.1] - 2026-11-12
+
+### Fixed
+- The Verse Companion logo is the desktop app's current icon again everywhere on the site — browser tab, home-screen icon, link previews, header, login and apps menu — and in the browser extension, the Data Uploader 0.80.1 and Starscape 0.11.2. The site had kept the September version after the app redrew its icon in October.
+
 ## [0.259.0] - 2026-11-11
 
 ### Added
