@@ -46,7 +46,7 @@ const STARSCAPE_FALLBACK_URL =
            [class.open]="expanded()" (click)="expand()">
         <i class="ico" aria-hidden="true">
           @if (app() === 'scc') {
-            <img src="icons/brand/scc-mark.svg" alt="" width="22" height="22" />
+            <img src="icons/brand/vc-mark.svg" alt="" width="22" height="22" />
           } @else {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg>
           }

@@ -99,9 +99,9 @@ export interface AppEntry {
     <ng-template #appBody let-app>
       <span class="ico" aria-hidden="true">
         @switch (app.id) {
-          @case ('scc') { <img src="icons/brand/scc-mark.svg" alt="" width="22" height="22" /> }
-          @case ('starscape') { <img src="icons/brand/starscape-tray.png" alt="" width="28" height="28" /> }
-          @default { <img src="icons/brand/uploader-tray.png" alt="" width="28" height="28" /> }
+          @case ('scc') { <img src="icons/brand/vc-mark.svg" alt="" width="22" height="22" /> }
+          @case ('starscape') { <img src="icons/brand/starscape-tray-48.png" alt="" width="28" height="28" /> }
+          @default { <img src="icons/brand/uploader-tray-48.png" alt="" width="28" height="28" /> }
         }
       </span>
       <span class="txt">

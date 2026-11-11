@@ -69,6 +69,18 @@
         ]
       }
     ],
+    ".claude/project-map.md›header›tracked-file-count": [
+      {
+        "ship": "claude/audit-static-logo-usage-34c555",
+        "by": "JerryT2T",
+        "value": "2996 tracked files (regenerated)",
+        "decided": true,
+        "at": "2026-11-11T23:19:52.365Z",
+        "hunks": [
+          "f568977313a7"
+        ]
+      }
+    ],
     ".claude/project-map.md›header›tracked-files": [
       {
         "ship": "fix/kamera-welt-followups",
@@ -137,6 +149,18 @@
         "at": "2026-11-11T18:04:42.524Z",
         "hunks": [
           "c5660787e720"
+        ]
+      }
+    ],
+    "public/release-notes.json›root›current": [
+      {
+        "ship": "claude/audit-static-logo-usage-34c555",
+        "by": "JerryT2T",
+        "value": "0.259.1 (regenerated)",
+        "decided": true,
+        "at": "2026-11-11T23:19:52.365Z",
+        "hunks": [
+          "65f4d0fd9795"
         ]
       }
     ]
