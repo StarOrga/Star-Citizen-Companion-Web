@@ -97,6 +97,17 @@ export function localizedName(name: unknown): string | null {
 const VARIANT_RE = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_)/i;
 export const isVariant = (cn: string | undefined): boolean => VARIANT_RE.test(cn || '');
 
+// Ship records that duplicate a player hull for a mission, an event stand or a
+// game mode — same name, same stats, never ownable (LIVE 4.10.2: the Idris-M
+// came as `_PU`, `_PU_GameMaster` and `_PU_Invictus`, the Idris-P as `_FW_25`
+// and `_TSG`, plus `_Display` show ships, `_Tutorial`, Arena Commander `_EA_`
+// and the Vanduul `_Swarm`). Ships only: an item may legitimately end in
+// `_Display`. Wikelo `_Collector_*`, `_Exec*` and `_Showdown` hulls are
+// obtainable and stay.
+const SHIP_VARIANT_RE = /(_PU$|_PU_|GameMaster|_FW_?\d|_Display$|_Tutorial$|_EA_|_TSG$|_Invictus$|_Swarm$)/i;
+export const isShipVariant = (cn: string | undefined): boolean =>
+  isVariant(cn) || SHIP_VARIANT_RE.test(cn || '');
+
 export const manuCode = (e: { manufacturer?: unknown }): string | null =>
   e.manufacturer && typeof e.manufacturer === 'object'
     ? ((e.manufacturer as { code?: string }).code ?? null)
@@ -219,7 +230,7 @@ export function mapShips(list: Record<string, unknown>[], tag: Tag): EntityRow[]
       manufacturer_code: manuCode(s),
       role: s.role ?? null,
       crew_size: (s as { crew?: { size?: number } }).crew?.size ?? null,
-      is_variant: isVariant(s.className as string),
+      is_variant: isShipVariant(s.className as string),
       name_localized: localizedName(s.name),
       payload: s,
     }),

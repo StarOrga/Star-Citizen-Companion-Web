@@ -2371,6 +2371,9 @@
     "hull": {
       "title": "Rumpf & Flug",
       "hullHp": "Hüllen-HP",
+      "hullMass": "Rumpfmasse",
+      "armorHp": "Panzerungs-HP",
+      "reverseSpeed": "Rückwärtsgeschwindigkeit",
       "dimensions": "Abmessungen (L×B×H)",
       "decks": "Decks",
       "crew": "Besatzung",

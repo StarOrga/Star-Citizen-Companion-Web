@@ -578,6 +578,8 @@ function armorReductionOf(stats: Record<string, Record<string, unknown>> | undef
 export function buildDefensivePanel(
   occupants: readonly SummaryOccupant[],
   armorPayload: unknown,
+  /** The ship's own `hull.hp` (Σ `Part@damageMax` of the vehicle XML), absent on old extracts. */
+  hullHpRaw: number | null = null,
 ): DefensivePanel {
   const shields: {
     hp: number | null;
@@ -627,7 +629,10 @@ export function buildDefensivePanel(
 
   const gapKeys: string[] = [];
   if (shields.length === 0) gapKeys.push('codex.summary.gap.noShields');
-  gapKeys.push('codex.summary.gap.noHullMass');
+  // Hull HP is in every extract since schema 3 (the vehicle XML); only an
+  // older build without it still gets the gap.
+  const hullHp = usable(toFiniteNumber(hullHpRaw));
+  if (hullHp === null) gapKeys.push('codex.summary.gap.noHullMass');
   if (!armor) gapKeys.push('codex.summary.gap.noArmorStats');
 
   return {
@@ -640,8 +645,9 @@ export function buildDefensivePanel(
     mixedGeneratorNote: distinctClasses > 1,
     resistances,
     armor,
-    hullHp: null, // not in the 4.9.0 extract — always a gap, never guessed
-    effectiveHp: null, // requires hull HP, which is always null today
+    hullHp,
+    // Shields + hull, only when both are known — never a half sum.
+    effectiveHp: hullHp !== null && shields.length > 0 ? hullHp + shieldHp : null,
     gapKeys,
   };
 }

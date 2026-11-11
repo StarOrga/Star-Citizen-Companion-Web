@@ -4622,7 +4622,8 @@ export class CodexDetailComponent implements OnInit {
 
   readonly defensivePanel = computed(() => {
     if (this.kind() !== 'ship') return null;
-    return buildDefensivePanel(this.draftSummaryOccupants(), this.armorPayload());
+    const hull = (this.detail()?.payload as ShipPayload | undefined)?.hull;
+    return buildDefensivePanel(this.draftSummaryOccupants(), this.armorPayload(), hull?.hp ?? null);
   });
 
   /** Sections the active mission folds away — feeds both the loadout layout

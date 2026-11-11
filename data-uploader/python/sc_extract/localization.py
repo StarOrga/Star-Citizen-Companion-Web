@@ -132,12 +132,14 @@ class Localizer:
         table = self._tables.get(lang)
         if not table:
             return None
-        if key in table:
-            return table[key]
-        if key.startswith("@"):
-            stripped = key[1:]
-            if stripped in table:
-                return table[stripped]
+        bare = key[1:] if key.startswith("@") else key
+        # `,P` marks a key CIG flags in global.ini (VERIFIED LIVE 4.10.2:
+        # `vehicle_NameMISC_Starlancer_MAX_Collector_Indust,P`); the record
+        # references it without the marker, so the Wikelo specials, the
+        # Intrepid / Zeus ES collectors and the Sabre Firebird showed no name.
+        for cand in (key, bare, bare + ",P"):
+            if cand in table:
+                return table[cand]
         return None
 
     def gettext(self, key: str, lang: str) -> str:

@@ -98,3 +98,12 @@ class TestLocalizer:
 
     def test_gettext_extra_language(self):
         assert self.make().gettext("@ship_name", "fr") == "Gladius (FR)"
+
+
+def test_a_key_carrying_the_P_marker_resolves_without_it() -> None:
+    from sc_extract.localization import Localizer, parse_global_ini
+    table = parse_global_ini(
+        b"vehicle_NameMISC_Starlancer_MAX_Collector_Indust,P=MISC Starlancer MAX Wikelo Work Special\n")
+    loc = Localizer({"en": table})
+    out = loc.localized_text("@vehicle_NameMISC_Starlancer_MAX_Collector_Indust")
+    assert out["en"] == "MISC Starlancer MAX Wikelo Work Special"

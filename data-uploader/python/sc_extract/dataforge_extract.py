@@ -1496,24 +1496,126 @@ class CodexExtractor:
         ref = ref_from_hull(class_name, hull)
         if ref is None:
             return []
+        dc = self._datacore_paints(comps)
+        if dc is not None:
+            ref.base_mtl = dc["base_mtl"]
         try:
             cat = self._skin_disco.catalog(ref, hull_cga=hull)
         except Exception as exc:  # noqa: BLE001 — one ship's skins must not fail the run
             self.on_log("warn", f"skin catalog for {class_name}: {type(exc).__name__}: {exc}")
             return []
+        build_paints = None
+        if dc is not None and dc["paints"]:
+            cat, build_paints = _merge_paint_catalog(cat, dc["paints"])
         # Record ships with a buildable (material-backed) paint for the glb build.
         # "Material-backed" is the same rule discover() applies, not "has a hull"
         # — see ShipDiscovery.catalog (#512).
         if any(c.get("has_material") for c in cat):
-            self._skin_build_refs.append({
+            entry = {
                 "ship_id": ref.ship_id, "mfr": ref.mfr,
                 "ship": ref.ship, "series_token": ref.series_token,
                 "root": ref.root,
-            })
+            }
+            if build_paints is not None:
+                entry["paints"] = build_paints
+            if ref.base_mtl:
+                entry["base_mtl"] = ref.base_mtl
+            self._skin_build_refs.append(entry)
         else:
             # Counted, not logged per ship: a full catalog run rejects hundreds.
             self._skin_build_rejected += 1
         return cat
+
+    # ── liveries from the DataCore ───────────────────────────────────────────
+    # VERIFIED LIVE 4.10.2 (MISC_Starlancer_Max / _TAC, GRIN_ROC, AEGS_Idris_P):
+    # the ship entity's SGeometryResourceParams lists the hull once at the top
+    # and then ONE SubGeometry per livery — `Tags` is the paint item's own tag
+    # (`Paint_Starlancer_Grey_White_Grey`), `Material` that livery's .mtl
+    # (empty for tint-only paints such as the ArcCorp / Hurston liveries,
+    # which recolour the base material). The paint ITEM
+    # (`EntityClassDefinition.Paint_*`, AttachDef.Type "Paints") carries the
+    # store name and description. Before this, liveries were guessed from
+    # PaintColorLogos file names: the Starlancer MAX listed a TAC camo and 8 of
+    # its 14 liveries, the TAC none, and names fell back to "starlancer
+    # Starlancer Beige Darkblue White".
+    _PAINT_PLACEHOLDER = ("<= placeholder =>", "placeholder")
+
+    def _paint_index(self) -> Dict[str, Dict[str, Any]]:
+        """paint tag (lower) -> {class, name, description} over every paint
+        item with a real store name. Built once per run."""
+        idx = getattr(self, "_paint_idx", None)
+        if idx is not None:
+            return idx
+        idx = {}
+        for rec in self.df.records_by_type_name("EntityClassDefinition"):
+            cn = _strip_type_prefix(rec.name)
+            if not cn.lower().startswith("paint_"):
+                continue
+            try:
+                comps = _components_of(self.df.record_to_dict(rec, max_depth=4))
+            except Exception as exc:  # noqa: BLE001 — one bad paint never aborts a run
+                self.on_log("warn", f"paint resolve failed for {cn}: {exc}")
+                continue
+            attach = _attach_def(comps) or {}
+            if str(attach.get("Type") or "").lower() != "paints":
+                continue
+            loc = attach.get("Localization") or {}
+            name = str((self._localized(loc.get("Name")) or {}).get("en") or "")
+            if not name or name.startswith("@") or name.strip().lower() in self._PAINT_PLACEHOLDER:
+                continue
+            desc = str((self._localized(loc.get("Description")) or {}).get("en") or "")
+            if desc.startswith("@") or desc.strip().lower() in self._PAINT_PLACEHOLDER:
+                desc = ""
+            info = {"class": cn, "name": name.strip(), "description": desc.strip()}
+            # The `@`-token is the paint's own tag (what SubGeometry.Tags names);
+            # the class name is the fallback (the token is missing on a few).
+            for tok in str(attach.get("Tags") or "").split():
+                if tok.startswith("@") and len(tok) > 1:
+                    idx.setdefault(tok[1:].lower(), info)
+            idx.setdefault(cn.lower(), info)
+        self._paint_idx = idx
+        return idx
+
+    def _datacore_paints(self, comps) -> Optional[Dict[str, Any]]:
+        """``{base_mtl, paints:[{id, name, description, mtl, paintClass}]}`` from
+        the ship's own geometry + the paint items, or None when the ship's
+        geometry lists no livery SubGeometry at all (then the heuristic
+        catalog stands)."""
+        geo = _find_component(comps, "SGeometryResourceParams")
+        node = geo.get("Geometry") if isinstance(geo, dict) else None
+        if not isinstance(node, dict):
+            return None
+        def _mtl(n: Dict[str, Any]) -> Optional[str]:
+            path = _dig(n, "Geometry", "Material", "path")
+            if not isinstance(path, str) or not path.lower().endswith(".mtl"):
+                return None
+            # Same Data/-rooted, forward-slash key as the hull mesh path (the
+            # DataCore mixes `\` and `/`, see the Citcon2954 livery).
+            norm = path.replace("\\", "/").strip().lstrip("/")
+            return norm if norm.lower().startswith("data/") else "Data/" + norm
+
+        subs = node.get("SubGeometry")
+        if not isinstance(subs, list) or not subs:
+            return None
+        index = self._paint_index()
+        paints: List[Dict[str, Any]] = []
+        seen = set()
+        for sub in subs:
+            if not isinstance(sub, dict):
+                continue
+            tag = str(sub.get("Tags") or "").strip()
+            info = index.get(tag.lower()) if tag else None
+            if info is None or info["class"] in seen:
+                continue
+            seen.add(info["class"])
+            paints.append({
+                "id": _paint_id(info["class"]),
+                "name": info["name"],
+                "description": info["description"],
+                "mtl": _mtl(sub),
+                "paintClass": info["class"],
+            })
+        return {"base_mtl": _mtl(node), "paints": paints}
 
     def _write_skin_build_manifest(self) -> None:
         """Drop skins/_build_manifest.json listing every ship with a buildable
@@ -1722,22 +1824,33 @@ class CodexExtractor:
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
             "dimensions": dims,
+            # The authored size envelope (`VehicleComponentParams.maxBoundingBoxSize`,
+            # metres, CryEngine x = beam, y = length). VERIFIED LIVE 4.10.2:
+            # Idris 243 × 127 × 57.5 (the RSI figure), Starlancer 90 × 60 × 20
+            # (erkul legacy), ROC 6 × 3.9 × 3.5 (the wiki — the .cga box is
+            # 4.3 × 2.8 because the mining arm and wheels are separate parts).
+            # A rounded upper bound, not the mesh: kept next to `dimensions`.
+            "boundingBox": _envelope(vcp.get("maxBoundingBoxSize")),
             # flight stats: the ship's OWN Components never carry them — they
             # live on the FlightController ITEM entity referenced from the
             # default loadout (see _flight_stats docstring).
-            "flight": self._flight_stats(loadout),
+            "flight": self._ground_speed(vcp, self._flight_stats(loadout)),
             # hull hitpoints + hull mass from the vehicle implementation XML,
             # armour HP from the ARMR_<Ship> item, cargo capacity from the
             # cargo grid's inventory container. Each stays None when its
             # source is absent - never a guess, never a 0.
             "hull": self._hull_stats(vcp, base["className"]),
-            "armorHp": self._armor_hp(base["className"]),
+            "armorHp": self._armor_hp(base["className"], loadout),
             "cargoScu": self._cargo_scu(loadout),
             # WHY the SCU figure is missing, so the UI can tell "this hull has
             # no hold" (a fighter) from "it has one, the files don't size it"
             # (the Nomad's open bed). Both are cargoScu: null, and printing
             # "no cargo hold" on a Nomad would be a false statement.
             "cargoStatus": self._cargo_status(loadout),
+            # Hydrogen / quantum fuel capacity in SCU: Σ the stock fuel tanks'
+            # `ResourceContainer.capacity` (VERIFIED LIVE 4.10.2: Starlancer
+            # MAX 32.1 / 8.6, matching the wiki). None per kind without a tank.
+            "fuel": self._fuel_capacity(loadout),
             "itemPorts": item_ports,
             "defaultLoadout": loadout,
             # portName -> {position, rotation, helper, source}; model-space metres
@@ -2114,7 +2227,7 @@ class CodexExtractor:
                         seen = True
                     mass = _to_float(part.get("mass"))
                     if mass is not None and math.isfinite(mass) and mass > 0:
-                        masses.append((depth, mass))
+                        masses.append((depth, mass, (part.get("name") or "").lower()))
                         if (named_mass is None
                                 and (part.get("name") or "").lower() == class_name.lower()):
                             named_mass = mass
@@ -2131,20 +2244,79 @@ class CodexExtractor:
         elif masses:
             # A VARIANT reuses the base hull's XML, so the root part is named
             # after the base ship (Idris-P -> aegs_idris.xml, root "AEGS_Idris")
-            # and the class-name match misses. Take the shallowest part — the
-            # vehicle root — and, if several share that depth, the HEAVIEST of
-            # them. The old "first part that carries a mass" rule silently
-            # picked whichever sub-part happened to come first in the file,
-            # which on a multi-root XML is a wing, not the hull.
-            top = min(d for d, _ in masses)
-            candidates = [m for d, m in masses if d == top]
-            out["mass"] = max(candidates)
-            self.on_log(
-                "warn",
-                f"hull mass: {class_name} has no part named after its class - "
-                f"using the vehicle root part's mass ({out['mass']:g} kg) "
-                f"out of {len(masses)} massed part(s)",
-            )
+            # and the exact class-name match misses. Take the shallowest part —
+            # the vehicle root. That is the normal case for every variant
+            # (hundreds per run), so it is silent when it is unambiguous: one
+            # part at the top level, or the top-level part whose name is the
+            # class name's base (`AEGS_Idris` for `AEGS_Idris_P_FW_25`). Only a
+            # file with several top-level parts and no base-name match is a
+            # real guess — the heaviest wins (a wing is never the hull) and
+            # that one is logged.
+            top = min(d for d, _, _ in masses)
+            candidates = [(m, n) for d, m, n in masses if d == top]
+            cls = class_name.lower()
+            base = [m for m, n in candidates if n and cls.startswith(n + "_")]
+            if base:
+                out["mass"] = max(base)
+            else:
+                out["mass"] = max(m for m, _ in candidates)
+                if len(candidates) > 1:
+                    self.on_log(
+                        "warn",
+                        f"hull mass: {class_name} has {len(candidates)} top-level "
+                        f"parts and none is named after its class - using the "
+                        f"heaviest ({out['mass']:g} kg)",
+                    )
+        return out
+
+    _FUEL_PREFIXES = (("HTNK_", "hydrogen"), ("QTNK_", "quantum"))
+
+    def _fuel_capacity(self, loadout: List[Dict[str, Any]]) -> Dict[str, Optional[float]]:
+        out: Dict[str, Optional[float]] = {"hydrogen": None, "quantum": None}
+
+        def walk(entries: Any, depth: int) -> None:
+            if not isinstance(entries, list) or depth > _LOADOUT_MAX_DEPTH:
+                return
+            for e in entries:
+                if not isinstance(e, dict):
+                    continue
+                cls = str(e.get("entityClassName") or "")
+                kind = next((k for pre, k in self._FUEL_PREFIXES
+                             if cls.upper().startswith(pre)), None)
+                if kind:
+                    for c in self._entity_class_comps(cls):
+                        if isinstance(c, dict) and c.get("_Type_") == "ResourceContainer":
+                            scu = _scu_of(c.get("capacity"))
+                            if scu is not None:
+                                out[kind] = round((out[kind] or 0.0) + scu, 2)
+                            break
+                walk(e.get("entries"), depth + 1)
+
+        walk(loadout, 0)
+        return out
+
+    # ── ground vehicles: top speed from the vehicle XML ───────────────────────
+    # VERIFIED LIVE 4.10.2 (GRIN_ROC / _DS): a wheeled vehicle has no
+    # FlightController, so `flight` came out all null. Its drive lives in the
+    # implementation XML: `MovementParams/<ArcadeWheeled|PhysicalWheeled|...>/
+    # Handling/Power@topSpeed` (ROC 32 m/s, ROC-DS 28) and `@reverseSpeed`.
+    def _ground_speed(self, vcp: Dict[str, Any],
+                      flight: Dict[str, Any]) -> Dict[str, Any]:
+        if any(v is not None for v in flight.values()):
+            return flight
+        if str(vcp.get("movementClass") or "").lower() in ("", "spaceship"):
+            return flight
+        root = self._vehicle_xml_root(vcp.get("vehicleDefinition"))
+        power = root.find(".//MovementParams//Handling/Power") if root is not None else None
+        if power is None:
+            return flight
+        top = _to_float(power.get("topSpeed"))
+        rev = _to_float(power.get("reverseSpeed"))
+        out = dict(flight)
+        if top is not None and math.isfinite(top) and top > 0:
+            out["maxSpeed"] = top
+        if rev is not None and math.isfinite(rev) and rev > 0:
+            out["reverseSpeed"] = rev
         return out
 
     def _vehicle_xml_root(self, path: Optional[str]):
@@ -2285,18 +2457,24 @@ class CodexExtractor:
         return out
 
     def _hold_scu(self, comps: List[Dict[str, Any]]) -> Optional[float]:
-        """SCU of one cargo item: its inventory container's interior volume
-        ÷ 1.25³, else a resource container's own SCU capacity (ore pods;
-        VERIFIED LIVE 4.10: `Cargo_ShipMining_Pod_Mole` 12, `_Prospector` 8,
-        `_Golem` 16, a collapsed pod 0). None when it states no size."""
-        volume = self._container_volume(comps)
-        if volume is not None:
-            return volume / (self._SCU_EDGE_M ** 3)
+        """SCU of one cargo item: a resource container's own SCU capacity
+        (ore pods; VERIFIED LIVE 4.10: `Cargo_ShipMining_Pod_Mole` 12,
+        `_Prospector` 8, `_Golem` 16, a collapsed pod 0), else its inventory
+        container's interior volume ÷ 1.25³. None when it states no size.
+
+        The resource capacity wins: an ore pod that ALSO carries a hand-load
+        inventory container (VERIFIED LIVE 4.10.2: the ROC pod holds 1.2 SCU of
+        ore in a 1.02 SCU inventory box, the ROC-DS pod 3.4 SCU in 1.28) is
+        sized by what it mines, which is what the wiki and erkul list — the
+        interior box understated the ROC-DS by more than half."""
         for c in comps:
             if isinstance(c, dict) and c.get("_Type_") == "ResourceContainer":
                 scu = _scu_of(c.get("capacity"))
                 if scu is not None:
                     return scu
+        volume = self._container_volume(comps)
+        if volume is not None:
+            return volume / (self._SCU_EDGE_M ** 3)
         return None
 
     def _container_unresolved(self, comps: List[Dict[str, Any]]) -> bool:
@@ -2353,13 +2531,39 @@ class CodexExtractor:
         dims = value.get("interiorDimensions") if isinstance(value, dict) else None
         return dims if isinstance(dims, dict) else None
 
-    def _armor_hp(self, class_name: str) -> Optional[float]:
-        """Hull-armour hitpoints from the per-hull `ARMR_<Ship>` item's
+    def _armor_hp(self, class_name: str,
+                  loadout: Optional[List[Dict[str, Any]]] = None) -> Optional[float]:
+        """Hull-armour hitpoints from the armour item's
         `SHealthComponentParams.Health` (VERIFIED: Nomad 2 200, Hammerhead
-        25 740). ``None`` when the ship has no armour item."""
-        comps = self._entity_class_comps(f"ARMR_{class_name}")
-        health = _find_component(comps, "SHealthComponentParams") or {}
-        return _to_float(health.get("Health"))
+        25 740). ``None`` when the ship has no armour item.
+
+        The item is the one the stock loadout fits on the armour port, NOT
+        `ARMR_<class>`: variants share their base hull's armour
+        (`MISC_Starlancer_Max` fits `ARMR_MISC_Starlancer`, and no
+        `ARMR_MISC_Starlancer_Max` exists — the MAX showed no armour at all),
+        while a variant with its own plate (`AEGS_Idris_P` -> `ARMR_AEGS_Idris_P`)
+        names that one. The class-name guess stays as the fallback for a
+        loadout that does not name its armour."""
+        for cls in (*self._armor_classes(loadout or []), f"ARMR_{class_name}"):
+            comps = self._entity_class_comps(cls)
+            health = _find_component(comps, "SHealthComponentParams") or {}
+            hp = _to_float(health.get("Health"))
+            if hp is not None:
+                return hp
+        return None
+
+    @staticmethod
+    def _armor_classes(loadout: List[Dict[str, Any]]) -> List[str]:
+        """Armour item class names on the ship's top-level loadout ports —
+        `hardpoint_armor` / `hardpoint_armour`, or any `ARMR_*` item."""
+        out: List[str] = []
+        for e in loadout:
+            cls = e.get("entityClassName")
+            port = str(e.get("itemPortName") or "").lower()
+            if cls and (port in ("hardpoint_armor", "hardpoint_armour")
+                        or str(cls).upper().startswith("ARMR_")):
+                out.append(str(cls))
+        return out
 
     # ── flight stats (generic) ──────────────────────────────────────────────────
     # VERIFIED against a live Data.p4k (CNOU_Nomad / AEGS_Gladius /
@@ -3084,6 +3288,63 @@ class CodexExtractor:
 
 
 # ── value helpers ─────────────────────────────────────────────────────────────
+def _envelope(v: Any) -> Optional[Dict[str, float]]:
+    if not isinstance(v, dict):
+        return None
+    x, y, z = (_to_float(v.get(a)) for a in ("x", "y", "z"))
+    if any(e is None or not math.isfinite(e) or e <= 0 for e in (x, y, z)):
+        return None
+    return {"length": round(y, 3), "width": round(x, 3), "height": round(z, 3)}
+
+
+def _paint_id(paint_class: str) -> str:
+    """Stable skin id of a DataCore paint item: the class without `Paint_`,
+    slugged (`Paint_Starlancer_Grey_White_Grey` -> `starlancer_grey_white_grey`)."""
+    stem = paint_class[len("Paint_"):] if paint_class.lower().startswith("paint_") else paint_class
+    return re.sub(r"[^a-z0-9]+", "_", stem.lower()).strip("_")
+
+
+def _merge_paint_catalog(cat: List[Dict[str, Any]],
+                         paints: List[Dict[str, Any]]
+                         ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """The DataCore livery list, decorated with what the icon heuristics found.
+
+    Returns ``(catalog rows, build paints)``. The DataCore decides WHICH
+    liveries exist and what they are called; a heuristic row with the same
+    store name lends its icon and keeps its id (so the 3D rows already on the
+    server keep their skin ids). Heuristic rows the DataCore does not list are
+    dropped — they were another variant's paint or a file-name guess. The
+    factory finish always leads."""
+    by_name = {str(c.get("name") or "").strip().lower(): c
+               for c in cat if c.get("id") != "standard"}
+    # An icon row the heuristics could not name ("starlancer Starlancer Grey
+    # White Grey") still carries the paint's own token as its id.
+    by_id = {str(c.get("id") or ""): c for c in cat if c.get("id") != "standard"}
+    std = next((c for c in cat if c.get("id") == "standard"), None)
+    rows: List[Dict[str, Any]] = [std] if std else []
+    build: List[Dict[str, Any]] = []
+    base_ok = bool(std and std.get("has_material"))
+    for p in paints:
+        old = by_name.get(p["name"].lower()) or by_id.get(p["id"])
+        row = {
+            "id": (old or {}).get("id") or p["id"],
+            "name": p["name"],
+            "description": p["description"] or (old or {}).get("description") or "",
+            "source": "store",
+            "name_verified": True,
+            # A tint-only livery recolours the base material, so it is as
+            # buildable as the factory finish.
+            "has_material": bool(p.get("mtl")) or base_ok,
+            "icon": (old or {}).get("icon"),
+            "paintClass": p["paintClass"],
+        }
+        rows.append(row)
+        build.append({"id": row["id"], "name": row["name"],
+                      "description": row["description"], "mtl": p.get("mtl"),
+                      "icon": row["icon"], "source": "store", "name_verified": True})
+    return rows, build
+
+
 def _scalars(d: Dict[str, Any]) -> Dict[str, Any]:
     """Flat scalar fields of a resolved struct (drops nested for typed view)."""
     return {k: v for k, v in d.items()

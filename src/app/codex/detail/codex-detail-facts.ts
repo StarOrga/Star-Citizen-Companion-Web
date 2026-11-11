@@ -238,7 +238,7 @@ export function buildShipFactGroups(
   const sheet = input.kpiSheet;
   const tech = input.techStats;
   const num = (v: number | null | undefined, unit: string): string | null =>
-    v == null || !Number.isFinite(v) || v === 0 ? null : `${formatNumber(v)} ${unit}`;
+    v == null || !Number.isFinite(v) || v === 0 ? null : unit ? `${formatNumber(v)} ${unit}` : formatNumber(v);
 
   const flightRows: ShipFactRow[] = [
     { labelKey: 'codex.hull.scmSpeed', value: num(flight?.scmSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
@@ -247,6 +247,9 @@ export function buildShipFactGroups(
     { labelKey: 'codex.hull.pitch', value: num(flight?.pitch, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
     { labelKey: 'codex.hull.yaw', value: num(flight?.yaw, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
     { labelKey: 'codex.hull.roll', value: num(flight?.roll, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
+    // Wheeled vehicles only (their drive has a reverse gear; the vehicle XML
+    // carries it) — no gap row on a spaceship.
+    ...(flight?.reverseSpeed ? [{ labelKey: 'codex.hull.reverseSpeed', value: num(flight.reverseSpeed, 'm/s') }] : []),
   ];
 
   // "6.604 / 3.302 / 9.712" — only axes that actually exist; null when none do.
@@ -312,7 +315,9 @@ export function buildShipFactGroups(
         { labelKey: 'codex.hull.crew', value: p.crew?.size ? String(p.crew.size) : null },
         // Decks (#796): no gap row — a hull without authored decks simply has none.
         ...(input.decks?.length ? [{ labelKey: 'codex.hull.decks', value: input.decks.join(' · ') }] : []),
-        { labelKey: 'codex.hull.hullHp', value: null, gapKey: 'codex.summary.gap.noHullMass' },
+        { labelKey: 'codex.hull.hullHp', value: num(p.hull?.hp, ''), gapKey: 'codex.summary.gap.noHullMass' },
+        { labelKey: 'codex.hull.hullMass', value: num(p.hull?.mass, 'kg'), gapKey: 'codex.summary.gap.noHullMass' },
+        { labelKey: 'codex.hull.armorHp', value: num(p.armorHp, ''), gapKey: 'codex.summary.gap.noArmorStats' },
       ],
     },
   ];

@@ -2371,6 +2371,9 @@
     "hull": {
       "title": "Hull & flight",
       "hullHp": "Hull HP",
+      "hullMass": "Hull mass",
+      "armorHp": "Armour HP",
+      "reverseSpeed": "Reverse speed",
       "dimensions": "Dimensions (L×W×H)",
       "decks": "Decks",
       "crew": "Crew",

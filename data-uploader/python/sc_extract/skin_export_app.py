@@ -73,6 +73,8 @@ def _refs_from_manifest(path: Path) -> list[ShipRef]:
             ship_id=s["ship_id"], mfr=s["mfr"],
             ship=s["ship"], series_token=s.get("series_token", s["ship"]),
             root=s.get("root", SHIPS_ROOT),  # absent in pre-ground manifests = ships
+            # DataCore liveries (absent in older manifests -> heuristics).
+            paints=s.get("paints"), base_mtl=s.get("base_mtl"),
         ))
     return out
 

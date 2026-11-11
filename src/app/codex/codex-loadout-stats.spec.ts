@@ -305,11 +305,20 @@ describe('codex-loadout-stats — buildDefensivePanel', () => {
     expect(uniform.mixedGeneratorNote).toBe(false);
   });
 
-  it('never computes hull HP or effective HP — always a named gap', () => {
+  it('names the hull-HP gap only on an extract without hull HP', () => {
     const panel = buildDefensivePanel([shield({})], null);
     expect(panel.hullHp).toBeNull();
     expect(panel.effectiveHp).toBeNull();
     expect(panel.gapKeys).toContain('codex.summary.gap.noHullMass');
+  });
+
+  it('takes the hull HP from the ship payload and adds the shields for effective HP', () => {
+    const panel = buildDefensivePanel([shield({ hp: 1000, regen: 50 })], null, 84200);
+    expect(panel.hullHp).toBe(84200);
+    expect(panel.effectiveHp).toBe(85200);
+    expect(panel.gapKeys).not.toContain('codex.summary.gap.noHullMass');
+    // No shield: the hull is known, the effective sum is not.
+    expect(buildDefensivePanel([], null, 84200).effectiveHp).toBeNull();
   });
 
   it('computes armor reduction % as (1 - multiplier) when the extract carries it', () => {

@@ -102,7 +102,13 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // family's (Starlancer MAX from the TAC) — fewer rooms on "Other rooms".
     // 13: E14 — rooms carry `locKey` (the game's loc key) and, without a
     // German string, `labelKey` (`scc_room_*`, translated by the pipeline).
-    revision: 13,
+    // 14: validated against the wiki / erkul on Starlancer MAX, ROC, Idris —
+    // armorHp from the loadout's armour item (MAX had none), ore pods sized
+    // by their resource capacity (ROC-DS 3.4, not 1.28), wheeled vehicles get
+    // maxSpeed / reverseSpeed, payload.fuel + payload.boundingBox, liveries
+    // from the DataCore (payload.skins), `,P` loc keys resolve (Wikelo
+    // names), mission / event / game-mode hull copies are variants.
+    revision: 14,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
@@ -115,10 +121,12 @@ export const SUBTHEMES: readonly Subtheme[] = [
   },
   // components 4 / items 4: #842 — ship radars move from codex_items to
   // codex_components (kind Radar) with flat range / sensitivity keys.
-  { key: 'components', revision: 4, phases: ['codex_components'], sources: CATALOG_SHARED },
-  { key: 'weapons', revision: 3, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
+  // components 5 / weapons 4 / items 6: names behind a `,P`-marked loc key
+  // resolve instead of showing the raw `@key`.
+  { key: 'components', revision: 5, phases: ['codex_components'], sources: CATALOG_SHARED },
+  { key: 'weapons', revision: 4, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
   // items 5: missiles carry stats.SCItemMissileParams (feedback e7b6a2a1).
-  { key: 'items', revision: 5, phases: ['codex_items'], sources: CATALOG_SHARED },
+  { key: 'items', revision: 6, phases: ['codex_items'], sources: CATALOG_SHARED },
   {
     key: 'codex_extra',
     // 2: #643 — codex_item_ports.helper_name / position / rotation resolve on
@@ -189,7 +197,10 @@ export const SUBTHEMES: readonly Subtheme[] = [
     //    packages that failed on an empty/duplicate placement id (Meteor
     //    Collector) now build. Cached parts are reused; only the missing
     //    ones are built.
-    revision: 5,
+    // 6: liveries come from the DataCore (names, which ship they fit, their
+    //    .mtl) via the build manifest, and `<mesh>_ext.mtl` counts as the
+    //    base material — the Starlancer MAX / TAC had no 3D hull at all.
+    revision: 6,
     phases: [],
     sources: [
       'data-uploader/python/sc_extract/assets3d/',
