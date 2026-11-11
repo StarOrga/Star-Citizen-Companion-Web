@@ -4412,6 +4412,14 @@
     },
     "subtitle": "Get the Verse Data Uploader for your local Star Citizen install."
   },
+  "appLink": {
+    "web": "VC Web",
+    "app": {
+      "uploader": "Data Uploader",
+      "starscape": "Starscape",
+      "scc": "VC App"
+    }
+  },
   "desktopConnect": {
     "title": "Connect Verse Companion",
     "authorizing": "Checking your session…",
@@ -4420,7 +4428,10 @@
     "redirectingHint": "You can close this window in a moment.",
     "errorMissingParams": "Missing callback or state parameter.",
     "errorBadCallback": "Callback URL is not a 127.0.0.1 loopback in the expected port range.",
-    "errorNoToken": "No access token in session."
+    "errorNoToken": "No access token in session.",
+    "retry": "Try again",
+    "handedOver": "Back to the app",
+    "handedOverHint": "The app has your session. You can close this window."
   },
   "desktopAuth": {
     "title": "Authorize Verse Data Uploader",
@@ -4437,7 +4448,10 @@
     "confirmHint": "Only confirm if you just started the sign-in from the Verse Data Uploader yourself.",
     "confirm": "Connect",
     "cancel": "Cancel",
-    "cancelled": "Cancelled — nothing was sent. You can close this window."
+    "cancelled": "Cancelled — nothing was sent. You can close this window.",
+    "retry": "Try again",
+    "handedOver": "Back to the app",
+    "handedOverHint": "The app has your session. You can close this window."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",

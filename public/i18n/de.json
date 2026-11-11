@@ -4412,6 +4412,14 @@
     },
     "subtitle": "Hol dir den Verse Data Uploader für deinen lokalen Star-Citizen-Install."
   },
+  "appLink": {
+    "web": "VC Web",
+    "app": {
+      "uploader": "Data Uploader",
+      "starscape": "Starscape",
+      "scc": "VC App"
+    }
+  },
   "desktopConnect": {
     "title": "Verse Companion verbinden",
     "authorizing": "Prüfe deine Session…",
@@ -4420,7 +4428,10 @@
     "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
     "errorMissingParams": "Callback- oder State-Parameter fehlt.",
     "errorBadCallback": "Callback-URL ist kein 127.0.0.1-Loopback im erwarteten Portbereich.",
-    "errorNoToken": "Kein Access-Token in der Session."
+    "errorNoToken": "Kein Access-Token in der Session.",
+    "retry": "Erneut versuchen",
+    "handedOver": "Zurück zur App",
+    "handedOverHint": "Die App hat deine Anmeldung. Du kannst dieses Fenster schließen."
   },
   "desktopAuth": {
     "title": "Verse Data Uploader autorisieren",
@@ -4437,7 +4448,10 @@
     "confirmHint": "Bestätige nur, wenn du die Anmeldung gerade selbst im Verse Data Uploader gestartet hast.",
     "confirm": "Verbinden",
     "cancel": "Abbrechen",
-    "cancelled": "Abgebrochen – es wurde nichts übertragen. Du kannst dieses Fenster schließen."
+    "cancelled": "Abgebrochen – es wurde nichts übertragen. Du kannst dieses Fenster schließen.",
+    "retry": "Erneut versuchen",
+    "handedOver": "Zurück zur App",
+    "handedOverHint": "Die App hat deine Anmeldung. Du kannst dieses Fenster schließen."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",

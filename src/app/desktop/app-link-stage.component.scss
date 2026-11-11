@@ -1,0 +1,119 @@
+@use '../shell/scene/starfield' as stars;
+
+:host { display: block; }
+.stage {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sc-space-5, 24px);
+  min-height: calc(100dvh - var(--sc-bar-h, 64px) - var(--sc-footer-h, 56px));
+  padding: var(--sc-space-6, 32px) var(--sc-space-3, 12px);
+  text-align: center;
+  overflow: clip;
+}
+.sky { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.sky::before, .sky::after { content: ''; position: absolute; inset: 0; }
+.sky::before {
+  background:
+    radial-gradient(ellipse 50% 40% at 50% 38%, color-mix(in srgb, var(--sc-accent) 14%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, color-mix(in srgb, var(--sc-accent) 8%, transparent), transparent 70%);
+}
+.sky::after { opacity: 0.45; @include stars.field(120, 1931, 1213, 29, (1px), (var(--sc-fg-0))); }
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 3vw, 24px);
+  width: min(100%, 560px);
+}
+.streaks { position: absolute; inset: 0; opacity: .7; pointer-events: none; }
+.node { position: relative; z-index: 1; display: grid; justify-items: center; gap: 8px; flex: none; }
+.node small {
+  font-family: var(--sc-font-display);
+  font-size: max(.72rem, var(--sc-fs-floor));
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--sc-fg-2);
+}
+.mark {
+  display: grid; place-items: center;
+  width: clamp(64px, 14vw, 96px); aspect-ratio: 1; border-radius: 50%;
+  background: color-mix(in srgb, var(--sc-bg-1) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--sc-accent) 18%, transparent);
+  transition: box-shadow .5s ease, border-color .5s ease;
+}
+.mark img { width: 56%; height: 56%; display: block; }
+
+.link { position: relative; z-index: 1; flex: 1 1 auto; min-width: 48px; max-width: 220px; height: 40px; display: grid; place-items: center; }
+.line {
+  position: absolute; inset-inline: 0; top: 50%; height: 2px; transform: translateY(-50%); border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--sc-accent) 0 8px, transparent 8px 14px);
+  opacity: .45;
+  transition: opacity .4s ease, background .4s ease;
+}
+.packet {
+  position: absolute; top: 50%; inset-inline-start: 0; width: 18px; height: 4px; margin-top: -2px; border-radius: 4px; opacity: 0;
+  background: linear-gradient(90deg, transparent, #cdf3ff);
+  box-shadow: 0 0 10px var(--sc-accent);
+}
+.badge {
+  position: relative; display: none; width: 28px; height: 28px; border-radius: 50%; place-items: center;
+  background: var(--sc-bg-1); border: 1px solid currentColor;
+}
+.badge svg { width: 16px; height: 16px; }
+
+:host([data-phase='checking']) .packet, :host([data-phase='linking']) .packet { opacity: 1; animation: al-run 2.4s linear infinite; }
+:host([data-phase='checking']) .p2, :host([data-phase='linking']) .p2 { animation-delay: -1.2s; }
+:host([data-phase='linking']) .packet { animation-duration: .9s; }
+:host([data-phase='linking']) .p2 { animation-delay: -.45s; }
+:host([data-phase='linking']) .line, :host([data-phase='checking']) .line { opacity: .7; }
+:host([data-phase='linking']) .app .mark { animation: al-glow 1.2s ease-in-out infinite; }
+
+:host([data-phase='done']) .line { opacity: 1; background: var(--sc-success); height: 3px; box-shadow: 0 0 14px color-mix(in srgb, var(--sc-success) 55%, transparent); }
+:host([data-phase='done']) .badge { display: grid; color: var(--sc-success); animation: al-pop .5s cubic-bezier(.2, .8, .2, 1) both; }
+:host([data-phase='done']) .app .mark { border-color: var(--sc-success); box-shadow: 0 0 30px color-mix(in srgb, var(--sc-success) 35%, transparent); }
+
+:host([data-phase='halt']) .line, :host([data-phase='error']) .line {
+  opacity: .55; background: repeating-linear-gradient(90deg, var(--sc-fg-2) 0 4px, transparent 4px 12px);
+}
+:host([data-phase='halt']) .badge { display: grid; color: var(--sc-warning); }
+:host([data-phase='error']) .badge { display: grid; color: var(--sc-danger); }
+
+.body { position: relative; z-index: 1; display: grid; justify-items: center; gap: var(--sc-space-3, 12px); width: min(100%, var(--sc-measure, 52ch)); }
+.body ::ng-deep h1 {
+  margin: 0; font-family: var(--sc-font-display); font-size: clamp(1.2rem, 4vw, 1.5rem); line-height: 1.2;
+  font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--sc-fg-0);
+}
+.body ::ng-deep p { margin: 0; color: var(--sc-fg-1); font-size: .95rem; overflow-wrap: anywhere; }
+.body ::ng-deep .hint { color: var(--sc-fg-2); font-size: .85rem; }
+.body ::ng-deep .ok { color: var(--sc-success); }
+.body ::ng-deep .err { color: var(--sc-danger); }
+.body ::ng-deep .actions { display: flex; flex-wrap: wrap; gap: var(--sc-space-2, 8px); justify-content: center; margin-top: var(--sc-space-1, 4px); }
+@media (max-width: 600px) {
+  .body ::ng-deep .actions { align-self: stretch; flex-direction: column; }
+  .body ::ng-deep .actions > * { justify-content: center; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .body { animation: al-in .5s ease-out both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .packet, .mark, .badge { animation: none !important; }
+  .streaks { display: none; }
+  :host([data-phase='checking']) .packet, :host([data-phase='linking']) .packet { opacity: 0; }
+}
+@keyframes al-run {
+  0% { inset-inline-start: 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { inset-inline-start: calc(100% - 18px); opacity: 0; }
+}
+@keyframes al-glow { 50% { box-shadow: 0 0 34px color-mix(in srgb, var(--sc-accent) 55%, transparent); } }
+@keyframes al-pop { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes al-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
