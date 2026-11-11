@@ -35,8 +35,8 @@ export interface TokenResult {
 }
 
 export interface TokenBrokerDeps {
-  load(): PersistedSession | null;
-  save(session: PersistedSession): void;
+  load(): PersistedSession | null | Promise<PersistedSession | null>;
+  save(session: PersistedSession): void | Promise<unknown>;
   clear(): void;
   refresh(refreshToken: string): Promise<RefreshResult>;
   nowSeconds(): number;
@@ -54,10 +54,10 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
   /** A refreshed session the store refused to take — retried on every read. */
   let unsaved: PersistedSession | null = null;
 
-  function read(): PersistedSession | null {
+  async function read(): Promise<PersistedSession | null> {
     if (unsaved) {
       try {
-        deps.save(unsaved);
+        await deps.save(unsaved);
         unsaved = null;
       } catch {
         return unsaved;
@@ -67,7 +67,7 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
   }
 
   async function resolve(): Promise<TokenResult> {
-    const session = read();
+    const session = await read();
     if (!session) return { token: null, email: null, reconnect: false, retry: false };
 
     if (isAccessTokenFresh(session, deps.nowSeconds())) {
@@ -83,7 +83,7 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
       // Compare-and-swap: the refresh can take up to 30 s. A sign-out or a new
       // interactive login in that window must win — never write the old
       // lineage back over it.
-      const current = read();
+      const current = await read();
       if (!current) {
         return { token: null, email: null, reconnect: false, retry: false };
       }
@@ -101,7 +101,7 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
         savedAt: deps.nowSeconds(),
       };
       try {
-        deps.save(updated);
+        await deps.save(updated);
       } catch (err) {
         // The server already rotated the token, so the stored one is now spent
         // — but this process still holds the new pair: hand out the token, keep
@@ -115,7 +115,7 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
 
     if (refreshed.invalid) {
       // Rejected — but only sign out if nobody stored a newer session meanwhile.
-      const current = read();
+      const current = await read();
       if (current && current.refreshToken !== session.refreshToken) {
         if (isAccessTokenFresh(current, deps.nowSeconds())) {
           return { token: current.accessToken, email: current.email, reconnect: false, retry: false };

@@ -12,7 +12,7 @@ import { app, safeStorage } from 'electron';
 import log from 'electron-log';
 import { existsSync, readFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { SessionStore, type PersistedSession, type BlobIO } from '../lib/session-store.js';
+import { SessionStore, type PersistedSession, type BlobIO, type SafeStorageLike } from '../lib/session-store.js';
 import { createTokenBroker, type TokenBroker, type TokenResult } from '../lib/token-broker.js';
 import { VersionStore, type TextIO } from '../lib/version-store.js';
 import { refreshSession } from '../lib/token-refresh.js';
@@ -37,6 +37,21 @@ function nowSec(): number {
   return Math.floor(Date.now() / 1000);
 }
 
+/**
+ * Electron's sync safeStorage calls are deprecated (they block on the OS
+ * keyring); the async variants read the same DPAPI blobs.
+ */
+const asyncSafeStorage: SafeStorageLike = {
+  isEncryptionAvailable: () => safeStorage.isAsyncEncryptionAvailable(),
+  encryptString: (plain) => safeStorage.encryptStringAsync(plain),
+  decryptString: async (blob) => {
+    let res = await safeStorage.decryptStringAsync(blob);
+    // The key rotated: the docs say to decrypt again for the current string.
+    if (res.shouldReEncrypt) res = await safeStorage.decryptStringAsync(blob);
+    return res.result;
+  },
+};
+
 function sessionStore(): SessionStore {
   if (_sessionStore) return _sessionStore;
   const path = join(app.getPath('userData'), SESSION_FILE);
@@ -57,7 +72,7 @@ function sessionStore(): SessionStore {
       }
     },
   };
-  _sessionStore = new SessionStore(safeStorage, io, (m) => log.warn(m));
+  _sessionStore = new SessionStore(asyncSafeStorage, io, (m) => log.warn(m));
   return _sessionStore;
 }
 
@@ -84,8 +99,8 @@ function tokenBroker(): TokenBroker {
   const store = sessionStore();
   _tokenBroker = createTokenBroker({
     load: () => store.load(),
-    save: (s) => {
-      store.save(s);
+    save: async (s) => {
+      await store.save(s);
     },
     clear: () => store.clear(),
     refresh: (rt) => refreshSession(API_BASE, SUPABASE_ANON_KEY, rt),
@@ -115,7 +130,7 @@ export interface SessionStatus {
 export type { TokenResult };
 
 /** Persist a fresh OAuth result. Returns whether it was written to disk. */
-export function persistAuthResult(auth: AuthResult): boolean {
+export async function persistAuthResult(auth: AuthResult): Promise<boolean> {
   if (!auth.ok || !auth.accessToken) return false;
   const session: PersistedSession = {
     accessToken: auth.accessToken,
@@ -140,8 +155,8 @@ export function ensureAccessToken(): Promise<TokenResult> {
 
 export async function getSessionStatus(): Promise<SessionStatus> {
   const store = sessionStore();
-  const canPersist = store.canPersist();
-  const session = store.load();
+  const canPersist = await store.canPersist();
+  const session = await store.load();
   if (!session) {
     return { connected: false, email: null, expiresAt: null, canPersist, needsReconnect: false, retrying: false };
   }
@@ -156,7 +171,7 @@ export async function getSessionStatus(): Promise<SessionStatus> {
       retrying: tokenRes.retry,
     };
   }
-  const fresh = store.load();
+  const fresh = await store.load();
   return {
     connected: true,
     email: tokenRes.email,
