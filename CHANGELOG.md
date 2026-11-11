@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The Data Uploader is now called Verse Data Uploader everywhere: on the site, in the app's window and tray, and in the Windows start menu.
 
+## [0.256.1] - 2026-11-11
+
+### Fixed
+- Swap picker: coolers, shields and drives show their type ("Kühler") under the name instead of repeating the product name in English.
+
 ## [0.256.0] - 2026-11-11
 
 ### Added
