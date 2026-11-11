@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verse hub: News, Patches and Galerie show their name under the planet on hover, like the sun, instead of a tooltip.
 - Verse hub: the placeholder below the stage has the hub's height, so the scrollbar no longer jumps when the hub appears.
 
+## [0.257.2] - 2026-11-11
+
+### Fixed
+- Missile Einordnung: the comparison groups now hold what their names say. "Alle Lenkraketen" compares against every missile of its kind (no torpedoes, no rockets), "Alle Infrarot-Lenkraketen" only against the same tracking signal (IR, EM or cross-section), and "Alle S2-Lenkraketen" only against exactly the same size.
+
 ## [0.257.1] - 2026-11-11
 
 ### Fixed
