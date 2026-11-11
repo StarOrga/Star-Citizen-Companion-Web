@@ -75,6 +75,14 @@ def _short_scratch_root(work_dir: Path) -> Path:
     return Path(tempfile.gettempdir()) / "scc-sil"
 
 
+def _stderr_tail(r: Any) -> str:
+    """The converter's last stderr line, so an rc=1 names its cause in the log."""
+    raw = getattr(r, "stderr", None) or getattr(r, "stdout", None) or b""
+    text = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    return f": {lines[-1][:200]}" if lines else ""
+
+
 class SilhouetteSkip(Exception):
     """A mesh that yields no silhouette, with the reason (one of `SKIP_REASONS`)."""
 
@@ -598,7 +606,7 @@ class SilhouetteExporter:
         r = subprocess.run(cmd, cwd=str(mesh_disk.parent), capture_output=True, timeout=600)
         if not produced.exists() or produced.stat().st_size < 256:
             raise RuntimeError(
-                f"{CONVERTER_NO_OUTPUT} for {mesh_disk.name} (rc={r.returncode})")
+                f"{CONVERTER_NO_OUTPUT} for {mesh_disk.name} (rc={r.returncode}{_stderr_tail(r)})")
         produced.replace(out_glb)
 
     # ---- one-shot conveniences (single thread) ------------------------------
