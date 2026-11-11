@@ -36,7 +36,7 @@ import { seriesStops } from './starmap.model';
   styles: [
     `
       :host { display: flex; align-items: center; gap: 22px; min-width: 0; padding: 8px 16px; border-radius: 10px; box-sizing: border-box;
-        background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent); border: 1px solid var(--sc-border); backdrop-filter: blur(6px);
+        background: color-mix(in srgb, var(--sc-bg-0) 85%, transparent); border: 1px solid var(--sc-border);
         font-size: 0.8rem; color: var(--sc-fg-1); }
       .label { flex: none; display: inline-flex; align-items: center; gap: 10px; font: 400 0.8rem var(--sc-font-display); letter-spacing: 0.22em;
         text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }

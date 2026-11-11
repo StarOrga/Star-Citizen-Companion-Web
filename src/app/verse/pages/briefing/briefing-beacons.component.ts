@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, afterNextRender, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { VersePoint } from '../../data/verse.models';
@@ -9,6 +9,7 @@ import { splitChars } from './briefing.model';
 import { BodyCanvasDirective } from './bodies/body.directive';
 import { BriefingStationComponent } from './briefing-station.component';
 import { BriefingHqLineService } from './briefing-hq-line';
+import { TX_ART_MS } from './briefing-transmit.component';
 
 /** Quiet time (no scroll, no pointer movement, window focused) before the idle hint. */
 export const IDLE_HINT_MS = 8000;
@@ -38,6 +39,7 @@ export const IDLE_SHOW_MS = 5000;
  */
 @Component({
   selector: 'sc-briefing-beacons',
+  host: { '[class.art]': 'art()' },
   standalone: true,
   imports: [RouterLink, TranslatePipe, BriefingSkyComponent, BodyCanvasDirective, BriefingStationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -95,6 +97,12 @@ export const IDLE_SHOW_MS = 5000;
   `,
 })
 export class BriefingBeaconsComponent {
+  /**
+   * The sun's CSS art (sun.svg, granulation, prominences) may paint: {@link TX_ART_MS} after mount,
+   * the fallback wait of the planets. Its first raster under the live sun cost ~0.2 s of GPU on a
+   * cold menu switch (QA D12), for layers the WebGL sun replaces anyway.
+   */
+  readonly art = signal(false);
   readonly sunLink = input<string | readonly string[]>('/verse/patches');
   readonly version = input<string | null>(null);
   readonly stability = input<number | null>(null);
@@ -133,6 +141,8 @@ export class BriefingBeaconsComponent {
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const destroyRef = inject(DestroyRef);
     const hq = inject(BriefingHqLineService);
+    const artTimer = inject(NgZone).runOutsideAngular(() => setTimeout(() => this.art.set(true), TX_ART_MS));
+    destroyRef.onDestroy(() => clearTimeout(artTimer));
     afterNextRender(() => hq.watch(destroyRef));
     if (reduced) return;
     afterNextRender(() => {

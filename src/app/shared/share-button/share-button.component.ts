@@ -1,7 +1,8 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../../core/beta.service';
+import { claimRootAttr } from '../../core/root-var';
 import { PageCornerService } from '../../shell/corners/page-corner.service';
 import { ScTooltipDirective } from '../tooltip/sc-tooltip.directive';
 
@@ -107,7 +108,10 @@ export class ShareButtonComponent {
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // The footer makes room for the dock: html[data-sc-share-dock], never html:has(sc-share-button .dock).
+    effect(() => claimRootAttr('data-sc-share-dock', this, this.enabled() ? '' : null));
     this.destroyRef.onDestroy(() => {
+      claimRootAttr('data-sc-share-dock', this, null);
       if (this.timer) clearTimeout(this.timer);
     });
   }

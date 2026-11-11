@@ -105,6 +105,18 @@ describe('ShellChromeService', () => {
     expect(s.heroIntro()).toBeNull();
   });
 
+  it('the hub reports its real entrance clock; a new sequence drops the old one (QA E2)', () => {
+    const s = new ShellChromeService();
+    s.startHeroIntro(1, true);
+    expect(s.introClock()).toBeNull();
+    s.setIntroClock(1234);
+    expect(s.introClock()).toBe(1234);
+    expect(s.introStartedAt).toBe(1234);
+    s.startHeroIntro(0.6, false);
+    expect(s.introClock()).toBeNull();
+    expect(s.introStartedAt).not.toBe(1234);
+  });
+
   it('a page that is not a main page condenses the header at once (the first value never glides)', () => {
     const s = new ShellChromeService();
     const el = document.createElement('div');

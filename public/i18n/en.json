@@ -594,7 +594,7 @@
       "coverage": "Coverage",
       "qualityHint": "Quality score is preliminary until it's computed for real.",
       "stale": "Requires a data upload — a newer game version is live than this catalog reflects.",
-      "staleUploadLink": "Open Data Uploader"
+      "staleUploadLink": "Open Verse Data Uploader"
     },
     "search": {
       "didYouMean": "Did you mean:",
@@ -2745,7 +2745,7 @@
         "legendBelow": "below median",
         "compareInfo": "Each axis runs from 0 (centre) to the highest value among the chosen weapons (rim). Blue is this weapon, the dashed line the group's median.",
         "note": "Compares only what the game data holds for this weapon.",
-        "gapNoData": "The current data does not include damage, speed, agility and range yet. The comparison appears once a build is uploaded with Data Uploader 0.73.3 or later.",
+        "gapNoData": "The current data does not include damage, speed, agility and range yet. The comparison appears once a build is uploaded with Verse Data Uploader 0.73.3 or later.",
         "gapTooFew": "Too few missiles differ in damage, speed, agility and range to rank this one.",
         "gapThinGroup": "Not enough to compare: too few values differ in this group to rank this one.",
         "gapNoCohort": "The comparison group could not be loaded."
@@ -3576,7 +3576,7 @@
   },
   "p4k": {
     "title": "P4K Bundle History",
-    "subtitle": "Pre-digested bundles from the Data Uploader. Uploads only happen via the tool, not from the website.",
+    "subtitle": "Pre-digested bundles from the Verse Data Uploader. Uploads only happen via the tool, not from the website.",
     "loading": "Loading bundles…",
     "errorTitle": "Could not load bundles",
     "retentionHint": "Retention: the last 3 uploader versions per build, max. 20 bundles total — older ones are removed automatically.",
@@ -3585,7 +3585,7 @@
     },
     "empty": {
       "title": "No bundles yet",
-      "hint": "Once someone runs the Data Uploader and uploads, results show up here."
+      "hint": "Once someone runs the Verse Data Uploader and uploads, results show up here."
     },
     "col": {
       "entities": "Entities",
@@ -3782,6 +3782,14 @@
         "label": "Show the feedback button",
         "descOn": "The feedback button sits in the bottom-right corner of every page.",
         "descOff": "The feedback button is hidden — replies and questions from the team stay out of sight with it. Switch it back on here to open your feedback."
+      },
+      "staff": {
+        "title": "Feedback & beta buttons",
+        "hint": "The corner buttons: send feedback and see replies from the team, with the beta switch above it.",
+        "label": "Show the feedback and beta buttons",
+        "audience": "(admins and collaborators only)",
+        "descOn": "The feedback and beta buttons sit in the bottom-right corner of every page.",
+        "descOff": "The feedback and beta buttons are hidden — replies and questions from the team stay out of sight with them. Switch them back on here to open your feedback or the beta switches."
       },
       "routineTint": {
         "label": "Feedback title green / red only",
@@ -4355,7 +4363,7 @@
   },
   "desktop": {
     "title": "Data Upload",
-    "subtitle": "Download the Data Uploader for your local Star Citizen install.",
+    "subtitle": "Download the Verse Data Uploader for your local Star Citizen install.",
     "bundleHistory": "Bundle History",
     "loading": "Loading release…",
     "released": "Released",
@@ -4371,7 +4379,7 @@
       "label": "Promote this version to",
       "action": "Promote"
     },
-    "appTitle": "Data Uploader",
+    "appTitle": "Verse Data Uploader",
     "appDesc": "Reads your local Star Citizen install and uploads the Codex bundles from it.",
     "close": "Close",
     "access": {
@@ -4386,7 +4394,7 @@
       "text": "Imports your RSI hangar into the HQ - for Chrome and Edge.",
       "open": "Install the extension"
     },
-    "subtitle": "Get the Data Uploader for your local Star Citizen install."
+    "subtitle": "Get the Verse Data Uploader for your local Star Citizen install."
   },
   "desktopConnect": {
     "title": "Connect Verse Companion",
@@ -4399,18 +4407,18 @@
     "errorNoToken": "No access token in session."
   },
   "desktopAuth": {
-    "title": "Authorize Data Uploader",
+    "title": "Authorize Verse Data Uploader",
     "authorizing": "Checking your session…",
     "loginRequired": "Sign in first, then confirm the connection.",
     "redirecting": "Authorized. Sending token to the app…",
     "redirectingHint": "You can close this window in a moment.",
-    "unauthorized": "Your account can't use the Data Uploader.",
+    "unauthorized": "Your account can't use the Verse Data Uploader.",
     "unauthorizedHint": "You need collaborator or admin role. Ask an admin.",
     "errorMissingParams": "Missing callback or state parameter.",
     "errorBadCallback": "Callback URL is not a 127.0.0.1 loopback in the expected port range.",
     "errorNoToken": "No access token in session.",
-    "confirmPrompt": "Connect the Data Uploader on port {{port}} to your account?",
-    "confirmHint": "Only confirm if you just started the sign-in from the Data Uploader yourself.",
+    "confirmPrompt": "Connect the Verse Data Uploader on port {{port}} to your account?",
+    "confirmHint": "Only confirm if you just started the sign-in from the Verse Data Uploader yourself.",
     "confirm": "Connect",
     "cancel": "Cancel",
     "cancelled": "Cancelled — nothing was sent. You can close this window."
@@ -4517,7 +4525,7 @@
           "statistics": "\"Statistics\" category — the state of the anonymous product analytics (PostHog). Only created if you allow it; withdrawing your consent deletes it immediately."
         },
         "p2": "During a Google sign-in there is briefly one extra entry in session storage (sc.oauth-redirect-qs) so that you land back on the page you came from. It disappears when the tab closes at the latest.",
-        "p3": "If you explicitly authorize one of our desktop tools (data uploader, Starscape), the browser hands your session's access token to the program running locally on your machine (127.0.0.1) — not to a third party, and never via the address bar.",
+        "p3": "If you explicitly authorize one of our desktop tools (Verse Data Uploader, Starscape), the browser hands your session's access token to the program running locally on your machine (127.0.0.1) — not to a third party, and never via the address bar.",
         "p4": "As an installable web app (PWA), a service worker caches static assets on your device for faster loading and offline use — this cache contains no personal data and can be cleared by uninstalling the app or clearing site data."
       },
       "thirdParty": {
@@ -4825,7 +4833,7 @@
     "product": {
       "label": "Product",
       "scc-app": "Verse Companion App",
-      "data-uploader": "Data Uploader",
+      "data-uploader": "Verse Data Uploader",
       "all": "All",
       "starscape": "Starscape"
     },
@@ -4858,7 +4866,7 @@
     },
     "diagnostics": {
       "title": "Warnings & errors from uploader logs",
-      "hint": "Data Uploader runs that wrote [warn] or [err] lines to their log – including runs that otherwise finished fine. Unfold a row for the transcript; “Report as topic” opens the feedback panel with a pre-filled topic and the log attached. Nothing is sent until you press send.",
+      "hint": "Verse Data Uploader runs that wrote [warn] or [err] lines to their log – including runs that otherwise finished fine. Unfold a row for the transcript; “Report as topic” opens the feedback panel with a pre-filled topic and the log attached. Nothing is sent until you press send.",
       "byOutcome": "By outcome",
       "recent": "Recent runs",
       "warningsShort": "warn.",
@@ -4878,8 +4886,8 @@
         "skin": "Skin export"
       },
       "topic": {
-        "head": "Data Uploader {{version}} ({{ring}}) logged {{warnings}} warning(s) and {{errors}} error(s) during {{kind}} ({{outcome}}) – game {{game}}, OS {{os}}, telemetry event #{{id}}.",
-        "ask": "Please analyse the attached log: find the cause of the warnings/errors, judge whether data is missing or extracted wrongly because of them, and implement a fix in the Data Uploader (data-uploader/) or the Python sidecar (data-uploader/python/sc_extract). If the message is harmless, lower the log level or handle the cause quietly so it stops surfacing as a warning.",
+        "head": "Verse Data Uploader {{version}} ({{ring}}) logged {{warnings}} warning(s) and {{errors}} error(s) during {{kind}} ({{outcome}}) – game {{game}}, OS {{os}}, telemetry event #{{id}}.",
+        "ask": "Please analyse the attached log: find the cause of the warnings/errors, judge whether data is missing or extracted wrongly because of them, and implement a fix in the Verse Data Uploader (data-uploader/) or the Python sidecar (data-uploader/python/sc_extract). If the message is harmless, lower the log level or handle the cause quietly so it stops surfacing as a warning.",
         "excerpt": "Log excerpt:"
       }
     }
@@ -7724,7 +7732,7 @@
         "text": "Manage API tokens for external services."
       },
       "uploader": {
-        "title": "Data Uploader",
+        "title": "Verse Data Uploader",
         "text": "Ingest game data from Data.p4k."
       },
       "translations": {
@@ -7749,7 +7757,7 @@
       "desc": "Your desktop becomes a window into the Verse — a new picture from the gallery every day."
     },
     "uploader": {
-      "name": "Data Uploader",
+      "name": "Verse Data Uploader",
       "desc": "Reads your Star Citizen install and fills the Codex with ships, stats and 3D models."
     },
     "footer": "This is the stable version. Pick Beta and Alpha in the app after logging in — which channels you see depends on your role."
@@ -7772,10 +7780,10 @@
     "hub": {
       "eyebrow": "Apps",
       "title": "Apps",
-      "subtitle": "Everything that runs next to the website: the uploader, Starscape and the browser extension.",
+      "subtitle": "Everything that runs next to the website: the Verse Data Uploader, Starscape and the browser extension.",
       "breadcrumbAria": "Apps",
       "uploader": {
-        "name": "Data Uploader",
+        "name": "Verse Data Uploader",
         "desc": "Reads your Star Citizen install and uploads the data to the Codex."
       },
       "starscape": {

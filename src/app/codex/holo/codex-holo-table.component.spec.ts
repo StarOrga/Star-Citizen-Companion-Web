@@ -47,6 +47,22 @@ describe('CodexHoloTableComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  it('keeps the table hull under a 3D layer that has not drawn yet, then hands over (D11)', () => {
+    const f = setup({ viewMode: 'holo', phase: 'done', shipClassName: 'AEGS_Gladius' });
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('.shipwrap')).toBeTruthy();
+    f.componentRef.setInput('viewMode', '3d');
+    f.detectChanges();
+    expect(el.querySelector('.viewer-hold')?.classList).toContain('held');
+    expect(el.querySelector('.shipwrap')).toBeTruthy();
+    f.componentInstance.markDrawn();
+    f.detectChanges();
+    expect(el.querySelector('.viewer-hold')?.classList).not.toContain('held');
+    f.componentRef.setInput('viewMode', 'holo');
+    f.detectChanges();
+    expect(f.componentInstance.viewerDrawn()).toBe(false);
+  });
+
   describe('phone on its side', () => {
     function withLandscape(matches: boolean): void {
       const real = window.matchMedia.bind(window);

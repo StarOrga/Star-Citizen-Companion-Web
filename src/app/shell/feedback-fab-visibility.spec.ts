@@ -11,6 +11,8 @@ import { UserFeedbackService } from '../feedback/user-feedback.service';
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
+import { BetaFabComponent } from './corners/beta-fab.component';
+import { BetaService } from '../core/beta.service';
 
 // Both panels are Supabase-backed and only render once the FAB is opened; this
 // spec never opens one, but the stubs keep the imports out of the injector too.
@@ -102,5 +104,48 @@ describe('feedback launcher visibility', () => {
     TestBed.inject(FeedbackFabPrefsService).setShow(true);
     fixture.detectChanges();
     expect(hasFab(fixture)).toBe(true);
+  });
+
+  function betaFab(role: 'admin' | 'collaborator' | 'viewer') {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [BetaFabComponent],
+      providers: [
+        provideTranslateService(),
+        {
+          provide: RoleService,
+          useValue: { isAdmin: signal(role === 'admin'), isCollaborator: signal(role !== 'viewer') },
+        },
+        {
+          provide: BetaService,
+          useValue: { state: signal({}), locked: signal({}), toggle: () => undefined },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(BetaFabComponent);
+    fixture.componentRef.setInput('area', 'shell');
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  // Feedback #339: for staff the one corner setting hides the beta FAB too.
+  for (const role of ['admin', 'collaborator'] as const) {
+    it(`hides the ${role}'s beta FAB together with the feedback launcher`, () => {
+      localStorage.removeItem(KEY);
+      expect(hasFab(betaFab(role)), 'default = shown').toBe(true);
+
+      localStorage.setItem(KEY, '1');
+      const fixture = betaFab(role);
+      expect(hasFab(fixture), 'opted out').toBe(false);
+
+      TestBed.inject(FeedbackFabPrefsService).setShow(true);
+      fixture.detectChanges();
+      expect(hasFab(fixture)).toBe(true);
+    });
+  }
+
+  it("keeps a viewer's beta switch — their setting never mentions it", () => {
+    localStorage.setItem(KEY, '1');
+    expect(hasFab(betaFab('viewer'))).toBe(true);
   });
 });

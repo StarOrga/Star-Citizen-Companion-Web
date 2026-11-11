@@ -2,7 +2,7 @@
      rewrites it on every tab switch. body overflow is set by that function,
      the inline style below is only the first-paint value. -->
 <!DOCTYPE html>
-<html lang="de" data-theme="dark" data-page-version="2026-11-09T16:35:53" data-template="design">
+<html lang="de" data-theme="dark" data-page-version="2026-11-09T16:35:53" data-template="free">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5713,7 +5713,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
 }
 </style>
 </head>
-<body style="overflow: hidden">
+<body>
   <div class="concept-layout design fullscreen">
     <div class="concept-content">
       <header class="page-header" data-page-header>
@@ -8283,7 +8283,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
 </section>
 </section>
 
-<section data-iteration="7" data-iteration-template="design" data-tab-label="Runde 7 · Review" id="iter-7" data-active>
+<section data-iteration="7" data-iteration-template="design" data-tab-label="Runde 7 · Review" data-baked id="iter-7" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{},"screens":{},"views":{},"userPins":[{"id":"up-mwb3pofin09q","design":"d1","screen":"r7-d1-s15","x":41.4,"y":8.9,"target":"img","text":"dieses popup darf auch in der klassischen ansicht geändert werden!","attachments":[]}]}</script>
 <style>
 /* Round 7: real screenshots, one per screen, plus a caption. All classes carry the d1-r7 / mock-r7 prefix. */
 .d1-r7 { height: 100%; min-height: 600px; display: flex; flex-direction: column; box-sizing: border-box; background: #050d14; color: #c8e4f1; font: 13px/1.45 system-ui, "Segoe UI", sans-serif; }
@@ -8539,17 +8540,17 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </div>
     </div>
 
-<section id="r7-ship" data-nav-label="Wie geht es weiter?" data-decision="r7-ship" data-decision-mode="single" data-label="Wie geht es weiter?" data-rec="fix-then-ship" data-rec-why="Die offenen Punkte sind klein und in den Bildern belegt; eine weitere Review-Runde brächte keine neue Frage, nur neue Fotos derselben Stellen." data-applies-to="Branch claude/batch-fb8929 (Holotisch-Beta und Hangar-Speicher)" data-finding="r7-ship-f">
+<section id="r7-ship" data-nav-label="Wie geht es weiter?" data-decision="r7-ship" data-decision-mode="single" data-label="Wie geht es weiter?" data-rec="fix-then-ship" data-rec-why="Die offenen Punkte sind klein und in den Bildern belegt; eine weitere Review-Runde brächte keine neue Frage, nur neue Fotos derselben Stellen." data-applies-to="Branch claude/batch-fb8929 (Holotisch-Beta und Hangar-Speicher)" data-finding="r7-ship-f"><input type="hidden" name="dm-r7-ship-hes" value="{&quot;ms&quot;:13309,&quot;revisits&quot;:1,&quot;median&quot;:14451}" disabled>
   <p data-applies>Gilt für: Branch claude/batch-fb8929 (Holotisch-Beta und Hangar-Speicher)</p>
   <p data-situation>Wer jetzt ausliefert, bringt acht offene Punkte live, etwa englische Kopfzeilen in der Tausch-Auswahl und das falsch geschriebene Datum.</p>
   <h3 data-question>Wie geht es nach dieser Runde weiter?</h3>
   <p data-stakes>Ob die offenen Punkte vor oder nach dem Alpha-Ship behoben werden.</p>
   <div data-options>
-    <label data-opt="fix-then-ship" data-recommended><input type="radio" name="dm-r7-ship" value="fix-then-ship" checked><span data-opt-label>Offene Punkte beheben, dann direkt shippen ohne weitere Review-Runde</span><span data-opt-consequence>Erst die offenen Punkte, dann Alpha-Ship samt DB-Push beider Migrationen und Deploy von exemplar-ai, ohne Runde 8.</span></label>
-    <label data-opt="ship-now"><input type="radio" name="dm-r7-ship" value="ship-now"><span data-opt-label>Jetzt shippen, Rest danach</span><span data-opt-consequence>Alles geht sofort live, auch beide Migrationen und exemplar-ai; die offenen Punkte folgen in einem eigenen Branch.</span></label>
-    <label data-opt="review"><input type="radio" name="dm-r7-ship" value="review"><span data-opt-label>Noch eine Runde</span><span data-opt-consequence>Ich behebe die offenen Punkte und zeige dir Runde 8 mit neuen Bildern, bevor etwas live geht.</span></label>
+    <label data-opt="fix-then-ship" data-recommended><input type="radio" name="dm-r7-ship" value="fix-then-ship" checked disabled><span data-opt-label>Offene Punkte beheben, dann direkt shippen ohne weitere Review-Runde</span><span data-opt-consequence>Erst die offenen Punkte, dann Alpha-Ship samt DB-Push beider Migrationen und Deploy von exemplar-ai, ohne Runde 8.</span></label>
+    <label data-opt="ship-now"><input type="radio" name="dm-r7-ship" value="ship-now" disabled><span data-opt-label>Jetzt shippen, Rest danach</span><span data-opt-consequence>Alles geht sofort live, auch beide Migrationen und exemplar-ai; die offenen Punkte folgen in einem eigenen Branch.</span></label>
+    <label data-opt="review"><input type="radio" name="dm-r7-ship" value="review" disabled><span data-opt-label>Noch eine Runde</span><span data-opt-consequence>Ich behebe die offenen Punkte und zeige dir Runde 8 mit neuen Bildern, bevor etwas live geht.</span></label>
   </div>
-  <textarea data-comment="r7-ship-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r7-ship-note" placeholder="Notiz (optional)" readonly></textarea>
   <div data-alevel="3" data-title="Wie geht es weiter?">
     <div data-slot="short"><p>Acht offene Punkte gingen mit einem Ship sofort live.</p></div>
     <div data-slot="long">
@@ -8568,17 +8569,17 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </div>
 </section>
 
-<section id="r7-roomnames" data-nav-label="Englische Raumnamen" data-decision="r7-roomnames" data-decision-mode="single" data-label="Englische Raumnamen" data-rec="de-table" data-rec-why="Die häufigen Raumtypen decken den größten Teil der Chips ab; seltene Namen bleiben lesbar wie im Spiel, und die Tabelle wächst mit." data-applies-to="Raum-Chips und Raumnamen im Deckplan (Innen-Ansicht)" data-finding="r7-roomnames-f">
+<section id="r7-roomnames" data-nav-label="Englische Raumnamen" data-decision="r7-roomnames" data-decision-mode="single" data-label="Englische Raumnamen" data-rec="de-table" data-rec-why="Die häufigen Raumtypen decken den größten Teil der Chips ab; seltene Namen bleiben lesbar wie im Spiel, und die Tabelle wächst mit." data-applies-to="Raum-Chips und Raumnamen im Deckplan (Innen-Ansicht)" data-finding="r7-roomnames-f"><input type="hidden" name="dm-r7-roomnames-hes" value="{&quot;ms&quot;:34562,&quot;revisits&quot;:0,&quot;median&quot;:14451}" disabled><input type="hidden" name="dm-r7-roomnames-none" value="1" disabled>
   <p data-applies>Gilt für: Raum-Chips und Raumnamen im Deckplan (Innen-Ansicht)</p>
   <p data-situation>Wer die Carrack innen öffnet, liest in einer Reihe englische und deutsche Raumnamen durcheinander, etwa „Cargo Pods Rear Container“ neben „Frachtraum“.</p>
   <h3 data-question>Wie heißen die Räume auf der deutschen Seite?</h3>
   <p data-stakes>Ob die Raumnamen zur übrigen deutschen Seite passen.</p>
   <div data-options>
-    <label data-opt="de-table" data-recommended><input type="radio" name="dm-r7-roomnames" value="de-table" checked><span data-opt-label>Eigene deutsche Übersetzungstabelle für häufige Raumtypen (Hangar, Brücke, Kantine …), Rest bleibt Englisch</span><span data-opt-consequence>Häufige Räume heißen deutsch, seltene behalten den Namen aus den Spieldaten; die Tabelle pflegen wir selbst.</span></label>
-    <label data-opt="keep-en"><input type="radio" name="dm-r7-roomnames" value="keep-en"><span data-opt-label>Alles Englisch lassen, wie im Spiel</span><span data-opt-consequence>Jeder Raum heißt wie im Spiel, auch „Frachtraum“ würde wieder englisch; nichts zu pflegen.</span></label>
-    <label data-opt="mark-en"><input type="radio" name="dm-r7-roomnames" value="mark-en"><span data-opt-label>Nur Englisch und auf DE-Seite kennzeichnen</span><span data-opt-consequence>Alle Namen englisch, ein kleiner Hinweis auf der deutschen Seite sagt, dass sie aus dem Spiel stammen.</span></label>
+    <label data-opt="de-table" data-recommended><input type="radio" name="dm-r7-roomnames" value="de-table" disabled><span data-opt-label>Eigene deutsche Übersetzungstabelle für häufige Raumtypen (Hangar, Brücke, Kantine …), Rest bleibt Englisch</span><span data-opt-consequence>Häufige Räume heißen deutsch, seltene behalten den Namen aus den Spieldaten; die Tabelle pflegen wir selbst.</span></label>
+    <label data-opt="keep-en"><input type="radio" name="dm-r7-roomnames" value="keep-en" disabled><span data-opt-label>Alles Englisch lassen, wie im Spiel</span><span data-opt-consequence>Jeder Raum heißt wie im Spiel, auch „Frachtraum“ würde wieder englisch; nichts zu pflegen.</span></label>
+    <label data-opt="mark-en"><input type="radio" name="dm-r7-roomnames" value="mark-en" disabled><span data-opt-label>Nur Englisch und auf DE-Seite kennzeichnen</span><span data-opt-consequence>Alle Namen englisch, ein kleiner Hinweis auf der deutschen Seite sagt, dass sie aus dem Spiel stammen.</span></label>
   </div>
-  <textarea data-comment="r7-roomnames-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r7-roomnames-note" placeholder="Notiz (optional)" readonly>Dafür gern wie beim data uploader die translation mechanimus bemühen! kostet ja nicht viele tokens</textarea>
   <div data-alevel="3" data-title="Englische Raumnamen">
     <div data-slot="short"><p>Die Raumnamen mischen Englisch und Deutsch.</p></div>
     <div data-slot="long">
@@ -8592,16 +8593,16 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
   </div>
 </section>
 
-<section id="r7-plan" data-nav-label="Kleiner Deckplan" data-decision="r7-plan" data-decision-mode="single" data-label="Kleiner Deckplan" data-rec="fit" data-rec-why="Die Bühne ist schon da; ein Plan in voller Größe zeigt Räume und Beschriftungen lesbar, und die Chip-Reihe verliert keinen Raum mehr am Rand." data-applies-to="Innen-Ansicht: Deckplan und Raum-Chips (Carrack, jedes Schiff mit Decks)" data-finding="r7-plan-f">
+<section id="r7-plan" data-nav-label="Kleiner Deckplan" data-decision="r7-plan" data-decision-mode="single" data-label="Kleiner Deckplan" data-rec="fit" data-rec-why="Die Bühne ist schon da; ein Plan in voller Größe zeigt Räume und Beschriftungen lesbar, und die Chip-Reihe verliert keinen Raum mehr am Rand." data-applies-to="Innen-Ansicht: Deckplan und Raum-Chips (Carrack, jedes Schiff mit Decks)" data-finding="r7-plan-f"><input type="hidden" name="dm-r7-plan-hes" value="{&quot;ms&quot;:14451,&quot;revisits&quot;:0,&quot;median&quot;:14451}" disabled>
   <p data-applies>Gilt für: Innen-Ansicht: Deckplan und Raum-Chips (Carrack, jedes Schiff mit Decks)</p>
   <p data-situation>Wer ein Deck öffnet, sucht Räume in einem Plan von rund 100 px Breite mitten in einer großen Bühne, und rechts fehlen Chips am Rand.</p>
   <h3 data-question>Wie groß zeigt die Bühne den Deckplan?</h3>
   <p data-stakes>Ob man Räume im Plan erkennt und jeden Raum-Chip erreicht.</p>
   <div data-options>
-    <label data-opt="fit" data-recommended><input type="radio" name="dm-r7-plan" value="fit" checked><span data-opt-label>Plan füllt die Bühne (zoom to fit), Raumleiste scrollt</span><span data-opt-consequence>Der Plan wird auf die Bühne skaliert; die Chip-Reihe scrollt seitlich, kein Chip wird mehr abgeschnitten.</span></label>
-    <label data-opt="keep"><input type="radio" name="dm-r7-plan" value="keep"><span data-opt-label>So lassen</span><span data-opt-consequence>Plan und Chip-Reihe bleiben wie in Bild 21 und 22.</span></label>
+    <label data-opt="fit" data-recommended><input type="radio" name="dm-r7-plan" value="fit" checked disabled><span data-opt-label>Plan füllt die Bühne (zoom to fit), Raumleiste scrollt</span><span data-opt-consequence>Der Plan wird auf die Bühne skaliert; die Chip-Reihe scrollt seitlich, kein Chip wird mehr abgeschnitten.</span></label>
+    <label data-opt="keep"><input type="radio" name="dm-r7-plan" value="keep" disabled><span data-opt-label>So lassen</span><span data-opt-consequence>Plan und Chip-Reihe bleiben wie in Bild 21 und 22.</span></label>
   </div>
-  <textarea data-comment="r7-plan-note" placeholder="Notiz (optional)"></textarea>
+  <textarea data-comment="r7-plan-note" placeholder="Notiz (optional)" readonly></textarea>
   <div data-alevel="3" data-title="Kleiner Deckplan">
     <div data-slot="short"><p>Der Deckplan nutzt nur einen Bruchteil der Bühne.</p></div>
     <div data-slot="long">
@@ -8616,6 +8617,93 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
 </section>
   </section>
 </section>
+</section>
+
+<section id="iter-8" data-iteration="8" data-iteration-template="free" data-final-report data-active>
+  <p class="fr-sentence">Der Holotisch ist aufgeräumt, Exemplare speichern sich selbst, und alles ist als v0.254.0 live auf alpha.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🎯</span><span><b>Typ-Callouts</b> mit Tausch-Knopf und ◆ für Abweichungen vom Werk.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">💾</span><span>Im eigenen Exemplar <b>speichert jede Änderung selbst</b>, mit Toast.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📊</span><span><b>Rang, Vergleich und Patch</b> in einer festen Karte rechts.</span></li>
+      </ul>
+      <a class="fr-try" href="https://versecompanion-alpha.vercel.app/codex/ship/AEGS_Gladius?ngsw-bypass=true" target="_blank" rel="noopener noreferrer">▶ Live-Version öffnen</a>
+      <p class="fr-try-auth">🔑 Mit deinem Konto anmelden, Holotisch ist die Beta-Ansicht</p>
+    </div>
+    <div class="fr-ba" data-label-before="Vorher" data-label-after="Nachher">
+      <figure class="fr-shot"><img src="20261109-1745-holotisch-feinschliff/shots/01-einfach.png" alt=""><figcaption>Runde 5: Gladius vor dem Feinschliff</figcaption></figure>
+      <figure class="fr-shot"><img src="20261109-1745-holotisch-feinschliff/shots-final/01-gladius.png" alt=""><figcaption>Fertiger Build, Gladius 1920×1080</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">Was es aushält<small>Balken = wie weit die Anforderung erfüllt ist</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Volle Unit-Suite, 522 Function-Tests, Build und Lint grün; Anforderung: alles grün (geschätzt).">
+        <span class="fr-meter-name">✅ Tests</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">grün</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Mobile-Gate eingeloggt: 70 Audits auf 4 Geräten, 0 blockierend nach 4 Touch-Fixes; Anforderung 0 (geschätzt).">
+        <span class="fr-meter-name">📱 Touch</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">0 / 70</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 60%" data-tip="Raumnamen-Übersetzung ist gebaut und deployt, erscheint aber erst nach Uploader 0.78.0 und einem Upload-Lauf mit Übersetzung; Anforderung: deutsche Raumnamen live (geschätzt).">
+        <span class="fr-meter-name">🏷 Raumnamen</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">vorbereitet</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="5 / 7 · ✓ Code-Check · ✓ Trockentest · ✓ Zusammenspiel · ✓ Lokal durchgespielt · ✓ Prod-Build geprüft · ○ Live vertestet · ◌ Von dir abgenommen">
+    <span class="fr-depth-done">✓ Zuletzt bestanden: <b>Prod-Build geprüft</b></span>
+    <span class="fr-depth-next">○ Noch nicht gemacht: <b>Live vertestet</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-subtypes"
+          data-issue-title="[BUG] Swap picker type line shows English game sub-types"
+          data-issue-type="bug"
+          data-issue-body="The swap picker's type line under each item shows the game's item sub-type in English (e.g. 'Arctic Storm', 'Blast Chill') because that string comes straight from game data without a localisation key. Found while re-checking round 7 (shot 15-picker-kuehler). Fix idea: map sub-types through the codex string table or hide them when they only repeat the item name."
+          data-issue-module="codex"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="spieldaten">
+        <span class="oq-label">Englische Untertypen</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Die Typzeile im Tausch-Picker zeigt Untertypen wie „Arctic Storm“ auf Englisch.</dd>
+          <dt>Wo</dt><dd>Tausch-Picker, z. B. Kühler der Gladius</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue — Spieldaten ohne Übersetzungs-Key, eigener Umbau.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>PR <a href="https://github.com/StarOrga/Verse-Companion-Web/pull/1086">#1086</a> · Merge <code>062bb04</code> · Tag <code>alpha/v0.254.0</code></li>
+      <li><code>codex/holo/*</code>, <code>codex-loadout-draft.store.ts</code>, <code>codex-rank-card.component.ts</code></li>
+      <li>Migrationen gepusht (is_wish, ai_summary), Edge Functions per CI deployt (exemplar-ai, translate-orchestrator, translation-overlay)</li>
+      <li>Codex-Review: 1 Befund (überlappende Autosaves) mit Regressionstest behoben</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-autosave" data-crit="mid" data-guide="">Im eigenen Exemplar tauschen und Toast prüfen</li>
+      <li data-todo-id="t-rooms" data-crit="low" data-guide="">Raumnamen nach Uploader 0.78.0 prüfen</li>
+    </ul>
+  </section>
 </section>
 </main>
     </div>
@@ -8834,7 +8922,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
 <button class="iteration-tab" role="tab" data-iteration="4" aria-selected="false" aria-controls="iter-4">Runde 4</button>
 <button class="iteration-tab" role="tab" data-iteration="5" aria-selected="false" aria-controls="iter-5">Runde 5 · Review</button>
 <button class="iteration-tab" role="tab" data-iteration="6" aria-selected="false" aria-controls="iter-6">Runde 6 · Review</button>
-<button class="iteration-tab" role="tab" data-iteration="7" aria-selected="true" aria-controls="iter-7">Runde 7 · Review</button>
+<button class="iteration-tab" role="tab" data-iteration="7" aria-selected="false" aria-controls="iter-7">Runde 7 · Review</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="8" aria-selected="true" aria-controls="iter-8">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC

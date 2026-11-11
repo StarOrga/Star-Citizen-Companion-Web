@@ -169,6 +169,10 @@ const FLASH_MS = 1400;
     .mono { font-family: var(--sc-font-mono, monospace); }
     svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
     @media (pointer: coarse) { .st { width: 44px; height: 44px; } .oc-link { min-height: 48px; } }
+    /* Phone: the card spans the page, its action rows end before the floating launcher column
+       (beta, layout, share, feedback stand in one lane at the right edge), so the page scrolling
+       under that column never covers the Hangar / Wunschliste buttons. */
+    @media (max-width: 720px) { .oc-row { padding-inline-end: var(--sc-fab-clear-inline); } }
     @media (prefers-reduced-motion: reduce) { :host { transition: none; } }
   `],
 })

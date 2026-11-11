@@ -19,6 +19,9 @@ import { IdlePreloadingStrategy } from './core/idle-preloading.strategy';
 import { AppTranslateLoader } from './core/locale/app-translate-loader';
 import { provideOverlayRouteScroll } from './core/overlay-route-scroll';
 import { provideNavOrigin } from './shared/page-header/nav-origin.service';
+import { provideRoutePrefetch } from './core/prefetch/route-prefetch.service';
+import { VERSE_HUB_WARMER } from './core/prefetch/verse-hub.warmer';
+import { CODEX_WARMERS } from './codex/codex-prefetch';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -39,6 +42,10 @@ export const appConfig: ApplicationConfig = {
       withPreloading(IdlePreloadingStrategy),
     ),
     provideOverlayRouteScroll(),
+    // The destination of a link loads on intent (hover 80 ms, focus, press): its lazy code
+    // and, signed in, its first data — so a camera flight no longer loads either mid-way.
+    // App-wide, not behind the shell beta: it only loads what the click would load anyway.
+    provideRoutePrefetch(VERSE_HUB_WARMER, ...CODEX_WARMERS),
     provideAnimationsAsync(),
     // Keep a component's <style> in the document once it has been added, instead
     // of reference-counting it away when the last instance of that component is
