@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.256.0",
+  "current": "0.257.0",
   "releases": [
+    {
+      "version": "0.257.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Data Uploader is now called Verse Data Uploader everywhere: on the site, in the app's window and tray, and in the Windows start menu."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.256.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Swap picker: coolers, shields and drives show their type (\"Kühler\") under the name instead of repeating the product name in English."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.256.0",
       "date": "2026-11-11",

@@ -9,7 +9,7 @@ export type PythonSource = 'env' | 'packaged' | 'dev-path';
 export const PACKAGED_PYTHON_MISSING =
   'Bundled Python not found (expected at resources/python/python.exe next to the app). ' +
   'The installation looks incomplete — usually an interrupted or partial auto-update. ' +
-  'Please reinstall the Data Uploader from the download page and try again.';
+  'Please reinstall the Verse Data Uploader from the download page and try again.';
 
 /**
  * Proactive check: in a PACKAGED build, interpreter resolution falling through

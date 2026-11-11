@@ -594,7 +594,7 @@
       "coverage": "Abdeckung",
       "qualityHint": "Qualitätswert ist vorläufig, bis er echt berechnet wird.",
       "stale": "Daten-Upload nötig — es ist eine neuere Spielversion live, als dieser Katalog abbildet.",
-      "staleUploadLink": "Data Uploader öffnen"
+      "staleUploadLink": "Verse Data Uploader öffnen"
     },
     "search": {
       "didYouMean": "Meintest du:",
@@ -2743,7 +2743,7 @@
         "legendBelow": "unter Median",
         "compareInfo": "Jede Achse reicht von 0 (Mitte) bis zum höchsten Wert der gewählten Vergleichswaffen (Rand). Blau ist diese Waffe, die gestrichelte Linie der Median der Gruppe.",
         "note": "Verglichen wird nur, was die Spieldaten für diese Waffe enthalten.",
-        "gapNoData": "Der aktuelle Datenstand enthält noch keine Werte für Schaden, Geschwindigkeit, Wendigkeit und Reichweite. Die Einordnung erscheint, sobald ein Build mit dem Data Uploader 0.73.3 oder neuer hochgeladen ist.",
+        "gapNoData": "Der aktuelle Datenstand enthält noch keine Werte für Schaden, Geschwindigkeit, Wendigkeit und Reichweite. Die Einordnung erscheint, sobald ein Build mit dem Verse Data Uploader 0.73.3 oder neuer hochgeladen ist.",
         "gapTooFew": "Zu wenige Lenkwaffen unterscheiden sich in Schaden, Geschwindigkeit, Wendigkeit und Reichweite, um diese hier einzuordnen.",
         "gapThinGroup": "Nicht genug Vergleichswerte: in dieser Gruppe unterscheiden sich zu wenige Werte für eine Einordnung.",
         "gapNoCohort": "Die Vergleichsgruppe konnte nicht geladen werden."
@@ -3574,7 +3574,7 @@
   },
   "p4k": {
     "title": "P4K Bundle-Historie",
-    "subtitle": "Vorverdaute Bundles vom Data Uploader. Upload läuft nur über das Tool, nicht über die Website.",
+    "subtitle": "Vorverdaute Bundles vom Verse Data Uploader. Upload läuft nur über das Tool, nicht über die Website.",
     "loading": "Lade Bundles…",
     "errorTitle": "Bundles konnten nicht geladen werden",
     "retentionHint": "Aufbewahrung: je Build die letzten 3 Uploader-Versionen, max. 20 Bundles insgesamt — ältere werden automatisch entfernt.",
@@ -3583,7 +3583,7 @@
     },
     "empty": {
       "title": "Noch keine Bundles",
-      "hint": "Sobald jemand mit dem Data Uploader einen Lauf hochlädt, erscheinen die Daten hier."
+      "hint": "Sobald jemand mit dem Verse Data Uploader einen Lauf hochlädt, erscheinen die Daten hier."
     },
     "col": {
       "entities": "Entities",
@@ -4361,7 +4361,7 @@
   },
   "desktop": {
     "title": "Data Upload",
-    "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install.",
+    "subtitle": "Lade den Verse Data Uploader für deinen lokalen Star-Citizen-Install.",
     "bundleHistory": "Bundle-Historie",
     "loading": "Lade Release…",
     "released": "Veröffentlicht",
@@ -4377,7 +4377,7 @@
       "label": "Diese Version heben auf",
       "action": "Promoten"
     },
-    "appTitle": "Data Uploader",
+    "appTitle": "Verse Data Uploader",
     "appDesc": "Liest deinen lokalen Star-Citizen-Install aus und lädt daraus die Codex-Bundles hoch.",
     "close": "Schließen",
     "access": {
@@ -4392,7 +4392,7 @@
       "text": "Importiert deinen RSI-Hangar ins HQ - für Chrome und Edge.",
       "open": "Erweiterung installieren"
     },
-    "subtitle": "Hol dir den Data Uploader für deinen lokalen Star-Citizen-Install."
+    "subtitle": "Hol dir den Verse Data Uploader für deinen lokalen Star-Citizen-Install."
   },
   "desktopConnect": {
     "title": "Verse Companion verbinden",
@@ -4405,18 +4405,18 @@
     "errorNoToken": "Kein Access-Token in der Session."
   },
   "desktopAuth": {
-    "title": "Data Uploader autorisieren",
+    "title": "Verse Data Uploader autorisieren",
     "authorizing": "Prüfe deine Session…",
     "loginRequired": "Bitte erst einloggen, danach bestätigst du die Verbindung.",
     "redirecting": "Autorisiert. Schicke Token zur App…",
     "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
-    "unauthorized": "Dein Account darf den Data Uploader nicht nutzen.",
+    "unauthorized": "Dein Account darf den Verse Data Uploader nicht nutzen.",
     "unauthorizedHint": "Du brauchst Collaborator- oder Admin-Rolle. Frag einen Admin.",
     "errorMissingParams": "Callback- oder State-Parameter fehlt.",
     "errorBadCallback": "Callback-URL ist kein 127.0.0.1-Loopback im erwarteten Portbereich.",
     "errorNoToken": "Kein Access-Token in der Session.",
-    "confirmPrompt": "Data Uploader auf Port {{port}} mit deinem Konto verbinden?",
-    "confirmHint": "Bestätige nur, wenn du die Anmeldung gerade selbst im Data Uploader gestartet hast.",
+    "confirmPrompt": "Verse Data Uploader auf Port {{port}} mit deinem Konto verbinden?",
+    "confirmHint": "Bestätige nur, wenn du die Anmeldung gerade selbst im Verse Data Uploader gestartet hast.",
     "confirm": "Verbinden",
     "cancel": "Abbrechen",
     "cancelled": "Abgebrochen – es wurde nichts übertragen. Du kannst dieses Fenster schließen."
@@ -4523,7 +4523,7 @@
           "statistics": "Kategorie „Statistik\" — der Zustand der anonymen Produkt-Analytik (PostHog). Entsteht nur, wenn du sie erlaubst; ein Widerruf löscht ihn sofort."
         },
         "p2": "Während einer Google-Anmeldung liegt kurzzeitig zusätzlich ein Eintrag im Sitzungsspeicher (sc.oauth-redirect-qs), damit du nach der Rückkehr wieder auf der Seite landest, von der du gekommen bist. Er verschwindet spätestens mit dem Schließen des Tabs.",
-        "p3": "Autorisierst du ausdrücklich eines unserer Desktop-Werkzeuge (Data-Uploader, Starscape), übergibt der Browser das Zugriffs-Token deiner Sitzung an das Programm, das lokal auf deinem Rechner läuft (127.0.0.1) — nicht an einen Dritten, und nie über die Adresszeile.",
+        "p3": "Autorisierst du ausdrücklich eines unserer Desktop-Werkzeuge (Verse Data Uploader, Starscape), übergibt der Browser das Zugriffs-Token deiner Sitzung an das Programm, das lokal auf deinem Rechner läuft (127.0.0.1) — nicht an einen Dritten, und nie über die Adresszeile.",
         "p4": "Als installierbare Web-App (PWA) cached ein Service Worker statische Dateien auf deinem Gerät für schnelleres Laden und Offline-Nutzung — dieser Cache enthält keine personenbezogenen Daten und lässt sich durch Deinstallation oder Löschen der Website-Daten entfernen."
       },
       "thirdParty": {
@@ -4831,7 +4831,7 @@
     "product": {
       "label": "Produkt",
       "scc-app": "Verse Companion App",
-      "data-uploader": "Data Uploader",
+      "data-uploader": "Verse Data Uploader",
       "all": "Alle",
       "starscape": "Starscape"
     },
@@ -4864,7 +4864,7 @@
     },
     "diagnostics": {
       "title": "Warnungen & Fehler aus Uploader-Logs",
-      "hint": "Läufe des Data Uploaders, die [warn]- oder [err]-Zeilen ins Log geschrieben haben – auch wenn sie sauber durchgelaufen sind. Eine Zeile aufklappen zeigt das Protokoll; „Als Thema melden“ öffnet das Feedback-Panel mit vorausgefülltem Thema und dem Log als Anhang. Gesendet wird erst, wenn du auf Senden drückst.",
+      "hint": "Läufe des Verse Data Uploaders, die [warn]- oder [err]-Zeilen ins Log geschrieben haben – auch wenn sie sauber durchgelaufen sind. Eine Zeile aufklappen zeigt das Protokoll; „Als Thema melden“ öffnet das Feedback-Panel mit vorausgefülltem Thema und dem Log als Anhang. Gesendet wird erst, wenn du auf Senden drückst.",
       "byOutcome": "Nach Ausgang",
       "recent": "Letzte Läufe",
       "warningsShort": "Warn.",
@@ -4884,8 +4884,8 @@
         "skin": "Skin-Export"
       },
       "topic": {
-        "head": "Data Uploader {{version}} ({{ring}}) hat beim Lauf „{{kind}}“ ({{outcome}}) {{warnings}} Warnung(en) und {{errors}} Fehler protokolliert – Spiel {{game}}, OS {{os}}, Telemetrie-Event #{{id}}.",
-        "ask": "Bitte das angehängte Log analysieren: Ursache der Warnungen/Fehler finden, einschätzen ob dadurch Daten fehlen oder falsch extrahiert wurden, und einen Fix im Data Uploader (data-uploader/) bzw. im Python-Sidecar (data-uploader/python/sc_extract) umsetzen. Falls die Meldung harmlos ist: Log-Level senken oder die Ursache still abfangen, damit sie nicht wieder als Warnung auftaucht.",
+        "head": "Verse Data Uploader {{version}} ({{ring}}) hat beim Lauf „{{kind}}“ ({{outcome}}) {{warnings}} Warnung(en) und {{errors}} Fehler protokolliert – Spiel {{game}}, OS {{os}}, Telemetrie-Event #{{id}}.",
+        "ask": "Bitte das angehängte Log analysieren: Ursache der Warnungen/Fehler finden, einschätzen ob dadurch Daten fehlen oder falsch extrahiert wurden, und einen Fix im Verse Data Uploader (data-uploader/) bzw. im Python-Sidecar (data-uploader/python/sc_extract) umsetzen. Falls die Meldung harmlos ist: Log-Level senken oder die Ursache still abfangen, damit sie nicht wieder als Warnung auftaucht.",
         "excerpt": "Auszug aus dem Log:"
       }
     }
@@ -7730,7 +7730,7 @@
         "text": "API-Tokens für externe Dienste verwalten."
       },
       "uploader": {
-        "title": "Data Uploader",
+        "title": "Verse Data Uploader",
         "text": "Spieldaten aus Data.p4k einspielen."
       },
       "translations": {
@@ -7755,7 +7755,7 @@
       "desc": "Dein Desktop wird zum Fenster ins Verse — jeden Tag ein neues Bild aus der Galerie."
     },
     "uploader": {
-      "name": "Data Uploader",
+      "name": "Verse Data Uploader",
       "desc": "Liest dein Star Citizen aus und füllt den Codex mit Schiffen, Werten und 3D-Modellen."
     },
     "footer": "Hier lädst du die stabile Version. Beta und Alpha wählst du nach dem Login in der App — welche Kanäle du siehst, hängt von deiner Rolle ab."
@@ -7778,10 +7778,10 @@
     "hub": {
       "eyebrow": "Apps",
       "title": "Apps",
-      "subtitle": "Alles, was neben der Website läuft: Uploader, Starscape und die Browser-Erweiterung.",
+      "subtitle": "Alles, was neben der Website läuft: Verse Data Uploader, Starscape und die Browser-Erweiterung.",
       "breadcrumbAria": "Apps",
       "uploader": {
-        "name": "Data Uploader",
+        "name": "Verse Data Uploader",
         "desc": "Liest dein Star-Citizen-Spiel aus und lädt die Daten in den Codex."
       },
       "starscape": {
