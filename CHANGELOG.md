@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.0] - 2026-11-11
+
+### Added
+- Ships without authored decks (Idris) get decks derived from floor height, marked as derived in the deck plan, the hull facts and the Holotable; stairs, ladders and lifts appear on every level they connect and name where they lead (uploader 0.80.0).
+
 ## [0.258.1] - 2026-11-11
 
 ### Fixed
