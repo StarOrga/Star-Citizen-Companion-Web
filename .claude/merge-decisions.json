@@ -1,6 +1,23 @@
 {
   "version": 1,
   "aspects": {
+    ".claude/project-map.md›header›tracked-count": [
+      {
+        "ship": "#1096",
+        "by": "Jerry",
+        "value": "2989 tracked files."
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated count of the merged tree (2994)",
+        "decided": true,
+        "at": "2026-11-11T17:34:53.127Z",
+        "hunks": [
+          "e3fb13461868"
+        ]
+      }
+    ],
     "data-uploader/src/lib/subthemes.ts›weapons›revision": [
       {
         "ship": "#1093",
