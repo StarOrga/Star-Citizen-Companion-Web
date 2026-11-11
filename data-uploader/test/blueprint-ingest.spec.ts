@@ -127,4 +127,30 @@ describe('blueprint upload', () => {
     expect(r).toMatchObject({ ok: false, error: 'bad glb' });
     expect(await exists(join(dir, BLUEPRINT_MARKER))).toBe(false);
   });
+
+  it('asks for the signed urls again after a transient sign_failed', async () => {
+    const dir = await makeShip();
+    const d = deps(BOTH_NEW);
+    let n = 0;
+    const base = d.call.getMockImplementation()!;
+    d.call.mockImplementation(async (body: unknown) => {
+      if ((body as Record<string, unknown>)['action'] === 'blueprint_sign' && n++ === 0) {
+        return { ok: false, json: {}, error: 'sign_failed' };
+      }
+      return base(body);
+    });
+    const r = await uploadBlueprint({ shipId: 'SHIP_A', dir, force: false }, { ...d, sleep: async () => undefined });
+    expect(r).toEqual({ ok: true, uploaded: 2 });
+    expect(n).toBe(2);
+  });
+
+  it('reports a sign_failed that never clears, and does not retry a permanent refusal', async () => {
+    const d = deps({ error: 'sign_failed' });
+    const r = await uploadBlueprint({ shipId: 'SHIP_A', dir: await makeShip(), force: false }, { ...d, sleep: async () => undefined });
+    expect(r).toMatchObject({ ok: false, error: 'sign_failed' });
+    expect(d.calls.filter((c) => c['action'] === 'blueprint_sign')).toHaveLength(4);
+    const p = deps({ error: 'r2_required' });
+    await uploadBlueprint({ shipId: 'SHIP_B', dir: await makeShip(), force: false }, { ...p, sleep: async () => undefined });
+    expect(p.calls.filter((c) => c['action'] === 'blueprint_sign')).toHaveLength(1);
+  });
 });

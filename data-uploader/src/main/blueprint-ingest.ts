@@ -29,6 +29,14 @@ import { isSkinGateCode, type SkinGateCode } from '../lib/skin-upload-summary.js
 import { BLUEPRINT_GENERATOR, buildBlueprints, type BlueprintFiles } from '../lib/blueprint/build.js';
 import { loadHullMesh } from '../lib/blueprint/glb.js';
 import type { IngestCall } from './asset-package-ingest.js';
+import { withRetry } from '../lib/asset-package.js';
+
+/** A sign reply worth asking for again; carries the last reply once retries run out. */
+class TransientSign extends Error {
+  constructor(readonly reply: unknown) {
+    super('blueprint sign failed');
+  }
+}
 
 export const BLUEPRINT_DIR = 'blueprint';
 export const BLUEPRINT_MARKER = '.blueprint-uploaded';
@@ -51,6 +59,8 @@ export interface BlueprintUploadDeps {
   /** Injected for tests; defaults to the real GLB reader + generator. */
   draw?: (hull: Buffer) => Promise<BlueprintFiles | null>;
   put?: (url: string, bytes: Buffer, contentType: string) => Promise<void>;
+  /** Injected for tests; defaults to a real timer. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 interface Meta {
@@ -148,7 +158,24 @@ export async function uploadBlueprint(
       { type: 'full', sha256: meta.fullSha256, bytes: full.byteLength },
       { type: 'icon', sha256: meta.iconSha256, bytes: icon.byteLength },
     ];
-    const signed = await deps.call({ action: 'blueprint_sign', ship_id: shipId, objects });
+    // One sign_failed (a 503 from the signer, 2026-11-07 ANVL_Ballista_EA_UEE) used
+    // to fail the ship for the whole run - the package upload retries its sign
+    // call, so the blueprint one does too. Gate/config refusals are permanent.
+    const PERMANENT = /^(uploader_outdated|r2_required|invalid_body|unsafe_id)$/;
+    type Signed = Awaited<ReturnType<typeof deps.call>>;
+    const signed: Signed = await withRetry(
+      async () => {
+        const r = await deps.call({ action: 'blueprint_sign', ship_id: shipId, objects });
+        if (!r.ok && !isSkinGateCode(r.error) && !PERMANENT.test(r.error ?? '')) {
+          throw new TransientSign(r);
+        }
+        return r;
+      },
+      { retryable: (e) => e instanceof TransientSign, ...(deps.sleep ? { sleep: deps.sleep } : {}) },
+    ).catch((e: unknown) => {
+      if (e instanceof TransientSign) return e.reply as Signed;
+      throw e;
+    });
     if (!signed.ok) {
       if (isSkinGateCode(signed.error)) {
         deps.onLog(`${shipId}: R2 cost gate closed (${signed.error}) — blueprint upload stopped`, 'error');
