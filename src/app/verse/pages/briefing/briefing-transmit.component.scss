@@ -139,8 +139,9 @@
 .pl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
 // Charging: the sender's atmosphere brightens (a glow, no rings).
 .pl.send { box-shadow: 0 0 calc(var(--s) * 0.32) rgba(150, 225, 255, 0.6); transition: scale 0.25s, box-shadow 0.84s ease-in; }
-// The name shows only on hover / focus (the scTooltip) - and on touch after the first tap (.tap) or while the
-// planet flies into the hub head on scroll (:host(.away), briefing-dock moves this very element).
+// The name shows only on hover / focus, rising under the planet like the sun's label (briefing-beacons .lab) -
+// and on touch after the first tap (.tap) or while the planet flies into the hub head on scroll (:host(.away),
+// briefing-dock moves this very element).
 .plab {
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -152,11 +153,16 @@
   transform-origin: 0 0;
   white-space: nowrap;
   font-size: max(11px, 0.62cqw);
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--sc-fg-1);
+  color: color-mix(in srgb, var(--sc-accent) 30%, #fff);
+  text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 8px color-mix(in srgb, var(--sc-accent) 55%, transparent);
 }
-.pl.tap .plab, :host(.away) .plab { opacity: 1; color: var(--sc-fg-0); }
+.pl:is(:hover, :focus-visible) .plab, .pl.tap .plab, :host(.away) .plab { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .pl:is(:hover, :focus-visible) .plab { animation: plab-rise 0.5s ease-out 0.1s both; }
+}
+@keyframes plab-rise { from { opacity: 0; translate: -50% 6px; } to { opacity: 1; translate: -50% 0; } }
 
 // Menu switch (rounds/05 d5-pb-nav): the planets send their impulses one after another from 1.55 s.
 @media (prefers-reduced-motion: no-preference) {

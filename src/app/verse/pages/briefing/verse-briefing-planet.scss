@@ -424,8 +424,13 @@ a.tl:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; b
 .bstage.calm-in .scn { animation: calm-in 0.4s ease-out backwards; }
 @keyframes calm-in { from { opacity: 0; } }
 
-// The hub is still on its way (staged-build): the page already has its final height.
-.hub-hold { height: 100dvh; }
+// The hub is still on its way (staged-build): the placeholder takes the hub's height, so the page has its final
+// height and the scrollbar does not jump. The component sets the height measured on the last visit at this width;
+// these are the first-visit estimates, fitted to the built hub (Kamera-Welt follow-up, 2026-11-11): one stacked
+// column on phones (~4.8 × the width), a long single column between 720 and 1023 px, three columns from 1024 px.
+.hub-hold { height: calc(24vw + 340px); }
+@media (max-width: 1023px) { .hub-hold { height: 3500px; } }
+@media (max-width: 719.98px) { .hub-hold { height: 480vw; } }
 
 // G1 (camera world): the camera leaves the hub — its doors hand over to the scene's pieces, which
 // stand exactly under them and ride the flight on. No fade: the same objects, one camera move.
