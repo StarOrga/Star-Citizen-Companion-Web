@@ -11,6 +11,7 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { createSidecarLogger } from './bridge-log.js';
 import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
 import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
@@ -266,6 +267,7 @@ export function startSkinExport(
   let lastError: string | undefined;
   let cancelled = false;
 
+  const logEvent = createSidecarLogger('skin');
   const rl = createInterface({ input: child.stdout });
   rl.on('line', (line) => {
     const trimmed = line.trim();
@@ -283,6 +285,7 @@ export function startSkinExport(
       if (r?.ships) ships = r.ships;
     }
     if (ev.type === 'error' && ev.message) lastError = ev.message;
+    logEvent(ev);
     onEvent(ev);
   });
 
