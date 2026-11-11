@@ -2717,9 +2717,18 @@
       "scopeOff": "Zu wenige Vergleichswaffen in dieser Gruppe.",
       "scope": {
         "all": "Alle",
-        "kind": "Art",
         "size": "Größe",
-        "signal": "Signal"
+        "signal": "Signal",
+        "allOf": "Alle {{kind}}",
+        "signalOf": "Alle {{signal}}-{{kind}}",
+        "sizeOf": "Alle S{{size}}-{{kind}}",
+        "plural": {
+          "missile": "Lenkraketen",
+          "torpedo": "Torpedos",
+          "rocket": "Raketen",
+          "ground": "Bodenfahrzeug-Raketen",
+          "any": "Lenkwaffen"
+        }
       },
       "axis": {
         "damage": "SCHADEN",
@@ -2734,7 +2743,6 @@
       },
       "rank": {
         "nAll": "{{n}} Lenkwaffen",
-        "nKind": "{{n}} Lenkwaffen der gleichen Art",
         "nSize": "{{n}} Lenkwaffen der Größe {{k}}",
         "nSignal": "{{n}} Lenkwaffen mit dem gleichen Zielsignal",
         "verdict": "{{pct}} % — {{band}} gegenüber {{n}} Lenkwaffen.",

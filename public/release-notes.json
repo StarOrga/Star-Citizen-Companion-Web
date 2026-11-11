@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.257.2",
+  "current": "0.257.3",
   "releases": [
+    {
+      "version": "0.257.3",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.257.2",
       "date": "2026-11-11",
@@ -12,7 +28,7 @@
           "items": [
             {
               "title": "",
-              "text": "Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher."
+              "text": "Missile Einordnung: the comparison groups now hold what their names say. \"Alle Lenkraketen\" compares against every missile of its kind (no torpedoes, no rockets), \"Alle Infrarot-Lenkraketen\" only against the same tracking signal (IR, EM or cross-section), and \"Alle S2-Lenkraketen\" only against exactly the same size."
             }
           ]
         }
