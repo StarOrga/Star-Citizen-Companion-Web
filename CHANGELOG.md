@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Data Uploader 0.79.0: ship values validated against the wiki and erkul (Starlancer MAX/TAC, ROC/ROC-DS, Idris-M/P) — armour from the fitted armour item, ore pods by their real capacity, ground-vehicle top and reverse speed, fuel capacity, liveries from the game data (names, which ship they fit, 3D hull for the Starlancer), Wikelo special names, mission/event copies of a ship no longer listed as ships, no more hull-mass warning per variant.
 - Codex ship facts show hull HP, hull mass and armour instead of a gap.
 
+## [0.257.4] - 2026-11-11
+
+### Fixed
+- Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher.
+
 ## [0.257.3] - 2026-11-11
 
 ### Fixed

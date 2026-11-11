@@ -23,6 +23,22 @@
       ]
     },
     {
+      "version": "0.257.4",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.257.3",
       "date": "2026-11-11",
       "sections": [
