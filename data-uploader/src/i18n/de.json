@@ -336,7 +336,7 @@
       "de": "Deutsch",
       "en": "English"
     },
-    "footer": "Data Uploader v{{version}}"
+    "footer": "Verse Data Uploader v{{version}}"
   },
   "telemetry": {
     "hint": "Sendet anonyme Absturzberichte (keine persönlichen Daten), damit Fehler behoben werden können. Jederzeit abschaltbar."

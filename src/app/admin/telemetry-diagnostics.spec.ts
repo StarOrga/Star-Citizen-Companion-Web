@@ -97,7 +97,7 @@ describe('telemetry diagnostics → feedback topic', () => {
       expect(file.type).toBe('text/plain');
       expect(file.name).toMatch(/\.log$/);
       const text = await file.text();
-      expect(text).toContain('# Data Uploader 0.31.0 (stable) — extract ok');
+      expect(text).toContain('# Verse Data Uploader 0.31.0 (stable) — extract ok');
       expect(text).toContain('telemetry event #4711');
       expect(text).toContain('2 warning(s), 1 error(s), 3 not kept');
       expect(text).toContain('+01:30 [err] Traceback');

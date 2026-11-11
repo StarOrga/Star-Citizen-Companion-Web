@@ -19,7 +19,7 @@ import { trayLines, trayTooltip, type HubState, type TrayLabels } from '../lib/p
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const APP_NAME = 'SC Data Uploader';
+const APP_NAME = 'Verse Data Uploader';
 
 export interface TrayDeps {
   /** Restore + focus the main window. */
