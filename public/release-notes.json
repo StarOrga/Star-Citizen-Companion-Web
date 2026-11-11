@@ -1,10 +1,10 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.256.0",
+  "current": "0.257.0",
   "releases": [
     {
-      "version": "0.256.0",
-      "date": "2026-11-10",
+      "version": "0.257.0",
+      "date": "2026-11-11",
       "sections": [
         {
           "category": "Changed",
