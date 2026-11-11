@@ -340,6 +340,119 @@ def deck_by_level(z: Optional[float], refs: Iterable[Tuple[Optional[float], str]
     return decks.pop() if len(decks) == 1 else None
 
 
+# ── derived decks: floor levels of a hull with no authored decks ─────────────
+# VERIFIED LIVE 4.10.2 (AEGS_Idris_M / _P): the Idris authors NO deck section,
+# so its 129 rooms all landed on "All rooms". Their floor heights do cluster
+# into clear levels (Argo bay, hangar, main deck at ~5.4 m, turret / docking
+# level at ~9.5 m, bridge at ~17.5 m). Such a level is DERIVED, not a game
+# deck: the extract marks it `derived` and the web says so.
+#
+# Stairs, ladders and lifts sit between levels: they never seed a level and
+# belong to EVERY level they connect. "Stairwell" counts in the singular only
+# — the Idris files whole areas as `Left_Stairwells_Brig_Room` (a brig).
+CONNECTOR_RE = re.compile(r"stairwell(?!s)|stairs|stairway|staircase|ladder|elevator|(?<![a-z])lift(?!er)",
+                          re.IGNORECASE)
+LEVEL_GAP_M = 1.5          # a jump in floor height larger than this starts a new level
+LEVEL_POS_WINDOW_M = 2.0   # a room without a floor joins the level whose pivots are this close
+CONNECTOR_BELOW_M = 9.0    # a stair that reaches one level also serves the next one down this far
+CONNECTOR_ABOVE_M = 3.0    # ... or the next one up this far above its top
+
+
+def is_connector(*names: Optional[str]) -> bool:
+    """True for a stair, ladder or lift by its entity key or its label."""
+    return any(n and CONNECTOR_RE.search(n) for n in names)
+
+
+def _median(vals: List[float]) -> float:
+    v = sorted(vals)
+    n = len(v)
+    return v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2
+
+
+def derive_levels(rooms: Sequence[Dict[str, Any]],
+                  connectors: Sequence[bool]) -> Optional[Tuple[List[Dict[str, float]], List[List[int]]]]:
+    """``(levels, assignment)`` or None when the floors form fewer than two
+    levels. ``levels`` bottom-up as ``{floor, posZ}``; ``assignment[i]`` the
+    level indices room ``i`` belongs to (empty = no level fits it; a connector
+    usually two or more)."""
+    seeds = [(r["floorZ"], r["pos"][2]) for r, c in zip(rooms, connectors)
+             if not c and r.get("floorZ") is not None]
+    if not seeds:
+        return None
+    seeds.sort()
+    clusters: List[List[Tuple[float, float]]] = [[seeds[0]]]
+    for f, z in seeds[1:]:
+        if f - clusters[-1][-1][0] > LEVEL_GAP_M:
+            clusters.append([])
+        clusters[-1].append((f, z))
+    # One room on its own height is a raised cockpit or a sunken bay, not a
+    # level: it joins the nearer neighbour.
+    while len(clusters) > 1 and any(len(c) < 2 for c in clusters):
+        i = next(k for k, c in enumerate(clusters) if len(c) < 2)
+        f = clusters[i][0][0]
+        if i == 0:
+            j = 1
+        elif i == len(clusters) - 1:
+            j = i - 1
+        else:
+            j = i - 1 if f - clusters[i - 1][-1][0] <= clusters[i + 1][0][0] - f else i + 1
+        clusters[j] = sorted(clusters[j] + clusters[i])
+        del clusters[i]
+    if len(clusters) < 2:
+        return None
+    levels = [{"floor": round(_median([f for f, _ in c]), 2),
+               "lo": c[0][0], "hi": c[-1][0],
+               "posZ": round(_median([z for _, z in c]), 2)} for c in clusters]
+
+    def level_of_floor(f: float) -> Optional[int]:
+        for i, lv in enumerate(levels):
+            if lv["lo"] - 1e-6 <= f <= lv["hi"] + 1e-6:
+                return i
+        return None
+
+    def nearest_by_pos(z: float, window: float) -> Optional[int]:
+        best = min(range(len(levels)), key=lambda i: abs(levels[i]["posZ"] - z))
+        return best if abs(levels[best]["posZ"] - z) <= window else None
+
+    out: List[List[int]] = []
+    for r, conn in zip(rooms, connectors):
+        f, h, z = r.get("floorZ"), r.get("height"), r["pos"][2]
+        if not conn:
+            if f is not None:
+                i = level_of_floor(f)
+                out.append([i] if i is not None else [])
+            else:
+                i = nearest_by_pos(z, LEVEL_POS_WINDOW_M)
+                out.append([i] if i is not None else [])
+            continue
+        if f is not None:
+            top = f + (h or 0.0)
+            hit = [i for i, lv in enumerate(levels) if f - 1.0 <= lv["floor"] <= top + 0.5]
+            if len(hit) < 2:
+                below = [i for i, lv in enumerate(levels)
+                         if lv["floor"] < f - 1.0 and f - lv["floor"] <= CONNECTOR_BELOW_M]
+                above = [i for i, lv in enumerate(levels)
+                         if lv["floor"] > top + 0.5 and lv["floor"] - top <= CONNECTOR_ABOVE_M]
+                # A stair climbs: the level just above its top first, the one
+                # below its foot only when that still leaves it on one level.
+                if above:
+                    hit.append(min(above))
+                if len(hit) < 2 and below:
+                    hit.append(max(below))
+        else:
+            # A shaft without a volume has only its pivot: the levels just
+            # below and above it.
+            below = [i for i, lv in enumerate(levels) if lv["posZ"] <= z]
+            above = [i for i, lv in enumerate(levels) if lv["posZ"] > z]
+            hit = ([max(below, key=lambda i: levels[i]["posZ"])] if below else []) + \
+                  ([min(above, key=lambda i: levels[i]["posZ"])] if above else [])
+        out.append(sorted(set(hit)))
+    for lv in levels:
+        lv.pop("lo")
+        lv.pop("hi")
+    return levels, out
+
+
 def is_unnamed(loc_key: Optional[str]) -> bool:
     return (loc_key or "").strip().lower() in _NULL_NAME_KEYS
 

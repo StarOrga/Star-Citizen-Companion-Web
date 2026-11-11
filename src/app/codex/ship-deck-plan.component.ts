@@ -30,6 +30,10 @@ let nextDeckPlanId = 0;
           <header class="dp-head">
             <h2>{{ 'codex.deckPlan.title' | translate }}</h2>
             <p class="hint">{{ 'codex.deckPlan.hint' | translate }}</p>
+            @if (derived()) {
+              <!-- The game names no decks on this hull: the levels are the uploader's grouping. -->
+              <p class="hint derived">{{ 'codex.deckPlan.derivedHint' | translate }}</p>
+            }
           </header>
         }
 
@@ -77,9 +81,10 @@ let nextDeckPlanId = 0;
                   class="room"
                   [class.on]="r.label === activeLabel()"
                   [class.pin]="!r.paths.length && !r.mesh"
+                  [class.link]="r.connects.length > 0"
                   role="img"
-                  [attr.aria-label]="r.label"
-                  [scTooltip]="r.label"
+                  [attr.aria-label]="r.connects.length ? r.label + ' · ' + ('codex.deckPlan.connects' | translate: { decks: r.connects.join(', ') }) : r.label"
+                  [scTooltip]="r.connects.length ? r.label + ' · ' + ('codex.deckPlan.connects' | translate: { decks: r.connects.join(', ') }) : r.label"
                   scTooltipTier="label"
                   (mouseenter)="hovered.set(r.key)"
                   (mouseleave)="hovered.set(null)"
@@ -121,6 +126,9 @@ let nextDeckPlanId = 0;
                this line answers a plain tap too. -->
           <p class="readout" [class.empty]="!activeLabel()">
             {{ activeLabel() || ('codex.deckPlan.readoutIdle' | translate) }}
+            @if (activeConnects().length) {
+              · {{ 'codex.deckPlan.connects' | translate: { decks: activeConnects().join(', ') } }}
+            }
           </p>
           <!-- Every room by name: the plan's own labels only fit the larger
                rooms, and a list reads on a phone where hovering does not. -->
@@ -130,11 +138,11 @@ let nextDeckPlanId = 0;
               <li>
                 <!-- The chips are the keyboard path through the rooms; the plan's
                      own shapes stay out of the tab order. -->
-                <button type="button" class="chip" [class.on]="r.label === activeLabel()"
+                <button type="button" class="chip" [class.on]="r.label === activeLabel()" [class.link]="r.connects.length > 0"
                         [attr.aria-pressed]="r.label === pinnedLabel()"
                         (mouseenter)="hovered.set(r.key)" (mouseleave)="hovered.set(null)"
                         (focus)="hovered.set(r.key)" (blur)="hovered.set(null)"
-                        (click)="pin(r)">{{ r.label }}</button>
+                        (click)="pin(r)">@if (r.connects.length) {<span class="up" aria-hidden="true">↕</span>}{{ r.label }}</button>
               </li>
             }
           </ul>
@@ -187,6 +195,11 @@ let nextDeckPlanId = 0;
       filter: drop-shadow(0 0 4px color-mix(in srgb, var(--sc-accent) 70%, transparent)); }
     .room:hover path.mesh, .room.on path.mesh { stroke: none; }
     .room:hover circle, .room.on circle { fill: var(--sc-accent); }
+    /* A stair, ladder or lift: drawn on every level it joins, outlined dashed. */
+    .room.link path { stroke-dasharray: 4 3; }
+    .chip.link { border-style: dashed; }
+    .chip .up { margin-right: 4px; }
+    .hint.derived { color: var(--sc-fg-2); font-style: italic; }
 
     .legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; }
     .chip { min-height: 32px; padding: 2px 10px; border-radius: 6px; border: 1px solid var(--sc-border);
@@ -292,6 +305,13 @@ export class ShipDeckPlanComponent {
   }
 
   readonly activeLabel = computed(() => this.labelOf(this.active()));
+  /** Other levels the active stair or lift leads to; empty for a plain room. */
+  readonly activeConnects = computed(() => {
+    const key = this.active();
+    return (key && this.deck()?.rooms.find((r) => r.key === key)?.connects) || [];
+  });
+  /** The levels are the uploader's floor-height grouping, not decks the game names. */
+  readonly derived = computed(() => !!this.plans()?.decks.some((d) => d.derived));
   readonly pinnedLabel = computed(() => this.labelOf(this.pinned()));
 
   pin(r: DeckPlanRoom): void {

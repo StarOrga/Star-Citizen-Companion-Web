@@ -1369,7 +1369,10 @@ export class CodexHoloStageComponent {
     return [
       { id: 'akte', labelKey: null, items: [thumb('akte', 'codex.holo.stage.viewAkte', null)] },
       { id: 'outside', labelKey: 'codex.holo.stage.deckOutside', items: outside },
-      ...(inside.length > 0 ? [{ id: 'inside', labelKey: 'codex.holo.stage.deckInside', items: inside }] : []),
+      // Floor levels the uploader grouped (Idris) say so in the group's name.
+      ...(inside.length > 0
+        ? [{ id: 'inside', labelKey: this.decksDerived() ? 'codex.holo.stage.deckInsideDerived' : 'codex.holo.stage.deckInside', items: inside }]
+        : []),
     ];
   });
 
@@ -1479,6 +1482,8 @@ export class CodexHoloStageComponent {
     // The catch-all deck beside named decks reads "Weitere": "Weitere Räume" did not fit its thumbnail (B13).
     return [outside, ...set.decks.map((d) => ({ key: d.key, label: d.label, labelKey: d.fallback ? 'codex.holo.stage.deckRest' : null }))];
   });
+  /** The decks are floor levels derived by the uploader, not decks the game names. */
+  readonly decksDerived = computed(() => (this.decks() ?? []).some((d) => !d.fallback && d.derived));
   /** What the table draws for the picked deck; null = the hull. */
   readonly tableDeck = computed<HoloDeckView | null>(() => {
     const key = this.deckView();

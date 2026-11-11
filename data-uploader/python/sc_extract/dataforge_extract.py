@@ -34,6 +34,7 @@ from .dataforge import DataForge, Record
 from .localization import Localizer
 from .ship_decks import SHIP_SETUP, build_deck_index, project_decks, sections_for_class
 from .ship_rooms import (LEVEL_WINDOW_FLOOR_M, LEVEL_WINDOW_POS_M, ang3_quat, bounds_of,
+                         derive_levels, is_connector,
                          bare_loc_key, cry_guid_to_record_id, deck_by_level, decode_cryxml, humanize_room_key,
                          is_unnamed, room_label_key, tidy_room_label, move,
                          read_zip_entry, rooms_in_container, soc_entities, soc_entries)
@@ -1906,6 +1907,8 @@ class CodexExtractor:
         rooms = self._ship_rooms(vcp)
         if not rooms:
             return
+        if not decks and self._derive_decks(decks, rooms):
+            return
         by_key = {d["key"].lower(): d for d in decks}
         placed: List[Tuple[Dict[str, Any], Optional[Dict[str, Any]]]] = []
         for room in rooms:
@@ -1962,6 +1965,61 @@ class CodexExtractor:
             if deck.get("rooms"):
                 deck["rooms"].sort(key=lambda r: r["key"].lower())
                 deck["bounds"] = bounds_of(deck["rooms"])
+
+    def _room_row(self, room: Dict[str, Any]) -> Dict[str, Any]:
+        row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes", "tris")}
+        row["name"] = None if is_unnamed(room["locKey"]) else self._deck_name(room["locKey"])
+        self._label_room(row, room["locKey"])
+        return row
+
+    def _derive_decks(self, decks: List[Dict[str, Any]], rooms: List[Dict[str, Any]]) -> bool:
+        """Decks from the rooms' floor levels for a hull that authors none
+        (see ship_rooms.derive_levels). Fills `decks` and returns True when the
+        floors form at least two levels; False leaves the single fallback deck
+        to the caller. Every derived deck carries `derived: True`; a stair, a
+        ladder or a lift is listed on each level it connects and names them in
+        `connects`."""
+        rows = [self._room_row(r) for r in rooms]
+        conn = [is_connector(r["key"], ((row.get("name") or {}).get("en")))
+                for r, row in zip(rooms, rows)]
+        derived = derive_levels(rooms, conn)
+        if derived is None:
+            return False
+        levels, assign = derived
+        for i, lv in enumerate(levels):
+            decks.append({
+                "key": f"level_{i + 1}",
+                "name": {"en": f"Level {i + 1}", "de": f"Ebene {i + 1}"},
+                "order": i,
+                "derived": True,
+                "floorZ": lv["floor"],
+                "rooms": [],
+            })
+        unassigned: List[Dict[str, Any]] = []
+        for row, idx, is_conn in zip(rows, assign, conn):
+            if not idx:
+                unassigned.append(row)
+                continue
+            for i in idx:
+                r = dict(row)
+                if is_conn and len(idx) > 1:
+                    r["connects"] = [decks[j]["key"] for j in idx]
+                decks[i]["rooms"].append(r)
+        if unassigned:
+            decks.append({
+                "key": FALLBACK_DECK_KEY,
+                "name": FALLBACK_DECK_NAMES["other"],
+                "order": len(levels),
+                "fallback": True,
+                "rooms": unassigned,
+            })
+        for deck in decks:
+            if deck.get("rooms"):
+                deck["rooms"].sort(key=lambda r: r["key"].lower())
+                deck["bounds"] = bounds_of(deck["rooms"])
+        self.on_log("info", f"decks: {len(levels)} level(s) derived from floor heights "
+                            f"({sum(1 for c in conn if c)} stair/lift room(s) on every level they join)")
+        return True
 
     def _label_room(self, row: Dict[str, Any], loc_key: Optional[str]) -> None:
         """Room label keys for the web (E14). ``locKey``: the game's loc key

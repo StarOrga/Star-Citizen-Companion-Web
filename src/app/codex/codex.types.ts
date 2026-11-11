@@ -174,6 +174,14 @@ export interface ShipDeck {
    */
   fallback?: boolean;
   /**
+   * Not a game deck: the uploader grouped the rooms of a hull that authors no
+   * deck sections (Idris) by floor height (`ship_rooms.derive_levels`). The
+   * web says so wherever it names the deck.
+   */
+  derived?: boolean;
+  /** Floor height (m) of a derived level, median of its rooms. */
+  floorZ?: number;
+  /**
    * Rooms on this deck (#797, `sc_extract/ship_rooms.py`), in the hull's model
    * frame (metres, +X starboard, +Y nose). Absent on decks no room maps to and
    * on every build extracted before the uploader read the object containers.
@@ -202,6 +210,11 @@ export interface ShipDeckRoom {
   shapes: number[][][];
   /** Floor triangles of trimesh volumes (filled, not outlined); empty with `shapes` = pin only. */
   tris?: number[][][];
+  /**
+   * A stair, ladder or lift on a derived deck: the keys of every deck it joins
+   * (it is listed on each of them).
+   */
+  connects?: string[];
 }
 
 export interface ShipPayload extends BaseEntityPayload {

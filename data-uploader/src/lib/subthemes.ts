@@ -108,7 +108,10 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // maxSpeed / reverseSpeed, payload.fuel + payload.boundingBox, liveries
     // from the DataCore (payload.skins), `,P` loc keys resolve (Wikelo
     // names), mission / event / game-mode hull copies are variants.
-    revision: 14,
+    // 15: a hull with no authored deck (Idris) gets `derived` decks grouped by
+    // floor height ("Level N" / "Ebene N"); stairs, ladders and lifts sit on
+    // every level they join and name them in `rooms[].connects`.
+    revision: 15,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,

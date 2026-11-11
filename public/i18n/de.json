@@ -956,6 +956,7 @@
         "perspectives": "Perspektiven",
         "deckOutside": "Außen",
         "deckInside": "Innen",
+        "deckInsideDerived": "Innen · nach Bodenhöhe abgeleitet",
         "rooms": "Räume",
         "roomsAria": "Räume dieses Decks",
         "roomsNone": "Keine benannten Räume",
@@ -2026,7 +2027,9 @@
       "aria": "{{deck}}: Deckplan, Räume: {{count}}",
       "nose": "Bug",
       "readoutIdle": "Kein Raum ausgewählt",
-      "roomsAria": "Räume auf {{deck}}"
+      "roomsAria": "Räume auf {{deck}}",
+      "derivedHint": "Das Spiel benennt auf diesem Schiff keine Decks: die Ebenen sind nach Bodenhöhe abgeleitet. Treppen und Aufzüge stehen auf jeder Ebene, die sie verbinden.",
+      "connects": "führt zu {{decks}}"
     },
     "shipBlueprint": {
       "schema": {
@@ -2379,6 +2382,7 @@
       "reverseSpeed": "Rückwärtsgeschwindigkeit",
       "dimensions": "Abmessungen (L×B×H)",
       "decks": "Decks",
+      "decksDerived": "nach Bodenhöhe abgeleitet",
       "crew": "Besatzung",
       "equippedMass": "Masse der Ausrüstung",
       "scmSpeed": "SCM-Geschwindigkeit",

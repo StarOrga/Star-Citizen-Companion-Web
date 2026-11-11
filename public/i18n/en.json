@@ -956,6 +956,7 @@
         "perspectives": "Perspectives",
         "deckOutside": "Outside",
         "deckInside": "Inside",
+        "deckInsideDerived": "Inside · derived from floor height",
         "rooms": "Rooms",
         "roomsAria": "Rooms on this deck",
         "roomsNone": "No named rooms",
@@ -2026,7 +2027,9 @@
       "aria": "{{deck}}: deck plan, rooms: {{count}}",
       "nose": "Nose",
       "readoutIdle": "No room selected",
-      "roomsAria": "Rooms on {{deck}}"
+      "roomsAria": "Rooms on {{deck}}",
+      "derivedHint": "The game names no decks on this ship: the levels are derived from floor height. Stairs and lifts appear on every level they connect.",
+      "connects": "leads to {{decks}}"
     },
     "shipBlueprint": {
       "schema": {
@@ -2379,6 +2382,7 @@
       "reverseSpeed": "Reverse speed",
       "dimensions": "Dimensions (L×W×H)",
       "decks": "Decks",
+      "decksDerived": "derived from floor height",
       "crew": "Crew",
       "equippedMass": "Equipment mass",
       "scmSpeed": "SCM speed",

@@ -77,6 +77,11 @@ export function shipDeckNames(payload: Pick<ShipPayload, 'decks'> | null | undef
     .filter(Boolean);
 }
 
+/** True when the ship's decks are floor levels the uploader grouped, not decks the game names. */
+export function shipDecksDerived(payload: Pick<ShipPayload, 'decks'> | null | undefined): boolean {
+  return Array.isArray(payload?.decks) && payload.decks.some((d) => !d.fallback && d.derived);
+}
+
 /** One deck's display name — the reader's language, English, then the humanised key. */
 export function deckLabel(d: Pick<ShipDeck, 'key' | 'name'>, lang: Lang): string {
   const n = d.name;
@@ -226,6 +231,8 @@ export function buildShipFactGroups(
     occupants: readonly SummaryOccupant[];
     /** Deck names, bottom-up (shipDeckNames); empty or absent = no Decks row. */
     decks?: readonly string[];
+    /** The decks are derived floor levels (shipDecksDerived): the row says so. */
+    decksDerived?: boolean;
   },
   t: Translate,
 ): ShipFactGroup[] {
@@ -314,7 +321,10 @@ export function buildShipFactGroups(
         { labelKey: 'codex.hull.dimensions', value: dim ? `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m` : null },
         { labelKey: 'codex.hull.crew', value: p.crew?.size ? String(p.crew.size) : null },
         // Decks (#796): no gap row — a hull without authored decks simply has none.
-        ...(input.decks?.length ? [{ labelKey: 'codex.hull.decks', value: input.decks.join(' · ') }] : []),
+        ...(input.decks?.length ? [{
+          labelKey: 'codex.hull.decks',
+          value: input.decks.join(' · ') + (input.decksDerived ? ` (${t('codex.hull.decksDerived')})` : ''),
+        }] : []),
         { labelKey: 'codex.hull.hullHp', value: num(p.hull?.hp, ''), gapKey: 'codex.summary.gap.noHullMass' },
         { labelKey: 'codex.hull.hullMass', value: num(p.hull?.mass, 'kg'), gapKey: 'codex.summary.gap.noHullMass' },
         { labelKey: 'codex.hull.armorHp', value: num(p.armorHp, ''), gapKey: 'codex.summary.gap.noArmorStats' },

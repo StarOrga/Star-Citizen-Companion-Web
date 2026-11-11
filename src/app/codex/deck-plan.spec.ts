@@ -162,3 +162,30 @@ describe('room labels from the translation pipeline (E14)', () => {
     expect(labels('en', translated)['Mess_Hall_Room_RN']).toBe('Mess Hall');
   });
 });
+
+describe('derived floor levels (LIVE 4.10.2 Idris)', () => {
+  const box = [[[0, 0], [4, 0], [4, 4], [0, 4]]];
+  const room = (key: string, connects?: string[]) => ({
+    key, name: null, pos: [2, 2, 0], floorZ: 0, height: 3, shapes: box, ...(connects ? { connects } : {}),
+  });
+  const decks: ShipDeck[] = [
+    { key: 'level_1', name: { en: 'Level 1', de: 'Ebene 1' }, order: 0, derived: true,
+      rooms: [room('Hangar_Room'), room('Bridge_Elevator', ['level_1', 'level_2'])] },
+    { key: 'level_2', name: { en: 'Level 2', de: 'Ebene 2' }, order: 1, derived: true,
+      rooms: [room('Bridge_Room'), room('Bridge_Elevator', ['level_1', 'level_2'])] },
+  ];
+
+  it('flags a derived deck and names the other levels a stair or lift leads to', () => {
+    const set = buildDeckPlans(decks, 'de')!;
+    expect(set.decks.map((d) => d.derived)).toEqual([true, true]);
+    const lift = (i: number) => set.decks[i].rooms.find((r) => r.key === 'Bridge_Elevator')!;
+    expect(lift(0).connects).toEqual(['Ebene 2']);
+    expect(lift(1).connects).toEqual(['Ebene 1']);
+    expect(set.decks[0].rooms.find((r) => r.key === 'Hangar_Room')!.connects).toEqual([]);
+  });
+
+  it('an authored deck is not derived', () => {
+    const set = buildDeckPlans([{ key: 'Main', name: null, order: 0, rooms: [room('A')] }], 'en')!;
+    expect(set.decks[0].derived).toBe(false);
+  });
+});
