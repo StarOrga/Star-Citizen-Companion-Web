@@ -1,0 +1,86 @@
+<section id="iter-8" data-iteration="8" data-iteration-template="free" data-final-report data-active>
+  <p class="fr-sentence">Der Holotisch ist aufgeräumt, Exemplare speichern sich selbst, und alles ist als v0.254.0 live auf alpha.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">🎯</span><span><b>Typ-Callouts</b> mit Tausch-Knopf und ◆ für Abweichungen vom Werk.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">💾</span><span>Im eigenen Exemplar <b>speichert jede Änderung selbst</b>, mit Toast.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">📊</span><span><b>Rang, Vergleich und Patch</b> in einer festen Karte rechts.</span></li>
+      </ul>
+      <a class="fr-try" href="https://versecompanion-alpha.vercel.app/codex/ship/AEGS_Gladius?ngsw-bypass=true" target="_blank" rel="noopener noreferrer">▶ {{final.open_live}}</a>
+      <p class="fr-try-auth">🔑 Mit deinem Konto anmelden, Holotisch ist die Beta-Ansicht</p>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="20261109-1745-holotisch-feinschliff/shots/01-einfach.png" alt=""><figcaption>Runde 5: Gladius vor dem Feinschliff</figcaption></figure>
+      <figure class="fr-shot"><img src="20261109-1745-holotisch-feinschliff/shots-final/01-gladius.png" alt=""><figcaption>Fertiger Build, Gladius 1920×1080</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Volle Unit-Suite, 522 Function-Tests, Build und Lint grün; Anforderung: alles grün (geschätzt).">
+        <span class="fr-meter-name">✅ Tests</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">grün</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Mobile-Gate eingeloggt: 70 Audits auf 4 Geräten, 0 blockierend nach 4 Touch-Fixes; Anforderung 0 (geschätzt).">
+        <span class="fr-meter-name">📱 Touch</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">0 / 70</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 60%" data-tip="Raumnamen-Übersetzung ist gebaut und deployt, erscheint aber erst nach Uploader 0.78.0 und einem Upload-Lauf mit Übersetzung; Anforderung: deutsche Raumnamen live (geschätzt).">
+        <span class="fr-meter-name">🏷 Raumnamen</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">vorbereitet</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="5 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_local}} · ✓ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_live}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 1 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-subtypes"
+          data-issue-title="[BUG] Swap picker type line shows English game sub-types"
+          data-issue-type="bug"
+          data-issue-body="The swap picker's type line under each item shows the game's item sub-type in English (e.g. 'Arctic Storm', 'Blast Chill') because that string comes straight from game data without a localisation key. Found while re-checking round 7 (shot 15-picker-kuehler). Fix idea: map sub-types through the codex string table or hide them when they only repeat the item name."
+          data-issue-module="codex"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="spieldaten">
+        <span class="oq-label">Englische Untertypen</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die Typzeile im Tausch-Picker zeigt Untertypen wie „Arctic Storm“ auf Englisch.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Tausch-Picker, z. B. Kühler der Gladius</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — Spieldaten ohne Übersetzungs-Key, eigener Umbau.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>PR <a href="https://github.com/StarOrga/Verse-Companion-Web/pull/1086">#1086</a> · Merge <code>062bb04</code> · Tag <code>alpha/v0.254.0</code></li>
+      <li><code>codex/holo/*</code>, <code>codex-loadout-draft.store.ts</code>, <code>codex-rank-card.component.ts</code></li>
+      <li>Migrationen gepusht (is_wish, ai_summary), Edge Functions per CI deployt (exemplar-ai, translate-orchestrator, translation-overlay)</li>
+      <li>Codex-Review: 1 Befund (überlappende Autosaves) mit Regressionstest behoben</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-autosave" data-crit="mid" data-guide="">Im eigenen Exemplar tauschen und Toast prüfen</li>
+      <li data-todo-id="t-rooms" data-crit="low" data-guide="">Raumnamen nach Uploader 0.78.0 prüfen</li>
+    </ul>
+  </section>
+</section>
