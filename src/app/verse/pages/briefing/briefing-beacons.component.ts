@@ -7,7 +7,6 @@ import { TREND_GLYPH, StabilityTrend, stabilityWord } from '../../../news/patch-
 import { PatchStabilityService } from '../../../news/patch-stability.service';
 import { splitChars } from './briefing.model';
 import { BodyCanvasDirective } from './bodies/body.directive';
-import { BriefingStationComponent } from './briefing-station.component';
 import { BriefingHqLineService } from './briefing-hq-line';
 import { TX_ART_MS } from './briefing-transmit.component';
 
@@ -19,8 +18,8 @@ export const IDLE_SHOW_MS = 5000;
 /**
  * The stage's three beacons, all real anchors: the sun top right (→ the LIVE
  * patch's status), the current patch's constellation at half height between
- * the search and the Galerie planet (→ the star map), and the HQ station in the
- * left sky (→ /hq; concept 2026-11-08 batch-feedback-15, round 3 "Olisar-Kreuz"),
+ * the search and the Galerie planet (→ the star map), and HQ: the scene's ground station on the
+ * planet's right limb (→ /hq; Kamera-Welt C6 — the space station is the Admin place, never HQ),
  * whose one value line names a running event, else the open Nachschübe, else
  * "Alles ruhig im HQ" ({@link BriefingHqLineService}). Hover: the sun's corona brightens and grows, a flare
  * streak crosses it (the sun itself: concept 2026-10-31 "Sonne & Planeten" —
@@ -41,7 +40,7 @@ export const IDLE_SHOW_MS = 5000;
   selector: 'sc-briefing-beacons',
   host: { '[class.art]': 'art()' },
   standalone: true,
-  imports: [RouterLink, TranslatePipe, BriefingSkyComponent, BodyCanvasDirective, BriefingStationComponent],
+  imports: [RouterLink, TranslatePipe, BriefingSkyComponent, BodyCanvasDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './briefing-beacons.component.scss',
   template: `
@@ -75,7 +74,7 @@ export const IDLE_SHOW_MS = 5000;
     @let hqName = 'verse.hub.hq' | translate;
     @let hqValue = hqLine().key | translate: hqLine().params;
     <a class="hq-l" routerLink="/hq" [class.idle]="idle()" [attr.aria-label]="hqName + ' · ' + hqValue">
-      <span class="obj" aria-hidden="true"><sc-briefing-station /></span>
+      <span class="ground" aria-hidden="true"></span>
       <span class="lab" aria-hidden="true">
         <span class="lab-n">@for (ch of chars(hqName); track ch.i) {<i [style.--n]="ch.i">{{ ch.c }}</i>}</span>
         <span class="lab-v">{{ hqValue }}</span>
