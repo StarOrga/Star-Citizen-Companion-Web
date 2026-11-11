@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.259.0",
+  "current": "0.259.1",
   "releases": [
+    {
+      "version": "0.259.1",
+      "date": "2026-11-12",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Verse Companion logo is the desktop app's current icon again everywhere on the site — browser tab, home-screen icon, link previews, header, login and apps menu — and in the browser extension, the Data Uploader 0.80.1 and Starscape 0.11.2. The site had kept the September version after the app redrew its icon in October."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.259.0",
       "date": "2026-11-11",
