@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal 
 import { TranslateService } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { FeedbackAreaService } from './feedback-area.service';
-import { captureLine, isCaptureClick, meaningfulElement, nameOf, roleOf, spotFor } from './feedback-capture.util';
+import { captureLine, inPage, isCaptureClick, meaningfulElement, nameOf, regionsFor, roleOf, spotFor } from './feedback-capture.util';
 import { FeedbackPeekService } from './feedback-peek.service';
 import { FeedbackSpotService } from './feedback-spot.service';
 
@@ -98,9 +98,10 @@ export class FeedbackCaptureComponent {
     const el = meaningfulElement(target);
     const spot = spotFor(this.spots.spots(), target);
     const line = captureLine(
-      spot?.label() ?? null,
-      this.area.currentView(),
-      typeof location === 'undefined' ? '' : location.pathname,
+      regionsFor(target, spot),
+      inPage(target)
+        ? { view: this.area.currentView(), path: typeof location === 'undefined' ? '' : location.pathname }
+        : null,
       { role: roleOf(el), name: nameOf(el) },
       (key, params) => this.translate.instant(key, params),
     );
