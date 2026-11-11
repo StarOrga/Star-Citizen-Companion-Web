@@ -4,10 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.257.5] - 2026-11-11
+## [0.258.1] - 2026-11-11
 
 ### Fixed
 - Admin feedback, Alt+click picker: a click in the header, the bar, a navigation, a menu or a dialog now names that region ("Kopfzeile", "Menü „Konto“") instead of the page's route, and the Codex view only stands in front of clicks inside the page. An icon or image inside a button or link names the button or link ("Button „Profilbild (Konto-Menü)“" for the avatar) instead of a nameless "Bild".
+
+## [0.258.0] - 2026-11-11
+
+### Fixed
+- Data Uploader 0.79.0: ship values validated against the wiki and erkul (Starlancer MAX/TAC, ROC/ROC-DS, Idris-M/P) — armour from the fitted armour item, ore pods by their real capacity, ground-vehicle top and reverse speed, fuel capacity, liveries from the game data (names, which ship they fit, 3D hull for the Starlancer), Wikelo special names, mission/event copies of a ship no longer listed as ships, no more hull-mass warning per variant.
+- Codex ship facts show hull HP, hull mass and armour instead of a gap.
 
 ## [0.257.4] - 2026-11-11
 

@@ -219,6 +219,8 @@ export interface ShipPayload extends BaseEntityPayload {
   flight: {
     scmSpeed: number | null; maxSpeed: number | null; boostSpeed: number | null;
     pitch: number | null; yaw: number | null; roll: number | null; // deg/s
+    /** Wheeled vehicles: `Handling/Power@reverseSpeed` of the vehicle XML (m/s). */
+    reverseSpeed?: number | null;
   };
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[];
@@ -245,7 +247,7 @@ export interface ShipPayload extends BaseEntityPayload {
   // simply lacks them and the UI must render a gap, never a zero.
   /** Hull HP (Σ `Part@damageMax`) and hull mass (kg) from the vehicle XML. */
   hull?: { hp: number | null; mass: number | null } | null;
-  /** `ARMR_<Ship>` armour HP (`SHealthComponentParams.Health`). */
+  /** Armour HP (`SHealthComponentParams.Health`) of the armour item the stock loadout fits. */
   armorHp?: number | null;
   /** Cargo grid capacity in SCU (interiorDimensions ÷ 1.25³). */
   cargoScu?: number | null;
