@@ -281,6 +281,7 @@ import { avatarUrlOf } from './avatar-url';
           <button
             type="button"
             class="avatar-btn"
+            [attr.data-feedback-name]="'nav.profilePicture' | translate"
             (click)="toggleMenu($event)"
             [attr.aria-label]="(requestCount() > 0 ? 'nav.accountMenuRequests' : 'nav.accountMenu') | translate: { count: requestCount() }"
             aria-haspopup="menu"

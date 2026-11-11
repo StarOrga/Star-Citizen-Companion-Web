@@ -45,16 +45,114 @@ export function spotFor(spots: readonly FeedbackSpot[], target: Element): Feedba
 
 const MEANINGFUL =
   'a[href], button, summary, input, select, textarea, label, img, svg, h1, h2, h3, h4, h5, h6, ' +
-  '[role], [aria-label], [data-testid]';
+  '[role], [aria-label], [data-testid], [data-feedback-name]';
 
-/** The element worth naming: the nearest control / heading / image, else the target. */
+/**
+ * Controls that swallow what is inside them: an Alt+click on the avatar image
+ * inside the account button points at the button, not at a nameless "Bild"
+ * (feedback #342).
+ */
+const INTERACTIVE =
+  'a[href], button, summary, label, input, select, textarea, [data-feedback-name], ' +
+  '[role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], ' +
+  '[role="menuitemradio"], [role="option"], [role="checkbox"], [role="switch"], [role="radio"]';
+
+/**
+ * The element worth naming: the nearest control holding the target, else the
+ * nearest heading / image / labelled element — and when that one has no name
+ * (a decorative icon), the nearest named one around it.
+ */
 export function meaningfulElement(target: Element): Element {
-  return target.closest(MEANINGFUL) ?? target;
+  const control = target.closest(INTERACTIVE);
+  if (control) return control;
+  const first = target.closest(MEANINGFUL);
+  if (!first) return target;
+  for (let el: Element | null = first; el; el = el.parentElement?.closest(MEANINGFUL) ?? null) {
+    if (el === el.ownerDocument.body) break;
+    if (nameOf(el)) return el;
+  }
+  return first;
+}
+
+/** One region a capture names: a marked section or a landmark of the page or shell. */
+export type CaptureRegion =
+  | { kind: 'spot'; label: FeedbackSpotLabel }
+  | { kind: 'landmark'; key: string; name: string };
+
+/**
+ * Landmarks and overlays a click can sit in. `data-feedback-area` (an i18n
+ * key) names a region that has no landmark role of its own (the beta bar).
+ */
+const LANDMARK =
+  '[data-feedback-area], header, footer, nav, aside, dialog, [role="banner"], [role="contentinfo"], ' +
+  '[role="navigation"], [role="complementary"], [role="dialog"], [role="alertdialog"], ' +
+  '[role="menu"], [role="listbox"], [role="search"]';
+
+/** A header/footer is the shell's own only outside these (as in HTML-AAM). */
+const SECTIONING = 'main, article, section, aside, nav, [role="main"], [role="dialog"], [role="alertdialog"]';
+
+function landmarkKey(el: Element): string | null {
+  const own = el.getAttribute('data-feedback-area');
+  if (own) return own;
+  const role = el.getAttribute('role');
+  const tag = el.tagName.toLowerCase();
+  if (role === 'banner') return 'feedbackCapture.area.header';
+  if (role === 'contentinfo') return 'feedbackCapture.area.footer';
+  if (role === 'navigation' || (!role && tag === 'nav')) return 'feedbackCapture.area.navigation';
+  if (role === 'complementary' || (!role && tag === 'aside')) return 'feedbackCapture.area.sidebar';
+  if (role === 'dialog' || role === 'alertdialog' || (!role && tag === 'dialog')) return 'feedbackCapture.area.dialog';
+  if (role === 'menu' || role === 'listbox') return 'feedbackCapture.area.menu';
+  if (role === 'search') return 'feedbackCapture.area.search';
+  if (!role && (tag === 'header' || tag === 'footer')) {
+    if (el.parentElement?.closest(SECTIONING)) return null;
+    return tag === 'header' ? 'feedbackCapture.area.header' : 'feedbackCapture.area.footer';
+  }
+  return null;
+}
+
+/** aria-label, else the text aria-labelledby points at. */
+function labelOf(el: Element): string {
+  const aria = squash(el.getAttribute('aria-label'));
+  if (aria) return aria;
+  const by = el.getAttribute('aria-labelledby');
+  if (!by) return '';
+  return squash(
+    by
+      .split(/\s+/)
+      .map((id) => el.ownerDocument.getElementById(id)?.textContent ?? '')
+      .join(' '),
+  );
+}
+
+/**
+ * Every region around `target`, outermost first: the shell's header, a
+ * navigation, a menu or dialog, and the innermost marked section. Before
+ * feedback #342 a click in the header fell back to the page's route path.
+ */
+export function regionsFor(target: Element, spot: FeedbackSpot | null): CaptureRegion[] {
+  const found: { el: Element; region: CaptureRegion }[] = [];
+  for (let el = target.closest(LANDMARK); el; el = el.parentElement?.closest(LANDMARK) ?? null) {
+    const key = landmarkKey(el);
+    if (key) found.push({ el, region: { kind: 'landmark', key, name: labelOf(el) } });
+  }
+  if (spot) {
+    // `found` is innermost first: the spot goes in front of the first landmark around it.
+    const at = found.findIndex((f) => f.el !== spot.el && f.el.contains(spot.el));
+    const entry = { el: spot.el, region: { kind: 'spot' as const, label: spot.label() } };
+    if (at === -1) found.push(entry);
+    else found.splice(at, 0, entry);
+  }
+  return found.reverse().map((f) => f.region);
+}
+
+/** Is the target part of the routed page (inside `<main>`), not the shell around it? */
+export function inPage(target: Element): boolean {
+  return !!target.closest('main, [role="main"]');
 }
 
 export type CaptureRole =
   | 'link' | 'button' | 'field' | 'select' | 'checkbox' | 'radio' | 'heading' | 'image'
-  | 'tab' | 'section' | 'label' | 'element';
+  | 'tab' | 'section' | 'label' | 'menuitem' | 'element';
 
 export function roleOf(el: Element): CaptureRole {
   const explicit = el.getAttribute('role');
@@ -64,6 +162,8 @@ export function roleOf(el: Element): CaptureRole {
   if (explicit === 'checkbox' || explicit === 'switch') return 'checkbox';
   if (explicit === 'radio') return 'radio';
   if (explicit === 'heading') return 'heading';
+  if (explicit === 'menuitem' || explicit === 'menuitemcheckbox' || explicit === 'menuitemradio') return 'menuitem';
+  if (explicit === 'img') return 'image';
   const tag = el.tagName.toLowerCase();
   if (tag === 'a') return 'link';
   if (tag === 'button') return 'button';
@@ -89,22 +189,15 @@ function squash(text: string | null | undefined): string {
 }
 
 /**
- * What the element is called: aria-label, aria-labelledby, alt, a field's
- * label or placeholder, else its visible text. Never a field's typed value.
+ * What the element is called: an explicit `data-feedback-name` (the words a
+ * writer uses for it, "Profilbild"), aria-label, aria-labelledby, alt, a
+ * field's label or placeholder, else its visible text. Never a field's typed value.
  */
 export function nameOf(el: Element): string {
-  const aria = squash(el.getAttribute('aria-label'));
-  if (aria) return aria;
-  const by = el.getAttribute('aria-labelledby');
-  if (by) {
-    const text = squash(
-      by
-        .split(/\s+/)
-        .map((id) => el.ownerDocument.getElementById(id)?.textContent ?? '')
-        .join(' '),
-    );
-    if (text) return text;
-  }
+  const own = squash(el.getAttribute('data-feedback-name'));
+  if (own) return own;
+  const label = labelOf(el);
+  if (label) return label;
   const alt = squash(el.getAttribute('alt'));
   if (alt) return alt;
   const tag = el.tagName.toLowerCase();
@@ -125,22 +218,33 @@ export function nameOf(el: Element): string {
 
 /**
  * The line a capture inserts, e.g.
- * "Klassische Ansicht: Loadout Bewaffnung › Button „Laser-Repeater S3“".
- * Area: the nearest marked section (with the Codex view in front on a ship
- * page); an unmarked part of the page falls back to the route path.
+ * "Klassische Ansicht: Loadout Bewaffnung › Button „Laser-Repeater S3“" or
+ * "Kopfzeile › Navigation › Button „Profilbild (Konto-Menü)“".
+ * Area: the regions around the element (outermost and innermost when there are
+ * more). Inside the routed page the Codex view stands in front, and the route
+ * path when no marked section names the spot; the shell (header, bar, menus)
+ * gets neither — those name the page, not the header (feedback #342).
  */
 export function captureLine(
-  label: FeedbackSpotLabel | null,
-  view: FeedbackAreaView | null,
-  path: string,
+  regions: readonly CaptureRegion[],
+  page: { view: FeedbackAreaView | null; path: string } | null,
   element: { role: CaptureRole; name: string },
   t: Translate,
 ): string {
-  const where = label ? sectionLabel(label, t) : path;
-  const base = view ? `${t(`codex.holo.toggle.${view}Hint`)}: ${where}` : where;
+  const shown = regions.length > 2 ? [regions[0], regions[regions.length - 1]] : regions;
+  const parts = shown.map((r) => regionLabel(r, t));
+  if (page?.path && (!shown.length || shown[0].kind === 'landmark')) parts.unshift(page.path);
+  const where = parts.join(' › ');
+  const base = page?.view ? `${t(`codex.holo.toggle.${page.view}Hint`)}: ${where}` : where;
   const role = t(`feedbackCapture.role.${element.role}`);
   const what = element.name ? t('feedbackCapture.element', { role, name: element.name }) : role;
-  return `${base} › ${what}`;
+  return base ? `${base} › ${what}` : what;
+}
+
+function regionLabel(region: CaptureRegion, t: Translate): string {
+  if (region.kind === 'spot') return sectionLabel(region.label, t);
+  const label = t(region.key);
+  return region.name ? t('feedbackSpot.titled', { label, text: region.name }) : label;
 }
 
 function sectionLabel(label: FeedbackSpotLabel, t: Translate): string {

@@ -184,6 +184,7 @@
     "phaseBadge": "Alpha",
     "badge": "Cartographer badge",
     "accountMenu": "Account menu",
+    "profilePicture": "Profile picture (account menu)",
     "adminOnly": "Admin only",
     "adminMenu": "Admin",
     "telemetry": "Telemetry",
@@ -1571,7 +1572,7 @@
         "ofRole": "{{name}} role"
       },
       "noMiningData": "Mining and salvage output: no data",
-      "rimNote": "Outside = close to the group best (95\u00a0%), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67\u00a0%.",
+      "rimNote": "Outside = close to the group best (95 %), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67 %.",
       "betterThan": "Better than {{n}} %",
       "rimLabel": "Scale"
     },
@@ -5265,7 +5266,18 @@
       "tab": "Tab",
       "section": "Section",
       "label": "Label",
+      "menuitem": "Menu item",
       "element": "Element"
+    },
+    "area": {
+      "header": "Header",
+      "bar": "Header bar",
+      "footer": "Footer",
+      "navigation": "Navigation",
+      "sidebar": "Sidebar",
+      "dialog": "Dialog",
+      "menu": "Menu",
+      "search": "Search"
     }
   },
   "releaseNotes": {

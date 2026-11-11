@@ -103,6 +103,7 @@ const MAX_TOKENS = 3;
   imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, FusionSearchComponent, BrandLogoComponent, BrandNameComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
+    'data-feedback-area': 'feedbackCapture.area.bar',
     '[attr.data-mode]': 'mode()',
     '[class.hidden]': 'hidden()',
     '[class.searching]': 'searchOpen()',
