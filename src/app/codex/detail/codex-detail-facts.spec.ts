@@ -15,6 +15,7 @@ import {
   humanizeDeckKey,
   isTractorBeamSlot,
   shipDeckNames,
+  shipDecksDerived,
 } from './codex-detail-facts';
 
 /** A translate stand-in that shows what was asked for: `key|{params}`. */
@@ -84,6 +85,26 @@ describe('codex-detail facts', () => {
         ['codex.hull.hullMass', null],
         ['codex.hull.armorHp', null],
       ]);
+    });
+
+    it('marks decks the uploader derived from floor height (LIVE 4.10.2 Idris)', () => {
+      const decks: ShipDeck[] = [
+        { ...deck('level_1', 0, 'Level 1', 'Ebene 1'), derived: true },
+        { ...deck('level_2', 1, 'Level 2', 'Ebene 2'), derived: true },
+        { ...deck('unassigned', 2, 'Other rooms'), fallback: true },
+      ];
+      expect(shipDecksDerived({ decks })).toBe(true);
+      expect(shipDecksDerived({ decks: [deck('Polaris_Main_Deck', 0, 'Main Deck')] })).toBe(false);
+      expect(shipDecksDerived(null)).toBe(false);
+      const rows = buildShipFactGroups(
+        {
+          detail: detail('ship', {}, { crew: { size: 2 } }), dimensions: null, techStats: null,
+          kpiSheet: computeKpiSheet([], null), occupants: [], decks: shipDeckNames({ decks }, 'de'), decksDerived: true,
+        },
+        t,
+      ).find((g) => g.titleKey === 'codex.analysis.ship.hull')!.rows;
+      expect(rows.find((r) => r.labelKey === 'codex.hull.decks')!.value)
+        .toBe(`Ebene 1 · Ebene 2 (${t('codex.hull.decksDerived')})`);
     });
 
     it('shows the extract hull HP, hull mass and armour instead of a gap (LIVE 4.10.2 Starlancer MAX)', () => {
