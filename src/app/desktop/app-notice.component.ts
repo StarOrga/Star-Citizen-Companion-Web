@@ -1,11 +1,14 @@
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import { ToastSlotDirective } from '../shared/toast-stack/toast-stack';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -15,6 +18,10 @@ import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { APP_NOTICE_DELAY_MS, AppNoticeService, NoticeApp } from './app-notice.service';
 import { DesktopReleaseService, RingRelease } from './desktop-release.service';
+import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
+
+/** The entrance's "rest" beat (header, Patches, notices) when the hub sets none. */
+const APP_NOTICE_REST_BEAT_MS = 4300;
 
 const STARSCAPE_FALLBACK_URL =
   'https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/download/wallpaper-app-latest/starscape-wallpaper.exe';
@@ -31,11 +38,11 @@ const STARSCAPE_FALLBACK_URL =
 @Component({
   selector: 'sc-app-notice',
   standalone: true,
-  imports: [ToastSlotDirective, TranslatePipe, ScTooltipDirective],
+  imports: [ScPopupMotionDirective, ToastSlotDirective, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <div class="toast" scToastSlot role="region" [attr.aria-label]="'appNotice.aria' | translate"
+      <div class="toast" scToastSlot scPopupMotion scPopupMotionOrigin="br" animate.leave="pm-out" role="region" [attr.aria-label]="'appNotice.aria' | translate"
            [class.open]="expanded()" (click)="expand()">
         <i class="ico" aria-hidden="true">
           @if (app() === 'scc') {
@@ -71,11 +78,9 @@ const STARSCAPE_FALLBACK_URL =
       width: min(var(--sc-toast-w, 24rem), calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: grid; grid-template-columns: auto 1fr auto; column-gap: 12px; align-items: center;
       padding: 10px 12px; border-radius: 14px; overflow: hidden; cursor: pointer;
-      background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 30px color-mix(in srgb, var(--sc-accent) 14%, transparent);
-      backdrop-filter: blur(10px);
-      animation: notice-in 0.28s ease-out both;
     }
     .toast.open { cursor: default; }
     .ico {
@@ -111,7 +116,6 @@ const STARSCAPE_FALLBACK_URL =
     .dl:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     @keyframes notice-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
     @media (prefers-reduced-motion: reduce) {
-      .toast { animation: notice-fade 0.2s linear both; }
       .more { transition: none; }
       @keyframes notice-fade { from { opacity: 0; } to { opacity: 1; } }
     }
@@ -122,6 +126,7 @@ export class AppNoticeComponent {
 
   private readonly notices = inject(AppNoticeService);
   private readonly device = inject(DesktopCapabilityService);
+  private readonly chrome = inject(ShellChromeService);
   private readonly releases = inject(DesktopReleaseService);
 
   readonly visible = signal(false);
@@ -145,10 +150,46 @@ export class AppNoticeComponent {
 
   constructor() {
     // Presence timer: leaving the page destroys the component and cancels it.
+    let due = false;
+    let beat: ReturnType<typeof setTimeout> | null = null;
+    let introAt: number | null = null;
+    const now = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    // During the Verse entrance the notice belongs to its "rest" beat (header, Patches ... at
+    // 4.3 s), never before the search (QA D12): it waits for that beat of the running entrance.
+    const show = (): void => {
+      if (!due || this.visible() || beat) return;
+      const intro = this.chrome.heroIntro();
+      if (intro?.full) {
+        if (intro.hold) return;
+        const wait = (introAt ?? now()) + (intro.headerAtMs ?? APP_NOTICE_REST_BEAT_MS) - now();
+        if (wait > 0) {
+          beat = setTimeout(() => {
+            beat = null;
+            reveal();
+          }, wait);
+          return;
+        }
+      }
+      reveal();
+    };
+    const reveal = (): void => {
+      if (!this.visible() && this.device.canInstall() && !this.notices.isSnoozed(this.app())) this.visible.set(true);
+    };
+    effect(() => {
+      const intro = this.chrome.heroIntro();
+      untracked(() => {
+        if (intro?.full && !intro.hold && introAt === null) introAt = now();
+        show();
+      });
+    });
     const timer = setTimeout(() => {
-      if (this.device.canInstall() && !this.notices.isSnoozed(this.app())) this.visible.set(true);
+      due = true;
+      show();
     }, APP_NOTICE_DELAY_MS);
-    inject(DestroyRef).onDestroy(() => clearTimeout(timer));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(timer);
+      if (beat) clearTimeout(beat);
+    });
   }
 
   expand(): void {

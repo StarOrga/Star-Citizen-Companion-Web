@@ -1,56 +1,58 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HERO_INTRO_HOLD_MAX_MS, ShellChromeService } from '../../../shell/fusion-bar/shell-chrome.service';
-import { INTRO_FLAG, claimIntro, peekIntro, resetIntroDocument } from './briefing.model';
+import { DocumentEntry, INTRO_FLAG, claimIntro, peekIntro, resetIntroDocument } from './briefing.model';
 
 /**
- * The shell announces the hub's full entrance at boot (owner brief 2026-11-04):
- * it has to know the answer `claimIntro` will give, without taking it.
+ * The cinematic entrance belongs to a direct call of the bare domain, once per tab (concept
+ * "Kamera-Welt", E1). The shell announces it at boot: it has to know the answer `claimIntro`
+ * will give, without taking it.
  */
 describe('Verse entrance announcement', () => {
   const store = () => {
     const m = new Map<string, string>();
     return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
   };
+  const bare: () => DocumentEntry = () => ({ bare: true, revisit: false });
+  const deep: () => DocumentEntry = () => ({ bare: false, revisit: false });
+  const reload: () => DocumentEntry = () => ({ bare: true, revisit: true });
   beforeEach(() => resetIntroDocument());
-
-  const noon = (d: number) => () => new Date(2026, 10, d, 12, 0, 0);
 
   it('peeks the same answer the claim then gives, without claiming', () => {
     const s = store();
-    expect(peekIntro(s, noon(5))).toBe('full');
-    expect(peekIntro(s, noon(5)), 'peeking claims nothing').toBe('full');
-    expect(claimIntro(s, noon(5))).toBe('full');
-    expect(peekIntro(s, noon(5))).toBe('short');
-    expect(claimIntro(s, noon(5))).toBe('short');
+    expect(peekIntro(s, bare)).toBe('full');
+    expect(peekIntro(s, bare), 'peeking claims nothing').toBe('full');
+    expect(claimIntro(s, bare)).toBe('full');
+    expect(peekIntro(s, bare)).toBe('short');
+    expect(claimIntro(s, bare)).toBe('short');
+    expect(s.getItem(INTRO_FLAG)).toBe('1');
   });
 
-  it('a reload or new tab on the same day is short, the next local day is full again', () => {
+  it('only the bare domain plays it: a call with a path (or a reload) builds the short way and claims nothing', () => {
     const s = store();
-    expect(claimIntro(s, noon(5))).toBe('full');
-    resetIntroDocument();
-    expect(peekIntro(s, noon(5)), 'reload / new tab').toBe('short');
-    expect(claimIntro(s, noon(5))).toBe('short');
-    expect(peekIntro(s, noon(6))).toBe('full');
-    expect(claimIntro(s, noon(6))).toBe('full');
-    expect(s.getItem(INTRO_FLAG)).toBe('2026-11-06');
+    expect(claimIntro(s, deep)).toBe('short');
+    expect(peekIntro(s, deep)).toBe('short');
+    expect(claimIntro(s, reload)).toBe('short');
+    expect(s.getItem(INTRO_FLAG), 'nothing claimed').toBeNull();
+    expect(claimIntro(s, bare), 'the bare call is still the first').toBe('full');
   });
 
-  it('counts the local calendar day: 23:59 and 00:01 are different days', () => {
+  it('once per tab: a second bare call in the same tab is short', () => {
     const s = store();
-    expect(claimIntro(s, () => new Date(2026, 10, 5, 23, 59))).toBe('full');
-    expect(claimIntro(s, () => new Date(2026, 10, 5, 23, 59))).toBe('short');
-    expect(claimIntro(s, () => new Date(2026, 10, 6, 0, 1))).toBe('full');
+    expect(claimIntro(s, bare)).toBe('full');
+    expect(claimIntro(s, bare)).toBe('short');
   });
 
-  it('without usable storage the day is remembered for this document only', () => {
-    const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => undefined };
-    expect(claimIntro(null, noon(5))).toBe('full');
-    expect(peekIntro(null, noon(5))).toBe('short');
-    expect(claimIntro(broken, noon(5)), 'same document, same day').toBe('short');
+  it('survives blocked storage: the document remembers it', () => {
+    const broken = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+    expect(claimIntro(null, bare)).toBe('full');
+    expect(peekIntro(null, bare)).toBe('short');
+    expect(claimIntro(broken, bare), 'same document').toBe('short');
     resetIntroDocument();
-    expect(claimIntro(broken, noon(5)), 'fresh document').toBe('full');
+    expect(claimIntro(broken, bare), 'fresh document').toBe('full');
   });
+});
 
+describe('Entrance hold in the shell chrome', () => {
   it('holds the chrome until the hub starts the entrance, and drops a hold nobody took over', fakeAsync(() => {
     const chrome = TestBed.inject(ShellChromeService);
     chrome.holdHeroIntro();

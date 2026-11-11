@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.256.0] - 2026-11-11
+
+### Added
+- Kamera-Welt (shell beta): Verse, Codex and HQ share one continuous camera scene. Page loads and every page and subpage switch are camera pans and zooms on straight paths instead of background swaps; the header morphs into the subheader, and on phones it moves into the bottom thumb bar.
+- Verse hub projector: the newest item projects first, 5 s on and 5 s off, then projects back out in reverse.
+- Popups open and close as one motion (Horizont); small menus close as a real reverse.
+- Hovering, focusing or pressing a link prepares the target page's code and data before the click.
+
+### Changed
+- Reduced motion crossfades only the scene in 420 ms; the page stays clickable during the fade.
+- Codex, HQ and the Verse hub build their lower parts after the camera has landed, so the flight stays smoother.
+
+### Fixed
+- Scrolling on /codex and /hq: far fewer stutter frames (snap no longer pulls back each wheel notch, no page-wide restyles while scrolling).
+- Ship detail on phones: the floating button column no longer covers the Hangar button.
+- Restored the named loadout layouts with share link and the Codex landing side panes, which an earlier merge had dropped.
+
 ## [0.255.0] - 2026-11-10
 
 ### Changed
