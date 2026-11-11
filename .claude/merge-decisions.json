@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "aspects": {
+    "data-uploader/src/lib/subthemes.ts›weapons›revision": [
+      {
+        "ship": "#1093",
+        "by": "Jerry",
+        "value": "revision: 4"
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "revision: 5 (supersedes #1093's 4: both #343 and the ,P name fix must re-upload)",
+        "decided": true,
+        "at": "2026-11-11T17:28:44.035Z",
+        "hunks": [
+          "becb5e302089"
+        ]
+      }
+    ]
+  }
+}
