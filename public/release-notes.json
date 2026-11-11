@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.257.0",
+  "current": "0.257.1",
   "releases": [
+    {
+      "version": "0.257.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Kennzahlen: Dauer-DPS is no longer a copy of Salven-DPS. It now counts the pauses for reloading, energy regeneration and overheating; where a weapon has no known cycle yet, the cell says so instead of repeating the burst value."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.257.0",
       "date": "2026-11-11",
