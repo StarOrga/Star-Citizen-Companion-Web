@@ -111,7 +111,8 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 15: a hull with no authored deck (Idris) gets `derived` decks grouped by
     // floor height ("Level N" / "Ebene N"); stairs, ladders and lifts sit on
     // every level they join and name them in `rooms[].connects`.
-    revision: 15,
+    // 16: mission-objective props (EAObjective*, e.g. the Satellite) are no ships.
+    revision: 16,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,

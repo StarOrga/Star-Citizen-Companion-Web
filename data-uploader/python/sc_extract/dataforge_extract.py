@@ -220,6 +220,11 @@ _NPC_TOKENS = (
     # projects hull mass), but it is a floating wreck chunk, not a ship anyone
     # can own. Also drops SCItem_Debris / VehicleItemDebris from items.
     "debris",
+    # EAObjective*: Electronic Access mission-objective props (e.g.
+    # EAObjectiveDestructable_Satellite). They carry hull geometry and
+    # VehicleComponentParams but are scenery to shoot at, not ships; they
+    # showed up as "1/360 ship silhouettes without anchors".
+    "eaobjective",
 )
 _NONCATALOG_RE = re.compile(
     r"(?:^|_)(?:" + "|".join(_JUNK_TOKENS + _NPC_TOKENS) + r")(?:_|$)",
