@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.257.5] - 2026-11-11
+
+### Fixed
+- Admin feedback, Alt+click picker: a click in the header, the bar, a navigation, a menu or a dialog now names that region ("Kopfzeile", "Menü „Konto“") instead of the page's route, and the Codex view only stands in front of clicks inside the page. An icon or image inside a button or link names the button or link ("Button „Profilbild (Konto-Menü)“" for the avatar) instead of a nameless "Bild".
+
 ## [0.257.4] - 2026-11-11
 
 ### Fixed

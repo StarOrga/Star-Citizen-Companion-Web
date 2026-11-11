@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.257.4",
+  "current": "0.257.5",
   "releases": [
+    {
+      "version": "0.257.5",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin feedback, Alt+click picker: a click in the header, the bar, a navigation, a menu or a dialog now names that region (\"Kopfzeile\", \"Menü „Konto“\") instead of the page's route, and the Codex view only stands in front of clicks inside the page. An icon or image inside a button or link names the button or link (\"Button „Profilbild (Konto-Menü)“\" for the avatar) instead of a nameless \"Bild\"."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.257.4",
       "date": "2026-11-11",
