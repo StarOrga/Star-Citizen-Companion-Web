@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.257.2",
+  "current": "0.258.0",
   "releases": [
+    {
+      "version": "0.258.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Data Uploader 0.79.0: ship values validated against the wiki and erkul (Starlancer MAX/TAC, ROC/ROC-DS, Idris-M/P) — armour from the fitted armour item, ore pods by their real capacity, ground-vehicle top and reverse speed, fuel capacity, liveries from the game data (names, which ship they fit, 3D hull for the Starlancer), Wikelo special names, mission/event copies of a ship no longer listed as ships, no more hull-mass warning per variant."
+            },
+            {
+              "title": "",
+              "text": "Codex ship facts show hull HP, hull mass and armour instead of a gap."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.257.2",
       "date": "2026-11-11",
