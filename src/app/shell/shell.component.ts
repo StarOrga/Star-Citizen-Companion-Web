@@ -13,7 +13,9 @@ import {
   inject,
   signal,
   untracked,
+  viewChildren,
 } from '@angular/core';
+import { claimRootAttr, setRootVar } from '../core/root-var';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   NavigationCancel,
@@ -34,6 +36,7 @@ import { ProfileService } from '../auth/profile.service';
 import { VerseApiService } from '../verse/data/verse-api.service';
 import { KartographCrestComponent } from '../verse/starmap/kartograph-crest.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { AppsMenuComponent } from './apps-menu.component';
 import { HeaderPopoutService } from './header-popout.service';
 import { ScActionDirective } from '../shared/action/sc-action.directive';
@@ -75,7 +78,7 @@ import { avatarUrlOf } from './avatar-url';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent, SlowNavigationComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, StarToastComponent, UndoToastComponent, AccountNoticeComponent, CodexSearchBarComponent, FeedbackSpotsComponent, FeedbackCaptureComponent, BetaFabComponent, ViewToggleFabComponent, NgTemplateOutlet, FusionBarComponent, ShellSceneComponent, MainHeaderComponent, ScTooltipDirective, KartographCrestComponent, AppsMenuComponent, MerklisteComponent, ScActionDirective, WishCartDialogComponent, SlowNavigationComponent, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.verse-overlay]': 'verseOverlay()',
@@ -89,14 +92,17 @@ import { avatarUrlOf } from './avatar-url';
   animations: [
     // A menu switch between two main pages (beta shell) holds the new page back
     // while the scene's camera travels (delay), then lets it rise in.
+    // Under the beta shell the reveal is opacity only: a transform on <main> (even mid-animation) makes it the
+    // containing block of every position: fixed child (section rail, HQ rail), which then jumps when it ends.
+    // The pages' own entrances (page-motion) carry the rise there.
     trigger('routeReveal', [
       transition(
         ':increment',
         [
-          style({ opacity: 0, transform: 'translateY({{rise}}px) scale(0.994)' }),
-          animate('{{dur}}ms {{delay}}ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: 'none' })),
+          style({ opacity: 0, transform: '{{from}}' }),
+          animate('{{dur}}ms {{delay}}ms cubic-bezier(0.2, 0.8, 0.2, 1)', style({ opacity: 1, transform: '{{to}}' })),
         ],
-        { params: { delay: 0, dur: 320, rise: 10 } },
+        { params: { delay: 0, dur: 320, from: 'translateY(10px) scale(0.994)', to: 'none' } },
       ),
     ]),
   ],
@@ -299,8 +305,8 @@ import { avatarUrlOf } from './avatar-url';
             </span>
           }
 
-          @if (menuOpen()) {
-            <div class="dropdown" role="menu" (keydown)="onMenuKeydown($event)">
+          @if (menuShown()) {
+            <div class="dropdown" role="menu" scPopupMotion scPopupMotionItems=".dropdown-item" scPopupMotionOrigin="tr" (keydown)="onMenuKeydown($event)">
               <div class="dropdown-header">
                 <div class="dh-id">
                   <span class="dh-name">{{ displayName() }}</span>
@@ -642,9 +648,8 @@ import { avatarUrlOf } from './avatar-url';
       max-width: calc(100vw - 2 * var(--sc-fab-clear-inline));
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       padding: 4px 14px; border-radius: 999px;
-      background: color-mix(in srgb, var(--sc-bg-2) 88%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-2) 93%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
-      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
       font-family: var(--sc-font-display); font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.16em;
       text-transform: uppercase; color: var(--sc-accent);
       animation: sc-reveal-in 0.3s ease both;
@@ -1102,6 +1107,10 @@ export class ShellComponent implements AfterViewInit {
   /** The Admin hub, the first red entry of the account menu. */
   protected readonly adminHub = ADMIN_HUB;
   readonly menuOpen = signal(false);
+  /** The profile menu stays mounted while its close (the open reversed in 60 %) plays. */
+  readonly menuShown = signal(false);
+  private readonly menuMotions = viewChildren(ScPopupMotionDirective);
+  private menuHideTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly popouts = inject(HeaderPopoutService);
   /** The folded admin menu (721-1179px). */
   readonly adminMenuOpen = signal(false);
@@ -1158,6 +1167,24 @@ export class ShellComponent implements AfterViewInit {
   private topbarHeightPx: number | null = null;
 
   constructor() {
+    // The layout on <html> too: global rules read html[data-sc-layout], never html:has([data-layout]).
+    effect(() => claimRootAttr('data-sc-layout', this, this.shellOn() ? this.layout.layout() : null));
+    inject(DestroyRef).onDestroy(() => claimRootAttr('data-sc-layout', this, null));
+    // Profile menu: mount on open, keep it until its reversed close has played.
+    effect(() => {
+      const open = this.menuOpen();
+      untracked(() => {
+        if (this.menuHideTimer !== null) { clearTimeout(this.menuHideTimer); this.menuHideTimer = null; }
+        if (open) {
+          if (this.menuShown()) this.menuMotions().forEach((m) => m.restart());
+          else this.menuShown.set(true);
+        } else if (this.menuShown()) {
+          const exits = this.menuMotions().map((m) => m.exit());
+          if (exits.length === 0) { this.menuShown.set(false); return; }
+          void Promise.all(exits).then(() => { if (!this.menuOpen()) this.menuShown.set(false); });
+        }
+      });
+    });
     // Another header popout (wishlist / apps) took the slot: the profile menu folds away.
     effect(() => {
       if (this.popouts.active() !== 'profile' && untracked(() => this.menuOpen())) this.menuOpen.set(false);
@@ -1246,7 +1273,7 @@ export class ShellComponent implements AfterViewInit {
     const px = parked ? Math.round(bar.getBoundingClientRect().height) : 0;
     if (px === this.topbarHeightPx) return;
     this.topbarHeightPx = px;
-    document.documentElement.style.setProperty('--sc-topbar-h', `${px}px`);
+    setRootVar('--sc-topbar-h', `${px}px`);
   }
 
   private stopTopbarProbe(): void {
@@ -1301,7 +1328,7 @@ export class ShellComponent implements AfterViewInit {
       this.switchInTimer = setTimeout(() => this.switchingIn.set(false), REVEAL_SWITCH.delay + REVEAL_SWITCH.dur);
       return;
     }
-    this.revealParams.set(REVEAL_PLAIN);
+    this.revealParams.set(this.shellOn() ? REVEAL_FRAME : REVEAL_PLAIN);
     this.reveal.update((n) => n + 1);
   }
 
@@ -1537,15 +1564,19 @@ export function isAdminNavRoute(url: string): boolean {
   return path === '/admin' || path === '/admin/hub' || path === '/admin/telemetry' || path.startsWith('/admin/telemetry/');
 }
 
-interface RevealParams {
+export interface RevealParams {
   delay: number;
   dur: number;
-  rise: number;
+  /** Start / end transform of <main>; `none` → `none` animates opacity alone. */
+  from: string;
+  to: string;
 }
-/** Reveal of an ordinary navigation. */
-const REVEAL_PLAIN: RevealParams = { delay: 0, dur: 320, rise: 10 };
-/** Reveal after a menu switch: held while the camera travels, then a longer rise. */
-const REVEAL_SWITCH: RevealParams = { delay: 420, dur: 520, rise: 22 };
+/** Reveal of an ordinary navigation (classic shell). */
+export const REVEAL_PLAIN: RevealParams = { delay: 0, dur: 320, from: 'translateY(10px) scale(0.994)', to: 'none' };
+/** Beta shell: no transform on <main>, so a fixed child (rail) never takes it as its containing block. */
+export const REVEAL_FRAME: RevealParams = { delay: 0, dur: 320, from: 'none', to: 'none' };
+/** Length of the menu-switch phase (`.switch-in` on <main>). */
+const REVEAL_SWITCH = { delay: 420, dur: 520 };
 
 /** True on exactly `/verse` (query and fragment ignored) — not on its sub-pages. */
 export function isVerseHome(url: string): boolean {

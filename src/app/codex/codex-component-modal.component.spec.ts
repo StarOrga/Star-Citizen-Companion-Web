@@ -89,17 +89,20 @@ describe('CodexComponentModalComponent', () => {
     expect(keys).toContain('Lifetime');
   });
 
-  it('emits closed on the button and Escape, never on a click beside it', () => {
+  it('emits closed on the button and Escape, never on a click beside it', async () => {
     let closes = 0;
     fixture.componentInstance.closed.subscribe(() => closes++);
     const el = render(PANTHER);
     (el.querySelector('.cm-backdrop') as HTMLElement).click();
     expect(closes).toBe(0);
+    // The close plays the horizon motion reversed (60 % of the open) before the host hears of it.
     (el.querySelector('.cm-close') as HTMLButtonElement).click();
+    expect(el.querySelector('.cm-backdrop')?.classList.contains('pm-out')).toBe(true);
+    await vi.waitFor(() => expect(closes).toBe(1), { timeout: 3000 });
     render(PANTHER)
       .querySelector('.cm-panel')!
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(closes).toBe(2);
+    await vi.waitFor(() => expect(closes).toBe(2), { timeout: 3000 });
   });
 
   it('says so instead of rendering an empty window when nothing is extracted', () => {

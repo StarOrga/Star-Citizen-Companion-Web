@@ -138,6 +138,12 @@
 }
 .sun-gl.on { opacity: 1; }
 .sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) { opacity: 0; transition: opacity 1s ease-out; }
+// The CSS star is the fallback only: its first raster (three SVGs, blurred conics) is never paid
+// while the live sun can still come (QA D12) - unpainted until `art` (the planets' 2 s wait), and
+// once the live sun draws, gone from the paint after its crossfade.
+:host(:not(.art)) .sun:not(:has(> .sun-gl.on)) > :is(.corona, .streamers, .prom, .disc, .flash) { visibility: hidden; }
+.sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) { visibility: hidden; transition: opacity 1s ease-out, visibility 0s 1s; }
+:host(:not(.art)) .sun:has(> .sun-gl.on) > :is(.corona, .streamers, .prom, .disc, .flash) { transition: none; }
 @keyframes corona { to { transform: rotate(360deg); } }
 @keyframes breathe { from { opacity: 0.78; scale: 0.97; } to { opacity: 1; scale: 1.04; } }
 @keyframes boil { from { transform: rotate(-7deg) scale(1); opacity: 0.1; } to { transform: rotate(9deg) scale(1.06); opacity: 0.3; } }
@@ -261,15 +267,19 @@
 // finale (.finale — the comet lands once everything else stands) and only then ignites and
 // builds up. Until then its own animation and the sky's stars and lines (which follow
 // --sc-brief-play) stand at their hidden first frame.
-:host-context(.bstage.intro) .sun-l { animation: bk-in 0.6s ease-out 2.6s both; }
+:host-context(.bstage.intro) .sun-l { animation: bk-in 0.6s ease-out 4.3s both; }
 // The station drifts in with the details, a beat after the sun.
-:host-context(.bstage.intro) .hq-l { animation: bk-in 0.6s ease-out 2.75s both; }
+:host-context(.bstage.intro) .hq-l { animation: bk-in 0.6s ease-out 4.45s both; }
+// Menu switch (rounds/05 d5-pb-nav): the Patches line and the sun stand at 1.3 s.
+:host-context(.bstage.nav) :is(.sun-l, .hq-l, .const-l) { animation: bk-in 0.6s ease-out 1.3s both; }
 :host-context(.bstage.intro) .const-l {
   --intro-d: 0.45s;
   animation: bk-ignite 0.9s ease-out 0.45s both;
 }
 :host-context(.bstage.intro:not(.finale)) .const-l { animation-play-state: paused; --sc-brief-play: paused; }
-@keyframes bk-in { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
+// Opacity only, as in the mock (rounds/05 r3/r4): an animated blur over the sun's rotating, masked
+// layers re-rastered the group every frame - the cold menu switch's longest frame (~1.6 s, D12).
+@keyframes bk-in { from { opacity: 0; } }
 @keyframes bk-ignite { 0% { opacity: 0; filter: brightness(2.4) blur(4px); } 35% { opacity: 1; filter: brightness(2) drop-shadow(0 0 14px rgba(150, 225, 255, 0.8)); } 100% { opacity: 1; filter: none; } }
 
 @media (prefers-reduced-motion: reduce) {

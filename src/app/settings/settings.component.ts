@@ -1,4 +1,5 @@
 import { logWarn } from '../core/log';
+import { onScrollTick } from '../core/scroll-tick';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -33,6 +34,10 @@ import { readEdgeErrorCode } from '../core/edge-error';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { BetaService } from '../core/beta.service';
+import { PAGE_MOTION_STYLES } from '../shared/page-motion/page-motion.styles';
+import { translateTick } from '../shared/section-rail/translate-tick';
+import { SectionRailComponent, SectionRailGo, SectionRailItem } from '../shared/section-rail/section-rail.component';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { memberSince } from './member-since';
 
@@ -72,13 +77,6 @@ interface SettingsGroup {
  */
 const SPY_CLEARANCE_PX = 24;
 
-/**
- * Viewport width at which the rail stops being a vertical column beside the
- * cards and becomes the pinned horizontal bar above them. Mirrors the 1080px
- * breakpoint in this component's stylesheet — the two must move together.
- */
-const RAIL_STACK_QUERY = '(max-width: 1079px)';
-
 /** delete-user error codes → the settings page's own sentences. Anything
  *  unmapped falls back to settings.danger.failed — never the raw code. */
 const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
@@ -93,43 +91,21 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslatePipe, ScTooltipDirective, ScSelectComponent],
+  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslatePipe, ScTooltipDirective, ScSelectComponent, SectionRailComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
-      <h1>{{ 'settings.title' | translate }}</h1>
+    <section class="page" [class.pm-on]="shellOn()">
+      <div class="pm-scrim" aria-hidden="true"></div>
+      <h1 class="pm-scan">{{ 'settings.title' | translate }}</h1>
 
       <div class="layout">
-        <!-- Table of contents (feedback af058ca4 follow-up). Real anchors on
-             purpose: middle click, Ctrl/Cmd+click and "copy link address" work
-             for free and the fragment is shareable. The href carries the PAGE
-             PATH — a bare "#settings-account" resolves against <base href="/">
-             instead of the current URL, which is why the rail used to dump the
-             user on the start page (feedback af058ca4, round 3). The plain
-             left click is intercepted so the page glides to the section
-             instead of jumping; every other kind of click falls through. -->
-        <nav class="toc" [attr.aria-label]="'settings.toc.label' | translate">
-          <ul class="toc-list">
-            @for (g of groups; track g.id) {
-              <li>
-                <a
-                  class="toc-link"
-                  [class.active]="activeGroup() === g.id"
-                  [href]="tocHref(g.anchor)"
-                  (click)="onTocClick($event, g)"
-                  [attr.aria-label]="g.labelKey | translate"
-                  [attr.aria-current]="activeGroup() === g.id ? 'true' : null">
-                  <span class="toc-marker" aria-hidden="true"></span>
-                  <!-- Pinned to the top of a phone screen the bar has one row
-                       to work with, so it carries the short label there. The
-                       aria-label above keeps the full section title as the
-                       entry's accessible name either way. -->
-                  <span class="toc-text">{{ (compactRail() ? g.shortKey : g.labelKey) | translate }}</span>
-                </a>
-              </li>
-            }
-          </ul>
-        </nav>
+        <!-- Section rail (feedback af058ca4 follow-up; camera world: the HQ-style icon rail at the screen edge, the same
+             one every page with a section menu uses). Real anchors on purpose: middle click, Ctrl/Cmd+click and "copy
+             link address" work for free and the fragment is shareable. The href carries the PAGE PATH — a bare
+             "#settings-account" resolves against <base href="/"> instead of the current URL, which is why the rail used
+             to dump the user on the start page (feedback af058ca4, round 3). The plain left click is intercepted so the
+             page glides to the section instead of jumping; every other kind of click falls through. -->
+        <sc-section-rail [items]="railItems()" [ariaLabel]="'settings.toc.label' | translate" (go)="onRailGo($event)" />
 
         <div class="sections">
           <!-- 1. Account & identity — who the account is, plus the one field
@@ -328,10 +304,21 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                    is broken, so it must never be switchable off from a place
                    the user cannot find again. -->
               <div class="sc-card section">
-                <h3>{{ 'settings.feedbackFab.title' | translate }}</h3>
-                <p class="hint">{{ 'settings.feedbackFab.hint' | translate }}</p>
+                <!-- Staff (admin + collaborator) also get the beta FAB, and
+                     this one setting hides both (feedback #339). Only they read
+                     about the beta button: the staff wording carries the
+                     collaborator colour, the audience words stay sr-only. -->
+                <h3>{{ (roles.isCollaborator() ? 'settings.feedbackFab.staff.title' : 'settings.feedbackFab.title') | translate }}</h3>
+                <p class="hint">{{ (roles.isCollaborator() ? 'settings.feedbackFab.staff.hint' : 'settings.feedbackFab.hint') | translate }}</p>
                 <div class="row">
-                  <span class="label">{{ 'settings.feedbackFab.show.label' | translate }}</span>
+                  @if (roles.isCollaborator()) {
+                    <span class="label elevated-collab">
+                      {{ 'settings.feedbackFab.staff.label' | translate }}
+                      <span class="sc-sr-only">{{ 'settings.feedbackFab.staff.audience' | translate }}</span>
+                    </span>
+                  } @else {
+                    <span class="label">{{ 'settings.feedbackFab.show.label' | translate }}</span>
+                  }
                   <span class="value">
                     <label class="consent-toggle">
                       <input
@@ -344,9 +331,9 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                 </div>
                 <p class="consent-desc">
                   {{
-                    (feedbackFabPrefs.show()
-                      ? 'settings.feedbackFab.show.descOn'
-                      : 'settings.feedbackFab.show.descOff') | translate
+                    (roles.isCollaborator()
+                      ? (feedbackFabPrefs.show() ? 'settings.feedbackFab.staff.descOn' : 'settings.feedbackFab.staff.descOff')
+                      : (feedbackFabPrefs.show() ? 'settings.feedbackFab.show.descOn' : 'settings.feedbackFab.show.descOff')) | translate
                   }}
                 </p>
                 <!-- The liveness tint on the feedback panel's title (feedback
@@ -485,7 +472,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
       </div>
     </section>
   `,
-  styles: [`
+  styles: [PAGE_MOTION_STYLES + `
     /* Settings used to cap itself at 720px while every other subpage runs the
        full shell width — it read as a broken, half-finished column (feedback
        af058ca4). It now fills the same width and spends it on a two-column
@@ -493,21 +480,13 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     .page { display: flex; flex-direction: column; gap: 20px; }
     h1 { margin: 0; }
 
-    /* Rail + content. Below 1080px the rail collapses into a horizontal bar
-       above the content, and the layout is a plain BLOCK there on purpose: a
-       grid item's sticky travel is bounded by its own grid area, so as a
-       single-column grid item the bar could not have moved a pixel. As a block
-       child of .layout it sticks across the whole page (feedback af058ca4
-       round 4). Two columns above 1080px, where the rail's grid area is the
-       full-height row and sticky works out of the box. */
+    /* The section rail hangs on the screen edge (shared sc-section-rail, like HQ), so the cards own the whole frame: title and
+       cards start at the same left edge, no column is left over from the old text menu (camera world M2). Past 1024px the
+       rail needs its lane at the edge; the page keeps clear of it the way the HQ landing does. */
     .layout { display: block; }
-    @media (min-width: 1080px) {
-      .layout {
-        display: grid;
-        grid-template-columns: 176px minmax(0, 1fr);
-        gap: 32px;
-        align-items: start;
-      }
+    .page { isolation: isolate; }
+    @media (min-width: 1024px) {
+      .page { padding-inline-start: max(0px, calc(var(--hq-rail-clear, 72px) - var(--sc-page-gutter))); }
     }
 
     .sections { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
@@ -522,7 +501,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
       scroll-margin-top: calc(
         var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 24px
       );
-      /* The rail hands focus to the section it scrolled to (see onTocClick),
+      /* The rail hands focus to the section it scrolled to (see onRailGo),
          so a keyboard user continues INSIDE the section instead of at the top
          of the rail. Only the keyboard gets a ring — a mouse click must not
          paint a box around a third of the page. */
@@ -555,55 +534,6 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     }
     .group-title.danger-title { color: var(--sc-danger); }
     .group-title.danger-title::after { background: rgba(248, 113, 113, 0.3); }
-
-    /* Quiet table of contents: text links on the page background, one accent
-       marker for the section being read. Deliberately not a boxed sidebar —
-       the ask was "dezent". */
-    .toc { min-width: 0; }
-    .toc-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .toc-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 4px;
-      min-height: 36px;
-      color: var(--sc-fg-2);
-      text-decoration: none;
-      font-family: var(--sc-font-display);
-      font-size: max(0.74rem, var(--sc-fs-floor));
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      border-radius: 4px;
-      transition: color 0.16s ease;
-    }
-    .toc-marker {
-      flex: 0 0 auto;
-      width: 2px;
-      align-self: stretch;
-      border-radius: 999px;
-      background: var(--sc-border);
-      transition: background 0.16s ease;
-    }
-    .toc-text { min-width: 0; overflow-wrap: anywhere; }
-    .toc-link:hover { color: var(--sc-fg-0); }
-    .toc-link:hover .toc-marker { background: var(--sc-fg-2); }
-    .toc-link.active { color: var(--sc-accent); }
-    .toc-link.active .toc-marker { background: var(--sc-accent); }
-
-    @media (min-width: 1080px) {
-      /* Follows the reader down the page, parked below the sticky topbar. */
-      .toc {
-        position: sticky;
-        top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 24px);
-      }
-    }
 
     .grid {
       display: grid;
@@ -643,6 +573,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     .label { flex: 0 0 auto; }
     /* Admin-only row: the colour says it, never a word (CLAUDE.md). */
     .label.elevated-hot { color: var(--sc-accent-hot); }
+    .label.elevated-collab { color: var(--sc-accent-collab); }
     .value.pills {
       display: flex;
       flex-wrap: wrap;
@@ -834,91 +765,44 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
       color: var(--sc-bg-0);
     }
 
-    /* Below the two-column breakpoint the rail cannot sit beside anything, so
-       it becomes a bar of chips above the first section — and that bar is what
-       stays PINNED down here, in the slot the shell header gave up (admin
-       feedback af058ca4 round 4: "mach eher die sub menu leiste sticky").
-       Before, the bar scrolled away with the page, so the very first tap on a
-       section took it off screen and left no way back to the other sections
-       short of scrolling to the top again. */
-    @media (max-width: 1079px) {
-      .toc {
-        position: sticky;
-        top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px));
-        z-index: 5;
-        /* Runs edge to edge: a pinned bar that content slides past has to
-           cover the full width, or the cards travel visibly up its flanks.
-           --sc-page-gutter is the page frame's side padding (styles.scss). */
-        margin: 0 calc(-1 * var(--sc-page-gutter)) 20px;
-        padding: 8px var(--sc-page-gutter);
-        background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent);
-        -webkit-backdrop-filter: blur(12px);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid var(--sc-border);
-      }
-      .toc-list {
-        flex-direction: row;
-        flex-wrap: nowrap;
-        /* Never centre a row that can overflow: what spills past the START
-           edge is unreachable, because a scroll port cannot travel behind its
-           own origin. Same trap the shell nav fell into. */
-        justify-content: flex-start;
-        gap: 6px;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        margin: 0;
-        padding: 0;
-      }
-      .toc-list::-webkit-scrollbar { display: none; }
-      /* Segmented-control look rather than four outlined pills: unselected
-         entries are quiet fills with no border of their own, so the bar reads
-         as one object and the current section is the only thing that carries
-         colour. */
-      .toc-link {
-        flex: 0 0 auto;
-        gap: 0;
-        padding: 9px 12px;
-        min-height: 40px;
-        white-space: nowrap;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent);
-        color: var(--sc-fg-1);
-        transition: color 0.16s ease, background 0.16s ease;
-      }
-      .toc-text { overflow-wrap: normal; }
-      /* The dot was a second, weaker "you are here" signal next to the label
-         colour; the filled chip says it on its own. */
-      .toc-marker { display: none; }
-      .toc-link:hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-fg-2) 20%, transparent); }
-      .toc-link.active,
-      .toc-link.active:hover {
-        background: var(--sc-accent);
-        color: var(--sc-bg-0);
-        font-weight: 600;
-      }
-      /* A fragment jump has to clear the pinned bar too, or it parks the
-         heading underneath the very control that sent you there. 88px covers
-         the bar at its tallest (48px touch chip + padding + rule). */
+    /* A fragment jump has to clear the pinned compact strip too, or it parks the heading underneath the very control that
+       sent you there. 88px covers the strip at its tallest (48px touch chip + padding + rule). */
+    @media (max-width: 1023px) {
       .group {
-        scroll-margin-top: calc(
-          var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 88px
-        );
+        scroll-margin-top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 88px);
       }
     }
-    /* A phone held sideways has ~360px of height: a pinned bar there costs a
-       sixth of the screen for the whole page, so it scrolls away instead. */
-    @media (max-width: 1079px) and (max-height: 480px) {
-      .toc { position: static; }
+    @media (max-width: 1023px) and (max-height: 480px) {
       .group { scroll-margin-top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 16px); }
+    }
+
+    /* ── Minor-page entrance (camera world M3, rounds/05 d5-pb-minor): the scene dims, the rail icons glide in one by
+       one (60 ms), the title scans open with a light edge, the cards rise staggered. ~1.5 s in all. ── */
+    .page.pm-on { --pm-delay: 0ms; --pm-step: 110ms; }
+    .pm-scrim { position: fixed; inset: 0; z-index: -1; pointer-events: none; display: none; background: color-mix(in srgb, var(--sc-bg-0) 38%, transparent); }
+    .pm-on .pm-scrim { display: block; animation: pm-fade 350ms ease-out backwards; }
+    /* rounds/05 d5-pb-minor: rail 0.2 s, title 0.45 s, cards from 0.7 s. The shell reveal no longer moves <main>,
+       so the fixed rail starts on its own beat instead of waiting for the reveal to end. */
+    .pm-on sc-section-rail { --pm-delay: 200ms; }
+    .pm-on h1 { --pm-delay: 450ms; }
+    .pm-on .group-title { animation: pm-fade 420ms ease-out calc(620ms + var(--pm-g, 0) * 110ms) backwards; }
+    .pm-on .grid > * {
+      animation: pm-rise 560ms var(--pm-ease) calc(700ms + (var(--pm-g, 0) + var(--pm-c, 0)) * var(--pm-step)) backwards;
+    }
+    .sections > .group:nth-child(2) { --pm-g: 2; }
+    .sections > .group:nth-child(3) { --pm-g: 4; }
+    .sections > .group:nth-child(4) { --pm-g: 6; }
+    .grid > :nth-child(2) { --pm-c: 1; }
+    .grid > :nth-child(3) { --pm-c: 2; }
+    .grid > :nth-child(n + 4) { --pm-c: 3; }
+    @media (prefers-reduced-motion: reduce) {
+      .pm-on .grid > *, .pm-on .group-title { animation: pm-fade 200ms ease-out backwards; }
     }
 
     /* Touch baseline: 44px is the project threshold, but the shell's loading
        scale animations shave a pixel off a measured target — so ask for 48. */
     @media (pointer: coarse) {
       .id-copy { min-height: 48px; padding: 8px 16px; }
-      .toc-link { min-height: 48px; }
     }
 
     @media (max-width: 560px) {
@@ -985,14 +869,32 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Section the rail highlights — driven by the scroll position, not by clicks. */
   readonly activeGroup = signal<GroupId>('account');
 
-  /**
-   * True while the rail is the pinned horizontal bar rather than the vertical
-   * column — i.e. below {@link RAIL_STACK_QUERY}. Only the chip LABEL depends
-   * on it; everything else about the two shapes is CSS.
-   */
-  readonly compactRail = signal(false);
-  private railQuery?: MediaQueryList;
-  private railQueryListener?: (e: MediaQueryListEvent) => void;
+  readonly shellOn = inject(BetaService).isEnabled('shell');
+  private readonly translateSvc = inject(TranslateService);
+
+  /** Icon of each section (24x24, stroked): the rail shows them at the screen edge. */
+  private static readonly GROUP_ICONS: Readonly<Record<GroupId, string>> = {
+    account: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4.5 20c0-3.9 3.4-6 7.5-6s7.5 2.1 7.5 6',
+    preferences: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
+    privacy: 'M12 3l8 3v6c0 4.6-3.2 7.7-8 9-4.8-1.3-8-4.4-8-9V6zM9 12l2 2 4-4',
+    danger: 'M12 4l9 16H3zM12 10v4M12 17v.5',
+  };
+
+  /** The rail's stops, in the page's section order; the names follow the language. */
+  readonly railItems = computed<SectionRailItem[]>(() => {
+    this.lang();
+    const active = this.activeGroup();
+    return this.groups.map((g) => ({
+      id: g.id,
+      href: this.tocHref(g.anchor),
+      label: this.translateSvc.instant(g.labelKey) as string,
+      short: this.translateSvc.instant(g.shortKey) as string,
+      icon: SettingsComponent.GROUP_ICONS[g.id],
+      active: active === g.id,
+      current: 'location' as const,
+    }));
+  });
+  private readonly lang = translateTick(this.translateSvc);
 
   /**
    * Scroll-spy plumbing. The listener runs OUTSIDE Angular and only re-enters
@@ -1000,6 +902,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
    * settings page costs one rAF-throttled measurement and no change detection.
    */
   private scrollListener?: () => void;
+  private offScroll?: () => void;
   private spyFrame = 0;
 
   readonly languages: readonly LangId[] = ['de', 'en'];
@@ -1085,19 +988,9 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   async ngOnInit() {
-    this.watchRailShape();
     // Seed the edit field from the shared handle (loaded once by ProfileService).
     if (!this.profile.loaded()) await this.profile.refresh();
     this.usernameInput.set(this.profile.username() ?? '');
-  }
-
-  /** Keeps {@link compactRail} in step with the stylesheet's rail breakpoint. */
-  private watchRailShape() {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    this.railQuery = window.matchMedia(RAIL_STACK_QUERY);
-    this.compactRail.set(this.railQuery.matches);
-    this.railQueryListener = (e) => this.compactRail.set(e.matches);
-    this.railQuery.addEventListener('change', this.railQueryListener);
   }
 
   ngAfterViewInit() {
@@ -1110,7 +1003,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
           this.syncActiveGroup();
         });
       };
-      window.addEventListener('scroll', this.scrollListener, { passive: true });
+      this.offScroll = onScrollTick(() => this.syncActiveGroup());
       window.addEventListener('resize', this.scrollListener, { passive: true });
       this.syncActiveGroup();
     });
@@ -1160,8 +1053,9 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
    * letting the browser teleport there. Ctrl/⌘/middle/shift clicks are left
    * alone so the href keeps opening a new tab or window.
    */
-  onTocClick(ev: MouseEvent, group: SettingsGroup) {
-    if (!isPlainLeftClick(ev)) return;
+  onRailGo({ event: ev, item }: SectionRailGo) {
+    const group = this.groups.find((g) => g.id === item.id);
+    if (!group || !isPlainLeftClick(ev)) return;
     const target = this.host.nativeElement.querySelector<HTMLElement>(`#${group.anchor}`);
     // No target rendered → let the real href do its job rather than swallowing
     // the click.
@@ -1194,13 +1088,8 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.spyFrame) cancelAnimationFrame(this.spyFrame);
-    if (this.railQuery && this.railQueryListener) {
-      this.railQuery.removeEventListener('change', this.railQueryListener);
-    }
-    this.railQuery = undefined;
-    this.railQueryListener = undefined;
     if (!this.scrollListener) return;
-    window.removeEventListener('scroll', this.scrollListener);
+    this.offScroll?.();
     window.removeEventListener('resize', this.scrollListener);
     this.scrollListener = undefined;
   }
@@ -1242,7 +1131,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     const style = getComputedStyle(document.documentElement);
     const px = (name: string) => parseFloat(style.getPropertyValue(name)) || 0;
     let line = px('--sc-imp-banner-h') + px('--sc-topbar-h') + SPY_CLEARANCE_PX;
-    const toc = this.host.nativeElement.querySelector<HTMLElement>('.toc');
+    const toc = this.host.nativeElement.querySelector<HTMLElement>('sc-section-rail');
     // Pinned AND wider than it is tall = the horizontal bar, which covers the
     // top of the page; the vertical rail sits beside the text and covers none.
     if (toc && getComputedStyle(toc).position === 'sticky' && toc.offsetWidth > toc.offsetHeight) {
@@ -1258,9 +1147,9 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
    * whenever the bar is short enough not to scroll.
    */
   private revealRailEntry(index: number) {
-    const list = this.host.nativeElement.querySelector<HTMLElement>('.toc-list');
+    const list = this.host.nativeElement.querySelector<HTMLElement>('sc-section-rail .rail');
     if (!list || list.scrollWidth <= list.clientWidth + 1) return;
-    const entry = list.querySelectorAll<HTMLElement>('.toc-link')[index];
+    const entry = list.querySelectorAll<HTMLElement>('.stop')[index];
     if (!entry) return;
     const left = entry.offsetLeft - (list.clientWidth - entry.offsetWidth) / 2;
     list.scrollTo({ left: Math.max(0, left), behavior: this.scrollBehavior() });

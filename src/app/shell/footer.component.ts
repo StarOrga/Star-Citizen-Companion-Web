@@ -144,7 +144,7 @@ import { BRAND_NAME } from '../core/brand';
       }
       /* A detail page's share button sits beside the feedback launcher: the
          links then end the same distance before it. */
-      :host-context(html:has(sc-share-button .dock)) .sf {
+      :host-context(html[data-sc-share-dock]) .sf {
         padding-inline-end: calc(var(--sc-fab-clear-inline) + max(44px, var(--sc-tap-min)) + var(--sc-space-4));
       }
     }
@@ -335,8 +335,7 @@ import { BRAND_NAME } from '../core/brand';
         margin: 0; box-sizing: border-box;
         padding: 0 var(--sc-fab-clear-inline) var(--sc-safe-bottom, 0px) 190px;
         height: calc(48px + var(--sc-safe-bottom, 0px));
-        background: color-mix(in srgb, var(--sc-bg-1) 55%, transparent);
-        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-1) 75%, transparent);
         border-top: 1px solid var(--sc-border);
       }
       .overlay .inner { height: 48px; gap: 18px; max-width: none; margin: 0; }

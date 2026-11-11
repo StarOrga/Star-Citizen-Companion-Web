@@ -19,6 +19,7 @@ const OFFENSIVE: OffensivePanel = {
   hasDpsColumn: true,
   footerAlpha: 120,
   footerDps: 1636.88,
+  footerSustainedDps: null,
   damageChannelTotals: [{ channel: 'energy', value: 120 }],
   effectiveRange: 1800,
   longestRangeGun: null,

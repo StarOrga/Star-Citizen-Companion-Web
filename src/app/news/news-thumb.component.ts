@@ -492,8 +492,7 @@ export function isPixelReadable(url: string): boolean {
       padding: 3px 8px; border-radius: 999px;
       font-size: max(0.66rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.08em;
       text-transform: uppercase;
-      background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent);
-      backdrop-filter: blur(6px);
+      background: color-mix(in srgb, var(--sc-bg-0) 84%, transparent);
       border: 1px solid var(--sc-border);
       color: var(--sc-fg-1);
     }

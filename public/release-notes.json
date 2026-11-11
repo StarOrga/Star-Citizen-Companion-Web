@@ -1,7 +1,147 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.254.0",
+  "current": "0.257.2",
   "releases": [
+    {
+      "version": "0.257.2",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.257.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Kennzahlen: Dauer-DPS is no longer a copy of Salven-DPS. It now counts the pauses for reloading, energy regeneration and overheating; where a weapon has no known cycle yet, the cell says so instead of repeating the burst value."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.257.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The Data Uploader is now called Verse Data Uploader everywhere: on the site, in the app's window and tray, and in the Windows start menu."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.256.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Swap picker: coolers, shields and drives show their type (\"Kühler\") under the name instead of repeating the product name in English."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.256.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Kamera-Welt (shell beta): Verse, Codex and HQ share one continuous camera scene. Page loads and every page and subpage switch are camera pans and zooms on straight paths instead of background swaps; the header morphs into the subheader, and on phones it moves into the bottom thumb bar."
+            },
+            {
+              "title": "",
+              "text": "Verse hub projector: the newest item projects first, 5 s on and 5 s off, then projects back out in reverse."
+            },
+            {
+              "title": "",
+              "text": "Popups open and close as one motion (Horizont); small menus close as a real reverse."
+            },
+            {
+              "title": "",
+              "text": "Hovering, focusing or pressing a link prepares the target page's code and data before the click."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Reduced motion crossfades only the scene in 420 ms; the page stays clickable during the fade."
+            },
+            {
+              "title": "",
+              "text": "Codex, HQ and the Verse hub build their lower parts after the camera has landed, so the flight stays smoother."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Scrolling on /codex and /hq: far fewer stutter frames (snap no longer pulls back each wheel notch, no page-wide restyles while scrolling)."
+            },
+            {
+              "title": "",
+              "text": "Ship detail on phones: the floating button column no longer covers the Hangar button."
+            },
+            {
+              "title": "",
+              "text": "Restored the named loadout layouts with share link and the Codex landing side panes, which an earlier merge had dropped."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.255.0",
+      "date": "2026-11-10",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Settings → Feedback-Button: switching the feedback button off now also hides the beta button for collaborators and admins — one shared setting."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.254.0",
       "date": "2026-11-11",

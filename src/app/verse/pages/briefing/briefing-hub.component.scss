@@ -212,3 +212,7 @@ a.ch:hover b { color: #fff; }
 }
 
 // cx-dim: every text over the planet and the stars gets the page's dark halo.
+
+// The staged reveal (verse-briefing stageBuild): the columns not yet painted keep their place.
+:host([data-cols='1']) .col:nth-child(n + 2),
+:host([data-cols='2']) .col:nth-child(n + 3) { visibility: hidden; }

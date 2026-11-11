@@ -140,7 +140,7 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
         req.on('end', () => {
           if (total > MAX_BODY_BYTES) {
             res.writeHead(413, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
-            res.end(renderPage('SC Data Uploader · Fehler', 'Anfrage zu groß.', false));
+            res.end(renderPage('Verse Data Uploader · Fehler', 'Anfrage zu groß.', false));
             return;
           }
           const raw = Buffer.concat(chunks).toString('utf-8');
@@ -158,7 +158,7 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
               body = JSON.parse(raw);
             } catch {
               res.writeHead(400, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
-              res.end(renderPage('SC Data Uploader · Fehler', 'Ungültige Anfrage.', false));
+              res.end(renderPage('Verse Data Uploader · Fehler', 'Ungültige Anfrage.', false));
               return;
             }
           } else {
@@ -175,20 +175,20 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
           }
           if (body.state !== state) {
             res.writeHead(400, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
-            res.end(renderPage('SC Data Uploader · Fehler', 'CSRF-Mismatch — versuch es erneut.', false));
+            res.end(renderPage('Verse Data Uploader · Fehler', 'CSRF-Mismatch — versuch es erneut.', false));
             finish({ ok: false, error: 'state mismatch' });
             return;
           }
           if (body.error || !body.token) {
             res.writeHead(400, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
-            res.end(renderPage('SC Data Uploader · Fehler', body.error ?? 'Kein Token erhalten.', false));
+            res.end(renderPage('Verse Data Uploader · Fehler', body.error ?? 'Kein Token erhalten.', false));
             finish({ ok: false, error: body.error ?? 'no token' });
             return;
           }
           // Success: render the "you can close this window" page directly
           // into the navigated tab and resolve. No separate ack round-trip.
           res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
-          res.end(renderPage('SC Data Uploader · Verbunden', 'Du kannst dieses Fenster schließen.', true));
+          res.end(renderPage('Verse Data Uploader · Verbunden', 'Du kannst dieses Fenster schließen.', true));
           const expiresAt =
             body.expires_at !== undefined && body.expires_at !== ''
               ? Number(body.expires_at)
@@ -203,7 +203,7 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
         });
         req.on('error', () => {
           res.writeHead(400, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
-          res.end(renderPage('SC Data Uploader · Fehler', 'Übertragungsfehler.', false));
+          res.end(renderPage('Verse Data Uploader · Fehler', 'Übertragungsfehler.', false));
         });
         return;
       }
@@ -215,8 +215,8 @@ export async function runOAuthFlow(webBase: string): Promise<AuthResult> {
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...corsHeaders() });
         res.end(
           renderPage(
-            'SC Data Uploader',
-            'Bitte den Login im Data Uploader Fenster starten.',
+            'Verse Data Uploader',
+            'Bitte den Login im Verse Data Uploader Fenster starten.',
             true,
           ),
         );

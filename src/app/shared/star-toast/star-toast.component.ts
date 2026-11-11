@@ -1,3 +1,4 @@
+import { ScPopupMotionDirective } from '../popup-motion/sc-popup-motion.directive';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { ToastSlotDirective } from '../toast-stack/toast-stack';
 import { RouterLink } from '@angular/router';
@@ -25,11 +26,11 @@ const UNLOCK_PRIORITY = [
 @Component({
   selector: 'sc-star-toast',
   standalone: true,
-  imports: [ToastSlotDirective, RouterLink, TranslatePipe, ScTooltipDirective],
+  imports: [ScPopupMotionDirective, ToastSlotDirective, RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (ev of shown(); track ev) {
-      <div class="toast" scToastSlot role="status" aria-live="polite" [class.paused]="held()"
+      <div class="toast" scToastSlot scPopupMotion scPopupMotionOrigin="br" animate.leave="pm-out" role="status" aria-live="polite" [class.paused]="held()"
            (mouseenter)="hold(true)" (mouseleave)="hold(false)" (focusin)="hold(true)" (focusout)="hold(false)">
         <i class="star" aria-hidden="true">★</i>
         <a class="body" routerLink="/verse/explorer">
@@ -53,11 +54,9 @@ const UNLOCK_PRIORITY = [
       width: min(var(--sc-toast-w, 24rem), calc(100vw - 2 * var(--sc-fab-gutter, 16px)));
       display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start;
       padding: 14px 14px 16px; border-radius: 14px; overflow: hidden;
-      background: color-mix(in srgb, var(--sc-bg-1) 94%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 0 30px color-mix(in srgb, var(--sc-accent) 14%, transparent);
-      backdrop-filter: blur(10px);
-      animation: toast-in 0.28s ease-out both;
     }
     .star { font-style: normal; font-size: 22px; line-height: 1; color: var(--sc-accent); text-shadow: 0 0 10px var(--sc-accent); }
     .body { display: grid; gap: 3px; color: inherit; text-decoration: none; min-width: 0; border-radius: 6px; }
@@ -80,7 +79,6 @@ const UNLOCK_PRIORITY = [
     @keyframes toast-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
     @keyframes toast-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
     @media (prefers-reduced-motion: reduce) {
-      .toast { animation: toast-fade 0.2s linear both; }
       @keyframes toast-fade { from { opacity: 0; } to { opacity: 1; } }
     }
   `],
