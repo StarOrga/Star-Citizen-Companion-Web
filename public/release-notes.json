@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.258.1",
+  "current": "0.259.0",
   "releases": [
+    {
+      "version": "0.259.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Ships without authored decks (Idris) get decks derived from floor height, marked as derived in the deck plan, the hull facts and the Holotable; stairs, ladders and lifts appear on every level they connect and name where they lead (uploader 0.80.0)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.258.1",
       "date": "2026-11-11",
