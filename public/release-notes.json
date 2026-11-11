@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.256.0",
+  "current": "0.256.1",
   "releases": [
+    {
+      "version": "0.256.1",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Swap picker: coolers, shields and drives show their type (\"Kühler\") under the name instead of repeating the product name in English."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.256.0",
       "date": "2026-11-11",
