@@ -874,7 +874,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const err = e as { code?: string; message?: string };
     const rawMsg = err?.message ?? String(e);
     // An upstream 520/502 arrives as a whole HTML page; keep one line.
-    const msg = /<\s*(!doctype|html)b/i.test(rawMsg)
+    const msg = /<\s*(!doctype|html)\b/i.test(rawMsg)
       ? `[HTML error page: ${(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(rawMsg)?.[1] ?? 'no title').replace(/\s+/g, ' ').trim().slice(0, 160)}]`
       : rawMsg.slice(0, 500);
     const timedOut = err?.code === '57014' || /statement timeout|canceling statement/i.test(msg);

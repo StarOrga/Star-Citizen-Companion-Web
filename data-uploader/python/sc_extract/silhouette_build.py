@@ -299,6 +299,10 @@ def build_rows(
             if hit is not None:
                 finish(mesh, hit, True)
                 continue
+            if lod1_sibling(mesh) and getattr(exporter, "known_bad", lambda _s: False)(src):
+                # Failed on an earlier run with this very mesh + converter: go straight to LOD1.
+                retry.append((mesh, (SKIP_CONVERT_FAILED, "LOD0 known not to convert")))
+                continue
             mesh_id = _safe_filename(Path(mesh).stem)
             pending[submit(pool, exporter.compute, src, mesh_id, tolerance_m)] = mesh
             # Bounded in flight: each queued job holds its mesh bytes (a big
