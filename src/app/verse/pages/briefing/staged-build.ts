@@ -66,3 +66,50 @@ export function afterPaint(run: () => void): () => void {
     clearTimeout(task);
   };
 }
+
+/**
+ * The hub's real height, remembered per window width (40 px buckets), so the placeholder that holds
+ * the page while the hub is still on its way (`.hub-hold`) has the hub's height and the scrollbar
+ * does not jump when the hub replaces it. The hub's height follows its own breakpoints and its
+ * content, so a formula only estimates it (verse-briefing-planet.scss); the first visit at a width
+ * uses that estimate, every later one the measured value. A per-viewer convenience in localStorage:
+ * without storage the estimate stands.
+ */
+export const HUB_HEIGHT_KEY = 'sc.verse.hubHeight';
+const HUB_HEIGHT_BUCKETS = 12;
+
+function hubBucket(width: number): string {
+  return String(Math.round(width / 40) * 40);
+}
+
+function readHubHeights(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(HUB_HEIGHT_KEY);
+    const v: unknown = raw ? JSON.parse(raw) : null;
+    return v && typeof v === 'object' ? (v as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** The hub height last measured at this window width, or null (then the CSS estimate holds). */
+export function readHubHeight(width: number): number | null {
+  const h = readHubHeights()[hubBucket(width)];
+  return typeof h === 'number' && Number.isFinite(h) && h > 0 ? Math.round(h) : null;
+}
+
+/** Remembers the hub's height at this window width (the newest buckets win). */
+export function rememberHubHeight(width: number, height: number): void {
+  if (!(height > 0)) return;
+  try {
+    const all = readHubHeights();
+    const key = hubBucket(width);
+    delete all[key];
+    all[key] = Math.round(height);
+    const keys = Object.keys(all);
+    for (const k of keys.slice(0, Math.max(0, keys.length - HUB_HEIGHT_BUCKETS))) delete all[k];
+    localStorage.setItem(HUB_HEIGHT_KEY, JSON.stringify(all));
+  } catch {
+    /* no storage: the estimate stands next time */
+  }
+}

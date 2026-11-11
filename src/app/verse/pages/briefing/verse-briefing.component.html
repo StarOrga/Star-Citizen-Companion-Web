@@ -91,8 +91,8 @@
                        [gallery]="hubGallery()" [incoming]="dockFlying() && dock() !== 'docked'"
                        (retryNews)="retryNews()" (openItem)="openItem($event)" (openDoor)="openDoor($event)" />
     } @else {
-      <!-- Holds the page's height (the hub and the footer fill one viewport), so the scrollbar is there from the first frame. -->
-      <div class="hub-hold" aria-hidden="true"></div>
+      <!-- Holds the hub's height (measured on the last visit at this width, else estimated), so the scrollbar stands from the first frame and does not jump. -->
+      <div class="hub-hold" aria-hidden="true" [style.height.px]="holdHeight()"></div>
     }
   } @else {
     <section class="stage" [class.short]="intro === 'short'" [class.paused]="paused()" [attr.data-intro]="intro"
