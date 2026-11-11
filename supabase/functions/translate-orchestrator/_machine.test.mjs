@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { advance, approve, cancel, startFull, tick, dryRun } from './_machine.ts';
 import { buildShards, indexKey, shardKey } from '../ingest-catalog/_locale-shards.ts';
-import { overlayKey, tmIndexKey } from './_io.ts';
+import { overlayKey, roomOverlayKey, tmIndexKey } from './_io.ts';
 import { sha256Hex } from './_diff.ts';
 
 const NEW = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -102,6 +102,21 @@ async function run(w, until, max = 30) {
 const TERMINAL = ['published', 'failed', 'skipped', 'cancelled', 'awaiting_approval'];
 
 describe('delta lifecycle', () => {
+  it('room labels (scc_room_*) are new keys of a delta and land in the rooms.json slice (E14)', async () => {
+    const w = world({ en: { ui_a_1: 'Open the door', ui_old: 'Unchanged text', scc_room_habitation_corridor: 'Habitation Corridor' } });
+    await newJob(w);
+    await run(w, TERMINAL);
+    const job = [...w.jobs.values()][0];
+    assert.equal(job.status, 'published', job.error);
+    const latest = w.files.get(overlayKey('de', 'latest'));
+    assert.deepEqual(Object.keys(latest.entries).sort(), ['scc_room_habitation_corridor', 'ui_a_1']);
+    const rooms = w.files.get(roomOverlayKey('de'));
+    assert.deepEqual(Object.keys(rooms.entries), ['scc_room_habitation_corridor']);
+    assert.equal(rooms.count, 1);
+    assert.equal(rooms.entries.scc_room_habitation_corridor.h, await sha256Hex('Habitation Corridor'));
+    assert.equal(rooms.build_id, latest.build_id);
+  });
+
   it('estimating -> ... -> published; only new/changed keys are translated; ledger + TM + overlay written', async () => {
     const w = world();
     await newJob(w);

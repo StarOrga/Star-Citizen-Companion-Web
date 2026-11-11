@@ -187,6 +187,13 @@ export interface ShipDeckRoom {
   /** Entity name in the container (`MedicalBay_Room_RN`) — stable id + fallback label. */
   key: string;
   name: { en: string | null; de: string | null } | null;
+  /** The game's loc key (`@`-less, lower-cased) when the room has one; absent on older uploads. */
+  locKey?: string;
+  /**
+   * Synthetic locale key `scc_room_<slug>` of the English label when the game ships no German
+   * for the room — the translation pipeline translates it (E14, `RoomLabelTranslations`).
+   */
+  labelKey?: string;
   /** Room pivot [x, y, z]. */
   pos: number[];
   floorZ: number | null;

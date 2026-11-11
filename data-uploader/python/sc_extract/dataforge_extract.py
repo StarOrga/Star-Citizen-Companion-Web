@@ -34,7 +34,8 @@ from .dataforge import DataForge, Record
 from .localization import Localizer
 from .ship_decks import SHIP_SETUP, build_deck_index, project_decks, sections_for_class
 from .ship_rooms import (LEVEL_WINDOW_FLOOR_M, LEVEL_WINDOW_POS_M, ang3_quat, bounds_of,
-                         cry_guid_to_record_id, deck_by_level, decode_cryxml, is_unnamed, move,
+                         bare_loc_key, cry_guid_to_record_id, deck_by_level, decode_cryxml, humanize_room_key,
+                         is_unnamed, room_label_key, tidy_room_label, move,
                          read_zip_entry, rooms_in_container, soc_entities, soc_entries)
 
 # ── Blueprint candidate-field lists (R1/R2: UNCONFIRMED — see extract_blueprints) ──────────
@@ -584,6 +585,7 @@ class CodexExtractor:
         self.extract_blueprints()     # crafting blueprints (CraftingBlueprintRecord)
         self.extract_missions()       # contracts (MissionBrokerEntry), see missions.py
         self.extract_entities()       # ships / weapons / components / items
+        self._dump_room_strings()     # scc_room_* labels for the translation pipeline (E14)
         self._write_skin_build_manifest()
         self._write_silhouette_manifest()
         if self._assets:
@@ -1829,6 +1831,7 @@ class CodexExtractor:
         for room, deck in placed:
             row = {k: room[k] for k in ("key", "pos", "floorZ", "height", "shapes", "tris")}
             row["name"] = None if is_unnamed(room["locKey"]) else self._deck_name(room["locKey"])
+            self._label_room(row, room["locKey"])
             if deck is None:
                 unassigned.append(row)
                 continue
@@ -1846,6 +1849,50 @@ class CodexExtractor:
             if deck.get("rooms"):
                 deck["rooms"].sort(key=lambda r: r["key"].lower())
                 deck["bounds"] = bounds_of(deck["rooms"])
+
+    def _label_room(self, row: Dict[str, Any], loc_key: Optional[str]) -> None:
+        """Room label keys for the web (E14). ``locKey``: the game's loc key
+        (``@``-less, lower-cased) where the room has one. ``labelKey``: the
+        synthetic ``scc_room_*`` key of the English label when the game ships
+        no German for it; the key and its English text are collected for the
+        English locale table (``_dump_room_strings``), so the translation
+        pipeline's delta job translates them as new strings."""
+        bare = bare_loc_key(loc_key)
+        if bare:
+            row["locKey"] = bare
+        name = row.get("name") or {}
+        if name.get("de"):
+            return
+        en = (name.get("en") or "").strip()
+        if en.lower().startswith("room ") or en.lower().startswith("room_"):
+            en = en[5:].strip()
+        if not en or "_" in en:
+            en = humanize_room_key(row["key"])
+        en = tidy_room_label(en)
+        key = room_label_key(en)
+        if not key:
+            return
+        row["labelKey"] = key
+        if not hasattr(self, "_room_strings"):
+            self._room_strings: Dict[str, str] = {}
+        self._room_strings[key] = en
+
+    def _dump_room_strings(self) -> None:
+        """Adds the collected ``scc_room_*`` labels to the English table and
+        rewrites ``localization/en.json`` (it is dumped before the ships)."""
+        strings = getattr(self, "_room_strings", None)
+        table = self.loc._tables.get("en")
+        if not strings or table is None:
+            return
+        added = 0
+        for key, en in strings.items():
+            if table.get(key) != en:
+                table[key] = en
+                added += 1
+        d = self.out / "localization"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "en.json").write_text(json.dumps(table, ensure_ascii=False), encoding="utf-8")
+        self.on_log("info", f"room labels: {len(strings)} scc_room_* strings ({added} new) in 'en'")
 
     def _ship_rooms(self, vcp: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Rooms of every interior object container, in the ship frame."""
@@ -2549,6 +2596,10 @@ class CodexExtractor:
         # power draw. Flat `tractorBeam.*` keys, emitted only when the record
         # carries the leaf; see `_tractor_beam_params`.
         params.update(_tractor_beam_params(wcp))
+        # Sustained-fire cycle (feedback #343): the energy ammo pool and its
+        # regeneration, and the heat/overheat model. Both are nested structs
+        # that `_scalars(wcp)` drops, so the codex could only show burst DPS.
+        params.update(_weapon_cycle_params(wcp))
         return params
 
     def _project_component(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
@@ -3402,6 +3453,47 @@ def _find_tractor_action(node: Any, _depth: int = 0,
             if found is not None:
                 return found
     return None
+
+
+# ── sustained-fire cycle (feedback #343) ─────────────────────────────────────
+# Burst DPS (alpha × fire rate) ignores every pause; sustained DPS needs the
+# two structs that limit how long a gun keeps firing:
+#   weaponRegenConsumerParams              energy weapons: ammo pool size,
+#       regen per second, cooldown before regen starts, cost per shot
+#   connectionParams.simplifiedHeatParams  heat model: overheat temperature,
+#       cooling per second, overheat fix time
+# Both sit nested under SCItemWeaponComponentParams, so `_scalars(wcp)` never
+# kept them. UNVERIFIED leaf names (no live probe in this change): every
+# numeric scalar of each struct is copied verbatim under its prefix rather
+# than a hand-picked list, and the frontend searches candidate names — an
+# absent struct emits nothing, a field is never defaulted.
+_REGEN_PARAMS_PREFIX = "regen."
+_HEAT_PARAMS_PREFIX = "heat."
+
+
+def _numeric_scalars(d: Any, prefix: str) -> Dict[str, float]:
+    if not isinstance(d, dict):
+        return {}
+    out: Dict[str, float] = {}
+    for k, v in d.items():
+        if not isinstance(k, str) or k.startswith("_") or isinstance(v, bool):
+            continue
+        f = _to_float(v)
+        if f is not None:
+            out[prefix + k] = f
+    return out
+
+
+def _weapon_cycle_params(wcp: Dict[str, Any]) -> Dict[str, float]:
+    """Flat `regen.<key>` / `heat.<key>` scalars of a weapon's regen-consumer
+    and simplified-heat structs, or {} when the weapon carries neither."""
+    out = _numeric_scalars(wcp.get("weaponRegenConsumerParams"), _REGEN_PARAMS_PREFIX)
+    conn = wcp.get("connectionParams")
+    heat = conn.get("simplifiedHeatParams") if isinstance(conn, dict) else None
+    if heat is None:
+        heat = wcp.get("simplifiedHeatParams")
+    out.update(_numeric_scalars(heat, _HEAT_PARAMS_PREFIX))
+    return out
 
 
 def _tractor_beam_params(wcp: Dict[str, Any]) -> Dict[str, float]:

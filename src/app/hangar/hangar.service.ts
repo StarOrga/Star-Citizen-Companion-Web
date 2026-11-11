@@ -5,6 +5,7 @@ import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { readMigrated } from '../core/storage-keys';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { isMissingColumnError } from './exemplar-ai.service';
 import {
   ConfigLoadoutEntry,
   HangarRoleLoadout,
@@ -583,6 +584,37 @@ export class HangarService {
     }
     return mapHangarShipConfig(data as HangarShipConfigRow);
   }
+
+  /**
+   * A wished loadout for a hull (concept holotisch-feinschliff D1): a config row with `is_wish = true`, never active.
+   * `columnMissing` = the database has no `is_wish` yet (migration 20261110120000 not pushed): nothing was written,
+   * the caller keeps the hull-only wish it already has. Checked once per session, then no more attempts.
+   */
+  async createWishConfig(
+    hangarShipId: string,
+    name: string,
+    loadout: ConfigLoadoutEntry[],
+  ): Promise<{ config: HangarShipConfig | null; columnMissing: boolean }> {
+    const userId = this.userId;
+    if (!userId) return { config: null, columnMissing: false };
+    if (this.wishColumnMissing) return { config: null, columnMissing: true };
+    const { data, error } = await this.sb.client
+      .from('hangar_ship_configs')
+      // The generated DB types do not know is_wish yet (alpha norm: regenerated later), hence the cast.
+      .insert({ user_id: userId, hangar_ship_id: hangarShipId, name, role: 'multipurpose', loadout, is_wish: true } as never)
+      .select('*')
+      .single();
+    if (error) {
+      if (isMissingColumnError(error)) {
+        this.wishColumnMissing = true;
+        return { config: null, columnMissing: true };
+      }
+      this.error.set(toErrorKey('hangar', 'createWishConfig', error, { hangarShipId }));
+      return { config: null, columnMissing: false };
+    }
+    return { config: mapHangarShipConfig(data as HangarShipConfigRow), columnMissing: false };
+  }
+  private wishColumnMissing = false;
 
   async updateConfig(
     id: string,

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, NgZone, afterNextRender, effect, inject, signal, viewChild } from '@angular/core';
+import { SceneCameraService } from '../shell/scene/scene-camera.service';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -47,7 +48,9 @@ export function codexPartUrl(part: CodexPart, search: string): string {
       </div>
     </div>
     <section #more [id]="anchor" class="more sc-below-stage" [attr.aria-label]="'codex.page.moreAria' | translate">
-      <sc-codex-browse [headingLevel]="2" />
+      @if (lowerReady()) {
+        <sc-codex-browse [headingLevel]="2" [progressive]="opened === 'top'" />
+      }
     </section>
   `,
   styles: [
@@ -103,12 +106,20 @@ export class CodexPageComponent {
   /** Where the scroll stands: `top` (landing), `fly` (between), `docked` (overview). */
   readonly part = signal<'top' | 'fly' | 'docked'>('top');
   /** The part the page opened with — `/codex#more` (or an old `/codex/index` link) starts down there. */
-  private readonly opened: CodexPart = this.route.snapshot.fragment === CODEX_MORE_ANCHOR ? 'more' : 'top';
+  readonly opened: CodexPart = this.route.snapshot.fragment === CODEX_MORE_ANCHOR ? 'more' : 'top';
   /** True while a deep link to the overview waits for the page to grow tall enough to land on it. */
   private settling = false;
+  /**
+   * The overview under the stage is built after the landing: its first frame (stage and hologram)
+   * is the camera flight's destination, and the overview's filter rail and cards in that same
+   * frame made it the flight's longest. A deep link to #more builds it at once.
+   */
+  readonly lowerReady = signal(this.opened === 'more');
+  private readonly painted = signal(false);
 
   constructor() {
     const destroy = inject(DestroyRef);
+    this.deferLower(destroy);
     // The cue's stage box is one viewport minus the chrome above the page (topbar height
     // differs per width, banners come and go) — measured as the Verse briefing does it
     // and published as --cx-chrome on the host.
@@ -156,6 +167,33 @@ export class CodexPageComponent {
           stop();
         });
       }
+    });
+  }
+
+  /** Build the overview once the landing has painted and the camera stands, in an idle moment. */
+  private deferLower(destroy: DestroyRef): void {
+    if (this.lowerReady()) return;
+    const camera = inject(SceneCameraService);
+    afterNextRender(() => this.painted.set(true));
+    let idle = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    destroy.onDestroy(() => {
+      if (idle && typeof cancelIdleCallback === 'function') cancelIdleCallback(idle);
+      if (timer) clearTimeout(timer);
+    });
+    effect(() => {
+      if (this.lowerReady() || !this.painted() || camera.flying() || idle || timer) return;
+      const go = (): void => {
+        idle = 0;
+        timer = null;
+        // A flight that started after the first paint: wait for it (the effect re-runs when it ends).
+        if (camera.flying()) return;
+        this.zone.run(() => this.lowerReady.set(true));
+      };
+      this.zone.runOutsideAngular(() => {
+        if (typeof requestIdleCallback === 'function') idle = requestIdleCallback(go, { timeout: 400 });
+        else timer = setTimeout(go, 50);
+      });
     });
   }
 

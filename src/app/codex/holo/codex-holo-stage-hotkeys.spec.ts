@@ -108,12 +108,13 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     }
   });
 
-  it('P toggles the patch chooser in the head strip', async () => {
+  it('P opens the Änderungen tab and toggles the patch chooser there', async () => {
     fixture = await setup();
     const patch = fixture.nativeElement.querySelector('sc-codex-holo-patch');
     expect(patch).toBeTruthy();
     press('p');
     fixture.detectChanges();
+    expect(fixture.componentInstance.panelTab()).toBe('changes');
     expect(fixture.nativeElement.querySelector('.patch-pop')).toBeTruthy();
     // The chooser is a role="dialog" INSIDE the stage — its own key still closes it.
     press('p');
@@ -165,26 +166,24 @@ describe('CodexHoloStageComponent hotkeys (#644)', () => {
     expect(c.viewMode()).toBe('holo');
   });
 
-  it('digits keep selecting pins — no letter key collides with them', async () => {
+  it('digits select nothing any more (C11) and are no holodeck letter', async () => {
     fixture = await setup();
     const inspect = vi.spyOn(fixture.componentInstance, 'inspectPin').mockReturnValue(undefined as never);
     press('1');
-    // No pins on this hull: the digit is simply not a holodeck letter.
     expect(inspect).not.toHaveBeenCalled();
     expect(holoHotkeyFor(new KeyboardEvent('keydown', { key: '1' }), null)).toBeNull();
   });
 
-  it('shows the key as a <kbd> in each trigger, with aria-keyshortcuts', async () => {
+  it('V has no <kbd> after the views (C2) but stays announced; the patch choice left the head (C18)', async () => {
     fixture = await setup();
     fixture.componentInstance.has3d.set(true);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const kbds = [...el.querySelectorAll('kbd.hk')].map((k) => k.textContent?.trim());
-    expect(kbds).toContain('P');
-    expect(kbds).toContain('V');
-    expect(kbds).not.toContain('S');
-    // The patch trigger is the head strip's first segment (concept codex-kopf-besitz C1).
-    expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-holo-patch')).toBeTruthy();
+    expect(kbds).not.toContain('V');
+    expect(el.querySelector('.holo-views [role="radiogroup"]')?.getAttribute('aria-keyshortcuts')).toBe('V');
+    expect(el.querySelector('.holo-topbar sc-codex-holo-patch')).toBeNull();
+    expect(el.querySelector('.holo-panel .patch-slot sc-codex-holo-patch')).toBeTruthy();
     expect(el.querySelector('.patch-trigger')?.getAttribute('aria-keyshortcuts')).toBe('P');
   });
 });

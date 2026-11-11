@@ -18,6 +18,7 @@ import { LocationStrategy } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { CodexHoloCalloutComponent } from '../holo/codex-holo-callout.component';
 import { toErrorKey } from '../../core/describe-error';
 import { logWarn } from '../../core/log';
 import { isPlainLeftClick } from '../../core/modified-click.util';
@@ -115,8 +116,6 @@ export const HOVER_GRACE_MS = 280;
 
 /** Label size before the first measurement. */
 const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
-/** Room the chip row takes before the first measurement. */
-const BAR_RESERVE_GUESS = 56;
 /** How long the wheel hint stays. */
 const WHEEL_HINT_MS = 2000;
 /** Pixels per line for a wheel that reports lines (Firefox). */
@@ -136,7 +135,7 @@ const WHEEL_LINE_PX = 33;
   selector: 'sc-asset-package-viewer',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, CodexHoloCalloutComponent],
   host: { '[style.--holo-mfr-rgb]': 'mfrRgb()' },
   template: `
     <div class="pkg" [class.ready]="status() === 'ready'">
@@ -184,23 +183,11 @@ const WHEEL_LINE_PX = 33;
             <line [attr.x1]="co.line.x1" [attr.y1]="co.line.y1" [attr.x2]="co.line.x2" [attr.y2]="co.line.y2" class="solid" />
             <circle class="ring" [attr.cx]="co.anchor.x" [attr.cy]="co.anchor.y" [attr.r]="markerRadius" />
           </svg>
-          <div class="callout" role="group" [attr.data-side]="co.side"
+          <sc-holo-callout class="callout" [attr.data-side]="co.side"
                [style.left.px]="co.left" [style.top.px]="co.top"
-               [attr.aria-label]="'codex.assetPackage.label.aria' | translate: { name: co.row.name }">
-            <b class="co-nm" [scTooltip]="co.empty ? null : (calloutTitle() ?? co.row.name)" scTooltipTier="label">{{ co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : (calloutTitle() ?? co.row.name) }}</b>
-            <div class="co-v">
-              @for (v of calloutValues().slice(0, 3); track v.label) {
-                <span [scTooltip]="v.label + ': ' + v.value" scTooltipTier="label"><small>{{ v.label }}</small>{{ v.value }}</span>
-              }
-              @if (co.swappable && swapOffered()) {
-                <button type="button" class="co-swap" (click)="requestSwap()"
-                        [attr.aria-label]="'codex.assetPackage.swap' | translate"
-                        [scTooltip]="'codex.assetPackage.swap' | translate" scTooltipTier="label">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7" /></svg>
-                </button>
-              }
-            </div>
-          </div>
+               [type]="calloutType()"
+               [name]="co.empty ? ('codex.assetPackage.label.emptySlot' | translate) : (calloutTitle() ?? co.row.name)"
+               [values]="calloutValues()" [swappable]="co.swappable && swapOffered()" [diff]="calloutDiff()" (swap)="requestSwap()" />
         }
 
         @if (wheelHint()) {
@@ -246,27 +233,26 @@ const WHEEL_LINE_PX = 33;
           </div>
         }
 
-        <div #bar class="bar" [class.tb]="table()" role="toolbar" [attr.aria-label]="'codex.assetPackage.groupsAria' | translate">
-          @for (g of groups(); track g) {
-            <button type="button" class="chip" [attr.aria-pressed]="groupsOn().has(g)" (click)="toggleGroup(g)">
-              {{ 'codex.assetPackage.groups.' + g | translate }}
+        <!-- The holotable has no chip bar of its own: the stage's filter row drives the
+             groups (groupFilter) and its "Alle Teile" chip the scope (hotspotScope); a
+             double click on the model resets the view. -->
+        @if (!table()) {
+          <div #bar class="bar" role="toolbar" [attr.aria-label]="'codex.assetPackage.groupsAria' | translate">
+            @for (g of groups(); track g) {
+              <button type="button" class="chip" [attr.aria-pressed]="groupsOn().has(g)" (click)="toggleGroup(g)">
+                {{ 'codex.assetPackage.groups.' + g | translate }}
+              </button>
+            }
+            <button type="button" class="chip reset-view" (click)="resetView()">
+              {{ 'codex.assetPackage.resetView' | translate }}
             </button>
-          }
-          <button type="button" class="chip reset-view" (click)="resetView()">
-            {{ 'codex.assetPackage.resetView' | translate }}
-          </button>
-          @if (rows().length && !table()) {
-            <button type="button" class="chip list-toggle" [attr.aria-expanded]="listOpen()" (click)="listOpen.set(!listOpen())">
-              {{ 'codex.assetPackage.parts' | translate: { count: rows().length } }}
-            </button>
-          }
-          @if (table()) {
-            <i class="bar-sep" aria-hidden="true"></i>
-            <button type="button" class="chip all-parts" [attr.aria-pressed]="hotspotScope() === 'all'" (click)="toggleAllParts()">
-              <span class="tg" aria-hidden="true"></span>{{ 'codex.assetPackage.allParts' | translate }}
-            </button>
-          }
-        </div>
+            @if (rows().length) {
+              <button type="button" class="chip list-toggle" [attr.aria-expanded]="listOpen()" (click)="listOpen.set(!listOpen())">
+                {{ 'codex.assetPackage.parts' | translate: { count: rows().length } }}
+              </button>
+            }
+          </div>
+        }
 
         @if (listOpen() && !table()) {
           <ul class="plist">
@@ -360,40 +346,8 @@ const WHEEL_LINE_PX = 33;
       .leader .tip { fill: var(--holo-mfr); }
       .leader line.solid { stroke: var(--sc-accent); stroke-width: 1.4; stroke-dasharray: none; opacity: 1; }
       .leader .ring { fill: none; stroke: var(--sc-accent); stroke-width: 1.4; opacity: 0.8; }
-      /* 168 x 66 at 1920, 147 x 58 at 1440, never below 0.8 of it. */
-      .callout {
-        --co-u: clamp(0.8px, calc(0.5px + 100vw / 3840), 1px);
-        position: absolute; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;
-        width: calc(168 * var(--co-u)); height: calc(66 * var(--co-u));
-        padding: calc(6 * var(--co-u)) calc(9 * var(--co-u)) calc(7 * var(--co-u));
-        border: 1px solid rgb(from var(--sc-accent) r g b / 0.55); border-radius: calc(10 * var(--co-u));
-        background: rgb(from var(--sc-bg-1) r g b / 0.82);
-      }
-      .co-nm {
-        font-size: calc(12 * var(--co-u)); line-height: 1.2; font-weight: 600; color: var(--sc-fg-0);
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      }
-      .co-v {
-        display: grid; align-items: end; gap: calc(3 * var(--co-u));
-        grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1fr) calc(26 * var(--co-u));
-      }
-      .co-v span {
-        min-width: 0; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        font: 600 calc(12.5 * var(--co-u)) / 1.05 var(--font-monospace, monospace);
-      }
-      .co-v small {
-        display: block; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        margin-bottom: calc(1 * var(--co-u)); font: 400 max(8px, calc(8.5 * var(--co-u))) / 1.15 var(--sc-font-body);
-      }
-      .co-swap {
-        grid-column: 4; position: relative; display: grid; place-items: center; padding: 0; cursor: pointer;
-        width: calc(26 * var(--co-u)); height: calc(26 * var(--co-u)); background: transparent; color: var(--sc-accent);
-        border: 1px solid rgb(from var(--sc-accent) r g b / 0.5); border-radius: calc(7 * var(--co-u));
-      }
-      .co-swap::after { content: ''; position: absolute; inset: -0.5rem; }
-      .co-swap:hover { background: rgb(from var(--sc-accent) r g b / 0.18); }
-      .co-swap:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .co-swap svg { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      /* The shared callout card (sc-holo-callout): 220 wide at 1920, 0.8 of it at the narrowest (calloutSize). */
+      .callout { --co-u: clamp(0.8px, calc(0.5px + 100vw / 3840), 1px); position: absolute; }
       .wheel-hint {
         position: absolute; left: 50%; top: var(--sc-pad-2); transform: translateX(-50%); margin: 0; pointer-events: none;
         padding: var(--sc-pad-1) var(--sc-pad-2); border-radius: 999px; font-size: 0.8125rem; color: var(--sc-fg-1);
@@ -435,18 +389,6 @@ const WHEEL_LINE_PX = 33;
         color: var(--sc-fg-2); font: inherit; font-size: 0.8125rem; cursor: pointer;
       }
       .chip[aria-pressed='true'], .chip[aria-expanded='true'] { border-color: var(--sc-accent); color: var(--sc-accent); }
-      .bar-sep { align-self: center; width: 1px; height: 1rem; background: var(--sc-border); }
-      /* The holotable's row: one line down to 1366 wide. */
-      .bar.tb { gap: 5px; }
-      .bar.tb .chip { min-height: max(26px, var(--sc-tap-min, 0px)); padding-block: 0; padding-inline: 9px; font-size: max(11.5px, var(--sc-fs-floor)); white-space: nowrap; }
-      .all-parts { display: inline-flex; align-items: center; gap: var(--sc-gap-1); }
-      .tg { position: relative; flex: none; width: 1.375rem; height: 0.75rem; border-radius: 0.375rem; background: rgb(from var(--sc-fg-2) r g b / 0.25); }
-      .tg::after {
-        content: ''; position: absolute; left: 0.125rem; top: 0.125rem; width: 0.5rem; height: 0.5rem; border-radius: 50%;
-        background: var(--sc-fg-2); transition: transform 0.15s ease;
-      }
-      .all-parts[aria-pressed='true'] .tg { background: rgb(from var(--sc-accent) r g b / 0.35); }
-      .all-parts[aria-pressed='true'] .tg::after { background: var(--sc-accent); transform: translateX(0.625rem); }
       .chip:focus-visible, .eye:focus-visible, .name:focus-visible, .free:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .plist {
         position: absolute; top: var(--sc-pad-2); right: var(--sc-pad-2); bottom: 3.5rem;
@@ -465,7 +407,7 @@ const WHEEL_LINE_PX = 33;
       a.name:hover { color: var(--sc-accent); }
       .meta { flex: none; color: var(--sc-fg-2); font-size: 0.75rem; }
       .free { color: var(--sc-fg-2); font-style: italic; padding-left: 2.5rem; }
-      @media (prefers-reduced-motion: reduce) { .hs, .hs::before, .tg::after { transition: none; } }
+      @media (prefers-reduced-motion: reduce) { .hs, .hs::before { transition: none; } }
     `,
   ],
 })
@@ -497,6 +439,16 @@ export class AssetPackageViewerComponent {
   readonly calloutValues = input<readonly CalloutValue[]>([]);
   /** The part's name as the host's panel gives it (a mount's dot speaks of its gun); null: the placement's own. */
   readonly calloutTitle = input<string | null>(null);
+  /** The component type the callout's header names (the port category's label; table only). */
+  readonly calloutType = input<string | null>(null);
+  /** The selected part differs from the stock loadout: the callout carries the diamond (table only). */
+  readonly calloutDiff = input(false);
+  /**
+   * The groups the host's filter row shows (table only); null leaves the viewer's own set.
+   * The stage's filters map: Waffen → weapons, Raketen → missiles, Komponenten → components,
+   * Sonstiges → other + attachments.
+   */
+  readonly groupFilter = input<ReadonlySet<PlacementGroup> | null>(null);
 
   /** Everything the swappable ports hold: a gun on a swappable mount can be swapped too. */
   private readonly swappableIds = computed<ReadonlySet<string> | null>(() => {
@@ -516,13 +468,14 @@ export class AssetPackageViewerComponent {
   readonly selectionChange = output<PlacementSelection | null>();
   /** Table: the callout's swap icon. */
   readonly swapRequested = output<PlacementSelection>();
+  /** The hull is on screen or will not come (error): a host holding its previous view lets go. */
+  readonly drawn = output<void>();
 
   private readonly service = inject(AssetPackageService);
   private readonly codex = inject(CodexService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly labelBox = viewChild<ElementRef<HTMLElement>>('labelBox');
-  private readonly barEl = viewChild<ElementRef<HTMLElement>>('bar');
   private readonly router = inject(Router);
   private readonly locationStrategy = inject(LocationStrategy);
 
@@ -531,7 +484,6 @@ export class AssetPackageViewerComponent {
   readonly wheelHint = signal(false);
   private wheelHintShown = false;
   private wheelHintTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly barReserve = signal(BAR_RESERVE_GUESS);
   /** Set when the anchors must be projected although the camera rests (new target, resize, load). */
   private projectDirty = true;
 
@@ -607,7 +559,7 @@ export class AssetPackageViewerComponent {
       left: s?.left ?? 0,
       right: s?.right ?? 0,
       top: s?.top ?? 0,
-      bottom: (s?.bottom ?? 0) + this.barReserve(),
+      bottom: s?.bottom ?? 0,
     };
   });
 
@@ -787,7 +739,11 @@ export class AssetPackageViewerComponent {
       untracked(() => this.scene?.setQuiet(quiet));
     });
     effect(() => {
-      if (this.barEl() && this.table()) untracked(() => this.measureBar());
+      // The stage's filter row drives the groups; the viewer has no chips of its own in the table.
+      const filter = this.groupFilter();
+      if (!filter || !this.table()) return;
+      const next = new Set<PlacementGroup>(filter);
+      untracked(() => this.groupsOn.set(next));
     });
     effect(() => {
       const safe = this.fullSafeArea();
@@ -1072,14 +1028,6 @@ export class AssetPackageViewerComponent {
     this.graceTimer = null;
   }
 
-  /** The chip row lies over the canvas: the model is framed above it. */
-  private measureBar(): void {
-    const bar = this.barEl()?.nativeElement;
-    if (!bar || !this.table()) return;
-    const reserve = bar.offsetHeight + 2 * parseFloat(getComputedStyle(bar).bottom || '0');
-    if (reserve > 0 && Math.abs(reserve - this.barReserve()) > 1) this.barReserve.set(reserve);
-  }
-
   private readonly effectiveSpin = computed<TurntableSpin>(() =>
     this.still() || this.pinned() !== null || this.reducedMotion() ? 'none' : this.spin(),
   );
@@ -1145,12 +1093,14 @@ export class AssetPackageViewerComponent {
       scene.setFocus(this.focusIds(), this.seeThrough());
       scene.setQuiet(this.quietIds());
       this.status.set('ready');
+      this.drawn.emit();
       this.locatable.emit(hotspotPlacements(m).map((p) => p.portName));
       void this.resolveItems(m);
     } catch (err) {
       if (token !== this.loadToken) return;
       this.errorKey.set(toErrorKey('asset-package', 'load', err, { manifest: row.manifestSha256 }));
       this.status.set('error');
+      this.drawn.emit();
     }
   }
 
@@ -1218,7 +1168,6 @@ export class AssetPackageViewerComponent {
       const el = this.canvas().nativeElement;
       const vp = { w: el.clientWidth, h: el.clientHeight };
       if (!sameSize(this.viewport(), vp)) this.viewport.set(vp);
-      this.measureBar();
     }
     const box = this.labelBox()?.nativeElement;
     if (box) {

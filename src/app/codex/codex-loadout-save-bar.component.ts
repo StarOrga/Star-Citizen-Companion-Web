@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
+import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
 
 /**
  * ENTWURFSLEISTE — the draft half of the mission bar's right side (MASTER §5),
@@ -32,7 +33,7 @@ import { DesktopCapabilityService } from '../core/desktop-capability.service';
   imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (changed() > 0) {
+    @if (changed() > 0 && !autosaveCovers()) {
       <div class="bar" [class.sc-card]="!compact()" [class.compact]="compact()">
         <!-- The three parts the concept draws, and nothing else. The compact
              form (classic ship view, #322) drops them: the layout controls
@@ -85,6 +86,20 @@ import { DesktopCapabilityService } from '../core/desktop-capability.service';
   `,
   styles: [`
     :host { display: block; }
+    /* The Holotisch's two places for the draft (moved here from the stage's styles, B13 budget).
+       Wide: in the fixed card, above "Details"; narrow: floating above the strip. */
+    :host(.draft-float) { pointer-events: auto; width: min(560px, calc(100vw - 32px)); padding: 8px 12px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
+      border-radius: 4px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
+    :host(.draft-card) { flex: none; margin: 0 10px 8px; padding: 8px 10px; border: 1px solid var(--sc-accent); border-radius: 10px;
+      background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent); }
+    /* Autosave covers the change: no bar, so no empty outlined box either. */
+    :host(.draft-card:empty) { display: none; }
+    :host(.draft-card) .bar { padding: 0; margin: 0; gap: 6px 8px; border: 0; background: none; }
+    :host(.draft-card) .notice { min-width: 0; flex-basis: 100%; }
+    :host(.draft-card) .actions { flex-basis: 100%; }
+    :host(.draft-card) :is(.discard, .save) { flex: 1; min-height: max(34px, var(--sc-tap-min, 0px)); }
+    @media (min-width: 1001px) { :host(.draft-float) { display: none; } }
+    @media (max-width: 1000px) { :host(.draft-card) { display: none; } }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
       gap: 10px; padding: 10px 14px; margin-bottom: 10px;
@@ -131,6 +146,16 @@ export class CodexLoadoutSaveBarComponent {
   readonly save = output<void>();
   readonly discard = output<void>();
   readonly addAndSave = output<void>();
+
+  /** The page's draft store (absent outside a codex detail page). */
+  private readonly draftStore = inject(CodexLoadoutDraftStore, { optional: true });
+  /**
+   * On an own exemplar every swap saves itself (D3, the toast confirms it): the bar has nothing to offer and steps
+   * aside — unless a save failed (the error and the retry show here) or part of the draft cannot be saved.
+   */
+  protected readonly autosaveCovers = computed(
+    () => !!this.draftStore?.autosave() && !this.error() && this.saveable() >= this.changed(),
+  );
 
   /** The one place the app asks whether a hover tooltip can be reached. */
   private readonly capability = inject(DesktopCapabilityService);

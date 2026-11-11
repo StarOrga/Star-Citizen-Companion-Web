@@ -123,6 +123,9 @@ let uid = 0;
     }
     .trigger:hover:not(:disabled) { border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border)); }
     .trigger.open { border-color: var(--sc-accent); }
+    /* Compact (the segmented control's density, pointer only): 32px, the height of a compact segment row beside it. */
+    :host(.compact) .trigger { min-height: 32px; padding: 4px 10px; font-size: max(0.8rem, var(--sc-fs-floor)); }
+    @media (pointer: coarse) { :host(.compact) .trigger { min-height: 48px; } }
     .trigger:disabled { opacity: 0.45; cursor: not-allowed; }
 
     .value { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

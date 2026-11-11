@@ -257,7 +257,9 @@ class TestAttachDeckRooms:
         assert [r["key"] for r in rooms] == ["Alpha_Room_RN", "Zeta_Room_RN"]
         assert rooms[0]["name"] is None
         assert rooms[1]["name"] == {"en": "Vehicle_Room_Medical", "de": None}
-        assert set(rooms[1]) == {"key", "name", "pos", "floorZ", "height", "shapes", "tris"}
+        assert set(rooms[1]) == {"key", "name", "locKey", "labelKey", "pos", "floorZ", "height", "shapes", "tris"}
+        assert rooms[1]["locKey"] == "vehicle_room_medical"
+        assert "locKey" not in rooms[0]
         assert decks[1]["bounds"] == {"min": [0.0, 0.0], "max": [2.0, 2.0]}
         rest = decks[2]
         assert (rest["key"], rest["order"], rest["fallback"]) == ("unassigned", 2, True)
@@ -499,3 +501,63 @@ class TestHullFamilyLevels:
         assert [d["key"] for d in decks] == ["Starlancer_Deck_1", "Starlancer_Deck_2", "unassigned"]
         assert len(decks[2]["rooms"]) == 7
         assert any(lvl == "warn" and "MISC_Starlancer_TAC" in m for lvl, m in ex.logs)
+
+
+class TestRoomLabelKeys:
+    """E14: room labels reach the translation pipeline as scc_room_* strings."""
+
+    def test_humanize_matches_the_web_fallback(self):
+        from sc_extract.ship_rooms import humanize_room_key
+        assert humanize_room_key("MedicalBay_Office_Room_RN") == "Medical Bay Office"
+        assert humanize_room_key("Corridors_Middle_Left_Room1_Room_RN") == "Corridors Middle Left 1"
+        assert humanize_room_key("TurretRear_Foyer_Right_Room_RN-001") == "Turret Rear Foyer Right"
+        assert humanize_room_key("Room_RN-009") == ""
+
+    def test_label_key_is_a_stable_slug(self):
+        from sc_extract.ship_rooms import room_label_key
+        assert room_label_key("Turret Access") == "scc_room_turret_access"
+        assert room_label_key("Captain's Quarters") == "scc_room_captain_s_quarters"
+        assert room_label_key("  ") is None
+
+    def test_bare_loc_key(self):
+        from sc_extract.ship_rooms import bare_loc_key
+        assert bare_loc_key("@Vehicle_Room_Medical") == "vehicle_room_medical"
+        assert bare_loc_key("@procedural_text_null") is None and bare_loc_key(None) is None
+
+    def _ex(self, tmp_path):
+        from sc_extract.dataforge_extract import CodexExtractor
+        from sc_extract.localization import Localizer
+        ex = CodexExtractor.__new__(CodexExtractor)
+        ex.loc = Localizer({"en": {"vehicle_room_mess": "Mess Hall"}})
+        ex.out = tmp_path
+        ex.logs = []
+        ex.on_log = lambda lvl, m: ex.logs.append((lvl, m))
+        return ex
+
+    def test_rooms_without_german_get_a_label_key_and_land_in_the_english_table(self, tmp_path):
+        import json
+        ex = self._ex(tmp_path)
+        named_de = {"key": "Bridge_Room_RN", "name": {"en": "Bridge", "de": "Brücke"}}
+        named_en = {"key": "Mess_Hall_Room_RN", "name": {"en": "Mess Hall", "de": None}}
+        derived = {"key": "Habitation_Corridor_Room_RN-001", "name": None}
+        raw = {"key": "Room_RN-009", "name": None}
+        ex._label_room(named_de, "@vehicle_room_bridge")
+        ex._label_room(named_en, "@vehicle_room_mess")
+        ex._label_room(derived, "@procedural_text_null")
+        ex._label_room(raw, None)
+        assert named_de == {"key": "Bridge_Room_RN", "name": {"en": "Bridge", "de": "Brücke"},
+                            "locKey": "vehicle_room_bridge"}
+        assert named_en["locKey"] == "vehicle_room_mess" and named_en["labelKey"] == "scc_room_mess_hall"
+        assert derived["labelKey"] == "scc_room_habitation_corridor" and "locKey" not in derived
+        assert "labelKey" not in raw
+        ex._dump_room_strings()
+        table = json.loads((tmp_path / "localization" / "en.json").read_text(encoding="utf-8"))
+        assert table["scc_room_mess_hall"] == "Mess Hall"
+        assert table["scc_room_habitation_corridor"] == "Habitation Corridor"
+        assert table["vehicle_room_mess"] == "Mess Hall"
+        assert not [k for k in table if k.startswith("scc_room_") and "bridge" in k]
+
+    def test_no_rooms_no_rewrite(self, tmp_path):
+        ex = self._ex(tmp_path)
+        ex._dump_room_strings()
+        assert not (tmp_path / "localization").exists()

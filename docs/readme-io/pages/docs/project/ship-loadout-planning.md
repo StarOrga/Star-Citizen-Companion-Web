@@ -11,7 +11,7 @@ what is already fitted.
 This page describes the design, and the ship page now implements it. Two things
 still depend on a fresh upload: the energy dock and the hull, armour and cargo
 figures come from a data extract that is one schema version ahead of what the
-catalogue currently serves, so until the next Data Uploader run they show a
+catalogue currently serves, so until the next Verse Data Uploader run they show a
 disclosed gap rather than a number.
 
 ## The three ideas it is built on
@@ -26,7 +26,7 @@ the delta chip disappears completely — never as "±0", so "untouched" and
 no hand-maintained table. One source means one origin, one patch version, and
 one thing to re-check after a CIG patch. Where a value genuinely does not exist
 in the game files, the page says so instead of estimating — see
-[Data Uploader](doc:desktop-tools) for where the data comes from.
+[Verse Data Uploader](doc:desktop-tools) for where the data comes from.
 
 **Describe, do not prescribe.** Where the page could hand out a score to
 maximise, it shows a position instead. A percentage invites optimising toward

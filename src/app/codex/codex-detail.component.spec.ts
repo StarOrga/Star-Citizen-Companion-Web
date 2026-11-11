@@ -1134,7 +1134,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.loadout.saveErrorHangar');
     }));
 
-    it('closes the picker and drafts nothing when the pick carries no raw port', fakeAsync(() => {
+    it('drafts nothing when the pick carries no raw port', fakeAsync(() => {
       const { cmp } = renderDraftPage({ id: 'c1', loadout: [], isActive: false });
       cmp.onSwapPicked({
         className: 'BEHR_LaserCannon_S3',
@@ -1325,8 +1325,8 @@ describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz
   it('the stage toolbar has no Teilen; the corner share FAB gets the whole view URL', fakeAsync(() => {
     const fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
-    const tools = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).map((b) => b.textContent ?? '');
-    expect(tools.length, '3D / Schema still there').toBeGreaterThan(0);
+    const tools = Array.from(el.querySelectorAll<HTMLButtonElement>('.holo-views button')).map((b) => b.textContent ?? '');
+    expect(tools.length, 'the views row is there').toBeGreaterThan(0);
     expect(tools.some((t) => t.includes('Teilen') || t.includes('↗'))).toBe(false);
     expect(el.querySelector('sc-codex-holo-share')).toBeNull();
     expect(TestBed.inject(PageCornerService).share()?.url()).toBe(location.href);
@@ -1373,80 +1373,31 @@ describe('CodexDetailComponent — one share per page (concept codex-kopf-besitz
 });
 
 describe('CodexDetailComponent — Holotable RSI pledge link', () => {
-  it('offers no link form to a signed-out reader', fakeAsync(() => {
+  // Concept holotisch-feinschliff C20: the Akte keeps "Bei RSI ansehen ↗"; the pledge-link form left the
+  // Holotisch (its data and RLS stay, the classic view keeps the form).
+  it('keeps the RSI link in the Akte as a new-tab anchor and offers no link form to a signed-out reader', fakeAsync(() => {
     configureCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
     const fixture = renderOnFakeClock();
-    const body = openBlock(fixture);
-    const labels = Array.from(body.querySelectorAll('button')).map((b) => b.textContent ?? '');
-    expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBe(false);
-    // The RSI link itself stays: a plain anchor into a new tab.
-    const rsi = body.querySelector('a.rsi-link') as HTMLAnchorElement;
+    const el: HTMLElement = fixture.nativeElement;
+    const rsi = el.querySelector('sc-codex-holo-akte a.ak-rsi') as HTMLAnchorElement;
     expect(rsi).not.toBeNull();
     expect(rsi.target).toBe('_blank');
     expect(rsi.rel).toContain('noopener');
+    const labels = Array.from(el.querySelectorAll('sc-codex-holo-stage button')).map((b) => b.textContent ?? '');
+    expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBe(false);
   }));
 
-  it('opens the form for a signed-in reader and names a rejected URL', fakeAsync(() => {
-    const setMyLink = vi.fn().mockName('setMyLink').mockResolvedValue('invalidUrl');
+  it('shows no pledge-link form on the Holotisch for a signed-in reader either', fakeAsync(() => {
     configureCharacterisation({
       params: { kind: 'ship', className: 'cnou_nomad' },
       user: { id: 'u1' },
       hangar: { listConfigs: async () => [] } as Partial<HangarService>,
-      shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
     });
     const fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
-    const body = openBlock(fixture);
-    const add = Array.from(body.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
-      (b.textContent ?? '').includes('codex.shipLink.add'),
-    );
-    expect(add, '"add link" button rendered').toBeDefined();
-    expect(el.querySelector('.ship-link-form')).toBeNull();
-
-    add!.click();
-    fixture.detectChanges();
-    const form = el.querySelector('.ship-link-form') as HTMLFormElement;
-    expect(form).not.toBeNull();
-
-    const input = form.querySelector('input.sl-input') as HTMLInputElement;
-    input.value = 'not a url';
-    input.dispatchEvent(new Event('input'));
-    form.dispatchEvent(new Event('submit', { cancelable: true }));
-    flushMicrotasks();
-    fixture.detectChanges();
-
-    expect(setMyLink).toHaveBeenCalledTimes(1);
-    expect(setMyLink).toHaveBeenCalledWith('cnou_nomad', 'not a url');
-    const err = el.querySelector('.sl-error');
-    expect(err).not.toBeNull();
-    expect(err!.getAttribute('role')).toBe('alert');
-    expect(err!.textContent).toContain('codex.shipLink.error.invalidUrl');
-    expect(input.getAttribute('aria-invalid')).toBe('true');
-    expect(el.querySelector('.sl-ok')).toBeNull();
-  }));
-
-  it('confirms a saved link', fakeAsync(() => {
-    const setMyLink = vi.fn().mockName('setMyLink').mockResolvedValue(null);
-    configureCharacterisation({
-      params: { kind: 'ship', className: 'cnou_nomad' },
-      user: { id: 'u1' },
-      hangar: { listConfigs: async () => [] } as Partial<HangarService>,
-      shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
-    });
-    const fixture = renderOnFakeClock();
-    const cmp = fixture.componentInstance;
-    openDetails(fixture);
-    cmp.toggleLinkForm();
-    fixture.detectChanges();
-    const el: HTMLElement = fixture.nativeElement;
-    (el.querySelector('.ship-link-form') as HTMLFormElement).dispatchEvent(
-      new Event('submit', { cancelable: true }),
-    );
-    flushMicrotasks();
-    fixture.detectChanges();
-    expect(setMyLink).toHaveBeenCalledTimes(1);
-    expect(el.querySelector('.sl-error')).toBeNull();
-    expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
+    const labels = Array.from(el.querySelectorAll('sc-codex-holo-stage button')).map((b) => b.textContent ?? '');
+    expect(labels.some((l) => l.includes('codex.shipLink.add') || l.includes('codex.shipLink.edit'))).toBe(false);
+    expect(el.querySelector('sc-codex-holo-stage .ship-link-form')).toBeNull();
   }));
 });
 
@@ -1497,9 +1448,11 @@ describe('CodexDetailComponent — hangar legacy in the shell beta (B3)', () => 
       const fixture = ownFixture();
       const cmp = fixture.componentInstance;
       const el: HTMLElement = fixture.nativeElement;
-      expect(el.querySelector('.holo-panel sc-codex-own-card')).not.toBeNull();
+      // Holotisch (C5/C22): ownership lives only in the one hangar button of the head.
+      expect(el.querySelector('.holo-panel sc-codex-own-card'), 'no separate "Dein Exemplar" card').toBeNull();
       expect(el.querySelector('.holo-topbar sc-codex-own-ship-actions'), 'the icon row left the head').toBeNull();
-      expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-own-segment')).not.toBeNull();
+      expect(el.querySelector('.holo-topbar .sc-head-strip sc-codex-holo-hangar-menu')).not.toBeNull();
+      expect(el.querySelector('sc-codex-holo-stage sc-codex-own-segment'), 'no strip segment').toBeNull();
       cmp.holoView.set(false);
       fixture.detectChanges();
       expect(el.querySelector('.hero-stack > .hero-pair > .hero-own sc-codex-own-card'), 'under the picture (#323)').not.toBeNull();
@@ -1608,8 +1561,10 @@ describe('CodexDetailComponent — personal mode lives in HQ under the shell bet
       expect(cmp.hqHosted()).toBe(true);
       expect(cmp.kind()).toBe('ship');
       expect(cmp.personalMode(), '?v= on the HQ URL opens the variant').toBe(true);
-      expect(el.querySelector('sc-codex-own-card sc-codex-own-ship-actions'), 'rename / note / pin / remove in the card').not.toBeNull();
-      expect(el.querySelector('.sc-head-strip sc-codex-mode-switch'), 'variant select in the head strip').not.toBeNull();
+      // Rename / note / pin / remove and the exemplar choice live in the hangar button's menu (C5).
+      expect(el.querySelector('.sc-head-strip sc-codex-holo-hangar-menu'), 'the hangar button in the head').not.toBeNull();
+      expect(el.querySelector('sc-codex-own-card'), 'no separate ownership card').toBeNull();
+      expect(cmp.activeVariantId()).toBe('c1');
       expect(cmp.showModeSwitch()).toBe(true);
       expect(cmp.crumbs().map((c) => c.link)).toEqual(['/hq', '/hq/hangar']);
     }));

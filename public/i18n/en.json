@@ -594,7 +594,7 @@
       "coverage": "Coverage",
       "qualityHint": "Quality score is preliminary until it's computed for real.",
       "stale": "Requires a data upload — a newer game version is live than this catalog reflects.",
-      "staleUploadLink": "Open Data Uploader"
+      "staleUploadLink": "Open Verse Data Uploader"
     },
     "search": {
       "didYouMean": "Did you mean:",
@@ -915,11 +915,10 @@
         "einordnung": "Standing",
         "cohortLink": "View all ships",
         "view3d": "3D",
-        "viewSchema": "Schema",
         "surfaceSimple": "Simple",
-        "surfaceTop": "Top view",
-        "surfaceSide": "Side view",
-        "surfaceFront": "Front view",
+        "surfaceTop": "Top",
+        "surfaceSide": "Side",
+        "surfaceFront": "Front",
         "surfaceFrontPending": "The front view arrives with this ship's next data upload.",
         "silhouetteAria": "Silhouette of {{name}}",
         "noGeometryReason": "No silhouette has been generated for this ship yet.",
@@ -928,7 +927,6 @@
         "detailHide": "Detail ▴",
         "allValues": "All values ▾",
         "allValuesHide": "All values ▴",
-        "journal": "Change journal",
         "journalChanged": "Changed: {{label}}",
         "undo": "Undo",
         "detailsShow": "Details ▾",
@@ -950,16 +948,16 @@
         "portsCount": "{{n}} ports",
         "legendConfigurable": "configurable",
         "legendMissiles": "missiles",
-        "legendHint": "Hover = short values · click = inspector",
         "inspectorEmptyTitle": "No hardpoint selected",
-        "inspectorEmptyBody": "Click a pin — or press “1” to “{{n}}”.",
         "emptyBay": "Empty bay",
         "journalEmpty": "Nothing yet — factory loadout.",
         "allPorts": "All {{n}} ports",
         "perspectives": "Perspectives",
-        "decksAria": "Decks",
         "deckOutside": "Outside",
         "deckInside": "Inside",
+        "rooms": "Rooms",
+        "roomsAria": "Rooms on this deck",
+        "roomsNone": "No named rooms",
         "percentileAria": "Percentile {{p}}",
         "say": {
           "gap": "The cohort gives no rank for this perspective.",
@@ -977,9 +975,6 @@
         "pinLabels": "Pin labels on the hull",
         "legendUnresolved": "Position estimated",
         "rawPortHint": "Raw port from the game data — nothing to swap or open.",
-        "eyebrowTop": "Swappable parts · {{n}}",
-        "eyebrow3d": "Drag to rotate",
-        "eyebrowSchema": "All hardpoints",
         "pinListTitle": "All hardpoints",
         "pinGroupOther": "Hardpoints",
         "rankLoading": "Comparing with the whole fleet … the first visit per patch takes a moment.",
@@ -992,7 +987,6 @@
         "backToParts": "All parts",
         "backHint": "Back to the list (Esc)",
         "partsTotal": "{{n}} parts",
-        "partsInstalled": "{{n}} fitted",
         "partSize": "Size",
         "partGrade": "Grade",
         "iconWishlist": "Wishlist",
@@ -1005,8 +999,20 @@
         "previewBuy": "Where to buy",
         "previewAlternatives": "Alternatives",
         "previewOpen": "Open detail page",
-        "patchDiff": "Patch comparison",
-        "patchDiffHint": "Pick another patch in the patch menu above and this shows what changed on this ship."
+        "viewAkte": "File",
+        "view3dUnavailable": "There is no 3D model for this ship yet.",
+        "viewsAria": "View",
+        "filtersAria": "Show parts on the table",
+        "filterParts": "Parts",
+        "filterWeapons": "Weapons",
+        "filterMissiles": "Missiles",
+        "filterComponents": "Components",
+        "filterOther": "Other",
+        "filterAll": "All parts",
+        "deckRest": "Other",
+        "statShort": {
+          "projectileSpeed": "Bullet speed"
+        }
       },
       "strip": {
         "einsatz": "Mission",
@@ -1037,20 +1043,15 @@
         "allShow": "All values of all four ▾",
         "allHide": "Collapse all values ▴"
       },
-      "side": {
-        "variants": "Variants & compare"
-      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
-          "comparing": "Comparing with {{patch}}",
           "hotkeyHint": "Compare with another patch"
         },
-        "popTitle": "Choose a patch",
         "loading": "Loading …",
         "empty": "No further patches available.",
         "notFinalised": "Not finalised",
-        "clear": "Stop comparing",
+        "reset": "Reset to the default comparison",
         "comparing": "Loading comparison …",
         "perspective": {
           "offensive": "Offensive",
@@ -1080,7 +1081,23 @@
         },
         "deltaShow": "Show changes",
         "deltaHide": "Hide changes",
-        "current": "active"
+        "current": "current",
+        "hint": "Pick an older patch on the left and this shows what changed on this ship.",
+        "fromAria": "From {{patch}} — pick a patch",
+        "toAria": "To {{patch}} — pick a patch",
+        "fromTitle": "From patch",
+        "toTitle": "To patch",
+        "pickFrom": "Pick a patch",
+        "orderHint": "The right side is always the newer patch. Pick older ones on the left under “from”.",
+        "onOtherSide": "already on the other side",
+        "newerThan": "not older than {{patch}}",
+        "olderThan": "not newer than {{patch}}",
+        "changedOn": "What changed on the {{name}}",
+        "channel": {
+          "LIVE": "Live",
+          "PTU": "PTU",
+          "EPTU": "EPTU"
+        }
       },
       "share": {
         "copyLink": "Copy link",
@@ -1123,6 +1140,133 @@
         "loadError": "The shared loadout could not be loaded.",
         "exit": "Back to my loadout",
         "readOnlyHint": "Shared loadout — read-only. Create a copy to change or save it."
+      },
+      "diffMarker": "differs from stock",
+      "callout": {
+        "swap": "Swap part",
+        "aria": "{{type}}: {{name}}"
+      },
+      "table": {
+        "tagAria": "{{type}} {{size}}: {{name}}",
+        "legendDiff": "differs from stock",
+        "legendHint": "Click = pick a part"
+      },
+      "card": {
+        "rank": "Rank {{n}} of {{m}}",
+        "overallTip": "Overall: better than {{pct}} % of the group",
+        "compareWith": "Compare with",
+        "scopeOff": "{{name}} · no data",
+        "shapeAria": "How the ranking is drawn",
+        "shapeHex": "Hexagon",
+        "shapeBars": "Bars",
+        "changesAria": "Kind of changes",
+        "changesMine": "Your changes",
+        "changesPatch": "Patch comparison",
+        "changesHead": "Swapped against the stock loadout",
+        "backToWerk": "Back to stock"
+      },
+      "inspector": {
+        "diffLegend": "differs from stock"
+      },
+      "akte": {
+        "imageOnly": "Image only",
+        "showText": "Show text",
+        "descriptionAria": "Description",
+        "noDescription": "There is no description for this ship.",
+        "liveries": "Livery",
+        "standard": "Standard",
+        "maker": "Manufacturer",
+        "modelsAria": "Model"
+      },
+      "hangar": {
+        "menuAria": "Hangar and loadout",
+        "loadouts": "Loadout",
+        "werk": "Factory",
+        "werkChanged": "Unsaved swaps: {{n}}",
+        "diffOne": "1 part differs from factory",
+        "diffMany": "{{n}} parts differ from factory",
+        "diffNone": "as factory",
+        "selectedAria": "Actions for {{name}}",
+        "removeExemplar": "Remove exemplar",
+        "removeTitle": "Remove “{{name}}”?",
+        "removeBody": "The loadout “{{name}}” is deleted. The ship stays in the hangar.",
+        "hangar": "Hangar",
+        "copy": "Copy this exemplar",
+        "copyName": "{{name}} (copy)",
+        "newFromWerk": "New exemplar from factory",
+        "saveWerk": "Add to hangar as exemplar",
+        "saveBuild": "Save build as exemplar",
+        "anotherCopy": "Another {{name}} into the hangar",
+        "openHangar": "Open in hangar",
+        "wishlist": "Wishlist",
+        "toWishlist": "Add to wishlist",
+        "wishAgain": "Wish for another",
+        "nameTitle": "Exemplar name",
+        "nameLabel": "Name",
+        "nameSuggested": "Suggestion: “{{name}}” — take it or enter your own name.",
+        "autosavedOne": "Saved · 1 change",
+        "autosavedMany": "Saved · {{n}} changes",
+        "wishWithOne": "with 1 swapped part",
+        "wishWithMany": "with {{n}} swapped parts",
+        "wishName": "Wish: {{name}}",
+        "wishLoadoutUnavailable": "On the wishlist — its loadout cannot be stored there yet."
+      },
+      "partType": {
+        "gatling": "Gatling",
+        "remoteTurret": "Remote turret",
+        "scattergun": "Scattergun",
+        "massDriver": "Mass driver",
+        "railgun": "Railgun",
+        "laserRepeater": "Laser repeater",
+        "ballisticRepeater": "Ballistic repeater",
+        "distortionRepeater": "Distortion repeater",
+        "repeater": "Repeater",
+        "laserCannon": "Laser cannon",
+        "ballisticCannon": "Ballistic cannon",
+        "distortionCannon": "Distortion cannon",
+        "cannon": "Cannon",
+        "tractorBeam": "Tractor beam",
+        "shield": "Shield",
+        "powerPlant": "Power plant",
+        "cooler": "Cooler",
+        "quantumDrive": "Quantum drive",
+        "radar": "Radar",
+        "lifeSupport": "Life support",
+        "missileRack": "Missile rack",
+        "countermeasure": "Countermeasure"
+      },
+      "statShort": {
+        "dps": "DPS",
+        "alphaDamage": "Alpha",
+        "fireRate": "Rate",
+        "range": "Range",
+        "projectileSpeed": "Speed",
+        "missileCount": "Count",
+        "missileSize": "Size",
+        "tractorForce": "Force",
+        "tractorRange": "Range",
+        "tractorSpeed": "Speed",
+        "shieldHp": "HP",
+        "shieldRegen": "Regen",
+        "regenDelay": "Delay",
+        "downedDelay": "Down",
+        "powerOutput": "Power",
+        "health": "HP",
+        "emSignature": "EM",
+        "irSignature": "IR",
+        "driveSpeed": "Speed",
+        "jumpRange": "Jump",
+        "spoolTime": "Spool",
+        "fuelRate": "Fuel",
+        "radarSensitivity": "Sensor",
+        "pingCooldown": "Ping",
+        "aimAssistRange": "Aim assist",
+        "coolingRate": "Cooling",
+        "powerDraw": "Draw",
+        "coolantDraw": "Coolant",
+        "cmCapacity": "Stock",
+        "cmLifetime": "Life",
+        "cmRadius": "Radius"
       }
     },
     "empty": {
@@ -1423,11 +1567,13 @@
       },
       "group": {
         "of": "All {{name}}",
-        "smallHint": "Only {{n}} ships in this group, so the comparison is rough."
+        "smallHint": "Only {{n}} ships in this group, so the comparison is rough.",
+        "ofRole": "{{name}} role"
       },
       "noMiningData": "Mining and salvage output: no data",
-      "rimNote": "Outside = close to the group best (95 %), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67 %.",
-      "betterThan": "Better than {{n}} %"
+      "rimNote": "Outside = close to the group best (95\u00a0%), stronger values end there. Square-root scale: small values stay visible, the rings mark 33 and 67\u00a0%.",
+      "betterThan": "Better than {{n}} %",
+      "rimLabel": "Scale"
     },
     "detail": {
       "manufacturer": "Manufacturer",
@@ -1646,7 +1792,7 @@
       "close": "Close",
       "typeFilter": "Item type",
       "filterAll": "All",
-      "appliesToOne": "Applies to the {{port}} hardpoint",
+      "appliesToOne": "Applies to this slot only: {{port}}",
       "appliesToMany": "Applies to all {{count}} identical hardpoints",
       "sortHint": "Click a column to sort, Ctrl-click to add a secondary sort.",
       "installedNone": "Bay empty (stock)",
@@ -1714,7 +1860,6 @@
     "picker": {
       "title": "Pick a component — {{port}} · S{{size}}",
       "installed": "fitted: {{name}}",
-      "hint": "Click beside the window to go back",
       "close": "Close",
       "searchPlaceholder": "Search … name, manufacturer, damage type",
       "searchLabel": "Search components",
@@ -1728,7 +1873,7 @@
       "columnsUnavailable": "not in the game files",
       "dashCell": "—",
       "dashCellTitle": "Not applicable to this class",
-      "dashNote": "Ammo and spread read “—” because energy weapons have no magazine and the P4K only carries spread as a modifier. Not an extractor gap.",
+      "dashNote": "Ammo and spread read „—“: energy weapons have no magazine, and the game states spread only as a modifier on other values.",
       "footerMissing": "Not in the game files: {{fields}}",
       "pickRow": "Fit {{name}}",
       "openDetail": "Open details for {{name}}",
@@ -1791,6 +1936,75 @@
         "deg": "°",
         "perSec": "/s",
         "percent": "%"
+      },
+      "dashNoteAmmo": "Ammo reads „—“ for energy weapons because they have no magazine.",
+      "dashNoteSpread": "Spread reads „—“ because the game states it only as a modifier on other values.",
+      "term": {
+        "armor": "Armor",
+        "back": "Rear",
+        "ballistic": "Ballistic",
+        "ballisticcannon": "Ballistic Cannon",
+        "ballisticgatling": "Ballistic Gatling",
+        "ballisticrepeater": "Ballistic Repeater",
+        "ballisticscattergun": "Ballistic Scattergun",
+        "bottom": "Bottom",
+        "cannon": "Cannon",
+        "center": "Center",
+        "centre": "Center",
+        "cooler": "Cooler",
+        "countermeasure": "Countermeasure",
+        "distortion": "Distortion",
+        "distortioncannon": "Distortion Cannon",
+        "distortionrepeater": "Distortion Repeater",
+        "emp": "EMP",
+        "front": "Front",
+        "fuelintake": "Fuel Intake",
+        "fueltank": "Fuel Tank",
+        "gatling": "Gatling",
+        "gun": "Gun",
+        "gunturret": "Gun Turret",
+        "jumpmodule": "Jump Module",
+        "laser": "Laser",
+        "lasercannon": "Laser Cannon",
+        "lasergatling": "Laser Gatling",
+        "laserrepeater": "Laser Repeater",
+        "left": "Left",
+        "lifesupport": "Life Support",
+        "lower": "Lower",
+        "mainthruster": "Main Thruster",
+        "massdriver": "Mass Driver",
+        "mid": "Mid",
+        "middle": "Middle",
+        "mininglaser": "Mining Laser",
+        "missile": "Missile",
+        "missilelauncher": "Missile Launcher",
+        "missilerack": "Missile Rack",
+        "nose": "Nose",
+        "power": "Power",
+        "powerplant": "Power Plant",
+        "quantumdrive": "Quantum Drive",
+        "quantumfueltank": "Quantum Fuel Tank",
+        "radar": "Radar",
+        "railgun": "Railgun",
+        "rear": "Rear",
+        "repeater": "Repeater",
+        "right": "Right",
+        "rocketpod": "Rocket Pod",
+        "salvagebeam": "Salvage Beam",
+        "scanner": "Scanner",
+        "scattergun": "Scattergun",
+        "selfdestruct": "Self-Destruct",
+        "shield": "Shield",
+        "shieldgenerator": "Shield Generator",
+        "tail": "Tail",
+        "thruster": "Thruster",
+        "top": "Top",
+        "tractorbeam": "Tractor Beam",
+        "turret": "Turret",
+        "upper": "Upper",
+        "utility": "Utility",
+        "weapon": "Weapon",
+        "wing": "Wing"
       }
     },
     "hardpointMap": {
@@ -1819,6 +2033,8 @@
         "topAria": "Top view of the ship with {{count}} hardpoints marked",
         "extent": "{{length}} × {{beam}} × {{height}} m",
         "hint": "Seen from above, nose to the right. Point at a marker for size and type, click it for the component.",
+        "hintSide": "Seen from the side, nose to the right. Point at a marker for size and type, click it for the component.",
+        "hintFront": "Seen from the front, nose towards you. Point at a marker for size and type, click it for the component.",
         "noPositions": "No hardpoint positions for this hull yet — they arrive with its next 3D upload.",
         "listLabel": "Hardpoints",
         "size": "Size {{size}}"
@@ -1968,6 +2184,7 @@
       "shieldNote": "All three are shield generators and all three can be swapped. The passive one costs no power and still counts fully towards the pool — but it hangs off the active ones: if they fail, the backup goes with them.",
       "peek": {
         "sustainedDpsTotal": "Total sustained DPS",
+        "burstDpsTotal": "Total burst DPS",
         "missileTotal": "Full salvo",
         "budget": "Reactor budget",
         "coolingTotal": "Total cooling"
@@ -1993,6 +2210,7 @@
       "gap": {
         "noStockGuns": "This hull's stock guns are not in the extract — the game keeps default weapon fits in a separate loadout record we do not resolve yet, so the mounts below show the seat rather than the gun.",
         "noFireRate": "No fire rate in this extract{{patch}}, so sustained DPS cannot be derived yet.",
+        "noSustainedCycle": "No energy regen, reload time or overheat data for the weapons in this extract{{patch}}, so sustained DPS cannot be derived yet. Burst DPS counts no pauses.",
         "noShields": "No shield generator in this ship's stock loadout.",
         "noHullHp": "Hull HP is not part of the P4K extract yet.",
         "noResistances": "Per-channel damage resistances are not extracted — no ship or armour entity carries them.",
@@ -2058,7 +2276,7 @@
       "deltaUp": "{{value}} better than factory",
       "deltaDown": "{{value}} worse than factory",
       "tooltipBurstDps": "Continuous fire until the magazine is empty — reloading not counted.",
-      "tooltipSustainedDps": "Averaged over a long fight — reload pauses counted.",
+      "tooltipSustainedDps": "Averaged over a long fight — pauses for energy regen, reloading and overheating counted.",
       "short": {
         "alpha": "Alpha",
         "burstDps": "Burst DPS",
@@ -2535,7 +2753,7 @@
         "legendBelow": "below median",
         "compareInfo": "Each axis runs from 0 (centre) to the highest value among the chosen weapons (rim). Blue is this weapon, the dashed line the group's median.",
         "note": "Compares only what the game data holds for this weapon.",
-        "gapNoData": "The current data does not include damage, speed, agility and range yet. The comparison appears once a build is uploaded with Data Uploader 0.73.3 or later.",
+        "gapNoData": "The current data does not include damage, speed, agility and range yet. The comparison appears once a build is uploaded with Verse Data Uploader 0.73.3 or later.",
         "gapTooFew": "Too few missiles differ in damage, speed, agility and range to rank this one.",
         "gapThinGroup": "Not enough to compare: too few values differ in this group to rank this one.",
         "gapNoCohort": "The comparison group could not be loaded."
@@ -3366,7 +3584,7 @@
   },
   "p4k": {
     "title": "P4K Bundle History",
-    "subtitle": "Pre-digested bundles from the Data Uploader. Uploads only happen via the tool, not from the website.",
+    "subtitle": "Pre-digested bundles from the Verse Data Uploader. Uploads only happen via the tool, not from the website.",
     "loading": "Loading bundles…",
     "errorTitle": "Could not load bundles",
     "retentionHint": "Retention: the last 3 uploader versions per build, max. 20 bundles total — older ones are removed automatically.",
@@ -3375,7 +3593,7 @@
     },
     "empty": {
       "title": "No bundles yet",
-      "hint": "Once someone runs the Data Uploader and uploads, results show up here."
+      "hint": "Once someone runs the Verse Data Uploader and uploads, results show up here."
     },
     "col": {
       "entities": "Entities",
@@ -3572,6 +3790,14 @@
         "label": "Show the feedback button",
         "descOn": "The feedback button sits in the bottom-right corner of every page.",
         "descOff": "The feedback button is hidden — replies and questions from the team stay out of sight with it. Switch it back on here to open your feedback."
+      },
+      "staff": {
+        "title": "Feedback & beta buttons",
+        "hint": "The corner buttons: send feedback and see replies from the team, with the beta switch above it.",
+        "label": "Show the feedback and beta buttons",
+        "audience": "(admins and collaborators only)",
+        "descOn": "The feedback and beta buttons sit in the bottom-right corner of every page.",
+        "descOff": "The feedback and beta buttons are hidden — replies and questions from the team stay out of sight with them. Switch them back on here to open your feedback or the beta switches."
       },
       "routineTint": {
         "label": "Feedback title green / red only",
@@ -4145,7 +4371,7 @@
   },
   "desktop": {
     "title": "Data Upload",
-    "subtitle": "Download the Data Uploader for your local Star Citizen install.",
+    "subtitle": "Download the Verse Data Uploader for your local Star Citizen install.",
     "bundleHistory": "Bundle History",
     "loading": "Loading release…",
     "released": "Released",
@@ -4161,7 +4387,7 @@
       "label": "Promote this version to",
       "action": "Promote"
     },
-    "appTitle": "Data Uploader",
+    "appTitle": "Verse Data Uploader",
     "appDesc": "Reads your local Star Citizen install and uploads the Codex bundles from it.",
     "close": "Close",
     "access": {
@@ -4176,7 +4402,7 @@
       "text": "Imports your RSI hangar into the HQ - for Chrome and Edge.",
       "open": "Install the extension"
     },
-    "subtitle": "Get the Data Uploader for your local Star Citizen install."
+    "subtitle": "Get the Verse Data Uploader for your local Star Citizen install."
   },
   "desktopConnect": {
     "title": "Connect Verse Companion",
@@ -4189,18 +4415,18 @@
     "errorNoToken": "No access token in session."
   },
   "desktopAuth": {
-    "title": "Authorize Data Uploader",
+    "title": "Authorize Verse Data Uploader",
     "authorizing": "Checking your session…",
     "loginRequired": "Sign in first, then confirm the connection.",
     "redirecting": "Authorized. Sending token to the app…",
     "redirectingHint": "You can close this window in a moment.",
-    "unauthorized": "Your account can't use the Data Uploader.",
+    "unauthorized": "Your account can't use the Verse Data Uploader.",
     "unauthorizedHint": "You need collaborator or admin role. Ask an admin.",
     "errorMissingParams": "Missing callback or state parameter.",
     "errorBadCallback": "Callback URL is not a 127.0.0.1 loopback in the expected port range.",
     "errorNoToken": "No access token in session.",
-    "confirmPrompt": "Connect the Data Uploader on port {{port}} to your account?",
-    "confirmHint": "Only confirm if you just started the sign-in from the Data Uploader yourself.",
+    "confirmPrompt": "Connect the Verse Data Uploader on port {{port}} to your account?",
+    "confirmHint": "Only confirm if you just started the sign-in from the Verse Data Uploader yourself.",
     "confirm": "Connect",
     "cancel": "Cancel",
     "cancelled": "Cancelled — nothing was sent. You can close this window."
@@ -4307,7 +4533,7 @@
           "statistics": "\"Statistics\" category — the state of the anonymous product analytics (PostHog). Only created if you allow it; withdrawing your consent deletes it immediately."
         },
         "p2": "During a Google sign-in there is briefly one extra entry in session storage (sc.oauth-redirect-qs) so that you land back on the page you came from. It disappears when the tab closes at the latest.",
-        "p3": "If you explicitly authorize one of our desktop tools (data uploader, Starscape), the browser hands your session's access token to the program running locally on your machine (127.0.0.1) — not to a third party, and never via the address bar.",
+        "p3": "If you explicitly authorize one of our desktop tools (Verse Data Uploader, Starscape), the browser hands your session's access token to the program running locally on your machine (127.0.0.1) — not to a third party, and never via the address bar.",
         "p4": "As an installable web app (PWA), a service worker caches static assets on your device for faster loading and offline use — this cache contains no personal data and can be cleared by uninstalling the app or clearing site data."
       },
       "thirdParty": {
@@ -4615,7 +4841,7 @@
     "product": {
       "label": "Product",
       "scc-app": "Verse Companion App",
-      "data-uploader": "Data Uploader",
+      "data-uploader": "Verse Data Uploader",
       "all": "All",
       "starscape": "Starscape"
     },
@@ -4648,7 +4874,7 @@
     },
     "diagnostics": {
       "title": "Warnings & errors from uploader logs",
-      "hint": "Data Uploader runs that wrote [warn] or [err] lines to their log – including runs that otherwise finished fine. Unfold a row for the transcript; “Report as topic” opens the feedback panel with a pre-filled topic and the log attached. Nothing is sent until you press send.",
+      "hint": "Verse Data Uploader runs that wrote [warn] or [err] lines to their log – including runs that otherwise finished fine. Unfold a row for the transcript; “Report as topic” opens the feedback panel with a pre-filled topic and the log attached. Nothing is sent until you press send.",
       "byOutcome": "By outcome",
       "recent": "Recent runs",
       "warningsShort": "warn.",
@@ -4668,8 +4894,8 @@
         "skin": "Skin export"
       },
       "topic": {
-        "head": "Data Uploader {{version}} ({{ring}}) logged {{warnings}} warning(s) and {{errors}} error(s) during {{kind}} ({{outcome}}) – game {{game}}, OS {{os}}, telemetry event #{{id}}.",
-        "ask": "Please analyse the attached log: find the cause of the warnings/errors, judge whether data is missing or extracted wrongly because of them, and implement a fix in the Data Uploader (data-uploader/) or the Python sidecar (data-uploader/python/sc_extract). If the message is harmless, lower the log level or handle the cause quietly so it stops surfacing as a warning.",
+        "head": "Verse Data Uploader {{version}} ({{ring}}) logged {{warnings}} warning(s) and {{errors}} error(s) during {{kind}} ({{outcome}}) – game {{game}}, OS {{os}}, telemetry event #{{id}}.",
+        "ask": "Please analyse the attached log: find the cause of the warnings/errors, judge whether data is missing or extracted wrongly because of them, and implement a fix in the Verse Data Uploader (data-uploader/) or the Python sidecar (data-uploader/python/sc_extract). If the message is harmless, lower the log level or handle the cause quietly so it stops surfacing as a warning.",
         "excerpt": "Log excerpt:"
       }
     }
@@ -7514,7 +7740,7 @@
         "text": "Manage API tokens for external services."
       },
       "uploader": {
-        "title": "Data Uploader",
+        "title": "Verse Data Uploader",
         "text": "Ingest game data from Data.p4k."
       },
       "translations": {
@@ -7539,7 +7765,7 @@
       "desc": "Your desktop becomes a window into the Verse — a new picture from the gallery every day."
     },
     "uploader": {
-      "name": "Data Uploader",
+      "name": "Verse Data Uploader",
       "desc": "Reads your Star Citizen install and fills the Codex with ships, stats and 3D models."
     },
     "footer": "This is the stable version. Pick Beta and Alpha in the app after logging in — which channels you see depends on your role."
@@ -7562,10 +7788,10 @@
     "hub": {
       "eyebrow": "Apps",
       "title": "Apps",
-      "subtitle": "Everything that runs next to the website: the uploader, Starscape and the browser extension.",
+      "subtitle": "Everything that runs next to the website: the Verse Data Uploader, Starscape and the browser extension.",
       "breadcrumbAria": "Apps",
       "uploader": {
-        "name": "Data Uploader",
+        "name": "Verse Data Uploader",
         "desc": "Reads your Star Citizen install and uploads the data to the Codex."
       },
       "starscape": {

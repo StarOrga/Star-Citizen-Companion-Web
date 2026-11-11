@@ -65,9 +65,15 @@ const CATALOG_SHARED = [
 export const SUBTHEMES: readonly Subtheme[] = [
   {
     key: 'strings',
-    revision: 1,
+    // 2: E14 — the English table gains the `scc_room_*` room labels
+    // (ship_rooms.py), the translation pipeline's input for room names.
+    revision: 2,
     phases: ['codex_locale_strings'],
-    sources: [...CATALOG_SHARED, 'data-uploader/python/sc_extract/localization.py'],
+    sources: [
+      ...CATALOG_SHARED,
+      'data-uploader/python/sc_extract/localization.py',
+      'data-uploader/python/sc_extract/ship_rooms.py',
+    ],
   },
   {
     key: 'ships',
@@ -94,7 +100,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
     // 12: rooms without an interiorMapSection on a multi-deck ship take the
     // deck of the authored rooms on their floor level, this hull's and its
     // family's (Starlancer MAX from the TAC) — fewer rooms on "Other rooms".
-    revision: 12,
+    // 13: E14 — rooms carry `locKey` (the game's loc key) and, without a
+    // German string, `labelKey` (`scc_room_*`, translated by the pipeline).
+    revision: 13,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
@@ -108,7 +116,8 @@ export const SUBTHEMES: readonly Subtheme[] = [
   // components 4 / items 4: #842 — ship radars move from codex_items to
   // codex_components (kind Radar) with flat range / sensitivity keys.
   { key: 'components', revision: 4, phases: ['codex_components'], sources: CATALOG_SHARED },
-  { key: 'weapons', revision: 3, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
+  // weapons 4: #343 — weaponParams gains regen.* / heat.* (sustained DPS).
+  { key: 'weapons', revision: 4, phases: ['codex_weapons', 'codex_ammunition'], sources: CATALOG_SHARED },
   // items 5: missiles carry stats.SCItemMissileParams (feedback e7b6a2a1).
   { key: 'items', revision: 5, phases: ['codex_items'], sources: CATALOG_SHARED },
   {

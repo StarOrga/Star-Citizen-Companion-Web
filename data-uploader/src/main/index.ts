@@ -151,7 +151,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#0d2635', // = --surface-canvas, so resize/launch never flashes a foreign dark
-    title: 'Verse Companion - Data Uploader',
+    title: 'Verse Data Uploader',
     icon: runtimeIcon('icon.png'),
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),

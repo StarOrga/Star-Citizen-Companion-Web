@@ -9,6 +9,7 @@ import { BetaService } from '../core/beta.service';
 import { DesktopConnectionService } from '../desktop/desktop-connection.service';
 import { HangarService } from '../hangar/hangar.service';
 import { ShellChromeService } from '../shell/fusion-bar/shell-chrome.service';
+import { SceneCameraService } from '../shell/scene/scene-camera.service';
 import { HqLandingComponent } from './hq-landing.component';
 import { HqOverviewComponent } from './hq-overview.component';
 import { HqPagesComponent } from './hq-pages.component';
@@ -79,13 +80,62 @@ describe('HqLandingComponent', () => {
 });
 
 describe('HqPagesComponent', () => {
-  function mount() {
-    TestBed.configureTestingModule({ imports: [HqPagesComponent], providers: baseProviders(true) });
+  /** Mounts the landing; `all` builds the follow pages at once, as a scroll or a jump would. */
+  function mount(all = true, flying = signal(false)) {
+    TestBed.configureTestingModule({
+      imports: [HqPagesComponent],
+      providers: [...baseProviders(true), { provide: SceneCameraService, useValue: { flying } }],
+    });
     const f = TestBed.createComponent(HqPagesComponent);
     (f.nativeElement as HTMLElement).setAttribute('data-layout', 'cinematic');
     f.detectChanges();
+    if (all) {
+      (f.componentInstance as unknown as { buildAll(): void }).buildAll();
+      f.detectChanges();
+    }
     return f;
   }
+
+  const FOLLOW = ['sc-hq-stock', 'sc-hq-now', 'sc-hq-plan', 'sc-hq-stats'];
+  const builtPages = (el: HTMLElement) => FOLLOW.filter((s) => el.querySelector(s)).length;
+  const frames = (n: number) => new Promise<void>((r) => {
+    const step = (left: number) => (left ? requestAnimationFrame(() => step(left - 1)) : r());
+    step(n);
+  });
+
+  it('renders Start with the route and builds the follow pages one by one after the flight', async () => {
+    // A scrolled test page would read as the reader heading down, which builds everything at once.
+    window.scrollTo(0, 0);
+    const flying = signal(true);
+    const f = mount(false, flying);
+    const el: HTMLElement = f.nativeElement;
+    // Every section stands from the start (anchors, snap, observer), only the pages below the fold wait.
+    expect(Array.from(el.querySelectorAll('section.page')).map((s) => s.id)).toEqual(['start', 'inventar', 'jetzt', 'planen', 'statistik']);
+    expect(el.querySelector('sc-hq-start')).not.toBeNull();
+    expect(builtPages(el)).toBe(0);
+    await frames(5);
+    f.detectChanges();
+    expect(builtPages(el)).toBe(0);
+    flying.set(false);
+    const seen = new Set<number>();
+    for (let i = 0; i < 60 && builtPages(el) < FOLLOW.length; i++) {
+      await frames(1);
+      f.detectChanges();
+      seen.add(builtPages(el));
+    }
+    expect(builtPages(el)).toBe(FOLLOW.length);
+    // Step by step, not all in one frame.
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('a jump to a follow page builds every page before it scrolls', () => {
+    const f = mount(false, signal(true));
+    const el: HTMLElement = f.nativeElement;
+    expect(builtPages(el)).toBe(0);
+    el.querySelector<HTMLAnchorElement>('sc-hq-rail a[href="/hq#planen"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    f.detectChanges();
+    expect(builtPages(el)).toBe(FOLLOW.length);
+  });
 
   it('renders five sections with the page ids and exactly one h1', () => {
     const el: HTMLElement = mount().nativeElement;

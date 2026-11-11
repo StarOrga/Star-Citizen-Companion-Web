@@ -87,6 +87,10 @@ export interface LayoutChild {
    * numbers). Unlike `statsMissing` it renders even when some rows exist.
    */
   statsNoteKey?: string | null;
+  /** A nested draft (`mount.gun`) swapped this sub-slot's occupant — same states as `LayoutSlot.draftState`. */
+  draftState?: 'changed' | 'pending' | 'unresolved' | null;
+  /** The dotted `parent.child` draft path(s) behind `draftState`, for the revert action. */
+  draftPaths?: string[];
 }
 
 /**
@@ -449,7 +453,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                        flow as the sub-slot list and ended up beside the gun. -->
                   <div class="main">
                   @if (row.slot.className) {
-                    <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)"
+                    <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)" (pointerdown)="warmSlot(row, sec.configurable)" (focus)="warmSlot(row, sec.configurable)"
                             [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-top">
                         <span class="slot-head">
@@ -537,7 +541,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                          third shield slot is pickable even though it ships
                          empty (1add86a4). -->
                     <button type="button" class="slot-btn linked open-bay"
-                            (click)="openSlot(row, sec.configurable)"
+                            (click)="openSlot(row, sec.configurable)" (pointerdown)="warmSlot(row, sec.configurable)" (focus)="warmSlot(row, sec.configurable)"
                             [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-head">
                         @if (emptyBadge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
@@ -596,7 +600,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                             [attr.aria-label]="'codex.inspect.openStats' | translate"
                             [scTooltip]="'codex.inspect.openStats' | translate" scTooltipTier="label">ⓘ</button>
                     @if (sec.configurable) {
-                      <button type="button" class="slot-swap-action" (click)="openSlot(row, true)"
+                      <button type="button" class="slot-swap-action" (click)="openSlot(row, true)" (pointerdown)="warmSlot(row, true)" (focus)="warmSlot(row, true)"
                               [attr.aria-label]="'codex.swap.open' | translate"
                               [scTooltip]="'codex.swap.open' | translate" scTooltipTier="label">⇄</button>
                     }
@@ -1081,6 +1085,8 @@ export class CodexHardpointLayoutComponent {
    * inside a gimbal mount opens the picker for the GUN, not for the mount).
    */
   readonly swapRequested = output<LayoutTarget>();
+  /** Press / focus on a card that opens the picker: the host may build the picker's list ahead of the click. */
+  readonly swapWarm = output<LayoutTarget>();
   /**
    * A card was clicked — the parent opens the component overlay. Emits the row
    * plus, for a sub-slot click, which child was picked.
@@ -1252,6 +1258,18 @@ export class CodexHardpointLayoutComponent {
    * else fits here"; in a fixed block there is nothing to swap, so the click
    * falls back to the read-only stat sheet.
    */
+  /**
+   * Focus on / press of a card that opens the picker: start its list now (not on hover: a
+   * pointer sweeping over a loadout would fire a read per card at the pool),
+   * ahead of the idle-time preload, so the picker does not wait for (or parse) it on open.
+   * Same query as the preload for a fitted slot (`swapPreloadQueries`).
+   */
+  warmSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {
+    if (!configurable || !row.slot.className) return;
+    this.swapSource.prefetch({ installed: row.slot.className, types: [], size: row.slot.size });
+    this.swapWarm.emit({ slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) });
+  }
+
   openSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {
     const target: LayoutTarget = { slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) };
     (configurable ? this.swapRequested : this.inspected).emit(target);

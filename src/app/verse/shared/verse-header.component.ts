@@ -7,7 +7,7 @@ import { FeedbackSpotDirective } from '../../feedback/feedback-spot.directive';
 import { ExplorerGlyphComponent } from '../starmap/explorer-glyph.component';
 import { BetaService } from '../../core/beta.service';
 import { VerseStatusComponent } from './verse-status.component';
-import { VerseWorld } from './verse-world';
+import { VerseWorld, verseEmblemShown } from './verse-world';
 
 /**
  * `<sc-verse-header>` — the one page head of the Verse subpages (News,
@@ -66,7 +66,7 @@ import { VerseWorld } from './verse-world';
       </nav>
     }
     <div class="vh-row">
-      @if (planet(); as p) {
+      @if (emblem(); as p) {
         <span class="vh-emblem" [attr.data-world]="p" aria-hidden="true">
           @if (p === 'starmap') {
             <ng-content select="[vhEmblem]">
@@ -105,6 +105,11 @@ export class VerseHeaderComponent {
   readonly heading = computed(() => this.title() ?? this.eyebrow() ?? null);
   readonly starmap = this.beta.isEnabled('verse');
   readonly shell = this.beta.isEnabled('shell');
+  /** The planet whose emblem the head shows; shell β drops it where the scene shows the planet big (`verseEmblemShown`). */
+  readonly emblem = computed(() => {
+    const p = this.planet();
+    return p && verseEmblemShown(p, this.shell()) ? p : null;
+  });
 
   constructor() {
     const origin = inject(NavOriginService);

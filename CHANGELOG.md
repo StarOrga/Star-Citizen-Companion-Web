@@ -4,6 +4,58 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.257.1] - 2026-11-11
+
+### Fixed
+- Kennzahlen: Dauer-DPS is no longer a copy of Salven-DPS. It now counts the pauses for reloading, energy regeneration and overheating; where a weapon has no known cycle yet, the cell says so instead of repeating the burst value.
+
+## [0.257.0] - 2026-11-11
+
+### Changed
+- The Data Uploader is now called Verse Data Uploader everywhere: on the site, in the app's window and tray, and in the Windows start menu.
+
+## [0.256.1] - 2026-11-11
+
+### Fixed
+- Swap picker: coolers, shields and drives show their type ("Kühler") under the name instead of repeating the product name in English.
+
+## [0.256.0] - 2026-11-11
+
+### Added
+- Kamera-Welt (shell beta): Verse, Codex and HQ share one continuous camera scene. Page loads and every page and subpage switch are camera pans and zooms on straight paths instead of background swaps; the header morphs into the subheader, and on phones it moves into the bottom thumb bar.
+- Verse hub projector: the newest item projects first, 5 s on and 5 s off, then projects back out in reverse.
+- Popups open and close as one motion (Horizont); small menus close as a real reverse.
+- Hovering, focusing or pressing a link prepares the target page's code and data before the click.
+
+### Changed
+- Reduced motion crossfades only the scene in 420 ms; the page stays clickable during the fade.
+- Codex, HQ and the Verse hub build their lower parts after the camera has landed, so the flight stays smoother.
+
+### Fixed
+- Scrolling on /codex and /hq: far fewer stutter frames (snap no longer pulls back each wheel notch, no page-wide restyles while scrolling).
+- Ship detail on phones: the floating button column no longer covers the Hangar button.
+- Restored the named loadout layouts with share link and the Codex landing side panes, which an earlier merge had dropped.
+
+## [0.255.0] - 2026-11-10
+
+### Changed
+- Settings → Feedback-Button: switching the feedback button off now also hides the beta button for collaborators and admins — one shared setting.
+
+## [0.254.0] - 2026-11-11
+
+### Added
+- Holotisch: type callouts with a swap button, the ◆ marker for parts that differ from the stock loadout, a hangar menu for Werk, exemplars and wishes, AI name and summary per exemplar.
+- Holotisch: changes in your own exemplar save on their own with a short toast; parts inside gimbals can be saved; wishes keep their loadout.
+- Deck plan and room chips show translated room names.
+
+### Changed
+- Holotisch: one bottom row (Akte · Außen · Innen · part filters), a lighter header, a fixed right card (Einordnung · Bauteile · Änderungen) with rank, group picker, hexagon ⇄ bars and a single-line patch choice.
+- 3D view keeps its distance while rotating.
+
+### Fixed
+- Swap picker was empty for coolers, shields, quantum drives and life support, and wrapped item names letter by letter.
+- Opening an exemplar no longer leads to a dead hangar route; removing the active exemplar no longer leaves its draft behind.
+
 ## [0.253.0] - 2026-11-11
 
 ### Added
