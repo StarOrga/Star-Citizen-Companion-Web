@@ -123,6 +123,21 @@
         "hunks": [
           "a4600c34d8dd"
         ]
+      },
+      {
+        "ship": "#1094",
+        "by": "Jerry",
+        "value": "0.257.4"
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "0.258.0 regenerated (keeps 0.257.4 entry)",
+        "decided": true,
+        "at": "2026-11-11T18:04:42.524Z",
+        "hunks": [
+          "c5660787e720"
+        ]
       }
     ]
   }
