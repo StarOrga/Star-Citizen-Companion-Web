@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "aspects": {
+    ".claude/project-map.md›header›tracked-files": [
+      {
+        "ship": "fix/kamera-welt-followups",
+        "by": "claude",
+        "value": "regenerated count",
+        "decided": true,
+        "at": "2026-11-11T17:34:48.785Z",
+        "hunks": [
+          "e21c9783816b"
+        ]
+      }
+    ],
+    "public/release-notes.json›current›version": [
+      {
+        "ship": "fix/kamera-welt-followups",
+        "by": "claude",
+        "value": "0.257.3",
+        "decided": true,
+        "at": "2026-11-11T17:46:31.474Z",
+        "hunks": [
+          "be0fb2a20145"
+        ]
+      }
+    ]
+  }
+}

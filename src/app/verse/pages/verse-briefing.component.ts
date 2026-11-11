@@ -42,7 +42,8 @@ import { toVwRect } from '../../shell/scene/scene.model';
 import { BriefingAsteroidComponent } from './briefing/briefing-asteroid.component';
 import { BriefingTransmitComponent, TransmitItem } from './briefing/briefing-transmit.component';
 import {
-  HUB_COLUMNS, HUB_DECODE_CAP_MS, HUB_IDLE_TIMEOUT_MS, VERSE_BUILD_STEPS, VERSE_STAGED_BUILD, afterPaint, decodeImages, whenIdle,
+  HUB_COLUMNS, HUB_DECODE_CAP_MS, HUB_IDLE_TIMEOUT_MS, VERSE_BUILD_STEPS, VERSE_STAGED_BUILD, afterPaint, decodeImages, readHubHeight,
+  rememberHubHeight, whenIdle,
 } from './briefing/staged-build';
 import {
   BriefingStatus,
@@ -274,6 +275,8 @@ export class VerseBriefingComponent {
    */
   readonly hubShown = signal(this.buildStep() >= VERSE_BUILD_STEPS ? HUB_COLUMNS : 0);
   private readonly hubEl = viewChild(BriefingHubComponent, { read: ElementRef });
+  /** The placeholder's height while the hub is on its way: the hub's last measured height at this width (null = the CSS estimate). */
+  readonly holdHeight = signal(typeof window === 'undefined' ? null : readHubHeight(window.innerWidth));
 
   readonly top = this.api.topItems;
 
@@ -637,6 +640,16 @@ export class VerseBriefingComponent {
       void (col ? decodeImages(col, HUB_DECODE_CAP_MS) : Promise.resolve()).then(() => {
         if (gone) return;
         this.hubShown.set(n + 1);
+        if (n + 1 === HUB_COLUMNS) {
+          // Remember the built hub's height for the next visit's placeholder (twice: images and late news may still settle).
+          const remember = (): void => {
+            const el = this.hubEl()?.nativeElement as HTMLElement | undefined;
+            if (!gone && el) rememberHubHeight(window.innerWidth, el.getBoundingClientRect().height);
+          };
+          cancels.push(afterPaint(remember));
+          const late = setTimeout(remember, 3000);
+          cancels.push(() => clearTimeout(late));
+        }
         cancels.push(afterPaint(() => cancels.push(whenIdle(show, HUB_IDLE_TIMEOUT_MS))));
       });
     };
