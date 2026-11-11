@@ -148,20 +148,34 @@ export function swapArchetype(
 // (`Bespoke`, `Shark`) are all single words and never match.
 const DESCRIPTOR_SEGMENT = /^[A-Z][a-z]+(?:[A-Z][a-z]+)+$/;
 
+/** Lower-case letters and digits only — "Cryo-Star" and "CryoStar" compare equal. */
+function squash(text: string | null | undefined): string {
+  return (text ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 /**
  * "Laser Cannon" / "Ballistic Gatling" — the sub-line under a candidate's name,
  * read out of the class name the same way the reference tools do. Falls back to
  * the entity's own type discriminator ("Gun", "Quantum Drive") when the class
  * name spells nothing out. Never translated: like every catalog value on the
  * page these are engine identifiers rendered readably, not UI copy.
+ *
+ * A segment that only repeats the product's own name is no type: coolers,
+ * shields and drives carry their name in the class (`COOL_LPLT_S01_ArcticStorm`),
+ * and reading it as the type put the English name under the name again
+ * ("ArcticStorm · Arctic Storm") where its siblings say "Kühler".
  */
 export function swapTypeLabel(
   className: string,
   kind: CodexKind,
   payload: unknown,
+  name?: string | null,
 ): string | null {
+  const ownName = squash(name);
   for (const seg of className.split('_')) {
-    if (DESCRIPTOR_SEGMENT.test(seg)) return humanizeClassName(seg);
+    if (!DESCRIPTOR_SEGMENT.test(seg)) continue;
+    if (ownName && ownName.includes(squash(seg))) continue;
+    return humanizeClassName(seg);
   }
   return equippedTypeLabel({ kind, payload });
 }
@@ -280,7 +294,7 @@ export function buildSwapCandidate(input: SwapCandidateInput): SwapCandidate {
     manufacturerCode: input.manufacturerCode,
     size: input.size,
     grade: input.grade,
-    typeLabel: swapTypeLabel(input.className, input.kind, input.payload),
+    typeLabel: swapTypeLabel(input.className, input.kind, input.payload, name),
     archetype: swapArchetype(input.className, name, input.subType),
     damageChannels: damageChannelsOf(input.payload, input.ammoPayload),
     attachType: (input.payload as { attachType?: string | null } | null | undefined)?.attachType ?? null,

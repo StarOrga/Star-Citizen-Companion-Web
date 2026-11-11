@@ -1,7 +1,67 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.255.0",
+  "current": "0.256.0",
   "releases": [
+    {
+      "version": "0.256.0",
+      "date": "2026-11-11",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Kamera-Welt (shell beta): Verse, Codex and HQ share one continuous camera scene. Page loads and every page and subpage switch are camera pans and zooms on straight paths instead of background swaps; the header morphs into the subheader, and on phones it moves into the bottom thumb bar."
+            },
+            {
+              "title": "",
+              "text": "Verse hub projector: the newest item projects first, 5 s on and 5 s off, then projects back out in reverse."
+            },
+            {
+              "title": "",
+              "text": "Popups open and close as one motion (Horizont); small menus close as a real reverse."
+            },
+            {
+              "title": "",
+              "text": "Hovering, focusing or pressing a link prepares the target page's code and data before the click."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Reduced motion crossfades only the scene in 420 ms; the page stays clickable during the fade."
+            },
+            {
+              "title": "",
+              "text": "Codex, HQ and the Verse hub build their lower parts after the camera has landed, so the flight stays smoother."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Scrolling on /codex and /hq: far fewer stutter frames (snap no longer pulls back each wheel notch, no page-wide restyles while scrolling)."
+            },
+            {
+              "title": "",
+              "text": "Ship detail on phones: the floating button column no longer covers the Hangar button."
+            },
+            {
+              "title": "",
+              "text": "Restored the named loadout layouts with share link and the Codex landing side panes, which an earlier merge had dropped."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.255.0",
       "date": "2026-11-10",
