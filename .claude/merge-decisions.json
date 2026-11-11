@@ -1,6 +1,42 @@
 {
   "version": 1,
   "aspects": {
+    ".claude/project-map.md›data-uploader/python/tests›count": [
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "ef1b2643e01e"
+        ]
+      }
+    ],
+    ".claude/project-map.md›data-uploader/python›count": [
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "1f59b7e28021"
+        ]
+      }
+    ],
+    ".claude/project-map.md›data-uploader›count": [
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "453e9c79e111"
+        ]
+      }
+    ],
     ".claude/project-map.md›header›tracked-count": [
       {
         "ship": "#1096",
@@ -15,6 +51,33 @@
         "at": "2026-11-11T17:34:53.127Z",
         "hunks": [
           "e3fb13461868"
+        ]
+      },
+      {
+        "ship": "#1097",
+        "by": "Jerry",
+        "value": "2993 tracked files."
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree (2994)",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "d6582e990c85"
+        ]
+      }
+    ],
+    ".claude/project-map.md›header›tracked-files": [
+      {
+        "ship": "fix/kamera-welt-followups",
+        "by": "claude",
+        "value": "regenerated count",
+        "decided": true,
+        "at": "2026-11-11T17:34:48.785Z",
+        "hunks": [
+          "e21c9783816b"
         ]
       }
     ],
@@ -35,18 +98,6 @@
         ]
       }
     ],
-    ".claude/project-map.md›header›tracked-files": [
-      {
-        "ship": "fix/kamera-welt-followups",
-        "by": "claude",
-        "value": "regenerated count",
-        "decided": true,
-        "at": "2026-11-11T17:34:48.785Z",
-        "hunks": [
-          "e21c9783816b"
-        ]
-      }
-    ],
     "public/release-notes.json›current›version": [
       {
         "ship": "fix/kamera-welt-followups",
@@ -56,6 +107,21 @@
         "at": "2026-11-11T17:46:31.474Z",
         "hunks": [
           "be0fb2a20145"
+        ]
+      },
+      {
+        "ship": "#1097",
+        "by": "Jerry",
+        "value": "0.257.3"
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "0.258.0 (regenerated from the merged CHANGELOG, keeps 0.257.3's entry)",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "a4600c34d8dd"
         ]
       }
     ]
