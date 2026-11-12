@@ -843,6 +843,10 @@ ipcMain.on('sc:update:check-silent', () => checkForUpdatesSilently());
 // between pipeline steps no child runs while the run is still going), the
 // request stays standing and installs once the work ended or was paused.
 setWorkBusyProbe(() => activeJobs.size > 0 || uploadJob.isRunInFlight());
+// The renderer forgets its own run flags when it is reloaded (render-process-gone
+// below) while main keeps working; its auto-run asks here first so a reloaded UI
+// never starts a second extraction or upload beside the live one.
+ipcMain.handle('sc:work:busy', () => activeJobs.size > 0 || uploadJob.isRunInFlight());
 ipcMain.handle('sc:update:install', () => installUpdateNow());
 ipcMain.handle('sc:update:cancel-install', () => cancelInstallRequest());
 

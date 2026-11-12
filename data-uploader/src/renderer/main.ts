@@ -512,6 +512,10 @@ async function maybeAutoRun(): Promise<void> {
   // Both awaits above can take seconds; an operator who already moved on (or
   // pressed Start) must not be yanked into Upload or get a second run.
   if (operatorHasMoved()) return;
+  // A renderer reloaded after it exited starts with fresh run flags while main
+  // may still be extracting or uploading: never start a second run beside it.
+  if (await Promise.resolve(window.sc.work?.busy()).catch(() => false)) return;
+  if (operatorHasMoved()) return;
   if (state.resumableJob?.resumable) {
     state.view = resumeStep();
     render();
