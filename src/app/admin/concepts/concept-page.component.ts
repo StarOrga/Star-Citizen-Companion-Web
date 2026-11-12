@@ -16,12 +16,21 @@ type State = 'loading' | 'ready' | ConceptTicketError;
  * refuses to mint a ticket for anyone but an admin, so a leaked route path
  * alone shows nothing.
  *
- * The page itself is served by that function and rendered in an iframe:
- * its own document, its own CSP, its own engine. This component only mints
- * the ticket, frames the document and offers the two navigations (back to
- * the board, open in a new tab). Nothing about the concept's content is
- * rendered here.
+ * The page itself comes from that function and runs in an iframe: its own
+ * document, its own CSP, its own engine. The iframe does NOT point at the
+ * function: Supabase serves html from `*.supabase.co` as `text/plain`, so
+ * the admin saw the source (#330). It points at the app's static loader
+ * `/concept-frame/<id>.html` (public/concept-frame.html) with the ticketed
+ * function URL in the fragment; the loader fetches the document as text and
+ * writes it into itself. This component only mints the ticket, frames the
+ * loader and offers the two navigations (back to the board, open in a new
+ * tab). Nothing about the concept's content is rendered here.
  */
+/** `/concept-frame/<id>.html#<encoded function url>` — see public/concept-frame.html. */
+export function conceptFrameUrl(id: string, documentUrl: string): string {
+  return `/concept-frame/${encodeURIComponent(id.trim().toLowerCase())}.html#${encodeURIComponent(documentUrl)}`;
+}
+
 @Component({
   selector: 'sc-concept-page',
   imports: [RouterLink, TranslatePipe],
@@ -127,7 +136,11 @@ export class ConceptPageComponent {
 
   readonly state = signal<State>('loading');
   readonly title = signal('');
-  /** The ticketed document URL — our own function origin, handed to the iframe verbatim. */
+  /**
+   * The loader URL for the ticketed document: same-origin static file, the
+   * function URL (with its ticket) only in the fragment, which never reaches
+   * a server.
+   */
   readonly rawUrl = signal<string | null>(null);
   readonly safeUrl = computed<SafeResourceUrl | null>(() => {
     const url = this.rawUrl();
@@ -151,7 +164,7 @@ export class ConceptPageComponent {
     try {
       const ticket = await this.tickets.mintTicket(id);
       this.title.set(ticket.title);
-      this.rawUrl.set(ticket.url);
+      this.rawUrl.set(conceptFrameUrl(id, ticket.url));
       this.state.set('ready');
     } catch (err) {
       this.state.set(err instanceof ConceptTicketFailure ? err.kind : 'error');

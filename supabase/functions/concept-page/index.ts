@@ -11,6 +11,16 @@
 // fetches back to this function, which answers the bridge protocol out of
 // `public.concept_pages`.
 //
+// #330: the document can NOT be framed from here. Supabase serves every
+// `text/html` GET response of an edge function on the default `*.supabase.co`
+// domain as `Content-Type: text/plain` with `content-security-policy:
+// default-src 'none'; sandbox` (verified live 2026-11-10), so an <iframe src>
+// on this URL showed the admin the html source. The app therefore frames its
+// own static loader `/concept-frame/<id>.html` (public/concept-frame.html, own
+// CSP in vercel.json), which fetches this document as TEXT and writes it into
+// itself; the shim carries the absolute function URL + ticket, so the bridge
+// calls still land here (CORS `*`, no credentials).
+//
 // Routes (path after `/concept-page`):
 //   POST /ticket                 { id } + `Authorization: Bearer <user JWT>`
 //                                admin only → { url, title, expiresAt }
@@ -35,8 +45,8 @@
 //     HMAC-SHA256 over `<id>.<uid>.<exp>` keyed with SUPABASE_SERVICE_ROLE_KEY,
 //     compared in constant time, 12 h lifetime, bound to one concept id AND
 //     to the admin who minted it (`uid` = auth user id) — the submit echo
-//     below is posted in that admin's name. The iframe cannot carry the
-//     session (it is a cross-origin document), so the ticket IS the session
+//     below is posted in that admin's name. The page's requests carry no
+//     session (no Authorization header, no cookies), so the ticket IS the session
 //     for this page — treat the link as such. Tickets from before the uid
 //     was added (3 parts) simply fail verification; the app re-mints on open.
 //   * The service-role key is the HMAC secret and never leaves the isolate;
@@ -50,7 +60,7 @@
 //     nothing a browser sends ever ends up in it. The page's POST bodies land
 //     in jsonb columns, are size-capped and are never rendered as markup.
 //   * verify_jwt is OFF (supabase/config.toml): the document is loaded by an
-//     <iframe src> without headers, and the sub-requests carry the ticket in
+//     plain fetch from the app's loader without headers, and the sub-requests carry the ticket in
 //     the query string. Auth happens here.
 //
 // Status codes: 200 ok · 400 invalid_body/invalid_id · 401 unauthorized ·
@@ -59,7 +69,7 @@
 //   501 unsupported
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-import { SHIM } from './shim.ts';
+import { buildShim } from './shim.ts';
 import { buildEchoBody, isReplayOf, type ConceptSubmission } from './echo.ts';
 
 const TICKET_TTL_SEC = 12 * 60 * 60;
@@ -188,11 +198,11 @@ async function readJson(req: Request): Promise<unknown | undefined> {
 }
 
 /** The stored html with the shim as the first child of <head>. */
-function injectShim(html: string): string {
+function injectShim(html: string, shim: string): string {
   const at = html.search(/<head[^>]*>/i);
-  if (at === -1) return SHIM + html;
+  if (at === -1) return shim + html;
   const end = html.indexOf('>', at) + 1;
-  return html.slice(0, end) + '\n' + SHIM + html.slice(end);
+  return html.slice(0, end) + '\n' + shim + html.slice(end);
 }
 
 function htmlResponse(body: string, status = 200): Response {
@@ -319,7 +329,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .maybeSingle();
     if (error) return json({ error: 'db_error', message: error.message }, 500);
     if (!row) return json({ error: 'not_found' }, 404);
-    return htmlResponse(injectShim(row.html));
+    // Absolute bridge base + ticket baked into the shim: the document is
+    // rendered by the app's loader (public/concept-frame.html) on the APP
+    // origin, because the platform serves this response as text/plain (#330).
+    const base = `${supabaseUrl.replace(/\/+$/, '')}/functions/v1/concept-page/${id}`;
+    const shim = buildShim({ base, ticket: url.searchParams.get('t') ?? '' });
+    return htmlResponse(injectShim(row.html, shim));
   }
 
   if (sub === 'heartbeat') {
