@@ -873,7 +873,7 @@ export interface GroupableSlot {
   /**
    * Opt this hardpoint OUT of collapsing entirely — it stands for one decision
    * a pilot makes individually (a shield bay, a countermeasure launcher, an
-   * unfitted mount). Set by the ship page; see `isIndividualSection`.
+   * unfitted mount). Set by the ship page for unfitted configurable ports.
    */
   noCollapse?: boolean;
   /**

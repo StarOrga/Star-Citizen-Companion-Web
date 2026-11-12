@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.6] - 2026-11-12
+
+### Changed
+- Codex loadout: identical items stack in every block like the weapons do — shield generators and countermeasures included — as "3× …" with the "Einzeln" toggle; a passive shield generator keeps its own row next to the active ones. The shield note counts the generators instead of saying "all three".
+
 ## [0.259.5] - 2026-11-12
 
 ### Fixed

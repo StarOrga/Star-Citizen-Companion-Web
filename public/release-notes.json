@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.259.5",
+  "current": "0.259.6",
   "releases": [
+    {
+      "version": "0.259.6",
+      "date": "2026-11-12",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex loadout: identical items stack in every block like the weapons do — shield generators and countermeasures included — as \"3× …\" with the \"Einzeln\" toggle; a passive shield generator keeps its own row next to the active ones. The shield note counts the generators instead of saying \"all three\"."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.259.5",
       "date": "2026-11-12",

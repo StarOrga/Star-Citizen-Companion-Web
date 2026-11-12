@@ -102,33 +102,15 @@ export function isConfigurableSection(section: ShipModuleSection): boolean {
   return CONFIGURABLE_SET.has(section);
 }
 
-/**
- * Sections where every hardpoint is its OWN decision and must therefore keep
- * its own row (admin request 1add86a4: "Nomad hat insgesamt 3 Plätze … hier
- * müssten 3 Stück einzeln auswählbar sein").
- *
- * Collapsing identical occupants is right for twelve manoeuvring thrusters and
- * for a bank of identical guns — but a shield bank of "2× S1 Sechs Shield"
- * hides that those are two independently swappable generators, and a decoy plus
- * a noise launcher are never interchangeable. All three blocks list every slot.
- *
- * `coolers` joined them in 32659942 (*"Coolers müssten 2 sein nicht nur eins!"*)
- * and left again in 4263fed1 (*"Hier auch wie bei Waffen einen Zusammenmodus
- * anbieten. z.B. wenn 2x Ultra Flow drin sind, dann können diese auch als 2x
- * Ultraflow angezeigt werden"*): two identical coolers now fold into one
- * "2× S1 UltraFlow" row whose card carries the block's cooling total, and the
- * per-block "Einzeln" toggle still lists them one by one. Every other block can
- * be split on demand — see the layout component's per-block toggle.
+/*
+ * Every block stacks identical occupants (feedback #348: "alles was mehr als 1
+ * ist könnte ja gestackt werden"). Shields and countermeasures used to list
+ * every bay on its own row (1add86a4); since #348 they fold like weapons —
+ * "3× S1 WEB" — and the per-block "Einzeln" toggle lists the bays one by one
+ * when a pilot wants to swap a single generator. A passive generator never
+ * folds into active ones: the ship page puts the stock role into the
+ * grouping key, so "2× … Aktiv" and "1× … Passiv" stay two rows.
  */
-const INDIVIDUAL_SHIP_SECTIONS: ReadonlySet<ShipModuleSection> = new Set([
-  'shields',
-  'countermeasures',
-]);
-
-/** True when a block must list every hardpoint separately (never collapse). */
-export function isIndividualSection(section: ShipModuleSection): boolean {
-  return INDIVIDUAL_SHIP_SECTIONS.has(section);
-}
 
 // ── Display GROUPS ───────────────────────────────────────────────────────────
 // The classification above is deliberately fine-grained: a cooler is not a

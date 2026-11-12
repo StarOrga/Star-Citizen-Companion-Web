@@ -701,7 +701,7 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(note?.textContent?.trim()).toBe('codex.equipped.armamentMissing');
   });
 
-  it('keeps every shield bay on its own row, empty ones included', () => {
+  it('stacks identical shield generators like weapons, an empty bay keeps its own row (#348)', () => {
     const bay = (port: string, className: string | null) =>
       slot({
         port,
@@ -709,7 +709,8 @@ describe('CodexHardpointLayoutComponent', () => {
         kind: className ? ('component' as const) : null,
         name: className ? 'Sechs Shield' : null,
         size: className ? 1 : null,
-        noCollapse: true,
+        // The ship page only pins UNFITTED configurable bays to their own row.
+        noCollapse: !className,
         roleKey: 'codex.moduleRole.shieldGenerator',
         emptySwappable: !className,
         portSize: 1,
@@ -724,12 +725,18 @@ describe('CodexHardpointLayoutComponent', () => {
         ],
       },
     ]);
-    // Three bays, three rows — never "2× S1" plus one empty.
+    // Empty bay + "2× S1" — the empty one never hides inside the stack.
+    expect(el.querySelectorAll('.slot').length).toBe(2);
+    expect(el.querySelector('.slot:not(.empty) .size-tag')?.textContent?.trim()).toBe('2× S1');
+    // "Einzeln" lists the three bays again, one row each.
+    (el.querySelector('.mod-sec[data-sec="shields"] .sec-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
     expect(el.querySelectorAll('.slot').length).toBe(3);
     expect(el.querySelectorAll('.tag.role').length).toBe(3);
   });
 
-  it('greys the passive shield generator and says so in words (4263fed1)', () => {
+  it('greys the passive shield generator and never stacks it with the active ones (4263fed1, #348)', () => {
+    // The ship page puts the stock role into the grouping key.
     const bay = (port: string, roleKey: string) =>
       slot({
         port,
@@ -737,8 +744,8 @@ describe('CodexHardpointLayoutComponent', () => {
         kind: 'component',
         name: 'WEB',
         size: 1,
-        noCollapse: true,
         roleKey,
+        groupKey: `SHLD_SECO_S01|1|||${roleKey}`,
         stats: [{ labelKey: 'codex.equipped.shieldHp', value: 2160, format: 'int' }],
       });
     const el = render([
@@ -752,12 +759,39 @@ describe('CodexHardpointLayoutComponent', () => {
       },
     ]);
     const rows = Array.from(el.querySelectorAll('li.slot'));
-    expect(rows.length).toBe(3);
-    expect(rows.map((r) => r.classList.contains('inactive'))).toEqual([false, false, true]);
-    expect(rows[2].querySelector('.tag.role')?.textContent?.trim()).toBe('codex.module.badge.passive');
-    // Single bays: no "Gesamt", no multiplier — each row is one generator.
+    // "2× … Aktiv" + "1× … Passiv" — one tag per row stays true for every bay in it.
+    expect(rows.length).toBe(2);
+    expect(rows.map((r) => r.classList.contains('inactive'))).toEqual([false, true]);
+    expect(rows.map((r) => r.querySelector('.size-tag')?.textContent?.trim())).toEqual(['2× S1', 'S1']);
+    expect(rows[1].querySelector('.tag.role')?.textContent?.trim()).toBe('codex.module.badge.passive');
+    // Split: three single generators, no "Gesamt", no multiplier.
+    (el.querySelector('.mod-sec[data-sec="shields"] .sec-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const single = Array.from(el.querySelectorAll('li.slot'));
+    expect(single.length).toBe(3);
+    expect(single.map((r) => r.classList.contains('inactive'))).toEqual([false, false, true]);
     expect(el.querySelector('.fig.total')).toBeNull();
     expect(el.querySelector('.slot-stats .mult')).toBeNull();
+  });
+
+  it('stacks identical countermeasure launchers too (#348)', () => {
+    const launcher = (port: string) =>
+      slot({
+        port,
+        className: 'CNOU_Nomad_CML_Flare',
+        kind: 'weapon',
+        name: 'Decoy Launcher',
+        size: 1,
+        typeLabel: 'Countermeasure Launcher',
+      });
+    const el = render([
+      {
+        section: 'countermeasures',
+        slots: [launcher('Hardpoint Countermeasure Left'), launcher('Hardpoint Countermeasure Right')],
+      },
+    ]);
+    expect(el.querySelectorAll('li.slot').length).toBe(1);
+    expect(el.querySelector('.size-tag')?.textContent?.trim()).toBe('2× S1');
   });
 
   it('folds two identical coolers into one "2×" row with the cooling total on the card', () => {

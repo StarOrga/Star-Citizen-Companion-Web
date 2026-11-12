@@ -6,7 +6,6 @@ import {
   classifyShipModule,
   groupByShipSection,
   isConfigurableSection,
-  isIndividualSection,
   isShieldControlPort,
   shipPortFamily,
   classNamePositionFamily,
@@ -188,15 +187,6 @@ describe('SHIP_MODULE_SECTION_ORDER', () => {
   it('marks the countermeasures and the airframe as non-configurable', () => {
     for (const s of SHIP_MODULE_SECTION_ORDER) {
       expect(isConfigurableSection(s)).toBe(s !== 'structure' && s !== 'countermeasures');
-    }
-  });
-
-  it('lists shields and countermeasures slot by slot, everything else collapsed', () => {
-    // 4263fed1: coolers fold like weapons again ("2× UltraFlow" with the
-    // cooling total on the card); the per-block "Einzeln" toggle still lists
-    // them one by one, which is what 32659942 actually needed.
-    for (const s of SHIP_MODULE_SECTION_ORDER) {
-      expect(isIndividualSection(s)).toBe(s === 'shields' || s === 'countermeasures');
     }
   });
 });
