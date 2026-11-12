@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.2] - 2026-11-12
+
+### Fixed
+- Concept pages linked from admin feedback (`/concept/<id>`) render as the real, clickable page instead of their HTML source. They load through a small loader page on the site that only accepts this project's own concept-page function.
+
 ## [0.259.1] - 2026-11-12
 
 ### Fixed
