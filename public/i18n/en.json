@@ -2185,7 +2185,8 @@
         "passive": "Passive · off the grid",
         "pool": "Pool"
       },
-      "shieldNote": "All three are shield generators and all three can be swapped. The passive one costs no power and still counts fully towards the pool — but it hangs off the active ones: if they fail, the backup goes with them.",
+      "shieldNote": "All {{count}} are shield generators and each can be swapped on its own — identical ones are stacked here, “Individually” lists them bay by bay.",
+      "shieldPassiveNote": "The passive one costs no power and still counts fully towards the pool — but it hangs off the active ones: if they fail, the backup goes with them.",
       "peek": {
         "sustainedDpsTotal": "Total sustained DPS",
         "burstDpsTotal": "Total burst DPS",

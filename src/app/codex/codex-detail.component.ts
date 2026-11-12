@@ -140,7 +140,6 @@ import {
   classifyShipModule,
   shipModuleGroupOf,
   isConfigurableSection,
-  isIndividualSection,
   shipPortFamily,
   classNamePositionFamily,
 } from './ship-module-sections';
@@ -4966,7 +4965,24 @@ export class CodexDetailComponent implements OnInit {
       // position-agnostic, so raw-class grouping folded the weapons but never
       // the racks (feedback #235: 'wie bei der Bewaffnung'). `grade` still
       // guards two genuinely different grades of the same base part apart.
-      const groupKey = `${classNamePositionFamily(l.className) || ' '}|${l.size ?? ''}|${l.grade ?? ''}|${variantKey}`;
+      // A shield bay's STOCK role is part of its identity (#348): two active
+      // generators fold into "2×", the passive one keeps its own row — folding
+      // all three under one "Aktiv" tag would hide the generator that draws no
+      // power. Taken from the stock item, so a draft swap never regroups.
+      const stockRole =
+        r.section === 'shields' && l.className
+          ? isPassiveShield({
+              section: r.section,
+              kind: r.kind,
+              payload: r.payload,
+              ammoPayload: r.ammoPayload,
+              count: 1,
+              passive: this.passiveByPort(r.section, l.port),
+            })
+            ? 'passive'
+            : 'active'
+          : '';
+      const groupKey = `${classNamePositionFamily(l.className) || ' '}|${l.size ?? ''}|${l.grade ?? ''}|${variantKey}|${stockRole}`;
 
       const draftEntry = configurable ? this.draft().get(l.port) : undefined;
       const overlay = this.draftOverlayFor(l.port, draftEntry, item);
@@ -4992,9 +5008,9 @@ export class CodexDetailComponent implements OnInit {
         // Two identical mounts holding different things must not collapse.
         variantKey,
         groupKey,
-        // Every bay in an individual block, and every unfitted configurable
-        // hardpoint, is a decision of its own and keeps its own row (1add86a4).
-        noCollapse: isIndividualSection(r.section) || (configurable && !l.className),
+        // Every unfitted configurable hardpoint is a decision of its own and
+        // keeps its own row (1add86a4); fitted ones stack in every block (#348).
+        noCollapse: configurable && !l.className,
         emptyLabelKey: isWeaponMountPort(l.port)
           ? 'codex.detail.loadoutEmptyWeaponMount'
           : null,
@@ -5071,9 +5087,13 @@ export class CodexDetailComponent implements OnInit {
       // free of charge but riding on the others (MASTER §6 / B §2).
       const generatorCount = slots.filter((s) => s.className).length;
       const hasPassive = slots.some((s) => s.roleKey === 'codex.module.badge.passive');
-      if (hasPassive || generatorCount > 1) {
-        notes.push({ key: 'codex.module.shieldNote' });
+      // Stacked rows (#348) must not hide that each generator is its own
+      // swap, so the count is said in words; the passive explainer only
+      // appears when a passive generator is actually fitted.
+      if (generatorCount > 1) {
+        notes.push({ key: 'codex.module.shieldNote', params: { count: generatorCount } });
       }
+      if (hasPassive) notes.push({ key: 'codex.module.shieldPassiveNote' });
       return notes;
     }
     if (section === 'countermeasures') return [{ key: 'codex.moduleSection.countermeasuresNote' }];
