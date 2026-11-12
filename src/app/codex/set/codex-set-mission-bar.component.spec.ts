@@ -55,13 +55,16 @@ describe('CodexSetMissionBarComponent', () => {
     expect(stealthChip.getAttribute('aria-disabled')).toBe('true');
   });
 
-  it('shows "Linse zurücksetzen" only when a lens is active, and it resets to all', () => {
+  it('shows "Back to All" only when a lens is active, explains itself, and resets to all', () => {
     expect(fixture.nativeElement.querySelector('.idle-draft')).toBeNull();
 
     fixture.componentRef.setInput('lens', 'combat');
     fixture.detectChanges();
     const resetBtn = fixture.nativeElement.querySelector('.idle-draft .btn') as HTMLButtonElement;
     expect(resetBtn).toBeTruthy();
+    const tip = fixture.debugElement.query(By.css('.idle-draft .btn')).injector.get(ScTooltipDirective).scTooltip();
+    expect(tip).toBe('codex.mission.setLensResetTip');
+    expect(resetBtn.getAttribute('title')).toBeNull();
 
     const emitted: string[] = [];
     fixture.componentInstance.lensChange.subscribe((id) => emitted.push(id));
