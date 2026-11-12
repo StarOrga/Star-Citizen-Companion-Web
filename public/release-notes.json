@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.259.4",
+  "current": "0.259.5",
   "releases": [
+    {
+      "version": "0.259.5",
+      "date": "2026-11-12",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Tooltips no longer stack: hovering an element with its own tooltip inside another tooltip-bearing element (e.g. a stat chip inside a loadout slot card) opens only the inner tooltip; the outer one returns when the pointer is back on the outer element."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.259.4",
       "date": "2026-11-12",
