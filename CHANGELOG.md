@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.260.0] - 2026-11-12
+
+### Added
+- Connect screens for the Data Uploader and Starscape share one stage in the splash/404 look (VC Web — link — app).
+
+### Changed
+- Boot splash shows its logo, streaks and word only after 600 ms and leaves with a fade and a short push-in.
+- The hint after "SCC-App starten" is a star toast that leaves by itself once the app is connected.
+
+### Fixed
+- Starscape connect page no longer answered by the 404.
+- Data Uploader 0.81.0: no sends to a disposed renderer, no second run after a renderer reload, catalog upserts hash each payload once (statement timeouts), known-bad LOD0 meshes skipped, short converter cwd, async safeStorage, updater without the failing differential download, mission props no longer counted as ships, transient blueprint sign retry, heartbeat logging.
+
 ## [0.259.6] - 2026-11-12
 
 ### Changed
