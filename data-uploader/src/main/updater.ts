@@ -35,6 +35,7 @@ import {
   type InstallPhase,
   type InstallReply,
 } from '../lib/update-install.js';
+import { safeSend } from '../lib/safe-send.js';
 import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 import { reportCrash } from './telemetry-reporter.js';
 
@@ -106,7 +107,7 @@ function broadcast(payload: UpdateEventPayload): void {
   }
   lastEvent = payload;
   for (const win of BrowserWindow.getAllWindows()) {
-    win.webContents.send('sc:update:event', payload);
+    safeSend(win.webContents, 'sc:update:event', payload);
   }
 }
 
@@ -237,6 +238,17 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
   // returns — so a stale channel pointer could DOWNGRADE the app.
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
+  // We ship a full NSIS installer, never a web installer — say so (silences the
+  // "disableWebInstaller is set to false" warning on every check).
+  autoUpdater.disableWebInstaller = true;
+  // Differential download has failed on EVERY update in the field (0.64 -> 0.80):
+  // electron-updater diffs against the cached `installer.exe` using the blockmap
+  // of the INSTALLED version, but that cache holds whatever was downloaded last
+  // (a staged/superseded installer, or a file replaced after install), so the
+  // sha512 check always trips ("cached installer.exe is likely out of sync with
+  // the old blockmap") and it falls back to the full download after wasting a
+  // round trip and logging an error. Skip the doomed attempt.
+  autoUpdater.disableDifferentialDownload = true;
 
   // While an update is staged, a background re-check stays invisible: the install
   // banner must not flicker to 'checking' every 30 min.

@@ -21,7 +21,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { app } from 'electron';
 import log from 'electron-log';
-import { createLogBudget } from '../lib/log-budget.js';
+import { createHeartbeat, createLogBudget } from '../lib/log-budget.js';
 import { resolvePythonPaths, type PythonExtractEvent } from './python-bridge.js';
 import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
 import { sidecarEnv } from './sidecar-env.js';
@@ -82,6 +82,7 @@ export function startSilhouetteBuild(
   let cancelled = false;
 
   const logBudget = createLogBudget(300);
+  const beat = createHeartbeat('silhouette', 3 * 60_000);
   const rl = createInterface({ input: child.stdout });
   rl.on('line', (line) => {
     const trimmed = line.trim();
@@ -113,6 +114,8 @@ export function startSilhouetteBuild(
         log.info('[silhouette-py] further info lines are not written to this log (cap reached)');
       }
     }
+    const beatLine = beat(ev);
+    if (beatLine) log.info(beatLine);
     onEvent(ev);
   });
 

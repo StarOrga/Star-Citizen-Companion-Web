@@ -55,7 +55,32 @@ def _noop(level: str, msg: str) -> None:
 SKIP_NO_MESH = "no_mesh"                # no geometry path, or the path is not in the archive
 SKIP_CONVERT_FAILED = "convert_failed"  # cgf-converter / glb parse failed
 SKIP_EMPTY = "empty"                    # converted, but no triangles / no traceable outline
+CONVERTER_NO_OUTPUT = "cgf-converter produced no usable glb"
 SKIP_REASONS = (SKIP_NO_MESH, SKIP_CONVERT_FAILED, SKIP_EMPTY)
+
+
+# Windows refuses a process cwd of 259+ chars (WinError 267) even with long paths on.
+_MAX_SCRATCH_ROOT = 200
+
+
+def _short_scratch_root(work_dir: Path) -> Path:
+    """`work_dir`, or a short temp root when it is too deep to be a converter cwd.
+
+    The extract dir can sit under a long install/output path; the digest-named
+    scratch dir below it is only 16 chars, so only the root needs to stay short.
+    """
+    if len(str(work_dir)) <= _MAX_SCRATCH_ROOT:
+        return work_dir
+    import tempfile
+    return Path(tempfile.gettempdir()) / "scc-sil"
+
+
+def _stderr_tail(r: Any) -> str:
+    """The converter's last stderr line, so an rc=1 names its cause in the log."""
+    raw = getattr(r, "stderr", None) or getattr(r, "stdout", None) or b""
+    text = raw.decode("utf-8", "replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    return f": {lines[-1][:200]}" if lines else ""
 
 
 class SilhouetteSkip(Exception):
@@ -448,14 +473,45 @@ class SilhouetteExporter:
         except Exception:  # noqa: BLE001 — corrupt cache entry, rebuild
             return None
 
+    # ---- known-bad meshes ------------------------------------------------------
+    # A mesh cgf-converter deterministically cannot convert (rc=1, no glb) failed
+    # again, ~6 s each, on EVERY run - the field log shows the same 12 ship LOD0
+    # hulls every time before the LOD1 retry succeeded. The failure is remembered
+    # next to the success cache under the same key (mesh content + recipe), so a
+    # changed mesh or recipe misses it; the marker also carries the converter's
+    # fingerprint so a converter update gets one fresh attempt.
+    def _bad_path(self, key: str) -> Path:
+        return self.cfg.cache_dir / f"{key}-{self.algo}.bad"
+
+    def _converter_fingerprint(self) -> str:
+        try:
+            st = Path(self.cfg.cgf_converter).stat()
+            return f"{st.st_size}:{st.st_mtime_ns}"
+        except OSError:
+            return "unknown"
+
+    def known_bad(self, src: MeshSource) -> bool:
+        """True when this exact mesh already failed to convert with this converter."""
+        try:
+            return self._bad_path(src.key).read_text(encoding="utf-8") == self._converter_fingerprint()
+        except OSError:
+            return False
+
+    def _mark_bad(self, src: MeshSource) -> None:
+        try:
+            self.cfg.cache_dir.mkdir(parents=True, exist_ok=True)
+            self._bad_path(src.key).write_text(self._converter_fingerprint(), encoding="utf-8")
+        except OSError:
+            pass  # an optimisation only
+
     def prune_cache(self) -> int:
         """Drop cache entries written by OTHER versions of the silhouette code —
         they can never be hit again. Returns how many were removed."""
         removed = 0
         suffix = f"-{self.algo}.json"
         try:
-            for f in self.cfg.cache_dir.glob("*.json"):
-                if not f.name.endswith(suffix):
+            for f in [*self.cfg.cache_dir.glob("*.json"), *self.cfg.cache_dir.glob("*.bad")]:
+                if not f.name.endswith(suffix) and not f.name.endswith(f"-{self.algo}.bad"):
                     try:
                         f.unlink()
                         removed += 1
@@ -481,7 +537,12 @@ class SilhouetteExporter:
         from .silhouette import build_silhouette
 
         t0 = time.monotonic()
-        triangles = self._triangles(src, mesh_id)
+        try:
+            triangles = self._triangles(src, mesh_id)
+        except SilhouetteSkip as exc:
+            if exc.reason == SKIP_CONVERT_FAILED and CONVERTER_NO_OUTPUT in exc.detail:
+                self._mark_bad(src)
+            raise
         if not triangles:
             raise SilhouetteSkip(SKIP_EMPTY, "converted mesh has no triangles")
         silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=self.cfg.on_log,
@@ -508,7 +569,7 @@ class SilhouetteExporter:
         # there is no tree for the converter to resolve anything else in.
         # The name is a digest: a scratch dir per entity, whatever its name's length.
         scratch_id = hashlib.sha256(f"{mesh_id}|{src.path}|{src.key}".encode("utf-8")).hexdigest()[:16]
-        mirror = self.cfg.work_dir / scratch_id
+        mirror = _short_scratch_root(self.cfg.work_dir) / scratch_id
         if mirror.exists():
             shutil.rmtree(mirror, ignore_errors=True)
         try:
@@ -528,7 +589,10 @@ class SilhouetteExporter:
         except MeshBudgetExceeded:
             raise
         except Exception as exc:  # noqa: BLE001 — one bad mesh must not abort the run
-            self.cfg.on_log("warn", f"silhouette mesh {mesh_id}: {type(exc).__name__}: {exc}")
+            # A converter that yields nothing is an expected, remembered outcome
+            # (the build falls back to the LOD1 hull): info, not a warning.
+            level = "info" if CONVERTER_NO_OUTPUT in str(exc) else "warn"
+            self.cfg.on_log(level, f"silhouette mesh {mesh_id}: {type(exc).__name__}: {exc}")
             raise SilhouetteSkip(SKIP_CONVERT_FAILED, f"{type(exc).__name__}: {exc}") from exc
         finally:
             if not self.cfg.keep_work:
@@ -542,7 +606,7 @@ class SilhouetteExporter:
         r = subprocess.run(cmd, cwd=str(mesh_disk.parent), capture_output=True, timeout=600)
         if not produced.exists() or produced.stat().st_size < 256:
             raise RuntimeError(
-                f"cgf-converter produced no usable glb for {mesh_disk.name} (rc={r.returncode})")
+                f"{CONVERTER_NO_OUTPUT} for {mesh_disk.name} (rc={r.returncode}{_stderr_tail(r)})")
         produced.replace(out_glb)
 
     # ---- one-shot conveniences (single thread) ------------------------------

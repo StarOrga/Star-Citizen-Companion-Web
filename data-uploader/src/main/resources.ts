@@ -65,6 +65,7 @@ import {
   type ResourceLimits,
   type ResourceSample,
 } from '../lib/resource-limits.js';
+import { safeSend } from '../lib/safe-send.js';
 import {
   driveLetter,
   driveLoads,
@@ -216,7 +217,7 @@ export function view(): ResourceView {
 
 function broadcast(channel: string, payload: unknown): void {
   for (const w of BrowserWindow.getAllWindows()) {
-    if (!w.isDestroyed()) w.webContents.send(channel, payload);
+    if (!w.isDestroyed()) safeSend(w.webContents, channel, payload);
   }
 }
 

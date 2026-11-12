@@ -9,10 +9,10 @@ import {
 
 function fakeSafe(available = true): SafeStorageLike {
   return {
-    isEncryptionAvailable: () => available,
+    isEncryptionAvailable: async () => available,
     // Reversible "encryption" — prefix so we can assert it was used + detect garbage.
-    encryptString: (s) => Buffer.from('enc:' + s, 'utf-8'),
-    decryptString: (b) => {
+    encryptString: async (s) => Buffer.from('enc:' + s, 'utf-8'),
+    decryptString: async (b) => {
       const raw = b.toString('utf-8');
       if (!raw.startsWith('enc:')) throw new Error('not encrypted by this keyring');
       return raw.slice(4);
@@ -42,66 +42,66 @@ const sample: PersistedSession = {
 };
 
 describe('SessionStore', () => {
-  it('round-trips a session through encryption + storage', () => {
+  it('round-trips a session through encryption + storage', async () => {
     const store = new SessionStore(fakeSafe(), fakeIO());
-    expect(store.save(sample)).toBe(true);
-    expect(store.load()).toEqual(sample);
+    expect(await store.save(sample)).toBe(true);
+    expect(await store.load()).toEqual(sample);
   });
 
-  it('routes persistence through the keyring (never writes raw JSON)', () => {
+  it('routes persistence through the keyring (never writes raw JSON)', async () => {
     // The real at-rest encryption is safeStorage's (DPAPI) job; here we assert
     // SessionStore DELEGATES to encryptString rather than writing the plaintext
     // envelope itself (the fake keyring prefixes 'enc:' to mark the round-trip).
     const io = fakeIO();
     const store = new SessionStore(fakeSafe(), io);
-    store.save(sample);
+    await store.save(sample);
     const stored = io.read()!.toString('utf-8');
     expect(stored.startsWith('enc:')).toBe(true);
     expect(stored).not.toBe(JSON.stringify({ v: 1, session: sample }));
   });
 
-  it('does NOT persist when the OS keyring is unavailable', () => {
+  it('does NOT persist when the OS keyring is unavailable', async () => {
     const io = fakeIO();
     const store = new SessionStore(fakeSafe(false), io);
-    expect(store.save(sample)).toBe(false);
+    expect(await store.save(sample)).toBe(false);
     expect(io.read()).toBeNull();
-    expect(store.load()).toBeNull();
+    expect(await store.load()).toBeNull();
   });
 
-  it('returns null for an empty store', () => {
-    expect(new SessionStore(fakeSafe(), fakeIO()).load()).toBeNull();
+  it('returns null for an empty store', async () => {
+    expect(await new SessionStore(fakeSafe(), fakeIO()).load()).toBeNull();
   });
 
-  it('returns null for a corrupt / foreign blob', () => {
+  it('returns null for a corrupt / foreign blob', async () => {
     const io = fakeIO();
     io.write(Buffer.from('garbage-not-ours', 'utf-8'));
-    expect(new SessionStore(fakeSafe(), io).load()).toBeNull();
+    expect(await new SessionStore(fakeSafe(), io).load()).toBeNull();
   });
 
-  it('says why a stored session could not be read', () => {
+  it('says why a stored session could not be read', async () => {
     const io = fakeIO();
     io.write(Buffer.from('garbage-not-ours', 'utf-8'));
     const warnings: string[] = [];
-    new SessionStore(fakeSafe(), io, (m) => warnings.push(m)).load();
+    await new SessionStore(fakeSafe(), io, (m) => warnings.push(m)).load();
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('unreadable');
   });
 
-  it('clears the stored session', () => {
+  it('clears the stored session', async () => {
     const io = fakeIO();
     const store = new SessionStore(fakeSafe(), io);
-    store.save(sample);
+    await store.save(sample);
     store.clear();
     expect(io.read()).toBeNull();
-    expect(store.load()).toBeNull();
+    expect(await store.load()).toBeNull();
   });
 
-  it('normalizes a session missing optional fields', () => {
+  it('normalizes a session missing optional fields', async () => {
     const io = fakeIO();
     const safe = fakeSafe();
     // Hand-craft an envelope with only the required accessToken.
-    io.write(safe.encryptString(JSON.stringify({ v: 1, session: { accessToken: 'only-access' } })));
-    const loaded = new SessionStore(safe, io).load();
+    io.write(await safe.encryptString(JSON.stringify({ v: 1, session: { accessToken: 'only-access' } })));
+    const loaded = await new SessionStore(safe, io).load();
     expect(loaded).toEqual({
       accessToken: 'only-access',
       refreshToken: null,
@@ -111,25 +111,25 @@ describe('SessionStore', () => {
     });
   });
 
-  it('rejects an envelope with no usable access token', () => {
+  it('rejects an envelope with no usable access token', async () => {
     const io = fakeIO();
     const safe = fakeSafe();
-    io.write(safe.encryptString(JSON.stringify({ v: 1, session: { accessToken: '' } })));
-    expect(new SessionStore(safe, io).load()).toBeNull();
+    io.write(await safe.encryptString(JSON.stringify({ v: 1, session: { accessToken: '' } })));
+    expect(await new SessionStore(safe, io).load()).toBeNull();
   });
 });
 
 describe('isAccessTokenFresh', () => {
-  it('is fresh well before expiry', () => {
+  it('is fresh well before expiry', async () => {
     expect(isAccessTokenFresh({ expiresAt: 1000 }, 800)).toBe(true);
   });
-  it('is stale within the skew window', () => {
+  it('is stale within the skew window', async () => {
     expect(isAccessTokenFresh({ expiresAt: 1000 }, 970, 60)).toBe(false);
   });
-  it('is stale after expiry', () => {
+  it('is stale after expiry', async () => {
     expect(isAccessTokenFresh({ expiresAt: 1000 }, 1200)).toBe(false);
   });
-  it('treats unknown expiry as stale', () => {
+  it('treats unknown expiry as stale', async () => {
     expect(isAccessTokenFresh({ expiresAt: null }, 0)).toBe(false);
   });
 });

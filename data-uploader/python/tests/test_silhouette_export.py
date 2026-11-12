@@ -13,6 +13,7 @@ import os
 import struct
 import subprocess
 import sys
+import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -264,3 +265,42 @@ def test_cache_key_does_not_depend_on_where_the_mesh_lives(tmp_path, monkeypatch
     ).hexdigest()
     assert exp.source(deep, 0.15).key == expected
     assert exp.source(flat, 0.15).key == expected
+
+
+# ---- known-bad LOD0: a converter failure is remembered, not retried every run --
+
+def _failing_exporter(tmp_path, monkeypatch, files: dict, logs: list):
+    def no_output(cmd, cwd=None, **kwargs):
+        return SimpleNamespace(returncode=1, stdout=b"", stderr=b"boom")
+
+    monkeypatch.setattr(silhouette_export.subprocess, "run", no_output)
+    converter = tmp_path / "cgf-converter.exe"
+    converter.write_bytes(b"v1")
+    cfg = SilhouetteExportConfig(cgf_converter=converter, work_dir=tmp_path / "w",
+                                 cache_dir=tmp_path / "cache", tool_version="0.0.0",
+                                 on_log=lambda level, msg: logs.append((level, msg)))
+    return SilhouetteExporter(_DeepP4K(files), cfg), converter
+
+
+def test_a_converter_failure_is_remembered_and_logged_as_info(tmp_path, monkeypatch):
+    logs: list = []
+    exp, converter = _failing_exporter(tmp_path, monkeypatch, {"hull.cga": b"mesh"}, logs)
+    src = exp.source("hull.cga", 0.15)
+    assert not exp.known_bad(src)
+
+    with pytest.raises(silhouette_export.SilhouetteSkip):
+        exp.compute_local(src, "hull", 0.15)
+
+    assert exp.known_bad(src)
+    assert [lvl for lvl, _ in logs if "hull" in _ and lvl == "warn"] == []
+    # A different mesh is not affected, and a new converter build gets a fresh attempt.
+    assert not exp.known_bad(exp.source("hull.cga", 0.30))
+    converter.write_bytes(b"v2-longer")
+    assert not exp.known_bad(src)
+
+
+def test_a_too_deep_work_dir_falls_back_to_a_short_scratch_root(tmp_path):
+    deep = tmp_path.joinpath(*["d" * 40] * 6)
+    root = silhouette_export._short_scratch_root(deep)
+    assert len(str(root)) < 200
+    assert silhouette_export._short_scratch_root(tmp_path) == tmp_path

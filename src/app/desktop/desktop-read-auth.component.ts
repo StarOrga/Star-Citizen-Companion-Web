@@ -1,6 +1,7 @@
-import { AuthStageComponent } from '../auth/auth-stage.component';
+import { AppLinkStageComponent, AppLinkPhase } from './app-link-stage.component';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { toErrorKey } from '../core/describe-error';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
@@ -9,6 +10,8 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { DesktopConnectionService } from './desktop-connection.service';
 import { isLoopbackCallback, sendOriginOnLoopbackPost } from './loopback.util';
 import { mintDesktopSession } from './desktop-session.util';
+
+const HANDED_OVER_MS = 2500;
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
 
@@ -34,63 +37,41 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
 @Component({
   selector: 'sc-desktop-read-auth',
   standalone: true,
-  imports: [AuthStageComponent, RouterLink, TranslatePipe],
+  imports: [AppLinkStageComponent, RouterLink, TranslatePipe, ScActionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <sc-auth-stage>
-    <section class="page">
-      <div class="sc-card">
-        <h1>{{ 'desktopConnect.title' | translate }}</h1>
-
-        @switch (status()) {
-          @case ('authorizing') {
-            <p>{{ 'desktopConnect.authorizing' | translate }}</p>
-            <div class="dots"><span></span><span></span><span></span></div>
-          }
-          @case ('login_required') {
-            <p>{{ 'desktopConnect.loginRequired' | translate }}</p>
-            <a class="sc-btn sc-btn-primary"
-               [routerLink]="['/login']"
-               [queryParams]="{ redirect: returnUrl }">
+    <sc-app-link-stage app="starscape" [phase]="phase()">
+      <h1>{{ 'desktopConnect.title' | translate }}</h1>
+      @switch (status()) {
+        @case ('authorizing') {
+          <p>{{ 'desktopConnect.authorizing' | translate }}</p>
+        }
+        @case ('login_required') {
+          <p>{{ 'desktopConnect.loginRequired' | translate }}</p>
+          <div class="actions">
+            <a scAction tier="primary" [routerLink]="['/login']" [queryParams]="{ redirect: returnUrl }">
               {{ 'auth.signIn' | translate }}
             </a>
-          }
-          @case ('redirecting') {
+          </div>
+        }
+        @case ('redirecting') {
+          @if (handedOver()) {
+            <p class="ok">{{ 'desktopConnect.handedOver' | translate }}</p>
+            <p class="hint">{{ 'desktopConnect.handedOverHint' | translate }}</p>
+          } @else {
             <p class="ok">{{ 'desktopConnect.redirecting' | translate }}</p>
             <p class="hint">{{ 'desktopConnect.redirectingHint' | translate }}</p>
-            <div class="dots"><span></span><span></span><span></span></div>
-          }
-          @case ('error') {
-            <p class="err">{{ errorMsg()! | translate }}</p>
           }
         }
-      </div>
-    </section>
-    </sc-auth-stage>
+        @case ('error') {
+          <p class="err">{{ errorMsg()! | translate }}</p>
+          <div class="actions">
+            <a scAction tier="secondary" [href]="returnUrl || '/'">{{ 'desktopConnect.retry' | translate }}</a>
+          </div>
+        }
+      }
+    </sc-app-link-stage>
   `,
-  styles: [`
-    .page { display: grid; place-items: center; min-height: 60vh; }
-    .sc-card { max-width: min(var(--sc-ov-s), 100%); padding: 32px 36px; text-align: center; }
-    @media (max-width: 480px) { .sc-card { padding: 24px var(--sc-pad-1); } }
-    h1 { font-size: 1.3rem; margin-bottom: 16px; }
-    p { color: var(--sc-fg-1); margin: 0 0 12px; }
-    .ok { color: var(--sc-success); }
-    .err { color: var(--sc-danger); }
-    .hint { color: var(--sc-fg-2); font-size: 0.85rem; }
-    .dots { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
-    .dots span {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--sc-accent);
-      animation: pulse 1.2s infinite ease-in-out;
-    }
-    .dots span:nth-child(2) { animation-delay: 0.2s; }
-    .dots span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes pulse {
-      0%, 80%, 100% { transform: scale(0.5); opacity: 0.4; }
-      40% { transform: scale(1); opacity: 1; }
-    }
-    .sc-btn { margin-top: 8px; }
-  `],
 })
 export class DesktopReadAuthComponent implements OnInit {
   private readonly auth = inject(AuthService);
@@ -100,6 +81,17 @@ export class DesktopReadAuthComponent implements OnInit {
   private readonly imp = inject(ImpersonationService);
 
   readonly status = signal<AuthStatus>('authorizing');
+  /** The form is posted and this tab is still here: the app has the session, show the end state. */
+  readonly handedOver = signal(false);
+  /** What the stage shows: the link animates while connecting and settles once handed over. */
+  protected readonly phase = computed<AppLinkPhase>(() => {
+    switch (this.status()) {
+      case 'authorizing': return 'checking';
+      case 'redirecting': return this.handedOver() ? 'done' : 'linking';
+      case 'error': return 'error';
+      default: return 'ready';
+    }
+  });
   /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
 
@@ -211,6 +203,9 @@ export class DesktopReadAuthComponent implements OnInit {
     sendOriginOnLoopbackPost();
     document.body.appendChild(form);
     form.submit();
+    // A normal hand-over leaves this page for the app's own "done" page within moments; if the tab
+    // is still here, say so plainly.
+    setTimeout(() => this.handedOver.set(true), HANDED_OVER_MS);
   }
 }
 

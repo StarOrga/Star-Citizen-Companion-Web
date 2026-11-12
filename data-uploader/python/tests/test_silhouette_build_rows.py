@@ -221,3 +221,25 @@ def test_lod1_sibling_naming():
     assert lod1_sibling("x/gun.cgf") == "x/gun_lod1.cgf"
     assert lod1_sibling("x/hull_lod1.cga") is None
     assert lod1_sibling("x/hull.skin") is None
+
+
+def test_a_known_bad_lod0_is_not_converted_again_and_goes_straight_to_lod1(tmp_path):
+    class Remembers(FakeExporter):
+        def __init__(self):
+            super().__init__()
+            self.converted = []
+
+        def known_bad(self, src):
+            return src.path == "s/big.cga"
+
+        def compute(self, src, mesh_id, tolerance_m):
+            self.converted.append(src.path)
+            return super().compute(src, mesh_id, tolerance_m)
+
+    exp = Remembers()
+    ents = [{"kind": "ship", "class_name": "BIG", "mesh": "s/big.cga"}]
+    stats = build_rows(exp, ents, out_dir=tmp_path, build={}, workers=1)
+    row = json.loads((tmp_path / "silhouettes" / "rows" / "ship__BIG.json").read_text())
+    assert exp.converted == ["s/big_lod1.cga"]  # LOD0 never attempted
+    assert row["source"]["hullCga"] == "s/big_lod1.cga" and row["source"]["lodFallback"] == 1
+    assert stats["written"] == 1

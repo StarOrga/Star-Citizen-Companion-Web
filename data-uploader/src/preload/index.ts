@@ -345,6 +345,10 @@ export const api = {
     patch: (partial: Partial<Omit<PublicSettings, 'telemetryEnabled'>>): Promise<PublicSettings> =>
       ipcRenderer.invoke('sc:settings:patch', partial),
   },
+  work: {
+    /** True while main still runs an extraction/skin/silhouette child or an upload run. */
+    busy: (): Promise<boolean> => ipcRenderer.invoke('sc:work:busy'),
+  },
   tray: {
     /** Push resolved i18n strings to main (the tray lives there). */
     setLabels: (labels: TrayLabelPush): void => ipcRenderer.send('sc:tray:labels', labels),

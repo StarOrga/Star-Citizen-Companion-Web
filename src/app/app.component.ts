@@ -10,6 +10,7 @@ import { AnalyticsService } from './core/analytics.service';
 import { WebVitalsService } from './core/web-vitals.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
 import { LocaleService } from './core/locale/locale.service';
+import { dismissBootSplash } from './core/boot-splash';
 import { claimRootAttr } from './core/root-var';
 import { RouteLoadRecoveryService } from './core/route-load-recovery.service';
 import { SupabaseClientProvider } from './core/supabase.client';
@@ -131,6 +132,7 @@ export class AppComponent implements OnInit {
   /** The first routed page stands: the boot sky (styles.scss, html[data-sc-booting]) steps back. */
   routed(): void {
     claimRootAttr('data-sc-booting', this, null);
+    dismissBootSplash();
   }
 
   constructor() {

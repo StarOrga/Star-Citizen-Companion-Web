@@ -63,6 +63,11 @@ def test_vehicle_component_is_the_off_root_fallback() -> None:
     assert _find_component([{"_Type_": "SAttachableComponentParams"}], _VEHICLE_COMPONENT) is None
 
 
+def test_mission_objective_props_are_not_catalog_entities() -> None:
+    assert not _is_catalog_entity("EAObjectiveDestructable_Satellite")
+    assert _is_catalog_entity("ORIG_890Jump")
+
+
 def test_salvageable_debris_is_not_a_catalog_entity() -> None:
     """SalvageableDebris_<Ship> is a vehicle record (VehicleComponentParams,
     the real hull's XML, a localised ship name) but a floating wreck chunk,

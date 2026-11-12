@@ -2,10 +2,16 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { SCC_LAUNCH_GRACE_MS, SCC_LAUNCH_WAIT_MS, SccAppLauncherService } from '../desktop/scc-app-launcher.service';
 import { SCC_INSTALLER_URL } from '../news/verse-status-chip.component';
+import { signal } from '@angular/core';
+import { HqAppConnectionService } from './now/hq-app-connection.service';
 import { useViewport } from '../testing/viewport';
 import { HqAppLaunchComponent } from './hq-app-launch.component';
 
 describe('HqAppLaunchComponent', () => {
+  const connected = signal(false);
+
+  beforeEach(() => connected.set(false));
+
   function mount(answered: boolean, launchedBefore = false, mode: 'launch' | 'download' = 'launch') {
     const launcher = {
       launch: vi.fn().mockName('launch').mockResolvedValue(answered),
@@ -13,7 +19,11 @@ describe('HqAppLaunchComponent', () => {
       downloadInstaller: vi.fn().mockName('downloadInstaller'),
     };
     TestBed.configureTestingModule({
-      providers: [provideTranslateService(), { provide: SccAppLauncherService, useValue: launcher }],
+      providers: [
+        provideTranslateService(),
+        { provide: SccAppLauncherService, useValue: launcher },
+        { provide: HqAppConnectionService, useValue: { connected } },
+      ],
     });
     const f = TestBed.createComponent(HqAppLaunchComponent);
     f.componentRef.setInput('mode', mode);
@@ -53,7 +63,7 @@ describe('HqAppLaunchComponent', () => {
     expect(launcher.launch).toHaveBeenCalledWith(SCC_LAUNCH_WAIT_MS);
     expect(launcher.downloadInstaller).toHaveBeenCalledTimes(1);
     expect(f.componentInstance.status()).toBe('downloading');
-    expect((f.nativeElement as HTMLElement).querySelector('[role="status"] .hint')).toBeTruthy();
+    expect((f.nativeElement as HTMLElement).querySelector('[role="status"] .toast')).toBeTruthy();
   });
 
   it('never auto-downloads once this browser has seen the app answer', async () => {
@@ -63,7 +73,7 @@ describe('HqAppLaunchComponent', () => {
     expect(launcher.launch).toHaveBeenCalledWith(SCC_LAUNCH_GRACE_MS);
     expect(launcher.downloadInstaller).not.toHaveBeenCalled();
     expect(f.componentInstance.status()).toBe('noResponse');
-    expect((f.nativeElement as HTMLElement).querySelector('.hint a')?.getAttribute('href')).toBe(SCC_INSTALLER_URL);
+    expect((f.nativeElement as HTMLElement).querySelector('.toast a.act')?.getAttribute('href')).toBe(SCC_INSTALLER_URL);
   });
 
   it('leaves a modified click to the browser', () => {
@@ -112,12 +122,52 @@ describe('HqAppLaunchComponent', () => {
     expect(f.componentInstance.status()).toBe('idle');
   });
 
+  it('a started hint has no close button and leaves 2 s after the app reports in', async () => {
+    vi.useFakeTimers();
+    try {
+      const { f } = mount(true);
+      f.componentInstance.start();
+      await vi.advanceTimersByTimeAsync(0);
+      f.detectChanges();
+      expect(f.componentInstance.status()).toBe('started');
+      expect((f.nativeElement as HTMLElement).querySelector('.toast .x')).toBeNull();
+      connected.set(true);
+      f.detectChanges();
+      await vi.advanceTimersByTimeAsync(1900);
+      expect(f.componentInstance.status()).toBe('started');
+      await vi.advanceTimersByTimeAsync(200);
+      expect(f.componentInstance.status()).toBe('idle');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a started hint still leaves after the fallback when the app never reports in', async () => {
+    vi.useFakeTimers();
+    try {
+      const { f } = mount(true);
+      f.componentInstance.start();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(f.componentInstance.status()).toBe('started');
+      await vi.advanceTimersByTimeAsync(6100);
+      expect(f.componentInstance.status()).toBe('idle');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the close button on a failure', async () => {
+    const { f } = mount(false);
+    await clickPlain(f);
+    expect((f.nativeElement as HTMLElement).querySelector('.toast .x')).toBeTruthy();
+  });
+
   it('closes the hint', async () => {
     const { f } = mount(false);
     await clickPlain(f);
     f.componentInstance.dismiss();
     f.detectChanges();
-    expect((f.nativeElement as HTMLElement).querySelector('.hint')).toBeNull();
+    expect((f.nativeElement as HTMLElement).querySelector('.toast')).toBeNull();
   });
 });
 

@@ -22,9 +22,9 @@ export interface PersistedSession {
 
 /** Subset of Electron's `safeStorage` we depend on — injectable for tests. */
 export interface SafeStorageLike {
-  isEncryptionAvailable(): boolean;
-  encryptString(plainText: string): Buffer;
-  decryptString(encrypted: Buffer): string;
+  isEncryptionAvailable(): Promise<boolean>;
+  encryptString(plainText: string): Promise<Buffer>;
+  decryptString(encrypted: Buffer): Promise<string>;
 }
 
 /** Injectable blob persistence (file-backed in production). */
@@ -50,7 +50,7 @@ export class SessionStore {
   ) {}
 
   /** True when persistence is possible (OS keyring available). */
-  canPersist(): boolean {
+  canPersist(): Promise<boolean> {
     return this.safe.isEncryptionAvailable();
   }
 
@@ -58,21 +58,21 @@ export class SessionStore {
    * Persist the session encrypted. Returns false (and writes nothing) when the
    * OS keyring is unavailable — caller keeps the session in memory only.
    */
-  save(session: PersistedSession): boolean {
-    if (!this.safe.isEncryptionAvailable()) return false;
+  async save(session: PersistedSession): Promise<boolean> {
+    if (!(await this.safe.isEncryptionAvailable())) return false;
     const envelope: Envelope = { v: SCHEMA_VERSION, session };
-    const encrypted = this.safe.encryptString(JSON.stringify(envelope));
+    const encrypted = await this.safe.encryptString(JSON.stringify(envelope));
     this.io.write(encrypted);
     return true;
   }
 
   /** Load + decrypt the session, or null if absent/unreadable/incompatible. */
-  load(): PersistedSession | null {
-    if (!this.safe.isEncryptionAvailable()) return null;
+  async load(): Promise<PersistedSession | null> {
+    if (!(await this.safe.isEncryptionAvailable())) return null;
     const blob = this.io.read();
     if (!blob || blob.length === 0) return null;
     try {
-      const json = this.safe.decryptString(blob);
+      const json = await this.safe.decryptString(blob);
       const parsed = JSON.parse(json) as Partial<Envelope>;
       if (parsed.v !== SCHEMA_VERSION || !parsed.session) {
         this.warn?.(`[session] stored session has schema v${String(parsed.v)} — ignored`);

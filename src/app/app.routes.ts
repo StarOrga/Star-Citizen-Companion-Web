@@ -153,6 +153,19 @@ export const routes: Routes = [
     ],
   },
   {
+    // Read-auth handoff for the SCC Electron app — open to ANY approved,
+    // signed-in user. Placed as a top-level sibling to /login, OUTSIDE the
+    // gated shell routes and BEFORE the shell, whose '**' would answer it with the 404 (the loopback callback path is /scc/callback, POST).
+    // Access-control redesign (2026-08-05): approvedGuard added alongside
+    // authGuard — a self-registered-but-unapproved account must not reach a
+    // desktop-app auth handoff any more than it can reach the rest of the app.
+    path: 'apps/starscape/connect',
+    data: { layout: 'cinematic' },
+    canActivate: [...PRIVATE],
+    loadComponent: () =>
+      import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),
+  },
+  {
     // The shared shell — gated by default (see PRIVATE / canActivateChild
     // note above). Every child below requires auth + approval unless it
     // moved to the public layout instead.
@@ -493,18 +506,5 @@ export const routes: Routes = [
           import('./shell/not-found-page/not-found-page.component').then((m) => m.NotFoundPageComponent),
       },
     ],
-  },
-  {
-    // Read-auth handoff for the SCC Electron app — open to ANY approved,
-    // signed-in user. Placed as a top-level sibling to /login, OUTSIDE the
-    // gated shell routes (the loopback callback path is /scc/callback, POST).
-    // Access-control redesign (2026-08-05): approvedGuard added alongside
-    // authGuard — a self-registered-but-unapproved account must not reach a
-    // desktop-app auth handoff any more than it can reach the rest of the app.
-    path: 'apps/starscape/connect',
-    data: { layout: 'cinematic' },
-    canActivate: [...PRIVATE],
-    loadComponent: () =>
-      import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),
   },
 ];

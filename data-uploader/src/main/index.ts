@@ -9,6 +9,7 @@ import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
 import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
 import { reportCrash, reportError, reportExtractAbort, reportJobDiagnostics } from './telemetry-reporter.js';
+import { safeSend } from '../lib/safe-send.js';
 import { collectDiagnostic, newJobDiagnostics, type JobDiagnostics, type JobOutcome } from '../lib/job-diagnostics.js';
 import { classifyExtractAbort, type ExtractAbortReason } from '../lib/telemetry.js';
 import { discoverAll, discoverManual, setRememberedInstall } from '../lib/discovery.js';
@@ -142,6 +143,9 @@ function quitForReal(): void {
 /** True once the operator has been told where the window went (once per run). */
 let hiddenNoticeShown = false;
 
+/** Timestamps of recent renderer-exit reloads (loop guard). */
+let rendererReloads: number[] = [];
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1180,
@@ -184,6 +188,35 @@ function createWindow(): void {
     if (!hiddenNoticeShown) {
       hiddenNoticeShown = true;
       notifyHidden(trayLabels.hiddenHint ?? 'Still running in the tray.');
+    }
+  });
+
+  // A destroyed window must not stay in `mainWindow`: showMainWindow() would
+  // raise a dead object instead of building a new one.
+  const win = mainWindow;
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null;
+  });
+
+  // The renderer can exit under a hidden (tray) window — 2026-11-10 it left
+  // "clean-exit" behind and every later progress push hit a disposed frame.
+  // Bring the UI back instead of leaving the job running against nothing; the
+  // job itself lives in main and is unaffected. Capped so a renderer that dies
+  // on load cannot reload in a tight loop.
+  win.webContents.on('render-process-gone', (_e, details) => {
+    if (quitting || win.isDestroyed()) return;
+    const now = Date.now();
+    rendererReloads = rendererReloads.filter((t) => now - t < 60_000);
+    if (rendererReloads.length >= 3) {
+      log.error('[window] renderer keeps exiting — not reloading again', { reason: details.reason });
+      return;
+    }
+    rendererReloads.push(now);
+    log.warn('[window] renderer gone, reloading', { reason: details.reason, exitCode: details.exitCode });
+    try {
+      win.webContents.reload();
+    } catch (err) {
+      log.warn('[window] reload after renderer exit failed', err);
     }
   });
 
@@ -610,7 +643,7 @@ ipcMain.handle('sc:authenticate', async () => {
   // a keyring-less OS falls back to in-memory (re-auth next launch).
   if (result.ok) {
     try {
-      persistAuthResult(result);
+      await persistAuthResult(result);
     } catch {
       /* persistence is best-effort; never block the auth result on it */
     }
@@ -652,7 +685,7 @@ ipcMain.handle('sc:session:role', async () => {
 ipcMain.handle('sc:sync:cached', () => getCachedSnapshot());
 
 ipcMain.handle('sc:sync:start', async (event) =>
-  runSync((p) => event.sender.send('sc:sync:event', p)),
+  runSync((p) => safeSend(event.sender, 'sc:sync:event', p)),
 );
 
 // ============= Resumable upload-job IPC =============
@@ -810,6 +843,10 @@ ipcMain.on('sc:update:check-silent', () => checkForUpdatesSilently());
 // between pipeline steps no child runs while the run is still going), the
 // request stays standing and installs once the work ended or was paused.
 setWorkBusyProbe(() => activeJobs.size > 0 || uploadJob.isRunInFlight());
+// The renderer forgets its own run flags when it is reloaded (render-process-gone
+// below) while main keeps working; its auto-run asks here first so a reloaded UI
+// never starts a second extraction or upload beside the live one.
+ipcMain.handle('sc:work:busy', () => activeJobs.size > 0 || uploadJob.isRunInFlight());
 ipcMain.handle('sc:update:install', () => installUpdateNow());
 ipcMain.handle('sc:update:cancel-install', () => cancelInstallRequest());
 
@@ -990,7 +1027,7 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     installRootOf(req.outDir),
   );
   if (purge.removed > 0) {
-    event.sender.send('sc:extract:event', {
+    safeSend(event.sender, 'sc:extract:event', {
       jobId,
       type: 'log',
       message: `cleanup: removed ${purge.removed} older extract folder(s)`,
@@ -1005,7 +1042,7 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     // it must not pet the stall watchdog (a spinning hang would never trip it)
     // nor flood the diagnostics. It goes straight to the renderer's bar.
     if (ev.type === 'pulse') {
-      event.sender.send('sc:extract:event', { jobId, ...ev });
+      safeSend(event.sender, 'sc:extract:event', { jobId, ...ev });
       return;
     }
     watchdog.pet(); // every event is a sign of life — reset the stall timer
@@ -1020,7 +1057,7 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
       if (typeof e.pct === 'number') job.lastPct = e.pct;
       hub.update('extract', e.phase ?? null, typeof e.pct === 'number' ? e.pct : null);
     }
-    event.sender.send('sc:extract:event', { jobId, ...ev });
+    safeSend(event.sender, 'sc:extract:event', { jobId, ...ev });
   });
   job.cancel = handle.cancel;
   activeJobs.set(jobId, job);
@@ -1059,7 +1096,7 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
 ipcMain.handle('sc:skin:ensureTools', async (event) => {
   try {
     const path = await ensureConverter((pct) =>
-      event.sender.send('sc:skin:toolProgress', { pct }),
+      safeSend(event.sender, 'sc:skin:toolProgress', { pct }),
     );
     return { ok: true, path };
   } catch (err) {
@@ -1093,7 +1130,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
   const handle = startSkinExport(req, (ev) => {
     watchdog.pet();
     collectDiagnostic(job.diagnostics, ev, Date.now() - job.startedAt);
-    event.sender.send('sc:skin:event', { jobId, ...ev });
+    safeSend(event.sender, 'sc:skin:event', { jobId, ...ev });
   });
   job.cancel = handle.cancel;
   activeJobs.set(jobId, job);
@@ -1145,13 +1182,13 @@ ipcMain.handle(
           // run that shipped 21 of 309 ships left no trace of what went wrong
           // with the other 288 — not on screen, not on disk.
           if (level === 'warn' || level === 'error') log[level](`[skin-upload] ${message}`);
-          event.sender.send('sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' });
+          safeSend(event.sender, 'sc:skin:event', { jobId: 'upload', type: 'log', message, level: level ?? 'info' });
         },
         {
           ...uploadJob.hooksForSkins(),
           onProgress: (done, total, shipId) => {
             hub.update('upload', 'skins', total > 0 ? (done / total) * 100 : null);
-            event.sender.send('sc:skin:event', {
+            safeSend(event.sender, 'sc:skin:event', {
               jobId: 'upload',
               type: 'progress',
               stage: 'skins',
@@ -1163,7 +1200,7 @@ ipcMain.handle(
           // FPS / item / armor packages after the last ship: own phase, own
           // counter. Without it the card stayed on "312 / 312" for hours.
           onPackageProgress: (kind, done, total, className) => {
-            event.sender.send('sc:skin:event', {
+            safeSend(event.sender, 'sc:skin:event', {
               jobId: 'upload',
               type: 'progress',
               stage: 'packages',
@@ -1196,7 +1233,7 @@ ipcMain.handle(
       if (isInterrupt(err)) {
         // Paused/cancelled between ships — the renderer reads the job view to
         // learn that, so an empty result here is not an error.
-        event.sender.send('sc:upload:paused', uploadJob.view());
+        safeSend(event.sender, 'sc:upload:paused', uploadJob.view());
         return [];
       }
       throw err;
@@ -1227,7 +1264,7 @@ ipcMain.handle(
     const handle = startSilhouetteBuild(req, (ev) => {
       watchdog.pet();
       collectDiagnostic(job.diagnostics, ev, Date.now() - job.startedAt);
-      event.sender.send('sc:silhouette:event', { jobId, ...ev });
+      safeSend(event.sender, 'sc:silhouette:event', { jobId, ...ev });
     });
     job.cancel = handle.cancel;
     activeJobs.set(jobId, job);
@@ -1294,7 +1331,7 @@ ipcMain.handle(
               ? ((p.phaseIndex - 1 + (p.total > 0 ? p.current / p.total : 0)) / p.phaseTotal) * 100
               : null;
           hub.update('upload', p.phase, pct);
-          event.sender.send('sc:catalog:event', p);
+          safeSend(event.sender, 'sc:catalog:event', p);
         },
         {
           ...hooks,
@@ -1306,7 +1343,7 @@ ipcMain.handle(
       return result;
     } catch (err) {
       if (isInterrupt(err)) {
-        event.sender.send('sc:upload:paused', uploadJob.view());
+        safeSend(event.sender, 'sc:upload:paused', uploadJob.view());
         return { ok: false, error: err instanceof PausedError ? 'paused' : 'cancelled' };
       }
       throw err;
@@ -1326,7 +1363,7 @@ ipcMain.handle(
         outDir,
         (p) => {
           hub.update('upload', p.phase, p.total > 0 ? (p.current / p.total) * 100 : null);
-          event.sender.send('sc:catalog:event', p);
+          safeSend(event.sender, 'sc:catalog:event', p);
         },
         { ...uploadJob.hooksForCatalog(), mode: 'silhouettes' },
       );
@@ -1334,7 +1371,7 @@ ipcMain.handle(
       return result;
     } catch (err) {
       if (isInterrupt(err)) {
-        event.sender.send('sc:upload:paused', uploadJob.view());
+        safeSend(event.sender, 'sc:upload:paused', uploadJob.view());
         return { ok: false, error: err instanceof PausedError ? 'paused' : 'cancelled' };
       }
       throw err;
@@ -1432,7 +1469,7 @@ app.whenReady().then(() => {
         // pick the job back up. Restore the window: an upload the operator just
         // resumed by hand is something they want to watch.
         showMainWindow();
-        mainWindow?.webContents.send('sc:upload:resumeRequested');
+        safeSend(mainWindow?.webContents, 'sc:upload:resumeRequested');
       },
       labels: () => trayLabels,
     },

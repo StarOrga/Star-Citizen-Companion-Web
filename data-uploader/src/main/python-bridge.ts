@@ -18,6 +18,7 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { createSidecarLogger } from './bridge-log.js';
 import { createInterface } from 'node:readline';
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -263,6 +264,7 @@ export function startExtraction(
   let parseFailures = 0;
   const stderrTail: string[] = []; // last few stderr lines, surfaced if the run dies opaquely
 
+  const logEvent = createSidecarLogger('extract');
   const rl = createInterface({ input: child.stdout });
   rl.on('line', (line) => {
     const trimmed = line.trim();
@@ -282,6 +284,7 @@ export function startExtraction(
     if (!ev || typeof ev.type !== 'string') return;
     if (ev.type === 'done' && ev.result) finalResult = ev.result;
     if (ev.type === 'error' && ev.message) lastError = ev.message;
+    logEvent(ev);
     onEvent(ev);
   });
 
