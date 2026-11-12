@@ -4434,7 +4434,7 @@
     "errorNoToken": "No access token in session.",
     "retry": "Try again",
     "handedOver": "Back to the app",
-    "handedOverHint": "The app has your session. You can close this window."
+    "handedOverHint": "The app is taking over your session, you can close this window. If it did not connect, start the connection again in the app."
   },
   "desktopAuth": {
     "title": "Authorize Verse Data Uploader",
@@ -4454,7 +4454,7 @@
     "cancelled": "Cancelled — nothing was sent. You can close this window.",
     "retry": "Try again",
     "handedOver": "Back to the app",
-    "handedOverHint": "The app has your session. You can close this window."
+    "handedOverHint": "The app is taking over your session, you can close this window. If it did not connect, start the connection again in the app."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",

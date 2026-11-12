@@ -50,7 +50,7 @@ export type AppLinkPhase = 'checking' | 'ready' | 'linking' | 'done' | 'halt' | 
           <small>{{ 'appLink.app.' + app() | translate }}</small>
         </span>
       </div>
-      <div class="body" role="status" aria-live="polite"><ng-content /></div>
+      <div class="body" role="status" aria-live="polite" aria-atomic="false"><ng-content /></div>
     </section>
   `,
   styleUrl: './app-link-stage.component.scss',

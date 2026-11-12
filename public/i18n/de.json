@@ -4434,7 +4434,7 @@
     "errorNoToken": "Kein Access-Token in der Session.",
     "retry": "Erneut versuchen",
     "handedOver": "Zurück zur App",
-    "handedOverHint": "Die App hat deine Anmeldung. Du kannst dieses Fenster schließen."
+    "handedOverHint": "Die App übernimmt deine Anmeldung, du kannst dieses Fenster schließen. Ist sie nicht verbunden, starte die Verbindung in der App neu."
   },
   "desktopAuth": {
     "title": "Verse Data Uploader autorisieren",
@@ -4454,7 +4454,7 @@
     "cancelled": "Abgebrochen – es wurde nichts übertragen. Du kannst dieses Fenster schließen.",
     "retry": "Erneut versuchen",
     "handedOver": "Zurück zur App",
-    "handedOverHint": "Die App hat deine Anmeldung. Du kannst dieses Fenster schließen."
+    "handedOverHint": "Die App übernimmt deine Anmeldung, du kannst dieses Fenster schließen. Ist sie nicht verbunden, starte die Verbindung in der App neu."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",

@@ -193,7 +193,11 @@ export class HqAppLaunchComponent {
     if (run !== this.run) return;
     if (answered) {
       this.status.set('started');
-      this.hideTimer = setTimeout(() => this.status.set('idle'), STARTED_HINT_MS);
+      // No live signal within the hint's time: it leaves anyway, and so does its watcher.
+      this.hideTimer = setTimeout(() => {
+        this.clearWatch();
+        if (run === this.run) this.status.set('idle');
+      }, STARTED_HINT_MS);
       this.hideOnceConnected(run);
     } else if (known) {
       this.status.set('noResponse');
