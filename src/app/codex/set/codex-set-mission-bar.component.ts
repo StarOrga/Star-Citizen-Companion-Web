@@ -49,7 +49,13 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       </div>
       @if (lens() !== 'all') {
         <span class="idle-draft">
-          <button type="button" class="btn" (click)="lensChange.emit('all')">
+          <button
+            type="button"
+            class="btn"
+            [scTooltip]="'codex.mission.setLensResetTip' | translate"
+            scTooltipTier="info"
+            (click)="lensChange.emit('all')"
+          >
             {{ 'codex.mission.lensReset' | translate }}
           </button>
         </span>

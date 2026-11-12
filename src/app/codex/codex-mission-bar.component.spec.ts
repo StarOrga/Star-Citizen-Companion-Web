@@ -66,4 +66,31 @@ describe('CodexMissionBarComponent', () => {
     miningChip.click(); // disabled — no-op
     expect(emitted).toEqual(['combat']);
   });
+
+  it('hides "Back to All" while All is active and shows it with an explaining tooltip otherwise', async () => {
+    await setup(fullCaps);
+    expect(fixture.nativeElement.querySelector('.idle-draft')).toBeNull();
+
+    fixture.componentRef.setInput('active', 'combat');
+    fixture.detectChanges();
+    const resetBtn = fixture.nativeElement.querySelector('.idle-draft .btn') as HTMLButtonElement;
+    expect(resetBtn).toBeTruthy();
+    expect(resetBtn.disabled).toBe(false);
+    expect(resetBtn.getAttribute('title')).toBeNull();
+    const tip = fixture.debugElement.query(By.css('.idle-draft .btn')).injector.get(ScTooltipDirective).scTooltip();
+    expect(tip).toBe('codex.mission.lensResetTip');
+
+    const emitted: string[] = [];
+    fixture.componentInstance.missionChange.subscribe((id) => emitted.push(id));
+    resetBtn.click();
+    expect(emitted).toEqual(['all']);
+  });
+
+  it('shows no reset while a loadout draft exists', async () => {
+    await setup(fullCaps);
+    fixture.componentRef.setInput('active', 'combat');
+    fixture.componentRef.setInput('changed', 2);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.idle-draft')).toBeNull();
+  });
 });

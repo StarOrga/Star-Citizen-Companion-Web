@@ -2185,7 +2185,8 @@
         "passive": "Passiv · nicht am Netz",
         "pool": "Pool"
       },
-      "shieldNote": "Alle drei sind Schild-Generatoren und alle drei tauschbar. Der passive kostet keine Energie und zählt trotzdem voll in den Pool — er hängt aber an den aktiven: fallen die aus, ist auch der Ausgleich weg.",
+      "shieldNote": "Alle {{count}} sind Schild-Generatoren und jeder einzeln tauschbar — gleiche stehen hier zusammengefasst, „Einzeln“ listet sie Platz für Platz.",
+      "shieldPassiveNote": "Der passive kostet keine Energie und zählt trotzdem voll in den Pool — er hängt aber an den aktiven: fallen die aus, ist auch der Ausgleich weg.",
       "peek": {
         "sustainedDpsTotal": "Dauer-DPS gesamt",
         "burstDpsTotal": "Salven-DPS gesamt",
@@ -2240,7 +2241,9 @@
       "stealth": "Schleichen",
       "mining": "Bergbau",
       "salvage": "Bergung",
-      "lensReset": "Linse zurücksetzen",
+      "lensReset": "Zurück auf „Alles“",
+      "lensResetTip": "Stellt den Einsatz wieder auf „Alles“: Alle Ausrüstungsblöcke sind wieder aufgeklappt und in der Standardreihenfolge, die Kennzahlen zeigen den neutralen Überblick. An der Ausrüstung selbst ändert sich nichts.",
+      "setLensResetTip": "Stellt den Einsatz wieder auf „Alles“: Alle Werte zählen wieder gleich, und die Teile im Bild zeigen keinen einsatzbezogenen Wert mehr. Am Set selbst ändert sich nichts.",
       "disabled": {
         "noMining": "Keine Bergbau-Hardpoints",
         "noSalvage": "Keine Bergungs-Hardpoints",

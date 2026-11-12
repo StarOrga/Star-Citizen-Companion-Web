@@ -4,6 +4,31 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.6] - 2026-11-12
+
+### Changed
+- Codex loadout: identical items stack in every block like the weapons do — shield generators and countermeasures included — as "3× …" with the "Einzeln" toggle; a passive shield generator keeps its own row next to the active ones. The shield note counts the generators instead of saying "all three".
+
+## [0.259.5] - 2026-11-12
+
+### Fixed
+- Tooltips no longer stack: hovering an element with its own tooltip inside another tooltip-bearing element (e.g. a stat chip inside a loadout slot card) opens only the inner tooltip; the outer one returns when the pointer is back on the outer element.
+
+## [0.259.4] - 2026-11-12
+
+### Changed
+- Codex loadout (classic view): the block boxes (Bewaffnung and the other loadout blocks) are built like the Offensive card — same 4px rounding, an even 1px border without the square-looking accent bar on top, same card background — and the weapon rows inside are rounded at 4px too.
+
+## [0.259.3] - 2026-11-12
+
+### Changed
+- Codex mission bar: the unclear "Linse zurücksetzen" button is now "Zurück auf „Alles“", explains itself in a tooltip and only appears while a mission other than "Alles" is picked (ship and armour-set pages).
+
+## [0.259.2] - 2026-11-12
+
+### Fixed
+- Concept pages linked from admin feedback (`/concept/<id>`) render as the real, clickable page instead of their HTML source. They load through a small loader page on the site that only accepts this project's own concept-page function.
+
 ## [0.259.1] - 2026-11-12
 
 ### Fixed
