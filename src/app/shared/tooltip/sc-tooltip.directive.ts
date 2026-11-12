@@ -42,6 +42,9 @@ const SC_TOOLTIP_MOVE_TOLERANCE = 8;
 @Injectable({ providedIn: 'root' })
 export class ScTooltipState {
   lastCloseAt = 0;
+  /** Every live tooltip host, so a host can tell whether the pointer sits on
+   *  a tooltip host nested inside it (a stat chip inside a slot card). */
+  readonly hosts = new WeakMap<Element, ScTooltipDirective>();
 }
 
 /** Best-effort `:focus-visible` equivalent, tracked ourselves (rather than
@@ -141,6 +144,10 @@ export class ScTooltipDirective implements OnDestroy {
   private suppressNextClick = false;
 
   private hoveringHost = false;
+  /** The pointer is over a nested tooltip host inside this one — the inner
+   *  tooltip speaks, this one stays shut (one tooltip at a time, never a
+   *  tooltip stacked over another). */
+  private coveredByInner = false;
   private hoveringBubble = false;
   private focusedOpen = false;
 
@@ -148,6 +155,7 @@ export class ScTooltipDirective implements OnDestroy {
 
   constructor() {
     installModalityListeners();
+    this.state.hosts.set(this.host.nativeElement, this);
     // A tooltip that is open while its text changes (★ pin → "pinned") says
     // the new text, instead of the one it opened with; an emptied text closes it.
     effect(() => {
@@ -161,6 +169,7 @@ export class ScTooltipDirective implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.state.hosts.delete(this.host.nativeElement);
     this.clearAllTimers();
     this.disposeOverlay();
     if (this.isTouchOpen) document.removeEventListener('pointerdown', this.onDocumentPointerDown, true);
@@ -173,13 +182,47 @@ export class ScTooltipDirective implements OnDestroy {
     if (ev.pointerType === 'touch') return;
     this.hoveringHost = true;
     this.cancelCloseTimer();
-    this.scheduleOpen();
+    if (!this.coveredByInner) this.scheduleOpen();
+  }
+
+  // pointerover bubbles and fires (before pointerenter) on every element the
+  // pointer moves onto: it tells whether the pointer is on this host's own
+  // area or on a nested tooltip host, whose tooltip then wins.
+  @HostListener('pointerover', ['$event'])
+  onPointerOver(ev: PointerEvent): void {
+    if (ev.pointerType === 'touch') return;
+    const covered = this.innerHostAt(ev.target);
+    if (covered === this.coveredByInner) return;
+    this.coveredByInner = covered;
+    if (covered) {
+      this.cancelOpenTimer();
+      if (!this.focusedOpen) this.close();
+    } else if (this.hoveringHost) {
+      this.scheduleOpen();
+    }
+  }
+
+  /** Whether `target` lies inside a nested host whose tooltip would show. */
+  private innerHostAt(target: EventTarget | null): boolean {
+    const own: HTMLElement = this.host.nativeElement;
+    let el = target instanceof Element ? target : null;
+    while (el && el !== own) {
+      if (this.state.hosts.get(el)?.canShow()) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  /** Has something to say right now (text set, not disabled). */
+  canShow(): boolean {
+    return !!this.scTooltip() && !this.scTooltipDisabled();
   }
 
   @HostListener('pointerleave', ['$event'])
   onPointerLeave(ev: PointerEvent): void {
     if (ev.pointerType === 'touch') return;
     this.hoveringHost = false;
+    this.coveredByInner = false;
     this.cancelOpenTimer();
     this.scheduleCloseIfIdle();
   }
