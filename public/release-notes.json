@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.259.1",
+  "current": "0.259.2",
   "releases": [
+    {
+      "version": "0.259.2",
+      "date": "2026-11-12",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Concept pages linked from admin feedback (/concept/<id>) render as the real, clickable page instead of their HTML source. They load through a small loader page on the site that only accepts this project's own concept-page function."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.259.1",
       "date": "2026-11-12",
