@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.5] - 2026-11-12
+
+### Fixed
+- Tooltips no longer stack: hovering an element with its own tooltip inside another tooltip-bearing element (e.g. a stat chip inside a loadout slot card) opens only the inner tooltip; the outer one returns when the pointer is back on the outer element.
+
 ## [0.259.4] - 2026-11-12
 
 ### Changed
