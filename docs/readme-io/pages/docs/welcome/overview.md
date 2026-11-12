@@ -27,7 +27,7 @@ and adds the tools that sit around them.
 | **Codex** | Every ship, weapon, component, item, ammo and manufacturer — datamined from the live build and searchable. | [Codex](doc:codex) |
 | **Hangar** | Your personal fleet: owned/wishlist ships, named configurations, component loadouts and role sets. | [Hangar](doc:hangar) |
 | **Starscape** | A gallery of original-resolution RSI artwork harvested from the news crawl, plus the tiny Windows Starscape App. | [Starscape](doc:starscape) |
-| **Data Uploader** | A desktop tool that scans your own `Data.p4k` and uploads a pre-digested bundle, which is what keeps the Codex current. | [Desktop tools](doc:desktop-tools) |
+| **Verse Data Uploader** | A desktop tool that scans your own `Data.p4k` and uploads a pre-digested bundle, which is what keeps the Codex current. | [Desktop tools](doc:desktop-tools) |
 | **Public API** | Read-only HTTP access to the aggregated data, for bots, dashboards and org tools. | [Getting Started](doc:getting-started) |
 
 ## How the data gets there
@@ -37,7 +37,7 @@ Nothing in Verse Companion is typed in by hand:
 1. A **news crawl** polls RSI's public channels (Comm-Link, Spectrum, the RSI
    status page, YouTube) and normalises everything into one feed. Artwork found
    along the way lands in [Starscape](doc:starscape).
-2. The **Data Uploader** runs on a contributor's own machine, reads their local
+2. The **Verse Data Uploader** runs on a contributor's own machine, reads their local
    `Data.p4k`, and uploads a pre-digested *bundle* of extracted metadata —
    never the game files themselves.
 3. Bundles are ingested into the **Codex catalog**, tagged with the patch

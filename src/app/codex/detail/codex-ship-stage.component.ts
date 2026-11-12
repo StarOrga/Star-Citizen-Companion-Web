@@ -204,9 +204,9 @@ export interface StageHeroChip {
     .stage-ident { grid-row: 1; align-self: start; justify-self: start; position: relative; z-index: 1;
       max-width: calc(100% - 72px); box-sizing: border-box; pointer-events: none;
       padding: 8px 12px; border-radius: 4px;
-      background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-0) 88%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
-      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+ }
     /* Typography lifted from the codex fleet tile (.fleet-tile__mfr / __name),
        with the emphasis swapped: the NAME carries the accent now — it is the
        ship this page is about — and the maker/role eyebrow steps back to the

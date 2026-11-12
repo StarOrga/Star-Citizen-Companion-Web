@@ -13,6 +13,7 @@ import {
   viewChild,
   Injector,
 } from '@angular/core';
+import { onScrollTick } from '../../core/scroll-tick';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
@@ -249,11 +250,11 @@ export class CodexSearchBarComponent {
       const refit = () => this.refit();
       const vv = window.visualViewport;
       window.addEventListener('resize', refit, { passive: true });
-      window.addEventListener('scroll', refit, { passive: true });
+      const offScroll = onScrollTick(refit);
       vv?.addEventListener('resize', refit, { passive: true });
       inject(DestroyRef).onDestroy(() => {
         window.removeEventListener('resize', refit);
-        window.removeEventListener('scroll', refit);
+        offScroll();
         vv?.removeEventListener('resize', refit);
       });
     }

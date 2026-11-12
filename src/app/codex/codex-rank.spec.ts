@@ -91,6 +91,13 @@ describe('rankShip', () => {
     expect(result.cohortSize).toBe(4);
   });
 
+  it('places the target in its group by the same overall score (Rang N von M, C15)', () => {
+    expect(result.rank).toBeGreaterThanOrEqual(1);
+    expect(result.rank).toBeLessThanOrEqual(result.cohortSize);
+    const best = ship('ZZZ_Best', 2, 'Combat', { alpha: 9e3, sustainedDps: 9e4, missiles: 9e3, shieldHp: 9e5, agility: 900, boost: 900 });
+    expect(rankShip(best, cohort, { profile: 'combat', scope: 'all' }).rank).toBe(1);
+  });
+
   it('keeps the radar axes in the fixed profile order', () => {
     expect(result.axes.map((a) => a.key)).toEqual(
       RANK_PROFILES.find((p) => p.id === 'combat')!.axes.map((a) => a.key),

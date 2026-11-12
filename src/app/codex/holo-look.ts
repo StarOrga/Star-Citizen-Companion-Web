@@ -21,6 +21,8 @@
  */
 import * as THREE from 'three';
 import type { Rgb } from './holo-manufacturer';
+import { HoloEdgeJob, creaseEdgeArray } from './holo-edges';
+import type { HoloEdgeCompute } from './holo-edges-link';
 
 export type { Rgb } from './holo-manufacturer';
 export type HoloRole = 'hull' | 'part' | 'interior' | 'focus' | 'quiet';
@@ -297,6 +299,9 @@ export class HoloLook {
   private readonly lines = new Map<HoloRole, THREE.ShaderMaterial>();
   /** source geometry → its crease edges; computed once, disposed with the look. */
   private readonly edgeCache = new Map<THREE.BufferGeometry, THREE.BufferGeometry | null>();
+  /** Edges in flight from {@link dressAsync}, per source geometry. */
+  private readonly edgeJobs = new Map<THREE.BufferGeometry, Promise<THREE.BufferGeometry | null>>();
+  private disposed = false;
   /** Line detail of the fitted hull (hull + interior roles). */
   private hullDetail: EdgeDetail = FULL_DETAIL;
   private readonly easeDim = new Eased(0);
@@ -448,6 +453,63 @@ export class HoloLook {
     }
   }
 
+  /**
+   * {@link dress} with the crease edges computed by `compute` (the edge worker): the fill
+   * materials are on at once, each mesh's edge child follows when its edges arrive, then
+   * `onEdges` runs (queue a render). A look disposed in the meantime adds nothing.
+   */
+  dressAsync(
+    root: THREE.Object3D,
+    role: HoloRole,
+    compute: HoloEdgeCompute,
+    onEdges: () => void,
+    accept: (mesh: THREE.Mesh) => boolean = () => true,
+  ): Promise<void> {
+    const meshes: THREE.Mesh[] = [];
+    root.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh && accept(o as THREE.Mesh)) meshes.push(o as THREE.Mesh);
+    });
+    const detail = role === 'hull' || role === 'interior' ? this.hullDetail : FULL_DETAIL;
+    if (detail.minArea > 0) root.updateWorldMatrix(true, true);
+    const jobs: Promise<void>[] = [];
+    for (const mesh of meshes) {
+      mesh.material = this.fill(role);
+      if (mesh.children.some((c) => c.userData[EDGE_FLAG])) continue;
+      const geometry = mesh.geometry;
+      const scale = detail.minArea > 0 ? mesh.matrixWorld.getMaxScaleOnAxis() || 1 : 1;
+      let edges = this.edgeJobs.get(geometry);
+      if (!edges) {
+        const tris = trianglesOf(geometry);
+        edges =
+          tris > 0 && tris <= HOLO_EDGE_MAX_TRIANGLES
+            ? compute(edgeJobOf(geometry, detail.creaseDeg, detail.minArea / (scale * scale))).then((arr) => {
+                if (this.disposed || !arr) return null;
+                const g = new THREE.BufferGeometry();
+                g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+                this.edgeCache.set(geometry, g);
+                return g;
+              })
+            : Promise.resolve(null);
+        this.edgeJobs.set(geometry, edges);
+      }
+      jobs.push(
+        edges.then((geo) => {
+          if (!geo || this.disposed || mesh.children.some((c) => c.userData[EDGE_FLAG])) return;
+          const edge = new THREE.LineSegments(geo, this.line(role));
+          edge.userData[EDGE_FLAG] = true;
+          edge.raycast = () => undefined;
+          edge.matrixAutoUpdate = false;
+          // The role may have changed while the edges were computed (focus): follow the fill.
+          edge.renderOrder = mesh.renderOrder + 1;
+          mesh.add(edge);
+        }),
+      );
+    }
+    return Promise.all(jobs).then(() => {
+      if (!this.disposed) onEdges();
+    });
+  }
+
   /** Swap materials of an already dressed subtree (focus on/off). */
   setRole(root: THREE.Object3D, role: HoloRole, renderOrder = 0): void {
     root.traverse((o) => {
@@ -546,18 +608,13 @@ export class HoloLook {
   }
 
   dispose(): void {
+    this.disposed = true;
+    this.edgeJobs.clear();
     for (const m of this.fills.values()) m.dispose();
     for (const m of this.lines.values()) m.dispose();
     for (const g of this.edgeCache.values()) g?.dispose();
     this.edgeCache.clear();
   }
-}
-
-interface HalfEdge {
-  readonly normal: THREE.Vector3;
-  readonly area: number;
-  readonly a: THREE.Vector3;
-  readonly b: THREE.Vector3;
 }
 
 /**
@@ -569,45 +626,25 @@ interface HalfEdge {
  * segments.)
  */
 export function creaseEdges(geometry: THREE.BufferGeometry, creaseDeg: number, minArea = 0): THREE.BufferGeometry {
-  const thresholdDot = Math.cos(THREE.MathUtils.DEG2RAD * creaseDeg);
-  const pos = geometry.getAttribute('position');
-  const index = geometry.getIndex();
-  const count = index ? index.count : pos.count;
-  const tri = new THREE.Triangle();
-  const corners = [tri.a, tri.b, tri.c];
-  const ids = [0, 0, 0];
-  const hashes = ['', '', ''];
-  const precision = 1e4;
-  const hashOf = (v: THREE.Vector3) =>
-    `${Math.round(v.x * precision)},${Math.round(v.y * precision)},${Math.round(v.z * precision)}`;
-  const open = new Map<string, HalfEdge | null>();
-  const out: number[] = [];
-  const push = (a: THREE.Vector3, b: THREE.Vector3) => out.push(a.x, a.y, a.z, b.x, b.y, b.z);
-  for (let i = 0; i + 2 < count; i += 3) {
-    for (let k = 0; k < 3; k++) {
-      ids[k] = index ? index.getX(i + k) : i + k;
-      corners[k].fromBufferAttribute(pos, ids[k]);
-      hashes[k] = hashOf(corners[k]);
-    }
-    if (hashes[0] === hashes[1] || hashes[1] === hashes[2] || hashes[2] === hashes[0]) continue;
-    const normal = tri.getNormal(new THREE.Vector3());
-    const area = tri.getArea();
-    for (let k = 0; k < 3; k++) {
-      const n = (k + 1) % 3;
-      const hash = `${hashes[k]}_${hashes[n]}`;
-      const reverse = `${hashes[n]}_${hashes[k]}`;
-      const other = open.get(reverse);
-      if (other) {
-        if (normal.dot(other.normal) <= thresholdDot && Math.max(area, other.area) >= minArea) push(corners[k], corners[n]);
-        open.set(reverse, null);
-      } else if (!open.has(hash)) {
-        open.set(hash, { normal, area, a: corners[k].clone(), b: corners[n].clone() });
-      }
-    }
-  }
-  // Open (boundary) edges always count as creases.
-  for (const e of open.values()) if (e && e.area >= minArea) push(e.a, e.b);
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(out, 3));
+  g.setAttribute('position', new THREE.Float32BufferAttribute(creaseEdgeArray(edgeJobOf(geometry, creaseDeg, minArea)), 3));
   return g;
+}
+
+/** The plain arrays {@link creaseEdgeArray} (and the edge worker) work on: copies, never views of the mesh. */
+export function edgeJobOf(geometry: THREE.BufferGeometry, creaseDeg: number, minArea = 0): HoloEdgeJob {
+  const pos = geometry.getAttribute('position');
+  const positions = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    positions[i * 3] = pos.getX(i);
+    positions[i * 3 + 1] = pos.getY(i);
+    positions[i * 3 + 2] = pos.getZ(i);
+  }
+  const idx = geometry.getIndex();
+  let index: Uint32Array | null = null;
+  if (idx) {
+    index = new Uint32Array(idx.count);
+    for (let i = 0; i < idx.count; i++) index[i] = idx.getX(i);
+  }
+  return { positions, index, creaseDeg, minArea };
 }

@@ -1,7 +1,9 @@
 import { EventHqService } from './events/event-hq.service';
+import { onScrollTick } from '../core/scroll-tick';
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, afterNextRender, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
+import { pageScrollY } from '../core/page-scroll-y';
 import { HQ_PAGE_ICONS, HqPageNavService } from './hq-page-nav.service';
 
 /** Scroll distance (px) in one direction before the bar follows it. */
@@ -58,8 +60,7 @@ export const PAGE_BAR_SLACK_PX = 12;
         padding: var(--sc-space-1, 4px);
         border: 1px solid var(--sc-border);
         border-radius: 14px;
-        background: color-mix(in srgb, var(--sc-bg-1) 92%, transparent);
-        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-1) 96%, transparent);
       }
       .tab {
         display: flex;
@@ -117,10 +118,10 @@ export class HqPageBarComponent {
     const zone = inject(NgZone);
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => {
-      let last = window.scrollY;
+      let last = pageScrollY();
       let run = 0;
       const onScroll = () => {
-        const y = window.scrollY;
+        const y = pageScrollY();
         const dy = y - last;
         last = y;
         // Direction changes restart the run; the bar follows a run longer than the slack.
@@ -133,8 +134,7 @@ export class HqPageBarComponent {
           zone.run(() => this.hidden.set(false));
         }
       };
-      zone.runOutsideAngular(() => window.addEventListener('scroll', onScroll, { passive: true }));
-      destroyRef.onDestroy(() => window.removeEventListener('scroll', onScroll));
+      destroyRef.onDestroy(onScrollTick({ read: onScroll }));
     });
   }
 }

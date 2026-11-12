@@ -61,7 +61,26 @@ def test_variant_takes_the_root_part_not_a_sub_part() -> None:
     hull = ex._hull_stats(_vcp(_PATH), "AEGS_Idris_P")
     assert hull["mass"] == 37854373.0
     assert hull["hp"] == 1590000.0
-    assert any(lvl == "warn" and "hull mass" in m for lvl, m in logs)
+    # A variant on its base hull's XML is the normal case, not a warning —
+    # it used to log one warn per variant on every run.
+    assert logs == []
+
+
+def test_variant_suffix_chain_matches_the_base_root_silently() -> None:
+    ex, logs = _with_log({_FULL: IDRIS_P_XML})
+    hull = ex._hull_stats(_vcp(_PATH), "AEGS_Idris_P_FW_25")
+    assert hull["mass"] == 37854373.0
+    assert logs == []
+
+
+def test_single_root_with_a_foreign_name_is_unambiguous_and_silent() -> None:
+    xml = (b'<?xml version="1.0"?><Vehicle><Parts>'
+           b'<Part name="body" mass="5000"><Parts>'
+           b'<Part name="wing" mass="9000"/></Parts></Part></Parts></Vehicle>')
+    ex, logs = _with_log({_FULL: xml})
+    hull = ex._hull_stats(_vcp(_PATH), "RSI_Starlancer_MAX")
+    assert hull["mass"] == 5000.0
+    assert logs == []
 
 
 def test_exact_class_name_match_wins_and_logs_nothing() -> None:

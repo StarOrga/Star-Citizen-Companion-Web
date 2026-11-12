@@ -1,5 +1,6 @@
 import { DestroyRef, Directive, ElementRef, afterNextRender, inject, input } from '@angular/core';
 import { BetaService } from '../../core/beta.service';
+import { ShellChromeService } from './shell-chrome.service';
 
 /** Fired on window when a hero moved its slot: the bar re-places its staged field. */
 export const STAGE_SLOT_MOVED = 'sc-stage-slot-moved';
@@ -34,10 +35,17 @@ export function stageSlotTarget(viewportHeight: number, top: number = STAGE_FIEL
 @Directive({
   selector: '[scStageHero]',
   standalone: true,
-  host: { '[attr.data-stage-hero]': "on() ? '' : null" },
+  host: {
+    '[attr.data-stage-hero]': "on() ? '' : null",
+    // The dock fade (styles.scss) keys on the hero itself: a flip restyles only the hero's
+    // subtree, where an html-level state restyled the whole document.
+    '[attr.data-hero-docked]': "on() && chrome.stageSearch() === 'docked' ? '' : null",
+    '[attr.data-hero-snap]': "on() && chrome.snap() ? '' : null",
+  },
 })
 export class StageHeroDirective {
   readonly on = inject(BetaService).isEnabled('shell');
+  protected readonly chrome = inject(ShellChromeService);
   /**
    * Per-page slot height as a fraction of the viewport (default
    * {@link STAGE_FIELD_TOP}). Every main page uses the default today; an override

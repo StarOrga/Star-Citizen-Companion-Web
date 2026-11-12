@@ -25,7 +25,7 @@ import {
   setDraftValue,
   setDraftValueForPaths,
   topSegment,
-  touchedTopPorts,
+  touchedSavePaths,
 } from './codex-loadout-draft';
 
 describe('draftKey / topSegment / isNestedPath', () => {
@@ -108,16 +108,20 @@ describe('deleteDraftPaths / changedCount', () => {
 describe('selectSaveableEntries (R2)', () => {
   const kindOf = (): string => 'weapon';
 
-  it('keeps only top-level, non-emptied, joinable paths', () => {
+  it('keeps non-emptied paths under a joinable top port, nested ones with their full path (D2)', () => {
     const draft: DraftMap = new Map([
       ['hardpoint_weapon_top_left', 'GUN_A'],
-      ['hardpoint_weapon_top_left.hardpoint_class_2', 'GUN_B'], // nested — draft-only
+      ['hardpoint_weapon_top_left.hardpoint_class_2', 'GUN_B'], // nested — saved with its dotted path
+      ['unknown_port.child', 'GUN_D'], // nested under a non-joinable top — draft-only
       ['hardpoint_weapon_bottom', null], // emptied — draft-only
       ['unknown_port', 'GUN_C'], // not joinable
     ]);
     const joinable = new Set(['hardpoint_weapon_top_left', 'hardpoint_weapon_bottom']);
     const out = selectSaveableEntries(draft, joinable, kindOf);
-    expect(out).toEqual([{ portName: 'hardpoint_weapon_top_left', className: 'GUN_A', kind: 'weapon' }]);
+    expect(out).toEqual([
+      { portName: 'hardpoint_weapon_top_left', className: 'GUN_A', kind: 'weapon' },
+      { portName: 'hardpoint_weapon_top_left.hardpoint_class_2', className: 'GUN_B', kind: 'weapon' },
+    ]);
   });
 });
 
@@ -150,13 +154,27 @@ describe('mergeSavedLoadout (R1)', () => {
     expect(merged).toEqual([]);
   });
 
-  it('touchedTopPorts only names top-level, joinable paths', () => {
+  it('touchedSavePaths names every path under a joinable top port, nested included', () => {
     const draft: DraftMap = new Map([
       ['a', 'X'],
       ['a.b', 'Y'],
       ['not-joinable', 'Z'],
+      ['not-joinable.c', 'W'],
     ]);
-    expect(touchedTopPorts(draft, new Set(['a']))).toEqual(new Set(['a']));
+    expect(touchedSavePaths(draft, new Set(['a']))).toEqual(new Set(['a', 'a.b']));
+  });
+
+  it('a stored nested entry goes with its touched parent unless the draft still carries it', () => {
+    const existing: ConfigLoadoutEntry[] = [
+      { portName: 'mount', className: 'GIMBAL_OLD', kind: 'weapon' },
+      { portName: 'mount.gun', className: 'GUN_OLD', kind: 'weapon' },
+      { portName: 'other.gun', className: 'GUN_KEEP', kind: 'weapon' },
+    ];
+    const saveable = [{ portName: 'mount', className: 'GIMBAL_NEW', kind: 'weapon' }];
+    expect(mergeSavedLoadout(existing, saveable, new Set(['mount']))).toEqual([
+      { portName: 'other.gun', className: 'GUN_KEEP', kind: 'weapon' },
+      { portName: 'mount', className: 'GIMBAL_NEW', kind: 'weapon' },
+    ]);
   });
 });
 

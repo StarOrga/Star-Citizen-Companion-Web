@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, signal } from '@angular/core';
+import { setRootVar } from '../../core/root-var';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -7,7 +8,7 @@ import { isPlainLeftClick } from '../../core/modified-click.util';
 import { SameRouteRefreshService } from '../../core/same-route-refresh.service';
 import { BrandLogoComponent, BrandNameComponent } from '../brand/brand.component';
 import { AREA_ENTRIES, activeAreaOf } from '../fusion-bar/fusion-bar.model';
-import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
+import { ShellChromeService, introBeatCss } from '../fusion-bar/shell-chrome.service';
 
 /** Width of one nav slot — fixed, so the nav never shifts between main pages. */
 export const MAIN_NAV_SLOT_PX = 112;
@@ -49,6 +50,7 @@ export const MAIN_NAV_SLOT_PX = 112;
     '[class.hero-intro]': 'introWait()',
     '[class.intro-hold]': 'introHold()',
     '[style.--sc-intro-k]': 'introK()',
+    '[style.--sc-intro-header-at]': 'introHeaderAt()',
   },
   template: `
     <a class="brand" routerLink="/verse" [attr.aria-label]="'nav.brandAria' | translate"
@@ -73,6 +75,9 @@ export const MAIN_NAV_SLOT_PX = 112;
       </nav>
     </div>
 
+    <!-- Measuring probe: where the docked bar's content edge and logo row stand (--_rail, --_dock-top). -->
+    <i class="probe" aria-hidden="true"></i>
+
     <!-- Top-right corner: apps + profile. Admin is not here: it lives in the account menu. -->
     <div class="account">
       <div class="acc-main"><ng-content select="[mhAccount]" /></div>
@@ -95,6 +100,13 @@ export const MAIN_NAV_SLOT_PX = 112;
         /* The docked bar the corners glide into: its content edge (border + padding). */
         --_rail: calc((100% - var(--sc-dock-w)) / 2 + 1px + var(--sc-space-4));
         --_p: var(--sc-dock-p, 0);
+        /* One ease per beat (S1): every element runs its own slice of the scroll-linked progress
+           through a smoothstep, so they leave one after another and overlap a little. The deltas
+           (--_bdx … --_ndy, px) are measured per layout; the frames only multiply them. */
+        --_lm: clamp(0, calc((var(--_p) - 0.03) / 0.87), 1);
+        --_em: calc(var(--_lm) * var(--_lm) * (3 - 2 * var(--_lm)));
+        --_la: clamp(0, calc((var(--_p) - 0.1) / 0.8), 1);
+        --_ea: calc(var(--_la) * var(--_la) * (3 - 2 * var(--_la)));
         /* Pinned: the page scrolls under the header. */
         position: fixed;
         top: 0;
@@ -102,6 +114,8 @@ export const MAIN_NAV_SLOT_PX = 112;
         right: 0;
         z-index: 25;
         display: block;
+        /* 100cqw = the header's own width: the docked bar's edges are measured against it. */
+        container-type: inline-size;
         padding-top: var(--_top);
         padding-bottom: var(--sc-space-4);
         pointer-events: none;
@@ -116,7 +130,7 @@ export const MAIN_NAV_SLOT_PX = 112;
          the stars and the app's name). Announced but not started (.intro-hold): it stands
          at its hidden first frame — from the very first paint, not only once the hub loaded. */
       :host(.hero-intro) {
-        animation: mh-intro calc(0.6s * var(--sc-intro-k, 1)) cubic-bezier(0.16, 1, 0.3, 1) calc(1.9s * var(--sc-intro-k, 1)) both;
+        animation: mh-intro calc(0.6s * var(--sc-intro-k, 1)) cubic-bezier(0.16, 1, 0.3, 1) var(--sc-intro-header-at, calc(1.9s * var(--sc-intro-k, 1))) both;
       }
       :host(.hero-intro.intro-hold) {
         animation-play-state: paused;
@@ -136,6 +150,15 @@ export const MAIN_NAV_SLOT_PX = 112;
         z-index: -1;
         opacity: calc(1 - var(--_p));
       }
+      .probe {
+        position: absolute;
+        left: var(--_rail);
+        top: var(--_dock-top);
+        width: 1px;
+        height: var(--_item);
+        visibility: hidden;
+        pointer-events: none;
+      }
       .row {
         display: flex;
         justify-content: center;
@@ -146,8 +169,10 @@ export const MAIN_NAV_SLOT_PX = 112;
       .brand {
         position: absolute;
         z-index: 1;
-        left: calc(var(--_x) * (1 - var(--_p)) + var(--_rail) * var(--_p));
-        top: calc(var(--_top) * (1 - var(--_p)) + var(--_dock-top) * var(--_p));
+        left: var(--_x);
+        top: var(--_top);
+        /* Straight line to the bar's logo slot, compositor only. */
+        transform: translate(calc(var(--_bdx, 0px) * var(--_em)), calc(var(--_bdy, 0px) * var(--_em)));
         display: flex;
         align-items: center;
         height: var(--_item);
@@ -159,8 +184,9 @@ export const MAIN_NAV_SLOT_PX = 112;
       }
       /* Logo + name come from shell/brand (one source with the subheader, same size and glow). */
       .logo {
-        /* Gone the moment it has landed: the bar's own logo stands there. */
-        opacity: clamp(0, calc((0.99 - var(--_p)) * 100), 1);
+        /* Stands until the bar's own logo takes over (.compressed): never a frame without one. */
+        opacity: 1;
+        transition: none;
       }
       .wordmark {
         position: absolute;
@@ -170,22 +196,30 @@ export const MAIN_NAV_SLOT_PX = 112;
         /* Absolutely placed: without it the name shrinks to its min-content and ellipsises. */
         width: max-content;
         transform: translateY(-50%);
-        opacity: clamp(0, calc(1 - var(--_p) * 3), 1);
+        /* Two lines out, the bar's one-line name in (it fades in from half way). */
+        opacity: clamp(0, calc(1 - (var(--_p) - 0.15) * 2.6), 1);
       }
       .nav {
         position: relative;
         display: flex;
         pointer-events: auto;
-        transform: scale(calc(1 - 0.14 * var(--_p)));
-        filter: blur(calc(6px * var(--_p)));
-        opacity: clamp(0, calc(1 - var(--_p) * 1.7), 1);
+        /* The active area travels to the crumb on the bar's second line; the others fade away. */
+        transform: translate(calc(var(--_ndx, 0px) * var(--_em)), calc(var(--_ndy, 0px) * var(--_em))) ;
+      }
+      .slot:not(.active),
+      .ind {
+        opacity: clamp(0, calc(1 - var(--_p) * 4.5), 1);
+      }
+      .slot.active {
+        opacity: clamp(0, calc(1 - (var(--_p) - 0.55) * 2.4), 1);
       }
       /* Top-right corner: apps + profile glide to the docked bar's right end; the sub row hangs below. */
       .account {
         position: absolute;
         z-index: 1;
-        right: calc(var(--_xr) * (1 - var(--_p)) + var(--_rail) * var(--_p));
-        top: calc(var(--_top) * (1 - var(--_p)) + var(--_dock-top) * var(--_p));
+        right: var(--_xr);
+        top: var(--_top);
+        transform: translate(calc(var(--_adx, 0px) * var(--_ea)), calc(var(--_ady, 0px) * var(--_ea)));
         display: flex;
         flex-direction: column;
         align-items: flex-end;
@@ -195,7 +229,8 @@ export const MAIN_NAV_SLOT_PX = 112;
         display: flex;
         align-items: center;
         height: var(--_item);
-        opacity: clamp(0, calc((0.99 - var(--_p)) * 100), 1);
+        /* Stands until the bar's own account takes over (.compressed): the icons never vanish. */
+        opacity: 1;
       }
       /* A silent jump (route change, scroll reset): no transition at all. */
       :host(.snap),
@@ -205,6 +240,11 @@ export const MAIN_NAV_SLOT_PX = 112;
       /* Condensed: nothing of it is reachable (the bar carries logo and account). */
       :host(.compressed) * {
         pointer-events: none;
+      }
+      /* The hand-over to the bar's own logo and account is one hard swap (same spot, no fade). */
+      :host(.compressed) .logo,
+      :host(.compressed) .acc-main {
+        opacity: 0;
       }
       .slot {
         display: flex;
@@ -313,9 +353,12 @@ export const MAIN_NAV_SLOT_PX = 112;
           min-height: var(--sc-tap-min, 44px);
           box-sizing: border-box;
         }
-        .logo,
-        .acc-main {
-          opacity: clamp(0, calc(1 - var(--_p) * 3), 1);
+        /* Phone: logo and account stay on top (the route line joins them, the search flies to
+           the thumb bar); nothing travels, so the deltas are zero. */
+        .brand,
+        .account,
+        .nav {
+          transform: none;
         }
       }
       /* Narrow phones: five equal slots cannot hold "Starscape" (a slot is ~58px
@@ -388,6 +431,7 @@ export const MAIN_NAV_SLOT_PX = 112;
 })
 export class MainHeaderComponent {
   private readonly chrome = inject(ShellChromeService);
+  private readonly injector = inject(Injector);
   /** Condensed into the bar (progress 1, or not a main page at all): inert and invisible. */
   readonly compressed = computed(() => this.chrome.stageSearch() === 'none' || this.chrome.dockFull());
   /** A silent state jump (route change / scroll reset): transitions off for it. */
@@ -415,6 +459,8 @@ export class MainHeaderComponent {
   /** The entrance is announced but not started: the header stands at its hidden first frame. */
   readonly introHold = computed(() => this.chrome.heroIntro()?.hold === true);
   readonly introK = computed(() => this.chrome.heroIntro()?.k ?? 1);
+  /** The main header's own entrance beat (null = 1.9 s * k). */
+  readonly introHeaderAt = computed(() => introBeatCss(this.chrome.heroIntro()?.headerAtMs));
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
@@ -426,11 +472,36 @@ export class MainHeaderComponent {
     afterNextRender(() => {
       destroyRef.onDestroy(this.chrome.registerDockTarget(host));
     });
+    // S1: the straight lines from the big header's places to the docked bar's (measured, not per frame).
+    afterNextRender(() => {
+      if (typeof window === 'undefined' || typeof ResizeObserver === 'undefined') return;
+      let frame = 0;
+      const run = () => {
+        frame = 0;
+        measureMorph(host);
+      };
+      const later = () => {
+        if (!frame) frame = requestAnimationFrame(run);
+      };
+      later();
+      const ro = new ResizeObserver(later);
+      ro.observe(host);
+      window.addEventListener('resize', later, { passive: true });
+      // The active area (and so the nav's target) changes with the route; fonts change label widths.
+      const stop = effect(() => (this.activeIndex(), later()), { injector: this.injector });
+      document.fonts?.ready.then(later).catch(() => undefined);
+      destroyRef.onDestroy(() => {
+        ro.disconnect();
+        window.removeEventListener('resize', later);
+        stop.destroy();
+        if (frame) cancelAnimationFrame(frame);
+      });
+    });
     // The pinned header is out of flow: publish its height for the shell's spacer.
     afterNextRender(() => {
       if (typeof document === 'undefined') return;
       const publish = () =>
-        document.documentElement.style.setProperty('--sc-mainhead-h', `${Math.round(host.offsetHeight)}px`);
+        setRootVar('--sc-mainhead-h', `${Math.round(host.offsetHeight)}px`);
       publish();
       // One frame later: the published height resizes the spacer (and the body), which a
       // write inside this callback would report again in the same frame (RO loop error).
@@ -451,4 +522,50 @@ export class MainHeaderComponent {
     if (!isPlainLeftClick(ev)) return;
     this.sameRoute.request(path);
   }
+}
+
+/** Plate text starts after the bar's logo slot (44px) and its own gap. */
+const BAR_LOGO_SLOT_PX = 44;
+
+/**
+ * Measures the straight lines of the header morph (S1) and paints them as px deltas on the host:
+ * the brand to the bar's logo slot, the account inwards to the bar's far end, the nav so that its
+ * active area lands on the crumb line (second line of the plate). The frames only multiply them by
+ * the eased progress. On phones nothing travels (logo and account stay on top).
+ */
+export function measureMorph(host: HTMLElement): void {
+  const set = (k: string, v: number) => host.style.setProperty(k, `${Math.round(v * 10) / 10}px`);
+  const phone = typeof matchMedia === 'function' && matchMedia('(max-width: 720px)').matches;
+  const probe = host.querySelector<HTMLElement>('.probe');
+  const brand = host.querySelector<HTMLElement>('.brand');
+  const account = host.querySelector<HTMLElement>('.account');
+  const zero = () => ['--_bdx', '--_bdy', '--_adx', '--_ady', '--_ndx', '--_ndy'].forEach((k) => set(k, 0));
+  if (phone || !probe || !brand || !account) return zero();
+  const hostW = host.clientWidth;
+  const railX = probe.offsetLeft;
+  const dockTop = probe.offsetTop;
+  // offsetLeft/Top ignore transforms: the brand's resting place in the big header.
+  set('--_bdx', railX - brand.offsetLeft);
+  set('--_bdy', dockTop - brand.offsetTop);
+  // The account's right edge goes to the bar's far content edge.
+  const accRight = account.offsetLeft + account.offsetWidth;
+  set('--_adx', hostW - railX - accRight);
+  set('--_ady', dockTop - account.offsetTop);
+  const slot = host.querySelector<HTMLElement>('.slot.active');
+  if (!slot) {
+    set('--_ndx', 0);
+    set('--_ndy', 0);
+    return;
+  }
+  const nav = slot.parentElement as HTMLElement;
+  const range = document.createRange();
+  range.selectNodeContents(slot);
+  const textW = range.getBoundingClientRect().width;
+  const slotCx = nav.offsetLeft + slot.offsetLeft + slot.offsetWidth / 2;
+  const slotCy = nav.offsetTop + slot.offsetTop + slot.offsetHeight / 2;
+  // Crumb line: right of the logo slot, on the plate's second line (about 9px under the bar's centre).
+  const targetX = railX + BAR_LOGO_SLOT_PX + textW / 2;
+  const targetY = dockTop + brand.offsetHeight / 2 + 9;
+  set('--_ndx', targetX - slotCx);
+  set('--_ndy', targetY - slotCy);
 }

@@ -91,8 +91,8 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .round {
       width: var(--sc-fab-size); height: var(--sc-fab-size); display: grid; place-items: center; cursor: pointer;
       color: var(--sc-accent); border-radius: 50%; padding: 0;
-      background: color-mix(in srgb, var(--sc-bg-1) 90%, transparent);
-      border: 1px solid var(--sc-border); backdrop-filter: blur(8px);
+      background: color-mix(in srgb, var(--sc-bg-1) 95%, transparent);
+      border: 1px solid var(--sc-border);
       box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
     }
     .round:hover { border-color: var(--sc-accent); }

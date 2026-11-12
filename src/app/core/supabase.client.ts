@@ -34,6 +34,12 @@ export class SupabaseClientProvider {
   private readonly imp = inject(ImpersonationService);
 
   /**
+   * The REST base and publishable key for a read a worker makes itself (the swap picker's
+   * public catalog lists, parsed off the main thread). Public data only: no session.
+   */
+  readonly publicRest = { base: REST_BASE, key: environment.supabase.publishableKey } as const;
+
+  /**
    * The real, session-bearing client. All auth operations MUST use this one.
    *
    * Read deadline: `global.fetch` gives every PostgREST read (GET/HEAD and the

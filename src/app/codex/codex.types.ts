@@ -174,6 +174,14 @@ export interface ShipDeck {
    */
   fallback?: boolean;
   /**
+   * Not a game deck: the uploader grouped the rooms of a hull that authors no
+   * deck sections (Idris) by floor height (`ship_rooms.derive_levels`). The
+   * web says so wherever it names the deck.
+   */
+  derived?: boolean;
+  /** Floor height (m) of a derived level, median of its rooms. */
+  floorZ?: number;
+  /**
    * Rooms on this deck (#797, `sc_extract/ship_rooms.py`), in the hull's model
    * frame (metres, +X starboard, +Y nose). Absent on decks no room maps to and
    * on every build extracted before the uploader read the object containers.
@@ -187,6 +195,13 @@ export interface ShipDeckRoom {
   /** Entity name in the container (`MedicalBay_Room_RN`) — stable id + fallback label. */
   key: string;
   name: { en: string | null; de: string | null } | null;
+  /** The game's loc key (`@`-less, lower-cased) when the room has one; absent on older uploads. */
+  locKey?: string;
+  /**
+   * Synthetic locale key `scc_room_<slug>` of the English label when the game ships no German
+   * for the room — the translation pipeline translates it (E14, `RoomLabelTranslations`).
+   */
+  labelKey?: string;
   /** Room pivot [x, y, z]. */
   pos: number[];
   floorZ: number | null;
@@ -195,6 +210,11 @@ export interface ShipDeckRoom {
   shapes: number[][][];
   /** Floor triangles of trimesh volumes (filled, not outlined); empty with `shapes` = pin only. */
   tris?: number[][][];
+  /**
+   * A stair, ladder or lift on a derived deck: the keys of every deck it joins
+   * (it is listed on each of them).
+   */
+  connects?: string[];
 }
 
 export interface ShipPayload extends BaseEntityPayload {
@@ -212,6 +232,8 @@ export interface ShipPayload extends BaseEntityPayload {
   flight: {
     scmSpeed: number | null; maxSpeed: number | null; boostSpeed: number | null;
     pitch: number | null; yaw: number | null; roll: number | null; // deg/s
+    /** Wheeled vehicles: `Handling/Power@reverseSpeed` of the vehicle XML (m/s). */
+    reverseSpeed?: number | null;
   };
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[];
@@ -238,7 +260,7 @@ export interface ShipPayload extends BaseEntityPayload {
   // simply lacks them and the UI must render a gap, never a zero.
   /** Hull HP (Σ `Part@damageMax`) and hull mass (kg) from the vehicle XML. */
   hull?: { hp: number | null; mass: number | null } | null;
-  /** `ARMR_<Ship>` armour HP (`SHealthComponentParams.Health`). */
+  /** Armour HP (`SHealthComponentParams.Health`) of the armour item the stock loadout fits. */
   armorHp?: number | null;
   /** Cargo grid capacity in SCU (interiorDimensions ÷ 1.25³). */
   cargoScu?: number | null;

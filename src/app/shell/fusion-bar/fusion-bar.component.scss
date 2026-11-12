@@ -131,7 +131,7 @@
   pointer-events: none;
   background: var(--sc-sub-sheen);
 }
-.cap > :not(.skin, .trace, .bloom, .head, .echo) {
+.cap > :not(.skin, .trace, .capline, .bloom, .head, .echo) {
   position: relative;
   z-index: 2;
 }
@@ -184,8 +184,31 @@
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
-:host(.morph) .trace {
-  animation: sub-trace 1.05s ease-out both;
+// Docking lands (rounds/05 d5-pb-scroll `-cap`): ONE capsule light opens from the centre round
+// the whole bar, glows inside and out, and fades — clip-path and opacity only. The conic
+// trace stays for the stage entrance; on the morph it no longer runs beside the capsule.
+.capline {
+  position: absolute;
+  inset: -1px;
+  z-index: 3;
+  border: 1px solid color-mix(in srgb, var(--sc-sub-trace-hi) 70%, transparent);
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--sc-accent) 75%, transparent),
+    inset 0 0 10px color-mix(in srgb, var(--sc-accent) 35%, transparent);
+}
+:host(.morph) .capline {
+  animation: sub-capsule 0.8s cubic-bezier(0.55, 0, 0.2, 1) both;
+}
+@keyframes sub-capsule {
+  0% { opacity: 0; clip-path: inset(-24px 50% -24px 50%); }
+  12% { opacity: 1; }
+  44% { opacity: 1; clip-path: inset(-24px -24px -24px -24px); }
+  100% { opacity: 0; clip-path: inset(-24px -24px -24px -24px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :host(.morph) .capline { animation: none; }
 }
 // Stage entrance (r8, 8 s loop): one trace turn from 14 % to 30 %, settled at 38 %.
 :host(.entering[data-mode='stage']) .trace {
@@ -196,13 +219,20 @@
 :host(.entering[data-mode='stage']) .cap {
   animation: sub-fly 1.28s cubic-bezier(0.22, 0.85, 0.3, 1) both;
 }
-// Hub title sequence (concept 2026-10-29, re-timed 2026-11-04): the field is a clipped
-// centre line until 2.3 s * k, then opens to the full field over 0.75 s * k; glow +
-// sheen ride inside it. While the entrance is only announced (.intro-hold) the field
+// Hub title sequence (Kamera-Welt rounds/05, d5-pb-main r1 / d5-pb-nav r2): at its beat
+// (2.3 s * k unless the hub names one) the field rises at once - out of a centre band 40 %
+// wide to its full width and opacity in 0.45 s, the mock's own pace on the entrance and the
+// menu switch alike. (The older centre hairline that only opened after half its time read
+// ~0.4 s late, QA E2.) Glow + sheen ride inside it. While the entrance is only announced (.intro-hold) the field
 // stands at that hidden first frame; off the stage during a full entrance it is out
 // of sight altogether (.intro-hidden) — no field that shows, vanishes and comes back.
 :host(.hero-intro[data-mode='stage']) .cap {
-  animation: fi-open calc(0.75s * var(--sc-intro-k, 1)) cubic-bezier(0.65, 0, 0.25, 1) calc(2.3s * var(--sc-intro-k, 1)) both;
+  animation: fi-rise 0.45s cubic-bezier(0.22, 0.7, 0.3, 1) var(--sc-intro-search-at, calc(2.3s * var(--sc-intro-k, 1))) both;
+}
+@keyframes fi-rise {
+  from { opacity: 0; clip-path: inset(0 30% round 23px); }
+  35% { opacity: 1; }
+  to { opacity: 1; clip-path: inset(0 round 23px); }
 }
 :host(.intro-hold) .cap, :host(.intro-hold) .ifx { animation-play-state: paused; }
 :host(.intro-hidden) { opacity: 0; pointer-events: none; }
@@ -221,8 +251,8 @@
   background-size: 260% 100%;
   mix-blend-mode: screen;
   animation:
-    fi-glow calc(0.75s * var(--sc-intro-k, 1)) ease-out calc(2.3s * var(--sc-intro-k, 1)) both,
-    fi-sheen calc(0.5s * var(--sc-intro-k, 1)) cubic-bezier(0.4, 0, 0.2, 1) calc(2.8s * var(--sc-intro-k, 1)) both;
+    fi-glow calc(0.75s * var(--sc-intro-k, 1)) ease-out var(--sc-intro-search-at, calc(2.3s * var(--sc-intro-k, 1))) both,
+    fi-sheen calc(0.5s * var(--sc-intro-k, 1)) cubic-bezier(0.4, 0, 0.2, 1) calc(var(--sc-intro-search-at, calc(2.3s * var(--sc-intro-k, 1))) + 0.5s * var(--sc-intro-k, 1)) both;
 }
 @media (prefers-reduced-motion: reduce) {
   :host(.hero-intro[data-mode='stage']) .cap { animation: none; }
@@ -450,32 +480,55 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   opacity: 0;
 }
 :host(.condense) .blogo sc-brand-logo {
-  transition: opacity 0.15s linear;
+  // One hard swap with the header's logo (same spot): a fade here left both half-visible,
+  // or neither, for a few frames (S2).
+  transition: none;
 }
+// Between the stage slot and the docked rect, without a layout change per frame (G4): the cap
+// keeps its docked layout (full frame width, logo slot, plate, divider in place) and only
+// compositor properties follow the scroll. Its visible width is a clip from the right
+// (--_cut: what is still missing to the frame width), the translate puts the visible part's
+// centre on the travel line from the slot to the docked rect, and the search slides left over
+// the (still transparent) logo slot and plate by --_lead, so its text starts where the staged
+// field's did. The corners round from the staged pill to the docked 20 px.
 :host(.condensing) .cap {
-  // Between the stage slot and the docked rect: width and travel follow the scroll.
-  width: calc(var(--_st-w, 0px) * (1 - var(--sc-dock-p, 1)) + var(--_frame-w) * var(--sc-dock-p, 1));
+  --_q: calc(1 - var(--sc-dock-p, 1));
+  --_cut: max(0px, calc((var(--_frame-w) - var(--_st-w, 0px)) * var(--_q)));
+  clip-path: inset(0 var(--_cut) 0 0 round calc(20px * var(--sc-dock-p, 1) + var(--_cap-h) / 2 * var(--_q)));
   transform: translate(
-    calc(var(--_dx, 0px) * (1 - var(--sc-dock-p, 1))),
-    calc(var(--_dy, 0px) * (1 - var(--sc-dock-p, 1)))
+    calc(var(--_dx, 0px) * var(--_q) + var(--_cut) / 2),
+    calc(var(--_dy, 0px) * var(--_q))
   );
 }
-:host(.condensing) .blogo {
-  width: calc(44px * var(--sc-dock-p, 1));
+:host(.condensing) .cap > .search {
+  transform: translateX(calc(var(--_lead, 0px) * -1 * var(--_q)));
 }
 :host(.condensing) .plate {
-  max-width: calc(var(--_plate, 310px) * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
-  overflow: hidden;
+  transform: translateX(calc(var(--_lead, 0px) * -0.5 * var(--_q)));
 }
 :host(.condensing) .div {
-  margin: 0 calc(var(--sc-space-4) * var(--sc-dock-p, 1)) 0 calc(var(--sc-space-2) * var(--sc-dock-p, 1));
   opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.5) * 2), 1);
 }
+// The hit count fades in as the field arrives (S1).
+:host(.condensing) .count {
+  opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.7) * 3.4), 1);
+}
 @media (max-width: 720px) {
-  // The phone bar sits at the bottom: the cap keeps its own (auto) width while it travels.
+  // The phone's route line joins the header's logo instead of covering it (S3).
+  :host(.condensing) .route {
+    opacity: clamp(0, calc((var(--sc-dock-p, 1) - 0.2) * 2), 1);
+  }
+  // The phone bar sits at the bottom: the cap keeps its own (auto) width while it travels,
+  // no clip, no slide of the search (it flies down into the thumb bar as it is).
   :host(.condensing) .cap {
     width: auto;
+    --_cut: 0px;
+    clip-path: none;
+  }
+  :host(.condensing) .cap > .search,
+  :host(.condensing) .plate {
+    transform: none;
   }
   :host(.condensing) .blogo {
     width: calc(36px * var(--sc-dock-p, 1));
@@ -710,7 +763,8 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
 // Docked main page: the header's own copy is still gliding in — this one keeps its
 // room (the field never shifts when it lands) but stays invisible until it has.
 .account {
-  transition: opacity 0.2s ease;
+  // Hard swap with the header's account (it stands until this one shows): never a frame without icons.
+  transition: none;
 }
 .account.pending {
   opacity: 0;
@@ -934,179 +988,3 @@ $dock-ease: cubic-bezier(0.55, 0, 0.2, 1);
   }
 }
 
-// ---- phone: the bar at the thumb, the route line alone at the top ----
-@media (max-width: 720px) {
-  :host,
-  :host([data-mode='docked']) {
-    position: fixed;
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: var(--sc-float-bottom);
-    margin-top: 0;
-    padding: 0 var(--sc-page-gutter);
-    flex-direction: column-reverse;
-    align-items: stretch;
-    gap: 0;
-  }
-  :host(.hidden) {
-    transform: translateY(calc(100% + var(--sc-float-bottom)));
-  }
-  .cap,
-  .fpanel {
-    width: auto;
-    // Clear of the feedback launcher's lane: its disc sits in this row.
-    margin-inline-end: calc(var(--sc-fab-clear-inline) - var(--sc-page-gutter));
-  }
-  .cap {
-    height: var(--sc-bar-h);
-    padding: 0 var(--sc-space-2);
-  }
-  .cap.open {
-    border-radius: 0 0 var(--sc-sub-radius) var(--sc-sub-radius);
-  }
-  .fpanel {
-    top: auto;
-    bottom: calc(100% - 1px);
-    left: 0;
-    right: 0;
-    max-height: 56dvh;
-    border-radius: var(--sc-sub-radius) var(--sc-sub-radius) 0 0;
-    transform-origin: 50% 100%;
-  }
-  .plate,
-  .div,
-  .count,
-  .fb-label,
-  .ks-label {
-    display: none;
-  }
-  .blogo {
-    width: 36px;
-  }
-  // Under the thumb: logo · field · compact filter button. The kind switch and the
-  // tokens live in the panel (its kind row, its columns); the field keeps its width.
-  .kindsw,
-  .toks {
-    display: none;
-  }
-  .search {
-    min-width: 140px;
-  }
-  // Collapsed to its magnifier button: it takes only its own width, at the bar's end.
-  .search.bottom:not(.open) {
-    flex: 0 0 auto;
-    min-width: 0;
-    margin-left: auto;
-  }
-  .fbtn {
-    margin-left: var(--sc-space-1);
-    padding: 0 var(--sc-space-2);
-  }
-  .fgrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  :host(.searching) .blogo,
-  :host(.searching) .kindsw,
-  :host(.searching) .fbtn,
-  :host(.searching) .account {
-    display: none;
-  }
-  // The route line is a later sibling of the capsule and fixed at the top; the capsule is an isolated
-  // stacking context, so without its own layer the route line paints OVER the account (bookmark, Apps,
-  // avatar) it is meant to carry at its right end.
-  .cap {
-    z-index: 1;
-  }
-  // No avatar under the thumb: the account sits at the route line's right end,
-  // clear of the β chip's lane (the bar itself keeps clear of the feedback launcher).
-  .cap > .account,
-  .cap > .account.pending {
-    position: fixed;
-    top: calc(var(--sc-imp-banner-h, 0px) + env(safe-area-inset-top, 0px) + 4px);
-    right: var(--sc-page-gutter);
-    z-index: 3;
-    width: auto;
-    margin: 0;
-    overflow: visible;
-    pointer-events: auto;
-  }
-  .cap > .account:not(.pending) {
-    opacity: 1;
-  }
-  :host ::ng-deep .search .input {
-    min-width: 4ch;
-  }
-  .route {
-    pointer-events: auto;
-    // Room for the account at the right end: bookmark (50) + Apps (48) + avatar (48) + a gap. The title
-    // ellipsizes into what is left instead of running under the three controls.
-    padding-right: calc(var(--sc-page-gutter) + 154px) !important;
-    position: fixed;
-    top: var(--sc-imp-banner-h, 0px);
-    left: 0;
-    right: 0;
-    display: flex;
-    align-items: baseline;
-    gap: var(--sc-space-3);
-    padding: calc(env(safe-area-inset-top, 0px) + var(--sc-space-2)) var(--sc-page-gutter) var(--sc-space-2);
-    // A satin backdrop: cards scrolling under the route line never show through it.
-    background: var(--sc-sub-fill);
-    border-bottom: 1px solid var(--sc-sub-rule);
-    box-shadow: var(--sc-lift-shadow);
-  }
-}
-
-// Staged on any width (comes after the phone block on purpose: the stage wins).
-:host([data-mode='stage']) {
-  position: absolute;
-  top: 0;
-  bottom: auto;
-  padding: 0;
-}
-:host([data-mode='stage']) .cap {
-  margin: 0;
-  height: var(--_cap-h);
-}
-
-@media (pointer: coarse) {
-  .tok-x {
-    width: 32px;
-    height: 32px;
-  }
-  .kindsw,
-  .fbtn {
-    min-height: 40px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :host,
-  .blogo,
-  .plate,
-  .div,
-  :host([data-mode='stage']) .blogo,
-  :host([data-mode='stage']) .plate,
-  :host([data-mode='stage']) .div,
-  .fpanel {
-    transition: none;
-    animation: none;
-  }
-  .trace,
-  :host(.morph) .trace,
-  :host(.entering) .trace,
-  :host(.entering) .bloom,
-  :host(.entering[data-mode='stage']) .cap,
-  :host(.entering[data-mode='stage']) .echo,
-  :host(.switching) .head {
-    animation: none;
-  }
-  .trace {
-    opacity: 0;
-  }
-  .scrim,
-  :host([data-mode='stage']) .cap,
-  :host ::ng-deep .search .field {
-    animation: none !important;
-  }
-}

@@ -90,7 +90,7 @@ export function diagnosticLogName(row: DiagnosticRow): string {
 /** The transcript as a text file the composer attaches like a picked file. */
 export function diagnosticLogFile(row: DiagnosticRow): File {
   const header = [
-    `# Data Uploader ${row.version} (${row.channel}) — ${row.kind} ${row.outcome}`,
+    `# Verse Data Uploader ${row.version} (${row.channel}) — ${row.kind} ${row.outcome}`,
     `# at ${new Date(row.at).toISOString()} · telemetry event #${row.id}`,
     `# game ${row.gameChannel ?? '?'} ${row.patchVersion ?? ''} · os ${row.os ?? '?'} · phase ${row.phase ?? '?'} · ${row.pct ?? '?'} %`,
     `# ${row.warnings} warning(s), ${row.errors} error(s)` + (row.dropped ? `, ${row.dropped} not kept` : ''),

@@ -62,6 +62,11 @@ describe('MainHeaderComponent', () => {
     expect(host.classList.contains('hero-intro')).toBe(true);
     expect(host.hasAttribute('inert')).toBe(true);
     expect(host.style.getPropertyValue('--sc-intro-k')).toBe('1');
+    // Without beats the header keeps the k-scaled default; the entrance sets its own beat after the search.
+    expect(host.style.getPropertyValue('--sc-intro-header-at')).toBe('');
+    chrome.startHeroIntro(1.52, true, { searchAtMs: 3500, headerAtMs: 4300 });
+    fixture.detectChanges();
+    expect(host.style.getPropertyValue('--sc-intro-header-at')).toBe('4300ms');
     chrome.endHeroIntro();
     fixture.detectChanges();
     expect(host.classList.contains('hero-intro')).toBe(false);

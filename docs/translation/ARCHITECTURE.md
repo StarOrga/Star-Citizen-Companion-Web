@@ -179,6 +179,27 @@ as a public Worker path.
 | `translate-orchestrator` community ops (admin JWT / service role) | `op: "import_seed"` `{source_id}` (refuses `translate.source_not_permitted`) → `{source_id, lang, imported, skipped_cig, skipped_same, rejected_qa, conflicts, coverage}`; `op: "sync_sources"` (daily cron with the publishable key, or admin) → `{checked, changed, errors}`; `op: "learn"` `{lang}` (backfill); `op: "draft_outreach"` `{source_id}` → the `translation_outreach` draft row |
 | `translation-overlay` (new, signed-in user) | `GET ?lang=de[&build_id=…]` → the overlay JSON (`latest` without `build_id`); 401 without a user JWT; 404 when the language has no published overlay |
 
+## Room labels (`scc_room_*`, E14, holotisch concept 20261109-1745)
+
+Room names of the deck plan go through the same pipeline, no hand-written table:
+
+- **Uploader** (`sc_extract/ship_rooms.py` + `dataforge_extract._label_room`): every room row in
+  `codex_ships.payload.decks[].rooms[]` carries `locKey` (the game's loc key, `@`-less, lower-cased)
+  where the game has one. A room whose German is missing (no loc key, or CIG ships no German for it)
+  also gets `labelKey = scc_room_<slug of the English label>`; the label is the game's English name or
+  the humanized entity name (`humanize_room_key` = `humanizeRoomKey` in `deck-plan.ts`). Every such
+  key/label pair is added to the build's **English** locale table (`localization/en.json` →
+  `codex_locale_strings` → R2 shards). One key per distinct label, shared by every ship.
+- **Orchestrator:** nothing special. The keys are new against the base build, so the next delta job
+  translates them (Sonnet tier, TM dedupe by English text, so a community/CIG translation of the same
+  English is reused for free); later builds hit the TM. Next to every `latest.json` it writes
+  `translation-overlay/<lang>/rooms.json`, the overlay filtered to `scc_room_*` (same shape, a few kB).
+- **Delivery:** `translation-overlay?lang=<lang>&ns=rooms` (signed-in, like the full overlay).
+- **Web:** `RoomLabelTranslations.labels(lang)` (`src/app/codex/room-label-translations.ts`) →
+  `buildDeckPlans(decks, lang, labels)`. Precedence per room: the game's own string of the language >
+  the translation of `labelKey` > the English name > the humanized key. Signed out / nothing published
+  = English.
+
 Pure logic lives in importable modules next to the orchestrator
 (`_mask.ts`, `_diff.ts`, `_chunk.ts`, `_cost.ts`, `_qa.ts`, `_prompt.ts`, `_pack.ts`, `_seed.ts`,
 `_alerts.ts`, `_outreach.ts`; `_sources.ts` holds the DB-facing import/sync, `_hooks.ts` the seams for the

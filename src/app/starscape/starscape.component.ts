@@ -492,8 +492,7 @@ const RENDER_CHUNK = 24;
     .tile-series {
       position: absolute; left: 8px; bottom: 8px;
       padding: 2px 8px; border-radius: 999px; font-size: max(0.62rem, var(--sc-fs-floor));
-      background: rgba(0, 0, 0, 0.6); color: var(--sc-fg-1);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.78); color: var(--sc-fg-1);
     }
 
     /* Broken preview: the tile keeps the shape it reserved and states the case,

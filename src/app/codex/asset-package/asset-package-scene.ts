@@ -42,6 +42,18 @@ export interface ScreenPoint {
  */
 export type StartFacing = 'side' | 'nose';
 
+/**
+ * Idle turntable seen from above: 'ccw' turns the model counter-clockwise, so a
+ * 'nose' start (nose front-left) swings its nose across the front; 'cw' the
+ * other way round; 'none' keeps it where the reader leaves it.
+ */
+export type TurntableSpin = 'none' | 'ccw' | 'cw';
+
+/** Turntable rate, degrees per second (the landing hologram's model-viewer uses the same 14deg). */
+const SPIN_DEG_PER_S = 14;
+/** After the reader lets go of the model, the turntable waits this long before it picks up again. */
+const SPIN_RESUME_MS = 2200;
+
 /** Camera direction (from the orbit centre, not normalised) of the start view. */
 export function startViewDir(facing: StartFacing): readonly [number, number, number] {
   return facing === 'nose' ? [-1, 0.55, -1.25] : [1, 0.55, 1.25];
@@ -100,6 +112,8 @@ export function isSoftwareRenderer(renderer: THREE.WebGLRenderer): boolean {
 /** How many points of the model the safe-area fit solves against. */
 const MAX_FIT_POINTS_PER_MESH = 256;
 const MAX_FIT_POINTS = 2500;
+/** How much the straight top/bottom view counts in the fixed orbit distance (E4). */
+const POLE_FIT_WEIGHT = 0.8;
 
 /** Soft radial falloff (white, alpha only) for the glow halo; tinted by the sprite colour. */
 function haloTexture(size = 64): THREE.DataTexture {
@@ -158,6 +172,10 @@ export class PackageScene {
   private frameId = 0;
   private disposed = false;
   private paused = false;
+  /** Wanted turntable; the controls' autoRotate follows it except while the reader drags. */
+  private spin: TurntableSpin = 'none';
+  private spinTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastFrameAt = 0;
   private readonly tmp = new THREE.Vector3();
 
   // Safe-area framing (holotable). Null: the classic framing, untouched.
@@ -167,6 +185,8 @@ export class PackageScene {
   private height = 0;
   /** The user's zoom relative to the fitted distance; 1 = exactly fitted. */
   private zoom = 1;
+  /** Safe-area fit distance that holds from every view direction; null = solve again. */
+  private baseDistance: number | null = null;
   private readonly lastDir = new THREE.Vector3();
   private lastDist = 0;
   private readonly seenView = new THREE.Matrix4();
@@ -241,6 +261,19 @@ export class PackageScene {
     this.controls.enableDamping = !reducedMotion;
     this.controls.dampingFactor = 0.12;
     this.controls.addEventListener('change', () => this.requestRender());
+    // A grab stops the turntable; it resumes a moment after the reader lets go.
+    this.controls.addEventListener('start', () => {
+      this.clearSpinTimer();
+      this.controls.autoRotate = false;
+    });
+    this.controls.addEventListener('end', () => {
+      this.clearSpinTimer();
+      if (this.spin === 'none') return;
+      this.spinTimer = setTimeout(() => {
+        this.spinTimer = null;
+        this.applySpin();
+      }, SPIN_RESUME_MS);
+    });
     void this.disposed;
   }
 
@@ -431,6 +464,7 @@ export class PackageScene {
     for (const node of this.placed.values()) box.expandByObject(node);
     if (box.isEmpty()) box.set(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
     this.contentBox.copy(box);
+    this.baseDistance = null;
     this.fitPoints = this.safe ? this.sampleFitPoints(box) : [];
     const center = box.getCenter(new THREE.Vector3());
     const radius = Math.max(box.getSize(this.tmp).length() / 2, 0.1);
@@ -439,7 +473,7 @@ export class PackageScene {
     this.camera.position.copy(center).addScaledVector(dir, radius);
     this.camera.lookAt(center);
     // The bounding sphere overestimates a flat, long hull; 0.8 fills the stage.
-    const dist = this.safe ? Math.max(this.fittedDistance(), 0.1) : (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 0.8;
+    const dist = this.safe ? Math.max(this.stableDistance(), 0.1) : (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 0.8;
     this.camera.position.copy(center).addScaledVector(dir, dist);
     this.camera.near = Math.max(dist / 200, 0.01);
     this.camera.far = dist * 20;
@@ -461,6 +495,7 @@ export class PackageScene {
   setSafeArea(safe: SafeArea | null): void {
     if (safe && !this.safe && !this.contentBox.isEmpty()) this.fitPoints = this.sampleFitPoints(this.contentBox);
     this.safe = safe;
+    this.baseDistance = null;
     this.applyViewOffset();
     this.refit();
   }
@@ -506,8 +541,42 @@ export class PackageScene {
     return out.filter((_, i) => i % thin === 0);
   }
 
-  /** Distance at which the framed model fits the safe area, from the current viewing direction. */
-  private fittedDistance(): number {
+  /**
+   * One distance for the whole orbit: the largest fit over a ring of view
+   * directions, so the model fits from every side and rotating never reads as
+   * zoom. Solved once per model / viewport / safe area (cached).
+   */
+  private stableDistance(): number {
+    if (this.baseDistance !== null) return this.baseDistance;
+    const saved = this.camera.quaternion.clone();
+    const up = new THREE.Vector3(0, 1, 0);
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const dir = new THREE.Vector3();
+    const zero = new THREE.Vector3();
+    let best = 0;
+    for (let x = -1; x <= 1; x++) {
+      for (let y = -1; y <= 1; y++) {
+        for (let z = -1; z <= 1; z++) {
+          if (x === 0 && y === 0 && z === 0) continue;
+          dir.set(x, y, z).normalize();
+          m.lookAt(dir, zero, Math.abs(dir.y) > 0.999 ? new THREE.Vector3(0, 0, -1) : up);
+          q.setFromRotationMatrix(m);
+          // E4: straight down/up turns a long hull's length onto the stage's short (vertical) axis and
+          // used to set the distance for every side; it counts at POLE_FIT_WEIGHT, so the model fills
+          // the stage on the views one actually orbits through, and a pole view may graze the margin.
+          const pole = x === 0 && z === 0;
+          best = Math.max(best, this.fittedDistance(q) * (pole ? POLE_FIT_WEIGHT : 1));
+        }
+      }
+    }
+    this.camera.quaternion.copy(saved);
+    this.baseDistance = best;
+    return best;
+  }
+
+  /** Distance at which the framed model fits the safe area, seen with this camera orientation. */
+  private fittedDistance(orientation: THREE.Quaternion = this.camera.quaternion): number {
     const { min, max } = this.contentBox;
     const corners: THREE.Vector3[] = [];
     if (this.fitPoints.length > 0) corners.push(...this.fitPoints);
@@ -518,7 +587,7 @@ export class PackageScene {
         }
       }
     }
-    const q = this.camera.quaternion;
+    const q = orientation;
     return fitDistance(
       corners,
       this.contentBox.getCenter(new THREE.Vector3()),
@@ -554,15 +623,14 @@ export class PackageScene {
   private refit(): void {
     if (!this.safe || this.contentBox.isEmpty() || this.width <= 0) return;
     const dir = this.tmp.copy(this.camera.position).sub(this.controls.target).normalize().clone();
-    this.placeAt(dir, this.fittedDistance() * this.zoom);
+    this.placeAt(dir, this.stableDistance() * this.zoom);
     this.requestRender();
   }
 
   /**
-   * An orbit must not swing a long hull under a gutter: when the direction
-   * changed, re-solve the distance. A changed distance is the user's zoom
-   * (pinch, which can rotate a hair as well): it carries over. Neither happened
-   * (hover, selection): nothing moves.
+   * The orbit keeps its distance: rotating never re-solves it (that read as
+   * zoom). A changed distance is the user's zoom (pinch, wheel): it carries over.
+   * Nothing changed (hover, selection): nothing moves.
    */
   private keepFit(): void {
     if (!this.safe || this.contentBox.isEmpty() || this.width <= 0) return;
@@ -572,8 +640,7 @@ export class PackageScene {
     off.divideScalar(dist);
     const zoomed = Math.abs(dist - this.lastDist) > dist * 1e-4;
     if (zoomed && this.lastDist > 0) this.zoom *= dist / this.lastDist;
-    if (off.dot(this.lastDir) < 1 - 1e-7) this.placeAt(off.clone(), this.fittedDistance() * this.zoom);
-    else if (zoomed) this.noteCamera();
+    if (zoomed || off.dot(this.lastDir) < 1 - 1e-7) this.noteCamera();
   }
 
   /** Zoom by a wheel delta (positive = out), inside the controls' limits. */
@@ -584,7 +651,7 @@ export class PackageScene {
     if (dist <= 0) return;
     const next = THREE.MathUtils.clamp(dist * Math.exp(delta * 0.0015), this.controls.minDistance, this.controls.maxDistance);
     this.camera.position.copy(this.controls.target).addScaledVector(off.divideScalar(dist), next);
-    this.zoom = next / Math.max(this.fittedDistance(), 1e-3);
+    this.zoom = next / Math.max(this.stableDistance(), 1e-3);
     this.noteCamera();
     this.controls.update();
     this.requestRender();
@@ -597,6 +664,7 @@ export class PackageScene {
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.baseDistance = null;
     this.applyViewOffset();
     this.refit();
     this.requestRender();
@@ -650,6 +718,30 @@ export class PackageScene {
     return rectOf(pts);
   }
 
+  /**
+   * Idle turntable. OrbitControls' autoRotate orbits the CAMERA, so a positive
+   * speed (camera clockwise) reads as the model turning counter-clockwise.
+   */
+  setSpin(spin: TurntableSpin): void {
+    if (this.spin === spin) return;
+    this.spin = spin;
+    this.clearSpinTimer();
+    this.applySpin();
+  }
+
+  private applySpin(): void {
+    const on = this.spin !== 'none';
+    this.controls.autoRotate = on;
+    // autoRotateSpeed 1 = one orbit per 60 s = 6 degrees per second.
+    this.controls.autoRotateSpeed = (this.spin === 'cw' ? -1 : 1) * (SPIN_DEG_PER_S / 6);
+    if (on) this.requestRender();
+  }
+
+  private clearSpinTimer(): void {
+    if (this.spinTimer) clearTimeout(this.spinTimer);
+    this.spinTimer = null;
+  }
+
   /** Pause the frame loop (viewer off screen / tab hidden); resuming draws a frame at once. */
   setPaused(paused: boolean): void {
     if (this.paused === paused) return;
@@ -666,7 +758,12 @@ export class PackageScene {
     if (this.frameId || this.disposed || this.paused) return;
     this.frameId = this.outsideZone(() => requestAnimationFrame(() => {
       this.frameId = 0;
-      const moving = this.controls.enableDamping && this.controls.update();
+      const now = performance.now();
+      const spinning = this.controls.autoRotate;
+      // The turntable advances by real time, so a 144 Hz screen does not spin it faster.
+      const dt = this.lastFrameAt ? Math.min((now - this.lastFrameAt) / 1000, 0.1) : 1 / 60;
+      this.lastFrameAt = now;
+      const moving = (this.controls.enableDamping || spinning) && this.controls.update(spinning ? dt : null);
       this.keepFit();
       const t = this.elapsed();
       this.look.tick(t);
@@ -681,6 +778,7 @@ export class PackageScene {
 
   dispose(): void {
     this.disposed = true;
+    this.clearSpinTimer();
     if (this.frameId) cancelAnimationFrame(this.frameId);
     this.controls.dispose();
     for (const g of this.geometries) g.dispose();

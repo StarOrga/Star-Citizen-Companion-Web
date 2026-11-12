@@ -74,9 +74,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       border-radius: 999px; cursor: pointer;
       font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); font-variant-numeric: tabular-nums;
       color: var(--sc-fg-1);
-      background: rgba(0, 0, 0, 0.62);
+      background: rgba(0, 0, 0, 0.79);
       border: 1px solid var(--sc-border);
-      backdrop-filter: blur(4px);
       transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease, transform 0.12s ease;
     }
     .vote:hover:not(:disabled) {

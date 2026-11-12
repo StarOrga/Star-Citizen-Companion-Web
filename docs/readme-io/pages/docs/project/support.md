@@ -28,7 +28,7 @@ Useful details to include:
 | **Web app** | The route (`/codex/…`), your browser, and the app version from the footer |
 | **Public API** | The endpoint, the timestamp, the `error.code`, and `X-Patch-Version` from the response headers |
 | **Codex data** | The class name (`AEGS_Gladius`), the patch/build shown on the Codex hero, and what the game actually shows |
-| **Data Uploader** | The tool version, the channel (LIVE / PTU / EPTU), and the quality score of the bundle |
+| **Verse Data Uploader** | The tool version, the channel (LIVE / PTU / EPTU), and the quality score of the bundle |
 
 ## Security
 

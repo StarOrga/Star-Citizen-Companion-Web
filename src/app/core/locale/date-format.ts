@@ -92,6 +92,17 @@ export function formatScCalendarDate(date: Date, language: string, region: Regio
 }
 
 /**
+ * `13. Oktober 2026, 18:14` / `October 13, 2026, 6:14 PM` — the region's own written long form, for
+ * running prose where the slash-separated fields read like a form (Holotisch patch line, round-7 E2).
+ */
+export function formatScLongDateTime(value: ScDateInput, language: string, region: RegionCode): string {
+  const date = toDateOrNull(value);
+  if (!date) return '';
+  const day = formatter(intlLocaleOf(language, region), { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+  return `${day}, ${formatScTime(date, language, region)}`;
+}
+
+/**
  * `31.07.` / `07/31` — the numeric short form, for places where a spelled-out
  * month physically cannot fit: chart axis ticks and other few-pixel labels.
  *

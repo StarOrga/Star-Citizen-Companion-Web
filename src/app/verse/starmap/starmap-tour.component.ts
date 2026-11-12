@@ -76,7 +76,7 @@ interface Box {
         transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease; }
       .card { position: absolute; pointer-events: auto; right: var(--sc-space-3, 12px); bottom: var(--sc-space-3, 12px); width: min(380px, calc(100% - 24px));
         box-sizing: border-box; padding: var(--sc-pad-3); border-radius: 12px; outline: none; max-height: 70dvh; overflow-y: auto;
-        background: color-mix(in srgb, var(--sc-bg-0) 96%, transparent); border: 1px solid var(--sc-accent); backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-0) 96%, transparent); border: 1px solid var(--sc-accent);
         box-shadow: 0 16px 40px rgb(0 0 0 / 50%); animation: tour-in 0.2s ease-out both; }
       h2 { margin: 0 0 var(--sc-gap-2); font: 600 1rem var(--sc-font-display); color: var(--sc-fg-0); }
       .points { margin: 0 0 var(--sc-gap-3); padding-left: 1.1rem; display: grid; gap: var(--sc-gap-2); color: var(--sc-fg-1); font-size: 0.9rem; }

@@ -163,6 +163,8 @@ export interface HangarShipConfig {
   role: ShipConfigRole;
   loadout: ConfigLoadoutEntry[];
   isActive: boolean;
+  /** A wished loadout for the hull (Wunschliste, migration 20261110120000), not an own exemplar. False while the column is missing. */
+  isWish?: boolean;
   createdAt: string;
   updatedAt: string;
   // ── sharing (migration 20260920160000, concept it.2/it.3/it.6) ────────────
@@ -302,6 +304,7 @@ export function mapHangarShipConfig(r: HangarShipConfigRow & Record<string, unkn
     role: (r.role as ShipConfigRole) ?? 'multipurpose',
     loadout: Array.isArray(r.loadout) ? (r.loadout as unknown as ConfigLoadoutEntry[]) : [],
     isActive: r.is_active,
+    isWish: r['is_wish'] === true,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     sourceConfigId: (r['source_config_id'] as string | null) ?? null,

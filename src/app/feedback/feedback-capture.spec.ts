@@ -4,7 +4,16 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { FeedbackCaptureComponent } from './feedback-capture.component';
-import { captureLine, isCaptureClick, nameOf, roleOf, spotFor } from './feedback-capture.util';
+import {
+  captureLine,
+  inPage,
+  isCaptureClick,
+  meaningfulElement,
+  nameOf,
+  regionsFor,
+  roleOf,
+  spotFor,
+} from './feedback-capture.util';
 import { FeedbackComposerSeedService } from './feedback-composer-seed.service';
 import { FeedbackSpotDirective } from './feedback-spot.directive';
 import { FeedbackSpotService } from './feedback-spot.service';
@@ -78,17 +87,96 @@ describe('element description', () => {
 
 describe('captureLine', () => {
   const el = { role: 'button' as const, name: 'Laser-Repeater S3' };
+  const spot = { kind: 'spot' as const, label: { key: 'L', subKey: 'W', text: null } };
 
   it('joins view, section and element', () => {
-    expect(captureLine({ key: 'L', subKey: 'W', text: null }, 'classic', '/p', el, t)).toBe(
+    expect(captureLine([spot], { view: 'classic', path: '/p' }, el, t)).toBe(
       'codex.holo.toggle.classicHint: L W › feedbackCapture.element(feedbackCapture.role.button|Laser-Repeater S3)',
     );
   });
 
   it('falls back to the route path without a marked section, and to the bare role without a name', () => {
-    expect(captureLine(null, null, '/codex/ships', { role: 'image', name: '' }, t)).toBe(
+    expect(captureLine([], { view: null, path: '/codex/ships' }, { role: 'image', name: '' }, t)).toBe(
       '/codex/ships › feedbackCapture.role.image',
     );
+  });
+
+  it('a shell region gets neither the route nor the Codex view (feedback #342)', () => {
+    const header = { kind: 'landmark' as const, key: 'feedbackCapture.area.header', name: '' };
+    const nav = { kind: 'landmark' as const, key: 'feedbackCapture.area.navigation', name: 'Haupt' };
+    expect(captureLine([header, nav], null, { role: 'button', name: 'Profilbild' }, t)).toBe(
+      'feedbackCapture.area.header › feedbackSpot.titled(feedbackCapture.area.navigation|Haupt) › ' +
+        'feedbackCapture.element(feedbackCapture.role.button|Profilbild)',
+    );
+  });
+
+  it('a landmark inside the page keeps the route in front; more than two regions show outermost and innermost', () => {
+    const dialog = { kind: 'landmark' as const, key: 'D', name: '' };
+    const menu = { kind: 'landmark' as const, key: 'M', name: '' };
+    expect(captureLine([dialog, spot, menu], { view: null, path: '/x' }, el, t)).toBe(
+      '/x › D › M › feedbackCapture.element(feedbackCapture.role.button|Laser-Repeater S3)',
+    );
+  });
+});
+
+describe('capture of the shell header (feedback #342)', () => {
+  let root: HTMLElement;
+
+  beforeEach(() => {
+    root = document.createElement('div');
+    root.innerHTML = `
+      <header id="top">
+        <nav aria-label="Haupt"><a id="news" href="/news"><svg id="ico"></svg>News</a></nav>
+        <div class="profile-menu">
+          <button id="avatar" type="button" aria-label="Konto-Menü" data-feedback-name="Profilbild (Konto-Menü)">
+            <img id="pic" src="data:," alt="" />
+          </button>
+          <div role="menu" aria-label="Konto"><button id="out" role="menuitem">Abmelden</button></div>
+        </div>
+      </header>
+      <div data-feedback-area="feedbackCapture.area.bar"><button id="bar" type="button" aria-label="Suche öffnen"><svg id="barico"></svg></button></div>
+      <main><article><header id="inner"><span id="inner-t">Titel</span></header></article></main>`;
+    document.body.append(root);
+  });
+
+  afterEach(() => root.remove());
+
+  const q = (id: string) => root.querySelector(`#${id}`)!;
+
+  it('an Alt+click on the avatar image names the account button, not a nameless image', () => {
+    const el = meaningfulElement(q('pic'));
+    expect(el.id).toBe('avatar');
+    expect(roleOf(el)).toBe('button');
+    expect(nameOf(el)).toBe('Profilbild (Konto-Menü)');
+  });
+
+  it('the area is the header, not the route — and the page view stays out', () => {
+    const target = q('pic');
+    expect(inPage(target)).toBe(false);
+    const regions = regionsFor(target, null);
+    expect(regions).toEqual([{ kind: 'landmark', key: 'feedbackCapture.area.header', name: '' }]);
+    const el = meaningfulElement(target);
+    expect(captureLine(regions, null, { role: roleOf(el), name: nameOf(el) }, t)).toBe(
+      'feedbackCapture.area.header › feedbackCapture.element(feedbackCapture.role.button|Profilbild (Konto-Menü))',
+    );
+  });
+
+  it('names navigation, menus and attribute-marked regions, outermost first', () => {
+    expect(regionsFor(q('ico'), null).map((r) => r.kind === 'landmark' && r.key)).toEqual([
+      'feedbackCapture.area.header',
+      'feedbackCapture.area.navigation',
+    ]);
+    expect(meaningfulElement(q('ico')).id).toBe('news');
+    const menu = regionsFor(q('out'), null);
+    expect(menu[1]).toEqual({ kind: 'landmark', key: 'feedbackCapture.area.menu', name: 'Konto' });
+    expect(roleOf(q('out'))).toBe('menuitem');
+    expect(regionsFor(q('barico'), null)).toEqual([{ kind: 'landmark', key: 'feedbackCapture.area.bar', name: '' }]);
+    expect(nameOf(meaningfulElement(q('barico')))).toBe('Suche öffnen');
+  });
+
+  it('a header inside the page’s own article is no shell header', () => {
+    expect(inPage(q('inner-t'))).toBe(true);
+    expect(regionsFor(q('inner-t'), null)).toEqual([]);
   });
 });
 

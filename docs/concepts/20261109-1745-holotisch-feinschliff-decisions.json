@@ -1,0 +1,572 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T16:53:58.806Z",
+    "favorite": null,
+    "decisions": [
+      {
+        "id": "r1-co-title",
+        "label": "Was oben im Callout steht",
+        "value": "type",
+        "rec": "type",
+        "note": ""
+      },
+      {
+        "id": "r1-co-rest",
+        "label": "Callouts in Einfach",
+        "value": "tags",
+        "rec": "tags",
+        "note": ""
+      },
+      {
+        "id": "r1-hotkeys",
+        "label": "Ziffern-Tasten",
+        "value": "drop",
+        "rec": "drop",
+        "note": ""
+      },
+      {
+        "id": "r1-3d-dist",
+        "label": "Drehen ohne Zoom",
+        "value": "sphere",
+        "rec": "sphere",
+        "note": ""
+      },
+      {
+        "id": "r1-top-all",
+        "label": "Draufsicht „Alle Hardpoints“",
+        "value": "swap",
+        "rec": "swap",
+        "note": ""
+      },
+      {
+        "id": "r1-rooms",
+        "label": "Räume und Decks",
+        "value": "uploader",
+        "rec": "uploader",
+        "note": ""
+      },
+      {
+        "id": "r1-editions",
+        "label": "Was aus Editionen wird",
+        "value": "fold",
+        "rec": "fold",
+        "note": ""
+      },
+      {
+        "id": "r1-models",
+        "label": "Modellvarianten",
+        "value": "own",
+        "rec": "own",
+        "note": ""
+      },
+      {
+        "id": "r1-exemplar",
+        "label": "Werk oder dein Exemplar",
+        "value": "switch",
+        "rec": "switch",
+        "note": ""
+      }
+    ],
+    "userPins": [
+      {
+        "id": "up-mw9hwc3ayyym",
+        "design": "d2",
+        "screen": "d2-s1",
+        "x": 32.5,
+        "y": 13.3,
+        "target": "button \"Schema\"",
+        "text": "diese subauswahl finde ich noch nichtg super... Generlel mach nweitere variatnten",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": []
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T17:16:08.603Z",
+    "favorite": "d2",
+    "userPins": [
+      {
+        "id": "up-mw9ioi3sfcqy",
+        "design": "d2",
+        "screen": "r2-d2-s1",
+        "x": 29,
+        "y": 82.7,
+        "target": "span.gl \"Außen\"",
+        "text": "Lass uns den bereich + rechts den dreier bereich von der einordnung bis änderungen andockbar machen an die hover eliste unten, so integriert es sich schon!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9ipk434kp5",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 70.7,
+        "y": 21,
+        "target": "span.bz-sel \"von 4.10.1-LIVE ▾\"",
+        "text": "ja aber bitte nicht so -live sondern ein ordnetnliches label und bitte beides in einer zeile und Aktuellena uch irgendwie markieren",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9iqmozqtji",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 67.3,
+        "y": 17.5,
+        "target": "div.bz-sh \"Patch-Vergleich\"",
+        "text": "wir sollten hier eine utnerkategorie machen  meine änderungen (besser ausgedrückt) vs patch verglech wobei standardmäßig meine änderungen ausgewählt ist außer, wenn ich mir die standard werk version anschaue, dann patch vergleich !",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9iryoyptf3",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 72.7,
+        "y": 9.3,
+        "target": "a.bz-chip \"Gladius Pirate\"",
+        "text": "Dieser Varianten, können wir die nicht eher links unter der Gladius schreiben wenn sie existieren!? und dort eher zur auswahl ala variante Standard vs die anderen!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9isu3gvghx",
+        "design": "d2",
+        "screen": "r2-d2-s8",
+        "x": 31,
+        "y": 11.9,
+        "target": "div.bz-filt \"WaffenRaketenKomponentenSonstigesAlle Te\"",
+        "text": "Das eher links unten hin über das neue filmstreifen pnael",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9ite2o5r9q",
+        "design": "d2",
+        "screen": "r2-d2-s5",
+        "x": 45,
+        "y": 59.7,
+        "target": "div.bz-akte \"Akte · Aegis GladiusBei der Gladius hand\"",
+        "text": "sher gut, hier gern im bakcground das rsi bild und irgendwie das hier einklappbar / auzsblendbar wenn mna nur das bild anshen will... pj",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9itxe4mhul",
+        "design": "d2",
+        "screen": "r2-d2-s5",
+        "x": 22.8,
+        "y": 37.3,
+        "target": "h4 \"Akte · Aegis Gladius\"",
+        "text": "akte brauchen wir hier nicht nochmal erwähnen",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9iuhvmlcfr",
+        "design": "d2",
+        "screen": "r2-d2-s6",
+        "x": 40.1,
+        "y": 56.8,
+        "target": "div.bz-surface \"LackierungStandardWerk · gezeigtFrostbit\"",
+        "text": "Können wir die lakierungen nicht uach in die akte bringen ?!",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-r2-d2-s1-a1",
+          "text": "Das finde ich eine super idee! Aber bitte links akte angefangen und dabei in der akte zusätzlich als background das offizielle sc  bild wenn fverüfgbar !",
+          "attachments": []
+        },
+        {
+          "id": "anno-r2-d2-s7-a1",
+          "text": "aber ich kann auc h merhrere mein exemplar haben mit verschiedenen konfigurationen",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": [
+      {
+        "id": "r2-d2-s1-a1",
+        "screen": "r2-d2-s1",
+        "design": "d2",
+        "question": "Jede Ansicht als Vorschaubild mit Namen darunter, in drei Gruppen. Sind acht Bilder unten am Tisch zu viel, oder genau richtig?",
+        "answer": "Das finde ich eine super idee! Aber bitte links akte angefangen und dabei in der akte zusätzlich als background das offizielle sc  bild wenn fverüfgbar !"
+      },
+      {
+        "id": "r2-d2-s7-a1",
+        "screen": "r2-d2-s7",
+        "design": "d2",
+        "question": "Besitz als Abzeichen in der Tischecke, der Schalter Werk/Mein Exemplar gleich daneben. Gehört der Schalter dorthin?",
+        "answer": "aber ich kann auc h merhrere mein exemplar haben mit verschiedenen konfigurationen"
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T17:51:42.407Z",
+    "favorite": null,
+    "userPins": [
+      {
+        "id": "up-mw9je2ad7a9y",
+        "design": "d1",
+        "screen": "r3-d1-s2",
+        "x": 27.1,
+        "y": 91,
+        "target": "span \"Einfach\"",
+        "text": "Ich finde gut, dass es integriert, aber irgendwie links breiter als rechts hmmm",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jeig2capz",
+        "design": "d1",
+        "screen": "r3-d1-s1",
+        "x": 72.6,
+        "y": 90.3,
+        "target": "button.bz-tab \"Bauteile\"",
+        "text": "sehr schön integriert, aber irgendwie auch doof, das s man die einordnung nicht direkt sieht usw... hmmmmm",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jg68n2l5o",
+        "design": "d1",
+        "screen": "r3-d1-s4",
+        "x": 60.9,
+        "y": 54.2,
+        "target": "div.b3-stage \"◧ Nur BildBei der Gladius handelt es sic\"",
+        "text": "hier natürlich dann das cig farbige bild was wir ja auch schon von den schiffen haben",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jll768ian",
+        "design": "d1",
+        "screen": "r3-d1-s4",
+        "x": 43.8,
+        "y": 17.2,
+        "target": "button.b3-hide \"◧ Nur Bild\"",
+        "text": "der umschalter sollte an der gleichen stelle eingeklappt und ausgeklappt sein!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jlvu0owf8",
+        "design": "d1",
+        "screen": "r3-d1-s4",
+        "x": 44.2,
+        "y": 43.8,
+        "target": "div.bz-row2 \"Bei RSI ansehen ↗\"",
+        "text": "Das panel sollte immer gleich groß sein, dazu schauen was maximal textlä#ngen sind",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jn43xvxe7",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 24.7,
+        "y": 95.8,
+        "target": "span.bz-val \"◆ Leichter Jäger\"",
+        "text": "Was wäre wenn wir den einsatz auf mitte oben verschieben, dann haben wir unten im panel für jedes subthema mehr platz und es sieht ordentlicher aus!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jnr4nzlbm",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 68.1,
+        "y": 89.7,
+        "target": "button.bz-tab \"Einordnung\"",
+        "text": "Oder die drei tehemen eher ähnlich wi edas textfeld in der aktehmmmm. Dann hätte man ein festes element was man immer anschaut...",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jp4fqmabf",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 36.3,
+        "y": 81.8,
+        "target": "button.bz-chip.off \"Alle Teile\"",
+        "text": "vllt. die filter auch irgendwi ein die ziele für die ansichten, dabei die gesammte ziele ausgenutzt! horizontal",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9jq0bru0nn",
+        "design": "d1",
+        "screen": "r3-d1-s6",
+        "x": 69.6,
+        "y": 12.3,
+        "target": "b \"2× im Hangar\"",
+        "text": "Das 2x im hangar und das rechts danebnen sollten wir button technisch mergen, gern das hangar symbol weiterhin davo r",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "",
+        "attachments": []
+      },
+      "items": [
+        {
+          "id": "anno-r3-d1-s1-a3",
+          "text": "das finde ich gut",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s4-a1",
+          "text": "ja das ist super",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s4-a2",
+          "text": "eigentlich schon und andereseits nicht, wie mit den koponennten typen filtern najaa....",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s6-a2",
+          "text": "´Das ist eine gute idee, dafür brauchen wir aber generell einen visuelelen code, auch rechts in bauteile oder unten in den einzlekomponenten das sollte immer gleich aussehen wenn es abweicht !",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s6-a3",
+          "text": "Finde ich super",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s7-a1",
+          "text": "passt",
+          "attachments": []
+        },
+        {
+          "id": "anno-r3-d1-s8-a1",
+          "text": "shehr gut! wobei zweiteres immer das neuere sein muss, entsprechend die auswhal ddynmaisch steurn was man dor tauswählne kann",
+          "attachments": []
+        }
+      ],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": [
+      {
+        "id": "r3-d1-s1-a3",
+        "screen": "r3-d1-s1",
+        "design": "d1",
+        "question": "Die Modelle stehen nur dann unter dem Namen, wenn es welche gibt. Passt „Standard“ als Name für die Grundversion?",
+        "improved": "Modelle unter dem Namen",
+        "answer": "das finde ich gut"
+      },
+      {
+        "id": "r3-d1-s4-a1",
+        "screen": "r3-d1-s4",
+        "design": "d1",
+        "question": "Der Text liegt als Karte links oben auf dem RSI-Bild. Gibt es für ein Schiff kein offizielles Bild, bleibt der Hologramm-Look wie bisher. Passt die Karte so?",
+        "improved": "Ohne Überschrift „Akte“",
+        "answer": "ja das ist super"
+      },
+      {
+        "id": "r3-d1-s4-a2",
+        "screen": "r3-d1-s4",
+        "design": "d1",
+        "question": "Die Lackierungen sitzen in der Akte über dem Filmstreifen; ein Klick tauscht das Bild. Fehlt für eine Lackierung ein RSI-Bild, zeigt die Akte das Hologramm in ihren Farben. In Ordnung?",
+        "answer": "eigentlich schon und andereseits nicht, wie mit den koponennten typen filtern najaa...."
+      },
+      {
+        "id": "r3-d1-s6-a2",
+        "screen": "r3-d1-s6",
+        "design": "d1",
+        "question": "Ein Teil, das vom Werk abweicht, trägt einen Punkt am Etikett und einen hellen Pin am Rumpf. Deutlich genug?",
+        "answer": "´Das ist eine gute idee, dafür brauchen wir aber generell einen visuelelen code, auch rechts in bauteile oder unten in den einzlekomponenten das sollte immer gleich aussehen wenn es abweicht !"
+      },
+      {
+        "id": "r3-d1-s6-a3",
+        "screen": "r3-d1-s6",
+        "design": "d1",
+        "question": "Abzeichen und Ausstattung stehen jetzt oben rechts beim Namen, weil unten rechts die Tabs andocken. Passt der Platz?",
+        "answer": "Finde ich super"
+      },
+      {
+        "id": "r3-d1-s7-a1",
+        "screen": "r3-d1-s7",
+        "design": "d1",
+        "question": "„Deine Anpassungen“ ist vorgewählt, solange ein Exemplar gezeigt wird, und listet, was du gegenüber dem Werk getauscht hast. Trifft der Name, oder lieber „Dein Umbau“?",
+        "answer": "passt"
+      },
+      {
+        "id": "r3-d1-s8-a1",
+        "screen": "r3-d1-s8",
+        "design": "d1",
+        "question": "Von und bis in einer Zeile, der Kanal als kleines Etikett, der Live-Patch mit Punkt und „aktuell“. Liest sich das auf einen Blick?",
+        "improved": "Kanal als Etikett, eine Zeile",
+        "answer": "shehr gut! wobei zweiteres immer das neuere sein muss, entsprechend die auswhal ddynmaisch steurn was man dor tauswählne kann"
+      }
+    ]
+  },
+  {
+    "iteration": 4,
+    "action": "iterate",
+    "submitted_at": "2026-11-09T18:19:00.363Z",
+    "favorite": "d1",
+    "userPins": [
+      {
+        "id": "up-mw9ku57r5y8p",
+        "design": "d1",
+        "screen": "r4-d1-s7",
+        "x": 72.8,
+        "y": 59.4,
+        "target": "button.bz-pill \"↺ Zurück auf Werk\"",
+        "text": "sehr gut auch mit dem zurück auf werk!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kuihxvt0d",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 76.6,
+        "y": 37.2,
+        "target": "button.add \"＋ Noch eine Gladius in den Hangar\"",
+        "text": "gern dieses exemplar kopieren auch und das neue exemplar aus werk nur anzeigen wenn ich gerade nicht die aus werk angeklickt habe!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kv8d7k64x",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 71.6,
+        "y": 39.6,
+        "target": "button.add \"＋ Noch eine Gladius in den Hangar\"",
+        "text": "Hangar vs wunschliste hier drin!?",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kvgp1a17e",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 74.3,
+        "y": 20.8,
+        "target": "small \"Werksausstattung · 4.10.2\"",
+        "text": "patch macht gar keinen sinn, ist immer der akutelle hier",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kvpxvvfuf",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 73,
+        "y": 25,
+        "target": "small \"1 Teil weicht vom Werk ab\"",
+        "text": "Gern eine KI zussammenfassung mit zeichenlimit welches die version repräsentiert, aktualisiert nur bei wechsel oder schließen der seite und wenn komponenten überhaupt sich änderten, weil wir ja nicht bei jeder komponenten änderung das neugenerieren wollen!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kwx1sbdij",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 70.4,
+        "y": 23.3,
+        "target": "b \"Gladius · PvP\"",
+        "text": "Name wird und muss vom SPieler festgelegt werden gern mit KI empfefhlung bei erstellung basierend auf den änderugnefalls es wwelche schon gabe, fallls nicht dann ohne empfehlung. \nAchtung, man kann in der werks seite komponenten ändern ohne das man es abspeichert als neue austattung! für fwunschliste oder hangar - das wird zwar angeboten, muss man aber nicht, weil man ja ggf. nur etwas rumklicken will ohne verbindliche wunschlisten oder hangar übernahem !",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9kz23z956w",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 79.8,
+        "y": 97.6,
+        "target": "button \"▴\"",
+        "text": "diesen pfeil finde ich auch ddoof, der sollte anders eingebaut werden ggf als balken darunter ohne die breite die den 4 themen zur verfügugn ssthet zu ebeinflussen",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l04y0x8i5",
+        "design": "d1",
+        "screen": "r4-d1-s5",
+        "x": 50.1,
+        "y": 86.9,
+        "target": "div.b3-wing.b4-row \"AkteAußen3DEinfachObenSeiteFrontInnenCoc\"",
+        "text": "akte, außen, innnen, kompnenten, irgendwie ist nicht klar, was sist ein sozusagen toggle menüansicht, was sind sozusagen filter (die kompontenent) wie hängt as hierarhcisch  zusammen Akte > Ansichten > Komponenten filter",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l1em47ojb",
+        "design": "d1",
+        "screen": "r4-d1-s4",
+        "x": 49.1,
+        "y": 30.5,
+        "target": "div.b4-main \"▤ Text zeigenLackierungStandardFrostbite\"",
+        "text": "Finde spannend ddas der ganze hitnergrund eine farbe hat, aber forsche nochmal nach cigs bilder sind wirklich einfach bilder!",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l21axf4py",
+        "design": "d1",
+        "screen": "r4-d1-s4",
+        "x": 64.3,
+        "y": 58.1,
+        "target": "div.b4-einb \"Rang 9 von 26 Leichten Jägern · im Mitte\"",
+        "text": "achtung hier nix weglassen was es schon gab! wie die balken z. B. Das gern aber auch als umscvhaltbarern  toggle vom hexagon wo man zwischen hexagon und balken umschalten knann.\nAußerdem fehlt mir die vergleichsauswahl..",
+        "attachments": []
+      },
+      {
+        "id": "up-mw9l2t88f85f",
+        "design": "d1",
+        "screen": "r4-d1-s4",
+        "x": 65.6,
+        "y": 22.4,
+        "target": "div.b4-einb \"Rang 9 von 26 Leichten Jägern · im Mitte\"",
+        "text": "Rang finde ich ja viel besser als die gesamtprozentzahl mega",
+        "attachments": []
+      }
+    ],
+    "comments": {
+      "general": {
+        "text": "Jetzt mach nochmal ein detailgetreues, info getreueus komplett website exakt wie es später aussehen würde, dafür implementier es, ship es aber noch nicht, lade dir von vc web die daten zu einem schiff, z. B. Gladius und dann mach ein devops cocnept exakt hochauflösend und exakt korrekte information detailgetreu daraus was ich reveiwewn kann",
+        "attachments": []
+      },
+      "items": [],
+      "designs": {},
+      "screens": {},
+      "views": {}
+    },
+    "annotations": []
+  },
+  {
+    "iteration": 8,
+    "action": "finalize",
+    "at": "2026-11-11T16:41:23.640Z",
+    "implemented": [
+      "oq-subtypes"
+    ],
+    "ship": true,
+    "shipped": [
+      "v0.254.0 (#1086)",
+      "v0.256.1 (#1095)"
+    ],
+    "disposition": "discard",
+    "tests": [
+      {
+        "id": "t-autosave",
+        "mode": "self"
+      },
+      {
+        "id": "t-rooms",
+        "mode": "skip"
+      }
+    ]
+  }
+]

@@ -10,6 +10,7 @@ import { AnalyticsService } from './core/analytics.service';
 import { WebVitalsService } from './core/web-vitals.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
 import { LocaleService } from './core/locale/locale.service';
+import { claimRootAttr } from './core/root-var';
 import { RouteLoadRecoveryService } from './core/route-load-recovery.service';
 import { SupabaseClientProvider } from './core/supabase.client';
 import { SwUpdateService } from './core/sw-update.service';
@@ -30,7 +31,7 @@ import { ImpersonationBannerComponent } from './shell/impersonation-banner.compo
     <sc-impersonation-banner />
 
     <div class="routed-content">
-      <router-outlet />
+      <router-outlet (activate)="routed()" />
     </div>
 
     <!-- First-visit browser-storage notice (#130) — self-hides once decided. -->
@@ -127,7 +128,15 @@ export class AppComponent implements OnInit {
    */
   private appliedProfileFor: string | null = null;
 
+  /** The first routed page stands: the boot sky (styles.scss, html[data-sc-booting]) steps back. */
+  routed(): void {
+    claimRootAttr('data-sc-booting', this, null);
+  }
+
   constructor() {
+    // Rendered, page not yet: the boot sky shows (an html:has() on the outlet restyled the whole
+    // document on every DOM change for the app's lifetime — perf-report "Wave 2c root cause").
+    claimRootAttr('data-sc-booting', this, '');
     // The open-request counter on the account menu needs the graph once per
     // sign-in, not per navigation. Failure-silent (load() keeps its own error
     // signal); a sign-out empties the graph so a counter never outlives it.

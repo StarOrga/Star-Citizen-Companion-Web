@@ -170,7 +170,7 @@ const ZOOM_STEP = 1.25;
       .shared:focus-visible circle, .shared:hover circle { stroke-width: 2.4; fill: color-mix(in srgb, var(--sc-accent) 25%, var(--sc-bg-1)); outline: none; }
       .ctl { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; }
       .ctl .g svg, .lg-btn svg, .lic svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-      .ctl .g { background: color-mix(in srgb, var(--sc-bg-0) 80%, transparent); backdrop-filter: blur(4px); }
+      .ctl .g { background: color-mix(in srgb, var(--sc-bg-0) 89%, transparent); }
       .ctl .g svg { width: 18px; height: 18px; }
       .legend { position: absolute; right: 8px; bottom: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
       .lg-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 1px solid var(--sc-border); border-radius: 999px; background: color-mix(in srgb, var(--sc-bg-0) 85%, transparent); color: var(--sc-fg-1); font: inherit; font-size: 0.8rem; cursor: pointer; }

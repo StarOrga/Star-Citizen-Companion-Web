@@ -8,6 +8,7 @@ import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { SilThumbComponent } from '../../shared/sil-thumb/sil-thumb.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { ScPopupMotionDirective } from '../../shared/popup-motion/sc-popup-motion.directive';
 import type { CartItem } from '../cart/wish-cart.model';
 import { WishCartService } from '../cart/wish-cart.service';
 import { HeaderPopoutService } from '../header-popout.service';
@@ -40,7 +41,7 @@ interface WishLine {
 @Component({
   selector: 'sc-merkliste',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScActionDirective, ScDialogDirective, ScTooltipDirective, SilThumbComponent],
+  imports: [RouterLink, TranslatePipe, ScActionDirective, ScDialogDirective, ScTooltipDirective, ScPopupMotionDirective, SilThumbComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mk">
@@ -52,7 +53,7 @@ interface WishLine {
         </svg>
       </button>
       @if (open()) {
-        <div class="panel" [id]="panelId" role="dialog" scDialog [scDialogModal]="false" [scDialogReturnFocus]="trigger"
+        <div class="panel" [id]="panelId" role="dialog" scPopupMotion scPopupMotionItems=".qrow" scPopupMotionOrigin="tr" animate.leave="pm-out" scDialog [scDialogModal]="false" [scDialogReturnFocus]="trigger"
              (scDialogEscape)="close()" [attr.aria-label]="'quick.wish' | translate">
           @for (l of lines(); track l.item.key) {
             <div class="qrow">

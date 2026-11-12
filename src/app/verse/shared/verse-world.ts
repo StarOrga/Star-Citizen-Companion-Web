@@ -47,6 +47,16 @@ export function verseWorldOf(url: string): VerseWorld | null {
   return parts[0] === 'verse' && parts.length >= 2 ? (WORLD_BY_SEGMENT[parts[1]] ?? null) : null;
 }
 
+/**
+ * Whether a subpage head shows its planet emblem. Shell β (Kamera-Welt C5,
+ * r3 „B“): News, Patches and Galerie stand on their planet, shown big at the
+ * left edge by the background scene, so the emblem is dropped; the Sternkarte
+ * keeps its constellation glyph.
+ */
+export function verseEmblemShown(world: VerseWorld, shell: boolean): boolean {
+  return !shell || world === 'starmap';
+}
+
 export type VerseFlightDirection = 'down' | 'up' | 'side';
 
 /**

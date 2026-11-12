@@ -268,3 +268,38 @@ export function resolveEditionGroup<T extends CodexListRow>(
     ...refs.map((r) => ({ classNameSlug: r.classNameSlug, editionName: r.editionName })),
   ];
 }
+
+/** One link of the head's model row (concept holotisch-feinschliff C3). */
+export interface ModelVariantOption {
+  readonly classNameSlug: string;
+  /** The model's own words ("Valiant", "Pirate"); `null` on the base model, which the UI labels "Standard". */
+  readonly label: string | null;
+}
+
+/**
+ * The separate MODELS of the hull family `classNameSlug` belongs to — `AEGS_Gladius`, `_Valiant`, `_PIR`,
+ * `_Dunlevy` — for the links under the ship name. Reads the same sibling rows as the edition picker; editions
+ * are folded first (same hull, they live in the Akte's Lackierung tiles), so only real models remain. The label
+ * is what a model's name adds to the words every model of the family shares ("Aegis Gladius Valiant" →
+ * "Valiant"); the record whose name adds nothing is the base. `null` when the family has a single model.
+ */
+export function resolveModelVariants<T extends CodexListRow>(rows: readonly T[], classNameSlug: string): ModelVariantOption[] | null {
+  const folded = groupEditionRows(rows);
+  const self = folded.find(
+    (r) => r.classNameSlug === classNameSlug || r.editions.some((e) => e.classNameSlug === classNameSlug),
+  );
+  if (!self) return null;
+  const prefix = editionQueryPrefix(self.classNameSlug).toLowerCase();
+  const family = folded.filter((r) => r.classNameSlug.toLowerCase().startsWith(prefix));
+  if (family.length < 2) return null;
+  const words = family.map((r) => normalizeEditionName(r.nameLocalized).split(' ').filter(Boolean));
+  const first = words[0];
+  let shared = 0;
+  while (first && shared < first.length && words.every((w) => shared < w.length && w[shared].toLowerCase() === first[shared].toLowerCase())) shared++;
+  // Every name equals the shared words except the base; a name the rule cannot read falls back to the class name.
+  const out = family.map((r, i) => {
+    const rest = words[i].slice(shared).join(' ');
+    return { classNameSlug: r.classNameSlug, label: rest || (shared > 0 && words[i].length === shared ? null : r.classNameSlug) };
+  });
+  return out.sort((a, b) => (a.label === null ? -1 : b.label === null ? 1 : a.label.localeCompare(b.label)));
+}

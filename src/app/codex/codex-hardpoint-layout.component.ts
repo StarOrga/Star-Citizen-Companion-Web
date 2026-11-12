@@ -40,6 +40,7 @@ import {
   shipModuleGroupLabelKey,
   shipModuleGroupOf,
 } from './ship-module-sections';
+import { trackingSignalOf } from './codex-missile';
 import { displayItemName, formatNumber } from './codex-format';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { FeedbackSpotDirective } from '../feedback/feedback-spot.directive';
@@ -86,6 +87,10 @@ export interface LayoutChild {
    * numbers). Unlike `statsMissing` it renders even when some rows exist.
    */
   statsNoteKey?: string | null;
+  /** A nested draft (`mount.gun`) swapped this sub-slot's occupant — same states as `LayoutSlot.draftState`. */
+  draftState?: 'changed' | 'pending' | 'unresolved' | null;
+  /** The dotted `parent.child` draft path(s) behind `draftState`, for the revert action. */
+  draftPaths?: string[];
 }
 
 /**
@@ -448,7 +453,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                        flow as the sub-slot list and ended up beside the gun. -->
                   <div class="main">
                   @if (row.slot.className) {
-                    <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)"
+                    <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)" (pointerdown)="warmSlot(row, sec.configurable)" (focus)="warmSlot(row, sec.configurable)"
                             [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-top">
                         <span class="slot-head">
@@ -462,6 +467,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                               @if (metaLine(row); as m) { <span class="meta-txt">{{ m }}</span> }
                               @for (ch of row.slot.damageChannels; track ch) {
                                 <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+                              }
+                              @if (seeker(row.slot.className, row.slot.stats); as sk) {
+                                <span class="tag seeker" [scTooltip]="sk.tipKey | translate">{{ sk.labelKey | translate }}</span>
                               }
                               @if (row.slot.grade) { <span class="tag">{{ row.slot.grade }}</span> }
                               @if (row.slot.statChip) { <span class="tag accent">{{ row.slot.statChip }}</span> }
@@ -533,7 +541,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                          third shield slot is pickable even though it ships
                          empty (1add86a4). -->
                     <button type="button" class="slot-btn linked open-bay"
-                            (click)="openSlot(row, sec.configurable)"
+                            (click)="openSlot(row, sec.configurable)" (pointerdown)="warmSlot(row, sec.configurable)" (focus)="warmSlot(row, sec.configurable)"
                             [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-head">
                         @if (emptyBadge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
@@ -592,7 +600,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                             [attr.aria-label]="'codex.inspect.openStats' | translate"
                             [scTooltip]="'codex.inspect.openStats' | translate" scTooltipTier="label">ⓘ</button>
                     @if (sec.configurable) {
-                      <button type="button" class="slot-swap-action" (click)="openSlot(row, true)"
+                      <button type="button" class="slot-swap-action" (click)="openSlot(row, true)" (pointerdown)="warmSlot(row, true)" (focus)="warmSlot(row, true)"
                               [attr.aria-label]="'codex.swap.open' | translate"
                               [scTooltip]="'codex.swap.open' | translate" scTooltipTier="label">⇄</button>
                     }
@@ -626,6 +634,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                       @if (kidMetaLine(kid); as m) { <span class="meta-txt">{{ m }}</span> }
                                       @for (ch of kid.damageChannels; track ch) {
                                         <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+                                      }
+                                      @if (seeker(kid.className, kid.stats, kid.rawTypes); as sk) {
+                                        <span class="tag seeker" [scTooltip]="sk.tipKey | translate">{{ sk.labelKey | translate }}</span>
                                       }
                                       @if (kid.grade) { <span class="tag">{{ kid.grade }}</span> }
                                     </span>
@@ -962,6 +973,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .tag.dmg { color: var(--sc-warn);
       border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent);
       background: color-mix(in srgb, var(--sc-warn) 10%, transparent); }
+    /* What a missile homes in on (IR / EM / cross section) — the one word that
+       decides which countermeasure beats it (feedback #331). */
+    .tag.seeker { color: var(--sc-accent);
+      border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     /* The concept's "tuned" edge (section 6): a slot that no longer holds its
        factory part wears a gold rail. The hover state it also asks for is
        already there on the card itself (button.slot-btn:hover above) and stays
@@ -1070,6 +1085,8 @@ export class CodexHardpointLayoutComponent {
    * inside a gimbal mount opens the picker for the GUN, not for the mount).
    */
   readonly swapRequested = output<LayoutTarget>();
+  /** Press / focus on a card that opens the picker: the host may build the picker's list ahead of the click. */
+  readonly swapWarm = output<LayoutTarget>();
   /**
    * A card was clicked — the parent opens the component overlay. Emits the row
    * plus, for a sub-slot click, which child was picked.
@@ -1100,8 +1117,8 @@ export class CodexHardpointLayoutComponent {
    */
   readonly foldedSections = input<ReadonlySet<ShipModuleSection>>(new Set());
   /**
-   * Start with EVERY block and every nested section open, the airframe
-   * included — the "Alles" lens (#240: *"Wenn man unter 'alles' ist beim
+   * Start with every block and every nested section open, the airframe
+   * excepted (#333) — the "Alles" lens (#240: *"Wenn man unter 'alles' ist beim
    * Einsatz, bitte auch alles ausgeklappt lassen"*). Manual folds still work;
    * like a mission switch, flipping this resets them.
    */
@@ -1135,8 +1152,12 @@ export class CodexHardpointLayoutComponent {
           .filter((s) => s.slots.length > 0)
           .map((s) => s.section);
         if (expandAll) {
-          this.openGroups.set(new Set(present.map((sec) => shipModuleGroupOf(sec))));
-          this.openSections.set(new Set(present));
+          // Everything open except the airframe: "Zelle & feste Systeme" is a
+          // hull inventory, not a decision, and starts folded even under
+          // "Alles" (#333: *"Standardgemäß eingeklappt!"*). A click opens it.
+          const open = present.filter((sec) => !FOLDABLE_SECTIONS.has(sec));
+          this.openGroups.set(new Set(open.map((sec) => shipModuleGroupOf(sec))));
+          this.openSections.set(new Set(open));
           return;
         }
         const closedDefault = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...folded]);
@@ -1237,6 +1258,18 @@ export class CodexHardpointLayoutComponent {
    * else fits here"; in a fixed block there is nothing to swap, so the click
    * falls back to the read-only stat sheet.
    */
+  /**
+   * Focus on / press of a card that opens the picker: start its list now (not on hover: a
+   * pointer sweeping over a loadout would fire a read per card at the pool),
+   * ahead of the idle-time preload, so the picker does not wait for (or parse) it on open.
+   * Same query as the preload for a fitted slot (`swapPreloadQueries`).
+   */
+  warmSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {
+    if (!configurable || !row.slot.className) return;
+    this.swapSource.prefetch({ installed: row.slot.className, types: [], size: row.slot.size });
+    this.swapWarm.emit({ slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) });
+  }
+
   openSlot(row: GroupedSlot<LayoutSlot>, configurable: boolean): void {
     const target: LayoutTarget = { slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) };
     (configurable ? this.swapRequested : this.inspected).emit(target);
@@ -1487,6 +1520,26 @@ export class CodexHardpointLayoutComponent {
 
   metaLine(row: GroupedSlot<LayoutSlot>): string {
     return [row.slot.manufacturerCode, row.slot.typeLabel].filter(Boolean).join(' · ');
+  }
+
+  /**
+   * The tracking signal of a missile, torpedo or rocket (feedback #331), as
+   * CIG's class name states it — the same source the missile's own page uses.
+   * Only for ordnance: a missile port, or a row whose stats are missile stats,
+   * so a gun whose class name happens to carry `_EM_` never gets the tag.
+   */
+  seeker(
+    className: string | null,
+    stats: readonly EquippedStat[] | undefined,
+    rawTypes: readonly string[] = [],
+  ): { labelKey: string; tipKey: string } | null {
+    const ordnance =
+      rawTypes.some((t) => t.trim().toLowerCase() === 'missile') ||
+      (stats ?? []).some((st) => st.labelKey.startsWith('codex.missile.stat.'));
+    const signal = ordnance ? trackingSignalOf(className) : null;
+    return signal
+      ? { labelKey: `codex.missile.signal.${signal}`, tipKey: `codex.missile.keywordTip.${signal}` }
+      : null;
   }
 
   /** The carried item's meta line, read the same way a top-level row's is. */

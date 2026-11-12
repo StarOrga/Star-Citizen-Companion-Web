@@ -115,6 +115,28 @@ export type OverlayMeta = Partial<Pick<Overlay, 'sources' | 'attribution' | 'gam
 
 export const overlayKey = (lang: string, buildOrLatest: string) => `translation-overlay/${lang}/${buildOrLatest}.json`;
 
+/**
+ * Room labels (E14): the uploader adds every room label the game ships without German as an English
+ * string `scc_room_<slug>` (data-uploader/python/sc_extract/ship_rooms.py), so a delta job translates
+ * them like any new key. The website reads only that slice: `translation-overlay/<lang>/rooms.json`,
+ * written next to every `latest.json`, a few kB instead of the whole overlay.
+ */
+export const ROOM_LABEL_PREFIX = 'scc_room_';
+export const roomOverlayKey = (lang: string) => `translation-overlay/${lang}/rooms.json`;
+
+/** The `scc_room_*` slice of an overlay (same shape, same sources/attribution). */
+export function roomOverlay(overlay: Overlay): Overlay {
+  const entries: Overlay['entries'] = {};
+  for (const [k, v] of Object.entries(overlay.entries)) if (k.startsWith(ROOM_LABEL_PREFIX)) entries[k] = v;
+  return { ...overlay, count: Object.keys(entries).length, entries };
+}
+
+/** Writes `latest.json` and its room-label slice together. */
+export async function putLatestOverlay(store: Pick<Store, 'putJson'>, overlay: Overlay): Promise<void> {
+  await store.putJson(overlayKey(overlay.lang, 'latest'), overlay);
+  await store.putJson(roomOverlayKey(overlay.lang), roomOverlay(overlay));
+}
+
 /** Overlay v1 + the additive source/attribution fields; `meta` is optional (older callers). */
 export function makeOverlay(
   lang: string,

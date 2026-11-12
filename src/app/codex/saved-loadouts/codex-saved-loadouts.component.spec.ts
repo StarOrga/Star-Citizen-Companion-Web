@@ -92,8 +92,9 @@ describe('CodexSavedLoadoutsComponent', () => {
   let prompt: Mock;
   let confirm: Mock;
 
-  function render(draft: DraftMap, readOnly = false): HTMLElement {
+  function render(draft: DraftMap, readOnly = false, changed = 0): HTMLElement {
     fixture = TestBed.createComponent(CodexSavedLoadoutsComponent);
+    fixture.componentRef.setInput('changed', changed);
     fixture.componentRef.setInput('shipClassName', SHIP);
     fixture.componentRef.setInput('buildId', 'B1');
     fixture.componentRef.setInput('draft', draft);
@@ -118,16 +119,32 @@ describe('CodexSavedLoadoutsComponent', () => {
 
   it('cannot start a layout from an empty or read-only draft', () => {
     let el = render(new Map());
-    expect((el.querySelector('.new') as HTMLButtonElement).disabled).toBe(true);
+    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBe(true);
     fixture.destroy();
     el = render(new Map([[PORT, 'GUN_A']]), true);
-    expect((el.querySelector('.new') as HTMLButtonElement).disabled).toBe(true);
+    expect((el.querySelector('.save') as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('"Neues Layout" saves under the prompted name, shows the switch and recalls on pick', async () => {
-    const el = render(new Map([[PORT, 'GUN_A']]));
-    expect(el.querySelector('.layout')).toBeNull();
-    await fixture.componentInstance.saveNew();
+  it('one dropdown lists "Neu" first, then the layouts; the save icon carries the unsaved dot', () => {
+    const store = TestBed.inject(SavedLoadoutsService);
+    store.save(SHIP, 'Bounty', 'B1', new Map([[PORT, 'GUN_A']]));
+    let el = render(new Map([[PORT, 'GUN_B']]), false, 1);
+    const options = fixture.componentInstance.layoutOptions();
+    expect(options.map((o) => o.value)[0]).toBe(fixture.componentInstance.NEW);
+    expect(options.map((o) => o.label)).toEqual([undefined, 'Bounty']);
+    expect(el.querySelector('sc-select.layouts')).not.toBeNull();
+    expect(el.querySelector('.save .dot')).not.toBeNull();
+    // No layout picked yet: the save icon starts a new one.
+    expect(fixture.componentInstance.saveKey()).toBe('codex.savedLoadouts.saveAsNew');
+    fixture.destroy();
+    el = render(new Map([[PORT, 'GUN_B']]), false, 0);
+    expect(el.querySelector('.save .dot')).toBeNull();
+  });
+
+  it('saving while "Neu" is picked saves under the prompted name, selects it and recalls on pick', async () => {
+    render(new Map([[PORT, 'GUN_A']]));
+    expect(fixture.componentInstance.layoutOptions().length).toBe(1);
+    await fixture.componentInstance.saveNow();
     fixture.detectChanges();
 
     expect(prompt).toHaveBeenCalled();
@@ -135,9 +152,8 @@ describe('CodexSavedLoadoutsComponent', () => {
     const saved = store.all();
     expect(saved.length).toBe(1);
     expect(saved[0].name).toBe('Mining');
-    const chips = el.querySelectorAll('.layout');
-    expect(chips.length).toBe(1);
-    expect(chips[0].getAttribute('aria-pressed')).toBe('true');
+    expect(fixture.componentInstance.layoutOptions().length).toBe(2);
+    expect(fixture.componentInstance.selectedId()).toBe(saved[0].id);
 
     const recalled: SavedLoadout[] = [];
     fixture.componentInstance.recall.subscribe((l) => recalled.push(l));
@@ -166,11 +182,13 @@ describe('CodexSavedLoadoutsComponent', () => {
     const store = TestBed.inject(SavedLoadoutsService);
     const e = store.save(SHIP, 'Bounty', 'B1', new Map([[PORT, 'GUN_A']]))!;
     render(new Map([[PORT, 'GUN_B']]));
-    expect(fixture.nativeElement.querySelector('.save')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.share')).toBeNull();
     fixture.componentInstance.pick(e.id);
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.save')).not.toBeNull();
-    fixture.componentInstance.saveCurrent();
+    expect(fixture.nativeElement.querySelector('.share')).not.toBeNull();
+    expect(fixture.componentInstance.saveKey()).toBe('codex.savedLoadouts.saveInto');
+    void fixture.componentInstance.saveNow();
+    expect(prompt).not.toHaveBeenCalled();
     expect(store.get(e.id)?.entries).toEqual([[PORT, 'GUN_B']]);
     expect(store.all().length).toBe(1);
   });
@@ -206,6 +224,7 @@ describe('CodexSavedLoadoutsComponent', () => {
     const el = render(new Map([[PORT, 'GUN_A']]));
     const cart = el.querySelector('.cart') as HTMLButtonElement;
     expect(cart.disabled).toBe(true);
+    expect(cart.getAttribute('aria-label')).toBe('codex.savedLoadouts.cart');
     expect(cart.getAttribute('aria-describedby')).toBe('codex-saved-loadouts-cart-hint');
     expect(fixture.componentInstance.cartRequests()).toEqual([{ className: 'GUN_A', portPath: PORT, quantity: 1 }]);
   });

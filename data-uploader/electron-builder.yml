@@ -58,7 +58,10 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
-  shortcutName: SC Data Uploader
+  shortcutName: Verse Data Uploader
+  # Display name in "Apps & Features"; the uninstall registry key itself is
+  # derived from appId, so renaming this is safe for upgrades (#340).
+  uninstallDisplayName: Verse Data Uploader
   artifactName: data-uploader-setup-${version}-${arch}.${ext}
 
 portable:

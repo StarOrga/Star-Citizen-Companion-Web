@@ -338,11 +338,9 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       await fixture.whenStable();
       expect(c.hotspots().map((h) => h.p.id)).toEqual(['hardpoint_power_plant']);
       const el: HTMLElement = fixture.nativeElement;
-      const chips = el.querySelectorAll('.bar .chip');
-      const toggle = chips[chips.length - 1] as HTMLButtonElement;
-      expect(toggle.classList).toContain('all-parts');
-      expect(toggle.getAttribute('aria-pressed')).toBe('false');
-      toggle.click();
+      // No chip bar of its own in the table: the stage's filter row and its "Alle Teile" chip drive it.
+      expect(el.querySelector('.bar')).toBeNull();
+      c.toggleAllParts();
       expect(c.hotspotScope()).toBe('all');
       expect(c.hotspots().length).toBeGreaterThan(1);
       expect(c.hotspots().filter((h) => h.minor).length).toBe(c.hotspots().length - 1);
@@ -383,7 +381,7 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
     it('sets the callout in a gutter, fixed, and offers the swap only on a swappable port', async () => {
       const { fixture, c } = table(withSwappable());
       project(c, ['hardpoint_power_plant']);
-      fixture.componentRef.setInput('safeArea', { left: 190, right: 190 });
+      fixture.componentRef.setInput('safeArea', { left: 230, right: 230 });
       fixture.componentRef.setInput('calloutValues', [{ label: 'Size', value: 'S1' }]);
       fixture.detectChanges();
       c.select(c.byId().get('hardpoint_power_plant')!);
@@ -392,12 +390,12 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
       await fixture.whenStable();
       const co = c.callout()!;
       expect(c.label()).toBeNull();
-      expect(co.left + calloutSize(window.innerWidth).w).toBeLessThanOrEqual(190);
+      expect(co.left + calloutSize(window.innerWidth).w).toBeLessThanOrEqual(230);
       const el: HTMLElement = fixture.nativeElement;
-      expect(el.querySelector('.callout .co-nm')!.textContent).toContain('Regulus');
+      expect(el.querySelector('.callout .nm')!.textContent).toContain('Regulus');
       const swaps: unknown[] = [];
       c.swapRequested.subscribe((v) => swaps.push(v.id));
-      (el.querySelector('.co-swap') as HTMLButtonElement).click();
+      (el.querySelector('.callout .sw') as HTMLButtonElement).click();
       expect(swaps).toEqual(['hardpoint_power_plant']);
       // No gutter (phone): the panel carries it alone, the anchor stays readable.
       fixture.componentRef.setInput('safeArea', null);

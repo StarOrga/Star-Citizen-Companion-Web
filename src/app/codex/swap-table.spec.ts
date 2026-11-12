@@ -120,6 +120,13 @@ describe('swapTypeLabel', () => {
   it('falls back to the entity type when the class name says nothing', () => {
     expect(swapTypeLabel('AMRS_AAgun_CC_S3', 'weapon', weapon())).toBe('Gun');
   });
+
+  it('never takes the product name in the class for the type (coolers, shields, drives)', () => {
+    const cooler = { entityKind: 'component', kind: 'Cooler' };
+    expect(swapTypeLabel('COOL_LPLT_S01_ArcticStorm', 'item', cooler, 'ArcticStorm')).toBe('Cooler');
+    expect(swapTypeLabel('COOL_JSPN_S01_CryoStar', 'item', cooler, 'Cryo-Star')).toBe('Cooler');
+    expect(swapTypeLabel('AMRS_LaserCannon_S3', 'weapon', weapon(), 'Omnisky III Cannon')).toBe('Laser Cannon');
+  });
 });
 
 describe('buildSwapCandidate', () => {

@@ -1,3 +1,4 @@
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -38,7 +39,7 @@ interface PinnedRef {
 @Component({
   selector: 'sc-codex-compare-tray',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (refs().length > 0) {
@@ -70,7 +71,7 @@ interface PinnedRef {
         }
 
         @if (open() && refs().length >= 2) {
-          <div class="panel">
+          <div class="panel" scPopupMotion="panel" scPopupMotionRows=".cmp tbody tr" animate.leave="pm-out">
             @if (loading()) {
               <p class="muted">{{ 'codex.results.loading' | translate }}</p>
             } @else {
@@ -135,10 +136,9 @@ interface PinnedRef {
       bottom: var(--sc-float-bottom); z-index: 40;
       max-width: min(var(--sc-ov-area), calc(100vw - 2 * var(--sc-fab-clear-inline)));
       border-radius: 12px;
-      background: color-mix(in srgb, var(--sc-bg-2) 94%, transparent);
+      background: color-mix(in srgb, var(--sc-bg-2) 96%, transparent);
       border: 1px solid var(--sc-accent);
       box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 22px color-mix(in srgb, var(--sc-accent) 30%, transparent);
-      backdrop-filter: blur(10px);
     }
     .bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; }
     .tray-label {

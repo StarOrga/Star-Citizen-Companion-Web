@@ -204,12 +204,27 @@ describe('CodexHoloInspectorComponent', () => {
 
   describe('the parts by block', () => {
     it('lists chips by block with a count, sized and named', () => {
-      const el = root(setup({ pinGroups: GROUPS, total: 3, hotkeyPinCount: 3 }));
+      const el = root(setup({ pinGroups: GROUPS, total: 3 }));
       expect(el.querySelectorAll('.pgroup').length).toBe(2);
       expect(el.querySelector('.plist-head b')!.textContent).toContain('codex.holo.stage.partsTotal');
       const chip = el.querySelector('.part')!;
       expect(chip.querySelector('i')!.textContent).toBe('S3');
       expect(chip.textContent).toContain('Label hp_a');
+    });
+
+    it('names a block without an installed count and drops the key hint (C16)', () => {
+      const el = root(setup({ pinGroups: GROUPS, total: 3 }));
+      expect(el.querySelector('.pg-head')!.textContent).not.toContain('·');
+      expect(el.textContent).not.toContain('codex.holo.stage.partsInstalled');
+      expect(el.textContent).not.toContain('codex.holo.stage.inspectorEmptyBody');
+    });
+
+    it('marks a part that differs from the Werk with the one diamond, plus a legend (C19)', () => {
+      const el = root(setup({ pinGroups: GROUPS, total: 3, changedPorts: new Set(['hp_b']) }));
+      const chips = el.querySelectorAll('.part');
+      expect(chips[0].querySelector('sc-holo-diff-marker')).toBeNull();
+      expect(chips[1].querySelector('sc-holo-diff-marker')).not.toBeNull();
+      expect(el.querySelector('.plist-legend sc-holo-diff-marker')).not.toBeNull();
     });
 
     it('a part with a page is an anchor: a plain click selects, a modified one stays the browser\'s', () => {

@@ -29,6 +29,21 @@ export interface HeroIntro {
    * shell at boot, before the hub's lazy chunk has arrived.
    */
   hold?: boolean;
+  /** Start of the search field's ignite in ms; default 2.3 s * k. */
+  searchAtMs?: number;
+  /** Start of the main header's entrance in ms; default 1.9 s * k. */
+  headerAtMs?: number;
+}
+
+/**
+ * The two start beats of an entrance, set apart instead of one shared factor: the full
+ * entrance (rounds/05 d5-pb-main) puts the search at 3.5 s and the header after it at 4.3 s.
+ */
+export type HeroIntroBeats = Pick<HeroIntro, 'searchAtMs' | 'headerAtMs'>;
+
+/** CSS value of a beat, or null when the stylesheet's `k`-scaled default applies. */
+export function introBeatCss(ms: number | undefined): string | null {
+  return typeof ms === 'number' ? `${Math.round(ms)}ms` : null;
 }
 
 /**
@@ -94,6 +109,39 @@ export interface BarFilters {
  */
 @Injectable({ providedIn: 'root' })
 export class ShellChromeService {
+  /**
+   * `performance.now()` of the latest navigation start (the menu click), or null. A routed page
+   * that mounts after its chunk and the switch-out times its build from here, so a menu switch's
+   * beats (title 0.75 s, search 1.05 s ...) count from the click, not from the late mount (QA E4).
+   */
+  navStartedAt: number | null = null;
+  /** `performance.now()` when the running title sequence started: its beats count from here. */
+  introStartedAt: number | null = null;
+
+  /**
+   * The running title sequence's real clock (`document.timeline` ms), once the hub knows it: its
+   * build animations start in the frame after its first render, which can lie well after the
+   * `startHeroIntro` call. The bar re-aligns its field to it.
+   */
+  readonly introClock = signal<number | null>(null);
+
+  /** The hub reports when its sequence really started (the shell's beats follow it). */
+  setIntroClock(at: number): void {
+    this.introStartedAt = at;
+    this.introClock.set(at);
+  }
+
+  /** A navigation started (the shell's bar reports every NavigationStart). */
+  markNavStart(): void {
+    this.navStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  }
+
+  /** Milliseconds since the latest navigation started, capped at `max` (0 without one). */
+  sinceNavStart(max: number): number {
+    if (this.navStartedAt === null || typeof performance === 'undefined') return 0;
+    return Math.max(0, Math.min(max, performance.now() - this.navStartedAt));
+  }
+
   private readonly crumbOwners = signal<readonly { owner: object; value: ChromeCrumbs }[]>([]);
   private readonly toolbars = signal<readonly TemplateRef<unknown>[]>([]);
   private readonly stage = signal<StageSearchState>('none');
@@ -201,8 +249,10 @@ export class ShellChromeService {
   }
 
   /** The hub's title sequence starts (never call it under reduced motion). */
-  startHeroIntro(k: number, full: boolean): void {
-    this.introState.set({ k, full });
+  startHeroIntro(k: number, full: boolean, beats?: HeroIntroBeats): void {
+    this.introStartedAt = typeof performance !== 'undefined' ? performance.now() : null;
+    this.introClock.set(null);
+    this.introState.set(beats ? { k, full, ...beats } : { k, full });
   }
 
   /**

@@ -48,6 +48,27 @@ export function toFiniteNumber(v: unknown): number | null {
   return null;
 }
 
+/*
+ * findStat runs for every candidate of a list (the swap picker ranks the whole catalogue,
+ * the fold previews every slot): rebuilding the lower-case key maps on every call took
+ * ~1.3 s of main thread after the picker opened (perf-report "Wave 2c root cause"). The
+ * catalogue's stats objects are never mutated after load, so the maps are cached per object.
+ */
+const lowerKeyCache = new WeakMap<object, Map<string, string>>();
+const lowerStructCache = new WeakMap<object, [string, Record<string, unknown>][]>();
+
+function lowerKeysOf(fields: object): Map<string, string> {
+  let m = lowerKeyCache.get(fields);
+  if (!m) lowerKeyCache.set(fields, (m = new Map(Object.keys(fields).map((k) => [k.toLowerCase(), k]))));
+  return m;
+}
+
+function lowerStructsOf(stats: Record<string, Record<string, unknown>>): [string, Record<string, unknown>][] {
+  let l = lowerStructCache.get(stats);
+  if (!l) lowerStructCache.set(stats, (l = Object.entries(stats).map(([k, v]) => [k.toLowerCase(), v])));
+  return l;
+}
+
 /**
  * Find a numeric field across a component's heterogeneous stats structs.
  * `structHint` narrows to structs whose name contains the hint
@@ -60,10 +81,11 @@ export function findStat(
 ): number | null {
   if (!stats) return null;
   const wantedFields = fieldNames.map((f) => f.toLowerCase());
-  for (const [structName, fields] of Object.entries(stats)) {
-    if (structHint && !structName.toLowerCase().includes(structHint.toLowerCase())) continue;
+  const hint = structHint?.toLowerCase() ?? null;
+  for (const [structLower, fields] of lowerStructsOf(stats)) {
+    if (hint && !structLower.includes(hint)) continue;
     if (!fields || typeof fields !== 'object') continue;
-    const byLower = new Map(Object.keys(fields).map((k) => [k.toLowerCase(), k]));
+    const byLower = lowerKeysOf(fields);
     for (const wanted of wantedFields) {
       const actual = byLower.get(wanted);
       if (actual !== undefined) {
@@ -221,6 +243,9 @@ export function mergeLoadout(
     }
   }
   for (const o of overrides) {
+    // A nested override (`mount.gun`, a part inside a carried item) belongs to the stock tree under its top port,
+    // not next to it: appending it would count the part twice. The codex page applies those itself.
+    if (o.portName.includes('.')) continue;
     if (!seenPorts.has(o.portName)) {
       merged.push({ portName: o.portName, className: o.className, kind: o.kind });
     }

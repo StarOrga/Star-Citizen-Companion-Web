@@ -14,6 +14,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { HeaderPopoutService } from './header-popout.service';
 import { environment } from '../../environments/environment';
 import { RoleService } from '../auth/role.service';
@@ -62,7 +63,7 @@ export interface AppEntry {
 @Component({
   selector: 'sc-apps-menu',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective, ScPopupMotionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (offered()) {
@@ -77,7 +78,7 @@ export interface AppEntry {
           </svg>
         </button>
         @if (open()) {
-          <div class="pop" [id]="panelId" role="group" [attr.aria-label]="'appsMenu.aria' | translate">
+          <div class="pop" [id]="panelId" role="group" scPopupMotion scPopupMotionItems=".entry" scPopupMotionOrigin="tr" animate.leave="pm-out" [attr.aria-label]="'appsMenu.aria' | translate">
             @for (app of apps(); track app.id) {
               @if (app.href) {
                 <a class="entry" [class.elevated]="app.elevated" [href]="app.href" rel="noopener noreferrer" download (click)="onPick($event)">
@@ -98,9 +99,9 @@ export interface AppEntry {
     <ng-template #appBody let-app>
       <span class="ico" aria-hidden="true">
         @switch (app.id) {
-          @case ('scc') { <img src="icons/brand/scc-mark.svg" alt="" width="22" height="22" /> }
-          @case ('starscape') { <img src="icons/brand/starscape-tray.png" alt="" width="28" height="28" /> }
-          @default { <img src="icons/brand/uploader-tray.png" alt="" width="28" height="28" /> }
+          @case ('scc') { <img src="icons/brand/vc-mark.svg" alt="" width="22" height="22" /> }
+          @case ('starscape') { <img src="icons/brand/starscape-tray-48.png" alt="" width="28" height="28" /> }
+          @default { <img src="icons/brand/uploader-tray-48.png" alt="" width="28" height="28" /> }
         }
       </span>
       <span class="txt">

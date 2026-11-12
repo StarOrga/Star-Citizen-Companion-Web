@@ -49,6 +49,9 @@ export const VIEW_FAB_LANE_VAR = '--sc-view-fab-lane';
     @media (max-width: 720px) {
       .wrap { bottom: var(--sc-beta-fab-bottom, var(--sc-fab-clear-block, 96px)); }
     }
+    /* A large popup (scPopupMotion="large", html.sc-scene-pushin) covers the page: the page's own
+       view switch does not float over it (it stood on the swap picker on phones). */
+    :host-context(html.sc-scene-pushin) .wrap { visibility: hidden; }
     .fab {
       display: inline-grid; place-items: center; width: var(--_d); height: var(--_d);
       border-radius: 50%; padding: 0; cursor: pointer;

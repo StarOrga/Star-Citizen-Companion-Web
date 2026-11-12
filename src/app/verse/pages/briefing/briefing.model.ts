@@ -1,3 +1,4 @@
+import { InjectionToken } from '@angular/core';
 import type { PatchLineGroup } from '../../../news/patch-notes';
 import {
   NextPatchUnit,
@@ -189,53 +190,70 @@ export function uniqueStories<T>(
 }
 
 /**
- * Device flag (localStorage): holds the local calendar day on which the full
- * entrance last played. The full entrance plays once per day and device; every
- * other visit that day (reload, new tab, coming back) plays the short one.
+ * Tab flag (sessionStorage): set once the cinematic entrance played in this tab.
+ * The entrance (concept "Kamera-Welt", 2026-11-09) is the first impression of the bare
+ * domain, nothing else: it plays on a direct call of `/` (no path; the router then
+ * redirects to /verse), once per tab. Every other arrival on the hub - a menu switch, a
+ * reload, a link to /verse, a second visit in the same tab - builds the short way.
  */
-export const INTRO_FLAG = 'sc.verse.introPlayed';
+export const INTRO_FLAG = 'sc.verse.entrancePlayed';
 
 export type IntroMode = 'full' | 'short';
 
-/** The local calendar day as `YYYY-MM-DD`: "per day" follows the user's clock, not UTC. */
-export function localDay(now: Date = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+/** How this document was opened: the URL the browser asked for (before any in-app redirect). */
+export interface DocumentEntry {
+  /** The bare domain: the path is `/` (a query or a fragment does not count as a path). */
+  readonly bare: boolean;
+  /** A reload or a history step - the reader has seen this page already. */
+  readonly revisit: boolean;
+}
+
+/** Reads the document's navigation entry; without Navigation Timing nothing proves a direct call. */
+export function documentEntry(): DocumentEntry {
+  try {
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    if (!nav) return { bare: false, revisit: false };
+    const path = new URL(nav.name).pathname;
+    return { bare: path === '/' || path === '/index.html', revisit: nav.type === 'reload' || nav.type === 'back_forward' };
+  } catch {
+    return { bare: false, revisit: false };
+  }
 }
 
 /**
- * Fallback when storage is blocked or throws: the day is remembered for the
- * life of this document only, so an in-app return stays short but a fresh
- * document (nothing can be remembered) plays the full entrance.
+ * Fallback when storage is blocked or throws: "played" is remembered for the life of
+ * this document only, so an in-app return stays short but a fresh document (nothing can
+ * be remembered) may play the entrance again.
  */
-let memoryDay: string | null = null;
+let memoryPlayed = false;
 
 /** Test hook: a fresh document. */
 export function resetIntroDocument(): void {
-  memoryDay = null;
+  memoryPlayed = false;
 }
 
 /**
- * First visit of the local day on this device plays the full cinematic
- * entrance and records the day; every later visit that day plays the ~1 s
- * Kurz-Auftakt. `now` is injectable for tests.
+ * A direct call of the bare domain plays the full cinematic entrance once per tab and
+ * records it; every other arrival plays the short build (at most 0.8 s). `entry` is
+ * injectable for tests.
  */
 export function claimIntro(
-  storage: Pick<Storage, 'getItem' | 'setItem'> | null = safeLocal(),
-  now: () => Date = () => new Date(),
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = safeSession(),
+  entry: () => DocumentEntry = documentEntry,
 ): IntroMode {
-  const today = localDay(now());
+  const e = entry();
+  if (!e.bare || e.revisit) return 'short';
   try {
     if (storage) {
-      const played = storage.getItem(INTRO_FLAG) === today;
-      if (!played) storage.setItem(INTRO_FLAG, today);
+      const played = storage.getItem(INTRO_FLAG) === '1';
+      if (!played) storage.setItem(INTRO_FLAG, '1');
       return played ? 'short' : 'full';
     }
   } catch {
     // blocked storage: fall through to the per-document memory
   }
-  const seen = memoryDay === today;
-  memoryDay = today;
+  const seen = memoryPlayed;
+  memoryPlayed = true;
   return seen ? 'short' : 'full';
 }
 
@@ -246,21 +264,25 @@ export function claimIntro(
  * instead of showing, vanishing when it starts and fading in again.
  */
 export function peekIntro(
-  storage: Pick<Storage, 'getItem'> | null = safeLocal(),
-  now: () => Date = () => new Date(),
+  storage: Pick<Storage, 'getItem'> | null = safeSession(),
+  entry: () => DocumentEntry = documentEntry,
 ): IntroMode {
-  const today = localDay(now());
+  const e = entry();
+  if (!e.bare || e.revisit) return 'short';
   try {
-    if (storage) return storage.getItem(INTRO_FLAG) === today ? 'short' : 'full';
+    if (storage) return storage.getItem(INTRO_FLAG) === '1' ? 'short' : 'full';
   } catch {
     // blocked storage: fall through to the per-document memory
   }
-  return memoryDay === today ? 'short' : 'full';
+  return memoryPlayed ? 'short' : 'full';
 }
 
-function safeLocal(): Storage | null {
+/** How the entrance reads the document's entry URL; specs swap it for a bare-domain call. */
+export const VERSE_DOCUMENT_ENTRY = new InjectionToken<() => DocumentEntry>('VERSE_DOCUMENT_ENTRY', { providedIn: 'root', factory: () => documentEntry });
+
+function safeSession(): Storage | null {
   try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
   } catch {
     return null;
   }

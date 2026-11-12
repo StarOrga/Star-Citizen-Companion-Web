@@ -19,7 +19,7 @@ import { deriveAiTerms, deriveCigLabels, extractJudgeTerms, mergeGlossary, newRo
 import { loadNotes } from './_cards.ts';
 import { addJudgeCandidates, resumeLearning, runLearning } from './_learn.ts';
 import type { LearnDb } from './_learn_db.ts';
-import { loadTm, makeOverlay, overlayKey, readLocaleTable, saveTm, workKey } from './_io.ts';
+import { loadTm, makeOverlay, overlayKey, putLatestOverlay, readLocaleTable, saveTm, workKey } from './_io.ts';
 import type { OverlayMeta } from './_io.ts';
 import { detectOverrideAlerts } from './_alerts.ts';
 import type { AdminTerm, AlertRow } from './_alerts.ts';
@@ -691,7 +691,7 @@ async function stepPublishing(deps: Deps, job: Job): Promise<void> {
   }
   const overlay = makeOverlay(job.lang, job.build_id, entries, at, meta);
   await store.putJson(overlayKey(job.lang, job.build_id), overlay);
-  if (!(await db.hasNewerPublished(job))) await store.putJson(overlayKey(job.lang, 'latest'), overlay);
+  if (!(await db.hasNewerPublished(job))) await putLatestOverlay(store, overlay);
 
   const have = await db.listGlossary(job.lang);
   const ai = newRows(have, deriveAiTerms(pairs));

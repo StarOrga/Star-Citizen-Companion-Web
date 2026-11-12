@@ -9,6 +9,7 @@ import {
   relativeFromNow,
 } from './routine-heartbeat.service';
 import { LocaleService } from '../../core/locale/locale.service';
+import { RoutineTintPrefsService } from './routine-tint-prefs.service';
 
 /** Marker class the global tint rules hang off (see `src/styles.scss`). */
 const TINT_CLASS = 'sc-routine-tint';
@@ -17,6 +18,19 @@ const STATE_CLASS: Record<HeartbeatState, string | null> = {
   online: 'is-online',
   running: 'is-running',
   paused: 'is-paused',
+  offline: 'is-offline',
+  unknown: null,
+};
+/**
+ * The opt-in two-colour palette (feedback #338, `RoutineTintPrefsService`):
+ * green while the routine is up or working on something, red while nothing is
+ * being worked on — the yes/no the first cut of a7573f0e gave. Only the colour
+ * collapses; the tooltip and aria-label still name the exact state.
+ */
+const BINARY_STATE_CLASS: Record<HeartbeatState, string | null> = {
+  online: 'is-online',
+  running: 'is-online',
+  paused: 'is-offline',
   offline: 'is-offline',
   unknown: null,
 };
@@ -74,6 +88,7 @@ export class RoutineStatusDirective {
   private readonly heartbeat = inject(RoutineHeartbeatService);
   private readonly translate = inject(TranslateService);
   private readonly locale = inject(LocaleService);
+  private readonly tintPrefs = inject(RoutineTintPrefsService);
   /** Re-runs the wording when the UI language flips (board-wide pattern). */
   private readonly langChange = toSignal(this.translate.onLangChange, { initialValue: null });
 
@@ -113,7 +128,7 @@ export class RoutineStatusDirective {
       for (const cls of Object.values(STATE_CLASS)) {
         if (cls) this.renderer.removeClass(host, cls);
       }
-      const active = STATE_CLASS[state];
+      const active = (this.tintPrefs.binary() ? BINARY_STATE_CLASS : STATE_CLASS)[state];
       if (active) this.renderer.addClass(host, active);
 
       this.renderer.setAttribute(host, 'title', detail);

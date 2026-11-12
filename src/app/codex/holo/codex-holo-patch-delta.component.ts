@@ -76,7 +76,7 @@ const KPI_LABEL_KEYS: Record<string, string> = {
                 <th scope="row">{{ kpiLabelKey(row.key) | translate }}</th>
                 <td>{{ fmt(row.from) }}</td>
                 <td>{{ fmt(row.to) }}</td>
-                <td class="pct">{{ row.delta?.pctText ?? '—' }}</td>
+                <td class="pct">{{ pct(row.delta?.pctText) }}</td>
               </tr>
             }
           </tbody>
@@ -90,11 +90,18 @@ const KPI_LABEL_KEYS: Record<string, string> = {
     .ptitle { margin: 0 0 6px; font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
     .none { margin: 0; padding: 4px 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
-    .delta-table { width: 100%; border-collapse: collapse; font-size: max(0.8rem, var(--sc-fs-floor)); }
-    .delta-table th, .delta-table td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--sc-border); font-variant-numeric: tabular-nums; }
-    .delta-table th[scope="row"] { text-align: left; color: var(--sc-fg-1); font-weight: 500; }
-    .delta-table thead th { color: var(--sc-fg-2); font-weight: 500; font-size: max(0.7rem, var(--sc-fs-floor));
-      text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--sc-border); }
+    /* Fits the 360 px card at any value (QA 1920x1080: "ÄNDERUNC", "+28?"): the number columns take
+       exactly their content and never wrap, the label column takes the rest and wraps (hyphenated). */
+    .delta-table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .delta-table th, .delta-table td { padding: 5px 4px; text-align: right; border-bottom: 1px solid var(--sc-border);
+      font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .delta-table th:first-child { padding-left: 0; }
+    .delta-table th:last-child, .delta-table td:last-child { padding-right: 0; }
+    .delta-table th[scope="row"], .delta-table thead th:first-child { width: 100%; text-align: left; white-space: normal;
+      overflow-wrap: anywhere; hyphens: auto; }
+    .delta-table th[scope="row"] { color: var(--sc-fg-1); font-weight: 500; }
+    .delta-table thead th { color: var(--sc-fg-2); font-weight: 500; font-size: max(0.66rem, var(--sc-fs-floor));
+      text-transform: uppercase; letter-spacing: 0.02em; border-bottom: 1px solid var(--sc-border); }
     tr.good .pct { color: var(--sc-accent); }
     tr.bad .pct { color: var(--sc-warning); }
   `],
@@ -108,6 +115,10 @@ export class CodexHoloPatchDeltaComponent {
 
   readonly labelKey = computed(() => PERSPECTIVE_LABEL_KEYS[this.group().perspective]);
   readonly rows = computed(() => this.group().cells.filter((c) => c.delta !== null));
+  /** German typography: "+28 %" with a no-break space before the sign (E3); the shared pctText stays "+28%". */
+  pct(text: string | null | undefined): string {
+    return text ? text.replace(/\s*%$/, '\u00a0%') : '—';
+  }
 
   kpiLabelKey(key: string): string {
     return KPI_LABEL_KEYS[key] ?? key;

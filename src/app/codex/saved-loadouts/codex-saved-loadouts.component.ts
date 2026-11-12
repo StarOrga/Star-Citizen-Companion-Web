@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.component';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { DraftMap, EMPTY_DRAFT } from '../codex-loadout-draft';
@@ -14,11 +15,13 @@ import {
 } from './saved-loadouts.service';
 
 /**
- * The right side of the Einsatz row (#322): the reader's layouts of this ship
- * as a "Layout 1/2/…" switch, "Neues Layout" (default name "Layout N"),
- * saving the draft into the picked layout, copying a layout's share link,
- * deleting one — plus the prepared "components into the cart" action,
- * disabled until a cart exists.
+ * The right side of the Einsatz row (#322): ONE dropdown with "Neu" plus the
+ * reader's layouts of this ship, a save icon (into the picked layout, or a
+ * further one named "Layout N" while "Neu" is picked) that carries the
+ * draft's "not saved" dot, copying a layout's share link, deleting one — plus
+ * the prepared cart icon, disabled until a cart exists. It replaced the
+ * separate ENTWURF box of the classic view, so it stays narrow enough to sit
+ * beside the mission chips.
  *
  * Local per ship (SavedLoadoutsService), so a signed-out reader can use it
  * too. Recall only EMITS the loadout; the page's draft store puts it on the
@@ -27,33 +30,34 @@ import {
 @Component({
   selector: 'sc-codex-saved-loadouts',
   standalone: true,
-  imports: [TranslatePipe, ScActionDirective, ScTooltipDirective],
+  imports: [TranslatePipe, ScActionDirective, ScTooltipDirective, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="saved" role="group" [attr.aria-label]="'codex.savedLoadouts.group' | translate">
-      @if (layouts().length > 0) {
-        <!-- The "Layout 1/2/…" switch: a segment of this ship's layouts in
-             creation order; picking one puts it on the table. -->
-        <div class="layouts" role="group" [attr.aria-label]="'codex.savedLoadouts.layouts' | translate">
-          @for (l of layouts(); track l.id) {
-            <button type="button" class="layout" [class.on]="l.id === selectedId()"
-                    [attr.aria-pressed]="l.id === selectedId()" (click)="pick(l.id)">{{ l.name }}</button>
-          }
-        </div>
-      }
+      <!-- ONE dropdown (#322 round 3): "Neu" always on top, then this ship's
+           layouts in creation order. Picking a layout puts it on the table;
+           "Neu" means the next save starts a further layout. -->
+      <sc-select
+        class="layouts"
+        [options]="layoutOptions()"
+        [allowEmpty]="false"
+        [value]="selectedId() ?? NEW"
+        [ariaLabel]="'codex.savedLoadouts.layouts' | translate"
+        (valueChange)="pick($event === NEW ? null : $event)" />
       <!-- A natively disabled button gets no pointer events, so the reason
-           tooltip sits on a wrapper (same pattern as the mission chips). -->
-      <span class="wrap" [scTooltip]="canSave() ? null : ('codex.savedLoadouts.saveNothing' | translate)" scTooltipTier="label">
-        <button type="button" scAction tier="secondary" class="new" [disabled]="!canSave()" (click)="saveNew()">
-          {{ 'codex.savedLoadouts.newLayout' | translate }}
+           tooltip sits on a wrapper (same pattern as the mission chips). The
+           dot is the old draft box's "nicht gespeichert", folded into the
+           control that answers it. -->
+      @let saveLabel = (saveKey() | translate: saveParams())
+        + (dirty() ? ' (' + (dirtyKey() | translate: { n: changed() }) + ')' : '');
+      <span class="wrap" [scTooltip]="saveLabel" scTooltipTier="label">
+        <button type="button" scAction tier="tertiary" class="save" [class.dirty]="dirty()"
+                [disabled]="!canSave()" [attr.aria-label]="saveLabel" (click)="saveNow()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" /></svg>
+          @if (dirty()) { <span class="dot" aria-hidden="true"></span> }
         </button>
       </span>
       @if (selected(); as sel) {
-        <span class="wrap" [scTooltip]="canSave() ? ('codex.savedLoadouts.saveInto' | translate: { name: sel.name }) : ('codex.savedLoadouts.saveNothing' | translate)" scTooltipTier="label">
-          <button type="button" scAction tier="secondary" class="save" [disabled]="!canSave()" (click)="saveCurrent()">
-            {{ 'codex.savedLoadouts.save' | translate }}
-          </button>
-        </span>
         <button type="button" scAction tier="tertiary" class="share"
                 [attr.aria-label]="'codex.savedLoadouts.share' | translate: { name: sel.name }"
                 [scTooltip]="'codex.savedLoadouts.share' | translate: { name: sel.name }"
@@ -67,36 +71,41 @@ import {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13M10 11v6M14 11v6" /></svg>
         </button>
       }
-      <span class="status" [class.has]="!!statusKey()" role="status" aria-live="polite">{{ statusKey() ? (statusKey()! | translate) : '' }}</span>
       <span class="wrap" [scTooltip]="'codex.savedLoadouts.cartSoon' | translate" scTooltipTier="label">
-        <button type="button" scAction tier="secondary" class="cart"
+        <button type="button" scAction tier="tertiary" class="cart"
                 [disabled]="!cart.available || cartRequests().length === 0"
+                [attr.aria-label]="'codex.savedLoadouts.cart' | translate"
                 [attr.aria-describedby]="cart.available ? null : cartHintId"
                 (click)="addToCart()">
-          {{ 'codex.savedLoadouts.cart' | translate }}
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h10.2L20 8H6.3M9.5 20a1 1 0 1 0 0-.01M16.5 20a1 1 0 1 0 0-.01" /></svg>
         </button>
       </span>
       @if (!cart.available) {
         <span [id]="cartHintId" class="sr-only">{{ 'codex.savedLoadouts.cartSoon' | translate }}</span>
       }
+      <span class="status" [class.has]="!!statusKey()" role="status" aria-live="polite">{{ statusKey() ? (statusKey()! | translate) : '' }}</span>
     </div>
   `,
   styles: [`
     :host { display: block; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    /* Narrow on purpose: it shares the Einsatz row with the mission chips,
+       which keep their own size — this side gives way, not them. */
+    .saved { position: relative; display: flex; align-items: center; gap: 4px; }
     .wrap { display: inline-flex; }
-    .layouts { display: flex; flex-wrap: wrap; gap: 6px; }
-    .layout {
-      min-height: var(--sc-tap-min); padding: 0 var(--sc-space-3); border: 1px solid var(--sc-border); border-radius: 999px;
-      background: none; color: var(--sc-fg-2); font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer;
+    .layouts { inline-size: 9.5rem; flex: 0 0 auto; }
+    @media (pointer: fine) {
+      .layouts ::ng-deep .trigger { min-height: 32px; padding: 4px 10px; font-size: max(0.78rem, var(--sc-fs-floor)); }
     }
-    .layout:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .layout:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .layout.on { color: var(--sc-accent); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
-    .status { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
-    .status:not(.has) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-    .share svg, .remove svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .save { position: relative; }
+    .dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--sc-warn); box-shadow: 0 0 0 2px var(--sc-bg-1); }
+    /* The share feedback floats under the row instead of widening it. */
+    .status { position: absolute; top: calc(100% + 4px); right: 0; z-index: 5; white-space: nowrap;
+      padding: 4px 8px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+      color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    .status:not(.has) { width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); }
+    .save svg, .share svg, .remove svg, .cart svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   `],
 })
 export class CodexSavedLoadoutsComponent {
@@ -105,6 +114,8 @@ export class CodexSavedLoadoutsComponent {
   readonly draft = input<DraftMap>(EMPTY_DRAFT);
   /** A shared link's loadout is not the reader's own — no save from here until adopted. */
   readonly readOnly = input(false);
+  /** Slots the draft changed and nobody saved yet — the dot on the save icon. */
+  readonly changed = input(0);
 
   /** A saved loadout was picked: the page puts it on the table. */
   readonly recall = output<SavedLoadout>();
@@ -115,6 +126,8 @@ export class CodexSavedLoadoutsComponent {
   protected readonly cart = inject(ComponentCartService);
 
   readonly cartHintId = 'codex-saved-loadouts-cart-hint';
+  /** The dropdown's "Neu" entry — no layout id can collide with it. */
+  readonly NEW = '__new__';
 
   /** This ship's layouts in creation order — the switch keeps its order when one is re-saved. */
   readonly layouts = computed(() => {
@@ -123,6 +136,21 @@ export class CodexSavedLoadoutsComponent {
   });
   readonly selectedId = signal<string | null>(null);
   readonly selected = computed(() => this.layouts().find((l) => l.id === this.selectedId()) ?? null);
+
+  readonly layoutOptions = computed<ScSelectOption[]>(() => [
+    { value: this.NEW, labelKey: 'codex.savedLoadouts.pickNew' },
+    ...this.layouts().map((l) => ({ value: l.id, labelKey: '', label: l.name })),
+  ]);
+
+  readonly dirty = computed(() => this.changed() > 0 && !this.readOnly());
+
+  /** What a press on the save icon does — the key half of its name and tooltip. */
+  readonly saveKey = computed(() =>
+    !this.canSave() ? 'codex.savedLoadouts.saveNothing'
+      : this.selected() ? 'codex.savedLoadouts.saveInto' : 'codex.savedLoadouts.saveAsNew');
+  readonly saveParams = computed(() => ({ name: this.selected()?.name ?? '' }));
+  /** "n Slots geändert" while the draft is dirty — appended to the save icon's name. */
+  readonly dirtyKey = computed(() => (this.changed() === 1 ? 'codex.detail.draftChanged' : 'codex.detail.draftChangedPlural'));
 
   /** Feedback of the last share: copied / clipboard refused. Clears itself. */
   readonly statusKey = signal<string | null>(null);
@@ -147,6 +175,11 @@ export class CodexSavedLoadoutsComponent {
   defaultName(): string {
     const nameFor = (n: number) => this.t.instant('codex.savedLoadouts.defaultName', { n }) as string;
     return nameFor(nextLayoutNumber(this.layouts().map((l) => l.name), nameFor));
+  }
+
+  /** The save icon: into the picked layout, or a further one while "Neu" is picked. */
+  saveNow(): Promise<void> | void {
+    return this.selected() ? this.saveCurrent() : this.saveNew();
   }
 
   /** "Neues Layout": the current draft becomes a further layout; no name typed = "Layout N". */

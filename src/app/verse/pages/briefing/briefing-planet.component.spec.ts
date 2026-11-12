@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { flushScrollTick } from '../../../core/scroll-tick';
 import { BriefingPlanetComponent, forgetPlanetSession } from './briefing-planet.component';
 import { PlanetStatus, PlanetView } from './planet/planet-scene';
 import { PLANET_LINK, PlanetLink } from './planet/planet-worker-link';
@@ -109,6 +110,7 @@ describe('BriefingPlanetComponent — worker path', () => {
     runFrames(16);
     expect(frames.length).toBe(0);
     document.dispatchEvent(new Event('scroll'));
+    runFrames(20); // the shared scroll tick
     expect(frames.length).toBe(1);
   });
 
@@ -121,6 +123,7 @@ describe('BriefingPlanetComponent — worker path', () => {
     expect(frames.length, 'no timer left running').toBe(0);
     document.dispatchEvent(new Event('scroll'));
     document.dispatchEvent(new Event('scroll'));
+    runFrames(20); // the shared scroll tick: one frame for the burst
     expect(frames.length, 'one redraw for a burst of scrolls').toBe(1);
     runFrames(200);
     expect(link!.draws.length).toBe(1);
@@ -147,6 +150,7 @@ describe('BriefingPlanetComponent — worker path', () => {
     runFrames(16);
     expect(link!.views.length, 'no animation').toBe(0);
     document.dispatchEvent(new Event('scroll'));
+    flushScrollTick();
     expect(link!.draws.length).toBe(2);
     window.dispatchEvent(new Event('resize'));
     expect(link!.draws.length).toBe(3);

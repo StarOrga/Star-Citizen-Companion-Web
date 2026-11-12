@@ -13,6 +13,7 @@ import {
   creaseEdges,
   edgeDetail,
 } from './holo-look';
+import { HoloEdgeJob, creaseEdgeArray } from './holo-edges';
 
 const BASE = [82, 193, 230] as const;
 const DRAKE = [255, 176, 46] as const;
@@ -256,5 +257,38 @@ describe('HoloLook focus tween', () => {
   it('keeps the dim soft enough to read the rest of the model', () => {
     expect(HOLO_DIM_FILL).toBeGreaterThan(0.5);
     expect(HOLO_XRAY_HULL_OPACITY).toBeGreaterThanOrEqual(0.4);
+  });
+});
+
+describe('HoloLook.dressAsync (edges from the edge worker)', () => {
+  const cube = () => new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial());
+  const edgesOf = (m: THREE.Mesh) => m.children.find((c) => c.userData['holoEdges']) as THREE.LineSegments | undefined;
+  const local = (job: HoloEdgeJob) => Promise.resolve(creaseEdgeArray(job));
+  const tint = BASE;
+
+  it('puts the fill on at once and the same edges as dress() once they arrive', async () => {
+    const look = new HoloLook(tint, tint, false);
+    const a = cube();
+    let drawn = 0;
+    const done = look.dressAsync(a, 'hull', local, () => drawn++);
+    expect(a.material).toBe(look.fill('hull'));
+    expect(edgesOf(a)).toBeUndefined();
+    await done;
+    expect(drawn).toBe(1);
+    const ref = creaseEdges(a.geometry, look.detail.creaseDeg);
+    expect(edgesOf(a)!.geometry.getAttribute('position').count).toBe(ref.getAttribute('position').count);
+    expect(edgesOf(a)!.material).toBe(look.line('hull'));
+    look.dispose();
+  });
+
+  it('adds nothing once the look is disposed', async () => {
+    const look = new HoloLook(tint, tint, false);
+    const a = cube();
+    let drawn = 0;
+    const done = look.dressAsync(a, 'hull', local, () => drawn++);
+    look.dispose();
+    await done;
+    expect(edgesOf(a)).toBeUndefined();
+    expect(drawn).toBe(0);
   });
 });

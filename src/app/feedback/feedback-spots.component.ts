@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { onScrollTick } from '../core/scroll-tick';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateService } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -218,7 +219,7 @@ export class FeedbackSpotsComponent {
           this.tick.update((n) => n + 1);
         });
       };
-      window.addEventListener('scroll', schedule, { capture: true, passive: true });
+      const offScroll = onScrollTick(() => this.tick.update((n) => n + 1), { anyTarget: true });
       window.addEventListener('resize', schedule, { passive: true });
       let ro: ResizeObserver | undefined;
       if (typeof ResizeObserver !== 'undefined') {
@@ -230,7 +231,7 @@ export class FeedbackSpotsComponent {
       }
       schedule();
       onCleanup(() => {
-        window.removeEventListener('scroll', schedule, { capture: true });
+        offScroll();
         window.removeEventListener('resize', schedule);
         ro?.disconnect();
         if (frame) cancelAnimationFrame(frame);

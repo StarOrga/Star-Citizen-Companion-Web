@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
+import { HoloDiffMarkerComponent } from './holo-diff-marker';
 import { displayItemName } from '../codex-format';
 import { JournalEntry } from './codex-holo-model';
 
@@ -11,12 +13,12 @@ import { JournalEntry } from './codex-holo-model';
 @Component({
   selector: 'sc-codex-holo-changes',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScActionDirective, HoloDiffMarkerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ng-content />
     <div class="card">
-      <div class="h2"><span>{{ 'codex.holo.stage.journal' | translate }}</span><span class="rule"></span></div>
+      <div class="h2"><span>{{ 'codex.holo.card.changesHead' | translate }}</span><span class="rule"></span></div>
       @if (journal().length === 0) {
         <p class="mut">{{ 'codex.holo.stage.journalEmpty' | translate }}</p>
       } @else if (readOnly()) {
@@ -24,6 +26,7 @@ import { JournalEntry } from './codex-holo-model';
         <ul class="journal">
           @for (e of journal(); track e.port) {
             <li>
+              <sc-holo-diff-marker />
               <span class="j-label">{{ itemName(e.label) }}</span>
               <span class="j-state">{{ ('codex.loadout.draftState.' + e.state) | translate }}</span>
             </li>
@@ -34,14 +37,16 @@ import { JournalEntry } from './codex-holo-model';
         <ul class="journal">
           @for (e of journal(); track e.port) {
             <li>
+              <sc-holo-diff-marker />
               <span class="j-label">{{ itemName(e.label) }}</span>
               <span class="j-state">{{ ('codex.loadout.draftState.' + e.state) | translate }}</span>
               <button type="button" class="lnk" (click)="reverted.emit(e.paths)">{{ 'codex.holo.stage.undo' | translate }}</button>
             </li>
           }
         </ul>
-        <button type="button" class="lnk" (click)="reverted.emit(allPaths())">
-          {{ 'codex.detail.actionFactoryLoadout' | translate }}
+        <!-- "↺ Zurück auf Werk" (r4 d1 s7): every change at once. -->
+        <button type="button" scAction tier="secondary" class="werk" (click)="reverted.emit(allPaths())">
+          ↺ {{ 'codex.holo.card.backToWerk' | translate }}
         </button>
       }
     </div>
@@ -56,6 +61,7 @@ import { JournalEntry } from './codex-holo-model';
       font-size: max(11px, var(--f)); min-height: var(--sc-tap-min, 24px); justify-self: start; }
     .lnk:hover { text-decoration: underline; }
     .lnk:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: var(--holo-r-xs); }
+    .werk { justify-self: start; margin-top: 4px; }
     .journal { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
     .journal li { display: flex; align-items: center; gap: 8px; font-size: max(12px, var(--f)); animation: j-in 260ms var(--holo-e-out) backwards; }
     @keyframes j-in { from { opacity: 0; } }

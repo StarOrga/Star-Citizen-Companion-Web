@@ -95,8 +95,9 @@ describe('CodexHoloPatchComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const rows = Array.from(fixture.nativeElement.querySelectorAll('.build-row')) as HTMLButtonElement[];
+    // The table's build already stands on the right ("bis"), so the left list says why it is off.
     expect(rows[0].disabled).toBe(true);
-    expect(rows[0].querySelector('.row-flag.cur')!.textContent).toContain('codex.holo.patch.current');
+    expect(rows[0].querySelector('.row-flag')!.textContent).toContain('codex.holo.patch.onOtherSide');
     expect(rows[1].disabled).toBe(false);
     expect(rows[1].querySelector('.row-build')!.textContent).toContain('live-a');
     expect(rows[2].querySelector('.row-build')!.textContent).toContain('live-b');
@@ -155,9 +156,47 @@ describe('CodexHoloPatchComponent', () => {
     const last = pins[pins.length - 1] as Record<string, { unresolved: boolean }>;
     expect(last['WeaponPort1'].unresolved).toBe(true);
 
-    // admin row appears for a collaborator once a build is picked
-    expect(fixture.nativeElement.querySelector('.admin-schema-row')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.admin-schema-row .sc-sr-only')?.textContent).toContain('codex.holo.patch.adminOnly');
+    // the picked build is the comparison's subject; its body is docked by the host
+    expect(fixture.componentInstance.selected()?.id).toBe('finalised');
+    expect(fixture.componentInstance.perspectives()).not.toBeNull();
+    expect(fixture.componentInstance.deltaBody()).toBeTruthy();
+  });
+
+  it('keeps the newer patch on the right: an older pick goes left, the right list blocks older-than-left (C18)', async () => {
+    setup(false);
+    buildsForChannel.mockReturnValue(listed([
+      build({ id: 'ptu', patchVersion: '4.11.0', channel: 'PTU' }),
+      build({ id: 'active', patchVersion: '4.9', isCurrent: true }),
+      build({ id: 'old', patchVersion: '4.8' }),
+      build({ id: 'older', patchVersion: '4.7' }),
+    ]));
+    shipDetailForBuild.mockResolvedValue({ classNameSlug: 'AEGS_Gladius', kind: 'ship', row: {}, payload: {}, ports: [], strings: [] });
+    const c = fixture.componentInstance;
+    c.toggle();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const [ptu, active, old, older] = c.builds();
+    expect(c.blockReason(ptu, 'from')).toContain('codex.holo.patch.newerThan');
+    expect(c.blockReason(active, 'from')).toContain('codex.holo.patch.onOtherSide');
+    expect(c.blockReason(old, 'from')).toBeNull();
+    await c.pickFrom(old);
+    expect(c.from()).toBe(old);
+    expect(c.to()).toBe('active');
+    expect(c.blockReason(older, 'to')).toContain('codex.holo.patch.olderThan');
+    expect(c.blockReason(ptu, 'to')).toBeNull();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.pv-to .cur')).toBeTruthy();
+  });
+
+  it('auto-compares with the patch before the one on the table once the comparison is on screen', async () => {
+    setup(false);
+    buildsForChannel.mockReturnValue(listed([build({ id: 'active', patchVersion: '4.9' }), build({ id: 'prev', patchVersion: '4.8' })]));
+    shipDetailForBuild.mockResolvedValue({ classNameSlug: 'AEGS_Gladius', kind: 'ship', row: {}, payload: {}, ports: [], strings: [] });
+    fixture.componentRef.setInput('autoCompare', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await fixture.whenStable();
+    expect((fixture.componentInstance.from() as CodexBuild | null)?.id).toBe('prev');
   });
 
   it('tells a failed build list apart from "no other patches" and retries it (AUD-056)', async () => {

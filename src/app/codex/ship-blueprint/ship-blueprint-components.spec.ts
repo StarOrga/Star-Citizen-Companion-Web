@@ -259,15 +259,22 @@ describe('ship blueprint components', () => {
 
     it('draws a callout only for the picked part (r1-callout)', async () => {
       const { fixture, el } = await setup();
-      expect(el.querySelector('g.co')).toBeNull();
-      fixture.componentRef.setInput('callout', { port: 'hardpoint_rack', title: 'Rack', meta: 'S2' });
+      expect(el.querySelector('sc-holo-callout')).toBeNull();
+      const callout = { port: 'hardpoint_rack', title: 'Rack', type: 'Raketen', values: [{ label: 'Größe', value: 'S2' }], swappable: true, diff: true };
+      fixture.componentRef.setInput('callout', callout);
       await flush(fixture);
-      const co = el.querySelector('g.co')!;
-      expect(co.querySelector('.co-t')!.textContent).toContain('Rack');
-      expect(co.querySelector('.co-m')!.textContent).toContain('S2');
-      fixture.componentRef.setInput('callout', { port: 'not_on_this_view', title: 'X', meta: null });
+      const co = el.querySelector('sc-holo-callout')!;
+      expect(co.querySelector('.k-t')!.textContent).toContain('Raketen');
+      expect(co.querySelector('.nm')!.textContent).toContain('Rack');
+      expect(co.querySelector('.v')!.textContent).toContain('S2');
+      expect(co.querySelector('sc-holo-diff-marker')).not.toBeNull();
+      const swaps: string[] = [];
+      fixture.componentInstance.swap.subscribe((p: string) => swaps.push(p));
+      (co.querySelector('button.sw') as HTMLButtonElement).click();
+      expect(swaps).toEqual(['hardpoint_rack']);
+      fixture.componentRef.setInput('callout', { ...callout, port: 'not_on_this_view', title: 'X' });
       await flush(fixture);
-      expect(el.querySelector('g.co')).toBeNull();
+      expect(el.querySelector('sc-holo-callout')).toBeNull();
     });
 
     it('says so when the hull has no hardpoint positions, instead of an empty list', async () => {

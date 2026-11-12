@@ -227,7 +227,7 @@ const LADDER_SPAN = 3;
       @keyframes ex-in { from { opacity: 0; } to { opacity: 1; } }
       .more { position: absolute; z-index: 10; top: 10px; right: 10px; bottom: 10px; width: min(380px, calc(100% - 20px)); overflow-y: auto;
         padding: var(--sc-pad-3); box-sizing: border-box; border-radius: 12px; outline: none;
-        background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent); border: 1px solid var(--sc-border); backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--sc-bg-0) 96%, transparent); border: 1px solid var(--sc-border);
         box-shadow: 0 16px 40px rgb(0 0 0 / 50%); animation: ex-in 0.2s ease-out both; }
       .more-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sc-gap-2); }
       .more-head h2 { margin: 0; font: 600 1rem var(--sc-font-display); color: var(--sc-fg-0); }

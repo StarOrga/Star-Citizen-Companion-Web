@@ -8,14 +8,19 @@ import {
   RankProfileId,
   rankClassPluralKey,
   rankGroupName,
+  rankRoleReadsAsGroup,
+  rankBandOfPlace,
   rankProfileById,
   RankAxisResult,
   RankResult,
   RankScope,
   rankBandOf,
+  rankCohortLabel,
 } from './codex-rank';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { formatNumber } from './codex-format';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { modelHintKey } from './codex-em-model';
 
 /** The strings that name what is being compared. A ship page passes nothing. */
@@ -36,6 +41,8 @@ export interface RankCardCopy {
 export interface RankCardScope {
   id: RankScope;
   labelKey: string;
+  /** Ready-made group name ("Alle S2-Lenkraketen"); wins over `labelKey` when set. */
+  label?: string;
   /** Tooltip while the group is unavailable. */
   reasonKey: string;
 }
@@ -65,6 +72,12 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
   { id: 'role', labelKey: 'codex.rank.scope.role', reasonKey: 'codex.rank.disabled.noRole' },
 ];
 
+const SHAPE_PREF_KEY = 'sc.holo.einordnungShape';
+
+function readShapePref(): 'hex' | 'bars' {
+  try { return localStorage.getItem(SHAPE_PREF_KEY) === 'bars' ? 'bars' : 'hex'; } catch { return 'hex'; }
+}
+
 /**
  * "Einordnung" — the right half of the masthead (MASTER §3). Purely
  * presentational: every number comes in through `result`, computed by the
@@ -81,9 +94,9 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
 @Component({
   selector: 'sc-codex-rank-card',
   standalone: true,
-  imports: [TranslatePipe, ScSegmentedComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ScSegmentedComponent, ScTooltipDirective, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.holo]': 'holo()' },
+  host: { '[class.holo]': 'holo()', '[class.holo-text]': 'holoText()' },
   template: `
     <section class="rank-card" [class.sc-card]="!holo()">
       <div class="rank-head">
@@ -96,7 +109,11 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
         }
         @if (result()) {
           <p class="cohort-line">
-            {{ cohortLineKey() | translate: { n: result()!.cohortSize, k: sizeClass() } }}
+            @if (holoCohortLine(); as line) {
+              {{ line }}
+            } @else {
+              {{ cohortLineKey() | translate: { n: result()!.cohortSize, k: sizeClass() } }}
+            }
           </p>
         } @else {
           <p class="cohort-line gap">{{ 'codex.kpi.gap' | translate }}</p>
@@ -104,7 +121,42 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
       </div>
 
 
-      @if (result()) {
+      @if (result() && holo()) {
+        <!-- Holotable card (r4 d1, C15): the place in the group first, then
+             "Vergleich mit" + the group as a list and the hexagon ⇄ bars switch. -->
+        @if (result()!.rank) {
+          <p class="holo-rank" tabindex="0"
+             [scTooltip]="result()!.overall !== null ? ('codex.holo.card.overallTip' | translate: { pct: pct(result()!.overall) }) : null" scTooltipTier="label">
+            <b>{{ 'codex.holo.card.rank' | translate: { n: result()!.rank, m: result()!.cohortSize } }}</b>
+            <span class="sep" aria-hidden="true">·</span><span class="grp">{{ activeScopeLabel() }}</span>
+            @if (holoBandKey(); as band) { <span class="sep" aria-hidden="true">·</span><span class="band">{{ band | translate }}</span> }
+          </p>
+        }
+        <!-- D6: one header block. The label (its info in the label's own tooltip) above,
+             the group picker and the hexagon/bars switch side by side at one height below. -->
+        <div class="holo-ctrl">
+          <span class="hc-label" tabindex="0" [scTooltip]="compareInfoKey() | translate">
+            {{ 'codex.holo.card.compareWith' | translate }}<span class="hc-i" aria-hidden="true">i</span>
+            <span class="sr-only">{{ compareInfoKey() | translate }}</span>
+          </span>
+          <sc-select class="compact hc-select"
+            [options]="scopeSelectOptions()"
+            [value]="activeScope()"
+            [allowEmpty]="false"
+            [ariaLabel]="'codex.rank.scopeLabel' | translate"
+            (valueChange)="$event && pickScope($any($event))" />
+          @if (result()!.axes.length >= 3) {
+            <sc-segmented class="compact hc-shape"
+              [options]="shapeChoices"
+              [value]="shape()"
+              [ariaLabel]="'codex.holo.card.shapeAria' | translate"
+              (valueChange)="setShape($any($event))" />
+          }
+        </div>
+        @if (smallGroupSize(); as n) {
+          <p class="small-group" role="status">{{ 'codex.rank.group.smallHint' | translate: { n: n } }}</p>
+        }
+      } @else if (!loading()) {
         <!-- Comparison group as the panel's head line (concept round 3, L2):
              one segmented control, a group the ship has no data for stays
              visible but disabled and says why in its tooltip. -->
@@ -122,16 +174,35 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
             [scTooltip]="compareInfoKey() | translate"
             [attr.aria-label]="compareInfoKey() | translate"
           >ⓘ</button>
+          <!-- Classic card (#329): the small-group hint is a marker beside the
+               group bar, its slot always reserved, so picking a group never
+               changes the card's height or width and the headline stays put. -->
+          @if (!holo()) {
+            @if (smallGroupSize(); as n) {
+              <button
+                type="button"
+                class="small-group-mark"
+                [scTooltip]="'codex.rank.group.smallHint' | translate: { n: n }"
+                [attr.aria-label]="'codex.rank.group.smallHint' | translate: { n: n }"
+              >!</button>
+            } @else {
+              <span class="small-group-mark slot" aria-hidden="true"></span>
+            }
+            <!-- Always mounted, so screen readers announce the hint when it appears. -->
+            <span class="sr-only" role="status">@if (smallGroupSize(); as n) { {{ 'codex.rank.group.smallHint' | translate: { n: n } }} }</span>
+          }
         </div>
         <!-- A group under RANK_MIN_GROUP stays the picked group (concept
              r1-small): applied, and said how small it is. -->
-        @if (smallGroupSize(); as n) {
-          <p class="small-group" role="status">{{ 'codex.rank.group.smallHint' | translate: { n: n } }}</p>
+        @if (holo()) {
+          @if (smallGroupSize(); as n) {
+            <p class="small-group" role="status">{{ 'codex.rank.group.smallHint' | translate: { n: n } }}</p>
+          }
         }
       }
 
       <!-- Below three axes there is no shape to draw: the bars say it all. -->
-      @if (ready() && result()!.axes.length >= 3) {
+      @if (ready() && result()!.axes.length >= 3 && (!holo() || shape() === 'hex')) {
         <div class="rank-col-radar">
           <svg class="radar" [style.max-width.px]="holo() ? 270 : null" [attr.viewBox]="holo() ? '-34 -6 268 212' : '0 0 200 200'" [attr.aria-label]="copy().radarAria | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
             <g class="rings" aria-hidden="true">
@@ -152,7 +223,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
               <line class="connector" [class.up]="c.up" [class.down]="!c.up" [attr.x1]="c.x1" [attr.y1]="c.y1" [attr.x2]="c.x2" [attr.y2]="c.y2" />
             }
             @for (cap of axisCaptions(); track cap.key) {
-              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="cap.anchor" [class.gap]="cap.gap" [class.up]="cap.trend === 'up'" [class.down]="cap.trend === 'down'">{{ (holo() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holo() && cap.gap) { ·—}</text>
+              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="cap.anchor" [class.gap]="cap.gap" [class.up]="cap.trend === 'up'" [class.down]="cap.trend === 'down'">{{ (holoText() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holoText() && cap.gap) { ·—}</text>
             }
           </svg>
           <dl class="sr-only axis-mirror">
@@ -171,8 +242,17 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
             <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="2" x2="10" y2="8" class="sw-down" /></svg></dt>
             <dd><b class="down">{{ copy().legendWorse | translate }}</b></dd>
           </dl>
-          @if (holo()) {
-            <p class="rim-note">{{ 'codex.rank.rimNote' | translate }}</p>
+          @if (holoText()) {
+            @if (holo()) {
+              <!-- The scale's footnote lives in its own tooltip: two full lines did not fit the fixed card (B13).
+                   It opens below, so it never lies over the legend and the chart's axis labels (E7). -->
+              <span class="hc-label rim-i" tabindex="0" [scTooltip]="'codex.rank.rimNote' | translate" scTooltipPlacement="below">
+                {{ 'codex.rank.rimLabel' | translate }}<span class="hc-i" aria-hidden="true">i</span>
+                <span class="sr-only">{{ 'codex.rank.rimNote' | translate }}</span>
+              </span>
+            } @else {
+              <p class="rim-note">{{ 'codex.rank.rimNote' | translate }}</p>
+            }
             @if (missionNoteKey(); as note) {
               <p class="rim-note">{{ note | translate }}</p>
             }
@@ -185,6 +265,8 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
           <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
         } @else if (!result()) {
           <p class="gap-note">{{ (gapKey() ?? 'codex.rank.gapAxis') | translate }}</p>
+        } @else if (result()!.thinKey) {
+          <p class="verdict gap thin" role="status">{{ result()!.thinKey! | translate }}</p>
         } @else if (holo()) {
           <!-- The panel's head says it once. -->
         } @else if (result()!.overall != null) {
@@ -229,10 +311,10 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
         }
       </div>
       }
-        @if (ready() && holo()) {
+        @if (ready() && holo() && showBars()) {
           <p class="sub-head"><span>{{ 'codex.holo.stage.strengthsWeaknesses' | translate }}</span><i></i></p>
         }
-        @if (ready()) {
+        @if (ready() && showBars()) {
           <ul class="bar-list">
             @for (a of result()!.bars; track a.key) {
               <li class="bar-row">
@@ -243,8 +325,8 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
                   }
                 </span>
                 <span class="bar-value">
-                  @if (a.percentile != null && holo()) {
-                    <span class="bar-pct">{{ 'codex.rank.betterThan' | translate: { n: a.percentile } }}</span>
+                  @if (a.percentile != null && holoText()) {
+                    <span class="bar-pct">{{ 'codex.rank.betterThan' | translate: { n: pct(a.percentile) } }}</span>
                   } @else if (a.percentile != null) {
                     {{ a.percentile }}%
                   } @else {
@@ -322,10 +404,15 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     .small-group { grid-column: 1 / -1; margin: 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-align: center; }
     .compare-info { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%;
       border: 1px solid var(--sc-border); background: none; color: var(--sc-fg-2); font: inherit; font-size: 12px; cursor: help; }
+    .small-group-mark { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%;
+      border: 1px solid var(--sc-warning); background: none; color: var(--sc-warning); font: inherit; font-size: 12px;
+      font-weight: 700; cursor: help; flex: none; }
+    .small-group-mark.slot { visibility: hidden; }
+    .small-group-mark:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     @media (pointer: coarse) {
-      .compare-info { width: var(--sc-tap-min); height: var(--sc-tap-min); }
+      .compare-info, .small-group-mark { width: var(--sc-tap-min); height: var(--sc-tap-min); }
     }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     .rank-skel { height: 220px; border-radius: 8px; }
     .gap-note { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
@@ -364,7 +451,7 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     .radar .connector.down { stroke: var(--sc-warning); }
     .radar text.up { fill: var(--sc-accent); font-weight: 700; }
     .radar text.down { fill: var(--sc-warning); font-weight: 700; }
-    .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .legend { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 5px 8px; align-items: center; margin: 0;
       font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     .legend dt, .legend dd { margin: 0; }
@@ -475,12 +562,39 @@ const SHIP_SCOPES: readonly RankCardScope[] = [
     :host(.holo) .sub-head i { flex: 1; height: 1px; background: var(--sc-border); }
     :host(.holo) .bar-list { grid-template-columns: 1fr !important; }
     :host(.holo) .bar-row { grid-template-columns: 82px 1fr 40px; }
-    :host(.holo) .bar-label { font-size: max(11.5px, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; }
+    /* Whole words only: "QUERSCHNITT" never breaks as "QUERSCHNIT/T"; a compound breaks at its own hyphen. */
+    :host(.holo) .bar-label { font-size: max(11.5px, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; overflow-wrap: normal; word-break: normal; hyphens: manual; }
     :host(.holo) .bar-value { font-family: var(--font-monospace, monospace); }
     :host(.holo) .rank-skel { height: 180px; }
-    :host(.holo) .bar-row { grid-template-columns: 82px minmax(0, 1fr) auto; }
+    :host(.holo) .bar-row { grid-template-columns: 96px minmax(0, 1fr) auto; }
     :host(.holo) .bar-value { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; text-align: right; }
         :host(.holo) .bar-pct { font-family: var(--sc-font-body); font-size: max(11.5px, var(--sc-fs-floor)); color: var(--sc-fg-0); white-space: nowrap; }
+    :host(.holo) .holo-rank { margin: 0; text-align: center; font-size: max(12px, var(--sc-fs-floor)); color: var(--sc-fg-1); }
+    :host(.holo) .holo-rank b { color: var(--sc-fg-0); font-weight: 600; }
+    :host(.holo) .holo-rank .band { color: var(--sc-fg-2); }
+    /* " · " between the parts: the template's whitespace is stripped, the margin carries the space. */
+    :host(.holo) .holo-rank .sep { margin-inline: 0.4em; color: var(--sc-fg-2); }
+    :host(.holo) .holo-rank:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
+    :host(.holo) .holo-ctrl { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 4px 8px; min-width: 0;
+      padding-bottom: 10px; border-bottom: 1px solid var(--sc-border); }
+    :host(.holo) .hc-label { grid-column: 1 / -1; justify-self: start; display: inline-flex; align-items: center; gap: 5px;
+      font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; cursor: help; border-radius: 3px; }
+    :host(.holo) .hc-label:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    :host(.holo) .hc-i { display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 50%; border: 1px solid currentColor;
+      font: italic 600 9px/1 Georgia, serif; letter-spacing: 0; text-transform: none; }
+    :host(.holo) .hc-label:hover { color: var(--sc-fg-1); }
+    :host(.holo) .hc-select { min-width: 0; }
+    /* Same height as the compact picker beside it: both rows are 32px. */
+    :host(.holo) .hc-shape { align-self: stretch; }
+    :host(.holo) .rim-i { align-self: flex-start; }
+    /* Touch: the focusable tooltip triggers (rank line, labels) reach the 48px tap size. */
+    @media (pointer: coarse) {
+      :host(.holo) .holo-rank { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; min-block-size: 48px; }
+      :host(.holo) .hc-label { min-block-size: 48px; }
+    }
+    /* Classic card with Holotable wording: "Besser als 62 %" does not fit the 34px value column. */
+    :host(.holo-text:not(.holo)) .bar-row { grid-template-columns: 74px minmax(0, 1fr) auto; }
+    :host(.holo-text:not(.holo)) .bar-pct { white-space: nowrap; }
     .rim-note { margin: 0; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
   `],
 })
@@ -511,7 +625,23 @@ export class CodexRankCardComponent {
   /** An honest line under the hexagon (Bergbau/Bergung: no data), an i18n key. */
   readonly missionNoteKey = input<string | null>(null);
   /** The holotable's rim is the group's 95th percentile, the classic card's its best value. */
-  readonly compareInfoKey = computed(() => (this.holo() ? 'codex.rank.compare.infoHolo' : this.copy().compareInfo));
+  readonly compareInfoKey = computed(() => (this.holoText() ? 'codex.rank.compare.infoHolo' : this.copy().compareInfo));
+
+  /** The classic ship card in the Holotable's words (#329): group names, cohort
+   * line, rim note, "Besser als n %" and the gap captions — the classic layout
+   * stays. The page must then rank with the Holotable's options too (p95 rim,
+   * career = class), since the rim note and the root scale describe those. */
+  readonly holoContent = input(false);
+  /** Holotable wording on: the Holotable itself, or the classic card opting in. */
+  readonly holoText = computed(() => this.holo() || this.holoContent());
+
+  /** Classic card with Holotable wording: "7 × Leichter Jäger" as the cohort line. */
+  readonly holoCohortLine = computed<string | null>(() => {
+    const cls = this.shipClass();
+    if (this.holo() || !this.holoContent() || !cls) return null;
+    this.langTick();
+    return rankCohortLabel(this.translate, this.result(), this.roleName(), cls);
+  });
 
   private readonly translate = inject(TranslateService);
   private readonly langTick = signal(0);
@@ -546,31 +676,48 @@ export class CodexRankCardComponent {
     const names = this.holoScopeNames();
     return this.scopes().map((s) => {
       const off = !!available && !available[s.id];
-      return { value: s.id, labelKey: s.labelKey, label: names?.[s.id], titleKey: off ? s.reasonKey : undefined, disabled: off };
+      return { value: s.id, labelKey: s.labelKey, label: names?.[s.id] ?? s.label, titleKey: off ? s.reasonKey : undefined, disabled: off };
     });
   });
 
   /** Holo group names; null = classic wording. Role/career fall back to a
    * neutral phrase ("Gleiche Art"), never to the words Karriere/Rolle. */
   private readonly holoScopeNames = computed<Partial<Record<RankScope, string>> | null>(() => {
-    if (!this.holo()) return null;
+    if (!this.holoText()) return null;
     this.langTick();
     const t = this.translate;
     const alle = (name: string) => t.instant('codex.rank.group.of', { name });
+    const lang = t.getCurrentLang() || 'de';
+    const roleGroup = (role: string) =>
+      rankRoleReadsAsGroup(role, lang) ? alle(rankGroupName(role, lang)) : t.instant('codex.rank.group.ofRole', { name: role.trim() });
     const cls = this.shipClass();
     const role = this.roleName();
     return {
       all: t.instant('codex.rank.scope.all'),
       career: cls ? alle(t.instant(rankClassPluralKey(cls))) : t.instant('codex.rank.scope.careerHolo'),
-      role: role ? alle(rankGroupName(role, t.getCurrentLang() || 'de')) : t.instant('codex.rank.scope.roleHolo'),
+      role: role ? roleGroup(role) : t.instant('codex.rank.scope.roleHolo'),
     };
+  });
+
+  /** A percentage in the reader's number format ("80,8" in German), one decimal at most. */
+  pct(n: number | null): string {
+    this.langTick();
+    return n == null ? '—' : formatNumber(n, undefined, 1);
+  }
+
+  /** Holo rank line: the band word agrees with the place ("Rang 1 von 16" is never "im Mittelfeld"). */
+  readonly holoBandKey = computed<string | null>(() => {
+    const r = this.result();
+    const band = r ? rankBandOfPlace(r.rank ?? null, r.cohortSize) : null;
+    return band ? `codex.rank.band.${band}` : null;
   });
 
   readonly activeScopeLabel = computed<string>(() => {
     const names = this.holoScopeNames();
     const scope = this.activeScope();
     this.langTick();
-    return names?.[scope] ?? this.translate.instant(this.activeScopeLabelKey());
+    const own = this.scopes().find((s) => s.id === scope)?.label;
+    return names?.[scope] ?? own ?? this.translate.instant(this.activeScopeLabelKey());
   });
 
   readonly activeScopeLabelKey = computed<string>(
@@ -586,10 +733,37 @@ export class CodexRankCardComponent {
 
   /** Holotable: the active group's size when it is under RANK_MIN_GROUP, else null. */
   readonly smallGroupSize = computed<number | null>(() => {
-    if (!this.holo()) return null;
+    if (!this.holoText()) return null;
     const r = this.result();
     const n = r?.scopeSizes?.[r.scope];
     return r && r.scope !== 'all' && n != null && n < RANK_MIN_GROUP ? n : null;
+  });
+
+  /** Holotable: one shape at a time, hexagon or bars (C15); remembered per browser. */
+  readonly shapeChoices: readonly ScSegmentOption[] = [
+    { value: 'hex', labelKey: 'codex.holo.card.shapeHex' },
+    { value: 'bars', labelKey: 'codex.holo.card.shapeBars' },
+  ];
+  readonly shape = signal<'hex' | 'bars'>(readShapePref());
+  /** The bars render on the classic card, on the holo "bars" shape, and wherever no hexagon can be drawn. */
+  readonly showBars = computed(() => !this.holo() || this.shape() === 'bars' || (this.result()?.axes.length ?? 0) < 3);
+  setShape(v: string): void {
+    const next = v === 'bars' ? 'bars' : 'hex';
+    this.shape.set(next);
+    try { localStorage.setItem(SHAPE_PREF_KEY, next); } catch { /* private mode: the choice lasts the page */ }
+  }
+  /** The groups as list entries; one without data stays listed, disabled, and says so. */
+  readonly scopeSelectOptions = computed<ScSelectOption[]>(() => {
+    this.langTick();
+    return this.scopeChoices().map((c) => {
+      const name = c.label ?? this.translate.instant(c.labelKey ?? '');
+      return {
+        value: c.value,
+        labelKey: c.labelKey ?? '',
+        label: c.disabled ? this.translate.instant('codex.holo.card.scopeOff', { name }) : name,
+        disabled: c.disabled,
+      };
+    });
   });
 
   pickScope(scope: RankScope): void {
@@ -696,7 +870,7 @@ export class CodexRankCardComponent {
    * centre. The numbers (`norm`, `delta`) stay linear; the classic card stays linear.
    */
   private radial(value: number): number {
-    return this.holo() ? Math.sqrt(value / 100) : value / 100;
+    return this.holoText() ? Math.sqrt(value / 100) : value / 100;
   }
 
   vertexAt(percentile: number, i: number, n: number): string {

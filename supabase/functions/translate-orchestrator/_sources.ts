@@ -2,7 +2,7 @@
 // Runs with the service-role client; auth happens in index.ts. Contract: docs/translation/ARCHITECTURE.md.
 
 import { diffStrings } from './_diff.ts';
-import { buildOverlayMeta, loadTm, makeOverlay, overlayKey, readLocaleTable, saveTm } from './_io.ts';
+import { buildOverlayMeta, loadTm, makeOverlay, overlayKey, putLatestOverlay, readLocaleTable, saveTm } from './_io.ts';
 import type { SourceMetaRow } from './_io.ts';
 import { learningHooks } from './_hooks.ts';
 import { TranslateError } from './_machine.ts';
@@ -88,7 +88,7 @@ export async function republishOverlay(
   const meta = buildOverlayMeta(lang, reused, tm, await listSources(sb, lang));
   const overlay = makeOverlay(lang, buildId, reused, deps.now().toISOString(), meta);
   await deps.store.putJson(overlayKey(lang, buildId), overlay);
-  await deps.store.putJson(overlayKey(lang, 'latest'), overlay);
+  await putLatestOverlay(deps.store, overlay);
   return { count: overlay.count, attribution: overlay.attribution };
 }
 

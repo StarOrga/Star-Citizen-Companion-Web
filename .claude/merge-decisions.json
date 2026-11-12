@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "aspects": {
+    ".claude/project-map.md›data-uploader/python/tests›count": [
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "ef1b2643e01e"
+        ]
+      }
+    ],
+    ".claude/project-map.md›data-uploader/python›count": [
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "1f59b7e28021"
+        ]
+      }
+    ],
+    ".claude/project-map.md›data-uploader›count": [
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "453e9c79e111"
+        ]
+      }
+    ],
+    ".claude/project-map.md›header›tracked-count": [
+      {
+        "ship": "#1096",
+        "by": "Jerry",
+        "value": "2989 tracked files."
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated count of the merged tree (2994)",
+        "decided": true,
+        "at": "2026-11-11T17:34:53.127Z",
+        "hunks": [
+          "e3fb13461868"
+        ]
+      },
+      {
+        "ship": "#1097",
+        "by": "Jerry",
+        "value": "2993 tracked files."
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "regenerated from the merged tree (2994)",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "d6582e990c85"
+        ]
+      }
+    ],
+    ".claude/project-map.md›header›tracked-file-count": [
+      {
+        "ship": "claude/audit-static-logo-usage-34c555",
+        "by": "JerryT2T",
+        "value": "2996 tracked files (regenerated)",
+        "decided": true,
+        "at": "2026-11-11T23:19:52.365Z",
+        "hunks": [
+          "f568977313a7"
+        ]
+      }
+    ],
+    ".claude/project-map.md›header›tracked-files": [
+      {
+        "ship": "fix/kamera-welt-followups",
+        "by": "claude",
+        "value": "regenerated count",
+        "decided": true,
+        "at": "2026-11-11T17:34:48.785Z",
+        "hunks": [
+          "e21c9783816b"
+        ]
+      }
+    ],
+    "data-uploader/src/lib/subthemes.ts›weapons›revision": [
+      {
+        "ship": "#1093",
+        "by": "Jerry",
+        "value": "revision: 4"
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "revision: 5 (supersedes #1093's 4: both #343 and the ,P name fix must re-upload)",
+        "decided": true,
+        "at": "2026-11-11T17:28:44.035Z",
+        "hunks": [
+          "becb5e302089"
+        ]
+      }
+    ],
+    "public/release-notes.json›current›version": [
+      {
+        "ship": "fix/kamera-welt-followups",
+        "by": "claude",
+        "value": "0.257.3",
+        "decided": true,
+        "at": "2026-11-11T17:46:31.474Z",
+        "hunks": [
+          "be0fb2a20145"
+        ]
+      },
+      {
+        "ship": "#1097",
+        "by": "Jerry",
+        "value": "0.257.3"
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "0.258.0 (regenerated from the merged CHANGELOG, keeps 0.257.3's entry)",
+        "decided": true,
+        "at": "2026-11-11T17:59:08.204Z",
+        "hunks": [
+          "a4600c34d8dd"
+        ]
+      },
+      {
+        "ship": "#1094",
+        "by": "Jerry",
+        "value": "0.257.4"
+      },
+      {
+        "ship": "claude/ship-data-extraction-validation-8d0c76",
+        "by": "JerryT2T",
+        "value": "0.258.0 regenerated (keeps 0.257.4 entry)",
+        "decided": true,
+        "at": "2026-11-11T18:04:42.524Z",
+        "hunks": [
+          "c5660787e720"
+        ]
+      }
+    ],
+    "public/release-notes.json›root›current": [
+      {
+        "ship": "claude/audit-static-logo-usage-34c555",
+        "by": "JerryT2T",
+        "value": "0.259.1 (regenerated)",
+        "decided": true,
+        "at": "2026-11-11T23:19:52.365Z",
+        "hunks": [
+          "65f4d0fd9795"
+        ]
+      }
+    ]
+  }
+}

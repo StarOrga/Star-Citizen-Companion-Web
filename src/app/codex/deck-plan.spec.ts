@@ -118,6 +118,74 @@ describe('humanizeRoomKey', () => {
     expect(humanizeRoomKey('Corridors_Middle_Left_Room1_Room_RN')).toBe('Corridors Middle Left 1');
     expect(humanizeRoomKey('Captains_Quarters_Room_Room_RN')).toBe('Captains Quarters');
     expect(humanizeRoomKey('Corridor_Room_RN~2')).toBe('Corridor');
-    expect(humanizeRoomKey('Room_RN')).toBe('Room_RN');
+  });
+
+  it('returns no label for keys with nothing readable left', () => {
+    expect(humanizeRoomKey('Room_RN')).toBe('');
+    expect(humanizeRoomKey('Room_RN-009')).toBe('');
+  });
+});
+
+describe('room labels from the translation pipeline (E14)', () => {
+  const room = (key: string, name: { en: string | null; de: string | null } | null, labelKey?: string) => ({
+    key, name, labelKey, pos: [0, 0, 0], floorZ: 0, height: 3, shapes: [[[0, 0], [4, 0], [4, 4], [0, 4]]],
+  });
+  const decks: ShipDeck[] = [{
+    key: 'Carrack_Deck_1', name: null, order: 0,
+    rooms: [
+      room('Mess_Hall_Room_RN', { en: 'Mess Hall', de: null }, 'scc_room_mess_hall'),
+      room('Habitation_Corridor_Room_RN', null, 'scc_room_habitation_corridor'),
+      room('Bridge_Room_RN', { en: 'Bridge', de: 'Brücke' }),
+      room('Garage_Room_RN', { en: 'Garage', de: null }, 'scc_room_garage'),
+    ],
+  }];
+  const translated = new Map([
+    ['scc_room_mess_hall', 'Messe'],
+    ['scc_room_habitation_corridor', 'Wohnkorridor'],
+    ['scc_room_bridge', 'Falsch'],
+  ]);
+  const labels = (lang: 'de' | 'en', t?: ReadonlyMap<string, string>) =>
+    Object.fromEntries(buildDeckPlans(decks, lang, t)!.decks[0].rooms.map((r) => [r.key, r.label]));
+
+  it('uses the translation for rooms the game ships without German', () => {
+    expect(labels('de', translated)).toEqual({
+      Mess_Hall_Room_RN: 'Messe',
+      Habitation_Corridor_Room_RN: 'Wohnkorridor',
+      Bridge_Room_RN: 'Brücke',
+      Garage_Room_RN: 'Garage',
+    });
+  });
+
+  it('keeps the English label without a translation and on the English page', () => {
+    expect(labels('de')['Mess_Hall_Room_RN']).toBe('Mess Hall');
+    expect(labels('de')['Habitation_Corridor_Room_RN']).toBe('Habitation Corridor');
+    expect(labels('en', translated)['Mess_Hall_Room_RN']).toBe('Mess Hall');
+  });
+});
+
+describe('derived floor levels (LIVE 4.10.2 Idris)', () => {
+  const box = [[[0, 0], [4, 0], [4, 4], [0, 4]]];
+  const room = (key: string, connects?: string[]) => ({
+    key, name: null, pos: [2, 2, 0], floorZ: 0, height: 3, shapes: box, ...(connects ? { connects } : {}),
+  });
+  const decks: ShipDeck[] = [
+    { key: 'level_1', name: { en: 'Level 1', de: 'Ebene 1' }, order: 0, derived: true,
+      rooms: [room('Hangar_Room'), room('Bridge_Elevator', ['level_1', 'level_2'])] },
+    { key: 'level_2', name: { en: 'Level 2', de: 'Ebene 2' }, order: 1, derived: true,
+      rooms: [room('Bridge_Room'), room('Bridge_Elevator', ['level_1', 'level_2'])] },
+  ];
+
+  it('flags a derived deck and names the other levels a stair or lift leads to', () => {
+    const set = buildDeckPlans(decks, 'de')!;
+    expect(set.decks.map((d) => d.derived)).toEqual([true, true]);
+    const lift = (i: number) => set.decks[i].rooms.find((r) => r.key === 'Bridge_Elevator')!;
+    expect(lift(0).connects).toEqual(['Ebene 2']);
+    expect(lift(1).connects).toEqual(['Ebene 1']);
+    expect(set.decks[0].rooms.find((r) => r.key === 'Hangar_Room')!.connects).toEqual([]);
+  });
+
+  it('an authored deck is not derived', () => {
+    const set = buildDeckPlans([{ key: 'Main', name: null, order: 0, rooms: [room('A')] }], 'en')!;
+    expect(set.decks[0].derived).toBe(false);
   });
 });

@@ -58,7 +58,6 @@ import { SlowNavigationService } from './slow-navigation.service';
         linear-gradient(180deg, rgba(10, 29, 43, .9), rgba(6, 23, 36, .94)) padding-box,
         linear-gradient(160deg, rgba(200, 236, 250, .7) 0%, rgba(80, 125, 148, .45) 30%, rgba(30, 58, 74, .5) 60%, rgba(140, 200, 225, .55) 100%) border-box;
       box-shadow: 0 36px 90px rgba(0, 0, 0, .6), 0 10px 24px rgba(0, 0, 0, .4), 0 0 34px rgba(82, 193, 230, .12);
-      backdrop-filter: blur(6px);
       animation: sn-arrive .7s cubic-bezier(.16, .9, .24, 1) both;
     }
     .h2 { margin: 0; font-size: 17px; font-weight: 600; color: var(--sc-fg-0); }

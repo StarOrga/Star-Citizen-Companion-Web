@@ -73,7 +73,8 @@ export class HqOwnershipService {
   readonly configs = computed<HangarShipConfig[]>(() => {
     const cache = this.configCache();
     const uid = this.auth.user()?.id ?? null;
-    return cache && cache.userId === uid ? cache.configs : [];
+    // Wishes are configs too (B10), but not owned variants: keep them out of ownership.
+    return cache && cache.userId === uid ? cache.configs.filter((c) => !c.isWish) : [];
   });
 
   /** Map<classNameLower, HqOwnership>. */

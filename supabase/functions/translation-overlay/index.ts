@@ -1,5 +1,6 @@
 // translation-overlay — serves the published AI-translation overlay of one language.
 //   GET ?lang=de[&build_id=<uuid>]   signed-in user JWT required (401), 404 when not published.
+//   GET ?lang=de&ns=rooms             only the room-label slice (scc_room_*, E14), same auth.
 // The R2 object is streamed; it is never a public Worker path (contract § Data (R2)).
 // verify_jwt = false in config.toml (the gateway cannot verify asymmetric session tokens);
 // the user is checked here with auth.getUser().
@@ -33,7 +34,9 @@ Deno.serve(async (req) => {
   if (!user) return json({ error: 'unauthorized' }, 401);
 
   const url = new URL(req.url);
-  const key = overlayObjectKey(url.searchParams.get('lang'), url.searchParams.get('build_id'), LANG_RE, BUILD_ID_RE);
+  const key = overlayObjectKey(
+    url.searchParams.get('lang'), url.searchParams.get('build_id'), LANG_RE, BUILD_ID_RE, url.searchParams.get('ns'),
+  );
   if (!key) return json({ error: 'bad_params' }, 400);
 
   const r2 = r2FromEnv((k) => Deno.env.get(k));

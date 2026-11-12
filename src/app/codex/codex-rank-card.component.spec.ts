@@ -38,6 +38,53 @@ describe('CodexRankCardComponent', () => {
     expect(el.querySelector('.gap-note')?.textContent?.trim()).toBe('codex.missile.rank.gapNoData');
   });
 
+  it('keeps the group bar when the picked group has nothing to compare, so the way back stays (#331)', () => {
+    fixture.componentRef.setInput('result', null);
+    fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('scope', 'sizeClass');
+    fixture.componentRef.setInput('scopes', [
+      { id: 'all', labelKey: 'codex.missile.scope.all', reasonKey: '' },
+      { id: 'sizeClass', labelKey: 'codex.missile.scope.size', reasonKey: 'codex.missile.scopeOff' },
+    ]);
+    const emitted: string[] = [];
+    fixture.componentInstance.scopeChange.subscribe((v) => emitted.push(v));
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.gap-note')).toBeTruthy();
+    const segs = Array.from(el.querySelectorAll<HTMLButtonElement>('.compare-head .seg-btn'));
+    expect(segs.map((b) => b.textContent!.trim())).toEqual(['codex.missile.scope.all', 'codex.missile.scope.size']);
+    segs[0].click();
+    expect(emitted).toEqual(['all']);
+  });
+
+  it('names a group by the page’s own label when it passes one (#331)', () => {
+    fixture.componentRef.setInput('result', null);
+    fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('scope', 'all');
+    fixture.componentRef.setInput('scopes', [
+      { id: 'all', labelKey: 'codex.missile.scope.all', label: 'Alle Lenkraketen', reasonKey: '' },
+      { id: 'sizeClass', labelKey: 'codex.missile.scope.size', label: 'Alle S2-Lenkraketen', reasonKey: 'codex.missile.scopeOff' },
+    ]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const segs = Array.from(el.querySelectorAll<HTMLButtonElement>('.compare-head .seg-btn'));
+    expect(segs.map((b) => b.textContent!.trim())).toEqual(['Alle Lenkraketen', 'Alle S2-Lenkraketen']);
+    expect(fixture.componentInstance.activeScopeLabel()).toBe('Alle Lenkraketen');
+  });
+
+  it('says "not enough" in place of the verdict for a thin group and keeps bar and bars (#331)', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100 } };
+    const other: RankShipInput = { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200 } };
+    const ranked = rankShip(target, [target, other], { profile: 'combat', scope: 'sizeClass' });
+    fixture.componentRef.setInput('result', { ...ranked, overall: null, band: null, bandKey: null, thinKey: 'codex.missile.rank.gapThinGroup' });
+    fixture.componentRef.setInput('loading', false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.verdict.thin')?.textContent?.trim()).toBe('codex.missile.rank.gapThinGroup');
+    expect(el.querySelector('.compare-head sc-segmented')).not.toBeNull();
+    expect(el.querySelectorAll('.bar-row').length).toBe(ranked.bars.length);
+  });
+
   it('shows a loading skeleton instead of a gap note while fetching', () => {
     fixture.componentRef.setInput('result', null);
     fixture.componentRef.setInput('loading', true);
@@ -155,6 +202,57 @@ describe('CodexRankCardComponent', () => {
     expect(getComputedStyle(legend!).display).not.toBe('none');
     expect(legend!.textContent).toContain('codex.rank.legend.better');
     expect(legend!.textContent).toContain('codex.rank.legend.worse');
+  });
+
+  it('the classic card with holoContent says what the Holotable says, in its own layout (#329)', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: null, career: null, sheet: { alpha: 100, sustainedDps: 1, missiles: 1 } };
+    const other: RankShipInput = { className: 'AEGS_Avenger', sizeClass: null, career: null, sheet: { alpha: 200, sustainedDps: 2, missiles: 2 } };
+    fixture.componentRef.setInput('holoContent', true);
+    fixture.componentRef.setInput('shipClass', 'combat');
+    fixture.componentRef.setInput('roleName', 'Leichter Jäger');
+    fixture.componentRef.setInput('result', rankShip(target, [target, other], { profile: 'combat', scope: 'all' }));
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // Classic layout: card chrome, header, verdict row and profile chips stay.
+    expect(el.querySelector('.rank-card.sc-card')).toBeTruthy();
+    expect(el.querySelector('h2')).toBeTruthy();
+    expect(el.querySelector('.profile-row')).toBeTruthy();
+    // Holotable content: cohort label, group names, rim note, "Besser als n %".
+    expect(el.querySelector('.cohort-line')?.textContent?.trim()).toBe('codex.holo.strip.shipCount');
+    expect(el.querySelector('.rim-note')?.textContent?.trim()).toBe('codex.rank.rimNote');
+    expect(el.querySelector('.bar-pct')?.textContent?.trim()).toBe('codex.rank.betterThan');
+    expect(fixture.componentInstance.compareInfoKey()).toBe('codex.rank.compare.infoHolo');
+    const segs = Array.from(el.querySelectorAll('.compare-head .seg-btn')).map((b) => b.textContent?.trim());
+    expect(segs).toContain('codex.rank.group.of');
+  });
+
+  it('the classic card shows the small-group hint as a tooltip marker, never as a block line (#329)', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100, sustainedDps: 1, missiles: 1 } };
+    const other: RankShipInput = { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200, sustainedDps: 2, missiles: 2 } };
+    const base = rankShip(target, [target, other], { profile: 'combat', scope: 'all' });
+    fixture.componentRef.setInput('holoContent', true);
+    fixture.componentRef.setInput('shipClass', 'combat');
+    fixture.componentRef.setInput('result', { ...base, scope: 'all', scopeSizes: { all: 2, sizeClass: 2 } });
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // No small group: the marker's slot is reserved but invisible.
+    const slot = el.querySelector<HTMLElement>('.compare-head .small-group-mark');
+    expect(slot?.classList.contains('slot')).toBe(true);
+    expect(getComputedStyle(slot!).visibility).toBe('hidden');
+    // The live region is mounted up front (so it announces later) but says nothing yet.
+    expect(el.querySelector('.compare-head [role="status"]')?.textContent?.trim()).toBe('');
+    const slotBox = slot!.getBoundingClientRect();
+
+    fixture.componentRef.setInput('result', { ...base, scope: 'sizeClass', scopeSizes: { all: 2, sizeClass: 2 } });
+    fixture.detectChanges();
+    expect(el.querySelector('.small-group')).toBeNull();
+    const mark = el.querySelector<HTMLElement>('.compare-head button.small-group-mark');
+    expect(mark).toBeTruthy();
+    expect(mark!.getAttribute('aria-label')).toBe('codex.rank.group.smallHint');
+    expect(el.querySelector('.compare-head [role="status"]')?.textContent?.trim()).toBe('codex.rank.group.smallHint');
+    // The marker takes exactly the reserved slot's box: nothing beside it moves.
+    expect(mark!.getBoundingClientRect().width).toBe(slotBox.width);
+    expect(mark!.getBoundingClientRect().height).toBe(slotBox.height);
   });
 });
 

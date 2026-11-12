@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   localizedName,
   isVariant,
+  isShipVariant,
   manuCode,
   makeTagger,
   collectStrings,
@@ -41,6 +42,25 @@ describe('isVariant', () => {
 
   it('keeps the buyable Avenger Titan Renegade (not an NPC clone)', () => {
     expect(isVariant('AEGS_Avenger_Titan_Renegade')).toBe(false);
+  });
+});
+
+describe('isShipVariant', () => {
+  it('flags mission, event and game-mode copies of a player hull', () => {
+    for (const cn of ['AEGS_Idris_M_PU', 'AEGS_Idris_M_PU_GameMaster', 'AEGS_Idris_M_PU_Invictus',
+      'AEGS_Idris_P_FW_25', 'AEGS_Idris_P_TSG', 'ANVL_C8R_Pisces_FW22NFZ', 'RSI_Skylark_Display',
+      'ANVL_C8_Pisces_Tutorial', 'ANVL_Ballista_EA_UEE', 'VNCL_Blade_Swarm',
+      'DRAK_Cutlass_Black_PU_Boarding', 'ANVL_Gladius_PU_AI_CRIM']) {
+      expect(isShipVariant(cn), cn).toBe(true);
+    }
+  });
+
+  it('keeps the ownable hulls', () => {
+    for (const cn of ['AEGS_Idris_M', 'AEGS_Idris_P', 'MISC_Starlancer_Max', 'GRIN_ROC_DS',
+      'MISC_Starlancer_Max_Collector_Indust', 'ANVL_Lightning_F8C_Exec', 'AEGS_Hammerhead_Showdown',
+      'ORIG_600i_Executive_Edition', 'AEGS_Avenger_Titan_Renegade']) {
+      expect(isShipVariant(cn), cn).toBe(false);
+    }
   });
 });
 

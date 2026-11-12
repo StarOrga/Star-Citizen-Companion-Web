@@ -4,6 +4,171 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.1] - 2026-11-12
+
+### Fixed
+- The Verse Companion logo is the desktop app's current icon again everywhere on the site — browser tab, home-screen icon, link previews, header, login and apps menu — and in the browser extension, the Data Uploader 0.80.1 and Starscape 0.11.2. The site had kept the September version after the app redrew its icon in October.
+
+## [0.259.0] - 2026-11-11
+
+### Added
+- Ships without authored decks (Idris) get decks derived from floor height, marked as derived in the deck plan, the hull facts and the Holotable; stairs, ladders and lifts appear on every level they connect and name where they lead (uploader 0.80.0).
+
+## [0.258.1] - 2026-11-11
+
+### Fixed
+- Admin feedback, Alt+click picker: a click in the header, the bar, a navigation, a menu or a dialog now names that region ("Kopfzeile", "Menü „Konto“") instead of the page's route, and the Codex view only stands in front of clicks inside the page. An icon or image inside a button or link names the button or link ("Button „Profilbild (Konto-Menü)“" for the avatar) instead of a nameless "Bild".
+
+## [0.258.0] - 2026-11-11
+
+### Fixed
+- Data Uploader 0.79.0: ship values validated against the wiki and erkul (Starlancer MAX/TAC, ROC/ROC-DS, Idris-M/P) — armour from the fitted armour item, ore pods by their real capacity, ground-vehicle top and reverse speed, fuel capacity, liveries from the game data (names, which ship they fit, 3D hull for the Starlancer), Wikelo special names, mission/event copies of a ship no longer listed as ships, no more hull-mass warning per variant.
+- Codex ship facts show hull HP, hull mass and armour instead of a gap.
+
+## [0.257.4] - 2026-11-11
+
+### Fixed
+- Header: the profile picture now sits level with the Merkliste and apps buttons instead of 2–3 px higher.
+
+## [0.257.3] - 2026-11-11
+
+### Fixed
+- Verse hub (shell beta): the HQ link and label sit on the ground station on the planet; the space station no longer says HQ.
+- Verse hub: News, Patches and Galerie show their name under the planet on hover, like the sun, instead of a tooltip.
+- Verse hub: the placeholder below the stage has the hub's height, so the scrollbar no longer jumps when the hub appears.
+
+## [0.257.2] - 2026-11-11
+
+### Fixed
+- Missile Einordnung: the comparison groups now hold what their names say. "Alle Lenkraketen" compares against every missile of its kind (no torpedoes, no rockets), "Alle Infrarot-Lenkraketen" only against the same tracking signal (IR, EM or cross-section), and "Alle S2-Lenkraketen" only against exactly the same size.
+
+## [0.257.1] - 2026-11-11
+
+### Fixed
+- Kennzahlen: Dauer-DPS is no longer a copy of Salven-DPS. It now counts the pauses for reloading, energy regeneration and overheating; where a weapon has no known cycle yet, the cell says so instead of repeating the burst value.
+
+## [0.257.0] - 2026-11-11
+
+### Changed
+- The Data Uploader is now called Verse Data Uploader everywhere: on the site, in the app's window and tray, and in the Windows start menu.
+
+## [0.256.1] - 2026-11-11
+
+### Fixed
+- Swap picker: coolers, shields and drives show their type ("Kühler") under the name instead of repeating the product name in English.
+
+## [0.256.0] - 2026-11-11
+
+### Added
+- Kamera-Welt (shell beta): Verse, Codex and HQ share one continuous camera scene. Page loads and every page and subpage switch are camera pans and zooms on straight paths instead of background swaps; the header morphs into the subheader, and on phones it moves into the bottom thumb bar.
+- Verse hub projector: the newest item projects first, 5 s on and 5 s off, then projects back out in reverse.
+- Popups open and close as one motion (Horizont); small menus close as a real reverse.
+- Hovering, focusing or pressing a link prepares the target page's code and data before the click.
+
+### Changed
+- Reduced motion crossfades only the scene in 420 ms; the page stays clickable during the fade.
+- Codex, HQ and the Verse hub build their lower parts after the camera has landed, so the flight stays smoother.
+
+### Fixed
+- Scrolling on /codex and /hq: far fewer stutter frames (snap no longer pulls back each wheel notch, no page-wide restyles while scrolling).
+- Ship detail on phones: the floating button column no longer covers the Hangar button.
+- Restored the named loadout layouts with share link and the Codex landing side panes, which an earlier merge had dropped.
+
+## [0.255.0] - 2026-11-10
+
+### Changed
+- Settings → Feedback-Button: switching the feedback button off now also hides the beta button for collaborators and admins — one shared setting.
+
+## [0.254.0] - 2026-11-11
+
+### Added
+- Holotisch: type callouts with a swap button, the ◆ marker for parts that differ from the stock loadout, a hangar menu for Werk, exemplars and wishes, AI name and summary per exemplar.
+- Holotisch: changes in your own exemplar save on their own with a short toast; parts inside gimbals can be saved; wishes keep their loadout.
+- Deck plan and room chips show translated room names.
+
+### Changed
+- Holotisch: one bottom row (Akte · Außen · Innen · part filters), a lighter header, a fixed right card (Einordnung · Bauteile · Änderungen) with rank, group picker, hexagon ⇄ bars and a single-line patch choice.
+- 3D view keeps its distance while rotating.
+
+### Fixed
+- Swap picker was empty for coolers, shields, quantum drives and life support, and wrapped item names letter by letter.
+- Opening an exemplar no longer leads to a dead hangar route; removing the active exemplar no longer leaves its draft behind.
+
+## [0.253.0] - 2026-11-11
+
+### Added
+- Settings → Feedback-Button: an admin can switch the feedback title to a plain green/red routine light (working or reachable = green, offline or paused = red), saved per account; everyone else keeps the four-colour light.
+
+## [0.252.0] - 2026-11-11
+
+### Added
+- Codex classic ship view: clicking a hotspot in the 3D overlay opens a small popup over the Einordnung with that part's own 3D model and its key values; another hotspot swaps it, X or Escape close it.
+
+## [0.251.2] - 2026-11-10
+
+### Fixed
+- Codex classic ship view: the "Nur n Schiffe in dieser Gruppe" hint of the Einordnung is a small warning marker beside the group bar with the text as its tooltip, so picking a small group no longer shifts the card or the headline.
+
+## [0.251.1] - 2026-11-10
+
+### Fixed
+- Codex classic ship view: the hangar button sits in its own row above the headline, so the ship picture and the Einordnung start on the same line and the picture still ends level with the Einordnung.
+
+## [0.251.0] - 2026-11-10
+
+### Added
+- Codex classic ship view: "Zur 3D-Ansicht wechseln" opens a small non-modal overlay over the picture and "Dein Exemplar" with the same 3D view as the Holotisch, nose front-left and a slow counter-clockwise turn over the front (still under reduced motion), plus a "Vollbild" button; X or Escape go back.
+
+## [0.250.6] - 2026-11-10
+
+### Changed
+- Codex classic ship view: the "Zelle & feste Systeme" block starts collapsed also under the default "Alles" Einsatz and opens with a click; every other block still starts expanded.
+
+## [0.250.5] - 2026-11-10
+
+### Fixed
+- Codex Einordnung: the scope bar (Alle/Art/Größe/Signal) always stays visible; a missile group with too few differing values keeps its scope and shows "Nicht genug Vergleichswerte" instead of the score, plus the bars for the values that still differ.
+
+## [0.250.4] - 2026-11-10
+
+### Fixed
+- HQ inventory: all containers share one tile size instead of a quantity-based one, and Hangar and Sammlung tiles keep a fixed height; long names and details are shortened instead of growing the tile.
+
+## [0.250.3] - 2026-11-10
+
+### Changed
+- Codex classic ship view: the Loadout column drops its outer card; like Analyse, only the heading (Loadout, count, info) sits above the individual area boxes, which keep their backgrounds.
+
+## [0.250.2] - 2026-11-10
+
+### Changed
+- Codex classic ship view: the Einordnung card shows the same content as on the Holotisch (group names, comparison line, "Besser als n %", side note and the same values) while keeping its classic layout and position.
+
+## [0.250.1] - 2026-11-10
+
+### Fixed
+- HQ: a dialog that blocks page scroll (e.g. "Einträge löschen?") no longer makes the collapsed headline expand as if the page were back at the top.
+
+## [0.250.0] - 2026-11-10
+
+### Changed
+- Codex classic ship view: the separate draft box is gone; the Einsatz row now carries a narrow layout dropdown ("Neu" plus the saved layouts), a save icon with an unsaved-changes dot, the share link and a cart icon (still disabled), while the Einsatz chips keep their size.
+
+## [0.249.0] - 2026-11-10
+
+### Added
+- Codex ship loadout: every missile shows its damage as the headline figure (rack total), plus range, speed and lock time, and a tag with its seeker signal (infrared, electromagnetic or cross-section); a value missing in the data leaves its line out.
+
+## [0.248.2] - 2026-11-10
+
+### Fixed
+- Codex classic ship view: the empty crumb row above the headline is gone, so the maker and role line sits under the normal page spacing instead of a large gap.
+
+## [0.248.1] - 2026-11-10
+
+### Fixed
+- **Deck plans: rooms land on their deck (Data Uploader 0.77.1).** Rooms the game data files under no deck now go to the deck of the authored rooms on their floor level, taken from the ship and its sister hulls. The Starlancer MAX shows its rooms on Deck 01 and Deck 02 instead of all 24 under "All rooms"; the Carrack keeps 5 rooms under "Other rooms" instead of 20, the Ironclad none instead of 7. Ships whose whole family names no deck for any room (890 Jump, Retaliator, Redeemer, Starlifter, Vulture) keep the "All rooms" deck. Takes effect with the next uploader run.
+
 ## [0.248.0] - 2026-11-09
 
 ### Added

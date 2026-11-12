@@ -10,6 +10,10 @@
 // energy moves every value, so it stays in sight) and under it the four
 // perspective areas, projected by the stage ([hsDock]). No minimise control.
 //
+// Concept holotisch-feinschliff r4 (d1): the Einsatz moved to the head's
+// centre (sc-codex-holo-einsatz), the row holds only the four topics, and the
+// arrow became a thin handle bar under the capsule.
+//
 // Reuses `codex-power.ts` (the SAME model `sc-codex-energy-dock` computes
 // from) rather than re-deriving the reactor/cooling maths, and
 // `codex-build-compare.ts`'s `PERSPECTIVE_KPIS` (the SAME grouping the
@@ -20,8 +24,6 @@ import {
   Component,
   DestroyRef,
   ElementRef,
-  HostListener,
-  viewChild,
   afterNextRender,
   computed,
   effect,
@@ -48,7 +50,7 @@ import {
   powerStorageKey,
   serializeLocalPowerDraft,
 } from '../codex-loadout-draft';
-import { MISSIONS, MissionId, ShipCapabilities, missionById } from '../codex-mission';
+import { ShipCapabilities } from '../codex-mission';
 import {
   FlightMode,
   PowerColumnKey,
@@ -71,7 +73,6 @@ import {
 import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { CountUp } from './count-up';
-import { MISSION_ICON, missionColor } from './codex-holo-mission';
 
 const GROUP_ICON: Readonly<Record<PowerGroup, string>> = {
   weapons: 'weapon',
@@ -101,13 +102,7 @@ interface PerspectiveTile {
   cells: readonly KpiStripCell[];
 }
 
-/** One choice of the strip's Einsatz picker. */
-export interface StripMission {
-  id: MissionId;
-  labelKey: string;
-  sub: string;
-  disabledKey: string | null;
-}
+export type { StripMission } from './codex-holo-einsatz.component';
 
 let uidSeq = 0;
 
@@ -118,19 +113,6 @@ let uidSeq = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-strip" [class.open]="expanded()">
-      @if (missionOpen()) {
-        <div class="mission-pop" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate" (keydown.escape)="closeMissions($event)">
-          @for (m of missions(); track m.id) {
-            <span style="display: contents" [scTooltip]="m.disabledKey ? (m.disabledKey | translate) : null" scTooltipTier="label">
-              <button type="button" class="mp" role="radio" [class.on]="m.id === active()" [attr.aria-checked]="m.id === active()"
-                      [disabled]="!!m.disabledKey" (click)="pickMission(m.id)">
-                <span class="mp-l" [style.--h]="hueOf(m.id)"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="iconOf(m.id)" /></svg>{{ m.labelKey | translate }}</span>
-                @if (!m.disabledKey) { <small>{{ m.sub }}</small> }
-              </button>
-            </span>
-          }
-        </div>
-      }
       @if (expanded()) {
         <div class="hs-panel" [id]="panelId" role="region" [attr.aria-label]="'codex.holo.strip.dockAria' | translate"
              animate.enter="hp-enter" animate.leave="hp-leave"
@@ -239,15 +221,6 @@ let uidSeq = 0;
         </div>
       }
       <div class="hs-row">
-        <button type="button" class="seg einsatz" #missionBtn [attr.aria-haspopup]="'true'" [attr.aria-expanded]="missionOpen()"
-                [attr.aria-label]="'codex.holo.strip.einsatzPick' | translate"
-                [scTooltip]="'codex.holo.strip.einsatzPick' | translate" scTooltipTier="label"
-                (click)="toggleMissions($event)" (keydown.escape)="missionOpen() && closeMissions($event)">
-          <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}<span class="caret" aria-hidden="true">▴</span></span>
-          <span class="val"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="activeMissionIcon()" /></svg>{{ activeMissionLabel() | translate }}</span>
-          <span class="sub" [class.gapv]="!cohortLabel()">{{ cohortLabel() ?? ('codex.kpi.gap' | translate) }}</span>
-        </button>
-
         @for (tile of perspectiveTiles(); track tile.perspective) {
           <div class="seg tile" [attr.data-p]="tile.perspective">
             <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span></span>
@@ -297,19 +270,20 @@ let uidSeq = 0;
           </div>
         </div>
 
-        <button
-          type="button"
-          class="hs-toggle"
-          [attr.aria-expanded]="expanded()"
-          [attr.aria-controls]="panelId"
-          [attr.aria-label]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
-          [scTooltip]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
-          scTooltipTier="label"
-          (click)="toggleExpanded()"
-        >
-          <span class="chev" [class.open]="expanded()" aria-hidden="true">▴</span>
-        </button>
       </div>
+      <!-- The dock's handle: a thin bar under the capsule (concept holotisch-feinschliff C8), it takes no width from the four topics. -->
+      <button
+        type="button"
+        class="hs-toggle"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-controls]="panelId"
+        [attr.aria-label]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
+        [scTooltip]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
+        scTooltipTier="label"
+        (click)="toggleExpanded()"
+      >
+        <span class="bar" [class.open]="expanded()" aria-hidden="true"></span>
+      </button>
 
     </div>
   `,
@@ -345,8 +319,6 @@ let uidSeq = 0;
           border-block-end: calc(1px * var(--holo-join, 0)) solid color-mix(in srgb, var(--holo-e, var(--sc-accent)) 28%, transparent);
           box-shadow: 0 -10px 30px rgb(0 0 0 / calc(0.5 * (1 - var(--holo-join, 0))));
         }
-        .holo-strip .einsatz { border-start-start-radius: calc(18px * (1 - var(--holo-join, 0))); }
-        .holo-strip .hs-toggle { border-end-end-radius: calc(16px * var(--holo-join, 0)); }
       }
       /* --fab-clear: the feedback launcher owns the bottom-right corner
          (--sc-fab-lane in styles.scss) — where the strip reaches into that
@@ -357,27 +329,6 @@ let uidSeq = 0;
       .seg { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 6px clamp(7px, 0.6vw, 11px); min-width: 0; flex: 1 1 auto; }
       .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(9px, var(--sc-fs-floor));
         letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-accent); white-space: nowrap; }
-      .einsatz { flex: 0 0 auto; min-inline-size: clamp(120px, 8vw, 150px); background: none; border: 0; border-start-start-radius: 18px; font: inherit; color: inherit; text-align: start; align-items: flex-start;
-        cursor: pointer; transition: background 160ms ease; }
-      .einsatz .lab { color: var(--sc-fg-2); }
-      .einsatz:hover, .einsatz[aria-expanded='true'] { background: color-mix(in srgb, var(--holo-e, var(--sc-accent)) 14%, transparent); }
-      .einsatz:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-      .caret { color: var(--sc-accent); font-size: 0.8em; letter-spacing: 0; }
-      .mission-pop { position: absolute; inset-block-end: 100%; inset-inline-start: 0; margin-block-end: 6px; z-index: 5; display: grid; gap: 2px; padding: 6px; min-inline-size: 240px;
-        background: var(--sc-bg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0)); border-radius: 4px; box-shadow: 0 -10px 30px rgb(0 0 0 / 0.5); }
-      .mp { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 6px 10px; min-block-size: var(--sc-tap-min, 32px); background: none; border: 0; border-radius: 3px;
-        color: var(--sc-fg-1); font: inherit; cursor: pointer; text-align: start; }
-      .mp-l { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sc-font-display); font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; }
-      .mp-l svg { color: var(--h, currentColor); }
-      .mp-l svg, .einsatz .val svg { inline-size: 1.15em; block-size: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-      .mp small { font-family: var(--hs-mono); font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
-      .mp:hover:not(:disabled) { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
-      .mp.on { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
-      .mp:disabled { opacity: 0.4; cursor: not-allowed; }
-      .mp:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-      .einsatz .val { display: flex; align-items: center; gap: 6px; max-inline-size: 100%; font-family: var(--sc-font-display); font-size: clamp(12px, 0.76vw, 14.5px); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-        color: var(--holo-e, var(--sc-accent)); line-height: 1.1; white-space: nowrap; transition: color var(--holo-t-base) ease; }
-      .einsatz .sub { max-inline-size: 100%; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .tile-vals { display: flex; justify-content: space-between; gap: clamp(6px, 0.5vw, 9px); flex-wrap: nowrap; }
       .tv { display: flex; flex-direction: column; gap: 1px; }
       .tv .k { font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
@@ -399,30 +350,26 @@ let uidSeq = 0;
       /* Touch: a focusable fact (tooltip in metres) reaches the tap minimum. */
       @media (pointer: coarse) { .fact[tabindex] { min-block-size: var(--sc-tap-min); min-inline-size: var(--sc-tap-min); justify-content: center; } }
       .tip-trigger { font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
-      .hs-toggle {
-        align-self: stretch; margin-inline-start: auto; flex: none;
-        min-inline-size: var(--sc-tap-min, 44px); min-block-size: var(--sc-tap-min);
-        border: none; border-inline-start: 1px solid var(--sc-border); background: transparent;
-        color: var(--sc-accent); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;
-      }
-      .hs-toggle:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
-      .hs-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-      .hs-toggle { transition: background var(--holo-t-fast) ease; }
-      .hs-toggle .chev { display: inline-block; transition: transform var(--holo-t-base) var(--e-out); }
-      .hs-toggle .chev.open { transform: rotate(180deg); }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
       .gapv { color: var(--sc-fg-2); }
 
-      /* Desktop: the row on the stage's shared columns — the Einsatz narrow on
-         the left, the four areas evenly beside it, the arrow (concept r1 d2). */
+      /* Desktop: the four topics share the whole row evenly (the Einsatz sits in
+         the head, the dock's handle under the row — concept holotisch-feinschliff C4/C8). */
       @media (min-width: 901px) {
-        /* The launcher's lane is the grid's trailing column here (--holo-cols), not a padding. */
-        /* The box itself ends before the corner (margin below), so the row drops the stage's trailing lane column. */
-        .hs-row { display: grid; grid-template-columns: var(--holo-lead-w, minmax(150px, 15%)) repeat(4, minmax(0, 1fr)) var(--holo-ctl-w, 44px); padding-inline-end: 0; }
-        .einsatz { min-inline-size: 0; }
-        .seg.tile { border-inline-start: 1px solid color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-        .hs-toggle { margin-inline-start: 0; }
+        .hs-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-inline-end: 0; }
+        .seg.tile + .seg.tile { border-inline-start: 1px solid color-mix(in srgb, var(--sc-accent) 22%, transparent); }
       }
+      /* The handle: a thin bar under the capsule, the full width is its target. */
+      .hs-toggle { display: flex; align-items: center; justify-content: center; inline-size: 100%; block-size: 14px; padding: 0; margin: 0;
+        border: 0; border-block-start: 1px solid color-mix(in srgb, var(--sc-accent) 14%, transparent); background: transparent; cursor: pointer;
+        transition: background var(--holo-t-fast) ease; }
+      .hs-toggle .bar { display: block; inline-size: 44px; block-size: 3px; border-radius: 2px; background: color-mix(in srgb, var(--sc-accent) 55%, transparent);
+        transition: background var(--holo-t-fast) ease, inline-size var(--holo-t-base) var(--e-out); }
+      .hs-toggle:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+      .hs-toggle:hover .bar, .hs-toggle .bar.open { background: var(--sc-accent); inline-size: 64px; }
+      .hs-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      /* Touch: the bar keeps its look, the row under it grows to a reachable target. */
+      @media (pointer: coarse) { .hs-toggle { block-size: 48px; min-block-size: 48px; } }
       /* The dock: over the page, docked on the row (concept r1-dock-open
          "both": the arrow opens it anywhere). Energy is its own row on top
          (r1-dock-energy "row"), the four areas under it. Capped to the
@@ -520,8 +467,6 @@ let uidSeq = 0;
         .tile-vals .tv + .tv { display: none; }
         .sig .fact + .fact { display: none; }
         .seg { padding: 6px 8px; }
-        .einsatz { min-inline-size: 0; }
-        .einsatz .sub { display: none; }
         .sig .lab { max-inline-size: 64px; white-space: normal; line-height: 1.15; }
       }
       @media (max-width: 640px) {
@@ -538,12 +483,6 @@ let uidSeq = 0;
         .rankpips { display: none; }
         .sig .lab { max-inline-size: none; }
         .tip-trigger { display: none; }
-        /* The mission segment sizes to its own label: as an equal flex share
-           its nowrap "EINSATZ" / "◈ ALLES" spilled over the first value. */
-        .einsatz { flex: none; }
-        .einsatz .lab { letter-spacing: 0.08em; }
-        .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; white-space: nowrap; }
-        .hs-toggle { min-inline-size: max(36px, var(--sc-tap-min)); }
         /* Phone: the dock rides on the fixed bar, which already ends before
            the feedback launcher's lane — nothing of it sits under the FAB. */
         .hs-panel { max-block-size: 70vh; max-block-size: calc(100dvh - var(--holo-strip-h, 52px) - var(--holo-strip-lift, 0px) - 56px);
@@ -568,44 +507,8 @@ export class CodexHoloStripComponent {
   // ── mirrors sc-codex-kpi-band's input 1:1 ──────────────────────────────
   readonly cells = input.required<readonly KpiStripCell[]>();
 
-  // ── mirrors sc-codex-mission-bar's inputs/output 1:1 ───────────────────
-  readonly active = input.required<MissionId>();
+  // The Einsatz picker lives in the head now (sc-codex-holo-einsatz, concept holotisch-feinschliff C4).
   readonly capabilities = input<ShipCapabilities | null>(null);
-  readonly missionChange = output<MissionId>();
-  /** The choices of the Einsatz picker, with their lead value. */
-  readonly missions = input<readonly StripMission[]>([]);
-  readonly missionOpen = signal(false);
-  private readonly missionBtn = viewChild<ElementRef<HTMLElement>>('missionBtn');
-
-  toggleMissions(ev: Event): void {
-    ev.stopPropagation();
-    this.missionOpen.update((v) => !v);
-  }
-
-  closeMissions(ev: Event): void {
-    ev.stopPropagation();
-    this.missionOpen.set(false);
-    this.missionBtn()?.nativeElement.focus({ preventScroll: true });
-  }
-
-  pickMission(id: MissionId): void {
-    this.missionOpen.set(false);
-    this.missionChange.emit(id);
-    this.missionBtn()?.nativeElement.focus({ preventScroll: true });
-  }
-
-  /** A click anywhere else closes the picker. */
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(ev: Event): void {
-    if (!this.missionOpen()) return;
-    const pop = (ev.target as HTMLElement | null)?.closest?.('.mission-pop');
-    if (!pop) this.missionOpen.set(false);
-  }
-
-  /** What the default Einsatz is called: the ship's class ("Kampfschiff"). */
-  readonly defaultLabelKey = input<string | null>(null);
-  /** Who the Einsatz cell compares with ("26 × Leichter Jäger"); null while the group loads. */
-  readonly cohortLabel = input<string | null>(null);
 
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
@@ -658,15 +561,6 @@ export class CodexHoloStripComponent {
     if (override == null || base.value != null) return base;
     return { ...base, value: override, gapKey: null };
   });
-
-  protected readonly activeMissionLabel = computed(() => (this.active() === 'all' && this.defaultLabelKey()) || missionById(this.active()).labelKey);
-  protected readonly activeMissionIcon = computed(() => MISSION_ICON[this.active()]);
-  protected iconOf(id: MissionId): string {
-    return MISSION_ICON[id];
-  }
-  protected hueOf(id: MissionId): string {
-    return missionColor(id);
-  }
 
   /** groups `cells()` (already computed against the active mission) into the
    * three mini tiles via the SAME classification `buildPerspectiveDeltas`
@@ -797,11 +691,16 @@ export class CodexHoloStripComponent {
       this.destroyRef.onDestroy(() => clearTimeout(late));
       const onResize = () => this.measureFabClearance();
       window.addEventListener('resize', onResize, { passive: true });
-      const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;
+      // Next frame, not inside the observer callback: the clearance changes layout (ResizeObserver loop).
+      let raf = 0;
+      const ro = typeof ResizeObserver === 'function'
+        ? new ResizeObserver(() => { raf ||= requestAnimationFrame(() => { raf = 0; onResize(); }); })
+        : null;
       ro?.observe(this.host.nativeElement);
       this.destroyRef.onDestroy(() => {
         window.removeEventListener('resize', onResize);
         ro?.disconnect();
+        cancelAnimationFrame(raf);
       });
     });
     this.destroyRef.onDestroy(() => {

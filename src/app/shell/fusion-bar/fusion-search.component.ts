@@ -111,6 +111,9 @@ function storage(): Storage | null {
 /** Ships a fitted-on meta line names before it counts the rest. */
 const FITTED_SHOWN = 2;
 
+/** The Verse hub (bare domain or /verse): its stage search takes typed letters. */
+const VERSE_HOME = /^\/(verse)?(?:[?#]|$)/;
+
 /**
  * The Fusion bar's search (concept 2026-11-02 "Suche: Kontext & Aktionen").
  *
@@ -124,6 +127,7 @@ const FITTED_SHOWN = 2;
  * standard icons (Wunschliste · Nachschub · Bestand / In den Hangar).
  * Every row is a real anchor; the field keeps focus (aria-activedescendant).
  */
+
 @Component({
   selector: 'sc-fusion-search',
   standalone: true,
@@ -1305,6 +1309,13 @@ export class FusionSearchComponent {
     if (this.hub.hasBar() && isTypeToSearchKey(ev)) {
       ev.preventDefault();
       this.hub.activate(ev.key);
+      return;
+    }
+    // The Verse hub's stage field takes typed letters too - also the key that skips the
+    // entrance (it is not consumed there), so the first letter already lands in it (QA D4).
+    if (this.chrome.stageSearch() === 'stage' && VERSE_HOME.test(this.url()) && isTypeToSearchKey(ev)) {
+      ev.preventDefault();
+      this.focus(ev.key);
     }
   }
 

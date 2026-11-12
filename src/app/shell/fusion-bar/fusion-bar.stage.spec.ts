@@ -18,6 +18,17 @@ describe('Gleiche Leiste: the scroll-linked condense progress', () => {
     expect(dockProgress(NaN)).toBe(0);
   });
 
+  it('spans the whole stage → lower snap step when the page snaps (0.1 to 0.85 of the travel)', () => {
+    const travel = 900;
+    expect(dockProgress(travel * 0.05, travel)).toBe(0);
+    expect(dockProgress(travel * 0.1, travel)).toBeCloseTo(0, 5);
+    expect(dockProgress(travel * 0.475, travel)).toBeCloseTo(0.5, 5);
+    expect(dockProgress(travel * 0.85, travel)).toBeCloseTo(1, 5);
+    expect(dockProgress(travel, travel)).toBe(1);
+    // A step shorter than the plain distance keeps the plain mapping.
+    expect(dockProgress(DOCK_SCROLL_PX / 2, 100)).toBeCloseTo(0.5, 5);
+  });
+
   it('is reversible: the same depth gives the same progress on the way down and up', () => {
     const down = [0, 40, 80, 120, 160].map(dockProgress);
     const up = [160, 120, 80, 40, 0].map(dockProgress).reverse();

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
+import { claimRootAttr } from '../core/root-var';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BetaService } from '../core/beta.service';
@@ -48,7 +49,7 @@ import { FusionBarComponent } from './fusion-bar/fusion-bar.component';
       <header class="public-topbar">
         <a class="home" routerLink="/">
           <span class="arrow" aria-hidden="true">←</span>
-          <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="32" height="32" />
+          <img class="logo" src="icons/brand/vc-mark.svg" alt="" width="32" height="32" />
           <span class="label">{{ 'nav.backToHome' | translate }}</span>
         </a>
       </header>
@@ -128,4 +129,10 @@ export class PublicLayoutComponent {
   protected readonly layout = inject(LayoutService);
   readonly shellOn = inject(BetaService).isEnabled('shell');
   readonly skipToMain = skipToMain;
+
+  constructor() {
+    // The layout on <html> too: global rules read html[data-sc-layout], never html:has([data-layout]).
+    effect(() => claimRootAttr('data-sc-layout', this, this.shellOn() ? this.layout.layout() : null));
+    inject(DestroyRef).onDestroy(() => claimRootAttr('data-sc-layout', this, null));
+  }
 }

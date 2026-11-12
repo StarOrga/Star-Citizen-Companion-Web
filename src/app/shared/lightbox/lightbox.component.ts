@@ -149,16 +149,14 @@ const WIDE_RATIO = 1.5;
     .tools { top: 10px; right: 10px; display: flex; gap: 6px; }
     .ib {
       display: inline-grid; place-items: center; min-width: 36px; min-height: max(36px, var(--sc-tap-min, 0px)); border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(0, 0, 0, 0.5); color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(0, 0, 0, 0.72); color: #fff;
       font: inherit; font-size: 1rem; line-height: 1; text-decoration: none; cursor: pointer;
-      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     }
     .ib:hover, .ib:focus-visible, .ab:hover, .ab:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); text-decoration: none; }
     .acts { left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 24px); }
     .ab {
-      padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(0, 0, 0, 0.55);
+      padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(0, 0, 0, 0.75);
       color: #fff; font-size: max(0.82rem, var(--sc-fs-floor, 0px)); text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em;
-      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     }
     .extra { right: 12px; bottom: 12px; display: flex; gap: 8px; align-items: center; }
     .extra:empty { display: none; }

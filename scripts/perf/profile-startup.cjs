@@ -29,7 +29,7 @@ const uid = '00000000-0000-4000-8000-000000000001', t = Math.floor(Date.now() / 
 const user = { id: uid, aud: 'authenticated', role: 'authenticated', email: 't@example.com', app_metadata: { provider: 'email' }, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' };
 const session = { access_token: b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64({ sub: uid, role: 'authenticated', exp: t + 86400, aud: 'authenticated' }) + '.sig', refresh_token: 'r', token_type: 'bearer', expires_in: 86400, expires_at: t + 86400, user };
 // Any image request gets the repo's OG card — real bytes, so decode/layout costs are real.
-const stubImage = fs.readFileSync(path.resolve(__dirname, '../../public/icons/brand/scc-og-1200x630.png'));
+const stubImage = fs.readFileSync(path.resolve(__dirname, '../../public/icons/brand/vc-og-1200x630.png'));
 (async () => {
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;

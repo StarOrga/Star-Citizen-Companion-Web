@@ -280,7 +280,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
                 </div>
                 <div class="stacks">
                   @for (c of d.crates; track c.key) {
-                    <sc-hq-crate class="sz-m" [crate]="c" size="m" [selected]="selection().has(c.key)" [placeLabel]="crateLabel(c.location)" [scrap]="scrapOf(c)" [friendName]="friendName" (chosen)="toggleSel(c)" />
+                    <sc-hq-crate [crate]="c" [selected]="selection().has(c.key)" [placeLabel]="crateLabel(c.location)" [scrap]="scrapOf(c)" [friendName]="friendName" (chosen)="toggleSel(c)" />
                   }
                 </div>
               </section>
@@ -352,7 +352,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
                     <span class="lbl"><svg viewBox="0 0 24 24" aria-hidden="true">@for (d of laneIcon; track $index) { <path [attr.d]="d" /> }</svg>{{ 'hq.bestand.deck.kind.' + l.kind | translate }}</span>
                     <div class="row">
                       @for (c of l.crates; track c.key) {
-                        <sc-hq-crate [class]="'sz-' + sizeOf(c, l.crates)" [crate]="c" [size]="sizeOf(c, l.crates)" [selected]="selection().has(c.key)" [showPlace]="!place()"
+                        <sc-hq-crate [crate]="c" [selected]="selection().has(c.key)" [showPlace]="!place()"
                                      [placeLabel]="crateLabel(c.location)" [scrap]="scrapOf(c)" [friendName]="friendName" (chosen)="toggleSel(c)" />
                       }
                     </div>
@@ -574,7 +574,8 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .lbl { flex: none; width: 90px; display: flex; flex-direction: column; gap: 6px; color: var(--sc-fg-2); font: 600 0.62rem / 1.2 var(--sc-font-display, inherit); letter-spacing: .12em; text-transform: uppercase; }
       .lbl svg { width: 18px; height: 18px; color: var(--sc-accent); }
       .row { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
-      sc-hq-crate.sz-xl { width: 190px; height: 112px; } sc-hq-crate.sz-l { width: 156px; height: 104px; } sc-hq-crate.sz-m { width: 136px; height: 96px; } sc-hq-crate.sz-s { width: 120px; height: 90px; }
+      /* #337: every container is one size (CRATE_W × CRATE_H − GAP), long content clamps inside it instead of growing it. */
+      sc-hq-crate { flex: 0 0 auto; width: 150px; height: 104px; }
       .set, .pad, .lock { display: flex; flex-direction: column; gap: 2px; width: 150px; min-height: 56px; padding: 8px 10px; border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1); color: var(--sc-fg); font: inherit; font-size: 0.75rem; text-align: start; text-decoration: none; }
       .set small, .pad small, .lock small { color: var(--sc-fg-2); font-size: 0.66rem; }
       .set:hover, .pad:hover, .lock:hover { border-color: var(--sc-accent); }
@@ -609,15 +610,15 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .empty-area p { margin: 0; flex-basis: 100%; }
       .selbar { position: sticky; bottom: var(--sc-float-bottom, 12px); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-inline-end: var(--sc-fab-clear-inline, 0px); padding: 8px 12px; border: 1px solid var(--sc-accent); border-radius: 12px; background: var(--sc-bg-1); box-shadow: 0 10px 28px rgb(0 0 0 / .45); }
       .selbar svg { width: 16px; height: 16px; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: minmax(104px, auto); gap: 10px; align-content: start; }
-      .tile { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; padding: 10px 12px; border: 1px solid var(--sc-border); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 5%, var(--sc-bg-1)), var(--sc-bg-1)); color: var(--sc-fg); text-decoration: none; font: inherit; text-align: start; transition: border-color 0.2s, transform 0.2s; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: 112px; gap: 10px; align-content: start; }
+      .tile { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 2px; min-width: 0; min-height: 0; overflow: hidden; padding: 10px 12px; border: 1px solid var(--sc-border); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 5%, var(--sc-bg-1)), var(--sc-bg-1)); color: var(--sc-fg); text-decoration: none; font: inherit; text-align: start; transition: border-color 0.2s, transform 0.2s; }
       /* The add tile is a native button inside a listitem wrapper that fills the grid cell (display: contents can drop the role). */
       .cell { display: flex; min-width: 0; }
       .cell > .tile { flex: 1; min-width: 0; }
       .tile.add { align-items: center; justify-content: center; border-style: dashed; border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); cursor: pointer; }
       .tile.add:hover { border-color: var(--sc-accent); transform: translateY(-1px); }
       /* F2, a3-s9: Hangar reads as ship bays - a landing pad (hatched floor, ring) per ship. */
-      .grid.pads { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); grid-auto-rows: minmax(150px, auto); gap: 14px; }
+      .grid.pads { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); grid-auto-rows: 150px; gap: 14px; }
       .grid.pads .tile { align-items: center; justify-content: flex-end; text-align: center; padding: 14px 10px 12px; border-radius: 8px;
         background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--sc-warning) 6%, transparent) 0 8px, transparent 8px 16px), var(--sc-bg-1); }
       .grid.pads .tile::before { content: ''; position: absolute; left: 14%; right: 14%; top: 22px; height: 62px; border: 1.5px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); border-radius: 50%; pointer-events: none; }
@@ -626,7 +627,7 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .grid.pads .tile.add { background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); justify-content: center; }
       .grid.pads .tile.add::before { display: none; }
       /* F2, a3-s10: Sammlung reads as an archive - a locker (handle bar, ruled front) per entry. */
-      .grid.lockers { grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: minmax(130px, auto); gap: 10px; }
+      .grid.lockers { grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); grid-auto-rows: 130px; gap: 10px; }
       .grid.lockers .tile { justify-content: flex-start; padding: 28px 12px 12px; border-radius: 6px;
         background: linear-gradient(90deg, color-mix(in srgb, var(--sc-fg-2) 8%, transparent) 1px, transparent 1px) 0 0 / 12px 100%, var(--sc-bg-1); }
       .grid.lockers .tile::before { content: ''; position: absolute; left: 10px; right: 10px; top: 10px; height: 6px; border-radius: 3px; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--sc-fg-2) 40%, transparent) 0 3px, transparent 3px 6px); pointer-events: none; }
@@ -635,14 +636,14 @@ type Cell = { kind: 'add' } | { kind: 'ship'; ship: HangarShip } | { kind: 'bp';
       .plus { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--sc-accent) 60%, transparent); color: var(--sc-accent); }
       .plus svg { width: 22px; height: 22px; stroke-width: 2; }
       .add-t { font-size: 0.8rem; color: var(--sc-fg-1); text-align: center; }
-      .tile .nm { font-size: 0.9rem; line-height: 1.2; overflow-wrap: anywhere; padding-right: 3.2ch; }
+      .tile .nm { flex: none; font-size: 0.9rem; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; padding-right: 3.2ch; }
       .tile .nm.tile-link { color: inherit; text-decoration: none; }
       .tile-link::after { content: ''; position: absolute; inset: 0; border-radius: 12px; }
       .tile-link:focus-visible { outline: none; }
-      .tile-link:focus-visible::after { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .tile-link:focus-visible::after { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
       .tile:has(.tile-link):hover { border-color: var(--sc-accent); transform: translateY(-1px); }
       .tile .qty { position: absolute; top: 8px; right: 12px; font: 700 1rem var(--sc-font-display, inherit); color: var(--sc-accent); pointer-events: none; }
-      .tile .where { color: var(--sc-fg-2); font-size: 0.74rem; overflow-wrap: anywhere; }
+      .tile .where { color: var(--sc-fg-2); font-size: 0.74rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
       .hint { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 34px; color: var(--sc-fg-2); font-size: 0.74rem; }
       .nach svg { width: 18px; height: 18px; }
       .tile.focus { border-color: var(--sc-accent); box-shadow: 0 0 0 1px var(--sc-accent), 0 0 20px color-mix(in srgb, var(--sc-accent) 40%, transparent); animation: tile-focus 4s ease-in forwards; }
@@ -1164,12 +1165,6 @@ export class HqStockComponent implements OnInit {
 
   protected variantCount(s: HangarShip): number {
     return this.ownership.configsForShip(s.id).length;
-  }
-
-  protected sizeOf(c: DeckCrate, lane: readonly DeckCrate[]): 'xl' | 'l' | 'm' | 's' {
-    const max = Math.max(...lane.map((x) => x.qty));
-    const r = max > 0 ? c.qty / max : 0;
-    return r >= 0.6 ? 'xl' : r >= 0.3 ? 'l' : r >= 0.12 ? 'm' : 's';
   }
 
   protected avgOf(c: Parameters<typeof averageLabel>[0] & Parameters<typeof rangeLabel>[0]): string | null {

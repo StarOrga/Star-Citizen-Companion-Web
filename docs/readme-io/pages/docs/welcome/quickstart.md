@@ -48,7 +48,7 @@ so it follows you to every device you sign in on.
 ## 6. Optional — go further
 
 - **Contribute data.** If you have collaborator or admin rights, the
-  [Data Uploader](doc:desktop-tools) turns your local game install into a Codex
+  [Verse Data Uploader](doc:desktop-tools) turns your local game install into a Codex
   update.
 - **Build on the data.** The [Public API](doc:getting-started) is read-only and
   token-authenticated.

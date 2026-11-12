@@ -12,8 +12,9 @@ import {
 } from '../codex-loadout-draft';
 import type { SwapPick, SwapTarget } from '../codex-swap-picker.component';
 import { CodexHoloForkGuard } from '../holo/codex-holo-fork-guard';
+import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import type { LoadoutItem } from './codex-detail.types';
-import { CodexLoadoutDraftStore } from './codex-loadout-draft.store';
+import { AUTOSAVE_DEBOUNCE_MS, CodexLoadoutDraftStore } from './codex-loadout-draft.store';
 
 const PORT = 'hardpoint_weapon_top_left';
 const SHIP: CodexDetail = {
@@ -191,6 +192,16 @@ describe('CodexLoadoutDraftStore', () => {
     expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1' }));
   });
 
+  it('a second adoptToHq while the first is in flight joins it — one exemplar, never two (E8)', async () => {
+    store.applySwap(pick('BEHR_LaserCannon_S3'));
+    const [a, b] = await Promise.all([store.adoptToHq(), store.adoptToHq()]);
+    expect(hangar.createConfig).toHaveBeenCalledTimes(1);
+    expect(a?.id).toBe('c1');
+    expect(b).toBe(a);
+    await store.adoptToHq();
+    expect(hangar.createConfig).toHaveBeenCalledTimes(2);
+  });
+
   it('writes nothing when the fork guard is declined', async () => {
     hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [], isActive: true }]);
     store.applyStoredLoadout([], { configId: 'c1' });
@@ -212,7 +223,7 @@ describe('CodexLoadoutDraftStore', () => {
     store.applyStoredLoadout(
       [
         { portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' },
-        // Same as stock = no draft entry; nested paths are never written by a save.
+        // Same as stock = no draft entry; a nested path (D2) comes back like a top-level one.
         { portName: 'hardpoint_other', className: 'KLWE_LaserRepeater_S3', kind: 'weapon' },
         { portName: `${PORT}.sub`, className: 'X', kind: 'weapon' },
       ],
@@ -221,7 +232,7 @@ describe('CodexLoadoutDraftStore', () => {
     expect(store.readOnly()).toBe(true);
     expect(store.readOnlySource()).toEqual(SHARED);
     expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
-    expect(store.draft().size).toBe(2); // hardpoint_other has no stock → it differs
+    expect(store.draft().size).toBe(3); // hardpoint_other and the nested sub have no stock → they differ
     expect(svc.getEntityPayloads).toHaveBeenCalledWith(['BEHR_LaserCannon_S3']);
     // Not the reader's draft: neither the URL nor localStorage gets it.
     expect(navigate).not.toHaveBeenCalled();
@@ -278,5 +289,126 @@ describe('CodexLoadoutDraftStore', () => {
   it('applySavedDraft flags classes of another build that no longer resolve', () => {
     store.applySavedDraft([[PORT, 'GONE_GUN']], 'B0');
     expect(store.unresolvableDraftPaths().has(PORT)).toBe(true);
+  });
+  // ── nested ports (D2) and autosave on the own exemplar (D3) ─────────────
+  function nestedPick(className: string): SwapPick {
+    return {
+      className,
+      target: { port: 'Gun', count: 1, className: null, kind: null, name: null, size: 3, rawPorts: [`${PORT}.gun`] } as SwapTarget,
+    };
+  }
+
+  it('a nested swap is saved with its dotted path and comes back as a saved draft entry (D2)', async () => {
+    hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [], isActive: true }]);
+    store.applyStoredLoadout([], { configId: 'c1' });
+    store.applySwap(nestedPick('NESTED_GUN'));
+    await new Promise((r) => setTimeout(r)); // hydration names the kind
+    await store.saveLoadoutDraft();
+    expect(hangar.updateConfig).toHaveBeenCalledWith('c1', {
+      loadout: [{ portName: `${PORT}.gun`, className: 'NESTED_GUN', kind: 'weapon' }],
+    });
+    store.reset();
+    store.applyStoredLoadout([{ portName: `${PORT}.gun`, className: 'NESTED_GUN', kind: 'weapon' }], { configId: 'c1' });
+    expect(store.draft().get(`${PORT}.gun`)).toBe('NESTED_GUN');
+    expect(store.savedPaths().has(`${PORT}.gun`)).toBe(true);
+  });
+
+  describe('autosave', () => {
+    let offer: Mock;
+    beforeEach(() => {
+      vi.useFakeTimers();
+      offer = vi.spyOn(TestBed.inject(UndoToastService), 'offer').mockImplementation(() => undefined) as unknown as Mock;
+      hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [{ portName: 'kept', className: 'K', kind: 'item' }], isActive: true }]);
+      store.applyStoredLoadout([], { configId: 'c1' });
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('off (Werk, the sandbox): a swap writes nothing', async () => {
+      store.applySwap(pick('BEHR_LaserCannon_S3'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS * 2);
+      expect(hangar.updateConfig).not.toHaveBeenCalled();
+    });
+
+    it('on: two quick swaps are ONE save and ONE toast with their count', async () => {
+      store.setAutosave(true);
+      store.applySwap(pick('BEHR_LaserCannon_S3'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS / 2);
+      store.applySwap(nestedPick('NESTED_GUN'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS / 2);
+      expect(hangar.updateConfig).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+      expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
+      expect(hangar.updateConfig.mock.calls[0][1].loadout).toEqual([
+        { portName: 'kept', className: 'K', kind: 'item' },
+        { portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' },
+        { portName: `${PORT}.gun`, className: 'NESTED_GUN', kind: 'weapon' },
+      ]);
+      expect(offer).toHaveBeenCalledTimes(1);
+      expect(offer.mock.calls[0][0]).toMatchObject({ messageKey: 'codex.holo.hangar.autosavedMany', messageParams: { n: 2 } });
+    });
+
+    it('a revert back to Werk removes the stored row too', async () => {
+      hangar.listConfigs.mockResolvedValue([{ id: 'c1', loadout: [{ portName: PORT, className: 'OLD', kind: 'weapon' }], isActive: true }]);
+      store.applyStoredLoadout([{ portName: PORT, className: 'OLD', kind: 'weapon' }], { configId: 'c1' });
+      store.setAutosave(true);
+      store.onRevertPaths([PORT]);
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+      expect(hangar.updateConfig).toHaveBeenCalledWith('c1', { loadout: [] });
+    });
+
+    it('"Rückgängig" writes the loadout from before the save back and shows it', async () => {
+      store.setAutosave(true);
+      store.applySwap(pick('BEHR_LaserCannon_S3'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+      offer.mock.calls[0][0].onUndo();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(hangar.updateConfig).toHaveBeenLastCalledWith('c1', { loadout: [{ portName: 'kept', className: 'K', kind: 'item' }] });
+      expect(store.draft().has(PORT)).toBe(false);
+    });
+
+    it('a failed save is shown, never silent, and no toast claims it was saved', async () => {
+      hangar.updateConfig.mockResolvedValue(null);
+      store.setAutosave(true);
+      store.applySwap(pick('BEHR_LaserCannon_S3'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+      expect(store.saveError()).not.toBeNull();
+      expect(offer).not.toHaveBeenCalled();
+    });
+
+    it('overlapping autosaves are written one after the other, so the newer swap lands last', async () => {
+      let stored: unknown[] = [{ portName: 'kept', className: 'K', kind: 'item' }];
+      hangar.listConfigs.mockImplementation(async () => [{ id: 'c1', loadout: stored, isActive: true }]);
+      let firstWrite = true;
+      hangar.updateConfig.mockImplementation(async (id: string, patch: { loadout: unknown[] }) => {
+        if (firstWrite) {
+          firstWrite = false;
+          await new Promise((r) => setTimeout(r, AUTOSAVE_DEBOUNCE_MS * 3)); // the slow first write
+        }
+        stored = patch.loadout;
+        return { id, loadout: patch.loadout };
+      });
+      store.setAutosave(true);
+      store.applySwap(pick('BEHR_LaserCannon_S3'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS); // first save starts and hangs
+      store.applySwap(nestedPick('NESTED_GUN'));
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS); // second debounce fires while the first is in flight
+      expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS * 4);
+      expect(hangar.updateConfig).toHaveBeenCalledTimes(2);
+      expect(stored).toEqual([
+        { portName: 'kept', className: 'K', kind: 'item' },
+        { portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' },
+        { portName: `${PORT}.gun`, className: 'NESTED_GUN', kind: 'weapon' },
+      ]);
+    });
+
+    it('a new loadout on the table flushes the pending save first', async () => {
+      store.setAutosave(true);
+      store.applySwap(pick('BEHR_LaserCannon_S3'));
+      store.applyStoredLoadout([], { configId: 'c2' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
+      expect(hangar.updateConfig.mock.calls[0][0]).toBe('c1');
+    });
   });
 });

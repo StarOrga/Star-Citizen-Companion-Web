@@ -167,8 +167,8 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
       @keyframes sd-pulse { 0% { opacity: 0.5; transform: scale(1); } 100% { opacity: 0; transform: scale(1.6); } }
       .card { position: absolute; z-index: 4; width: min(280px, 70vw); margin: 0 0 0 4.5%; padding: var(--sc-pad-2) var(--sc-pad-2) var(--sc-pad-2);
         translate: 0 -50%; border-radius: 12px; box-sizing: border-box; outline: none;
-        background: color-mix(in srgb, var(--sc-bg-0) 90%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, transparent);
-        backdrop-filter: blur(10px); box-shadow: 0 16px 40px rgb(0 0 0 / 50%), 0 0 30px color-mix(in srgb, var(--sc-accent) 10%, transparent);
+        background: color-mix(in srgb, var(--sc-bg-0) 95%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 50%, transparent);
+ box-shadow: 0 16px 40px rgb(0 0 0 / 50%), 0 0 30px color-mix(in srgb, var(--sc-accent) 10%, transparent);
         animation: sd-in 0.25s ease-out both; }
       .card.flip { margin: 0 4.5% 0 0; }
       .card small { display: block; padding-right: 28px; font: 0.66rem var(--sc-font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--sc-accent); }

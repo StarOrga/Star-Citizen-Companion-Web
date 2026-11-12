@@ -34,6 +34,7 @@ export class SlowMotionService {
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private holdTimer: ReturnType<typeof setInterval> | null = null;
   private holdFrame = 0;
+  private tickFrame = 0;
   private last = 0;
 
   /** Starts the clock. Returns the function that stops it and hands every animation back. */
@@ -64,7 +65,15 @@ export class SlowMotionService {
     this.last = Date.now();
     this.readHolds();
     this.zone.runOutsideAngular(() => {
-      this.tickTimer = setInterval(() => this.tick(), SLOW_TICK_MS);
+      // The step itself runs in the next frame, where the style is computed anyway: from the
+      // timer, reading an animation's state forced a whole-document recalculation in the middle
+      // of a scroll morph (a 55–80 ms task in the Wave 2d trace of the /codex dock).
+      this.tickTimer = setInterval(() => {
+        this.tickFrame ||= requestAnimationFrame(() => {
+          this.tickFrame = 0;
+          this.tick();
+        });
+      }, SLOW_TICK_MS);
       this.holdTimer = setInterval(() => {
         this.holdFrame ||= requestAnimationFrame(() => {
           this.holdFrame = 0;
@@ -78,25 +87,28 @@ export class SlowMotionService {
     if (this.tickTimer !== null) clearInterval(this.tickTimer);
     if (this.holdTimer !== null) clearInterval(this.holdTimer);
     if (this.holdFrame) cancelAnimationFrame(this.holdFrame);
+    if (this.tickFrame) cancelAnimationFrame(this.tickFrame);
     this.tickTimer = this.holdTimer = null;
-    this.holdFrame = 0;
+    this.holdFrame = this.tickFrame = 0;
   }
 
   private tick(): void {
     const now = Date.now();
     const step = Math.min(now - this.last, MAX_STEP_MS);
     this.last = now;
+    // Read every state first, then write: a CSS animation's getters flush pending style, so a
+    // read after a write recalculated the style again, once per driven animation.
+    const steps: [Animation, number, number][] = [];
     for (const [anim, d] of this.driven) {
-      if (anim.playState === 'idle' || anim.playState === 'finished') {
+      if (anim.playState === 'idle' || anim.playState === 'finished') this.driven.delete(anim);
+      else if (!d.held) steps.push([anim, Number(anim.currentTime ?? 0) + step, d.end]);
+    }
+    for (const [anim, t, end] of steps) {
+      if (t >= end) {
         this.driven.delete(anim);
-      } else if (!d.held) {
-        const t = Number(anim.currentTime ?? 0) + step;
-        if (t >= d.end) {
-          this.driven.delete(anim);
-          anim.finish();
-        } else {
-          anim.currentTime = t;
-        }
+        anim.finish();
+      } else {
+        anim.currentTime = t;
       }
     }
   }

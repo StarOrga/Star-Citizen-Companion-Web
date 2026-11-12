@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { onScrollTick } from '../core/scroll-tick';
 
 /**
  * Marks a horizontally scrolling strip with where there is more to scroll, so
@@ -55,8 +56,7 @@ export class ScScrollHintDirective {
   private watch(): void {
     const host = this.el.nativeElement;
     const onScroll = () => this.measure();
-    host.addEventListener('scroll', onScroll, { passive: true });
-    this.destroyRef.onDestroy(() => host.removeEventListener('scroll', onScroll));
+    this.destroyRef.onDestroy(onScrollTick({ read: onScroll }, { target: host }));
 
     // Without ResizeObserver (old engine, test stub): the first measure stands.
     if (typeof ResizeObserver !== 'function') return;
