@@ -14,7 +14,7 @@ import { ConceptPageService, ConceptTicket, ConceptTicketFailure } from './conce
  */
 const ID = '2c8f6c5e-0b8d-4d7e-9c7a-4d9f1e2a3b4c';
 const TICKET: ConceptTicket = {
-  url: `https://example.supabase.co/functions/v1/concept-page/${ID}?t=abc`,
+  url: `https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/concept-page/${ID}?t=abc`,
   title: 'Layout Bewaffnung',
   expiresAt: '2026-09-15T00:00:00Z',
 };

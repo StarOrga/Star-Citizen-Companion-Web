@@ -50,19 +50,45 @@
   var id = (location.pathname.split('/').pop() || '').replace(/\.html$/i, '').toLowerCase();
   var src = '';
   try { src = decodeURIComponent(location.hash.slice(1)); } catch (e) { src = ''; }
-  // Only our own concept-page function, for exactly this concept id.
-  var allowed = new RegExp(
-    '^(https://[a-z0-9-]+\\.supabase\\.co|http://(127\\.0\\.0\\.1|localhost):\\d+)' +
-    '/functions/v1/concept-page/' + UUID + '\\?t=[^#\\s]+$', 'i');
-  if (!new RegExp('^' + UUID + '$').test(id) || !allowed.test(src) ||
-      src.toLowerCase().indexOf('/concept-page/' + id + '?') === -1) {
+  // Only OUR concept-page function (project hcnqhvzlavdycidqyaai), for
+  // exactly this concept id. The host is pinned on purpose: whatever this
+  // loader fetches runs as a script on the app origin and could read the
+  // admin session, so a wildcard like *.supabase.co would let anyone with
+  // their own Supabase project inject html through a crafted link. A local
+  // Supabase stack is only accepted while the loader itself runs on
+  // localhost (dev), never on the deployed app.
+  var PROJECT = 'https://hcnqhvzlavdycidqyaai.supabase.co';
+  var devHost = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  var origin = devHost ? '(https://hcnqhvzlavdycidqyaai\\.supabase\\.co|http://(127\\.0\\.0\\.1|localhost):\\d{2,5})'
+                       : 'https://hcnqhvzlavdycidqyaai\\.supabase\\.co';
+  // Lower-case only (the app lower-cases the id), the ticket is base64url-ish
+  // and nothing may follow it: no further params, no fragment, no path tricks.
+  var allowed = new RegExp('^' + origin + '/functions/v1/concept-page/(' + UUID + ')\\?t=[A-Za-z0-9._~%-]+$');
+  var match = allowed.exec(src);
+  var target = null;
+  if (match && new RegExp('^' + UUID + '$').test(id) && match[match.length - 1] === id) {
+    // Parse once more and compare the parsed origin: rules out any
+    // userinfo/backslash/encoding trick a regex might have missed.
+    try {
+      var parsed = new URL(src);
+      var okOrigin = parsed.origin === PROJECT ||
+        (devHost && /^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}$/.test(parsed.origin));
+      if (okOrigin && parsed.pathname === '/functions/v1/concept-page/' + id &&
+          !parsed.username && !parsed.password && !parsed.hash) target = parsed.href;
+    } catch (e) { target = null; }
+  }
+  if (!target) {
     say(COPY.broken, true);
     return;
   }
 
   say(COPY.loading, false);
-  fetch(src, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
-    .then(function (res) { return res.text(); })
+  // redirect: 'error' — a redirect could hand the loader html from anywhere.
+  fetch(target, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error' })
+    .then(function (res) {
+      if (res.redirected || (res.url && res.url !== target)) throw new Error('redirected');
+      return res.text();
+    })
     .then(function (html) {
       // The function answers html for the document and for an expired ticket;
       // anything else (a gateway JSON error) is not a page.

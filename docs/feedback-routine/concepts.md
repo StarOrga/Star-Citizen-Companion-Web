@@ -30,12 +30,18 @@ scripts. So the document is rendered on the **app origin**:
    `/concept-frame/<id>.html#<encoded ticketed function URL>`.
 2. `vercel.json` rewrites `/concept-frame/:file` to `public/concept-frame.html`
    and gives that path its own header set (CSP with `script-src 'self'
-   'unsafe-inline'`, `connect-src https://*.supabase.co`, `frame-ancestors
-   'self'`, `X-Frame-Options: SAMEORIGIN`, `no-store`, `noindex`); the app's
-   main rule excludes the path and allows `frame-src 'self'`.
-3. The loader checks that the fragment is our own `concept-page` URL for the
-   id in its path, fetches it as text (no credentials) and writes it into
-   itself with `document.write`. The concept's own `<meta>` CSP applies on top.
+   'unsafe-inline'`, `connect-src` and `img-src` pinned to
+   `https://hcnqhvzlavdycidqyaai.supabase.co`, `frame-ancestors 'self'`,
+   `X-Frame-Options: SAMEORIGIN`, `no-store`, `noindex`); the app's main rule
+   excludes the path and allows `frame-src 'self'` (no Supabase origin any
+   more — nothing frames the function directly).
+3. The loader checks that the fragment is exactly
+   `https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/concept-page/<id>?t=<ticket>`
+   for the id in its path (regex plus a parsed-`URL` origin/path check; no
+   other params, no fragment, no userinfo), fetches it as text with
+   `credentials: 'omit'` and `redirect: 'error'`, refuses a response whose URL
+   differs, and writes it into itself with `document.write`. The concept's own
+   `<meta>` CSP applies on top.
 4. The function bakes the **absolute** function URL and the ticket into the
    injected shim, so `/decisions`, `/reload`, `/heartbeat`, `/draft` (also
    `location.origin + '/heartbeat'`) go to the function (CORS `*`).
@@ -162,6 +168,17 @@ echo that failed): a run has to look on its own —
   `X-Robots-Tag: noindex` (the platform replaces the content type and CSP, see
   above). The loader path has its own header set in `vercel.json`; the app's
   CSP allows `frame-src 'self'`.
+- **The loader's host pin is a security boundary.** Whatever it fetches runs
+  as script on the app origin and can read the admin session, so it accepts
+  only our own project `hcnqhvzlavdycidqyaai`; a wildcard `*.supabase.co`
+  would let anyone with their own Supabase project inject html through a
+  crafted `/concept-frame/<id>.html#…` link (review finding on PR #1077). The
+  loader CSP's `connect-src` pins the same host as a second layer. A local
+  Supabase stack (`http://127.0.0.1:<port>`) is accepted only while the loader
+  itself runs on localhost. The loader reads no query params and listens to no
+  `postMessage`. Tests: `supabase/functions/concept-page/frame-loader.test.ts`
+  (runs the loader's inline script under `node --test`). A new Supabase project
+  ref means changing the pin in `public/concept-frame.html` and `vercel.json`.
 - The loader iframe keeps `allow-same-origin`: the engine needs `localStorage`.
   That gives the concept html the app origin — acceptable only because the html
   is routine-written trusted content (never browser input). Never publish html

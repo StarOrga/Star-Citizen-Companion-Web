@@ -8,7 +8,7 @@ import vm from 'node:vm';
 import { buildShim, shimSource, SHIM } from './shim.ts';
 
 const ID = '2e0b5a3c-9b1f-4c6e-8d1a-0f7e6c5b4a39';
-const BASE = `https://abc.supabase.co/functions/v1/concept-page/${ID}`;
+const BASE = `https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/concept-page/${ID}`;
 
 /** Runs the shim in a fake browser at `href`; returns the patched fetch/beacon + call logs. */
 function run(source: string, href: string) {
