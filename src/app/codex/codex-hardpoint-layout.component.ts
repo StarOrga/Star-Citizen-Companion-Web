@@ -756,14 +756,16 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     }
     .layout { display: flex; flex-direction: column; gap: 14px; }
 
-    .mod-sec { border-radius: 4px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      padding: 10px 12px; }
-    /* Concept section 0 bans the hot accent on this page (nothing here is
-       admin-gated) and bans mock literals outright, so the per-block colour
-       coding this list used to carry (#ff7a45 / #ff5252 / #f0c419 / #ffc14d) is
-       gone. A configurable block is marked by ONE accent hairline; the airframe
-       keeps none. */
-    .mod-sec:not(.fixed) { border-top: 2px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* A block box is built like the Offensive / Defensive cards beside it in
+       the Analyse column (codex-detail .detail-page .sc-card): the same 4px
+       corner, the same even 1px border all round and the same bg-2 to bg-1
+       card surface (#346). The 2px accent bar a configurable block used to
+       carry on its top edge squared off the top corners, so the boxes read as
+       a different build from the cards next to them; the airframe still steps
+       back through .fixed below. Concept section 0 keeps the hot accent and
+       mock literals off this page. */
+    .mod-sec { border-radius: 4px; background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
+      border: 1px solid var(--sc-border); padding: 10px 12px; }
     /* "Antrieb & Systeme": the merged block and its nested sections. */
     .sub-stack { display: flex; flex-direction: column; gap: 8px; }
     .mod-sub { border-radius: 4px; background: var(--sc-bg-2); border: 1px solid var(--sc-border);
@@ -919,10 +921,11 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       font-size: 0.85rem; cursor: pointer; }
     .slot-revert:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
-    /* .m-slot (part-02.html:204): 3px, and RAISED off the card — the row sits
-       ON the module, so it is the lighter of the two surfaces. */
+    /* .m-slot (part-02.html:204), RAISED off the card — the row sits ON the
+       module, so it is the lighter of the two surfaces. Its corner is the
+       block's own 4px (#346), so row and box are rounded alike. */
     .slot-btn, .kid-btn { display: flex; flex-direction: column; gap: 3px; padding: 7px 8px;
-      border-radius: 3px; background: var(--sc-slot-ground); border: 1px solid var(--sc-border);
+      border-radius: 4px; background: var(--sc-slot-ground); border: 1px solid var(--sc-border);
       text-decoration: none; text-align: left; width: 100%; font: inherit; color: inherit; }
     button.slot-btn, button.kid-btn { cursor: pointer; }
     button.slot-btn:hover, button.kid-btn:hover { border-color: var(--sc-accent);
@@ -981,7 +984,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
        factory part wears a gold rail. The hover state it also asks for is
        already there on the card itself (button.slot-btn:hover above) and stays
        at the app's stronger accent - polish follows the app (section 14). */
-    .slot:has(.tag.draft) { border-inline-start: 2px solid var(--sc-warn); border-radius: 3px; }
+    .slot:has(.tag.draft) { border-inline-start: 2px solid var(--sc-warn); border-radius: 4px; }
 
     /* Port name is context, not headline — it sits last and quiet. The mock's
        .l3 is plain --m-mut with no extra opacity (part-02.html:209); dropping
@@ -1020,7 +1023,6 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
        ⓘ, ⇄, revert); the per-row stats fold behind the group's "Detail ▾". ── */
     :host(.calm) .layout { gap: 8px; }
     :host(.calm) .mod-sec, :host(.calm) .mod-sub { background: transparent; border: 0; border-radius: 0; padding: 0 0 6px; }
-    :host(.calm) .mod-sec:not(.fixed) { border-top: 0; }
     :host(.calm) .mod-sec.fixed { opacity: 1; }
     :host(.calm) .sub-stack { gap: 4px; }
     :host(.calm) .sec-head { margin: 0 0 4px; padding: 6px 0; font-family: var(--sc-font-display); font-weight: 400;
