@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.259.4] - 2026-11-12
+
+### Changed
+- Codex loadout (classic view): the block boxes (Bewaffnung and the other loadout blocks) are built like the Offensive card — same 4px rounding, an even 1px border without the square-looking accent bar on top, same card background — and the weapon rows inside are rounded at 4px too.
+
 ## [0.259.3] - 2026-11-12
 
 ### Changed
