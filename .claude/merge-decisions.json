@@ -93,6 +93,18 @@
         ]
       }
     ],
+    "data-uploader/src/lib/subthemes.ts›ships›revision": [
+      {
+        "ship": "claude/loading-screen-elements-transitions-980216",
+        "by": "JerryT2T",
+        "value": "16 (supersedes upstream 15; its comment line kept, the subtheme revision must only grow)",
+        "decided": true,
+        "at": "2026-11-12T20:08:52.997Z",
+        "hunks": [
+          "e7080951322d"
+        ]
+      }
+    ],
     "data-uploader/src/lib/subthemes.ts›weapons›revision": [
       {
         "ship": "#1093",
