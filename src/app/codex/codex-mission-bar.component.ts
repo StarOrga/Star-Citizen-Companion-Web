@@ -12,7 +12,8 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
  *
  * The right side (MASTER §5) belongs to the loadout draft, in one of two
  * mutually exclusive states the page picks by `changed()`:
- *  - idle (`changed === 0`): only `codex.mission.lensReset` — jumps the
+ *  - idle (`changed === 0`): only `codex.mission.lensReset` ("Zurück auf
+ *    „Alles“", shown only while another mission is active) — jumps the
  *    mission LENS back to `all` (there is no draft yet, so there is nothing
  *    else to reset or apply; no persistence choice exists until a save flow
  *    that reads it is wired — see codex-detail.component.ts's discussion).
@@ -57,9 +58,15 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
           }
         }
       </div>
-      @if (changed() === 0) {
+      @if (changed() === 0 && active() !== 'all') {
         <span class="idle-draft">
-          <button type="button" class="btn" [disabled]="active() === 'all'" (click)="missionChange.emit('all')">
+          <button
+            type="button"
+            class="btn"
+            [scTooltip]="'codex.mission.lensResetTip' | translate"
+            scTooltipTier="info"
+            (click)="missionChange.emit('all')"
+          >
             {{ 'codex.mission.lensReset' | translate }}
           </button>
         </span>
@@ -148,7 +155,6 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
-    .idle-draft .btn:disabled { opacity: 0.38; cursor: not-allowed; }
 
     /* A mouse does not need the 48px touch floor, and seven of them turn this
        row into the wall of pills the concept never had. On a fine pointer the
