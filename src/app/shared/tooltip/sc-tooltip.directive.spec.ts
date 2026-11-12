@@ -320,3 +320,87 @@ describe('ScTooltipDirective on a display: contents wrapper', () => {
     tick(200);
   }));
 });
+
+@Component({
+  standalone: true,
+  imports: [ScTooltipDirective],
+  template: `
+    <button type="button" class="outer" [scTooltip]="'Port: shield 1'" scTooltipTier="label">
+      <span class="plain">Shield</span>
+      <span class="chip" [scTooltip]="chipText()">Regen</span>
+    </button>
+  `,
+})
+class NestedHostCmp {
+  readonly chipText = signal<string | null>('Regen per second');
+}
+
+describe('ScTooltipDirective with a tooltip host nested inside another', () => {
+  let fixture: ComponentFixture<NestedHostCmp>;
+  let overlayContainer: OverlayContainer;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({ imports: [NestedHostCmp] }).compileComponents();
+    fixture = TestBed.createComponent(NestedHostCmp);
+    document.body.appendChild(fixture.nativeElement);
+    overlayContainer = TestBed.inject(OverlayContainer);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.nativeElement.remove();
+    overlayContainer.ngOnDestroy();
+  });
+
+  const q = (sel: string) => fixture.nativeElement.querySelector(sel) as HTMLElement;
+  const bubbles = () => Array.from(overlayContainer.getContainerElement().querySelectorAll('.sc-tooltip-bubble')) as HTMLElement[];
+
+  // A real pointer moving onto `target` fires pointerover on it (bubbling),
+  // then pointerenter on every newly entered host, outermost first.
+  function moveOnto(target: HTMLElement, entered: HTMLElement[]): void {
+    target.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' }));
+    for (const el of entered) el.dispatchEvent(new PointerEvent('pointerenter', { bubbles: false, pointerType: 'mouse' }));
+  }
+  function leave(el: HTMLElement): void {
+    el.dispatchEvent(new PointerEvent('pointerleave', { bubbles: false, pointerType: 'mouse' }));
+  }
+
+  it('hovering the inner host shows only the inner tooltip, never both', fakeAsync(() => {
+    moveOnto(q('.chip'), [q('.outer'), q('.chip')]);
+    tick(2000);
+    expect(bubbles().length).toBe(1);
+    expect(bubbles()[0].textContent).toContain('Regen per second');
+  }));
+
+  it('moving from the outer area onto the inner host closes the outer tooltip', fakeAsync(() => {
+    moveOnto(q('.plain'), [q('.outer')]);
+    tick(500);
+    expect(bubbles().length).toBe(1);
+    expect(bubbles()[0].textContent).toContain('Port: shield 1');
+
+    moveOnto(q('.chip'), [q('.chip')]);
+    tick(0);
+    expect(bubbles().length).toBe(1);
+    expect(bubbles()[0].textContent).toContain('Regen per second');
+
+    // Back on the outer area: the inner one closes, the outer one returns.
+    q('.plain').dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' }));
+    leave(q('.chip'));
+    tick(1000);
+    expect(bubbles().length).toBe(1);
+    expect(bubbles()[0].textContent).toContain('Port: shield 1');
+    leave(q('.outer'));
+    tick(200);
+  }));
+
+  it('an inner host without text does not silence the outer tooltip', fakeAsync(() => {
+    fixture.componentInstance.chipText.set(null);
+    fixture.detectChanges();
+    moveOnto(q('.chip'), [q('.outer'), q('.chip')]);
+    tick(500);
+    expect(bubbles().length).toBe(1);
+    expect(bubbles()[0].textContent).toContain('Port: shield 1');
+    leave(q('.outer'));
+    tick(200);
+  }));
+});
