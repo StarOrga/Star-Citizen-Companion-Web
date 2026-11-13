@@ -53,7 +53,7 @@ export const WORLD_RECTS: Readonly<Record<'planet' | 'news' | 'patches' | 'galle
   gallery: [181.5, 79.313, 6, 6],
   starmap: [169, 76.688, 5.938, 4.375],
   station: [124.313, 73.5, 6.063, 4.375],
-  hqst: [172.375, 89.125, 2.75, 1.375],
+  hqst: [169.25, 85.1, 9, 4.5],
   holo: [225, 37.5, 100, 56.25],
 };
 
