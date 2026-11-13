@@ -67,6 +67,8 @@ sc-verse-header {
     text-transform: uppercase;
     color: var(--sc-fg-0);
   }
+  // A control projected right after the h1 (vhTitle) sits on the title's line.
+  .vh-line > [vhTitle] { align-self: center; margin-inline-start: -8px; }
   .vh-sub {
     margin: 0;
     min-width: 0;

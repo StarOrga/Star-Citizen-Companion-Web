@@ -222,6 +222,17 @@ export interface VerseExplorerPatch {
   readonly unlocks: { readonly logEntry: boolean; readonly community: boolean; readonly wallpaper: boolean };
 }
 
+/** The next concrete x.y.z patch (4.4.2) the comet can be tipped on; absent until the version-tip migration is live. */
+export interface VerseVersionComet {
+  /** `major.minor.patch`, patch >= 1. */
+  readonly patchVersion: string;
+  /** The line of that version (`major.minor`). */
+  readonly patchLine: string;
+  /** The newest LIVE x.y.z, when known. */
+  readonly liveVersion: string | null;
+  readonly comet: VerseComet;
+}
+
 /** The patch in the PTU ring (not LIVE yet): where the comet can be tipped. */
 export interface VerseUpcomingPatch {
   readonly patchLine: string;
@@ -380,6 +391,22 @@ export function mapComet(raw: unknown): VerseComet {
     locked: b(r['locked']),
     lockedReason: reason === 'live' || reason === 'announced' ? reason : null,
     announcedDate: sn(r['announced_date']),
+  };
+}
+
+const PATCH_VERSION_RE = /^\d{1,2}\.\d{1,2}\.\d{1,2}$/;
+
+/** `verse_comet_version_state()` payload; null when there is no target (or the RPC is not deployed yet). */
+export function mapVersionComet(raw: unknown): VerseVersionComet | null {
+  const r = obj(raw);
+  const version = sn(r["patch_version"]);
+  if (!version || !PATCH_VERSION_RE.test(version) || !r["comet"]) return null;
+  const parts = version.split(".");
+  return {
+    patchVersion: version,
+    patchLine: sn(r["patch_line"]) ?? parts[0] + "." + parts[1],
+    liveVersion: sn(r["live_version"]),
+    comet: mapComet(r["comet"]),
   };
 }
 
