@@ -6,6 +6,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../../core/analytics.service';
 import { BetaService } from '../../../core/beta.service';
 import { AuthService } from '../../../auth/auth.service';
+import { RoleService } from '../../../auth/role.service';
 import { NewsService } from '../../../news/news.service';
 import { VerseApiService } from '../../data/verse-api.service';
 import { VerseDigest, VerseDigestItem, VerseExplorerPatch } from '../../data/verse.models';
@@ -200,6 +201,7 @@ describe('Verse briefing — component', () => {
         { provide: BriefingGalleryFillService, useValue: { items: signal([]), load: () => Promise.resolve() } },
         { provide: BetaService, useValue: { state: beta, isEnabled: (a: string) => () => beta()[a] } },
         { provide: AuthService, useValue: { isAuthenticated: signal(false), user: signal(null) } },
+        { provide: RoleService, useValue: { isAdmin: signal(false) } },
         {
           provide: VerseApiService,
           useValue: {

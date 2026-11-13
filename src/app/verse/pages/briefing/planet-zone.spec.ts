@@ -6,6 +6,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AnalyticsService } from '../../../core/analytics.service';
 import { BetaService } from '../../../core/beta.service';
 import { AuthService } from '../../../auth/auth.service';
+import { RoleService } from '../../../auth/role.service';
 import { NewsListComponent } from '../../../news/news-list.component';
 import { PLANET_SOURCES } from './planet/planet-assets';
 import { NewsService, VerseNewsItem } from '../../../news/news.service';
@@ -169,6 +170,7 @@ describe('Verse hub — accordion hover intent', () => {
 
 describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   const beta = signal<Record<string, boolean>>({ verse: true, shell: true });
+  const admin = signal(false);
   const items = [
     item('n1', '2026-10-20', 'news'),
     item('p1', '2026-10-21', 'patch', { url: '/verse/patches/4.3', summary: 'Hotfix notes' }),
@@ -195,6 +197,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
         { provide: BriefingGalleryFillService, useValue: { items: signal<VerseDigestItem[]>([]), load: () => Promise.resolve() } },
         { provide: BetaService, useValue: { isEnabled: (a: string) => () => !!beta()[a] } },
         { provide: AuthService, useValue: { isAuthenticated: signal(false), user: signal(null) } },
+        { provide: RoleService, useValue: { isAdmin: admin } },
         { provide: PatchStabilityVotesService, useValue: { line: () => null, correctionFor: () => null, ensure: () => undefined } },
         {
           provide: PatchStabilityService,
@@ -228,6 +231,7 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     sessionStorage.removeItem(INTRO_FLAG);
+    admin.set(false);
   });
 
   it('builds in steps: the stage first, then doors and beacons, the hub last, and the page keeps its height meanwhile', async () => {
@@ -280,6 +284,23 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     fixture.destroy();
   });
 
+  it('gives admins the station as a mini satellite that flies straight to /admin', fakeAsync(() => {
+    admin.set(true);
+    const fixture = TestBed.createComponent(VerseBriefingComponent);
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const sat = el.querySelector<HTMLAnchorElement>('sc-briefing-beacons a.adm-l');
+    expect(sat?.getAttribute('href')).toBe('/admin');
+    expect(sat?.querySelector('sc-briefing-station svg')).not.toBeNull();
+    // Admin-only is said by the colour; the words stay for assistive tech only.
+    expect(sat?.getAttribute('aria-label')).toBe('verse.hub.admin · verse.hub.adminValue · verse.hub.adminHint');
+    expect(sat?.querySelector('.lab')?.textContent).not.toContain('adminHint');
+    fixture.destroy();
+    discardPeriodicTasks();
+  }));
+
   it('renders beacons, the hero title, the planets and the holo as real anchors — no moons, no for-you line, no overview links', fakeAsync(() => {
     const fixture = TestBed.createComponent(VerseBriefingComponent);
     fixture.detectChanges();
@@ -297,7 +318,8 @@ describe('Verse hub — Funkfeuer 2 stage (beta shell)', () => {
     expect(el.querySelectorAll('a.hq-l .lab-v').length).toBe(1);
     // HQ is the ground station on the planet (Kamera-Welt C6): the space station is the Admin place and never stands here.
     expect(el.querySelector('sc-briefing-beacons sc-briefing-station'), 'no space station labelled HQ on the hub').toBeNull();
-    expect(el.querySelector('a.hq-l .ground')).not.toBeNull();
+    expect(el.querySelector('a.hq-l .lock')).not.toBeNull();
+    expect(el.querySelector('a.adm-l'), 'no admin satellite for a viewer').toBeNull();
     expect(el.querySelector<HTMLAnchorElement>('.hrow h1 a.tl')?.getAttribute('href')).toBe('/verse/news?item=n1');
     expect(el.querySelector('.kick')?.textContent).toContain('verse.hub.area.news');
     expect(el.querySelectorAll('.hrow button.step').length).toBe(2);
