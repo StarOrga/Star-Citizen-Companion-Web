@@ -8,46 +8,48 @@
  *   rnd = mulberry32(fnv1a32(seed))           (see starmap.model.ts; one stream,
  *                                              consumed in exactly this order)
  *
- *  1. BACKGROUND  vertical linear gradient #03050c → #070b1a → #02030a, then a
- *     radial vignette (centre transparent → edge rgba(0,0,0,0.55)).
- *  2. NEBULA      4 soft blobs (`nebula: true` → 7, brighter). Per blob draw
- *     rnd() for x, y (in 0..1 of the canvas), radius 180..480 u, hue
- *     (base hue 205 or 265 by rnd() < 0.5, ±25), then fill a radial gradient
- *     hsla(h, 70%, 45%, a) → transparent with composite 'lighter';
- *     a = 0.10 (0.16 with `nebula`).
+ * The default look is a real night sky (2026-11-13): no Milky Way band, no
+ * glinting spikes, star brightness falls off like a real magnitude spread (many
+ * faint, very few bright), and the user's own constellation sits small in one
+ * spot - found on the second look, not painted over the sky. `hero: true`
+ * (the shared Kartograph badge) keeps the large, centred figure.
+ *
+ *  1. BACKGROUND  vertical linear gradient #02040a → #050916 → #020309, a radial
+ *     vignette (centre transparent → edge rgba(0,0,0,0.5)) and a low airglow
+ *     along the bottom edge (rgba(40,70,110,0.10) → 0 over the lowest 35 % h).
+ *  2. AIRGLOW     2 very wide, very faint tints; per tint rnd() for x, y,
+ *     radius 420..700 u and hue (210 or 250 by rnd() < 0.5, ±15 by rnd()).
+ *     Drawn only with `nebula: true` (alpha 0.045); the draws are consumed always.
  *  3. STARFIELD   three layers, counts scale with the area in u² / 1e6:
- *       far  1400 × area, radius 0.35..0.9 u, alpha 0.25..0.6
- *       mid   420 × area, radius 0.8..1.6 u, alpha 0.45..0.85
- *       near   60 × area, radius 1.4..2.6 u, alpha 0.8..1, plus a soft glow
- *              (radial gradient, 6× radius) and a 4-point glint (two thin
- *              lines, 10× radius, alpha 0.35).
+ *       faint  1700 × area, radius 0.3..0.65 u, alpha 0.12..0.45
+ *       small   260 × area, radius 0.6..1.05 u, alpha 0.35..0.7
+ *       bright   12 × area, radius 1.0..1.6 u,  alpha 0.8..1, plus a soft halo
+ *                (radial gradient, 3.5× radius) - no spikes.
  *     Each star draws rnd() for x, y, radius, alpha, and colour temperature
- *     (rnd() < 0.15 → warm #ffe2b8, < 0.3 → cool #bcd4ff, else #ffffff).
- *  4. ROAD        (`road: true`, ≥ 2 constellations) a faint dashed polyline
- *     through the centroids of all constellations, newest last.
- *  5. CONSTELLATIONS  `constellations[0]` is the current patch: box 62 % of the
- *     short side, centred at (0.40 w, 0.52 h). Older ones (max 6) sit on an
- *     arc on the right: box 17 % of the short side, centres at
- *     (0.80 w + sin(k·0.9)·0.06 w, 0.18 h + k·0.13 h) for k = 0..5.
+ *     (rnd() < 0.1 → warm #ffe6c4, < 0.25 → cool #c9dbff, else #f6f8ff).
+ *  4. ROAD        (`road: true`, ≥ 2 constellations) a barely visible dashed
+ *     polyline through the centroids of all constellations, newest last.
+ *  5. CONSTELLATIONS  `constellations[0]` is the current patch. Default: box
+ *     15 % of the short side centred at (0.70 w, 0.30 h); older ones (max 6) in
+ *     6 % boxes at the fixed OLDER_SPOTS. `hero`: box 62 % at (0.40 w, 0.52 h),
+ *     older ones 17 % on an arc on the right.
  *     Per constellation, points (0..1) map into the box (aspect kept).
- *       a. lines: closed outline through the points in their stored order,
- *          stroke rgba(150,190,255, lit ? 0.42 : 0.14), width 1.6 u (0.8 u small)
- *       b. stars: unlit = 2.2 u disc rgba(200,215,255,0.28); lit = glow
- *          (radial gradient white → rgba(120,170,255,0) at 9× r) + 3.2 u core,
- *          small constellations scale r by 0.45. Lit = the first `starCount`
- *          indices of the SYMMETRIC order (starmap.model.ts symmetricLightOrder).
- *       c. sun (`sun: true`): above-right of the box (box.x + box.w·1.02,
- *          box.y − box.h·0.02). Current sun core 16 u with corona 9× core;
- *          older suns core 4 u, corona 5× — only the current sun is large.
+ *       a. lines: closed outline in stored order, faint (default lit 0.2 /
+ *          unlit 0.07; hero 0.42 / 0.14), width 0.7 u (hero 1.6 u, small 0.8 u).
+ *       b. stars: lit = soft glow + core, unlit = a faint disc. Lit = the first
+ *          `starCount` indices of the SYMMETRIC order (symmetricLightOrder).
+ *       c. sun (`sun: true`): above-right of the box, a small warm star (core
+ *          3.5 u current / 1.6 u older; hero 16 u / 4 u) with a soft corona.
  *  6. SUPERNOVA   (`supernova: true`) a burst around the current constellation
- *     centre: 3 concentric radial gradients (warm white → magenta → transparent)
- *     plus 28 rays (length 90..260 u from rnd()), and the brand initials (BRAND_INITIALS) at
- *     alpha 0.06 below-right of the burst — the subtle hint.
- *  7. WATERMARK   the current patch number (e.g. "4.4"), no prefix, no dot,
- *     font 600 14 u "Rajdhani, sans-serif", alpha 0.07, placed 14 u right and
- *     10 u below the lit star with the lowest index (else point 0) of the current
- *     constellation —
- *     a catalogue mark noticed on the third look.
+ *     centre (scaled with the box) plus the brand initials (BRAND_INITIALS) at
+ *     alpha 0.06 below-right of it - the subtle hint.
+ *  7. WATERMARK   the current patch number (e.g. "4.4"), no prefix, alpha 0.07,
+ *     beside the lit star with the lowest index (else point 0) - a catalogue
+ *     mark noticed on the third look.
+ *
+ * The Starscape app's Rust mirror still draws the previous sky (the hero
+ * layout with nebula blobs and glints); port this when that renderer is next
+ * touched.
  *
  * Animation (`animateConstellation`) never redraws the static layers: it blits
  * a cached base image and adds a twinkle overlay (and meteors when `meteor`)
@@ -76,6 +78,8 @@ export interface ConstellationRenderOptions {
   readonly nebula?: boolean;
   readonly road?: boolean;
   readonly supernova?: boolean;
+  /** Large centred figure (Kartograph badge); default = a small figure in a real night sky. */
+  readonly hero?: boolean;
 }
 
 /** The subset of CanvasRenderingContext2D the renderer uses (fakeable in specs). */
@@ -145,59 +149,81 @@ function mapPoint(p: VersePoint, box: Box): [number, number] {
 }
 
 /** Box of every constellation slot, index-aligned with `constellations`. */
-export function constellationBoxes(width: number, height: number, count: number): Box[] {
+export function constellationBoxes(width: number, height: number, count: number, hero = false): Box[] {
   const short = Math.min(width, height);
   const boxes: Box[] = [];
-  if (count > 0) boxes.push(placeBox(width * 0.4, height * 0.52, short * 0.62));
+  if (hero) {
+    if (count > 0) boxes.push(placeBox(width * 0.4, height * 0.52, short * 0.62));
+    for (let k = 0; k < Math.min(6, count - 1); k++) {
+      boxes.push(placeBox(width * 0.8 + Math.sin(k * 0.9) * width * 0.06, height * 0.18 + k * height * 0.13, short * 0.17));
+    }
+    return boxes;
+  }
+  if (count > 0) boxes.push(placeBox(width * 0.7, height * 0.3, short * 0.15));
   for (let k = 0; k < Math.min(6, count - 1); k++) {
-    boxes.push(placeBox(width * 0.8 + Math.sin(k * 0.9) * width * 0.06, height * 0.18 + k * height * 0.13, short * 0.17));
+    const [x, y] = OLDER_SPOTS[k];
+    boxes.push(placeBox(width * x, height * y, short * 0.06));
   }
   return boxes;
 }
 
+/** Where older constellations hide in the default sky (fractions of w / h), well apart from the current one. */
+const OLDER_SPOTS: readonly (readonly [number, number])[] = [
+  [0.22, 0.24],
+  [0.42, 0.62],
+  [0.86, 0.66],
+  [0.14, 0.7],
+  [0.55, 0.16],
+  [0.33, 0.42],
+];
+
 function drawBackground(ctx: Ctx2D, w: number, h: number): void {
   const bg = ctx.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, '#03050c');
-  bg.addColorStop(0.55, '#070b1a');
-  bg.addColorStop(1, '#02030a');
+  bg.addColorStop(0, '#02040a');
+  bg.addColorStop(0.6, '#050916');
+  bg.addColorStop(1, '#020309');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
   const r = Math.hypot(w, h) / 2;
   const v = ctx.createRadialGradient(w / 2, h / 2, r * 0.35, w / 2, h / 2, r);
   v.addColorStop(0, 'rgba(0,0,0,0)');
-  v.addColorStop(1, 'rgba(0,0,0,0.55)');
+  v.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = v;
   ctx.fillRect(0, 0, w, h);
+  const air = ctx.createLinearGradient(0, h, 0, h * 0.65);
+  air.addColorStop(0, 'rgba(40,70,110,0.10)');
+  air.addColorStop(1, 'rgba(40,70,110,0)');
+  ctx.fillStyle = air;
+  ctx.fillRect(0, h * 0.65, w, h * 0.35);
 }
 
-function drawNebula(ctx: Ctx2D, w: number, h: number, u: number, rnd: () => number, strong: boolean): void {
+/** Two very wide, very faint tints (natural airglow, never a Milky Way band); the draws are consumed either way. */
+function drawNebula(ctx: Ctx2D, w: number, h: number, u: number, rnd: () => number, on: boolean): void {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const blobs = strong ? 7 : 4;
-  const a = strong ? 0.16 : 0.1;
-  for (let i = 0; i < blobs; i++) {
+  for (let i = 0; i < 2; i++) {
     const x = rnd() * w;
     const y = rnd() * h;
-    const r = lerp(180, 480, rnd()) * u;
-    const base = rnd() < 0.5 ? 205 : 265;
-    const hue = Math.round(base + (rnd() - 0.5) * 50);
-    glow(ctx, x, y, r, `hsla(${hue}, 70%, 45%, ${a})`, `hsla(${hue}, 70%, 45%, 0)`);
+    const r = lerp(420, 700, rnd()) * u;
+    const base = rnd() < 0.5 ? 210 : 250;
+    const hue = Math.round(base + (rnd() - 0.5) * 30);
+    if (on) glow(ctx, x, y, r, `hsla(${hue}, 45%, 35%, 0.045)`, `hsla(${hue}, 45%, 35%, 0)`);
   }
   ctx.restore();
 }
 
 function starColor(t: number): string {
-  if (t < 0.15) return '#ffe2b8';
-  if (t < 0.3) return '#bcd4ff';
-  return '#ffffff';
+  if (t < 0.1) return '#ffe6c4';
+  if (t < 0.25) return '#c9dbff';
+  return '#f6f8ff';
 }
 
 function drawStarfield(ctx: Ctx2D, w: number, h: number, u: number, rnd: () => number): void {
   const area = (w / u) * (h / u) / 1e6;
   const layers = [
-    { n: 1400, r: [0.35, 0.9], a: [0.25, 0.6], near: false },
-    { n: 420, r: [0.8, 1.6], a: [0.45, 0.85], near: false },
-    { n: 60, r: [1.4, 2.6], a: [0.8, 1], near: true },
+    { n: 1700, r: [0.3, 0.65], a: [0.12, 0.45], bright: false },
+    { n: 260, r: [0.6, 1.05], a: [0.35, 0.7], bright: false },
+    { n: 12, r: [1.0, 1.6], a: [0.8, 1], bright: true },
   ] as const;
   for (const layer of layers) {
     const count = Math.round(layer.n * area);
@@ -208,19 +234,7 @@ function drawStarfield(ctx: Ctx2D, w: number, h: number, u: number, rnd: () => n
       const alpha = lerp(layer.a[0], layer.a[1], rnd());
       const color = starColor(rnd());
       ctx.globalAlpha = alpha;
-      if (layer.near) {
-        glow(ctx, x, y, r * 6, 'rgba(190,210,255,0.35)', 'rgba(190,210,255,0)');
-        ctx.globalAlpha = alpha * 0.35;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = Math.max(0.5, u * 0.4);
-        ctx.beginPath();
-        ctx.moveTo(x - r * 10, y);
-        ctx.lineTo(x + r * 10, y);
-        ctx.moveTo(x, y - r * 10);
-        ctx.lineTo(x, y + r * 10);
-        ctx.stroke();
-        ctx.globalAlpha = alpha;
-      }
+      if (layer.bright) glow(ctx, x, y, r * 3.5, 'rgba(210,225,255,0.22)', 'rgba(210,225,255,0)');
       disc(ctx, x, y, r, color);
     }
   }
@@ -234,38 +248,41 @@ function centroid(points: readonly VersePoint[], box: Box): [number, number] {
   return mapPoint([sx, sy], box);
 }
 
-function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: number, large: boolean): void {
+function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: number, large: boolean, hero: boolean): void {
   const pts = c.points.map((p) => mapPoint(p, box));
   const lit = litIndices(c.points, c.starCount);
   const anyLit = lit.size > 0;
   if (pts.length > 1) {
-    ctx.strokeStyle = `rgba(150,190,255,${anyLit ? 0.42 : 0.14})`;
-    ctx.lineWidth = (large ? 1.6 : 0.8) * u;
+    const a = hero ? (anyLit ? 0.42 : 0.14) : anyLit ? (large ? 0.2 : 0.1) : 0.07;
+    ctx.strokeStyle = `rgba(150,190,255,${a})`;
+    ctx.lineWidth = (hero ? (large ? 1.6 : 0.8) : 0.7) * u;
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
     ctx.closePath();
     ctx.stroke();
   }
-  const k = large ? 1 : 0.45;
+  // Hero: the large figure as before. Night sky: lit stars read as a touch brighter real stars.
+  const k = hero ? (large ? 1 : 0.45) : large ? 0.5 : 0.3;
   pts.forEach(([x, y], i) => {
     if (lit.has(i)) {
-      glow(ctx, x, y, 3.2 * 9 * k * u, 'rgba(255,255,255,0.9)', 'rgba(120,170,255,0)');
+      glow(ctx, x, y, 3.2 * (hero ? 9 : 5) * k * u, hero ? 'rgba(255,255,255,0.9)' : 'rgba(235,242,255,0.55)', 'rgba(120,170,255,0)');
       disc(ctx, x, y, 3.2 * k * u, '#ffffff');
     } else {
-      disc(ctx, x, y, 2.2 * k * u, 'rgba(200,215,255,0.28)');
+      disc(ctx, x, y, 2.2 * k * u, hero ? 'rgba(200,215,255,0.28)' : 'rgba(200,215,255,0.2)');
     }
   });
   if (c.sun) {
     const sx = box.x + box.w * 1.02;
     const sy = box.y - box.h * 0.02;
-    const core = (large ? 16 : 4) * u;
-    glow(ctx, sx, sy, core * (large ? 9 : 5), 'rgba(255,214,140,0.55)', 'rgba(255,170,80,0)');
+    const core = (hero ? (large ? 16 : 4) : large ? 3.5 : 1.6) * u;
+    glow(ctx, sx, sy, core * (hero && large ? 9 : 5), 'rgba(255,214,140,0.45)', 'rgba(255,170,80,0)');
     glow(ctx, sx, sy, core * 1.6, '#fff6e0', 'rgba(255,220,150,0.2)');
     disc(ctx, sx, sy, core, '#fff3d6');
   }
 }
 
+/** `u` here is already scaled to the figure (smaller in the night sky). */
 function drawSupernova(ctx: Ctx2D, cx: number, cy: number, u: number, rnd: () => number): void {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -292,16 +309,17 @@ function drawSupernova(ctx: Ctx2D, cx: number, cy: number, u: number, rnd: () =>
   ctx.restore();
 }
 
-function drawWatermark(ctx: Ctx2D, c: RenderConstellation, box: Box, u: number): void {
+function drawWatermark(ctx: Ctx2D, c: RenderConstellation, box: Box, u: number, hero: boolean): void {
   if (!c.patchLine || c.points.length === 0) return;
   const order = [...litIndices(c.points, c.starCount)];
   const anchor = mapPoint(c.points[order.length ? Math.min(...order) : 0], box);
   ctx.save();
   ctx.globalAlpha = 0.07;
   ctx.fillStyle = '#dfe8ff';
-  ctx.font = `600 ${Math.round(14 * u)}px Rajdhani, sans-serif`;
+  const k = hero ? 1 : 0.6;
+  ctx.font = `600 ${Math.max(6, Math.round(14 * k * u))}px Rajdhani, sans-serif`;
   ctx.textAlign = 'left';
-  ctx.fillText(c.patchLine, anchor[0] + 14 * u, anchor[1] + 10 * u);
+  ctx.fillText(c.patchLine, anchor[0] + 14 * k * u, anchor[1] + 10 * k * u);
   ctx.restore();
 }
 
@@ -317,10 +335,11 @@ export function renderConstellationWallpaper(ctx: Ctx2D, opts: ConstellationRend
   drawNebula(ctx, w, h, u, rnd, !!opts.nebula);
   drawStarfield(ctx, w, h, u, rnd);
   const list = opts.constellations.slice(0, 7);
-  const boxes = constellationBoxes(w, h, list.length);
+  const hero = !!opts.hero;
+  const boxes = constellationBoxes(w, h, list.length, hero);
   if (opts.road && list.length > 1) {
     const cs = list.map((c, i) => centroid(c.points, boxes[i])).reverse();
-    ctx.strokeStyle = 'rgba(180,200,255,0.16)';
+    ctx.strokeStyle = `rgba(180,200,255,${hero ? 0.16 : 0.05})`;
     ctx.lineWidth = 1.2 * u;
     ctx.setLineDash([6 * u, 10 * u]);
     ctx.beginPath();
@@ -329,12 +348,12 @@ export function renderConstellationWallpaper(ctx: Ctx2D, opts: ConstellationRend
     ctx.stroke();
     ctx.setLineDash([]);
   }
-  list.forEach((c, i) => drawConstellation(ctx, c, boxes[i], u, i === 0));
+  list.forEach((c, i) => drawConstellation(ctx, c, boxes[i], u, i === 0, hero));
   if (opts.supernova && list.length > 0) {
     const [cx, cy] = centroid(list[0].points, boxes[0]);
-    drawSupernova(ctx, cx, cy, u, rnd);
+    drawSupernova(ctx, cx, cy, hero ? u : u * 0.35, rnd);
   }
-  if (list.length > 0) drawWatermark(ctx, list[0], boxes[0], u);
+  if (list.length > 0) drawWatermark(ctx, list[0], boxes[0], u, hero);
   ctx.restore();
 }
 
@@ -478,6 +497,7 @@ export function renderKartographBadge(ctx: Ctx2D, b: KartographBadgeRender): voi
     seed: b.constellation.patchLine,
     constellations: [b.constellation],
     nebula: true,
+    hero: true,
   });
   const u = Math.min(b.width, b.height) / 1000;
   ctx.save();

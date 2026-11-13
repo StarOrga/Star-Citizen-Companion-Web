@@ -7503,10 +7503,10 @@
     },
     "tour": {
       "open": "How the star map works",
-      "title": "The star map and the Logbook",
-      "p1": "Every patch has one star map of 7 stars. Each task you finish lights one.",
-      "p2": "Two challenges sit on the rim: the patch tip and recognising the star map.",
-      "p3": "The Logbook holds the community sky, your Kartograph rank and the series rewards.",
+      "title": "How the star map works",
+      "p1": "Every patch has one star map of 7 stars. Each task you finish lights one; once all 7 shine, the shape shows a ship and the map joins your collection.",
+      "p2": "Two challenges sit under the dome: the comet tip for the LIVE day of the next patch, and recognising the ship behind the shape.",
+      "p3": "Completed star maps raise your Kartograph rank. The crest top right opens your rank page with the series, its rewards and the 4K wallpaper.",
       "start": "Show me",
       "close": "Close",
       "back": "Back",
@@ -7516,23 +7516,23 @@
       "step": {
         "stage": {
           "title": "The dome",
-          "text": "The star map of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next."
+          "text": "The star map of the selected patch. Lit stars are finished tasks, the pulsing one is the suggested next, hollow rings are still open. Click a star to see its task. From 3 stars you also shine in this patch's community sky: brighter stars mean more explorers lit them."
         },
-        "count": {
-          "title": "Shape and rank",
-          "text": "The caption names the shape of this map and your Kartograph rank. The crests below show the ranks behind and ahead of you; your current crest opens your badge."
+        "patch": {
+          "title": "Pick a patch",
+          "text": "Top left you switch to the star map of an earlier patch. Every map stays, even long after its patch went LIVE."
         },
-        "tracks": {
-          "title": "The two challenges",
-          "text": "Give your patch tip for the next LIVE day and guess which ship the star map shows."
+        "comet": {
+          "title": "The comet",
+          "text": "Tip the day the next patch goes LIVE. Hit it and the comet lights a sun for your sun collection and a star on the map."
         },
-        "series": {
-          "title": "The series",
-          "text": "Your streak across patches - rewards unlock along it."
+        "guess": {
+          "title": "Guess the shape",
+          "text": "Guess which ship the star map shows. A hit earns a star; afterwards the shape's name sits under the dome."
         },
-        "more": {
-          "title": "The Logbook",
-          "text": "Opens the side sheet: community star map, suns, Kartograph rank, suggestions and rewards."
+        "rank": {
+          "title": "Your Kartograph rank",
+          "text": "Every completed star map moves your rank on. Ranks unlock early access to beta features, suggestions for the top list and a shareable badge. Your series, its rewards and the 4K wallpaper live on the rank page."
         }
       }
     },
@@ -7628,6 +7628,15 @@
       "current": "Kartograph rank {{rank}} - open your badge",
       "earned": "Kartograph rank {{rank}} - earned",
       "next": "Kartograph rank {{rank}} - still locked"
+    },
+    "rank": {
+      "link": "Kartograph rank {{rank}} · open the rank page",
+      "none": "No rank yet · how to climb"
+    },
+    "celebrate": {
+      "eyebrow": "Constellation complete",
+      "named": "{{name}} shines in the sky",
+      "done": "All 7 stars shine"
     }
   },
   "beta": {

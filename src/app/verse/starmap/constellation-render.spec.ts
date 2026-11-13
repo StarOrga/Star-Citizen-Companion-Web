@@ -71,9 +71,23 @@ describe('constellation renderer', () => {
   });
 
   it('draws only the current constellation large', () => {
-    const boxes = constellationBoxes(3840, 2160, 3);
-    expect(boxes[0].w).toBeGreaterThan(boxes[1].w * 3);
-    expect(boxes[1].w).toBe(boxes[2].w);
+    const hero = constellationBoxes(3840, 2160, 3, true);
+    expect(hero[0].w).toBeGreaterThan(hero[1].w * 3);
+    expect(hero[1].w).toBe(hero[2].w);
+    const sky = constellationBoxes(3840, 2160, 3);
+    expect(sky[0].w).toBeGreaterThan(sky[1].w * 2);
+    expect(sky[1].w).toBe(sky[2].w);
+  });
+
+  it('night sky: the own constellation sits small in one spot, no glint spikes, no nebula without the reward', () => {
+    const [box] = constellationBoxes(3840, 2160, 1);
+    expect(box.w).toBeLessThan(2160 * 0.2);
+    const r = recorder();
+    renderConstellationWallpaper(r.ctx, { ...opts, nebula: false });
+    expect(r.log.some((l) => l.startsWith('stop 0 hsla('))).toBe(false);
+    // the starfield draws discs (arc) only - a glint would be a moveTo/lineTo cross before the first constellation stroke
+    const firstStroke = r.log.findIndex((l) => l.startsWith('strokeStyle='));
+    expect(r.log.slice(0, firstStroke).some((l) => l.startsWith('lineTo('))).toBe(false);
   });
 
   it('renders identical pixels on a real canvas', () => {

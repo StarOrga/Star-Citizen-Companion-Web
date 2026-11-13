@@ -14,7 +14,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 
 /** The steps of the tour: `[data-tour]` marks the real element a step lights up. */
-export const STARMAP_TOUR_STEPS = ['stage', 'count', 'tracks', 'series', 'more'] as const;
+export const STARMAP_TOUR_STEPS = ['stage', 'patch', 'comet', 'guess', 'rank'] as const;
 export type StarmapTourStep = (typeof STARMAP_TOUR_STEPS)[number];
 
 interface Box {
@@ -25,7 +25,9 @@ interface Box {
 }
 
 /**
- * Inline tutorial of the star map and its Logbuch (shell beta; implement.md §12):
+ * Inline tutorial of the star map (shell beta; implement.md §12). It carries every
+ * explanation the old Logbuch sheet held (community sky, suns, Kartograph perks,
+ * where series and wallpaper went):
  * first three bullets, then a step-by-step walk that rings the REAL elements of the
  * panel (`[data-tour]`). Non-modal `[scDialog]` card - focus moves in, Tab stays on
  * the card, Escape closes and hands focus back to the help button.
