@@ -43,6 +43,7 @@ import {
 import { trackingSignalOf } from './codex-missile';
 import { displayItemName, formatNumber } from './codex-format';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
 import { FeedbackSpotDirective } from '../feedback/feedback-spot.directive';
 import { CodexSwapCandidatesService, swapPreloadQueries } from './codex-swap-candidates.service';
 
@@ -313,7 +314,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 @Component({
   selector: 'sc-codex-hardpoint-layout',
   standalone: true,
-  imports: [ItemPathComponent, FeedbackSpotDirective, TranslatePipe, NgTemplateOutlet, ScTooltipDirective],
+  imports: [ItemPathComponent, FeedbackSpotDirective, TranslatePipe, NgTemplateOutlet, ScTooltipDirective, ScActionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.calm]': 'calm()' },
   template: `
@@ -581,9 +582,11 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                       {{ ('codex.loadout.draftState.' + ds) | translate }}
                     </span>
                     @if (row.slot.draftPaths?.length) {
-                      <button type="button" class="slot-revert" (click)="revertRow(row)"
+                      <button type="button" scAction tier="tertiary" class="slot-revert" (click)="revertRow(row)"
                               [attr.aria-label]="'codex.loadout.revert' | translate"
-                              [scTooltip]="'codex.loadout.revert' | translate" scTooltipTier="label">↺</button>
+                              [scTooltip]="'codex.loadout.revert' | translate" scTooltipTier="label">
+                        <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.35-5.65M4 4v4.5h4.5" /></svg>
+                      </button>
                     }
                   }
                   <!-- The full stat sheet, on EVERY occupied row (feedback
@@ -730,6 +733,14 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                               </span>
                               <span class="slot-port">{{ kid.port }}</span>
                             </span>
+                          }
+                          <!-- #345: a swapped sub-slot (the gun in a gimbal) resets on its own, too. -->
+                          @if (kid.draftState && kid.draftPaths?.length) {
+                            <button type="button" scAction tier="tertiary" class="slot-revert kid-revert" (click)="revertChild(kid)"
+                                    [attr.aria-label]="'codex.loadout.revert' | translate"
+                                    [scTooltip]="'codex.loadout.revert' | translate" scTooltipTier="label">
+                              <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.35-5.65M4 4v4.5h4.5" /></svg>
+                            </button>
                           }
                           </div>
                         </li>
@@ -916,10 +927,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .tag.draft.unresolved { color: var(--sc-danger, #ff5252);
       border-color: color-mix(in srgb, var(--sc-danger, #ff5252) 45%, transparent);
       background: color-mix(in srgb, var(--sc-danger, #ff5252) 10%, transparent); }
-    .slot-revert { flex: 0 0 auto; align-self: center; width: 26px; height: 26px; border-radius: 50%;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-2);
-      font-size: 0.85rem; cursor: pointer; }
-    .slot-revert:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+    /* #345: scAction tertiary, sized down to the row's other 26px icons (ⓘ, ⇄). */
+    .slot-revert { flex: 0 0 auto; align-self: center; width: 26px; height: 26px; }
+    @media (pointer: coarse) { .slot-revert { width: 48px; height: 48px; } }
 
     /* .m-slot (part-02.html:204), RAISED off the card — the row sits ON the
        module, so it is the lighter of the two surfaces. Its corner is the
@@ -1292,6 +1302,11 @@ export class CodexHardpointLayoutComponent {
 
   revertRow(row: GroupedSlot<LayoutSlot>): void {
     if (row.slot.draftPaths?.length) this.reverted.emit(row.slot.draftPaths);
+  }
+
+  /** #345: a sub-slot's own reset icon — emits only that sub-slot's draft paths. */
+  revertChild(kid: LayoutChild): void {
+    if (kid.draftPaths?.length) this.reverted.emit(kid.draftPaths);
   }
 
   /** The ⓘ side button: always the full stat sheet for the mount itself. */
