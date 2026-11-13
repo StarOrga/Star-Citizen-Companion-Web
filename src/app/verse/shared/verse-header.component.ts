@@ -28,6 +28,7 @@ import { VerseWorld, verseEmblemShown } from './verse-world';
  *                            tablet up the shell subheader carries the trail
  *       [eyebrow]="..."      legacy; used as the h1 text when no title is given
  *       [root]="true">       legacy (hub only): no crumbs
+ *     <button vhTitle ...>?</button>    one small control right after the h1 (e.g. a plain "?")
  *     <a vhActions ...>…</a>          right-aligned actions/aside row; every direct
  *     <button vhActions ...>…</button>  child gets a fine divider to its left, no boxes
  *   </sc-verse-header>
@@ -78,7 +79,7 @@ import { VerseWorld, verseEmblemShown } from './verse-world';
         </span>
       }
       <div class="vh-line" [scFeedbackSpot]="'feedbackSpot.headline'" [scFeedbackSpotText]="heading()">
-        @if (heading(); as h) { <h1 class="vh-title">{{ h }}</h1> }
+        @if (heading(); as h) { <h1 class="vh-title">{{ h }}</h1> }<ng-content select="[vhTitle]" />
         @if (subtitle(); as s) { <p class="vh-sub">{{ s }}<ng-content select="[vhSub]" /></p> }
       </div>
       <div class="vh-actions">

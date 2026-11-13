@@ -1,43 +1,65 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { BetaService } from '../../core/beta.service';
-import { logWarn } from '../../core/log';
-import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
+import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseComet, VerseExplorerPatch } from '../data/verse.models';
 import { currentPatchName } from '../data/patch-alias';
 import { StarmapMiniComponent } from './starmap-mini.component';
 import { CometTrackComponent } from './comet-track.component';
-import { downloadBlob, renderConstellationPng } from './constellation-render';
-import { KartographCrestComponent, type CrestState } from './kartograph-crest.component';
-import { OwnBadgeService } from './own-badge.service';
-import { MyConstellationsComponent } from './my-constellations.component';
+import { KartographCrestComponent } from './kartograph-crest.component';
 import { ScSelectComponent, type ScSelectOption } from '../../shared/sc-select.component';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { GuessTrackComponent } from './guess-track.component';
-import { SeriesStripComponent } from './series-strip.component';
 import { StarDomeComponent } from './star-dome.component';
 import { StarmapTourComponent } from './starmap-tour.component';
-import { StarmapMoreComponent } from './starmap-more.component';
-import { STARS_PER_PATCH, defaultPatch, patchMapView, sunState } from './starmap.model';
-import { wallpaperConstellations } from './wallpaper';
+import { STARS_PER_PATCH, defaultPatch, patchMapView } from './starmap.model';
 
 export { wallpaperConstellations } from './wallpaper';
 
-/** Patches offered in the head dropdown (newest first). */
+/** Patches offered in the patch switcher (newest first). */
 const MAX_PATCH_OPTIONS = 12;
-/** Ranks shown on each side of the current crest. */
-const LADDER_SPAN = 3;
+/** localStorage: patch lines whose completed constellation was already celebrated. */
+export const CELEBRATED_KEY = 'sc.starmap.celebrated';
+
+/** Patch lines already celebrated; an unreadable store counts as none (the page renders without it). */
+export function celebratedLines(): Set<string> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CELEBRATED_KEY) ?? '[]') as unknown;
+    return new Set(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markCelebrated(line: string): void {
+  try {
+    const set = celebratedLines();
+    set.add(line);
+    localStorage.setItem(CELEBRATED_KEY, JSON.stringify([...set].slice(-40)));
+  } catch {
+    /* private mode / quota: the celebration may repeat, nothing breaks */
+  }
+}
+
+function isComplete(p: VerseExplorerPatch): boolean {
+  return p.starCount >= STARS_PER_PATCH;
+}
 
 /**
  * The star map ("Sternkarte", Kuppel): one constellation per patch under a dome
- * sky, the sun top right, the two rim challenges (comet tip, constellation
- * guess) and the series in one line — all in one desktop viewport. Secondary
- * things (community, suns, Kartograph, rewards extras) live in the Logbuch sheet.
+ * sky, the comet tip as the main challenge under it and the constellation guess
+ * beside it. The head matches the other Verse subpages (title + a plain "?" for
+ * the tour, the rank crest on the right as a real anchor to the rank page); the
+ * patch switcher sits quietly top left of the dome. Rank ladder, series, the
+ * Logbuch extras and the 4K wallpaper live on the rank page.
+ *
+ * Completion: a constellation that was complete when the user ENTERED the page
+ * and was never celebrated plays its celebration once (stored per patch line);
+ * a star finished during the visit celebrates on the next visit, not mid-action.
  */
 @Component({
   selector: 'sc-explorer-page',
@@ -48,15 +70,12 @@ const LADDER_SPAN = 3;
     RouterLink,
     TranslatePipe,
     ScTooltipDirective,
-    ScDialogDirective,
+    ScActionDirective,
     StarDomeComponent,
     CometTrackComponent,
     StarmapMiniComponent,
     GuessTrackComponent,
-    SeriesStripComponent,
-    StarmapMoreComponent,
     StarmapTourComponent,
-    MyConstellationsComponent,
     VerseHeaderComponent,
     ScSelectComponent,
     KartographCrestComponent,
@@ -84,95 +103,65 @@ const LADDER_SPAN = 3;
       @let st = state()!;
       @let p = selected()!;
       @let v = view()!;
+      @let k = st.kartograph;
+      @let ranked = k.unlocked && k.rank >= 1;
       <div #mapEl class="page" [attr.aria-label]="'starmap.stageAria' | translate: { patch: name(p.patchLine) }" role="region">
-        <sc-verse-header planet="starmap"
-                         [title]="(mine() ? 'starmap.gallery.title' : 'starmap.map.title') | translate: { patch: name(p.patchLine) }"
-                         [subtitle]="mine() ? ('starmap.gallery.subtitle' | translate) : ('starmap.map.subtitle' | translate: { total: total })">
+        <sc-verse-header planet="starmap" [title]="'verse.area.starmap' | translate"
+                         [subtitle]="'starmap.map.subtitle' | translate: { total: total }">
           <sc-starmap-mini vhEmblem [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next" />
-          @if (patchOptions().length > 1 && !mine()) {
-            <sc-select vhActions class="patch-pick" [options]="patchOptions()" [value]="p.patchLine" [allowEmpty]="false"
-                       [ariaLabel]="'starmap.map.patchesAria' | translate" (valueChange)="selectLine($event)" />
+          @if (shellOn()) {
+            <button vhTitle #helpBtn type="button" scAction tier="tertiary" class="help" [attr.aria-expanded]="tourOpen()"
+                    aria-controls="starmap-tour" [attr.aria-label]="'starmap.tour.open' | translate"
+                    [scTooltip]="'starmap.tour.open' | translate" scTooltipTier="label" (click)="tourOpen.set(!tourOpen())">?</button>
           }
-          <div vhActions class="acts">
-            @if (p.unlocks.wallpaper && !mine()) {
-              <button type="button" class="act" [disabled]="exporting()" (click)="exportWallpaper(p)">
-                {{ (exporting() ? 'starmap.export.busy' : 'starmap.export.wallpaper') | translate }}
-              </button>
-            }
-            @if (shellOn()) {
-              <button type="button" class="act ghost" [attr.aria-pressed]="mine()" (click)="toggleMine()">{{ 'starmap.map.mine' | translate }}</button>
+          <a vhActions class="rank" [class.none]="!ranked" data-tour="rank" routerLink="/verse/explorer/rank"
+             [attr.aria-label]="(ranked ? 'starmap.rank.link' : 'starmap.rank.none') | translate: { rank: k.rank }"
+             [scTooltip]="(ranked ? 'starmap.rank.link' : 'starmap.rank.none') | translate: { rank: k.rank }" scTooltipTier="label">
+            @if (ranked) {
+              <sc-kartograph-crest [rank]="k.rank" [size]="40" state="current" />
             } @else {
-              <a class="act ghost" routerLink="/verse/gallery/constellations">{{ 'starmap.map.mine' | translate }}</a>
+              <svg class="rank-empty" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+                <path d="M20 4 33 9v10c0 8-5.6 14-13 17C12.6 33 7 27 7 19V9z" />
+                <path class="q" d="M20 14.5 21.6 19.2 26.5 19.3 22.6 22.2 24 26.9 20 24.1 16 26.9 17.4 22.2 13.5 19.3 18.4 19.2z" />
+              </svg>
             }
-            <button type="button" class="act ghost" data-tour="more" [attr.aria-expanded]="moreOpen()" aria-controls="starmap-more"
-                    (click)="moreOpen.set(!moreOpen())">{{ 'starmap.more.open' | translate }}</button>
-            @if (shellOn()) {
-              <button #helpBtn type="button" class="act ghost help" [attr.aria-expanded]="tourOpen()" aria-controls="starmap-tour"
-                      [attr.aria-label]="'starmap.tour.open' | translate" [scTooltip]="'starmap.tour.open' | translate" scTooltipTier="label"
-                      (click)="tourOpen.set(!tourOpen())">?</button>
-            }
-          </div>
-          @if (exportError()) { <span vhActions class="err" role="alert">{{ exportError()! | translate }}</span> }
+          </a>
         </sc-verse-header>
 
         <section class="map sc-enter-stagger">
-        @if (mine()) {
-          <div class="mine"><sc-my-constellations [embedded]="true" /></div>
-        } @else {
-        <sc-star-dome class="stage" data-tour="stage" [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next"
-                      [sun]="sun()" [sunLine]="cometTarget()?.patchLine ?? p.patchLine" [patchLine]="p.patchLine" />
-
-        <div class="meta" data-tour="count">
-          <p class="caption">
-            @if (shapeName(); as sn) { <span>{{ 'starmap.map.shape' | translate: { name: sn } }}</span> }
-            @if (st.kartograph.unlocked) { <span>{{ 'starmap.kartograph.rank' | translate: { rank: st.kartograph.rank } }}</span> }
-          </p>
-          @if (st.kartograph.unlocked && ladder().length) {
-            <nav class="ladder" [attr.aria-label]="'starmap.ladder.aria' | translate">
-              @for (r of ladder(); track r.rank) {
-                @if (r.state === 'current') {
-                  <a class="rung current" [routerLink]="badge().commands" [queryParams]="badge().queryParams" aria-current="true"
-                     [attr.aria-label]="'starmap.ladder.current' | translate: { rank: r.rank }"
-                     [scTooltip]="'starmap.ladder.current' | translate: { rank: r.rank }">
-                    <sc-kartograph-crest [rank]="r.rank" [size]="44" state="current" />
-                    <small>{{ 'starmap.ladder.here' | translate }}</small>
-                  </a>
-                } @else {
-                  <span class="rung" [class.locked]="r.state === 'locked'" role="img"
-                        [attr.aria-label]="(r.state === 'locked' ? 'starmap.ladder.next' : 'starmap.ladder.earned') | translate: { rank: r.rank }"
-                        [scTooltip]="(r.state === 'locked' ? 'starmap.ladder.next' : 'starmap.ladder.earned') | translate: { rank: r.rank }">
-                    <sc-kartograph-crest [rank]="r.rank" [size]="32" [state]="r.state" />
-                  </span>
-                }
+          <div class="dome-wrap">
+            <sc-star-dome class="stage" data-tour="stage" [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next"
+                          [patchLine]="p.patchLine" [celebrate]="celebrating() === p.patchLine" />
+            <div class="corner" data-tour="patch">
+              @if (patchOptions().length > 1) {
+                <sc-select class="patch-pick compact quiet" [options]="patchOptions()" [value]="p.patchLine" [allowEmpty]="false"
+                           [ariaLabel]="'starmap.map.patchesAria' | translate" (valueChange)="selectLine($event)" />
+              } @else {
+                <span class="patch-one">{{ 'starmap.map.patchLive' | translate: { patch: name(p.patchLine) } }}</span>
               }
-            </nav>
-          }
-        </div>
+            </div>
+            @if (celebrating() === p.patchLine) {
+              <p class="cele" role="status">
+                <small>{{ 'starmap.celebrate.eyebrow' | translate }}</small>
+                <b>{{ (shapeName() ? 'starmap.celebrate.named' : 'starmap.celebrate.done') | translate: { name: shapeName() } }}</b>
+              </p>
+            }
+          </div>
 
-        <div class="tracks" data-tour="tracks">
-          @if (cometTarget(); as ct) {
-            <sc-comet-track class="track" [patchLine]="ct.patchLine" [comet]="ct.comet" />
+          @if (shapeName(); as sn) {
+            <p class="caption">{{ 'starmap.map.shape' | translate: { name: sn } }}</p>
           }
-          @if (p.guess.state !== 'unavailable') {
-            <sc-guess-track class="track" [patchLine]="p.patchLine" [guess]="p.guess" />
-          }
-        </div>
 
-        <sc-series-strip class="series" data-tour="series" [state]="st" />
-        }
+          <div class="tracks">
+            @if (cometTarget(); as ct) {
+              <sc-comet-track class="track comet" data-tour="comet" [patchLine]="ct.patchLine" [comet]="ct.comet" />
+            }
+            @if (p.guess.state !== 'unavailable') {
+              <sc-guess-track class="track guess" data-tour="guess" [patchLine]="p.patchLine" [guess]="p.guess" />
+            }
+          </div>
         </section>
 
-        @if (moreOpen()) {
-          <aside id="starmap-more" class="more" role="dialog" scDialog [scDialogModal]="false" (scDialogEscape)="moreOpen.set(false)"
-                 [attr.aria-label]="'starmap.more.title' | translate">
-            <div class="more-head">
-              <h2>{{ 'starmap.more.title' | translate }}</h2>
-              <button type="button" class="x" [attr.aria-label]="'starmap.card.close' | translate"
-                      [scTooltip]="'starmap.card.close' | translate" scTooltipTier="label" (click)="moreOpen.set(false)">×</button>
-            </div>
-            <sc-starmap-more [state]="st" [patch]="p" />
-          </aside>
-        }
         @if (tourOpen() && shellOn()) {
           <sc-starmap-tour id="starmap-tour" [root]="mapEl" [returnTo]="helpBtn()?.nativeElement ?? null" (closed)="tourOpen.set(false)" />
         }
@@ -192,64 +181,59 @@ const LADDER_SPAN = 3;
       .btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
       .page { position: relative; }
+      /* The plain "?" right after the title: no frame, just the glyph. */
+      .help { font: 600 1rem/1 var(--sc-font-display); color: var(--sc-fg-2); align-self: center; }
+      .help:hover, .help[aria-expanded='true'] { color: var(--sc-accent); }
+      /* The rank crest at the head's right end, a real anchor to the rank page. */
+      .rank { display: inline-grid; place-items: center; min-width: var(--sc-tap-min, 44px); min-height: var(--sc-tap-min, 44px);
+        color: var(--sc-accent); text-decoration: none; border-radius: 8px; transition: filter 0.15s ease; }
+      .rank:hover { filter: brightness(1.2) drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
+      .rank:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .rank-empty { width: 40px; height: 40px; overflow: visible; }
+      .rank-empty path { fill: none; stroke: color-mix(in srgb, var(--sc-fg-2) 80%, transparent); stroke-width: 1.4; stroke-dasharray: 3 3; }
+      .rank-empty path.q { stroke-dasharray: none; stroke-width: 1; opacity: 0.7; }
+
       /* No box: the scene shows through. One viewport on desktop - the map takes what the head and shell leave. */
-      .map { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; gap: 10px; box-sizing: border-box;
+      .map { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 12px; box-sizing: border-box;
         height: calc(100dvh - var(--sc-topbar-h, 64px) - 2 * var(--sc-page-gutter, 24px) - 110px); min-height: 560px; max-height: 1000px; }
-      .patch-pick { min-width: 120px; }
-
-      /* Caption (shape + rank) bottom left, Kartograph crest ladder at the right end, directly under the map. */
-      .meta { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sc-gap-3, 16px); flex-wrap: wrap; min-width: 0; }
-      .caption { margin: 0; display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--sc-fg-1); letter-spacing: 0.04em; }
-      .caption span + span::before { content: ''; display: inline-block; width: 1px; height: 0.9em; margin-right: 14px; vertical-align: -0.1em;
-        background: var(--sc-border); }
-      .ladder { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-      .rung { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; border-radius: 8px; color: var(--sc-fg-2); text-decoration: none; }
-      .rung.locked { opacity: 0.7; }
-      .rung.current { padding: 4px 10px; border-left: 1px solid var(--sc-border); border-right: 1px solid var(--sc-border); border-radius: 0; color: var(--sc-fg-0); }
-      .rung.current small { font: 0.62rem var(--sc-font-display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
-      a.rung:hover, a.rung:focus-visible { color: var(--sc-fg-0); outline: none; }
-      a.rung:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
-      .acts { display: flex; gap: 6px; flex-wrap: wrap; }
-      .act { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--sc-accent);
-        background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-fg-0); font: 0.8rem inherit; cursor: pointer; text-decoration: none; }
-      .act.ghost { background: transparent; border-color: var(--sc-border); color: var(--sc-fg-1); }
-      .act:hover, .act:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); outline: none; }
-      .act:focus-visible { box-shadow: 0 0 0 2px var(--sc-accent); }
-      .act:disabled { opacity: 0.55; cursor: progress; }
-      .err { color: var(--sc-danger); font-size: 0.8rem; }
-
+      .dome-wrap { position: relative; min-height: 0; }
       .stage { min-height: 0; height: 100%; }
-      /* One grid for both challenges: heads share a row (one baseline), rails start at the same y, an optional error foot gets the third row. */
-      .tracks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 8%; row-gap: 0; align-items: start; }
-      .tracks .track { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; align-content: start; }
-      .tracks .track:only-child { grid-column: 1; }
+      /* The patch switcher: quiet, top left of the dome, never competing with the map. */
+      .corner { position: absolute; z-index: 5; left: 0; top: 0; opacity: 0.72; transition: opacity 0.2s ease; }
+      .corner:hover, .corner:focus-within { opacity: 1; }
+      .patch-pick { min-width: 132px; }
+      .patch-one { display: inline-block; padding: 6px 2px; font: 0.78rem var(--sc-font-display); letter-spacing: 0.16em;
+        text-transform: uppercase; color: var(--sc-fg-2); }
+      .caption { margin: 0; text-align: center; font-size: 0.8rem; color: var(--sc-fg-1); letter-spacing: 0.04em; }
 
-      @keyframes ex-in { from { opacity: 0; } to { opacity: 1; } }
-      .more { position: absolute; z-index: 10; top: 10px; right: 10px; bottom: 10px; width: min(380px, calc(100% - 20px)); overflow-y: auto;
-        padding: var(--sc-pad-3); box-sizing: border-box; border-radius: 12px; outline: none;
-        background: color-mix(in srgb, var(--sc-bg-0) 96%, transparent); border: 1px solid var(--sc-border);
-        box-shadow: 0 16px 40px rgb(0 0 0 / 50%); animation: ex-in 0.2s ease-out both; }
-      .more-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sc-gap-2); }
-      .more-head h2 { margin: 0; font: 600 1rem var(--sc-font-display); color: var(--sc-fg-0); }
-      .x { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--sc-border); background: none; color: var(--sc-fg-2);
-        font: 1rem/1 inherit; cursor: pointer; padding: 0; }
-      .x:hover, .x:focus-visible { color: var(--sc-fg-0); border-color: var(--sc-accent); outline: none; }
-      .act.help { min-width: 36px; justify-content: center; padding: 0; font-weight: 600; }
-      /* Constellations toggle (shell beta): the dome dissolves, the list builds up in its place. */
-      .mine { grid-row: 2 / -1; min-height: 0; overflow-y: auto; padding-right: 4px; }
-      @media (pointer: coarse) { .act, .x { min-height: var(--sc-tap-min, 48px); min-width: var(--sc-tap-min, 48px); } }
+      /* The comet is the page's main challenge: the wider column, a faint glow under its rail. */
+      .tracks { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-rows: auto auto auto; column-gap: 6%;
+        row-gap: 0; align-items: start; }
+      .tracks .track { position: relative; display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 0; align-content: start; }
+      .tracks .track:only-child { grid-column: 1 / -1; }
+      .tracks .comet::before { content: ''; position: absolute; inset: -14px -18px -10px; z-index: -1; border-radius: 16px; pointer-events: none;
+        background: radial-gradient(ellipse 70% 80% at 30% 40%, color-mix(in srgb, var(--sc-accent) 9%, transparent), transparent 75%); }
+
+      /* The completion celebration (once per patch line, on the next visit): a caption over the dome. */
+      .cele { position: absolute; z-index: 6; left: 50%; bottom: 6%; translate: -50% 0; margin: 0; padding: 10px 18px; text-align: center;
+        border-radius: 12px; pointer-events: none; background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent); animation: ex-cele 6.5s ease-out 1.6s both; }
+      .cele small { display: block; font: 0.66rem var(--sc-font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--sc-accent); }
+      .cele b { display: block; margin-top: 4px; font: 600 1rem var(--sc-font-display); color: var(--sc-fg-0); }
+      @keyframes ex-cele { 0% { opacity: 0; translate: -50% 8px; } 10%, 82% { opacity: 1; translate: -50% 0; } 100% { opacity: 0; translate: -50% 0; } }
+      @keyframes ex-cele-still { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
 
       /* Phones / narrow: the page may scroll, the dome keeps a square stage. */
       @media (max-width: 900px), (max-height: 700px) {
         .map { height: auto; min-height: 0; max-height: none; }
-        .ladder { margin-left: 0; }
         .stage { height: auto; aspect-ratio: 1; max-height: 70dvh; }
+        .corner { position: static; margin-bottom: 6px; }
         .tracks { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 22px; }
         .tracks .track { display: block; grid-row: auto; }
-        .more { position: fixed; inset: auto 8px var(--sc-float-bottom, 8px) 8px; top: 15dvh; width: auto; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .more { animation: none; }
+        .cele { animation: ex-cele-still 6.5s linear 0.2s both; }
+        .rank { transition: none; }
       }
     `,
   ],
@@ -275,7 +259,7 @@ export class ExplorerPageComponent {
     const p = this.selected();
     return p ? patchMapView(p) : null;
   });
-  /** Head dropdown: the live patch first (marked), then the older maps. */
+  /** Patch switcher: the live patch first (marked), then the older maps. */
   readonly patchOptions = computed<ScSelectOption[]>(() => {
     const st = this.state();
     const up = st?.upcoming?.patchLine;
@@ -283,19 +267,11 @@ export class ExplorerPageComponent {
     return (st?.patches ?? [])
       .filter((p) => p.patchLine !== up || p.liveAt)
       .slice(0, MAX_PATCH_OPTIONS)
-      .map((p) => (p === live ? { value: p.patchLine, labelKey: 'starmap.map.patchLive', labelParams: { patch: this.name(p.patchLine) } } : { value: p.patchLine, labelKey: 'starmap.map.patchOld', labelParams: { patch: this.name(p.patchLine) } }));
+      .map((p) => ({ value: p.patchLine, labelKey: p === live ? 'starmap.map.patchLive' : 'starmap.map.patchOld', labelParams: { patch: this.name(p.patchLine) } }));
   });
-  readonly badge = inject(OwnBadgeService).link;
-  /** Kartograph ladder: up to three earned ranks before, the current one, three locked ones after. */
-  readonly ladder = computed<{ rank: number; state: CrestState }[]>(() => {
-    const k = this.state()?.kartograph;
-    if (!k?.unlocked || k.rank < 1) return [];
-    const out: { rank: number; state: CrestState }[] = [];
-    for (let r = Math.max(1, k.rank - LADDER_SPAN); r < k.rank; r++) out.push({ rank: r, state: 'earned' });
-    out.push({ rank: k.rank, state: 'current' });
-    for (let r = k.rank + 1; r <= k.rank + LADDER_SPAN; r++) out.push({ rank: r, state: 'locked' });
-    return out;
-  });
+  /** Display name of a patch line (CIG renames: 4.11 became 5.0); the stored key stays. */
+  readonly name = currentPatchName;
+
   /**
    * Where the comet flies: on the newest map the patch still in testing (the
    * tip is for its LIVE day; the server always names one, the PTU line or live
@@ -303,9 +279,6 @@ export class ExplorerPageComponent {
    * patch the newest map must not headline its LIVE patch's closed comet, so
    * the rail is hidden (a tipped / hit / missed record still shows).
    */
-  /** Display name of a patch line (CIG renames: 4.11 became 5.0); the stored key stays. */
-  readonly name = currentPatchName;
-
   readonly cometTarget = computed<{ patchLine: string; comet: VerseComet } | null>(() => {
     const p = this.selected();
     if (!p) return null;
@@ -316,40 +289,34 @@ export class ExplorerPageComponent {
     }
     return { patchLine: p.patchLine, comet: p.comet };
   });
-  readonly sun = computed(() => {
-    const p = this.selected();
-    if (!p) return 'faded' as const;
-    const target = this.cometTarget();
-    return sunState(p.sun, !target || target.patchLine === p.patchLine ? p.comet : target.comet);
-  });
   /** The hull's name once the guess was made or the constellation is complete. */
   readonly shapeName = computed(() => {
     const p = this.selected();
     return p?.guess.answerName ?? p?.constellation?.name ?? null;
   });
-  readonly moreOpen = signal(false);
   readonly tourOpen = signal(false);
   readonly helpBtn = viewChild<ElementRef<HTMLElement>>('helpBtn');
   readonly shellOn = inject(BetaService).isEnabled('shell');
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly query = toSignal(this.route.queryParamMap, { requireSync: true });
-  /** "Meine Sternbilder" as a state of this panel (shell beta); the old page route redirects here. */
-  readonly mine = computed(() => this.shellOn() && this.query().get('view') === 'constellations');
-  readonly exporting = signal(false);
-  readonly exportError = signal<string | null>(null);
+
+  /** Patch lines complete when the page was entered (snapshot): only those may celebrate on this visit. */
+  private entryComplete: Set<string> | null = null;
+  /** The patch line whose completion plays right now. */
+  readonly celebrating = signal<string | null>(null);
 
   constructor() {
     effect(() => {
       if (this.signedIn() && this.api.explorerState() === 'idle') void this.api.loadExplorer();
     });
-  }
-
-  toggleMine(): void {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { view: this.mine() ? null : 'constellations' },
-      queryParamsHandling: 'merge',
+    effect(() => {
+      const st = this.state();
+      const p = this.selected();
+      if (!st || !p) return;
+      untracked(() => {
+        this.entryComplete ??= new Set(st.patches.filter(isComplete).map((x) => x.patchLine));
+        if (!this.entryComplete.has(p.patchLine) || celebratedLines().has(p.patchLine)) return;
+        markCelebrated(p.patchLine);
+        this.celebrating.set(p.patchLine);
+      });
     });
   }
 
@@ -359,26 +326,5 @@ export class ExplorerPageComponent {
 
   selectLine(line: string | null): void {
     if (line) this.picked.set(line);
-  }
-
-  async exportWallpaper(p: VerseExplorerPatch): Promise<void> {
-    const st = this.state();
-    if (!st) return;
-    this.exporting.set(true);
-    this.exportError.set(null);
-    try {
-      const blob = await renderConstellationPng({
-        seed: p.patchLine,
-        constellations: wallpaperConstellations(st, p),
-        nebula: st.rewards.nebula,
-        road: st.rewards.road,
-      });
-      downloadBlob(blob, `sc-constellation-${p.patchLine}-4k.png`);
-    } catch (err) {
-      logWarn('starmap', 'export failed', err);
-      this.exportError.set('starmap.export.failed');
-    } finally {
-      this.exporting.set(false);
-    }
   }
 }
