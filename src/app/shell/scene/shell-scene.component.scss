@@ -171,9 +171,7 @@ html[data-sc-scene] body { background: transparent; }
 
   // Sternkarte: the constellation morphs into the star map at its pose (mock d5-starmap-morph).
   .starmap { left: 169vw; top: 76.688vw; width: 5.938vw; height: 4.375vw; opacity: var(--o-starmap, 0); }
-  .starmap .const { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transition: opacity calc(var(--scene-move) * 0.25) ease 0s; }
-  .starmap .const polyline { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 70%, transparent); stroke-width: 0.8; }
-  .starmap .const circle { fill: #dff4ff; }
+  .starmap .const { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; transition: opacity calc(var(--scene-move) * 0.25) ease 0s; }
   .starmap .map {
     position: absolute; inset: -60% -80%; display: block; opacity: 0;
     transition: opacity calc(var(--scene-move) * 0.3) ease 0s;

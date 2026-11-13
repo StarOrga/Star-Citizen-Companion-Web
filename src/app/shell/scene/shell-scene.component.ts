@@ -2,6 +2,10 @@ import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, ElementRef, N
 import { BriefingPlanetComponent } from '../../verse/pages/briefing/briefing-planet.component';
 import { BriefingStationComponent } from '../../verse/pages/briefing/briefing-station.component';
 import { BriefingHqBaseComponent } from '../../verse/pages/briefing/briefing-hq-base.component';
+import { BriefingSkyComponent } from '../../verse/pages/briefing/briefing-sky.component';
+import { explorerLit } from '../../verse/pages/briefing/briefing.model';
+import { VerseApiService } from '../../verse/data/verse-api.service';
+import { STARS_PER_PATCH, defaultPatch } from '../../verse/starmap/starmap.model';
 import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
 import { SceneBodiesComponent } from './scene-bodies.component';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router } from '@angular/router';
@@ -47,7 +51,7 @@ export const SCENE_HTML_ATTR = 'data-sc-scene';
   selector: 'sc-shell-scene',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BriefingPlanetComponent, BriefingStationComponent, BriefingHqBaseComponent, SceneBodiesComponent],
+  imports: [BriefingPlanetComponent, BriefingStationComponent, BriefingHqBaseComponent, BriefingSkyComponent, SceneBodiesComponent],
   templateUrl: './shell-scene.component.html',
   styleUrl: './shell-scene.component.scss',
   // Global on purpose: it has to clear body's background (see the stylesheet); every rule is scoped by the host class.
@@ -58,6 +62,14 @@ export class ShellSceneComponent {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   readonly on = inject(BetaService).isEnabled('shell');
+  private readonly verseApi = inject(VerseApiService);
+  /** The Sternkarte piece: the current patch's real constellation, as the hub draws it (read only: the scene loads nothing). */
+  readonly starFig = computed(() => {
+    const st = this.verseApi.explorer();
+    const p = st ? defaultPatch(st) : null;
+    if (!p?.constellation?.points) return null;
+    return { points: p.constellation.points, lit: Math.min(STARS_PER_PATCH, p.starCount ?? 0), litSet: explorerLit(p) };
+  });
   readonly cam = inject(SceneCameraService);
   private readonly skyEl = viewChild<ElementRef<HTMLElement>>('sky');
   private readonly worldEl = viewChild<ElementRef<HTMLElement>>('world');
