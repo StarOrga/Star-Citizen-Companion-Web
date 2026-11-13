@@ -8,8 +8,8 @@ import { StarmapTourComponent } from './starmap-tour.component';
   template: `
     <section #map style="position: relative; height: 400px">
       <div data-tour="stage" style="height: 100px">stage</div>
-      <span data-tour="count">3/7</span>
-      <button data-tour="more" type="button">Logbuch</button>
+      <span data-tour="patch">4.4</span>
+      <a data-tour="rank" href="/verse/explorer/rank">Rang</a>
       <sc-starmap-tour [root]="map" (closed)="closed = closed + 1" />
     </section>
   `,
@@ -42,7 +42,7 @@ describe('StarmapTourComponent', () => {
     f.detectChanges();
     expect(q('.ring')).not.toBeNull();
     expect(q('.count')).not.toBeNull();
-    // stage -> count -> more (tracks and series are absent from this panel): 3 steps
+    // stage -> patch -> rank (comet and guess are absent from this panel): 3 steps
     const next = () => {
       const b = f.nativeElement.querySelectorAll('.row .btn');
       (b[1] as HTMLButtonElement).click();
