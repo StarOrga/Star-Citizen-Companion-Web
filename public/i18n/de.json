@@ -7503,10 +7503,10 @@
     },
     "tour": {
       "open": "So funktioniert die Sternkarte",
-      "title": "Die Sternkarte und das Logbuch",
-      "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten.",
-      "p2": "Am Rand liegen zwei Herausforderungen: der Patch-Tipp und das Erkennen der Sternkarte.",
-      "p3": "Im Logbuch findest du den Community-Himmel, deinen Kartograph-Rang und die Serien-Belohnungen.",
+      "title": "So funktioniert die Sternkarte",
+      "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten; sind alle 7 an, zeigt die Form ein Schiff und die Karte landet in deiner Sammlung.",
+      "p2": "Unter der Kuppel liegen zwei Herausforderungen: der Kometen-Tipp auf den LIVE-Tag des nächsten Patches und das Erkennen des Schiffs hinter der Form.",
+      "p3": "Mit vollendeten Sternkarten steigst du als Kartograph auf. Das Wappen oben rechts öffnet deine Rangseite mit Serie, Belohnungen und dem 4K-Wallpaper.",
       "start": "Zeig es mir",
       "close": "Schließen",
       "back": "Zurück",
@@ -7516,23 +7516,23 @@
       "step": {
         "stage": {
           "title": "Die Kuppel",
-          "text": "Die Sternkarte des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes."
+          "text": "Die Sternkarte des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes, hohle Ringe sind noch offen. Ein Klick auf einen Stern zeigt seine Aufgabe. Ab 3 Sternen leuchtest du im Community-Himmel dieses Patches mit: hellere Sterne heißen, mehr Explorer haben sie entzündet."
         },
-        "count": {
-          "title": "Form und Rang",
-          "text": "Die Bildunterschrift nennt die Form dieser Karte und deinen Kartograph-Rang. Die Wappen darunter zeigen die Ränge hinter und vor dir; dein aktuelles Wappen öffnet dein Abzeichen."
+        "patch": {
+          "title": "Patch wählen",
+          "text": "Oben links wechselst du zur Sternkarte eines früheren Patches. Jede Karte bleibt erhalten, auch wenn der Patch längst LIVE ist."
         },
-        "tracks": {
-          "title": "Die zwei Herausforderungen",
-          "text": "Gib deinen Patch-Tipp für den nächsten LIVE-Tag ab und rate, welches Schiff die Sternkarte zeigt."
+        "comet": {
+          "title": "Der Komet",
+          "text": "Tipp den Tag, an dem der nächste Patch LIVE geht. Triffst du ihn, entzündet der Komet eine Sonne für deine Sonnensammlung und einen Stern auf der Karte."
         },
-        "series": {
-          "title": "Die Serie",
-          "text": "Deine Serie über mehrere Patches - Belohnungen schalten sich entlang davon frei."
+        "guess": {
+          "title": "Die Form erraten",
+          "text": "Rate, welches Schiff die Sternkarte zeigt. Ein Treffer bringt einen Stern; danach steht der Name der Form unter der Kuppel."
         },
-        "more": {
-          "title": "Das Logbuch",
-          "text": "Öffnet das Seitenblatt: Community-Sternkarte, Sonnen, Kartograph-Rang, Vorschläge und Belohnungen."
+        "rank": {
+          "title": "Dein Kartograph-Rang",
+          "text": "Jede vollendete Sternkarte bringt dich im Rang weiter. Ränge schalten frühen Zugang zu Beta-Funktionen, Vorschläge für die Top-Liste und ein teilbares Abzeichen frei. Auf der Rangseite liegen deine Serie, ihre Belohnungen und das 4K-Wallpaper."
         }
       }
     },
@@ -7630,6 +7630,15 @@
       "current": "Kartograph-Rang {{rank}} - Abzeichen öffnen",
       "earned": "Kartograph-Rang {{rank}} - erreicht",
       "next": "Kartograph-Rang {{rank}} - noch gesperrt"
+    },
+    "rank": {
+      "link": "Kartograph-Rang {{rank}} · Rangseite öffnen",
+      "none": "Noch kein Rang · so steigst du auf"
+    },
+    "celebrate": {
+      "eyebrow": "Sternbild vollendet",
+      "named": "{{name}} leuchtet am Himmel",
+      "done": "Alle 7 Sterne leuchten"
     }
   },
   "beta": {

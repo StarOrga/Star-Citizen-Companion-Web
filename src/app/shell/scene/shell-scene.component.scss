@@ -191,8 +191,9 @@ html[data-sc-scene] body { background: transparent; }
     position: absolute; inset: -60% -80%; display: block; opacity: 0;
     transition: opacity calc(var(--scene-move) * 0.3) ease 0s;
     background:
-      radial-gradient(circle, color-mix(in srgb, var(--sc-accent) 55%, transparent) 0 0.06vw, transparent 0.07vw) 0 0 / 1.1vw 1.1vw,
-      radial-gradient(ellipse 50% 50% at 50% 50%, color-mix(in srgb, var(--sc-accent) 8%, transparent), transparent 70%);
+      // A calm dome sky (no dot grid, 2026-11-13): a soft deep-blue glow with a faint horizon ring.
+      radial-gradient(ellipse 50% 50% at 50% 55%, transparent 58%, color-mix(in srgb, var(--sc-accent) 6%, transparent) 64%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 50% 45%, color-mix(in srgb, #1d4e6e 34%, transparent), color-mix(in srgb, var(--sc-accent) 5%, transparent) 45%, transparent 70%);
     -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 72%);
     mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 40%, transparent 72%);
   }
