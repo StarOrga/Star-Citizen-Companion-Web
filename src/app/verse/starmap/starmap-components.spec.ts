@@ -62,6 +62,8 @@ describe('star map components', () => {
   let suggest: Mock;
   let suggestions: Mock;
   let submitPrediction: Mock;
+  let cometVersion: Mock;
+  let submitVersionPrediction: Mock;
   let submitGuess: Mock;
   const isAdmin = signal(false);
 
@@ -71,6 +73,8 @@ describe('star map components', () => {
     authed.set(true);
     loadExplorer = vi.fn().mockName('loadExplorer').mockResolvedValue(undefined);
     isAdmin.set(false);
+    cometVersion = vi.fn().mockName('cometVersion').mockResolvedValue(null);
+    submitVersionPrediction = vi.fn().mockName('submitVersionPrediction').mockResolvedValue({ ok: true, data: undefined });
     submitPrediction = vi.fn().mockName('submitPrediction').mockResolvedValue({ ok: true, data: undefined });
     submitGuess = vi.fn().mockName('submitGuess').mockResolvedValue({
       ok: true,
@@ -97,6 +101,8 @@ describe('star map components', () => {
             suggest,
             suggestions,
             submitPrediction,
+            cometVersion: (...a: unknown[]) => cometVersion(...a),
+            submitVersionPrediction: (...a: unknown[]) => submitVersionPrediction(...a),
             submitGuess,
             guessOptions: vi.fn().mockName('guessOptions').mockResolvedValue({
               ok: true,
@@ -238,6 +244,36 @@ describe('star map components', () => {
     const toks = [...f.nativeElement.querySelectorAll('sc-comet-track .tok')] as HTMLButtonElement[];
     expect(toks.every((t) => t.disabled)).toBe(true);
     expect(f.nativeElement.querySelector('sc-comet-track .tok.on .comet.fall')).not.toBeNull();
+  });
+
+  it("the x.y.z target is offered next to the line and tipped via its own call", async () => {
+    cometVersion.mockResolvedValue({
+      patchVersion: "4.4.2",
+      patchLine: "4.4",
+      liveVersion: "4.4.1",
+      comet: { state: "none", tippedDate: null, locked: false, lockedReason: null, announcedDate: null },
+    });
+    explorer.set({ ...STATE, upcoming: { patchLine: "4.5", comet: { ...STATE.patches[0].comet } } });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await vi.waitFor(() => {
+      f.detectChanges();
+      expect(f.nativeElement.querySelectorAll("sc-comet-track .mode").length).toBe(2);
+    });
+    (f.nativeElement.querySelectorAll("sc-comet-track .mode")[1] as HTMLButtonElement).click();
+    f.detectChanges();
+    (f.nativeElement.querySelector("sc-comet-track .tok:not(.nav):not(:disabled)") as HTMLButtonElement).click();
+    TestBed.inject(UndoToastService).flush();
+    await vi.waitFor(() => expect(submitVersionPrediction).toHaveBeenCalledWith("4.4.2", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
+    expect(submitPrediction).not.toHaveBeenCalled();
+  });
+
+  it("without a version target the comet shows no mode switch (migration not applied)", () => {
+    explorer.set({ ...STATE, upcoming: { patchLine: "4.5", comet: { ...STATE.patches[0].comet } } });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector("sc-comet-track .mode")).toBeNull();
+    expect(f.nativeElement.querySelector("sc-comet-track .tok")).not.toBeNull();
   });
 
   it('a tip whose day passed while the patch is not LIVE reads missed, under the renamed patch', () => {
