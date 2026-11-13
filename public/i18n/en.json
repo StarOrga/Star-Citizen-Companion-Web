@@ -2168,6 +2168,7 @@
       "countermeasures": "Countermeasures",
       "shieldsNote": "Every bay in this block is a swappable shield generator, including the ones that ship empty. The shield control module sits with the fixed systems: it is not a shield of its own and cannot be swapped in game.",
       "countermeasuresNote": "Launchers cannot be changed in game, so this block is for reference only. Decoys pull heat-seeking missiles away, noise (chaff) blinds radar-guided ones. How many you need is on a launcher's info sheet (ⓘ): it sets the signature per launch against the ship's own.",
+      "infoLabel": "About this block",
       "splitRows": "Individually",
       "groupRows": "Group",
       "splitRowsHint": "List every hardpoint on its own row so you can change them one by one",
