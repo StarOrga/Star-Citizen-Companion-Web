@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.260.1] - 2026-11-13
+
+### Changed
+- Concept page for area symbols and holo-table borders: iteration 2 (admin picks preselected, redrawn turret/pod/shield-generator/O2 symbols, red offensive and blue defensive borders).
+
 ## [0.260.0] - 2026-11-12
 
 ### Added
