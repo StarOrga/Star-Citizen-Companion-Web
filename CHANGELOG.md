@@ -4,6 +4,11 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.261.0] - 2026-11-13
+
+### Added
+- Classic ship view: a reset icon at the Loadout heading returns the whole loadout to stock (asks first when more than one slot changed), and every swapped slot and sub-slot has its own reset icon.
+
 ## [0.260.1] - 2026-11-13
 
 ### Changed

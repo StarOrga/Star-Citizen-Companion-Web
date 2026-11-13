@@ -189,6 +189,7 @@ import {
 } from './codex-loadout-stats';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScActionDirective } from '../shared/action/sc-action.directive';
 import type { RankCardCopy, RankCardScope } from './codex-rank-card.component';
 import {
   MissileRecord,
@@ -309,7 +310,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [ShipArrivalComponent, CompareIconComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexHeroHoloOverlayComponent, CodexHeroPartPopupComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent, CodexHoloAkteComponent, CodexHoloHangarMenuComponent],
+  imports: [ShipArrivalComponent, CompareIconComponent, FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipDeckPlanComponent, ShipSkinViewerComponent, CodexLoadoutSaveBarComponent, CodexSavedLoadoutsComponent, CodexKpiBandComponent, ScTooltipDirective, ScActionDirective, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexHeroHoloOverlayComponent, CodexHeroPartPopupComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent, CodexHoloShareComponent, ScDialogDirective, NotFoundComponent, CodexOwnSegmentComponent, CodexOwnCardComponent, ShareButtonComponent, HeightVarDirective, ScEntryDirective, CodexItemStageComponent, CodexDetailClassicComponent, CodexHoloAkteComponent, CodexHoloHangarMenuComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -703,6 +704,17 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   <p>{{ 'codex.detail.moduleOrderHint' | translate }}</p>
                 </sc-info-note>
                 <span class="rule" aria-hidden="true"></span>
+                <!-- #345: the whole loadout back to stock, right at its heading,
+                     only while something differs from it. Each slot keeps its
+                     own reset icon in the rows below. -->
+                @if (draftChangedCount() > 0 && !draftReadOnly()) {
+                  <button type="button" scAction tier="tertiary" class="head-reset"
+                          [attr.aria-label]="'codex.loadout.resetAll' | translate"
+                          [scTooltip]="'codex.loadout.resetAll' | translate" scTooltipTier="label"
+                          (click)="resetWholeLoadout()">
+                    <svg class="sc-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.35-5.65M4 4v4.5h4.5" /></svg>
+                  </button>
+                }
               </h2>
               <!-- The "no stock guns in this extract" disclosure used to sit here,
                    far above the block it is about. It now rides on the Weapons
@@ -1424,6 +1436,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .col-head .head-note { flex: 0 0 auto; text-transform: none; letter-spacing: normal; }
     .col-head .head-note p { margin: 0 0 6px; }
     .col-head .head-note p:last-child { margin-bottom: 0; }
+    .col-head .head-reset { flex: 0 0 auto; width: 26px; height: 26px; margin-block: -4px; }
+    @media (pointer: coarse) { .col-head .head-reset { width: 48px; height: 48px; margin-block: -12px; } }
     .col-analyse { display: flex; flex-direction: column; gap: 12px; }
     /* The shorter column stays on screen (the longer one fills the grid row,
        so it has no sticky travel at all). It parks under the sticky KPI strip
@@ -4014,6 +4028,27 @@ export class CodexDetailComponent implements OnInit {
 
   discardLoadoutDraft(): void {
     this.draftStore.discardLoadoutDraft();
+  }
+
+  /**
+   * #345: the Loadout heading's reset icon. One change is undone as easily as
+   * it was made, so it goes straight away; several changes are real work and
+   * ask first.
+   */
+  async resetWholeLoadout(): Promise<void> {
+    const n = this.draftChangedCount();
+    if (n === 0 || this.draftReadOnly()) return;
+    if (n > 1) {
+      const ok = await this.confirmDialog.confirm({
+        titleKey: 'codex.loadout.resetAllTitle',
+        messageKey: 'codex.loadout.resetAllBody',
+        params: { n },
+        confirmKey: 'codex.loadout.resetAllConfirm',
+        tone: 'danger',
+      });
+      if (!ok) return;
+    }
+    this.discardLoadoutDraft();
   }
 
   /** #322: a named loadout from this browser goes back on the table as the draft. */

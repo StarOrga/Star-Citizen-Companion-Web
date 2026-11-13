@@ -1142,4 +1142,37 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('.mod-sec[data-sec="coolers"]')).toBeTruthy();
     expect(el.querySelector('.mod-sub')).toBeNull();
   });
+
+  // #345: every swappable slot resets on its own — a swapped gun inside a gimbal too, not only the mount.
+  it('gives a swapped row and a swapped sub-slot each their own reset icon, emitting only their own paths', () => {
+    const swappedGun = child({
+      port: 'Hardpoint Class 3', size: 3, className: 'KLWE_LaserRepeater_S3', kind: 'weapon', name: 'CF-337 Panther Repeater',
+      draftState: 'changed', draftPaths: ['Hardpoint Weapon Wing Left.Hardpoint Class 3'],
+    });
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          { ...PANTHER, draftState: 'changed', draftPaths: ['Hardpoint Weapon Top Left'] },
+          { ...VARIPUCK, children: [swappedGun] },
+        ],
+      },
+    ]);
+    const emitted: string[][] = [];
+    fixture.componentInstance.reverted.subscribe((p) => emitted.push(p));
+    const resets = Array.from(el.querySelectorAll<HTMLButtonElement>('button.slot-revert'));
+    expect(resets.length).toBe(2);
+    for (const b of resets) {
+      expect(b.classList.contains('sc-action--tertiary')).toBe(true);
+      expect(b.getAttribute('aria-label')).toBe('codex.loadout.revert');
+    }
+    el.querySelector<HTMLButtonElement>('.kid button.kid-revert')!.click();
+    resets.find((b) => !b.classList.contains('kid-revert'))!.click();
+    expect(emitted).toEqual([['Hardpoint Weapon Wing Left.Hardpoint Class 3'], ['Hardpoint Weapon Top Left']]);
+  });
+
+  it('shows no reset icon on a slot that still carries its stock item', () => {
+    const el = render([{ section: 'weapons', slots: [PANTHER, VARIPUCK] }]);
+    expect(el.querySelector('button.slot-revert')).toBeNull();
+  });
 });

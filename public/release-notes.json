@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.260.1",
+  "current": "0.261.0",
   "releases": [
+    {
+      "version": "0.261.0",
+      "date": "2026-11-13",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Classic ship view: a reset icon at the Loadout heading returns the whole loadout to stock (asks first when more than one slot changed), and every swapped slot and sub-slot has its own reset icon."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.260.1",
       "date": "2026-11-13",
