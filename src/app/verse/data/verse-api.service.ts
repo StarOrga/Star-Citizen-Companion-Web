@@ -313,7 +313,7 @@ export class VerseApiService {
 
   /** Tips the day an x.y.z patch goes LIVE (insert-only, closes when LIVE or announced). No star. */
   async submitVersionPrediction(patchVersion: string, predictedLiveDate: string): Promise<VerseResult<void>> {
-    if (!/^d{4}-d{2}-d{2}$/.test(predictedLiveDate)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(predictedLiveDate)) {
       return { ok: false, errorKey: toErrorKey(SCOPE, "submitVersionPrediction", new Error("invalid date")) };
     }
     const { error } = await this.sb.client.rpc("verse_submit_version_prediction", {

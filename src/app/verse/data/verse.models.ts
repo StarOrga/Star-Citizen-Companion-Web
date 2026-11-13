@@ -394,7 +394,7 @@ export function mapComet(raw: unknown): VerseComet {
   };
 }
 
-const PATCH_VERSION_RE = /^d{1,2}.d{1,2}.d{1,2}$/;
+const PATCH_VERSION_RE = /^\d{1,2}\.\d{1,2}\.\d{1,2}$/;
 
 /** `verse_comet_version_state()` payload; null when there is no target (or the RPC is not deployed yet). */
 export function mapVersionComet(raw: unknown): VerseVersionComet | null {

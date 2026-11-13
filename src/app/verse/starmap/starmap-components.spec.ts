@@ -264,7 +264,7 @@ describe('star map components', () => {
     f.detectChanges();
     (f.nativeElement.querySelector("sc-comet-track .tok:not(.nav):not(:disabled)") as HTMLButtonElement).click();
     TestBed.inject(UndoToastService).flush();
-    await vi.waitFor(() => expect(submitVersionPrediction).toHaveBeenCalledWith("4.4.2", expect.stringMatching(/^d{4}-d{2}-d{2}$/)));
+    await vi.waitFor(() => expect(submitVersionPrediction).toHaveBeenCalledWith("4.4.2", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
     expect(submitPrediction).not.toHaveBeenCalled();
   });
 
