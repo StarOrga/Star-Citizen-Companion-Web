@@ -5719,7 +5719,7 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </header>
       <style>html[data-template="design"] [data-page-header] { display: none; }</style>
       <main>
-<section data-iteration="1" data-iteration-template="decision" data-wide data-tab-label="Runde 1" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-wide data-tab-label="Runde 1" id="iter-1" hidden>
 <style>
 [data-iteration="1"] {
   --k-bg0: #0d2635; --k-bg1: #123246; --k-bg2: #103246; --k-fg0: #e8ebed; --k-fg1: #9fb3c8; --k-fg2: #84a0b6;
@@ -6175,6 +6175,493 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       ico.style.display = d ? '' : 'none';
       ico.querySelector('path').setAttribute('d', d);
     });
+  }
+  root.addEventListener('change', sync);
+  sync();
+  setTimeout(sync, 400);
+})();
+</script>
+</section>
+
+<section data-iteration="2" data-iteration-template="decision" data-wide data-tab-label="Runde 2" id="iter-2" data-active>
+<style>
+[data-iteration="2"] {
+  --k-bg0: #0d2635; --k-bg1: #123246; --k-bg2: #103246; --k-fg0: #e8ebed; --k-fg1: #9fb3c8; --k-fg2: #84a0b6;
+  --k-border: rgba(82, 193, 230, 0.18); --k-accent: #52c1e6;
+  --k-off: #e5484d; --k-def: #5b8def; --k-mov: #9b8cc8; --k-sig: #c8a84b;
+}
+[data-iteration="2"] .iteration-intro { display: block; margin-bottom: 1rem; }
+[data-iteration="2"] .iteration-intro p { max-width: 86ch; line-height: 1.6; }
+[data-iteration="2"] .k-iter { display: inline-block; font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--k-accent); border: 1px solid color-mix(in srgb, var(--k-accent) 45%, transparent); border-radius: 3px; padding: .1rem .5rem; margin-bottom: .5rem; }
+[data-iteration="2"] .k-changes { margin: .6rem 0 0; padding: .7rem 1rem .7rem 1.1rem; border-left: 3px solid var(--k-accent); background: rgba(82,193,230,.06); max-width: 86ch; }
+[data-iteration="2"] .k-changes h3 { margin: 0 0 .35rem; font-size: .95rem; }
+[data-iteration="2"] .k-changes ul { margin: 0; padding-left: 1.1rem; font-size: .86rem; line-height: 1.55; }
+[data-iteration="2"] > section[id] { margin: 2.4rem 0 0; padding-top: 1.4rem; border-top: 1px solid var(--k-border); }
+[data-iteration="2"] > section[id] > h2 { font-size: 1.15rem; margin: 0 0 .35rem; }
+[data-iteration="2"] .lead { color: var(--text-secondary); font-size: .9rem; margin: 0 0 .8rem; max-width: 86ch; line-height: 1.6; }
+[data-iteration="2"] code { font-size: .85em; }
+[data-iteration="2"] .k-h3 { font-size: .98rem; margin: 1.6rem 0 .5rem; }
+[data-iteration="2"] .k-sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: .45rem; background: var(--c); box-shadow: 0 0 0 1px rgba(255,255,255,.12); }
+[data-iteration="2"] .k-note { border-left: 3px solid #f0c27b; padding: .55rem .9rem; background: rgba(240,194,123,.07); font-size: .85rem; line-height: 1.55; margin: .9rem 0 0; max-width: 86ch; }
+
+/* Decisions */
+[data-iteration="2"] .k-dec { border: 1px solid var(--k-border); border-radius: 4px; background: var(--k-bg1); padding: .7rem .8rem; color: var(--k-fg0); }
+[data-iteration="2"] .k-dec + .k-dec, [data-iteration="2"] [data-decision] + [data-decision] > .k-dec { margin-top: 10px; }
+[data-iteration="2"] .k-dec h4 { margin: 0 0 .2rem; font-size: .88rem; }
+[data-iteration="2"] .k-dec p { margin: 0 0 .5rem; font-size: .78rem; color: var(--k-fg1); line-height: 1.45; }
+[data-iteration="2"] .k-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-iteration="2"] .k-pill { position: relative; display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .7rem; border: 1px solid var(--k-border); border-radius: 999px; font-size: .78rem; color: var(--k-fg1); cursor: pointer; background: var(--k-bg0); }
+[data-iteration="2"] .k-pill input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+[data-iteration="2"] .k-pill:has(input:checked) { border-color: var(--k-accent); color: var(--k-fg0); background: rgba(82,193,230,.12); }
+[data-iteration="2"] .k-pill:has(input:focus-visible) { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+[data-iteration="2"] .k-pill i { font-style: normal; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: #f0c27b; }
+[data-iteration="2"] .k-pill .k-sw { width: 11px; height: 11px; margin: 0; }
+[data-iteration="2"] .k-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
+
+/* Symbol cards: the pick is the big tile, alternatives sit small beside it */
+[data-iteration="2"] .k-symgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: .6rem; }
+[data-iteration="2"] .k-sym { border: 1px solid var(--k-border); border-radius: 4px; background: var(--k-bg1); padding: .7rem .8rem .8rem; color: var(--k-fg0); display: flex; flex-direction: column; gap: .5rem; }
+[data-iteration="2"] .k-sym-h { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+[data-iteration="2"] .k-sym-h b { font-size: .9rem; }
+[data-iteration="2"] .k-sym-h small { font-size: .72rem; color: var(--k-fg2); }
+[data-iteration="2"] .k-sym-h .k-sw { width: 10px; height: 10px; margin: 0; }
+[data-iteration="2"] .k-opts { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 6px; }
+[data-iteration="2"] .k-opt { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; padding: .55rem .3rem .45rem; border: 1px solid var(--k-border); border-radius: 4px; background: var(--k-bg0); cursor: pointer; text-align: center; }
+[data-iteration="2"] .k-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+[data-iteration="2"] .k-opt svg { width: 28px; height: 28px; fill: none; stroke: var(--c); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+[data-iteration="2"] .k-opt.pick svg { width: 44px; height: 44px; }
+[data-iteration="2"] .k-opt span { font-size: .72rem; line-height: 1.25; color: var(--k-fg1); }
+[data-iteration="2"] .k-opt em { font-style: normal; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; color: var(--k-fg2); }
+[data-iteration="2"] .k-opt em.new { color: #f0c27b; }
+[data-iteration="2"] .k-opt:hover { border-color: color-mix(in srgb, var(--c) 55%, transparent); }
+[data-iteration="2"] .k-opt:has(input:checked) { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, var(--k-bg0)); }
+[data-iteration="2"] .k-opt:has(input:checked) span { color: var(--k-fg0); }
+[data-iteration="2"] .k-opt:has(input:focus-visible) { outline: 2px solid var(--k-accent); outline-offset: 2px; }
+[data-iteration="2"] .k-opt.none svg { stroke: var(--k-fg2); }
+[data-iteration="2"] .k-verdict { margin: 0; font-size: .76rem; line-height: 1.45; color: var(--k-fg1); }
+[data-iteration="2"] .k-verdict b { color: var(--k-fg0); font-weight: 600; }
+
+/* Legend of all picked symbols */
+[data-iteration="2"] .k-legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: .6rem; padding: 12px; border-radius: 6px; background: radial-gradient(ellipse 120% 100% at 50% 0%, #0f2c3d, #061520); box-shadow: 0 0 0 1px var(--k-border); }
+[data-iteration="2"] .k-legend div { display: flex; align-items: center; gap: 8px; font-size: .76rem; color: var(--k-fg1); }
+[data-iteration="2"] .k-legend svg { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--c); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Holo strip */
+[data-iteration="2"] .k-holo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: 6px; padding: 12px; margin-top: .6rem;
+  background: radial-gradient(ellipse 120% 100% at 50% 0%, #0f2c3d, #061520); box-shadow: 0 0 0 1px var(--k-border); color: var(--k-fg0); font: 12px/1.4 Inter, system-ui, sans-serif; }
+@media (max-width: 720px) { [data-iteration="2"] .k-holo { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 10px; } }
+[data-iteration="2"] .k-ha { padding: 4px 10px 8px; border-inline-start: 1px solid rgba(143,227,255,.16); box-shadow: inset 0 2px 0 var(--p); }
+[data-iteration="2"] .k-ha:last-child { border-inline-end: 1px solid rgba(143,227,255,.16); }
+[data-iteration="2"] .k-ha[data-p="off"] { --p: var(--k-off); }
+[data-iteration="2"] .k-ha[data-p="def"] { --p: var(--k-def); }
+[data-iteration="2"] .k-ha[data-p="mov"] { --p: var(--k-mov); }
+[data-iteration="2"] .k-ha[data-p="sig"] { --p: var(--k-sig); }
+[data-iteration="2"] .k-ha h5 { display: flex; align-items: center; gap: 6px; margin: 6px 0 4px; font-family: Orbitron, Inter, sans-serif; font-weight: 400; text-transform: uppercase; font-size: 9.5px; letter-spacing: .14em; color: var(--p); }
+[data-iteration="2"] .k-ha p { margin: 0; color: var(--k-fg2); font-size: 11px; }
+
+/* Mock of the classic loadout column */
+[data-iteration="2"] .k-stage { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr); gap: 18px; align-items: start; margin-top: .8rem; }
+@media (max-width: 980px) { [data-iteration="2"] .k-stage { grid-template-columns: 1fr; } }
+[data-iteration="2"] .k-side { position: sticky; top: 1rem; }
+[data-iteration="2"] .k-mk { --s: 60%; border-radius: 6px; padding: 16px; color: var(--k-fg0);
+  font: 13px/1.4 Inter, system-ui, "Segoe UI", sans-serif;
+  background: radial-gradient(ellipse 130% 95% at 58% 0%, #0f2c3d 0%, #0b2130 45%, #071722 100%); box-shadow: 0 0 0 1px var(--k-border); }
+[data-iteration="2"] .k-mk[data-strength="soft"] { --s: 35%; }
+[data-iteration="2"] .k-mk[data-strength="full"] { --s: 100%; }
+[data-iteration="2"] .k-mk-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+[data-iteration="2"] .k-mk-top b { font-family: Orbitron, Inter, sans-serif; font-weight: 500; letter-spacing: .08em; font-size: 14px; text-transform: uppercase; }
+[data-iteration="2"] .k-mk-top small { color: var(--k-fg2); font-size: 11px; }
+[data-iteration="2"] .k-col { display: flex; flex-direction: column; gap: 12px; }
+[data-iteration="2"] .k-blk { --p: var(--k-accent); --pb: color-mix(in srgb, var(--p) var(--s), transparent);
+  border-radius: 4px; background: var(--k-bg1); border: 1px solid var(--k-border); padding: 10px 12px; }
+[data-iteration="2"] .k-blk[data-p="off"] { --p: var(--k-off); }
+[data-iteration="2"] .k-blk[data-p="def"] { --p: var(--k-def); }
+[data-iteration="2"] .k-blk[data-p="mov"] { --p: var(--k-mov); }
+[data-iteration="2"] .k-blk[data-p="sig"] { --p: var(--k-sig); }
+[data-iteration="2"] .k-blk.sub { background: var(--k-bg2); padding: 8px 10px; }
+[data-iteration="2"] .k-blk.fixed { background: transparent; opacity: .78; --pb: color-mix(in srgb, var(--p) 30%, transparent); }
+[data-iteration="2"] .k-blk.sys { --pb: var(--k-border); }
+[data-iteration="2"] .k-blk.sys > .k-bh { color: var(--k-fg1); }
+[data-iteration="2"] .k-mk[data-form="top"] .k-blk { box-shadow: inset 0 2px 0 var(--pb); }
+[data-iteration="2"] .k-mk[data-form="full"] .k-blk { border-color: var(--pb); }
+[data-iteration="2"] .k-mk[data-form="glow"] .k-blk { border-color: var(--pb); box-shadow: 0 0 14px -4px var(--pb), inset 0 0 18px -10px var(--pb); }
+[data-iteration="2"] .k-bh { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 -12px 8px; padding: 0 12px 8px; border-bottom: 1px solid var(--k-border);
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .14em; font-weight: 600; color: var(--p); }
+[data-iteration="2"] .k-blk.sub > .k-bh { margin: 0 -10px 8px; padding: 0 10px 7px; }
+[data-iteration="2"] .k-ico { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+[data-iteration="2"] .k-ct { font-size: 10px; padding: 0 6px; border-radius: 8px; font-weight: 400; letter-spacing: .04em; background: rgba(132,160,182,.18); color: var(--k-fg2); }
+[data-iteration="2"] .k-tag { font-size: 9.5px; letter-spacing: .06em; color: var(--k-fg2); font-weight: 400; border: 1px solid var(--k-border); border-radius: 2px; padding: 0 5px; text-transform: none; }
+[data-iteration="2"] .k-caret { margin-left: auto; font-weight: 400; color: var(--k-accent); font-size: 10px; letter-spacing: .06em; text-transform: none; }
+[data-iteration="2"] .k-slots { display: flex; flex-direction: column; gap: 6px; }
+[data-iteration="2"] .k-slot { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 3px; background: #0a1c26; border: 1px solid var(--k-border); font-size: 12px; }
+[data-iteration="2"] .k-sz { font-family: ui-monospace, Consolas, monospace; font-size: 10px; color: var(--k-accent); border: 1px solid color-mix(in srgb, var(--k-accent) 40%, transparent); border-radius: 2px; padding: 0 3.5px; }
+[data-iteration="2"] .k-slot b { font-weight: 500; }
+[data-iteration="2"] .k-slot small { margin-left: auto; color: var(--k-fg2); font-size: 11px; font-variant-numeric: tabular-nums; }
+[data-iteration="2"] .k-sub { display: flex; flex-direction: column; gap: 8px; }
+[data-iteration="2"] .k-peek { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--k-fg2); }
+[data-iteration="2"] .k-peek b { color: var(--k-fg1); font-weight: 400; }
+[data-iteration="2"] .k-cap { font-size: .74rem; color: var(--text-tertiary); margin: .35rem 0 0; }
+[data-iteration="2"] textarea[data-comment] { width: 100%; min-height: 110px; background: var(--input-bg, #0d1117); color: var(--text-primary); border: 1px solid var(--border-default, #30363d); border-radius: 4px; padding: .6rem .7rem; font: inherit; font-size: .88rem; box-sizing: border-box; }
+</style>
+
+  <div class="iteration-intro">
+    <span class="k-iter">Iteration 2</span>
+    <h2>Deine Symbole als Standard, Offensive rot, Verteidigung blau</h2>
+    <p>Deine Favoriten aus Runde 1 sind jetzt bei jedem Bereich vorgewählt und groß dargestellt. Die Alternativen stehen klein daneben. Ich habe jedes gewählte Symbol noch einmal auf seine Bedeutung in Star Citizen geprüft. Unter jeder Karte steht, was ich geprüft und was ich geändert habe.</p>
+    <div class="k-changes">
+      <h3>Was sich geändert hat</h3>
+      <ul>
+        <li><b>Farben:</b> Offensive ist rot, Verteidigung blau. Bewegung (Violett) und Signatur (Gold) bleiben, wie sie sind. Weiter unten steht ein kurzer Hinweis, warum Rot in dieser App heikel ist, mit einer Wahl.</li>
+        <li><b>Ferngesteuerte Türme</b> neu gezeichnet: ein Turm mit zwei Läufen, das Funksignal kommt von außen auf ihn zu. Das sieht nicht mehr wie eine Basis mit Antenne aus.</li>
+        <li><b>Pods:</b> Das Mittelband ist höher, unten steht ein „+“ für Unterstützung. Es gibt zwei Fassungen, weil „höher“ zweierlei heißen kann.</li>
+        <li><b>Schild-Generator:</b> Der Strich über der Kuppel ist jetzt ein Power-Zeichen ⏻.</li>
+        <li><b>Lebenserhaltung:</b> neu als O₂-Zeichen und vorgewählt. Deine Atemblasen bleiben als Alternative.</li>
+        <li><b>Bewaffnung:</b> Am Kanonenlauf war ein Pistolengriff. Er sah dadurch wie eine Handwaffe aus, und die hat der Codex als eigene Gruppe (FPS). Der Lauf sitzt jetzt auf einer Halterung.</li>
+        <li><b>Modell:</b> Die klassische Ansicht zeigt jetzt deine Symbole und die neuen Farben. Lebenserhaltung ist als Unterbereich dazugekommen.</li>
+      </ul>
+    </div>
+  </div>
+
+  <section id="k2-color" data-nav-label="Farben">
+    <h2>Die Farben der vier Bereiche</h2>
+    <p class="lead">So sähe der Holotisch mit deinen Farben aus. Die Farben müssen im Holotisch und in der klassischen Ansicht gleich sein (<code>--holo-p-offensive</code> und <code>--holo-p-defensive</code> in <code>src/styles.scss</code>). Sonst bedeutet dieselbe Farbe in den beiden Ansichten etwas anderes.</p>
+    <div class="k-holo" id="k2-holo" aria-label="Holotisch-Bereiche mit den neuen Farben">
+      <div class="k-ha" data-p="off"><h5><svg class="k-ico" data-area="offensive" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Offensive</h5><p>4 Waffen · 1 Turm · 8 Raketen</p></div>
+      <div class="k-ha" data-p="def"><h5><svg class="k-ico" data-area="defensive" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Verteidigung</h5><p>2 Schilde · 2 Werfer · Zelle</p></div>
+      <div class="k-ha" data-p="mov"><h5><svg class="k-ico" data-area="movement" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Bewegung</h5><p>Quantenantrieb · Generator</p></div>
+      <div class="k-ha" data-p="sig"><h5><svg class="k-ico" data-area="signature" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Signatur &amp; Kühlung</h5><p>2 Kühler · Radar · Lebenserhaltung</p></div>
+    </div>
+
+    <p class="k-note"><strong>Ehrlicher Hinweis zu Rot.</strong> In dieser App hat Rot schon zwei feste Bedeutungen. <code>--sc-accent-hot</code> (#ff5722) markiert alles, was nur Admins sehen, und <code>--sc-danger</code> (#ff8282) steht für Fehler und Löschen. Wenn Bewaffnung genauso rot umrandet ist, kann ein Betrachter denken, der Block sei nur für Admins da oder es sei etwas kaputt. Ich habe deshalb ein eigenes Holo-Rot (#e5484d) vorgewählt. Es ist kühler als das Admin-Orangerot und dunkler als das Fehler-Rot. Ganz verschwindet die Verwechslung damit nicht. Das wärmere Waffen-Orange, das der Codex schon für Waffenschaden nutzt, hätte keine Doppelbedeutung.</p>
+
+    <div class="k-pair" style="margin-top: 12px">
+      <div data-decision="i2-c-off" data-label="Farbe Offensive">
+        <div class="k-dec">
+          <h4>Offensive</h4>
+          <p>Du hast Rot gewählt. Rot ist deshalb vorgewählt.</p>
+          <div class="k-pills" data-ctl="off">
+            <label class="k-pill"><input type="radio" name="dec-i2-c-off" value="holo-rot" data-v="#e5484d" checked><span class="k-sw" style="--c:#e5484d"></span>Holo-Rot #e5484d <i>deine Wahl</i></label>
+            <label class="k-pill"><input type="radio" name="dec-i2-c-off" value="waffen-orange" data-v="#e8864a"><span class="k-sw" style="--c:#e8864a"></span>Wärmer: Waffen-Orange #e8864a</label>
+            <label class="k-pill"><input type="radio" name="dec-i2-c-off" value="admin-rot" data-v="#ff5722"><span class="k-sw" style="--c:#ff5722"></span>Admin-Rot #ff5722 (gleicher Ton wie die Admin-Markierung)</label>
+          </div>
+        </div>
+      </div>
+      <div data-decision="i2-c-def" data-label="Farbe Verteidigung">
+        <div class="k-dec">
+          <h4>Verteidigung</h4>
+          <p>Das Blau ist klar vom App-Cyan getrennt. So sieht ein Schild-Block nicht aus wie ein normaler Link.</p>
+          <div class="k-pills" data-ctl="def">
+            <label class="k-pill"><input type="radio" name="dec-i2-c-def" value="blau" data-v="#5b8def" checked><span class="k-sw" style="--c:#5b8def"></span>Blau #5b8def <i>deine Wahl</i></label>
+            <label class="k-pill"><input type="radio" name="dec-i2-c-def" value="tiefblau" data-v="#3f6fd8"><span class="k-sw" style="--c:#3f6fd8"></span>Tiefer: #3f6fd8</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="k2-sym" data-nav-label="Symbole">
+    <h2>Ein Symbol je Bereich</h2>
+    <p class="lead">Das große Feld ist deine Wahl aus Runde 1 oder die neu gezeichnete Fassung, um die du gebeten hast. Es ist vorgewählt. Die kleinen Felder sind die Alternativen und „kein Symbol“. Gelb markiert ist, was ich neu gezeichnet habe.</p>
+
+    <h3 class="k-h3">Die vier Holotisch-Bereiche</h3>
+    <div class="k-symgrid" id="k2-symgrid-holo"></div>
+
+    <h3 class="k-h3">Die Blöcke der klassischen Ansicht</h3>
+    <div class="k-symgrid" id="k2-symgrid-blocks"></div>
+
+    <h3 class="k-h3">Unterbereiche in „Antrieb &amp; Systeme“</h3>
+    <div class="k-symgrid" id="k2-symgrid-subs"></div>
+
+    <h3 class="k-h3">Alle gewählten Symbole auf einen Blick</h3>
+    <div class="k-legend" id="k2-legend" aria-label="Alle gewählten Symbole"></div>
+    <p class="k-cap">So lässt sich prüfen, ob zwei Symbole sich zu ähnlich sehen. Die Liste folgt deiner Auswahl.</p>
+  </section>
+
+  <section id="k2-mock" data-nav-label="Modell">
+    <h2>Die klassische Ansicht mit Umrandung und Symbolen</h2>
+    <p class="lead">Nachbau der klassischen Ansicht einer F7C-M Super Hornet Mk II. In Runde 1 hast du bei der Umrandung nichts umgestellt. Deshalb gelten die Empfehlungen: Linie oben mit 2 px bei 60 %, die Überschrift in der Bereichsfarbe, „Antrieb &amp; Systeme“ außen neutral mit farbigen Unterbereichen und die Zelle gedämpft. Form und Stärke kannst du rechts noch einmal umstellen. Das Modell folgt auch den Farben und Symbolen von oben.</p>
+    <div class="k-stage">
+      <div class="k-mk" id="k2-mk" data-form="top" data-strength="mid" aria-label="Nachbau der klassischen Ansicht">
+        <div class="k-mk-top"><b>Ausrüstung</b><small>Werkskonfiguration · Alpha 4.4</small></div>
+        <div class="k-col">
+          <div class="k-blk" data-p="off" data-area="weapons">
+            <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Bewaffnung <span class="k-ct">4</span><span class="k-caret">Ausblenden</span></div>
+            <div class="k-slots">
+              <div class="k-slot"><span class="k-sz">S4</span><b>M7A Laserkanone</b><small>Gimbal · 2×</small></div>
+              <div class="k-slot"><span class="k-sz">S3</span><b>CF-337 Panther Repeater</b><small>Nase · 2×</small></div>
+            </div>
+          </div>
+          <div class="k-blk" data-p="off" data-area="remoteTurrets">
+            <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Ferngesteuerte Türme <span class="k-ct">1</span><span class="k-caret">Anzeigen</span></div>
+            <div class="k-peek"><span><b>2× S3</b> CF-337</span><span>Ball-Turm oben</span></div>
+          </div>
+          <div class="k-blk" data-p="off" data-area="missiles">
+            <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Raketen <span class="k-ct">8</span><span class="k-caret">Anzeigen</span></div>
+            <div class="k-peek"><span><b>8× S2</b> Dominator II</span><span>EM-Lenkung</span></div>
+          </div>
+          <div class="k-blk" data-p="def" data-area="shields">
+            <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Schild-Generatoren <span class="k-ct">2</span><span class="k-caret">Ausblenden</span></div>
+            <div class="k-slots">
+              <div class="k-slot"><span class="k-sz">S1</span><b>FR-66</b><small>2×</small></div>
+            </div>
+          </div>
+          <div class="k-blk sys" data-p="mov" data-area="systems">
+            <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Antrieb &amp; Systeme <span class="k-ct">6</span><span class="k-caret">Ausblenden</span></div>
+            <div class="k-sub">
+              <div class="k-blk sub" data-p="mov" data-area="powerPlants">
+                <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Generator</div>
+                <div class="k-slots"><div class="k-slot"><span class="k-sz">S1</span><b>JS-300</b><small>1×</small></div></div>
+              </div>
+              <div class="k-blk sub" data-p="mov" data-area="quantum">
+                <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Quantenantrieb</div>
+                <div class="k-slots"><div class="k-slot"><span class="k-sz">S1</span><b>Atlas</b><small>1×</small></div></div>
+              </div>
+              <div class="k-blk sub" data-p="sig" data-area="coolers">
+                <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Kühler</div>
+                <div class="k-slots"><div class="k-slot"><span class="k-sz">S1</span><b>Bracer</b><small>2×</small></div></div>
+              </div>
+              <div class="k-blk sub" data-p="sig" data-area="radar">
+                <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Radar &amp; Sensoren</div>
+                <div class="k-slots"><div class="k-slot"><span class="k-sz">S1</span><b>Surveyor</b><small>1×</small></div></div>
+              </div>
+              <div class="k-blk sub" data-p="sig" data-area="lifeSupport">
+                <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Lebenserhaltung</div>
+                <div class="k-slots"><div class="k-slot"><span class="k-sz">S0</span><b>Lebenserhaltung (Standard)</b><small>1×</small></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="k-blk" data-p="def" data-area="countermeasures">
+            <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Gegenmaßnahmen <span class="k-ct">2</span><span class="k-tag">nicht konfigurierbar</span></div>
+            <div class="k-peek"><span><b>Köder</b> 24 Schuss</span><span><b>Störsignal</b> 12 Schuss</span></div>
+          </div>
+          <div class="k-blk fixed" data-p="def" data-area="structure">
+            <div class="k-bh"><svg class="k-ico" viewBox="0 0 24 24" aria-hidden="true"><path d=""/></svg>Zelle &amp; feste Systeme <span class="k-ct">31</span><span class="k-tag">nicht konfigurierbar</span><span class="k-caret">Anzeigen</span></div>
+            <div class="k-peek"><span>Triebwerke, Treibstoff, Sitze, Steuerung</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="k-side">
+        <div data-decision="i2-b-form" data-label="Form der Umrandung">
+          <div class="k-dec">
+            <h4>Form der Umrandung</h4>
+            <p>„Linie oben“ hat dieselbe Form wie im Holotisch.</p>
+            <div class="k-pills" data-ctl="form">
+              <label class="k-pill"><input type="radio" name="dec-i2-b-form" value="linie-oben" data-v="top" checked>Linie oben, 2 px <i>Empfehlung</i></label>
+              <label class="k-pill"><input type="radio" name="dec-i2-b-form" value="voller-rahmen" data-v="full">Voller Rahmen, 1 px</label>
+              <label class="k-pill"><input type="radio" name="dec-i2-b-form" value="rahmen-leuchten" data-v="glow">Rahmen mit Holo-Leuchten</label>
+            </div>
+          </div>
+        </div>
+        <div data-decision="i2-b-strength" data-label="Stärke der Farbe">
+          <div class="k-dec">
+            <h4>Stärke der Farbe</h4>
+            <p>Bei Rot wirkt „Voll“ schnell wie eine Warnung.</p>
+            <div class="k-pills" data-ctl="strength">
+              <label class="k-pill"><input type="radio" name="dec-i2-b-strength" value="dezent-35" data-v="soft">Dezent, 35 %</label>
+              <label class="k-pill"><input type="radio" name="dec-i2-b-strength" value="mittel-60" data-v="mid" checked>Mittel, 60 % <i>Empfehlung</i></label>
+              <label class="k-pill"><input type="radio" name="dec-i2-b-strength" value="voll-100" data-v="full">Voll, 100 % (wie Holotisch)</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="k2-notes" data-nav-label="Notizen">
+    <h2>Notizen</h2>
+    <p class="lead">Passt ein Symbol noch nicht? Schreib, was es zeigen soll. Bilder bitte in den Feedback-Thread, die Seite kann keine Anhänge annehmen.</p>
+    <textarea data-comment="i2-notes" placeholder="Deine Anmerkungen …"></textarea>
+  </section>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.getElementById('iter-2');
+  if (!root) return;
+  var C = { off: '#e5484d', def: '#5b8def', mov: '#9b8cc8', sig: '#c8a84b' };
+  // [value, label, path, tag, isNew]; the first entry is the default pick.
+  var AREAS = {
+    holo: [
+      { id: 'offensive', name: 'Offensive', p: 'off', sub: 'Holotisch-Bereich',
+        verdict: '<b>Passt.</b> Das Fadenkreuz steht für Zielen, die Raute ist die Grundform der Holotisch-Marker. Es ist klar vom Bewaffnungs-Symbol unterschieden.',
+        opts: [
+        ['fadenkreuz-raute', 'Fadenkreuz in Raute', 'M12 2l10 10-10 10L2 12z M12 7v3 M12 14v3 M7 12h3 M14 12h3', 'deine Wahl'],
+        ['pfeilspitzen', 'Doppelte Spitze', 'M4 20L12 4l8 16 M8 14h8 M12 4v16']] },
+      { id: 'defensive', name: 'Verteidigung', p: 'def', sub: 'Holotisch-Bereich',
+        verdict: '<b>Passt.</b> Der Schild ist schon das Codex-Symbol für Verteidigung. Weil die Schild-Generatoren die Kuppel tragen, kommt die Schildform nicht doppelt vor.',
+        opts: [
+        ['schild', 'Schild', 'M12 2L20 5V11C20 16 16.4 20 12 22C7.6 20 4 16 4 11V5Z', 'deine Wahl'],
+        ['schild-ring', 'Schild mit Kern', 'M12 2L20 5V11C20 16 16.4 20 12 22C7.6 20 4 16 4 11V5Z M12 8v8 M8.5 11.5h7']] },
+      { id: 'movement', name: 'Bewegung', p: 'mov', sub: 'Holotisch-Bereich',
+        verdict: '<b>Passt.</b> Der Doppel-Chevron ist das übliche Zeichen für Vorwärts und Schub. Er sieht keinem anderen Symbol ähnlich.',
+        opts: [
+        ['doppelchevron', 'Doppel-Chevron', 'M5 6l6 6-6 6 M13 6l6 6-6 6', 'deine Wahl'],
+        ['flugbahn', 'Flugbahn', 'M3 19c7 0 7-12 14-12h4 M18 4l3 3-3 3 M3 19h.01']] },
+      { id: 'signature', name: 'Signatur & Kühlung', p: 'sig', sub: 'Holotisch-Bereich',
+        verdict: '<b>Passt.</b> In Star Citizen ist die Signatur das, was ein Schiff abstrahlt (EM, IR, Querschnitt). Die Wellen zeigen genau das. Das Radar-Symbol bleibt mit seinem Kreis und dem Zeiger klar davon getrennt.',
+        opts: [
+        ['signaturwellen', 'Signaturwellen', 'M12 12h.01 M8.5 8.5a5 5 0 0 0 0 7 M15.5 8.5a5 5 0 0 1 0 7 M5.6 5.6a9 9 0 0 0 0 12.8 M18.4 5.6a9 9 0 0 1 0 12.8', 'deine Wahl'],
+        ['thermometer-welle', 'Thermometer', 'M10 4a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z M12 9v6 M17 6h3 M17 10h3']] }
+    ],
+    blocks: [
+      { id: 'weapons', name: 'Bewaffnung', p: 'off', sub: 'Offensive',
+        verdict: '<b>Neu gezeichnet.</b> Unter dem Lauf war ein Pistolengriff. Er sah dadurch wie eine Handwaffe aus, und Handwaffen hat der Codex als eigene Gruppe (FPS). Der Doppellauf sitzt jetzt auf einer Halterung, wie ein Geschütz am Schiff.',
+        opts: [
+        ['kanonenlauf-halterung', 'Kanonenlauf auf Halterung', 'M3 9.5h11v4H3z M14 10.5h7 M14 12.5h7 M7.5 13.5v3.5 M4 17h7', 'neu gezeichnet', 1],
+        ['fadenkreuz', 'Fadenkreuz', 'M12 2V6 M12 18V22 M2 12H6 M18 12H22 M8 12A4 4 0 0 1 16 12A4 4 0 0 1 8 12 M12 12H12.01', 'heute im Codex']] },
+      { id: 'remoteTurrets', name: 'Ferngesteuerte Türme', p: 'off', sub: 'Offensive',
+        verdict: '<b>Neu gezeichnet.</b> Auf der Kuppel sitzen zwei Läufe, das ist der Turm. Die Funkbögen kommen von außen auf ihn zu: Er wird von einem anderen Sitz aus gesteuert. Die alte Antenne ist weg.',
+        opts: [
+        ['turm-fernsteuerung', 'Turm mit Fernsteuerung', 'M8 21h13 M10 21a4.5 4.5 0 0 1 9 0 M16.6 17.3L20.8 12.6 M18.3 18.6L22 14.6 M2.5 2.5h.01 M2.5 6.5a4 4 0 0 0 4-4 M2.5 10.5a8 8 0 0 0 8-8', 'neu gezeichnet', 1],
+        ['kuppel-zwei-laeufe', 'Turm ohne Funk', 'M4 19h16 M6.5 19a5.5 5.5 0 0 1 11 0 M10 13.8L7.5 6 M14 13.8L16.5 6']] },
+      { id: 'missiles', name: 'Raketen', p: 'off', sub: 'Offensive',
+        verdict: '<b>Passt.</b> Spitze, Leitwerk und Düse lesen sich eindeutig als Rakete, auch in 16 px.',
+        opts: [
+        ['rakete', 'Rakete', 'M12 2c2 2 3 4.5 3 7.5V17H9V9.5C9 6.5 10 4 12 2z M9 13l-3 3v4l3-2 M15 13l3 3v4l-3-2 M10.5 20.5h3', 'deine Wahl'],
+        ['sprengkopf-ziel', 'Sprengkopf im Ziel', 'M12 2v4 M12 18v4 M2 12h4 M18 12h4 M12 8l3 4-3 4-3-4z']] },
+      { id: 'pod', name: 'Pods', p: 'off', sub: 'Offensive',
+        verdict: '<b>Neu gezeichnet</b>, wie gewünscht: höheres Mittelband, unten ein „+“ für Unterstützung. A schiebt das Band nach oben und lässt unten Platz für ein großes Plus. B macht das Band selbst höher und setzt ein kleineres Plus darunter.',
+        opts: [
+        ['kapsel-plus', 'A · Band oben, großes Plus', 'M8 2h8a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z M5 6.5h14 M5 12.5h14 M12 14.8v4.6 M9.7 17.1h4.6', 'neu gezeichnet', 1],
+        ['kapsel-plus-mitte', 'B · hohes Band, kleines Plus', 'M8 2h8a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3z M5 6.5h14 M5 14h14 M12 16.3v3.4 M10.3 18h3.4', 'neu gezeichnet', 1]] },
+      { id: 'shields', name: 'Schild-Generatoren', p: 'def', sub: 'Verteidigung',
+        verdict: '<b>Neu gezeichnet.</b> Der Strich über der Kuppel ist jetzt ein Power-Zeichen ⏻. Kuppel und Power-Zeichen zusammen bedeuten: Dieses Teil erzeugt den Schild. Das Power-Zeichen ist ein anderes Zeichen als der Blitz beim Generator, die beiden sehen sich also nicht ähnlich.',
+        opts: [
+        ['schildkuppel-power', 'Schildkuppel mit Power', 'M3 20h18 M4.5 20a7.5 7.5 0 0 1 15 0 M8 20a4 4 0 0 1 8 0 M9.9 4.4a3 3 0 1 0 4.2 0 M12 2.5v3.5', 'neu gezeichnet', 1],
+        ['schild-power', 'Schild mit Power', 'M12 2L20 5V11C20 16 16.4 20 12 22C7.6 20 4 16 4 11V5Z M9.5 9.8a3.5 3.5 0 1 0 5 0 M12 7.5v4.5']] },
+      { id: 'systems', name: 'Antrieb & Systeme', p: 'mov', sub: 'Bewegung + Signatur',
+        verdict: '<b>Passt.</b> Der Baustein ist schon das Codex-Symbol für Systeme. Der Block fasst fünf Unterbereiche zusammen, deshalb ist ein allgemeines Zeichen hier richtig.',
+        opts: [
+        ['chip', 'Baustein', 'M9 2V5 M15 2V5 M9 19V22 M15 19V22 M2 9H5 M2 15H5 M19 9H22 M19 15H22 M5 5H19V19H5Z M9 9H15V15H9Z', 'deine Wahl'],
+        ['triebwerk', 'Triebwerk', 'M8 3H16L14.5 13H9.5Z M9.5 13C9.5 17 8.5 19 12 22C15.5 19 14.5 17 14.5 13', 'heute im Codex']] },
+      { id: 'countermeasures', name: 'Gegenmaßnahmen', p: 'def', sub: 'Verteidigung',
+        verdict: '<b>Passt.</b> Der Fächer sieht aus wie ausgestoßene Flares. Das ist die häufigste Gegenmaßnahme im Spiel. Störsignale (Noise) zeigt er nicht, das steht in der Zeile darunter.',
+        opts: [
+        ['koederfaecher', 'Köderfächer', 'M12 21v-7 M12 14L6.5 6.5 M12 14V4.5 M12 14l5.5-7.5 M6.5 5a1.4 1.4 0 1 0 0 .01 M12 3a1.4 1.4 0 1 0 0 .01 M17.5 5a1.4 1.4 0 1 0 0 .01', 'deine Wahl'],
+        ['stoerwelle', 'Störwelle', 'M3 12c1.5-3 3-3 4.5 0s3 3 4.5 0 3-3 4.5 0 3 3 4.5 0 M4 5l16 14']] },
+      { id: 'structure', name: 'Zelle & feste Systeme', p: 'def', sub: 'Verteidigung',
+        verdict: '<b>Passt mit Einschränkung.</b> Das Spantgitter zeigt das tragende Gerüst der Zelle. Allein gesehen kann es auch wie eine Kiste wirken. In der Überschrift steht aber immer der Name daneben. Der Rumpf aus dem Codex bleibt als Alternative.',
+        opts: [
+        ['spantgitter', 'Spantgitter', 'M4 4h16v16H4z M4 12h16 M12 4v16 M4 4l8 8 M20 20l-8-8', 'deine Wahl'],
+        ['rumpf', 'Rumpf', 'M12 2C13.6 4.3 14.5 7.4 14.5 11L14.5 15L18 19L14.5 18L13 22L11 22L9.5 18L6 19L9.5 15L9.5 11C9.5 7.4 10.4 4.3 12 2Z', 'heute im Codex']] }
+    ],
+    subs: [
+      { id: 'powerPlants', name: 'Generator', p: 'mov', sub: 'Bewegung',
+        verdict: '<b>Passt.</b> Der Blitz steht für Energie und ist schon das Codex-Symbol für den Generator.',
+        opts: [
+        ['blitz', 'Blitz', 'M13 2L4 14H10L9 22L20 9H13Z', 'deine Wahl'],
+        ['reaktor', 'Reaktor', 'M12 12a2 2 0 1 0 0 .01 M12 3a9 4 0 0 1 0 18a9 4 0 0 1 0-18 M4.2 7.5a9 4 60 0 1 15.6 9 M19.8 7.5a9 4 -60 0 1-15.6 9']] },
+      { id: 'quantum', name: 'Quantenantrieb', p: 'mov', sub: 'Bewegung',
+        verdict: '<b>Passt.</b> Der Ring mit der Bahn ist das Codex-Symbol für den Quantenantrieb. Es bleibt überall dasselbe Zeichen.',
+        opts: [
+        ['quantenring', 'Quantenring', 'M12 9A3 3 0 1 1 11.99 9 M4 12C8 8.6 16 8.6 20 12C16 15.4 8 15.4 4 12 M10.3 4.3C13.7 8.3 13.7 15.7 10.3 19.7', 'deine Wahl'],
+        ['sprung', 'Sprung', 'M3 12h11 M10 7l5 5-5 5 M18 5v14 M21 8v8']] },
+      { id: 'coolers', name: 'Kühler', p: 'sig', sub: 'Signatur & Kühlung',
+        verdict: '<b>Passt.</b> Lamellen sind das, was ein Kühler tatsächlich hat. Die Welle darunter steht für die abgegebene Wärme. Die Schneeflocke würde eher „kalt“ heißen.',
+        opts: [
+        ['lamellen', 'Kühllamellen', 'M4 5h16 M4 9h16 M4 13h16 M5 18c1.7 2 3.4 2 5 0s3.4-2 5 0 3.4 2 4 0', 'deine Wahl'],
+        ['schneeflocke', 'Schneeflocke', 'M12 2V22 M3 7L21 17 M21 7L3 17 M5.5 4.2L7 8L11 7 M18.5 4.2L17 8L13 7 M5.5 19.8L7 16L11 17 M18.5 19.8L17 16L13 17', 'heute im Codex']] },
+      { id: 'radar', name: 'Radar & Sensoren', p: 'sig', sub: 'Signatur & Kühlung',
+        verdict: '<b>Passt.</b> Der Radarschirm mit dem Zeiger ist eindeutig. Er unterscheidet sich klar von den Signaturwellen.',
+        opts: [
+        ['radarschirm', 'Radarschirm', 'M12 12l6.4-6.4 M20 12a8 8 0 1 1-8-8 M16 12a4 4 0 1 1-4-4 M12 12h.01', 'deine Wahl'],
+        ['schuessel', 'Antennenschüssel', 'M4 14a8 8 0 0 0 10-10z M9 9l6-6 M15 3a2 2 0 1 0 0 .01 M7 18l-2 3h8l-2-3']] },
+      { id: 'lifeSupport', name: 'Lebenserhaltung', p: 'sig', sub: 'Signatur & Kühlung',
+        verdict: '<b>Neu gezeichnet.</b> „O₂“ ist im Spiel das Zeichen für Sauerstoff, auch im Anzug-HUD. Es lässt sich nicht falsch lesen. Die Atemblasen konnte man auch für Kühlmittel oder Treibstoff halten. Sie bleiben als Alternative.',
+        opts: [
+        ['o2', 'O₂', 'M3 11.5a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M16.8 15.6a2.1 2.1 0 1 1 3.4 1.7L16.8 21H21', 'neu gezeichnet', 1],
+        ['atemblase', 'Atemblasen', 'M9 14a5 5 0 1 0 0 .01 M17 7a3 3 0 1 0 0 .01 M18 16a2 2 0 1 0 0 .01', 'Wahl aus Runde 1']] }
+    ]
+  };
+  var NS = 'http://www.w3.org/2000/svg';
+  function svg(d) {
+    var s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+    var p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    return s;
+  }
+  var PATHS = {}, DEFAULT = {}, META = {};
+  function card(a) {
+    var box = document.createElement('div');
+    box.className = 'k-sym';
+    box.setAttribute('data-decision', 'i2-sym-' + a.id);
+    box.setAttribute('data-label', 'Symbol ' + a.name);
+    box.setAttribute('data-p', a.p);
+    var h = document.createElement('div'); h.className = 'k-sym-h';
+    var sw = document.createElement('span'); sw.className = 'k-sw';
+    var b = document.createElement('b'); b.textContent = a.name;
+    var sm = document.createElement('small'); sm.textContent = a.sub;
+    h.append(sw, b, sm); box.appendChild(h);
+    var opts = document.createElement('div'); opts.className = 'k-opts';
+    PATHS[a.id] = {}; DEFAULT[a.id] = a.opts[0][0]; META[a.id] = a;
+    a.opts.concat([['kein-symbol', 'kein Symbol', '']]).forEach(function (o, i) {
+      var l = document.createElement('label'); l.className = 'k-opt' + (i === 0 ? ' pick' : '') + (o[2] ? '' : ' none');
+      var inp = document.createElement('input'); inp.type = 'radio'; inp.name = 'dec-i2-sym-' + a.id; inp.value = o[0];
+      if (i === 0) { inp.checked = true; inp.defaultChecked = true; }
+      inp.setAttribute('aria-label', a.name + ': ' + o[1]);
+      l.appendChild(inp);
+      l.appendChild(svg(o[2] || 'M5 5l14 14 M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18'));
+      var t = document.createElement('span'); t.textContent = o[1]; l.appendChild(t);
+      if (o[3]) { var e = document.createElement('em'); e.textContent = o[3]; if (o[4]) e.className = 'new'; l.appendChild(e); }
+      PATHS[a.id][o[0]] = o[2];
+      opts.appendChild(l);
+    });
+    box.appendChild(opts);
+    var v = document.createElement('p'); v.className = 'k-verdict'; v.innerHTML = a.verdict; box.appendChild(v);
+    return box;
+  }
+  [['holo', 'k2-symgrid-holo'], ['blocks', 'k2-symgrid-blocks'], ['subs', 'k2-symgrid-subs']].forEach(function (g) {
+    var host = document.getElementById(g[1]);
+    if (host && !host.children.length) AREAS[g[0]].forEach(function (a) { host.appendChild(card(a)); });
+  });
+  var legend = document.getElementById('k2-legend');
+  var mk = document.getElementById('k2-mk');
+  function pathFor(id) {
+    var c = root.querySelector('input[name="dec-i2-sym-' + id + '"]:checked');
+    var key = c ? c.value : DEFAULT[id];
+    return (PATHS[id] && PATHS[id][key]) || '';
+  }
+  function setIco(ico, d) {
+    if (!ico) return;
+    ico.style.display = d ? '' : 'none';
+    ico.querySelector('path').setAttribute('d', d);
+  }
+  function sync() {
+    var off = root.querySelector('input[name="dec-i2-c-off"]:checked');
+    var def = root.querySelector('input[name="dec-i2-c-def"]:checked');
+    C.off = off ? off.getAttribute('data-v') : '#e5484d';
+    C.def = def ? def.getAttribute('data-v') : '#5b8def';
+    root.style.setProperty('--k-off', C.off);
+    root.style.setProperty('--k-def', C.def);
+    root.querySelectorAll('.k-sym[data-p]').forEach(function (box) {
+      var c = C[box.getAttribute('data-p')];
+      box.style.setProperty('--c', c);
+      var sw = box.querySelector('.k-sw'); if (sw) sw.style.setProperty('--c', c);
+    });
+    if (mk) {
+      root.querySelectorAll('.k-side [data-ctl]').forEach(function (grp) {
+        var c = grp.querySelector('input:checked');
+        if (c) mk.setAttribute('data-' + grp.getAttribute('data-ctl'), c.getAttribute('data-v'));
+      });
+      mk.querySelectorAll('[data-area]').forEach(function (blk) {
+        setIco(blk.querySelector(':scope > .k-bh .k-ico'), pathFor(blk.getAttribute('data-area')));
+      });
+    }
+    root.querySelectorAll('#k2-holo .k-ico[data-area]').forEach(function (ico) { setIco(ico, pathFor(ico.getAttribute('data-area'))); });
+    if (legend) {
+      legend.textContent = '';
+      ['holo', 'blocks', 'subs'].forEach(function (g) {
+        AREAS[g].forEach(function (a) {
+          var d = pathFor(a.id);
+          var row = document.createElement('div');
+          row.style.setProperty('--c', C[a.p]);
+          if (d) row.appendChild(svg(d));
+          var t = document.createElement('span'); t.textContent = a.name + (d ? '' : ' · kein Symbol'); row.appendChild(t);
+          legend.appendChild(row);
+        });
+      });
+    }
   }
   root.addEventListener('change', sync);
   sync();
