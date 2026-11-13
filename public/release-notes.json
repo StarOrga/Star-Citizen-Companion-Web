@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.260.0",
+  "current": "0.260.1",
   "releases": [
+    {
+      "version": "0.260.1",
+      "date": "2026-11-13",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Concept page for area symbols and holo-table borders: iteration 2 (admin picks preselected, redrawn turret/pod/shield-generator/O2 symbols, red offensive and blue defensive borders)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.260.0",
       "date": "2026-11-12",
