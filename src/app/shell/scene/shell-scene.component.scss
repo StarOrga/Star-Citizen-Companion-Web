@@ -123,23 +123,10 @@ html[data-sc-scene] body { background: transparent; }
   }
   .scene[data-pose^='hq'] .planet .lights { animation: sc-scene-city 9s ease-in-out infinite; }
 
-  // HQ ground station on the right limb (mock .d5-o-hqst).
-  .hqst { left: 172.375vw; top: 89.125vw; width: 2.75vw; height: 1.375vw; opacity: var(--o-hqst, 0); }
-  .hqst::before {
-    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 0.75vw;
-    border-radius: 1.375vw 1.375vw 0.188vw 0.188vw;
-    background: linear-gradient(180deg, #ffd9a8, #a86a2c);
-    box-shadow: 0 0 0.625vw rgba(255, 184, 107, 0.9), 0 0 1.875vw rgba(255, 184, 107, 0.45);
-  }
-  .hqst::after {
-    content: ''; position: absolute; left: 50%; top: -1.125vw; width: 0.125vw; height: 1.25vw; translate: -50% 0;
-    background: linear-gradient(180deg, rgba(255, 214, 160, 0), #ffd6a0);
-  }
-  .hqst > i {
-    position: absolute; left: 50%; top: -1.375vw; width: 0.375vw; height: 0.375vw; translate: -50% 0;
-    border-radius: 50%; background: #fff3e0; box-shadow: 0 0 0.5vw #ffb86b;
-    animation: sc-scene-beacon 2.4s ease-in-out infinite;
-  }
+  // HQ outpost on the right limb: hangar + storage yard (sc-briefing-hq-base), standing on the curve -
+  // its bottom centre on the limb (world 173.75 x 89.6 vw), tilted with the planet's normal there (17.5deg).
+  .hqst { left: 169.25vw; top: 85.1vw; width: 9vw; height: 4.5vw; opacity: var(--o-hqst, 0); transform-origin: 50% 100%; rotate: 17.5deg; container-type: inline-size; }
+  .hqst > sc-briefing-hq-base { width: 100%; height: 100%; }
 
   // The hub's planets as world objects (Crusader = News, ArcCorp = Patches, microTech = Galerie).
   .pl { border-radius: 50%; }
@@ -303,7 +290,7 @@ html[data-sc-scene] body { background: transparent; }
 
   @media (prefers-reduced-motion: reduce) {
     .o, .veil, .starmap .const, .starmap .map { transition: none !important; }
-    .tilt, .hqst > i, .planet .lights { animation: none !important; }
+    .tilt, .planet .lights { animation: none !important; }
     .scene { transform: none !important; transition: none; }
     .scene::after { transition-duration: 160ms !important; }
   }

@@ -7,7 +7,7 @@
 // height. No orbit ring, no orbit arc.
 :host { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
 
-.sun-l, .const-l, .hq-l {
+.sun-l, .const-l, .hq-l, .adm-l {
   position: absolute;
   pointer-events: auto;
   color: inherit;
@@ -16,19 +16,34 @@
 }
 .sun-l { right: 5cqw; top: 14%; width: max(7.6cqw, 72px); aspect-ratio: 1; }
 .const-l { right: 25cqw; top: 43%; width: max(5.2cqw, 56px); aspect-ratio: 8 / 5.6; border-radius: 12px; }
-// HQ = the scene's ground station (shell-scene .hqst, WORLD_RECTS.hqst) on the planet's right limb. The
-// planet's geometry is the hub's .brief-world (160 vw wide, centred on the viewport, its top at --rim), so the
-// station's centre stands at 74.062 vw from the viewport's left and 3.375 vw below the rim (beacon light
-// included). This anchor is the hit area over it; the drawing itself is the scene's.
+// HQ = the scene's outpost (shell-scene .hqst, WORLD_RECTS.hqst: hangar + storage yard, sc-briefing-hq-base)
+// on the planet's right limb. The planet's geometry is the hub's .brief-world (160 vw wide, centred on the
+// viewport, its top at --rim); the outpost stands on the curve, tilted 17.5deg, its centre 74.43 vw from the
+// viewport's left and 1.7 vw below the rim. This anchor is the hit area over it, tilted the same way; the
+// drawing itself is the scene's, so every camera pose carries it.
 .hq-l {
-  left: calc(50% - 50vw + 74.062vw);
-  top: calc(var(--rim, 60%) + 3.375vw);
-  width: max(4.5vw, 48px);
-  height: max(3.6vw, 44px);
+  left: calc(50% - 50vw + 74.43vw);
+  top: calc(var(--rim, 60%) + 1.7vw);
+  width: max(9vw, 76px);
+  height: max(4.5vw, 44px);
   translate: -50% -50%;
-  border-radius: 50%;
+  rotate: 17.5deg;
+  border-radius: 6px;
+}
+// Admin (admins only): the scene's station as a mini satellite in the left sky, exactly where the scene
+// keeps it (WORLD_RECTS.station: centre 27.344 vw from the left, 10.06 vw above the rim), so the flight
+// to /admin is one camera move onto it. Its own colour: --sc-accent-hot (admin-only surface).
+.adm-l {
+  left: calc(50% - 50vw + 27.344vw);
+  top: calc(var(--rim, 60%) - 10.06vw);
+  width: max(4.4vw, 56px);
+  aspect-ratio: 6.063 / 4.375;
+  translate: -50% -50%;
+  border-radius: 10px;
+  container-type: inline-size;
 }
 :is(.sun-l, .const-l, .hq-l):focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
+.adm-l:focus-visible { outline: 2px solid var(--sc-accent-hot); outline-offset: 4px; }
 
 // ── Sun: warm, the one warm tone on the stage ───────────────────────────
 // Concept "Sonne & Planeten" (2026-10-31): a living star instead of a glow
@@ -204,17 +219,34 @@
 .fig > * { width: 100%; height: 100%; }
 .const-l:hover .fig, .const-l:focus-visible .fig { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
 
-// ── HQ ground station: a warm glow over the scene's station on hover / focus ──
-.ground {
+// ── HQ outpost: a HUD target lock closes on it on hover / focus ─────────
+// Four corner brackets in the instrument cyan slide in from outside, a faint
+// scan glow lights the outpost — the way a ship's HUD locks a landing zone.
+.lock { position: absolute; inset: -14% -8%; opacity: 0; scale: 1.18; transition: opacity 0.25s, scale 0.35s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.lock, .lock > i { display: block; }
+.lock::before, .lock::after, .lock > i::before, .lock > i::after {
+  content: '';
   position: absolute;
-  inset: 12%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 196, 130, 0.42), rgba(255, 184, 107, 0.12) 60%, transparent);
-  opacity: 0;
-  scale: 0.7;
-  transition: opacity 0.3s, scale 0.35s ease;
+  width: 18%;
+  height: 34%;
+  border: 0 solid color-mix(in srgb, var(--sc-accent) 75%, #fff);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--sc-accent) 70%, transparent));
 }
-.hq-l:is(:hover, :focus-visible) .ground { opacity: 1; scale: 1.15; }
+.lock::before { left: 0; top: 0; border-width: 1.5px 0 0 1.5px; }
+.lock::after { right: 0; top: 0; border-width: 1.5px 1.5px 0 0; }
+.lock > i::before { left: 0; bottom: 0; border-width: 0 0 1.5px 1.5px; }
+.lock > i::after { right: 0; bottom: 0; border-width: 0 1.5px 1.5px 0; }
+.lock > i { position: absolute; inset: 0; background: radial-gradient(closest-side, color-mix(in srgb, var(--sc-accent) 16%, transparent), transparent); }
+.hq-l:is(:hover, :focus-visible) .lock { opacity: 1; scale: 1; }
+// The label reads upright although the anchor is tilted with the limb.
+.hq-l .lab { rotate: -17.5deg; transform-origin: 50% 0; }
+
+// ── Admin satellite: the station small, drifting on its orbit ───────────
+.sat { position: absolute; inset: 0; display: block; animation: sat-drift 9s ease-in-out infinite; animation-play-state: var(--sc-brief-play, running);
+  transition: filter 0.3s, scale 0.35s ease; }
+.adm-l:is(:hover, :focus-visible) .sat { scale: 1.12; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent-hot) 60%, transparent)); }
+@keyframes sat-drift { 0%, 100% { translate: 0 0; rotate: -2deg; } 50% { translate: 0 -6%; rotate: 2deg; } }
+.hot .lab-n { color: color-mix(in srgb, var(--sc-accent-hot) 55%, #fff); text-shadow: var(--vb-dim, 0 0 0 transparent), 0 0 8px color-mix(in srgb, var(--sc-accent-hot) 50%, transparent); }
 
 // ── Labels: rise letter by letter under the beacon ──────────────────────
 .lab {
@@ -245,9 +277,9 @@
 .lab-n i { display: inline-block; font-style: normal; white-space: pre; }
 .lab-v { font-size: max(11px, 0.56cqw); letter-spacing: 0.04em; color: var(--sc-fg-0); opacity: 0.85; }
 
-:is(.sun-l, .const-l, .hq-l):is(:hover, :focus-visible, .idle) .lab { opacity: 1; }
-:is(.sun-l, .const-l, .hq-l):is(:hover, :focus-visible) .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.1s + var(--n, 0) * 0.035s); }
-:is(.sun-l, .const-l, .hq-l):is(:hover, :focus-visible) .lab-v { animation: rise 0.5s ease-out 0.5s both; }
+:is(.sun-l, .const-l, .hq-l, .adm-l):is(:hover, :focus-visible, .idle) .lab { opacity: 1; }
+:is(.sun-l, .const-l, .hq-l, .adm-l):is(:hover, :focus-visible) .lab-n i { animation: rise 0.5s ease-out both; animation-delay: calc(0.1s + var(--n, 0) * 0.035s); }
+:is(.sun-l, .const-l, .hq-l, .adm-l):is(:hover, :focus-visible) .lab-v { animation: rise 0.5s ease-out 0.5s both; }
 // The hint shows the names only and calms down after ~5 s (the class goes).
 .idle .lab-v { display: none; }
 .sw { font-weight: 700; color: var(--sc-success); }
@@ -265,6 +297,8 @@
   .const-l { right: calc(50% - 28px); top: 35%; }
   .sun-l .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
   .hq-l .lab { left: auto; right: 0; transform: none; align-items: flex-end; }
+  .adm-l { left: 8%; top: 34%; width: 56px; translate: none; }
+  .adm-l .lab { left: 0; transform: none; align-items: flex-start; }
 }
 
 // Entrance (the stage carries .intro only while the sequence plays and never
@@ -277,9 +311,9 @@
 // --sc-brief-play) stand at their hidden first frame.
 :host-context(.bstage.intro) .sun-l { animation: bk-in 0.6s ease-out 4.3s both; }
 // The station drifts in with the details, a beat after the sun.
-:host-context(.bstage.intro) .hq-l { animation: bk-in 0.6s ease-out 4.45s both; }
+:host-context(.bstage.intro) :is(.hq-l, .adm-l) { animation: bk-in 0.6s ease-out 4.45s both; }
 // Menu switch (rounds/05 d5-pb-nav): the Patches line and the sun stand at 1.3 s.
-:host-context(.bstage.nav) :is(.sun-l, .hq-l, .const-l) { animation: bk-in 0.6s ease-out 1.3s both; }
+:host-context(.bstage.nav) :is(.sun-l, .hq-l, .adm-l, .const-l) { animation: bk-in 0.6s ease-out 1.3s both; }
 :host-context(.bstage.intro) .const-l {
   --intro-d: 0.45s;
   animation: bk-ignite 0.9s ease-out 0.45s both;
@@ -291,7 +325,8 @@
 @keyframes bk-ignite { 0% { opacity: 0; filter: brightness(2.4) blur(4px); } 35% { opacity: 1; filter: brightness(2) drop-shadow(0 0 14px rgba(150, 225, 255, 0.8)); } 100% { opacity: 1; filter: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .sun, .flare, .lab, .ground { transition: none; }
+  .sun, .flare, .lab, .lock, .sat { transition: none; }
+  .sat { animation: none; }
   .glow, .corona, .streamers, .disc::before, .disc::after, .flash { animation: none; }
   // Standing storms: the loops stay visible, mid-rise.
   .prom > i { animation: none; opacity: 0.8; }

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DOCUMENT, DestroyRef, ElementRef, NgZone, ViewEncapsulation, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { BriefingPlanetComponent } from '../../verse/pages/briefing/briefing-planet.component';
 import { BriefingStationComponent } from '../../verse/pages/briefing/briefing-station.component';
+import { BriefingHqBaseComponent } from '../../verse/pages/briefing/briefing-hq-base.component';
 import { ShellChromeService } from '../fusion-bar/shell-chrome.service';
 import { SceneBodiesComponent } from './scene-bodies.component';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router } from '@angular/router';
@@ -46,7 +47,7 @@ export const SCENE_HTML_ATTR = 'data-sc-scene';
   selector: 'sc-shell-scene',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BriefingPlanetComponent, BriefingStationComponent, SceneBodiesComponent],
+  imports: [BriefingPlanetComponent, BriefingStationComponent, BriefingHqBaseComponent, SceneBodiesComponent],
   templateUrl: './shell-scene.component.html',
   styleUrl: './shell-scene.component.scss',
   // Global on purpose: it has to clear body's background (see the stylesheet); every rule is scoped by the host class.
