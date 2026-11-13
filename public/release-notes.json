@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.261.0",
+  "current": "0.262.0",
   "releases": [
+    {
+      "version": "0.262.0",
+      "date": "2026-11-13",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Classic ship view: the explainer notes of the loadout blocks (shield generators, passive shield, countermeasures, missing stock weapons) moved behind an info icon with a tooltip at the block heading."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.261.0",
       "date": "2026-11-13",
