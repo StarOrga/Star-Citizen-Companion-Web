@@ -1809,6 +1809,10 @@
       "saveErrorHangar": "Could not reach your hangar right now — the draft is kept, try saving again.",
       "saveErrorGeneric": "Could not save the loadout right now — the draft is kept, try again.",
       "revert": "Revert to stock",
+      "resetAll": "Reset the whole loadout to stock",
+      "resetAllTitle": "Reset the whole loadout?",
+      "resetAllBody": "All {{n}} changes to this loadout will be lost and every slot gets its stock part back.",
+      "resetAllConfirm": "Reset",
       "defaultConfigName": "Codex loadout",
       "draftState": {
         "changed": "Changed",

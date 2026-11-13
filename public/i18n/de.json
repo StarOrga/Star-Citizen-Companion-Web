@@ -1809,6 +1809,10 @@
       "saveErrorHangar": "Der Hangar war gerade nicht erreichbar — der Entwurf bleibt erhalten, bitte erneut versuchen.",
       "saveErrorGeneric": "Das Loadout konnte gerade nicht gespeichert werden — der Entwurf bleibt erhalten, bitte erneut versuchen.",
       "revert": "Auf Werkszustand zurücksetzen",
+      "resetAll": "Ganzes Loadout auf Werkszustand zurücksetzen",
+      "resetAllTitle": "Ganzes Loadout zurücksetzen?",
+      "resetAllBody": "Alle {{n}} Änderungen an diesem Loadout gehen verloren, jeder Slot bekommt wieder sein Werksteil.",
+      "resetAllConfirm": "Zurücksetzen",
       "defaultConfigName": "Codex-Loadout",
       "draftState": {
         "changed": "Geändert",
