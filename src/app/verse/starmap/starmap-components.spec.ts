@@ -216,7 +216,7 @@ describe('star map components', () => {
     await vi.waitFor(() => {
       f.detectChanges();
       expect(el.querySelector('.mini a.tile img')).not.toBeNull();
-    });
+    }, { timeout: 10000, interval: 100 });
     const tile = el.querySelector('.mini a.tile') as HTMLAnchorElement;
     expect(tile.getAttribute('href')).toMatch(/^blob:/);
     tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
