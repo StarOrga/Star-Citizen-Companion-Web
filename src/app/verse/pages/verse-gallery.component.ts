@@ -33,7 +33,7 @@ import { DOCK_HOST_CLASS, DOCK_WIDTH_STYLE } from '../shared/dock-width';
             <button type="button" class="sub-link" (click)="shareGallery()">{{ 'verse.gallery.share' | translate }}</button>
           </ng-container>
         }
-        <a vhActions class="sub-link" routerLink="/verse/explorer/rank">{{ 'verse.gallery.mine' | translate }}</a>
+        <a vhActions class="sub-link" routerLink="/verse/explorer/rank" fragment="rk-mine">{{ 'verse.gallery.mine' | translate }}</a>
       </sc-verse-header>
 
       @if (hint(); as h) { <p class="hint sc-enter" role="status">{{ h | translate }}</p> }

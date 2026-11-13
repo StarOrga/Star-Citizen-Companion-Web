@@ -7534,7 +7534,7 @@
       }
     },
     "more": {
-      "title": "Logbook"
+      "title": "Extras"
     },
     "card": {
       "close": "Close",
@@ -7557,7 +7557,7 @@
     "comet": {
       "kind": "Patch tip",
       "ruleAria": "Patch tip rules",
-      "rule": "Tip the day {{patch}} goes LIVE – one click on a day sets your patch tip, one tip per patch. Land within ±2 days and the sun lights up top right in the sky. Tips close once {{patch}} is LIVE or the LIVE date was officially announced.",
+      "rule": "Tip the day {{patch}} goes LIVE – one click on a day sets your patch tip, one tip per patch. Land within ±2 days and the comet lights a sun for your collection on the rank page. Tips close once {{patch}} is LIVE or the LIVE date was officially announced.",
       "ruleVersion": "Tip the day {{patch}} goes LIVE – a concrete patch of the line, one tip per patch. Tips close once {{patch}} is LIVE or its LIVE date was officially announced. The patch star only comes with the line tip.",
       "modeAria": "Tip target",
       "state": {

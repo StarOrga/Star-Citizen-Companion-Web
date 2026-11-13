@@ -7534,7 +7534,7 @@
       }
     },
     "more": {
-      "title": "Logbuch"
+      "title": "Extras"
     },
     "card": {
       "close": "Schließen",
@@ -7557,7 +7557,7 @@
     "comet": {
       "kind": "Patch-Tipp",
       "ruleAria": "Regeln zum Patch-Tipp",
-      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Patch-Tipp, ein Tipp pro Patch. Trifft er auf ±2 Tage, leuchtet oben rechts am Himmel die Sonne auf. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
+      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Patch-Tipp, ein Tipp pro Patch. Trifft er auf ±2 Tage, zündet der Komet eine Sonne für deine Sammlung auf der Rangseite. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
       "ruleVersion": "Tippe den Tag, an dem {{patch}} LIVE geht – ein konkreter Patch der Linie, ein Tipp pro Patch. Der Tipp schließt, sobald {{patch}} LIVE ist oder das LIVE-Datum offiziell genannt wurde. Den Patch-Stern gibt es nur mit dem Linien-Tipp.",
       "modeAria": "Tipp-Ziel",
       "state": {
@@ -7716,7 +7716,7 @@
           "meaning": "Du findest deinen Weg über mehrere Patches."
         },
         "cartographer": {
-          "name": "Kartograf",
+          "name": "Kartograph",
           "meaning": "Deine Karten decken ein echtes Stück des Verse ab."
         },
         "astrographer": {

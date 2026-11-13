@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, injec
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
-import { BetaService } from '../../core/beta.service';
 import { ScActionDirective } from '../../shared/action/sc-action.directive';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
@@ -109,11 +108,9 @@ function isComplete(p: VerseExplorerPatch): boolean {
         <sc-verse-header planet="starmap" [title]="'verse.area.starmap' | translate"
                          [subtitle]="'starmap.map.subtitle' | translate: { total: total }">
           <sc-starmap-mini vhEmblem [points]="p.constellation?.points" [tasks]="v.tasks" [next]="v.next" />
-          @if (shellOn()) {
-            <button vhTitle #helpBtn type="button" scAction tier="tertiary" class="help" [attr.aria-expanded]="tourOpen()"
-                    aria-controls="starmap-tour" [attr.aria-label]="'starmap.tour.open' | translate"
-                    [scTooltip]="'starmap.tour.open' | translate" scTooltipTier="label" (click)="tourOpen.set(!tourOpen())">?</button>
-          }
+          <button vhTitle #helpBtn type="button" scAction tier="tertiary" class="help" [attr.aria-expanded]="tourOpen()"
+                  aria-controls="starmap-tour" [attr.aria-label]="'starmap.tour.open' | translate"
+                  [scTooltip]="'starmap.tour.open' | translate" scTooltipTier="label" (click)="tourOpen.set(!tourOpen())">?</button>
           @let tierName = (ranked ? 'starmap.rankPage.tier.' + rankKey() + '.name' : 'starmap.rankPage.unranked') | translate;
           <a vhActions class="rank" [class.none]="!ranked" [class.news]="rankNews()" data-tour="rank" routerLink="/verse/explorer/rank"
              [attr.aria-label]="((ranked ? 'starmap.rank.link' : 'starmap.rank.none') | translate: { name: tierName }) + (rankNews() ? ' · ' + ('starmap.rank.news' | translate) : '')"
@@ -164,8 +161,8 @@ function isComplete(p: VerseExplorerPatch): boolean {
           </div>
         </section>
 
-        @if (tourOpen() && shellOn()) {
-          <sc-starmap-tour id="starmap-tour" [root]="mapEl" [returnTo]="helpBtn()?.nativeElement ?? null" (closed)="tourOpen.set(false)" />
+        @if (tourOpen()) {
+          <sc-starmap-tour id="starmap-tour" [root]="mapEl" [returnTo]="helpBtn" (closed)="tourOpen.set(false)" />
         }
       </div>
     }
@@ -320,7 +317,6 @@ export class ExplorerPageComponent {
   });
   readonly tourOpen = signal(false);
   readonly helpBtn = viewChild<ElementRef<HTMLElement>>('helpBtn');
-  readonly shellOn = inject(BetaService).isEnabled('shell');
 
   /** Patch lines complete when the page was entered (snapshot): only those may celebrate on this visit. */
   private entryComplete: Set<string> | null = null;

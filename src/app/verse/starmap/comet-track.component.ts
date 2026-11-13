@@ -28,7 +28,7 @@ const RIM_K = 0.32;
   imports: [TranslatePipe, ScTooltipDirective],
   template: `
     @let c = cur();
-    @if (version(); as v) {
+    @if (modes(); as v) {
       <div class="modes" role="group" [attr.aria-label]="'starmap.comet.modeAria' | translate">
         <button type="button" class="mode" [class.on]="!versionMode()" [attr.aria-pressed]="!versionMode()" (click)="versionMode.set(false)">{{ lineName() }}</button>
         <button type="button" class="mode" [class.on]="versionMode()" [attr.aria-pressed]="versionMode()" (click)="versionMode.set(true)">{{ versionName(v.patchVersion) }}</button>
@@ -38,7 +38,7 @@ const RIM_K = 0.32;
       <span class="kind"><span class="comet" [class]="'comet s-' + c.state" aria-hidden="true"></span>{{ 'starmap.comet.kind' | translate }}</span>
       <b>{{ headKey() | translate: { patch: patchName(), date: day(c.tippedDate, true) } }}</b>
       <button type="button" class="info" [attr.aria-label]="'starmap.comet.ruleAria' | translate"
-              [scTooltip]="(versionMode() ? 'starmap.comet.ruleVersion' : 'starmap.comet.rule') | translate: { patch: patchName() }">i</button>
+              [scTooltip]="(onVersion() ? 'starmap.comet.ruleVersion' : 'starmap.comet.rule') | translate: { patch: patchName() }">i</button>
       <span class="state" [class.tip]="stateKey() === 'tipped'" [class.missed]="stateKey() === 'missed'">
         <i class="ring" [class.half]="stateKey() === 'tipped'" [class.done]="c.state === 'hit'" [class.closed]="c.state === 'miss' || stateKey() === 'missed' || (c.state === 'none' && c.locked)"></i>
         {{ 'starmap.comet.state.' + stateKey() | translate }}
@@ -83,7 +83,7 @@ const RIM_K = 0.32;
       .tok:disabled:not(.on) { color: var(--sc-fg-2); }
       .modes { display: flex; gap: 4px; margin-bottom: 4px; }
       .mode { border: 1px solid var(--sc-border, transparent); background: transparent; color: var(--sc-fg-2); border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 0.75rem; cursor: pointer; }
-      .mode.on { color: var(--sc-fg-0); border-color: color-mix(in srgb, var(--sc-warning) 60%, #fff); }
+      .mode.on { color: var(--sc-fg-0); border-color: color-mix(in srgb, var(--sc-accent) 60%, #fff); }
       @media (pointer: coarse) { .mode { min-height: 48px; } }
       .tok.nav { flex: 0 0 28px; font-size: 1rem; }
       @media (pointer: coarse) { .tok.nav { flex-basis: 48px; } }
@@ -98,10 +98,14 @@ export class CometTrackComponent {
   readonly version = signal<VerseVersionComet | null>(null);
   /** Tipping the x.y.z patch instead of the line. */
   readonly versionMode = signal(false);
+  /** The x.y.z switch only on a map whose line comet is still open - an old, closed map has nothing to tip. */
+  readonly modes = computed(() => (this.comet().locked ? null : this.version()));
+  /** Version mode in effect (the switch can vanish while it is on). */
+  readonly onVersion = computed(() => this.versionMode() && !!this.modes());
   /** The comet under the rail: the line's or the x.y.z patch's. */
-  readonly cur = computed<VerseComet>(() => (this.versionMode() ? this.version()?.comet : null) ?? this.comet());
+  readonly cur = computed<VerseComet>(() => (this.onVersion() ? this.version()?.comet : null) ?? this.comet());
   /** What a tip is placed on: `4.5` or `4.4.2`. */
-  readonly target = computed(() => (this.versionMode() ? this.version()?.patchVersion : null) ?? this.patchLine());
+  readonly target = computed(() => (this.onVersion() ? this.version()?.patchVersion : null) ?? this.patchLine());
 
   private readonly api = inject(VerseApiService);
   private readonly undo = inject(UndoToastService);
@@ -124,7 +128,7 @@ export class CometTrackComponent {
   readonly curve = computed(() => railCurve(this.interactive() ? COMET_DAYS + 2 : COMET_DAYS, RIM_K, false));
 
   /** The patch under its current name (CIG renames: 4.11 became 5.0), "formerly" appended when renamed. */
-  readonly patchName = computed(() => this.versionMode() ? this.versionName(this.target()) : this.lineName());
+  readonly patchName = computed(() => this.onVersion() ? this.versionName(this.target()) : this.lineName());
 
   /** The line under its current name, "formerly" appended when renamed. */
   lineName(): string {
