@@ -7335,8 +7335,6 @@
     },
     "export": {
       "wallpaper": "Download wallpaper (4K)",
-      "busy": "Rendering …",
-      "gallery": "My star maps",
       "failed": "The wallpaper could not be created. Please try again."
     },
     "task": {
@@ -7429,9 +7427,6 @@
       }
     },
     "kartograph": {
-      "title": "Cartographer",
-      "rank": "Rank {{rank}}",
-      "perks": "Early access to beta features, suggestions for the top list and a badge you can share as a public link.",
       "locked": "Collect stars to unlock the cartographer rank."
     },
     "community": {
@@ -7449,7 +7444,6 @@
     },
     "gallery": {
       "title": "My star maps",
-      "subtitle": "Every completed star map lands here automatically.",
       "empty": "No star map completed yet.",
       "toMap": "Go to the star map",
       "appHint": "The last 7 are in the Starscape app as well.",
@@ -7537,9 +7531,7 @@
       }
     },
     "more": {
-      "open": "Logbook",
-      "title": "Logbook",
-      "rewards": "Series rewards"
+      "title": "Logbook"
     },
     "card": {
       "close": "Close",
@@ -7632,13 +7624,111 @@
       "next": "Kartograph rank {{rank}} - still locked"
     },
     "rank": {
-      "link": "Kartograph rank {{rank}} · open the rank page",
-      "none": "No rank yet · how to climb"
+      "link": "{{name}} · open your rank page",
+      "none": "No rank yet · how to climb",
+      "news": "New on your rank page"
     },
     "celebrate": {
       "eyebrow": "Constellation complete",
       "named": "{{name}} shines in the sky",
       "done": "All 7 stars shine"
+    },
+    "rankPage": {
+      "title": "Rank",
+      "subtitle": "Seven tiers, one star map that grows with you.",
+      "standingAria": "Your current rank and star map",
+      "current": "Your rank",
+      "unranked": "No rank yet",
+      "unrankedMeaning": "Complete your first star map - all 7 stars of a patch - and you enter the ladder as an Observer.",
+      "count": "{{n}} star maps completed",
+      "countOne": "1 star map completed",
+      "progressAria": "Progress to {{name}}",
+      "toNext": "{{n}} more completed star maps to {{name}}",
+      "toNextOne": "One more completed star map to {{name}}",
+      "top": "Highest tier reached. Every further star map still joins your sky.",
+      "perks": "Your rank opens early access to beta features, item suggestions and the rank rewards below.",
+      "mapOpen": "Open your star map large",
+      "mapAlt": "Your star map: the constellations of your patches in one night sky",
+      "mapNone": "Light your first star on the star map and your sky appears here.",
+      "mapCaption": "Your star map",
+      "mapUpdates": "Updates itself with every rank you climb.",
+      "downloadPhone": "Phone wallpaper",
+      "downloadUltrawide": "Ultrawide (5120 × 1440)",
+      "downloadLocked": "Complete your first star map to download it in 4K.",
+      "ladderTitle": "The seven tiers",
+      "at": "from {{n}} star maps",
+      "atOne": "from 1 star map",
+      "new": "New",
+      "state": {
+        "earned": "reached",
+        "current": "your current tier",
+        "locked": "not reached yet"
+      },
+      "rewardsTitle": "Rank rewards",
+      "rewardsLead": "Each tier adds something to your sky. From Astrographer on the rewards change your crest and the wallpaper itself.",
+      "rewardFrom": "from {{name}}",
+      "reward": {
+        "wallpaper": {
+          "title": "4K wallpaper",
+          "desc": "Your star map as a 3840 × 2160 wallpaper."
+        },
+        "badge": {
+          "title": "Shareable badge",
+          "desc": "Your crest and newest star map as a public link for friends."
+        },
+        "phone": {
+          "title": "Phone wallpaper",
+          "desc": "Your sky in portrait for the lock screen."
+        },
+        "ultrawide": {
+          "title": "Ultrawide wallpaper",
+          "desc": "A 32:9 panorama for wide and dual screens."
+        },
+        "frame": {
+          "title": "Survey ring",
+          "desc": "A second, dotted ring around your crest, everywhere it appears."
+        },
+        "deepfield": {
+          "title": "Deep field",
+          "desc": "A nebula glows behind every wallpaper you download."
+        },
+        "orbit": {
+          "title": "Turning rose",
+          "desc": "The star of your crest slowly turns, like a compass on the chart table."
+        }
+      },
+      "seriesTitle": "Series",
+      "extrasTitle": "Suggestions and badge",
+      "tier": {
+        "observer": {
+          "name": "Observer",
+          "meaning": "Your first star map is on the chart."
+        },
+        "surveyor": {
+          "name": "Surveyor",
+          "meaning": "You measure the sky patch by patch."
+        },
+        "navigator": {
+          "name": "Navigator",
+          "meaning": "You find your way across several patches."
+        },
+        "cartographer": {
+          "name": "Cartographer",
+          "meaning": "Your charts cover a real stretch of the Verse."
+        },
+        "astrographer": {
+          "name": "Astrographer",
+          "meaning": "You map the sky with precision; the late rewards open."
+        },
+        "master": {
+          "name": "Master Cartographer",
+          "meaning": "Few charts are as complete as yours."
+        },
+        "keeper": {
+          "name": "Keeper of the Atlas",
+          "meaning": "Your atlas spans years of the Verse."
+        }
+      }
     }
   },
   "beta": {

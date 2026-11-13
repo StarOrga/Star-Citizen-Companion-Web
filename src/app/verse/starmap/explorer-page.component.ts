@@ -16,7 +16,7 @@ import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { GuessTrackComponent } from './guess-track.component';
 import { StarDomeComponent } from './star-dome.component';
 import { StarmapTourComponent } from './starmap-tour.component';
-import { STARS_PER_PATCH, defaultPatch, patchMapView } from './starmap.model';
+import { STARS_PER_PATCH, defaultPatch, hasRankNews, hasTierReward, patchMapView, rankNewsItems, rankProgress, readRankSeen } from './starmap.model';
 
 export { wallpaperConstellations } from './wallpaper';
 
@@ -114,11 +114,13 @@ function isComplete(p: VerseExplorerPatch): boolean {
                     aria-controls="starmap-tour" [attr.aria-label]="'starmap.tour.open' | translate"
                     [scTooltip]="'starmap.tour.open' | translate" scTooltipTier="label" (click)="tourOpen.set(!tourOpen())">?</button>
           }
-          <a vhActions class="rank" [class.none]="!ranked" data-tour="rank" routerLink="/verse/explorer/rank"
-             [attr.aria-label]="(ranked ? 'starmap.rank.link' : 'starmap.rank.none') | translate: { rank: k.rank }"
-             [scTooltip]="(ranked ? 'starmap.rank.link' : 'starmap.rank.none') | translate: { rank: k.rank }" scTooltipTier="label">
+          @let tierName = (ranked ? 'starmap.rankPage.tier.' + rankKey() + '.name' : 'starmap.rankPage.unranked') | translate;
+          <a vhActions class="rank" [class.none]="!ranked" [class.news]="rankNews()" data-tour="rank" routerLink="/verse/explorer/rank"
+             [attr.aria-label]="((ranked ? 'starmap.rank.link' : 'starmap.rank.none') | translate: { name: tierName }) + (rankNews() ? ' · ' + ('starmap.rank.news' | translate) : '')"
+             [scTooltip]="(ranked ? 'starmap.rank.link' : 'starmap.rank.none') | translate: { name: tierName }" scTooltipTier="label">
+            @if (rankNews()) { <span class="news-dot" aria-hidden="true"></span> }
             @if (ranked) {
-              <sc-kartograph-crest [rank]="k.rank" [size]="40" state="current" />
+              <sc-kartograph-crest [rank]="k.rank" [size]="40" state="current" [framed]="crestFramed()" [orbit]="crestOrbit()" />
             } @else {
               <svg class="rank-empty" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
                 <path d="M20 4 33 9v10c0 8-5.6 14-13 17C12.6 33 7 27 7 19V9z" />
@@ -190,6 +192,15 @@ function isComplete(p: VerseExplorerPatch): boolean {
       .rank:hover { filter: brightness(1.2) drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
       .rank:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .rank-empty { width: 40px; height: 40px; overflow: visible; }
+      /* Something new on the rank page: a game-style beacon (pulsing ring + dot) until the page is opened. */
+      .rank { position: relative; }
+      .rank.news::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-accent) 55%, transparent); animation: ex-beacon 2.2s ease-out infinite; }
+      .rank.news { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--sc-accent) 55%, transparent)); }
+      .news-dot { position: absolute; z-index: 1; top: 2px; right: 2px; width: 10px; height: 10px; border-radius: 50%;
+        background: var(--sc-accent); box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 8px var(--sc-accent); }
+      @keyframes ex-beacon { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-accent) 55%, transparent); }
+        70%, 100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--sc-accent) 0%, transparent); } }
       .rank-empty path { fill: none; stroke: color-mix(in srgb, var(--sc-fg-2) 80%, transparent); stroke-width: 1.4; stroke-dasharray: 3 3; }
       .rank-empty path.q { stroke-dasharray: none; stroke-width: 1; opacity: 0.7; }
 
@@ -234,6 +245,7 @@ function isComplete(p: VerseExplorerPatch): boolean {
       @media (prefers-reduced-motion: reduce) {
         .cele { animation: ex-cele-still 6.5s linear 0.2s both; }
         .rank { transition: none; }
+        .rank.news::after { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 50%, transparent); }
       }
     `,
   ],
@@ -293,6 +305,18 @@ export class ExplorerPageComponent {
   readonly shapeName = computed(() => {
     const p = this.selected();
     return p?.guess.answerName ?? p?.constellation?.name ?? null;
+  });
+  /** The rank tier of the head crest and its rank rewards (frame from tier 5, orbit at tier 7). */
+  private readonly rankTier = computed(() => rankProgress(this.state()?.kartograph ?? { unlocked: false, rank: 0 }));
+  readonly rankKey = computed(() => this.rankTier().key);
+  readonly crestFramed = computed(() => hasTierReward(this.rankTier().tier, 'frame'));
+  readonly crestOrbit = computed(() => hasTierReward(this.rankTier().tier, 'orbit'));
+  /** Read once per visit: the rank page writes it when opened. */
+  private readonly rankSeen = readRankSeen();
+  /** Tier up, a rank reward or a series stop the reader has not seen on the rank page yet. */
+  readonly rankNews = computed(() => {
+    const st = this.state();
+    return !!st && hasRankNews(rankNewsItems(st), this.rankSeen);
   });
   readonly tourOpen = signal(false);
   readonly helpBtn = viewChild<ElementRef<HTMLElement>>('helpBtn');

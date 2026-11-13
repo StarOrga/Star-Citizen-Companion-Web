@@ -7335,8 +7335,6 @@
     },
     "export": {
       "wallpaper": "Wallpaper herunterladen (4K)",
-      "busy": "Wird gerendert …",
-      "gallery": "Meine Sternkarten",
       "failed": "Das Wallpaper ließ sich nicht erstellen. Versuch es noch einmal."
     },
     "task": {
@@ -7429,9 +7427,6 @@
       }
     },
     "kartograph": {
-      "title": "Kartograph",
-      "rank": "Rang {{rank}}",
-      "perks": "Früher Zugang zu Beta-Funktionen, Vorschläge für die Top-Liste und ein Abzeichen, das du als öffentlichen Link teilen kannst.",
       "locked": "Sammle Sterne, um den Kartograph-Rang freizuschalten."
     },
     "community": {
@@ -7449,7 +7444,6 @@
     },
     "gallery": {
       "title": "Meine Sternkarten",
-      "subtitle": "Jede vollendete Sternkarte landet automatisch hier.",
       "empty": "Noch keine Sternkarte vollendet.",
       "toMap": "Zur Sternkarte",
       "appHint": "Die letzten 7 liegen auch in der Starscape-App.",
@@ -7537,9 +7531,7 @@
       }
     },
     "more": {
-      "open": "Logbuch",
-      "title": "Logbuch",
-      "rewards": "Belohnungen der Serie"
+      "title": "Logbuch"
     },
     "card": {
       "close": "Schließen",
@@ -7632,13 +7624,111 @@
       "next": "Kartograph-Rang {{rank}} - noch gesperrt"
     },
     "rank": {
-      "link": "Kartograph-Rang {{rank}} · Rangseite öffnen",
-      "none": "Noch kein Rang · so steigst du auf"
+      "link": "{{name}} · deine Rangseite öffnen",
+      "none": "Noch kein Rang · so steigst du auf",
+      "news": "Neues auf deiner Rangseite"
     },
     "celebrate": {
       "eyebrow": "Sternbild vollendet",
       "named": "{{name}} leuchtet am Himmel",
       "done": "Alle 7 Sterne leuchten"
+    },
+    "rankPage": {
+      "title": "Rang",
+      "subtitle": "Sieben Stufen, eine Sternkarte, die mit dir wächst.",
+      "standingAria": "Dein aktueller Rang und deine Sternkarte",
+      "current": "Dein Rang",
+      "unranked": "Noch kein Rang",
+      "unrankedMeaning": "Vervollständige deine erste Sternkarte - alle 7 Sterne eines Patches - und du steigst als Beobachter in die Leiter ein.",
+      "count": "{{n}} Sternkarten vollständig",
+      "countOne": "1 Sternkarte vollständig",
+      "progressAria": "Fortschritt bis {{name}}",
+      "toNext": "Noch {{n}} vollständige Sternkarten bis {{name}}",
+      "toNextOne": "Noch eine vollständige Sternkarte bis {{name}}",
+      "top": "Höchste Stufe erreicht. Jede weitere Sternkarte kommt trotzdem an deinen Himmel.",
+      "perks": "Dein Rang öffnet den frühen Zugang zu Beta-Funktionen, Vorschläge für Inhalte und die Rang-Belohnungen unten.",
+      "mapOpen": "Deine Sternkarte groß öffnen",
+      "mapAlt": "Deine Sternkarte: die Sternbilder deiner Patches an einem Nachthimmel",
+      "mapNone": "Entzünde deinen ersten Stern auf der Sternkarte, dann erscheint hier dein Himmel.",
+      "mapCaption": "Deine Sternkarte",
+      "mapUpdates": "Aktualisiert sich mit jedem Rang, den du aufsteigst.",
+      "downloadPhone": "Handy-Hintergrund",
+      "downloadUltrawide": "Ultrawide (5120 × 1440)",
+      "downloadLocked": "Vervollständige deine erste Sternkarte, dann kannst du sie in 4K herunterladen.",
+      "ladderTitle": "Die sieben Stufen",
+      "at": "ab {{n}} Sternkarten",
+      "atOne": "ab 1 Sternkarte",
+      "new": "Neu",
+      "state": {
+        "earned": "erreicht",
+        "current": "deine aktuelle Stufe",
+        "locked": "noch nicht erreicht"
+      },
+      "rewardsTitle": "Rang-Belohnungen",
+      "rewardsLead": "Jede Stufe fügt deinem Himmel etwas hinzu. Ab Astrograf verändern die Belohnungen dein Wappen und den Hintergrund selbst.",
+      "rewardFrom": "ab {{name}}",
+      "reward": {
+        "wallpaper": {
+          "title": "4K-Hintergrund",
+          "desc": "Deine Sternkarte als Hintergrundbild in 3840 × 2160."
+        },
+        "badge": {
+          "title": "Teilbares Abzeichen",
+          "desc": "Dein Wappen und deine neueste Sternkarte als öffentlicher Link für Freunde."
+        },
+        "phone": {
+          "title": "Handy-Hintergrund",
+          "desc": "Dein Himmel im Hochformat für den Sperrbildschirm."
+        },
+        "ultrawide": {
+          "title": "Ultrawide-Hintergrund",
+          "desc": "Ein 32:9-Panorama für breite und doppelte Bildschirme."
+        },
+        "frame": {
+          "title": "Vermessungsring",
+          "desc": "Ein zweiter, gepunkteter Ring um dein Wappen, überall wo es erscheint."
+        },
+        "deepfield": {
+          "title": "Tiefes Feld",
+          "desc": "Hinter jedem Hintergrund, den du herunterlädst, leuchtet ein Nebel."
+        },
+        "orbit": {
+          "title": "Drehende Rose",
+          "desc": "Der Stern deines Wappens dreht sich langsam, wie ein Kompass auf dem Kartentisch."
+        }
+      },
+      "seriesTitle": "Serie",
+      "extrasTitle": "Vorschläge und Abzeichen",
+      "tier": {
+        "observer": {
+          "name": "Beobachter",
+          "meaning": "Deine erste Sternkarte steht auf der Karte."
+        },
+        "surveyor": {
+          "name": "Vermesser",
+          "meaning": "Du vermisst den Himmel Patch für Patch."
+        },
+        "navigator": {
+          "name": "Navigator",
+          "meaning": "Du findest deinen Weg über mehrere Patches."
+        },
+        "cartographer": {
+          "name": "Kartograf",
+          "meaning": "Deine Karten decken ein echtes Stück des Verse ab."
+        },
+        "astrographer": {
+          "name": "Astrograf",
+          "meaning": "Du kartierst den Himmel genau; die späten Belohnungen öffnen sich."
+        },
+        "master": {
+          "name": "Meisterkartograf",
+          "meaning": "Kaum eine Karte ist so vollständig wie deine."
+        },
+        "keeper": {
+          "name": "Hüter des Atlas",
+          "meaning": "Dein Atlas umspannt Jahre des Verse."
+        }
+      }
     }
   },
   "beta": {
