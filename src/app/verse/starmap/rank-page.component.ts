@@ -24,7 +24,7 @@ import {
   defaultPatch,
   hasTierReward,
   rankNewsItems,
-  rankProgress,
+  rankProgressOf,
   readRankSeen,
   tierState,
   writeRankSeen,
@@ -43,13 +43,15 @@ const FORMATS: Readonly<Record<WallpaperFormat, { readonly width: number; readon
 
 /** The render options of the reader's star-map wallpaper (newest patch first, rank rewards applied). */
 export function rankWallpaperOptions(st: VerseExplorerState, first: VerseExplorerPatch): Omit<ConstellationRenderOptions, 'width' | 'height'> {
-  const tier = rankProgress(st.kartograph).tier;
+  const tier = rankProgressOf(st).tier;
   return {
     seed: first.patchLine,
     constellations: wallpaperConstellations(st, first),
     // Tier 6 (deep field) keeps the nebula on, the series nebula does the same.
     nebula: st.rewards.nebula || hasTierReward(tier, 'deepfield'),
     road: st.rewards.road,
+    companions: hasTierReward(tier, 'companions'),
+    tint: hasTierReward(tier, 'tint'),
   };
 }
 
@@ -117,9 +119,9 @@ export function rankWallpaperOptions(st: VerseExplorerState, first: VerseExplore
             <small class="eyebrow">{{ 'starmap.rankPage.current' | translate }}</small>
             <h2 class="name">{{ (pr.key ? 'starmap.rankPage.tier.' + pr.key + '.name' : 'starmap.rankPage.unranked') | translate }}</h2>
             <p class="meaning">{{ (pr.key ? 'starmap.rankPage.tier.' + pr.key + '.meaning' : 'starmap.rankPage.unrankedMeaning') | translate }}</p>
-            <p class="count">{{ (pr.rank === 1 ? 'starmap.rankPage.countOne' : 'starmap.rankPage.count') | translate: { n: pr.rank } }}</p>
+            <p class="count">{{ (pr.stars === 1 ? 'starmap.rankPage.countOne' : 'starmap.rankPage.count') | translate: { n: pr.stars } }}</p>
             @if (pr.next; as nx) {
-              <div class="bar" role="progressbar" aria-valuemin="0" [attr.aria-valuemax]="nx.at" [attr.aria-valuenow]="pr.rank"
+              <div class="bar" role="progressbar" aria-valuemin="0" [attr.aria-valuemax]="nx.at" [attr.aria-valuenow]="pr.stars"
                    [attr.aria-label]="'starmap.rankPage.progressAria' | translate: { name: ('starmap.rankPage.tier.' + nx.key + '.name' | translate) }">
                 <i [style.width.%]="pr.share * 100"></i>
               </div>
@@ -153,16 +155,12 @@ export function rankWallpaperOptions(st: VerseExplorerState, first: VerseExplore
                 <button type="button" scAction tier="primary" [busy]="busy() === '4k'" [disabled]="!!busy()" (click)="download('4k')">
                   {{ 'starmap.export.wallpaper' | translate }}
                 </button>
-                @if (has('phone')) {
-                  <button type="button" scAction tier="secondary" [busy]="busy() === 'phone'" [disabled]="!!busy()" (click)="download('phone')">
+                <button type="button" scAction tier="secondary" [busy]="busy() === 'phone'" [disabled]="!!busy()" (click)="download('phone')">
                     {{ 'starmap.rankPage.downloadPhone' | translate }}
                   </button>
-                }
-                @if (has('ultrawide')) {
-                  <button type="button" scAction tier="secondary" [busy]="busy() === 'ultrawide'" [disabled]="!!busy()" (click)="download('ultrawide')">
+                <button type="button" scAction tier="secondary" [busy]="busy() === 'ultrawide'" [disabled]="!!busy()" (click)="download('ultrawide')">
                     {{ 'starmap.rankPage.downloadUltrawide' | translate }}
                   </button>
-                }
               } @else {
                 <small class="muted">{{ 'starmap.rankPage.downloadLocked' | translate }}</small>
               }
@@ -344,7 +342,7 @@ export class RankPageComponent {
     const st = this.state();
     return st ? defaultPatch(st) : null;
   });
-  readonly progress = computed(() => rankProgress(this.state()?.kartograph ?? { unlocked: false, rank: 0 }));
+  readonly progress = computed(() => rankProgressOf(this.state()));
   readonly framed = computed(() => hasTierReward(this.progress().tier, 'frame'));
   readonly orbit = computed(() => hasTierReward(this.progress().tier, 'orbit'));
 
@@ -432,10 +430,6 @@ export class RankPageComponent {
 
   reload(): void {
     void this.api.loadExplorer();
-  }
-
-  has(key: 'phone' | 'ultrawide'): boolean {
-    return hasTierReward(this.progress().tier, key);
   }
 
   /** Plain left click opens the lightbox; modified clicks open the image in a new tab (real anchor). */

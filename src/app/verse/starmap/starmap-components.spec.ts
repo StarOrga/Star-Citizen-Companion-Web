@@ -52,7 +52,7 @@ const STATE: VerseExplorerState = {
   totalStars: 9,
   suns: ['4.4'],
   streak: { current: 2, best: 3, reserveAvailable: false, reservesUsed: 0 },
-  kartograph: { unlocked: true, rank: 2 },
+  kartograph: { unlocked: true, rank: 2, stars: 3 },
   rewards: { road: true, nebula: true, live: false, reserve: false, meteor: false, supernova: false, sunCollection: true },
 };
 
@@ -226,7 +226,7 @@ describe('star map components', () => {
   });
 
   it('rank page: an unranked reader sees the ladder all locked and no 4K download', () => {
-    explorer.set({ ...STATE, kartograph: { unlocked: false, rank: 0 } });
+    explorer.set({ ...STATE, kartograph: { unlocked: false, rank: 0, stars: 0 } });
     const f = TestBed.createComponent(RankPageComponent);
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
@@ -257,7 +257,7 @@ describe('star map components', () => {
   });
 
   it('head: a placeholder symbol stands in for the rank until one is earned', () => {
-    explorer.set({ ...STATE, kartograph: { unlocked: false, rank: 0 } });
+    explorer.set({ ...STATE, kartograph: { unlocked: false, rank: 0, stars: 0 } });
     const f = TestBed.createComponent(ExplorerPageComponent);
     f.detectChanges();
     const rank = f.nativeElement.querySelector('a.rank') as HTMLAnchorElement;

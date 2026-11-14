@@ -27,7 +27,7 @@ import {
 } from './constellation-render';
 import { badgeCaption } from './kartograph-badge.component';
 import { shareImage } from './share-image';
-import { STARS_PER_PATCH, badgeQuery, communityLevels, defaultPatch, hasTierReward, isLiveDay, rankProgress, supernovaPoints } from './starmap.model';
+import { STARS_PER_PATCH, badgeQuery, communityLevels, defaultPatch, hasTierReward, isLiveDay, rankProgressOf, supernovaPoints } from './starmap.model';
 import { wallpaperConstellations } from './wallpaper';
 
 /**
@@ -197,7 +197,7 @@ export class StarmapMoreComponent {
 
   readonly isAdmin = this.roles.isAdmin;
   /** The shareable badge is the tier-2 rank reward. */
-  readonly badgeOn = computed(() => hasTierReward(rankProgress(this.state().kartograph).tier, 'badge'));
+  readonly badgeOn = computed(() => hasTierReward(rankProgressOf(this.state()).tier, 'badge'));
   private readonly current = computed(() => defaultPatch(this.state()));
   /** sr-meteor only on the newest patch's LIVE day (the Starscape app's rule). */
   readonly meteorToday = computed(() => isLiveDay(this.current()?.liveAt));

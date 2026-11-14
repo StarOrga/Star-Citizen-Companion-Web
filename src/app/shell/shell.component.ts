@@ -35,6 +35,7 @@ import { ViewAs } from '../auth/impersonation-policy';
 import { ProfileService } from '../auth/profile.service';
 import { VerseApiService } from '../verse/data/verse-api.service';
 import { KartographCrestComponent } from '../verse/starmap/kartograph-crest.component';
+import { rankProgressOf } from '../verse/starmap/starmap.model';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { ScPopupMotionDirective } from '../shared/popup-motion/sc-popup-motion.directive';
 import { AppsMenuComponent } from './apps-menu.component';
@@ -302,7 +303,7 @@ import { avatarUrlOf } from './avatar-url';
             <span class="avatar-crest" role="img"
                   [attr.aria-label]="'starmap.badge.caption' | translate: { rank: kr }"
                   [scTooltip]="'starmap.badge.caption' | translate: { rank: kr }" scTooltipTier="label">
-              <sc-kartograph-crest [rank]="kr" [size]="18" state="current" />
+              <sc-kartograph-crest [tier]="kr" [size]="18" state="current" />
             </span>
           }
 
@@ -1081,8 +1082,8 @@ export class ShellComponent implements AfterViewInit {
   private readonly verseApi = inject(VerseApiService);
   /** Kartograph rank for the avatar's corner crest; null until a rank exists (or the star-map state is not loaded). */
   readonly kartographRank = computed<number | null>(() => {
-    const k = this.verseApi.explorer()?.kartograph;
-    return k?.unlocked && k.rank >= 1 ? k.rank : null;
+    const tier = rankProgressOf(this.verseApi.explorer()).tier;
+    return tier >= 1 ? tier : null;
   });
   /** Signed in under the beta shell → load the star-map state once, so the crest shows on every page. */
   private readonly crestLoad = effect(() => {

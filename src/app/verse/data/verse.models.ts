@@ -253,7 +253,8 @@ export interface VerseExplorerState {
     readonly reserveAvailable: boolean;
     readonly reservesUsed: number;
   };
-  readonly kartograph: { readonly unlocked: boolean; readonly rank: number };
+  /** `stars`: lit stars across all patch lines (server field, absent on an older server). */
+  readonly kartograph: { readonly unlocked: boolean; readonly rank: number; readonly stars?: number };
   /** Streak rewards unlock on the best streak: road 2, nebula 3, live 4, reserve 5, meteor 6, supernova 7. */
   readonly rewards: {
     readonly road: boolean;
@@ -492,7 +493,7 @@ export function mapExplorer(raw: unknown): VerseExplorerState | null {
       reserveAvailable: b(st['reserve_available']),
       reservesUsed: n(st['reserves_used']),
     },
-    kartograph: { unlocked: b(k['unlocked']), rank: n(k['rank']) },
+    kartograph: { unlocked: b(k['unlocked']), rank: n(k['rank']), ...(typeof k['stars'] === 'number' ? { stars: n(k['stars']) } : {}) },
     rewards: {
       road: b(rw['road']),
       nebula: b(rw['nebula']),

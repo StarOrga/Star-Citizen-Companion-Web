@@ -7508,7 +7508,7 @@
       "title": "So funktioniert die Sternkarte",
       "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten; sind alle 7 an, zeigt die Form ein Schiff und die Karte landet in deiner Sammlung.",
       "p2": "Unter der Kuppel liegen zwei Herausforderungen: der Kometen-Tipp auf den LIVE-Tag des nächsten Patches und das Erkennen des Schiffs hinter der Form.",
-      "p3": "Mit vollendeten Sternkarten steigst du als Kartograph auf. Das Wappen oben rechts öffnet deine Rangseite mit Serie, Belohnungen und dem 4K-Wallpaper.",
+      "p3": "Mit entzündeten Sternen steigst du als Kartograph auf. Das Wappen oben rechts öffnet deine Rangseite mit Serie, Belohnungen und den Hintergründen.",
       "start": "Zeig es mir",
       "close": "Schließen",
       "back": "Zurück",
@@ -7534,7 +7534,7 @@
         },
         "rank": {
           "title": "Dein Kartograph-Rang",
-          "text": "Jede vollendete Sternkarte bringt dich im Rang weiter. Sieben Stufen vom Beobachter bis zum Hüter des Atlas: jede schaltet etwas frei, vom 4K-Wallpaper über ein teilbares Abzeichen bis zu Wappen-Details ab Stufe 5. Auf der Rangseite liegen deine Serie, ihre Belohnungen und das 4K-Wallpaper."
+          "text": "Jeder entzündete Stern bringt dich im Rang weiter: Stufen bei 1, 3, 7, 12, 18, 26 und 35 Sternen, vom Beobachter bis zum Hüter des Atlas. Jede schaltet etwas frei, vom Abzeichen über Begleiter und Bernsteintönung bis zu Wappen-Details ab Stufe 5. Auf der Rangseite liegen deine Serie, ihre Belohnungen und alle Hintergrund-Formate."
         }
       }
     },
@@ -7647,13 +7647,13 @@
       "standingAria": "Dein aktueller Rang und deine Sternkarte",
       "current": "Dein Rang",
       "unranked": "Noch kein Rang",
-      "unrankedMeaning": "Vervollständige deine erste Sternkarte - alle 7 Sterne eines Patches - und du steigst als Beobachter in die Leiter ein.",
-      "count": "{{n}} Sternkarten vollständig",
-      "countOne": "1 Sternkarte vollständig",
+      "unrankedMeaning": "Entzünde deinen ersten Stern auf einer Sternkarte und du steigst als Beobachter in die Leiter ein.",
+      "count": "{{n}} Sterne entzündet",
+      "countOne": "1 Stern entzündet",
       "progressAria": "Fortschritt bis {{name}}",
-      "toNext": "Noch {{n}} vollständige Sternkarten bis {{name}}",
-      "toNextOne": "Noch eine vollständige Sternkarte bis {{name}}",
-      "top": "Höchste Stufe erreicht. Jede weitere Sternkarte kommt trotzdem an deinen Himmel.",
+      "toNext": "Noch {{n}} Sterne bis {{name}}",
+      "toNextOne": "Noch 1 Stern bis {{name}}",
+      "top": "Höchste Stufe erreicht. Jeder weitere Stern kommt trotzdem an deinen Himmel.",
       "perks": "Dein Rang öffnet den frühen Zugang zu Beta-Funktionen, Vorschläge für Inhalte und die Rang-Belohnungen unten.",
       "mapOpen": "Deine Sternkarte groß öffnen",
       "mapAlt": "Deine Sternkarte: die Sternbilder deiner Patches an einem Nachthimmel",
@@ -7662,10 +7662,10 @@
       "mapUpdates": "Aktualisiert sich mit jedem Rang, den du aufsteigst.",
       "downloadPhone": "Handy-Hintergrund",
       "downloadUltrawide": "Ultrawide (5120 × 1440)",
-      "downloadLocked": "Vervollständige deine erste Sternkarte, dann kannst du sie in 4K herunterladen.",
+      "downloadLocked": "Entzünde deinen ersten Stern, dann kannst du deinen Himmel als Hintergrund herunterladen.",
       "ladderTitle": "Die sieben Stufen",
-      "at": "ab {{n}} Sternkarten",
-      "atOne": "ab 1 Sternkarte",
+      "at": "ab {{n}} Sternen",
+      "atOne": "ab 1 Stern",
       "new": "Neu",
       "state": {
         "earned": "erreicht",
@@ -7673,24 +7673,24 @@
         "locked": "noch nicht erreicht"
       },
       "rewardsTitle": "Rang-Belohnungen",
-      "rewardsLead": "Jede Stufe fügt deinem Himmel etwas hinzu. Ab Astrograf verändern die Belohnungen dein Wappen und den Hintergrund selbst.",
+      "rewardsLead": "Jede Stufe fügt deinem Himmel etwas hinzu. Alle Formate gehören ab Stufe 1 dazu; die Stufen verändern, was dein Hintergrund zeigt und wie er aussieht.",
       "rewardFrom": "ab {{name}}",
       "reward": {
         "wallpaper": {
-          "title": "4K-Hintergrund",
-          "desc": "Deine Sternkarte als Hintergrundbild in 3840 × 2160."
+          "title": "Hintergrund in allen Formaten",
+          "desc": "Dein Himmel als Hintergrundbild: 4K (3840 × 2160), Handy-Hochformat und Ultrawide (5120 × 1440)."
         },
         "badge": {
           "title": "Teilbares Abzeichen",
           "desc": "Dein Wappen und deine neueste Sternkarte als öffentlicher Link für Freunde."
         },
-        "phone": {
-          "title": "Handy-Hintergrund",
-          "desc": "Dein Himmel im Hochformat für den Sperrbildschirm."
+        "companions": {
+          "title": "Begleiter",
+          "desc": "Die Sternbilder deiner älteren Patches leuchten zart als Begleiter an deinem Himmel."
         },
-        "ultrawide": {
-          "title": "Ultrawide-Hintergrund",
-          "desc": "Ein 32:9-Panorama für breite und doppelte Bildschirme."
+        "tint": {
+          "title": "Bernsteintönung",
+          "desc": "Dein eigenes Sternbild, sein Leuchten und der Schleier dahinter färben sich warm in Bernstein."
         },
         "frame": {
           "title": "Vermessungsring",
@@ -7710,11 +7710,11 @@
       "tier": {
         "observer": {
           "name": "Beobachter",
-          "meaning": "Deine erste Sternkarte steht auf der Karte."
+          "meaning": "Dein erster Stern leuchtet auf der Karte."
         },
         "surveyor": {
           "name": "Vermesser",
-          "meaning": "Du vermisst den Himmel Patch für Patch."
+          "meaning": "Du vermisst den Himmel Stern für Stern."
         },
         "navigator": {
           "name": "Navigator",
@@ -7722,15 +7722,15 @@
         },
         "cartographer": {
           "name": "Kartograph",
-          "meaning": "Deine Karten decken ein echtes Stück des Verse ab."
+          "meaning": "Deine Sterne decken ein echtes Stück des Verse ab."
         },
         "astrographer": {
           "name": "Astrograf",
-          "meaning": "Du kartierst den Himmel genau; die späten Belohnungen öffnen sich."
+          "meaning": "Etwa drei Patches voller Sterne: die späten Belohnungen öffnen sich."
         },
         "master": {
           "name": "Meisterkartograf",
-          "meaning": "Kaum eine Karte ist so vollständig wie deine."
+          "meaning": "Kaum ein Himmel ist so dicht besetzt wie deiner."
         },
         "keeper": {
           "name": "Hüter des Atlas",

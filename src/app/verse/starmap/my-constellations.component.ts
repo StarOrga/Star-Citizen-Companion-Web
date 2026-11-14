@@ -20,7 +20,7 @@ import { VerseApiService } from '../data/verse-api.service';
 import type { VerseExplorerPatch } from '../data/verse.models';
 import { downloadBlob, renderConstellationPng, renderConstellationWallpaper } from './constellation-render';
 import { wallpaperConstellations } from './wallpaper';
-import { hasTierReward, rankProgress } from './starmap.model';
+import { hasTierReward, rankProgressOf } from './starmap.model';
 import { shareImage } from './share-image';
 
 const THUMB = { width: 480, height: 270 } as const;
@@ -140,7 +140,7 @@ export class MyConstellationsComponent implements AfterViewInit {
       seed: p.patchLine,
       constellations: wallpaperConstellations(st, p),
       // Tier 6 (deep field) keeps the nebula on every wallpaper.
-      nebula: st.rewards.nebula || hasTierReward(rankProgress(st.kartograph).tier, 'deepfield'),
+      nebula: st.rewards.nebula || hasTierReward(rankProgressOf(st).tier, 'deepfield'),
       road: st.rewards.road,
     };
   }
