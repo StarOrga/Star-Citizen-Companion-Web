@@ -91,6 +91,16 @@
         "hunks": [
           "f568977313a7"
         ]
+      },
+      {
+        "ship": "fix/codex-atomic-rebuild",
+        "by": "JerryT2T",
+        "value": "regenerated count (generated file)",
+        "decided": true,
+        "at": "2026-11-14T01:14:04.002Z",
+        "hunks": [
+          "6eca56561b47"
+        ]
       }
     ],
     ".claude/project-map.md›header›tracked-files": [
@@ -115,6 +125,16 @@
         "hunks": [
           "fd0ff437f106"
         ]
+      },
+      {
+        "ship": "fix/codex-atomic-rebuild",
+        "by": "JerryT2T",
+        "value": "regenerated count (generated file)",
+        "decided": true,
+        "at": "2026-11-14T01:14:04.002Z",
+        "hunks": [
+          "4add6724bc0e"
+        ]
       }
     ],
     ".claude/project-map.md›src›count": [
@@ -126,6 +146,18 @@
         "at": "2026-11-14T00:46:46.595Z",
         "hunks": [
           "36e740fc3c43"
+        ]
+      }
+    ],
+    ".claude/project-map.md›supabase-tree›counts": [
+      {
+        "ship": "fix/codex-atomic-rebuild",
+        "by": "JerryT2T",
+        "value": "regenerated counts (generated file)",
+        "decided": true,
+        "at": "2026-11-14T01:14:04.002Z",
+        "hunks": [
+          "cdd6dbc6b597"
         ]
       }
     ],

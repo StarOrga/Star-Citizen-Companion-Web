@@ -49,6 +49,11 @@ copies the existing objects (dry run unless `--apply`); a change to
   build out. Never-finalized, non-current builds are swept after 7 days. The
   app-side filter (patch selector and inline diff read finalized builds only)
   ships separately on `fix/d02-finalized-filter`, after the migration is live.
+- Since `20261114120000` a re-upload of the same game build is a NEW build row
+  (atomic switch at `finalize`); the build it replaces is `superseded_at`,
+  invisible to clients, excluded from the retention count and deleted after an
+  hour (cron `codex-superseded-prune`, hourly at :20). For that hour the DB
+  holds one extra build's rows (bodies are shared via `codex_payloads`).
 - **Deleting rows does not shrink `pg_database_size`.** Autovacuum makes the
   pages reusable for the next ingest, so steady state is about three builds'
   worth of disk (~480–510 MB). Only `VACUUM FULL` gives space back, and it takes

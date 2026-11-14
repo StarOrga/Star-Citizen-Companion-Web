@@ -121,13 +121,18 @@ async function initBuild(buildPayload) {
     const j = await postFn('init', { build: buildPayload });
     return j.build_id;
   }
-  const { data, error } = await sb
+  // Same rule as ingest-catalog `init` (migration 20261114120000): always a NEW
+  // staging row; finalize switches atomically. Old schema: natural-key upsert.
+  const { data, error } = await sb.from('codex_builds').insert(buildPayload).select('id').single();
+  if (!error) return data.id;
+  if (error.code !== '23505' || !String(error.message).includes('codex_builds_channel_patch_build_key')) throw error;
+  const legacy = await sb
     .from('codex_builds')
     .upsert(buildPayload, { onConflict: 'channel,patch_version,build_number' })
     .select('id')
     .single();
-  if (error) throw error;
-  return data.id;
+  if (legacy.error) throw legacy.error;
+  return legacy.data.id;
 }
 
 async function sendEntity(table, rows) {
@@ -252,6 +257,15 @@ async function finalize(buildId, entityCounts) {
   }
   await sb.from('codex_builds').update({ entity_counts: entityCounts }).eq('id', buildId);
   if (SET_CURRENT) {
+    // A re-seed of published coordinates inherits what it did not write.
+    const { data: tables } = await sb.rpc('codex_clone_tables');
+    for (const t of Array.isArray(tables) ? tables : []) {
+      for (let call = 0; call < 200; call++) {
+        const { data: r, error: cloneErr } = await sb.rpc('codex_clone_untouched', { p_build_id: buildId, p_table: t });
+        if (cloneErr) throw new Error(`codex_clone_untouched(${t}) failed: ${cloneErr.message}`);
+        if (r?.done) break;
+      }
+    }
     const { error } = await sb.rpc('set_current_codex_build', { p_build_id: buildId });
     if (error) console.warn(`set_current_codex_build failed (non-fatal): ${error.message}`);
   }
