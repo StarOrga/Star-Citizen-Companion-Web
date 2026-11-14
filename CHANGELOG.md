@@ -4,6 +4,12 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.263.1] - 2026-11-14
+
+### Fixed
+- Codex: a new data upload of an already published game build no longer writes into the live catalog while it runs. Every upload is staged as its own build, takes over what it skipped from the previous one, is checked for completeness and only then replaces the live build in one step, so the Codex never shows a mix of old and new data or half an upload.
+- Codex: derived lookups ("matching ships", changed-in-patch markers) and cached comparison numbers now follow every new upload instead of keeping the data of an earlier one.
+
 ## [0.263.0] - 2026-11-14
 
 ### Added
