@@ -79,12 +79,14 @@ describe('constellation renderer', () => {
     expect(sky[1].w).toBe(sky[2].w);
   });
 
-  it('night sky: the own constellation sits small in one spot, no glint spikes, no nebula without the reward', () => {
+  it('night sky: the own constellation sits small in one spot, no glint spikes, only a faint airglow without the nebula reward', () => {
     const [box] = constellationBoxes(3840, 2160, 1);
-    expect(box.w).toBeLessThan(2160 * 0.2);
+    expect(box.w).toBeLessThanOrEqual(2160 * 0.2);
     const r = recorder();
     renderConstellationWallpaper(r.ctx, { ...opts, nebula: false });
-    expect(r.log.some((l) => l.startsWith('stop 0 hsla('))).toBe(false);
+    const tints = r.log.filter((l) => l.startsWith('stop 0 hsla('));
+    expect(tints.length).toBeGreaterThan(0);
+    expect(tints.every((l) => l.includes(', 0.02)'))).toBe(true);
     // the starfield draws discs (arc) only - a glint would be a moveTo/lineTo cross before the first constellation stroke
     const firstStroke = r.log.findIndex((l) => l.startsWith('strokeStyle='));
     expect(r.log.slice(0, firstStroke).some((l) => l.startsWith('lineTo('))).toBe(false);

@@ -19,7 +19,7 @@
  *     along the bottom edge (rgba(40,70,110,0.10) → 0 over the lowest 35 % h).
  *  2. AIRGLOW     2 very wide, very faint tints; per tint rnd() for x, y,
  *     radius 420..700 u and hue (210 or 250 by rnd() < 0.5, ±15 by rnd()).
- *     Drawn only with `nebula: true` (alpha 0.045); the draws are consumed always.
+ *     Always a faint airglow (alpha 0.02); `nebula: true` lifts it to 0.045.
  *  3. STARFIELD   three layers, counts scale with the area in u² / 1e6:
  *       faint  1700 × area, radius 0.3..0.65 u, alpha 0.12..0.45
  *       small   260 × area, radius 0.6..1.05 u, alpha 0.35..0.7
@@ -30,12 +30,12 @@
  *  4. ROAD        (`road: true`, ≥ 2 constellations) a barely visible dashed
  *     polyline through the centroids of all constellations, newest last.
  *  5. CONSTELLATIONS  `constellations[0]` is the current patch. Default: box
- *     15 % of the short side centred at (0.70 w, 0.30 h); older ones (max 6) in
+ *     20 % of the short side centred at (0.70 w, 0.30 h); older ones (max 6) in
  *     6 % boxes at the fixed OLDER_SPOTS. `hero`: box 62 % at (0.40 w, 0.52 h),
  *     older ones 17 % on an arc on the right.
  *     Per constellation, points (0..1) map into the box (aspect kept).
- *       a. lines: closed outline in stored order, faint (default lit 0.2 /
- *          unlit 0.07; hero 0.42 / 0.14), width 0.7 u (hero 1.6 u, small 0.8 u).
+ *       a. lines: closed outline in stored order, visible (default lit 0.4 /
+ *          unlit 0.12; hero 0.42 / 0.14), width 0.7 u (hero 1.6 u, small 0.8 u).
  *       b. stars: lit = soft glow + core, unlit = a faint disc. Lit = the first
  *          `starCount` indices of the SYMMETRIC order (symmetricLightOrder).
  *       c. sun (`sun: true`): above-right of the box, a small warm star (core
@@ -159,7 +159,7 @@ export function constellationBoxes(width: number, height: number, count: number,
     }
     return boxes;
   }
-  if (count > 0) boxes.push(placeBox(width * 0.7, height * 0.3, short * 0.15));
+  if (count > 0) boxes.push(placeBox(width * 0.7, height * 0.3, short * 0.2));
   for (let k = 0; k < Math.min(6, count - 1); k++) {
     const [x, y] = OLDER_SPOTS[k];
     boxes.push(placeBox(width * x, height * y, short * 0.06));
@@ -207,7 +207,9 @@ function drawNebula(ctx: Ctx2D, w: number, h: number, u: number, rnd: () => numb
     const r = lerp(420, 700, rnd()) * u;
     const base = rnd() < 0.5 ? 210 : 250;
     const hue = Math.round(base + (rnd() - 0.5) * 30);
-    if (on) glow(ctx, x, y, r, `hsla(${hue}, 45%, 35%, 0.045)`, `hsla(${hue}, 45%, 35%, 0)`);
+    // Default: a barely-there airglow (the magic); the nebula reward lifts it to a visible cloud.
+    const a = on ? 0.045 : 0.02;
+    glow(ctx, x, y, r, `hsla(${hue}, 45%, 35%, ${a})`, `hsla(${hue}, 45%, 35%, 0)`);
   }
   ctx.restore();
 }
@@ -253,9 +255,9 @@ function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: numb
   const lit = litIndices(c.points, c.starCount);
   const anyLit = lit.size > 0;
   if (pts.length > 1) {
-    const a = hero ? (anyLit ? 0.42 : 0.14) : anyLit ? (large ? 0.2 : 0.1) : 0.07;
+    const a = hero ? (anyLit ? 0.42 : 0.14) : anyLit ? (large ? 0.4 : 0.14) : 0.12;
     ctx.strokeStyle = `rgba(150,190,255,${a})`;
-    ctx.lineWidth = (hero ? (large ? 1.6 : 0.8) : 0.7) * u;
+    ctx.lineWidth = (hero ? (large ? 1.6 : 0.8) : large ? 1.1 : 0.7) * u;
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
@@ -263,7 +265,7 @@ function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: numb
     ctx.stroke();
   }
   // Hero: the large figure as before. Night sky: lit stars read as a touch brighter real stars.
-  const k = hero ? (large ? 1 : 0.45) : large ? 0.5 : 0.3;
+  const k = hero ? (large ? 1 : 0.45) : large ? 0.7 : 0.3;
   pts.forEach(([x, y], i) => {
     if (lit.has(i)) {
       glow(ctx, x, y, 3.2 * (hero ? 9 : 5) * k * u, hero ? 'rgba(255,255,255,0.9)' : 'rgba(235,242,255,0.55)', 'rgba(120,170,255,0)');

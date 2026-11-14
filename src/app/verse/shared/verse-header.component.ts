@@ -79,7 +79,7 @@ import { VerseWorld, verseEmblemShown } from './verse-world';
         </span>
       }
       <div class="vh-line" [scFeedbackSpot]="'feedbackSpot.headline'" [scFeedbackSpotText]="heading()">
-        @if (heading(); as h) { <h1 class="vh-title">{{ h }}</h1> }<ng-content select="[vhTitle]" />
+        <span class="vh-head">@if (heading(); as h) { <h1 class="vh-title">{{ h }}</h1> }<ng-content select="[vhTitle]" /></span>
         @if (subtitle(); as s) { <p class="vh-sub">{{ s }}<ng-content select="[vhSub]" /></p> }
       </div>
       <div class="vh-actions">

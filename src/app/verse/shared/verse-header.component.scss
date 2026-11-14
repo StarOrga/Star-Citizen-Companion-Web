@@ -68,7 +68,10 @@ sc-verse-header {
     color: var(--sc-fg-0);
   }
   // A control projected right after the h1 (vhTitle) sits on the title's line.
-  .vh-line > [vhTitle] { align-self: center; margin-inline-start: -8px; }
+  // Wrapped with the h1 so it stays on the title's line on phones too.
+  .vh-head { display: inline-flex; align-items: center; min-width: 0; }
+  .vh-head:empty { display: none; }
+  .vh-head > [vhTitle] { margin-inline-start: 2px; }
   .vh-sub {
     margin: 0;
     min-width: 0;
