@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import {
+  CLEAR_OP_TABLES,
   CLONE_TABLES,
   isLegacyNatkeyConflict,
   isRebuildUnavailable,
@@ -101,6 +102,12 @@ describe('CLONE_TABLES', () => {
     assert.ok(body, 'codex_clone_tables() not found');
     const names = [...body[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
     assert.deepEqual(names, [...CLONE_TABLES]);
+  });
+});
+
+describe('CLEAR_OP_TABLES', () => {
+  it('every cleared table is one the finalize would otherwise copy back', () => {
+    for (const t of Object.values(CLEAR_OP_TABLES)) assert.ok(CLONE_TABLES.includes(t), t);
   });
 });
 

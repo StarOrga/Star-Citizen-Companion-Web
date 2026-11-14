@@ -20,6 +20,19 @@ export const CLONE_TABLES: readonly string[] = [
   'codex_silhouette_skips', 'codex_locations',
 ];
 
+/**
+ * Ops that empty a table of the build. A delete fires no insert/update touch
+ * trigger (and on an empty staging build deletes nothing at all), so the op
+ * marks the table itself: a run that clears a table means it, the predecessor's
+ * rows must not be copied back in at finalize.
+ */
+export const CLEAR_OP_TABLES: Readonly<Record<string, string>> = {
+  clear_ports: 'codex_item_ports',
+  clear_ingredients: 'codex_blueprint_ingredients',
+  clear_silhouettes: 'codex_silhouettes_rows',
+  silhouette_skips: 'codex_silhouette_skips',
+};
+
 /** The staging table of the R2 locale strings; untouched = copy the predecessor's R2 prefix. */
 export const LOCALE_TABLE = 'codex_locale_strings';
 

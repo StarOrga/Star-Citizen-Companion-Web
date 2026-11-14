@@ -113,7 +113,7 @@ import { sanitizeSilhouetteRow } from './_silhouette-row.ts';
 import { parseSkips } from './_silhouette-skips.ts';
 import { MAX_MISSION_ROWS, parseMissions } from './_missions.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
-import { isLegacyNatkeyConflict, isRebuildUnavailable, prepareRebuild, refusedSwitchStatus } from './_rebuild.ts';
+import { CLEAR_OP_TABLES, isLegacyNatkeyConflict, isRebuildUnavailable, prepareRebuild, refusedSwitchStatus } from './_rebuild.ts';
 import type { RebuildPlan } from './_rebuild.ts';
 import { copyBuildLocales } from './_locale-copy.ts';
 
@@ -298,6 +298,19 @@ async function initBuildRow(admin: Admin, nat: Nat, meta: Record<string, unknown
     .single();
   if (legacy.error) throw legacy.error;
   return (legacy.data as { id: string }).id;
+}
+
+/**
+ * A clear op empties a table on purpose: record it as written by the run, so
+ * finalize does not copy the predecessor's rows back (CLEAR_OP_TABLES). Without
+ * the migration the table is missing — nothing to record.
+ */
+async function markCleared(admin: Admin, op: string, buildId: string): Promise<void> {
+  const table = CLEAR_OP_TABLES[op];
+  if (!table || !BUILD_ID_RE.test(buildId)) return;
+  const { error } = await admin.from('codex_build_touched')
+    .upsert({ build_id: buildId, table_name: table }, { onConflict: 'build_id,table_name', ignoreDuplicates: true });
+  if (error && !isRebuildUnavailable(error)) throw error;
 }
 
 /** The R2 strings could not be copied: the switch waits, the uploader retries finalize. */
@@ -677,6 +690,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!buildId) return json({ error: 'invalid_body' }, 400);
       const { error } = await admin.from('codex_item_ports').delete().eq('build_id', buildId);
       if (error) throw error;
+      await markCleared(admin, op, buildId);
       return json({ ok: true });
     }
 
@@ -710,7 +724,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (error && ((error as { code?: string }).code === 'PGRST205' || (error as { code?: string }).code === '42P01')) {
         ({ error } = await admin.from('codex_silhouettes').delete().eq('build_id', buildId));
       }
-      if (!error) return json({ ok: true });
+      if (!error) {
+        await markCleared(admin, op, buildId);
+        return json({ ok: true });
+      }
       const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
       const missingTable = msg.includes('could not find the table') || msg.includes('does not exist') ||
         (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
@@ -741,6 +758,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const { error } = await admin.from('codex_silhouette_skips').insert(rows.slice(i, i + 1000));
         if (error) throw error;
       }
+      await markCleared(admin, op, buildId);
       return json({ ok: true, stored: rows.length });
     }
 
@@ -872,6 +890,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!buildId) return json({ error: 'invalid_body' }, 400);
       const { error } = await admin.from('codex_blueprint_ingredients').delete().eq('build_id', buildId);
       if (error) throw error;
+      await markCleared(admin, op, buildId);
       return json({ ok: true });
     }
 
