@@ -13,6 +13,8 @@ import {
   refusedSwitchStatus,
 } from './_rebuild.ts';
 
+const noRead = typeof Deno !== 'undefined' && (await Deno.permissions.query({ name: 'read' })).state !== 'granted';
+
 const P = '11111111-1111-4111-8111-111111111111';
 const N = '22222222-2222-4222-8222-222222222222';
 
@@ -96,7 +98,8 @@ describe('prepareRebuild', () => {
 });
 
 describe('CLONE_TABLES', () => {
-  it('matches public.codex_clone_tables() in the migration', () => {
+  // The Deno parity run has no read permission (sc-event-sheet does the same); Node covers it.
+  it('matches public.codex_clone_tables() in the migration', { skip: noRead && 'no read permission' }, () => {
     const sql = readFileSync(new URL('../../migrations/20261114120000_codex_atomic_rebuild.sql', import.meta.url), 'utf8');
     const body = /function public\.codex_clone_tables\(\)[\s\S]*?select array\[([\s\S]*?)\]::text\[\]/.exec(sql);
     assert.ok(body, 'codex_clone_tables() not found');
