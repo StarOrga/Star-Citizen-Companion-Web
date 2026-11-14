@@ -3,7 +3,7 @@
      It MUST be written at generation time with the active iteration's
      data-iteration-template value (normalised), otherwise the page paints the
      wrong layout for one frame before showIteration() runs. -->
-<html lang="de" data-theme="dark" data-page-version="2026-11-14T00:56:45" data-template="decision">
+<html lang="de" data-theme="dark" data-page-version="2026-11-14T00:56:45" data-template="free">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -5773,7 +5773,8 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       </header>
 
       <main>
-<section data-iteration="1" data-iteration-template="decision" data-analysis="full" id="iter-1" data-active>
+<section data-iteration="1" data-iteration-template="decision" data-analysis="full" data-baked id="iter-1" hidden>
+  <script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]}}</script>
   <style>
     [data-iteration="1"] .vfk-shot { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid rgba(120, 180, 255, 0.18); }
     [data-iteration="1"] .vfk-cap { font-size: 0.8rem; opacity: 0.7; margin: 6px 0 0; }
@@ -5820,27 +5821,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Wie oft der Rang sich bewegt und ob „ab Rang 5“ je erreichbar ist.</p>
       <div data-options>
         <label data-opt="stars" data-recommended>
-          <input type="radio" name="dm-d-pace" value="stars" checked>
+          <input type="radio" name="dm-d-pace" value="stars" checked disabled>
           <span data-opt-label>Nach entzündeten Sternen steigen</span>
           <span data-opt-consequence>Stufen bei 1 · 3 · 7 · 12 · 18 · 26 · 35 Sternen; Stufe 5 nach ≈ 3 Patches.</span>
         </label>
         <label data-opt="keep">
-          <input type="radio" name="dm-d-pace" value="keep">
+          <input type="radio" name="dm-d-pace" value="keep" disabled>
           <span data-opt-label>Bei vollständigen Sternkarten bleiben</span>
           <span data-opt-consequence>1 · 2 · 3 · 5 · 8 · 12 · 18 Karten; Stufe 5 nach ≈ 18 Monaten.</span>
         </label>
         <label data-opt="compressed">
-          <input type="radio" name="dm-d-pace" value="compressed">
+          <input type="radio" name="dm-d-pace" value="compressed" disabled>
           <span data-opt-label>Leiter stauchen, danach Prestige-Ringe</span>
           <span data-opt-consequence>1 · 2 · 3 · 4 · 6 · 8 · 10 Karten, nach Stufe 7 ein Ring pro weiterer Karte.</span>
         </label>
       </div>
-      <textarea data-comment="d-pace-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-pace-none" value="">
-      <input type="hidden" name="dm-d-pace-hes" value="">
-      <input type="hidden" name="dm-d-pace-touched" value="">
-      <input type="hidden" name="dm-d-pace-issue" value="">
-      <input type="hidden" name="dm-d-pace-epic" value="">
+      <textarea data-comment="d-pace-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-pace-none" value="" disabled>
+      <input type="hidden" name="dm-d-pace-hes" value="" disabled>
+      <input type="hidden" name="dm-d-pace-touched" value="" disabled>
+      <input type="hidden" name="dm-d-pace-issue" value="" disabled>
+      <input type="hidden" name="dm-d-pace-epic" value="" disabled>
       <div data-alevel="3" data-title="Rang-Tempo">
         <div data-slot="short"><div data-viz="compare" data-viz-spec='{"before":{"label":"heute","value":18},"after":{"label":"nach Sternen","value":7},"unit":"Monate bis Stufe 5"}'></div></div>
         <div data-slot="long">
@@ -5861,27 +5862,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-stakes>Ob das „Top-Eintrag“-Formular bleibt.</p>
       <div data-options>
         <label data-opt="rewards" data-recommended>
-          <input type="radio" name="dm-d-suggest" value="rewards" checked>
+          <input type="radio" name="dm-d-suggest" value="rewards" checked disabled>
           <span data-opt-label>Neue Rang-Belohnungen vorschlagen und abstimmen</span>
           <span data-opt-consequence>Top-Eintrag-Formular fällt weg; Admin sieht die Ideen mit Stimmen.</span>
         </label>
         <label data-opt="gate5">
-          <input type="radio" name="dm-d-suggest" value="gate5">
+          <input type="radio" name="dm-d-suggest" value="gate5" disabled>
           <span data-opt-label>Top-Einträge weiter vorschlagen, erst ab Stufe 5</span>
           <span data-opt-consequence>Bestehendes Formular bleibt, wird nur später freigeschaltet.</span>
         </label>
         <label data-opt="drop">
-          <input type="radio" name="dm-d-suggest" value="drop">
+          <input type="radio" name="dm-d-suggest" value="drop" disabled>
           <span data-opt-label>Vorschläge ganz entfernen</span>
           <span data-opt-consequence>Rang-Seite wird kürzer; Admin-Warteschlange entfällt.</span>
         </label>
       </div>
-      <textarea data-comment="d-suggest-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-suggest-none" value="">
-      <input type="hidden" name="dm-d-suggest-hes" value="">
-      <input type="hidden" name="dm-d-suggest-touched" value="">
-      <input type="hidden" name="dm-d-suggest-issue" value="">
-      <input type="hidden" name="dm-d-suggest-epic" value="">
+      <textarea data-comment="d-suggest-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-suggest-none" value="" disabled>
+      <input type="hidden" name="dm-d-suggest-hes" value="" disabled>
+      <input type="hidden" name="dm-d-suggest-touched" value="" disabled>
+      <input type="hidden" name="dm-d-suggest-issue" value="" disabled>
+      <input type="hidden" name="dm-d-suggest-epic" value="" disabled>
       <div data-alevel="3" data-title="Vorschläge ab Rang 5">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Deine Notiz: „vorschläge was man noch als belohnungen machen kann, nicht top irgendetwas, gern auch auf der rang seite erst ab Rang 5“"}'></div></div>
         <div data-slot="long">
@@ -5906,27 +5907,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <h3 data-question>Wo soll der Hinweis „Neues im Rang“ zusätzlich auftauchen?</h3>
       <div data-options>
         <label data-opt="hub" data-recommended>
-          <input type="radio" name="dm-d-news" value="hub" checked>
+          <input type="radio" name="dm-d-news" value="hub" checked disabled>
           <span data-opt-label>Auch am Sternenkarten-Planeten im Hub zeigen</span>
           <span data-opt-consequence>Ein Punkt am Planeten, schon bevor man die Karte öffnet.</span>
         </label>
         <label data-opt="crest">
-          <input type="radio" name="dm-d-news" value="crest">
+          <input type="radio" name="dm-d-news" value="crest" disabled>
           <span data-opt-label>Nur am Rang-Symbol der Sternenkarte lassen</span>
           <span data-opt-consequence>So wie gebaut.</span>
         </label>
         <label data-opt="server">
-          <input type="radio" name="dm-d-news" value="server">
+          <input type="radio" name="dm-d-news" value="server" disabled>
           <span data-opt-label>Hub-Punkt plus geräteübergreifend merken</span>
           <span data-opt-consequence>„Gesehen“ liegt am Konto; braucht eine kleine Migration.</span>
         </label>
       </div>
-      <textarea data-comment="d-news-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-news-none" value="">
-      <input type="hidden" name="dm-d-news-hes" value="">
-      <input type="hidden" name="dm-d-news-touched" value="">
-      <input type="hidden" name="dm-d-news-issue" value="">
-      <input type="hidden" name="dm-d-news-epic" value="">
+      <textarea data-comment="d-news-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-news-none" value="" disabled>
+      <input type="hidden" name="dm-d-news-hes" value="{&quot;ms&quot;:11098,&quot;revisits&quot;:0,&quot;median&quot;:18955}" disabled>
+      <input type="hidden" name="dm-d-news-touched" value="" disabled>
+      <input type="hidden" name="dm-d-news-issue" value="" disabled>
+      <input type="hidden" name="dm-d-news-epic" value="" disabled>
       <div data-alevel="3" data-title="Hinweis auf Neues">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Heute: nur Sternenkarte, nur dieser Browser."}'></div></div>
         <div data-slot="long">
@@ -5959,30 +5960,30 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <p data-context>Skizzen, keine echten Renders. Echte Muster rendere ich in der nächsten Runde nebeneinander.</p>
       <div data-options>
         <label data-opt="real">
-          <input type="radio" name="dm-d-wall" value="real">
+          <input type="radio" name="dm-d-wall" value="real" disabled>
           <span data-opt-media><svg class="vfk-sk" viewBox="0 0 160 90" aria-hidden="true"><rect width="160" height="90" fill="#04070d"/><g fill="#cfd8ff"><circle cx="20" cy="15" r=".6"/><circle cx="50" cy="40" r=".5"/><circle cx="80" cy="70" r=".7"/><circle cx="130" cy="60" r=".5"/><circle cx="35" cy="75" r=".6"/><circle cx="95" cy="25" r=".9"/></g><polyline points="108,14 120,30 112,34 104,30 108,14" fill="none" stroke="#7fa6ff" stroke-opacity=".45" stroke-width=".6"/></svg></span>
           <span data-opt-label>Realistisch lassen wie jetzt</span>
           <span data-opt-consequence>Ruhig, fast schwarz; das Sternbild muss man suchen.</span>
         </label>
         <label data-opt="magic" data-recommended>
-          <input type="radio" name="dm-d-wall" value="magic" checked>
+          <input type="radio" name="dm-d-wall" value="magic" checked disabled>
           <span data-opt-media><svg class="vfk-sk" viewBox="0 0 160 90" aria-hidden="true"><defs><radialGradient id="vfk-g1" cx="70%" cy="30%" r="60%"><stop offset="0" stop-color="#1b2a55" stop-opacity=".9"/><stop offset="1" stop-color="#04070d" stop-opacity="0"/></radialGradient></defs><rect width="160" height="90" fill="#04070d"/><rect width="160" height="90" fill="url(#vfk-g1)"/><g fill="#dfe6ff"><circle cx="20" cy="15" r=".6"/><circle cx="50" cy="40" r=".5"/><circle cx="80" cy="70" r=".7"/><circle cx="130" cy="60" r=".5"/><circle cx="35" cy="75" r=".6"/><circle cx="95" cy="25" r="1"/></g><polyline points="106,10 122,32 112,38 100,32 106,10" fill="none" stroke="#9fc0ff" stroke-opacity=".8" stroke-width=".9"/><polyline points="106,10 122,32 112,38 100,32 106,10" fill="none" stroke="#9fc0ff" stroke-opacity=".25" stroke-width="3"/></svg></span>
           <span data-opt-label>Sanft leuchtende Linien und Schleier dazu</span>
           <span data-opt-consequence>Sternbild leuchtet zart, dahinter ein blauer Hauch; Sterne bleiben echt.</span>
         </label>
         <label data-opt="styles">
-          <input type="radio" name="dm-d-wall" value="styles">
+          <input type="radio" name="dm-d-wall" value="styles" disabled>
           <span data-opt-media><svg class="vfk-sk" viewBox="0 0 160 90" aria-hidden="true"><defs><linearGradient id="vfk-g2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#1d6b5a" stop-opacity=".7"/><stop offset=".5" stop-color="#2a3f8f" stop-opacity=".25"/><stop offset="1" stop-color="#04070d" stop-opacity="0"/></linearGradient></defs><rect width="160" height="90" fill="#04070d"/><rect width="160" height="90" fill="url(#vfk-g2)"/><g fill="#dfe6ff"><circle cx="20" cy="15" r=".6"/><circle cx="50" cy="40" r=".5"/><circle cx="130" cy="60" r=".5"/><circle cx="95" cy="25" r="1"/></g><polyline points="106,10 122,32 112,38 100,32 106,10" fill="none" stroke="#9fc0ff" stroke-opacity=".6" stroke-width=".8"/><text x="6" y="84" fill="#9fc0ff" font-size="7" font-family="sans-serif">Polarlicht · Tiefes Feld · Nacht</text></svg></span>
           <span data-opt-label>Stile wählbar, späte Stufen schalten mehr frei</span>
           <span data-opt-consequence>Realistisch als Grundstil, Polarlicht und Tiefes Feld als Rang-Belohnung.</span>
         </label>
       </div>
-      <textarea data-comment="d-wall-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-wall-none" value="">
-      <input type="hidden" name="dm-d-wall-hes" value="">
-      <input type="hidden" name="dm-d-wall-touched" value="">
-      <input type="hidden" name="dm-d-wall-issue" value="">
-      <input type="hidden" name="dm-d-wall-epic" value="">
+      <textarea data-comment="d-wall-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-wall-none" value="" disabled>
+      <input type="hidden" name="dm-d-wall-hes" value="{&quot;ms&quot;:19683,&quot;revisits&quot;:0,&quot;median&quot;:18955}" disabled>
+      <input type="hidden" name="dm-d-wall-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-wall-issue" value="" disabled>
+      <input type="hidden" name="dm-d-wall-epic" value="" disabled>
       <div data-alevel="3" data-title="Wallpaper-Look">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Deine Notiz: „sollte eher echt sein, magisch und an kleiner Stelle sollte man erkennen das sternenbild“"}'></div></div>
         <div data-slot="long">
@@ -6002,22 +6003,22 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <h3 data-question>Welche Wallpaper-Formate gibt es ab der ersten Stufe?</h3>
       <div data-options>
         <label data-opt="all" data-recommended>
-          <input type="radio" name="dm-d-formats" value="all" checked>
+          <input type="radio" name="dm-d-formats" value="all" checked disabled>
           <span data-opt-label>Alle Formate ab Stufe 1 freigeben</span>
           <span data-opt-consequence>4K, Handy und Ultrawide sofort; Stufen verändern Inhalt und Stil.</span>
         </label>
         <label data-opt="tiered">
-          <input type="radio" name="dm-d-formats" value="tiered">
+          <input type="radio" name="dm-d-formats" value="tiered" disabled>
           <span data-opt-label>Formate an Stufen gebunden lassen</span>
           <span data-opt-consequence>Handy ab Stufe 3, Ultrawide ab Stufe 4, wie gebaut.</span>
         </label>
       </div>
-      <textarea data-comment="d-formats-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-formats-none" value="">
-      <input type="hidden" name="dm-d-formats-hes" value="">
-      <input type="hidden" name="dm-d-formats-touched" value="">
-      <input type="hidden" name="dm-d-formats-issue" value="">
-      <input type="hidden" name="dm-d-formats-epic" value="">
+      <textarea data-comment="d-formats-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-formats-none" value="" disabled>
+      <input type="hidden" name="dm-d-formats-hes" value="{&quot;ms&quot;:18955,&quot;revisits&quot;:0,&quot;median&quot;:18955}" disabled>
+      <input type="hidden" name="dm-d-formats-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-formats-issue" value="" disabled>
+      <input type="hidden" name="dm-d-formats-epic" value="" disabled>
       <div data-alevel="3" data-title="Wallpaper-Formate">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Handy ab Stufe 3, Ultrawide ab Stufe 4 – heute."}'></div></div>
         <div data-slot="long">
@@ -6038,27 +6039,27 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <h3 data-question>Wie eng soll die Hub-Miniatur die Sternenkarte nachspielen?</h3>
       <div data-options>
         <label data-opt="mini" data-recommended>
-          <input type="radio" name="dm-d-anim" value="mini" checked>
+          <input type="radio" name="dm-d-anim" value="mini" disabled>
           <span data-opt-label>Einflug der Kuppel in Miniatur beim Hover abspielen</span>
           <span data-opt-consequence>Gleiche Reihenfolge und Zeiten; der Flug landet auf genau dieser Figur.</span>
         </label>
         <label data-opt="keep">
-          <input type="radio" name="dm-d-anim" value="keep">
+          <input type="radio" name="dm-d-anim" value="keep" checked disabled>
           <span data-opt-label>Label beim Hover reicht</span>
           <span data-opt-consequence>Keine weitere Arbeit; Hub und Karte bleiben getrennte Bewegungen.</span>
         </label>
         <label data-opt="morph">
-          <input type="radio" name="dm-d-anim" value="morph">
+          <input type="radio" name="dm-d-anim" value="morph" disabled>
           <span data-opt-label>Hub-Figur wächst nahtlos zur Kuppel</span>
           <span data-opt-consequence>Eindrucksvoll, aber großer Umbau am Flug zwischen den Seiten.</span>
         </label>
       </div>
-      <textarea data-comment="d-anim-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-anim-none" value="">
-      <input type="hidden" name="dm-d-anim-hes" value="">
-      <input type="hidden" name="dm-d-anim-touched" value="">
-      <input type="hidden" name="dm-d-anim-issue" value="">
-      <input type="hidden" name="dm-d-anim-epic" value="">
+      <textarea data-comment="d-anim-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-anim-none" value="" disabled>
+      <input type="hidden" name="dm-d-anim-hes" value="{&quot;ms&quot;:48862,&quot;revisits&quot;:0,&quot;median&quot;:18955}" disabled>
+      <input type="hidden" name="dm-d-anim-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-anim-issue" value="" disabled>
+      <input type="hidden" name="dm-d-anim-epic" value="" disabled>
       <div data-alevel="3" data-title="Hub-Animation">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Hover heute: Label „Sternkarte · 4 von 7 Sternen“."}'></div></div>
         <div data-slot="long">
@@ -6089,22 +6090,22 @@ html .feedback-dock .feedback-section textarea[data-attachable] { padding-right:
       <h3 data-question>Welcher Tipp steht vorne, wenn ein x.y.z-Patch ansteht?</h3>
       <div data-options>
         <label data-opt="main" data-recommended>
-          <input type="radio" name="dm-d-comet" value="main" checked>
+          <input type="radio" name="dm-d-comet" value="main" checked disabled>
           <span data-opt-label>x.y.z-Tipp vorne, Linien-Tipp als zweite Wahl</span>
           <span data-opt-consequence>Sobald PTU/EPTU ein x.y.z kennt, tippt man zuerst darauf.</span>
         </label>
         <label data-opt="optin">
-          <input type="radio" name="dm-d-comet" value="optin">
+          <input type="radio" name="dm-d-comet" value="optin" disabled>
           <span data-opt-label>Linien-Tipp vorne lassen, x.y.z als Schalter</span>
           <span data-opt-consequence>So wie gebaut.</span>
         </label>
       </div>
-      <textarea data-comment="d-comet-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-comet-none" value="">
-      <input type="hidden" name="dm-d-comet-hes" value="">
-      <input type="hidden" name="dm-d-comet-touched" value="">
-      <input type="hidden" name="dm-d-comet-issue" value="">
-      <input type="hidden" name="dm-d-comet-epic" value="">
+      <textarea data-comment="d-comet-note" placeholder="Notiz (optional)" readonly disabled>kannst du das nicht aus den foren etc. erkennen auch wenn noch nicht der eptu draußen ist?</textarea>
+      <input type="hidden" name="dm-d-comet-none" value="" disabled>
+      <input type="hidden" name="dm-d-comet-hes" value="{&quot;ms&quot;:62610,&quot;revisits&quot;:0,&quot;median&quot;:18955}" disabled>
+      <input type="hidden" name="dm-d-comet-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-comet-issue" value="" disabled>
+      <input type="hidden" name="dm-d-comet-epic" value="" disabled>
       <div data-alevel="3" data-title="x.y.z-Tipp">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Deine Notiz: „patch tippen auch auf x.y.z patches beziehen und nicht nur x.y“"}'></div></div>
         <div data-slot="long">
@@ -6125,27 +6126,27 @@ Dein Tipp für 4.10.4: noch offen</pre></div>
       <h3 data-question>Bekommt ein Treffer beim x.y.z-Tipp einen Sonnensplitter?</h3>
       <div data-options>
         <label data-opt="yes" data-recommended>
-          <input type="radio" name="dm-d-comet-reward" value="yes" checked>
+          <input type="radio" name="dm-d-comet-reward" value="yes" checked disabled>
           <span data-opt-label>Ja, Splitter in die Sonnensammlung</span>
           <span data-opt-consequence>Drei Splitter ergeben eine kleine Sonne; zählt nicht als Stern.</span>
         </label>
         <label data-opt="no">
-          <input type="radio" name="dm-d-comet-reward" value="no">
+          <input type="radio" name="dm-d-comet-reward" value="no" disabled>
           <span data-opt-label>Nein, x.y.z bleibt ein reiner Tipp</span>
           <span data-opt-consequence>Nur Anzeige von Treffer oder Fehlschuss.</span>
         </label>
         <label data-opt="alt">
-          <input type="radio" name="dm-d-comet-reward" value="alt">
+          <input type="radio" name="dm-d-comet-reward" value="alt" disabled>
           <span data-opt-label>Anders …</span>
-          <input type="text" name="dm-d-comet-reward-alt" placeholder="Was stattdessen?">
+          <input type="text" name="dm-d-comet-reward-alt" placeholder="Was stattdessen?" value="" readonly disabled>
         </label>
       </div>
-      <textarea data-comment="d-comet-reward-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-comet-reward-none" value="">
-      <input type="hidden" name="dm-d-comet-reward-hes" value="">
-      <input type="hidden" name="dm-d-comet-reward-touched" value="">
-      <input type="hidden" name="dm-d-comet-reward-issue" value="">
-      <input type="hidden" name="dm-d-comet-reward-epic" value="">
+      <textarea data-comment="d-comet-reward-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-comet-reward-none" value="" disabled>
+      <input type="hidden" name="dm-d-comet-reward-hes" value="{&quot;ms&quot;:11500,&quot;revisits&quot;:0,&quot;median&quot;:18955}" disabled>
+      <input type="hidden" name="dm-d-comet-reward-touched" value="" disabled>
+      <input type="hidden" name="dm-d-comet-reward-issue" value="" disabled>
+      <input type="hidden" name="dm-d-comet-reward-epic" value="" disabled>
       <div data-alevel="3" data-title="x.y.z-Treffer">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Heute: Treffer beim x.y.z-Tipp ohne Folgen."}'></div></div>
         <div data-slot="long">
@@ -6167,22 +6168,22 @@ Dein Tipp für 4.10.4: noch offen</pre></div>
       <h3 data-question>Wer sieht den Mini-Satelliten im Hub?</h3>
       <div data-options>
         <label data-opt="admin" data-recommended>
-          <input type="radio" name="dm-d-sat" value="admin" checked>
+          <input type="radio" name="dm-d-sat" value="admin" checked disabled>
           <span data-opt-label>Nur Admins, in Admin-Rot</span>
           <span data-opt-consequence>So wie gebaut.</span>
         </label>
         <label data-opt="collab">
-          <input type="radio" name="dm-d-sat" value="collab">
+          <input type="radio" name="dm-d-sat" value="collab" disabled>
           <span data-opt-label>Auch Collaborator, in Kupfer</span>
           <span data-opt-consequence>Collaborator springen damit direkt in den Data Uploader.</span>
         </label>
       </div>
-      <textarea data-comment="d-sat-note" placeholder="Notiz (optional)"></textarea>
-      <input type="hidden" name="dm-d-sat-none" value="">
-      <input type="hidden" name="dm-d-sat-hes" value="">
-      <input type="hidden" name="dm-d-sat-touched" value="">
-      <input type="hidden" name="dm-d-sat-issue" value="">
-      <input type="hidden" name="dm-d-sat-epic" value="">
+      <textarea data-comment="d-sat-note" placeholder="Notiz (optional)" readonly disabled></textarea>
+      <input type="hidden" name="dm-d-sat-none" value="" disabled>
+      <input type="hidden" name="dm-d-sat-hes" value="{&quot;ms&quot;:13273,&quot;revisits&quot;:0,&quot;median&quot;:18955}" disabled>
+      <input type="hidden" name="dm-d-sat-touched" value="1" disabled>
+      <input type="hidden" name="dm-d-sat-issue" value="" disabled>
+      <input type="hidden" name="dm-d-sat-epic" value="" disabled>
       <div data-alevel="3" data-title="Admin-Satellit">
         <div data-slot="short"><div data-viz="text" data-viz-spec='{"text":"Sichtbar für: Admin. Ziel: /admin."}'></div></div>
         <div data-slot="long">
@@ -6192,6 +6193,108 @@ Dein Tipp für 4.10.4: noch offen</pre></div>
         <div data-example><img class="vfk-shot" alt="Verse-Hub, Satellit links" src="data:image/jpeg;base64,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"></div>
       </div>
     </section>
+  </section>
+</section>
+
+<section id="iter-2" data-iteration="2" data-iteration-template="free" data-final-report data-active>
+  <p class="fr-sentence">Der Rang steigt jetzt mit jedem Stern, das Wallpaper leuchtet sanft, und der Komet tippt zuerst auf x.y.z – erkannt auch aus Evocati-Patchnotes.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">Was kam raus</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">⭐</span><span>Rang nach <b>entzündeten Sternen</b>: 5 Sterne sind schon Stufe 2.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">☄️</span><span><b>x.y.z-Tipp vorne</b>, Ziel auch aus Evocati-Threads, Treffer = Sonnensplitter.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🌌</span><span><b>Magisches Wallpaper</b> in allen Formaten ab Stufe 1, Ideen ab Stufe 5.</span></li>
+      </ul>
+      <p class="fr-try-auth">🔑 Noch nicht live: nach dem Ship unter /verse/explorer/rank mit deinem Konto ansehen.</p>
+    </div>
+    <div class="fr-ba" data-label-before="Vorher" data-label-after="Nachher">
+      <figure class="fr-shot"><img src="20261114-0200-verse-rang-folgekonzept/shots/before.png" alt=""><figcaption>5 Sterne, aber „Noch kein Rang“</figcaption></figure>
+      <figure class="fr-shot"><img src="20261114-0200-verse-rang-folgekonzept/shots/after.png" alt=""><figcaption>5 Sterne = Vermesser, alle Formate</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">Was es aushält<small>Balken = wie weit die Anforderung erfüllt ist</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Volle Suite 6923 grün, 1 übersprungen; Anforderung: alles grün (geschätzt).">
+        <span class="fr-meter-name">🧪 Tests</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6923 / 6923</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Tier-5-Sperre, Stimm-Toggle und Splitter-Vergabe im Rollback-Lauf geprüft; ein Treffer zählt genau einmal (geschätzt).">
+        <span class="fr-meter-name">🛡 Server-Regeln</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">4 / 4</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 70%" data-tip="Einreichen und Abstimmen nur mit Mocks geprüft, das Testkonto hat 5 Sterne statt 18 (geschätzt).">
+        <span class="fr-meter-name">💡 Ideen live</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">gesperrt</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="5 / 7 · ✓ Code-Check · ✓ Trockentest · ✓ Zusammenspiel · ✓ Lokal durchgespielt · ✓ Prod-Build geprüft · ○ Live vertestet · ◌ Von dir abgenommen">
+    <span class="fr-depth-done">✓ Zuletzt bestanden: <b>Prod-Build geprüft</b></span>
+    <span class="fr-depth-next">○ Noch nicht gemacht: <b>Live vertestet</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 Funde unterwegs</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-phone-comet"
+          data-issue-title="[BUG] Star map comet strip sits under the phone search bar"
+          data-issue-type="bug"
+          data-issue-body="On /verse/explorer at 375x812 the comet track's day strip and the 'offen' state sit under the floating bottom search bar, the beta switch and the feedback launcher. Pre-existing layout, not caused by the rank follow-up. Use --sc-float-bottom / .sc-dock-phone clearances from src/styles.scss."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Komet-Leiste verdeckt</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Auf dem Handy liegen Tageschips und „offen“ unter Suche und Beta-Knopf.</dd>
+          <dt>Wo</dt><dd>Sternenkarte, Handy</dd>
+          <dt>Warum vorbelegt</dt><dd>⚡ Jetzt — kleiner Abstand im Layout.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-starscape-sky"
+          data-issue-title="[FEATURE] Mirror the magic wallpaper sky in the Starscape app"
+          data-issue-type="feature"
+          data-issue-body="The web wallpaper renderer (constellation-render.ts) now draws a soft line glow and a blue veil by default, plus the companions (tier 3) and amber tint (tier 4) rewards. The Starscape desktop app's Rust renderer still draws the previous sky."
+          data-issue-module="starscape"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo-Teil">
+        <span class="oq-label">Starscape: alter Himmel</span>
+        <dl class="fr-fkv">
+          <dt>Was</dt><dd>Die Desktop-App zeichnet noch den Himmel ohne Leuchten und Schleier.</dd>
+          <dt>Wo</dt><dd>Starscape (Rust-Renderer)</dd>
+          <dt>Warum vorbelegt</dt><dd>📌 Issue — eigene App, eigener Release.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 Für Entwickler</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>feat/verse-rank-followup</code> · Commits <code>acd5859</code>…<code>3378413</code> · Migration <code>20261114130000</code> live</li>
+      <li><code>starmap.model.ts</code>, <code>constellation-render.ts</code>, <code>rank-ideas.component.ts</code>, <code>comet-track.component.ts</code></li>
+      <li>Tests: 6923 grün, 1 übersprungen · typecheck, lint, build grün</li>
+      <li>Ohne Blick übernommen (Empfehlung): Rang-Tempo, Vorschläge, Hub-Punkt, Splitter-Belohnung</li>
+      <li>Hub-Animation bleibt wie gewählt unverändert; neue Belohnungen: Begleiter (3), Bernsteintönung (4)</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="Du testest">
+    <ul>
+      <li data-todo-id="t-ideas" data-crit="mid" data-guide="">Ab 18 Sternen Idee einreichen und abstimmen</li>
+      <li data-todo-id="t-wallpaper" data-crit="low" data-guide="">Wallpaper in 4K, Handy, Ultrawide ansehen</li>
+    </ul>
   </section>
 </section>
 </main>
@@ -6282,7 +6385,8 @@ Dein Tipp für 4.10.4: noch offen</pre></div>
              <section data-iteration="N">, appended by string edit
              (iteration-rules.md § Iteration append checklist). -->
         <nav class="iteration-tabs" role="tablist" aria-label="Runden">
-<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Runde 1</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="2" aria-selected="true" aria-controls="iter-2">Abschlussbericht</button>
 </nav>
 
         <!-- Section TOC — auto-populated from EVERY top-level <section id="..."

@@ -1,0 +1,101 @@
+<section id="iter-2" data-iteration="2" data-iteration-template="free" data-final-report data-active>
+  <p class="fr-sentence">Der Rang steigt jetzt mit jedem Stern, das Wallpaper leuchtet sanft, und der Komet tippt zuerst auf x.y.z – erkannt auch aus Evocati-Patchnotes.</p>
+
+  <div class="fr-main">
+    <div class="fr-results">
+      <p class="fr-label">{{final.results}}</p>
+      <ul class="fr-wins">
+        <li><span class="fr-win-icon" aria-hidden="true">⭐</span><span>Rang nach <b>entzündeten Sternen</b>: 5 Sterne sind schon Stufe 2.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">☄️</span><span><b>x.y.z-Tipp vorne</b>, Ziel auch aus Evocati-Threads, Treffer = Sonnensplitter.</span></li>
+        <li><span class="fr-win-icon" aria-hidden="true">🌌</span><span><b>Magisches Wallpaper</b> in allen Formaten ab Stufe 1, Ideen ab Stufe 5.</span></li>
+      </ul>
+      <p class="fr-try-auth">🔑 Noch nicht live: nach dem Ship unter /verse/explorer/rank mit deinem Konto ansehen.</p>
+    </div>
+    <div class="fr-ba" data-label-before="{{final.before}}" data-label-after="{{final.after}}">
+      <figure class="fr-shot"><img src="20261114-0200-verse-rang-folgekonzept/shots/before.png" alt=""><figcaption>5 Sterne, aber „Noch kein Rang“</figcaption></figure>
+      <figure class="fr-shot"><img src="20261114-0200-verse-rang-folgekonzept/shots/after.png" alt=""><figcaption>5 Sterne = Vermesser, alle Formate</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fr-holds">
+    <p class="fr-label">{{final.holds}}<small>{{final.holds_hint}}</small></p>
+    <div class="fr-meters">
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Volle Suite 6923 grün, 1 übersprungen; Anforderung: alles grün (geschätzt).">
+        <span class="fr-meter-name">🧪 Tests</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">6923 / 6923</b>
+      </div>
+      <div class="fr-meter" data-grade="full" style="--fr-fill: 100%" data-tip="Tier-5-Sperre, Stimm-Toggle und Splitter-Vergabe im Rollback-Lauf geprüft; ein Treffer zählt genau einmal (geschätzt).">
+        <span class="fr-meter-name">🛡 Server-Regeln</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">4 / 4</b>
+      </div>
+      <div class="fr-meter" data-grade="part" style="--fr-fill: 70%" data-tip="Einreichen und Abstimmen nur mit Mocks geprüft, das Testkonto hat 5 Sterne statt 18 (geschätzt).">
+        <span class="fr-meter-name">💡 Ideen live</span>
+        <div class="fr-meter-bar" aria-hidden="true"></div>
+        <b class="fr-meter-value">gesperrt</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="fr-depth" tabindex="0" data-tip="5 / 7 · ✓ {{final.level_code}} · ✓ {{final.level_dry}} · ✓ {{final.level_interplay}} · ✓ {{final.level_local}} · ✓ {{final.level_prod}} · ○ {{final.level_live}} · ◌ {{final.level_accept}}">
+    <span class="fr-depth-done">✓ {{final.depth_done}}: <b>{{final.level_prod}}</b></span>
+    <span class="fr-depth-next">○ {{final.depth_next}}: <b>{{final.level_live}}</b></span>
+  </div>
+
+  <div class="fr-folds">
+  <details class="fr-fold" data-open-questions>
+    <summary>🔍 2 {{final.funde_fold}}</summary>
+    <ul class="fr-funde">
+      <li data-oq-id="oq-phone-comet"
+          data-issue-title="[BUG] Star map comet strip sits under the phone search bar"
+          data-issue-type="bug"
+          data-issue-body="On /verse/explorer at 375x812 the comet track's day strip and the 'offen' state sit under the floating bottom search bar, the beta switch and the feedback launcher. Pre-existing layout, not caused by the rank follow-up. Use --sc-float-bottom / .sc-dock-phone clearances from src/styles.scss."
+          data-issue-module="verse"
+          data-oq-origin="found"
+          data-route-default="now"
+          data-route-reason="klein">
+        <span class="oq-label">Komet-Leiste verdeckt</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Auf dem Handy liegen Tageschips und „offen“ unter Suche und Beta-Knopf.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Sternenkarte, Handy</dd>
+          <dt>{{final.fund_why}}</dt><dd>⚡ Jetzt — kleiner Abstand im Layout.</dd>
+        </dl>
+      </li>
+      <li data-oq-id="oq-starscape-sky"
+          data-issue-title="[FEATURE] Mirror the magic wallpaper sky in the Starscape app"
+          data-issue-type="feature"
+          data-issue-body="The web wallpaper renderer (constellation-render.ts) now draws a soft line glow and a blue veil by default, plus the companions (tier 3) and amber tint (tier 4) rewards. The Starscape desktop app's Rust renderer still draws the previous sky."
+          data-issue-module="starscape"
+          data-oq-origin="found"
+          data-route-default="issue"
+          data-route-reason="außerhalb Repo-Teil">
+        <span class="oq-label">Starscape: alter Himmel</span>
+        <dl class="fr-fkv">
+          <dt>{{final.fund_what}}</dt><dd>Die Desktop-App zeichnet noch den Himmel ohne Leuchten und Schleier.</dd>
+          <dt>{{final.fund_where}}</dt><dd>Starscape (Rust-Renderer)</dd>
+          <dt>{{final.fund_why}}</dt><dd>📌 Issue — eigene App, eigener Release.</dd>
+        </dl>
+      </li>
+    </ul>
+  </details>
+
+  <details class="fr-fold">
+    <summary>🛠 {{final.dev_fold}}</summary>
+    <ul class="fr-dev">
+      <li>Branch <code>feat/verse-rank-followup</code> · Commits <code>acd5859</code>…<code>3378413</code> · Migration <code>20261114130000</code> live</li>
+      <li><code>starmap.model.ts</code>, <code>constellation-render.ts</code>, <code>rank-ideas.component.ts</code>, <code>comet-track.component.ts</code></li>
+      <li>Tests: 6923 grün, 1 übersprungen · typecheck, lint, build grün</li>
+      <li>Ohne Blick übernommen (Empfehlung): Rang-Tempo, Vorschläge, Hub-Punkt, Splitter-Belohnung</li>
+      <li>Hub-Animation bleibt wie gewählt unverändert; neue Belohnungen: Begleiter (3), Bernsteintönung (4)</li>
+    </ul>
+  </details>
+  </div>
+
+  <section data-tests hidden aria-label="{{final.group_tests}}">
+    <ul>
+      <li data-todo-id="t-ideas" data-crit="mid" data-guide="">Ab 18 Sternen Idee einreichen und abstimmen</li>
+      <li data-todo-id="t-wallpaper" data-crit="low" data-guide="">Wallpaper in 4K, Handy, Ultrawide ansehen</li>
+    </ul>
+  </section>
+</section>
