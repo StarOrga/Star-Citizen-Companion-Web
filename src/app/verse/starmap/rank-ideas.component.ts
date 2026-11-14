@@ -69,7 +69,7 @@ export const IDEA_MIN = 3;
                 }
               </li>
             } @empty {
-              <li class="muted small none">{{ 'starmap.ideas.empty' | translate }}</li>
+              @if (open()) { <li class="muted small none">{{ 'starmap.ideas.empty' | translate }}</li> }
             }
           </ul>
           @if (status() && !open()) { <p class="small err" role="status">{{ status()! | translate }}</p> }

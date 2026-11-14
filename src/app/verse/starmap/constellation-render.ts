@@ -22,7 +22,7 @@
  *     Always a faint airglow (alpha 0.02); `nebula: true` lifts it to 0.045.
  *     Default look only (no nebula reward, not hero) adds the MAGIC layer
  *     (2026-11-14): a soft blue veil (radial gradient, 380 u, rgba(70,120,220,
- *     0.10) → 0) centred on the own constellation, drawn before the stars so
+ *     0.18) → 0) centred on the own constellation, drawn before the stars so
  *     they stay on top, and a glow under the own lines (two wider low-alpha
  *     strokes behind the 40 % line). No random draws, stars stay untouched.
  *  3. STARFIELD   three layers, counts scale with the area in u² / 1e6:
@@ -282,7 +282,7 @@ function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: numb
     const width = (hero ? (large ? 1.6 : 0.8) : large ? 1.1 : 0.7) * u;
     if (style.magic && large && anyLit) {
       // Soft glow: two wider, very faint strokes behind the line (no blur filter, so it stays deterministic everywhere).
-      for (const [mul, alpha] of [[7, 0.05], [3.4, 0.09]] as const) {
+      for (const [mul, alpha] of [[7, 0.08], [3.4, 0.13]] as const) {
         ctx.strokeStyle = `rgba(${style.line},${alpha})`;
         ctx.lineWidth = width * mul;
         ctx.beginPath();
@@ -380,7 +380,7 @@ export function renderConstellationWallpaper(ctx: Ctx2D, opts: ConstellationRend
   if (magic && list.length > 0) {
     // The blue veil sits behind the constellation and under the stars.
     const [vx, vy] = centroid(list[0].points, boxes[0]);
-    glow(ctx, vx, vy, 380 * u, tint ? 'rgba(200,130,70,0.09)' : 'rgba(70,120,220,0.10)', tint ? 'rgba(200,130,70,0)' : 'rgba(70,120,220,0)');
+    glow(ctx, vx, vy, 380 * u, tint ? 'rgba(200,130,70,0.15)' : 'rgba(70,120,220,0.18)', tint ? 'rgba(200,130,70,0)' : 'rgba(70,120,220,0)');
   }
   drawStarfield(ctx, w, h, u, rnd);
   if (opts.road && list.length > 1) {

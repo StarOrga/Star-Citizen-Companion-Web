@@ -95,20 +95,20 @@ describe('constellation renderer', () => {
   it('magic default: a blue veil behind the constellation and a soft glow under its lines', () => {
     const r = recorder();
     renderConstellationWallpaper(r.ctx, { ...opts, nebula: false, road: false });
-    expect(r.log).toContain('stop 0 rgba(70,120,220,0.10)');
+    expect(r.log).toContain('stop 0 rgba(70,120,220,0.18)');
     // the veil comes before the first star disc, so stars stay on top
-    expect(r.log.indexOf('stop 0 rgba(70,120,220,0.10)')).toBeLessThan(r.log.findIndex((l) => l.startsWith('globalAlpha=0.')));
+    expect(r.log.indexOf('stop 0 rgba(70,120,220,0.18)')).toBeLessThan(r.log.findIndex((l) => l.startsWith('globalAlpha=0.')));
     const strokes = r.log.filter((l) => l.startsWith('strokeStyle=rgba(150,190,255,'));
     // two glow under-strokes, then the 40 % line of the own constellation
-    expect(strokes.slice(0, 3)).toEqual(['strokeStyle=rgba(150,190,255,0.05)', 'strokeStyle=rgba(150,190,255,0.09)', 'strokeStyle=rgba(150,190,255,0.4)']);
+    expect(strokes.slice(0, 3)).toEqual(['strokeStyle=rgba(150,190,255,0.08)', 'strokeStyle=rgba(150,190,255,0.13)', 'strokeStyle=rgba(150,190,255,0.4)']);
   });
 
   it('the nebula reward and the hero badge keep the old look (no veil, no under-stroke)', () => {
     for (const o of [{ ...opts, nebula: true }, { ...opts, hero: true }]) {
       const r = recorder();
       renderConstellationWallpaper(r.ctx, o);
-      expect(r.log).not.toContain('stop 0 rgba(70,120,220,0.10)');
-      expect(r.log).not.toContain('strokeStyle=rgba(150,190,255,0.05)');
+      expect(r.log).not.toContain('stop 0 rgba(70,120,220,0.18)');
+      expect(r.log).not.toContain('strokeStyle=rgba(150,190,255,0.08)');
     }
   });
 

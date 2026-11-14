@@ -300,6 +300,7 @@ export function rankWallpaperOptions(st: VerseExplorerState, first: VerseExplore
       .rewards li.on { border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
       .rewards .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
       .rewards b { font: 600 0.9rem var(--sc-font-display); color: var(--sc-fg-0); }
+      .rewards li.fresh b { padding-right: 46px; } /* room for the NEU badge */
       .rewards .txt span { font-size: 0.8rem; color: var(--sc-fg-1); }
       .rewards small { grid-column: 2; font-size: 0.72rem; color: var(--sc-fg-2); }
       .rewards li.on small { color: var(--sc-accent); }
