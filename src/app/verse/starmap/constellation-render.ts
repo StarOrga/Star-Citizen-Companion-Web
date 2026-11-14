@@ -20,6 +20,11 @@
  *  2. AIRGLOW     2 very wide, very faint tints; per tint rnd() for x, y,
  *     radius 420..700 u and hue (210 or 250 by rnd() < 0.5, ±15 by rnd()).
  *     Always a faint airglow (alpha 0.02); `nebula: true` lifts it to 0.045.
+ *     Default look only (no nebula reward, not hero) adds the MAGIC layer
+ *     (2026-11-14): a soft blue veil (radial gradient, 380 u, rgba(70,120,220,
+ *     0.10) → 0) centred on the own constellation, drawn before the stars so
+ *     they stay on top, and a glow under the own lines (two wider low-alpha
+ *     strokes behind the 40 % line). No random draws, stars stay untouched.
  *  3. STARFIELD   three layers, counts scale with the area in u² / 1e6:
  *       faint  1700 × area, radius 0.3..0.65 u, alpha 0.12..0.45
  *       small   260 × area, radius 0.6..1.05 u, alpha 0.35..0.7
@@ -29,7 +34,10 @@
  *     (rnd() < 0.1 → warm #ffe6c4, < 0.25 → cool #c9dbff, else #f6f8ff).
  *  4. ROAD        (`road: true`, ≥ 2 constellations) a barely visible dashed
  *     polyline through the centroids of all constellations, newest last.
- *  5. CONSTELLATIONS  `constellations[0]` is the current patch. Default: box
+ *  5. CONSTELLATIONS  `constellations[0]` is the current patch. Older ones are
+ *     drawn when `companions` is not false (default true; the rank page passes
+ *     the tier-3 reward) or the road is on. `tint` (tier-4 reward) draws the
+ *     own lines, glow and lit stars in a warm amber instead of blue. Default: box
  *     20 % of the short side centred at (0.70 w, 0.30 h); older ones (max 6) in
  *     6 % boxes at the fixed OLDER_SPOTS. `hero`: box 62 % at (0.40 w, 0.52 h),
  *     older ones 17 % on an arc on the right.
@@ -78,6 +86,10 @@ export interface ConstellationRenderOptions {
   readonly nebula?: boolean;
   readonly road?: boolean;
   readonly supernova?: boolean;
+  /** Older patch lines as faint companions; default true, the rank page gates it on tier 3. */
+  readonly companions?: boolean;
+  /** Warm amber tint of the own constellation (rank reward from tier 4). */
+  readonly tint?: boolean;
   /** Large centred figure (Kartograph badge); default = a small figure in a real night sky. */
   readonly hero?: boolean;
 }
@@ -250,14 +262,38 @@ function centroid(points: readonly VersePoint[], box: Box): [number, number] {
   return mapPoint([sx, sy], box);
 }
 
-function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: number, large: boolean, hero: boolean): void {
+interface FigureStyle {
+  /** Soft glow under the own lines (default look only). */
+  readonly magic: boolean;
+  /** RGB triplet of the own lines. */
+  readonly line: string;
+  /** Inner colour of the lit-star glow. */
+  readonly glowInner: string;
+}
+const BLUE_STYLE: Pick<FigureStyle, 'line' | 'glowInner'> = { line: '150,190,255', glowInner: 'rgba(235,242,255,0.55)' };
+const AMBER_STYLE: Pick<FigureStyle, 'line' | 'glowInner'> = { line: '255,205,140', glowInner: 'rgba(255,238,212,0.55)' };
+
+function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: number, large: boolean, hero: boolean, style: FigureStyle): void {
   const pts = c.points.map((p) => mapPoint(p, box));
   const lit = litIndices(c.points, c.starCount);
   const anyLit = lit.size > 0;
   if (pts.length > 1) {
     const a = hero ? (anyLit ? 0.42 : 0.14) : anyLit ? (large ? 0.4 : 0.14) : 0.12;
-    ctx.strokeStyle = `rgba(150,190,255,${a})`;
-    ctx.lineWidth = (hero ? (large ? 1.6 : 0.8) : large ? 1.1 : 0.7) * u;
+    const width = (hero ? (large ? 1.6 : 0.8) : large ? 1.1 : 0.7) * u;
+    if (style.magic && large && anyLit) {
+      // Soft glow: two wider, very faint strokes behind the line (no blur filter, so it stays deterministic everywhere).
+      for (const [mul, alpha] of [[7, 0.05], [3.4, 0.09]] as const) {
+        ctx.strokeStyle = `rgba(${style.line},${alpha})`;
+        ctx.lineWidth = width * mul;
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = `rgba(${style.line},${a})`;
+    ctx.lineWidth = width;
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
@@ -268,7 +304,7 @@ function drawConstellation(ctx: Ctx2D, c: RenderConstellation, box: Box, u: numb
   const k = hero ? (large ? 1 : 0.45) : large ? 0.7 : 0.3;
   pts.forEach(([x, y], i) => {
     if (lit.has(i)) {
-      glow(ctx, x, y, 3.2 * (hero ? 9 : 5) * k * u, hero ? 'rgba(255,255,255,0.9)' : 'rgba(235,242,255,0.55)', 'rgba(120,170,255,0)');
+      glow(ctx, x, y, 3.2 * (hero ? 9 : 5) * k * u, hero ? 'rgba(255,255,255,0.9)' : style.glowInner, 'rgba(120,170,255,0)');
       disc(ctx, x, y, 3.2 * k * u, '#ffffff');
     } else {
       disc(ctx, x, y, 2.2 * k * u, hero ? 'rgba(200,215,255,0.28)' : 'rgba(200,215,255,0.2)');
@@ -335,10 +371,18 @@ export function renderConstellationWallpaper(ctx: Ctx2D, opts: ConstellationRend
   ctx.globalCompositeOperation = 'source-over';
   drawBackground(ctx, w, h);
   drawNebula(ctx, w, h, u, rnd, !!opts.nebula);
-  drawStarfield(ctx, w, h, u, rnd);
-  const list = opts.constellations.slice(0, 7);
   const hero = !!opts.hero;
+  const magic = !hero && !opts.nebula;
+  const tint = !hero && !!opts.tint;
+  const older = opts.companions !== false || !!opts.road;
+  const list = opts.constellations.slice(0, older ? 7 : 1);
   const boxes = constellationBoxes(w, h, list.length, hero);
+  if (magic && list.length > 0) {
+    // The blue veil sits behind the constellation and under the stars.
+    const [vx, vy] = centroid(list[0].points, boxes[0]);
+    glow(ctx, vx, vy, 380 * u, tint ? 'rgba(200,130,70,0.09)' : 'rgba(70,120,220,0.10)', tint ? 'rgba(200,130,70,0)' : 'rgba(70,120,220,0)');
+  }
+  drawStarfield(ctx, w, h, u, rnd);
   if (opts.road && list.length > 1) {
     const cs = list.map((c, i) => centroid(c.points, boxes[i])).reverse();
     ctx.strokeStyle = `rgba(180,200,255,${hero ? 0.16 : 0.05})`;
@@ -350,7 +394,9 @@ export function renderConstellationWallpaper(ctx: Ctx2D, opts: ConstellationRend
     ctx.stroke();
     ctx.setLineDash([]);
   }
-  list.forEach((c, i) => drawConstellation(ctx, c, boxes[i], u, i === 0, hero));
+  list.forEach((c, i) =>
+    drawConstellation(ctx, c, boxes[i], u, i === 0, hero, { magic: magic && i === 0, ...(tint && i === 0 ? AMBER_STYLE : BLUE_STYLE) }),
+  );
   if (opts.supernova && list.length > 0) {
     const [cx, cy] = centroid(list[0].points, boxes[0]);
     drawSupernova(ctx, cx, cy, hero ? u : u * 0.35, rnd);

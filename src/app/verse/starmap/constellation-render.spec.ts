@@ -92,6 +92,48 @@ describe('constellation renderer', () => {
     expect(r.log.slice(0, firstStroke).some((l) => l.startsWith('lineTo('))).toBe(false);
   });
 
+  it('magic default: a blue veil behind the constellation and a soft glow under its lines', () => {
+    const r = recorder();
+    renderConstellationWallpaper(r.ctx, { ...opts, nebula: false, road: false });
+    expect(r.log).toContain('stop 0 rgba(70,120,220,0.10)');
+    // the veil comes before the first star disc, so stars stay on top
+    expect(r.log.indexOf('stop 0 rgba(70,120,220,0.10)')).toBeLessThan(r.log.findIndex((l) => l.startsWith('globalAlpha=0.')));
+    const strokes = r.log.filter((l) => l.startsWith('strokeStyle=rgba(150,190,255,'));
+    // two glow under-strokes, then the 40 % line of the own constellation
+    expect(strokes.slice(0, 3)).toEqual(['strokeStyle=rgba(150,190,255,0.05)', 'strokeStyle=rgba(150,190,255,0.09)', 'strokeStyle=rgba(150,190,255,0.4)']);
+  });
+
+  it('the nebula reward and the hero badge keep the old look (no veil, no under-stroke)', () => {
+    for (const o of [{ ...opts, nebula: true }, { ...opts, hero: true }]) {
+      const r = recorder();
+      renderConstellationWallpaper(r.ctx, o);
+      expect(r.log).not.toContain('stop 0 rgba(70,120,220,0.10)');
+      expect(r.log).not.toContain('strokeStyle=rgba(150,190,255,0.05)');
+    }
+  });
+
+  it('companions: without them only the own constellation is drawn, with them the older lines too', () => {
+    const count = (o: Partial<ConstellationRenderOptions>): number => {
+      const r = recorder();
+      renderConstellationWallpaper(r.ctx, { ...opts, nebula: false, road: false, ...o });
+      return r.log.filter((l) => l === 'strokeStyle=rgba(150,190,255,0.14)').length;
+    };
+    expect(count({ companions: false })).toBe(0);
+    expect(count({ companions: true })).toBe(count({}));
+    expect(count({})).toBeGreaterThan(count({ companions: false }));
+  });
+
+  it('tint: the own lines, glow and veil turn amber, the starfield does not change', () => {
+    const plain = recorder();
+    const tinted = recorder();
+    renderConstellationWallpaper(plain.ctx, { ...opts, nebula: false });
+    renderConstellationWallpaper(tinted.ctx, { ...opts, nebula: false, tint: true });
+    expect(tinted.log).toContain('strokeStyle=rgba(255,205,140,0.4)');
+    expect(plain.log).not.toContain('strokeStyle=rgba(255,205,140,0.4)');
+    const field = (log: string[]) => log.filter((l) => l.startsWith('arc(') ).slice(0, 200);
+    expect(field(tinted.log)).toEqual(field(plain.log));
+  });
+
   it('renders identical pixels on a real canvas', () => {
     const draw = () => {
       const c = document.createElement('canvas');
