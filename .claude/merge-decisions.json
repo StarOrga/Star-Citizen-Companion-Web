@@ -37,6 +37,18 @@
         ]
       }
     ],
+    ".claude/project-map.md›header›file-count": [
+      {
+        "ship": "claude/batch-901bea",
+        "by": "JerryT2T",
+        "value": "regenerated count (generated file)",
+        "decided": true,
+        "at": "2026-11-14T00:46:46.595Z",
+        "hunks": [
+          "6aa0d70ba60e"
+        ]
+      }
+    ],
     ".claude/project-map.md›header›tracked-count": [
       {
         "ship": "#1096",
@@ -90,6 +102,42 @@
         "at": "2026-11-11T17:34:48.785Z",
         "hunks": [
           "e21c9783816b"
+        ]
+      }
+    ],
+    ".claude/project-map.md›migrations›count": [
+      {
+        "ship": "claude/batch-901bea",
+        "by": "JerryT2T",
+        "value": "regenerated count (generated file)",
+        "decided": true,
+        "at": "2026-11-14T00:46:46.595Z",
+        "hunks": [
+          "fd0ff437f106"
+        ]
+      }
+    ],
+    ".claude/project-map.md›src›count": [
+      {
+        "ship": "claude/batch-901bea",
+        "by": "JerryT2T",
+        "value": "regenerated count (generated file)",
+        "decided": true,
+        "at": "2026-11-14T00:46:46.595Z",
+        "hunks": [
+          "36e740fc3c43"
+        ]
+      }
+    ],
+    ".claude/project-map.md›supabase›count": [
+      {
+        "ship": "claude/batch-901bea",
+        "by": "JerryT2T",
+        "value": "regenerated count (generated file)",
+        "decided": true,
+        "at": "2026-11-14T00:46:46.595Z",
+        "hunks": [
+          "9e1afee1e281"
         ]
       }
     ],

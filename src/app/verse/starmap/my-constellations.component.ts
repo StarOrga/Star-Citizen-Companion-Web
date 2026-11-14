@@ -6,7 +6,6 @@ import {
   computed,
   effect,
   inject,
-  input,
   signal,
   viewChildren,
 } from '@angular/core';
@@ -17,36 +16,29 @@ import { AuthService } from '../../auth/auth.service';
 import { AnalyticsService } from '../../core/analytics.service';
 import { logWarn } from '../../core/log';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
-import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { VerseApiService } from '../data/verse-api.service';
 import type { VerseExplorerPatch } from '../data/verse.models';
 import { downloadBlob, renderConstellationPng, renderConstellationWallpaper } from './constellation-render';
 import { wallpaperConstellations } from './wallpaper';
+import { hasTierReward, rankProgress } from './starmap.model';
 import { shareImage } from './share-image';
 
 const THUMB = { width: 480, height: 270 } as const;
 
 /**
  * "Meine Sternbilder": every earned constellation wallpaper (7 stars), newest
- * first, auto-added — the full scrollable list (the Starscape app shows the last
- * 7). Each card downloads the 4K PNG or shares it.
+ * first, auto-added — the full list (the Starscape app shows the last 7). Each
+ * card downloads the 4K PNG or shares it. Lives on the rank page since
+ * 2026-11-13; the page owns the heading.
  */
 @Component({
   selector: 'sc-my-constellations',
-  // Subpages sit in the page frame; only the hub runs edge to edge (concept 2026-10-28).
-  host: { class: 'sc-track-page' },
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective, VerseHeaderComponent],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   template: `
-    @if (!embedded()) {
-      <sc-verse-header
-        [title]="'starmap.gallery.title' | translate"
-        [subtitle]="'starmap.gallery.subtitle' | translate" />
-    }
-
     @if (!signedIn()) {
       <p class="note">{{ 'starmap.signedOut' | translate }}
-        <a routerLink="/login" [queryParams]="{ redirect: '/verse/gallery/constellations' }">{{ 'starmap.signIn' | translate }}</a></p>
+        <a routerLink="/login" [queryParams]="{ redirect: '/verse/explorer/rank' }">{{ 'starmap.signIn' | translate }}</a></p>
     } @else if (api.explorerState() === 'error') {
       <p class="note" role="alert">{{ (api.explorerError() ?? 'errors.generic') | translate }}
         <button type="button" class="btn" (click)="reload()">{{ 'errors.retry' | translate }}</button></p>
@@ -109,8 +101,6 @@ export class MyConstellationsComponent implements AfterViewInit {
   private readonly auth = inject(AuthService);
   private readonly analytics = inject(AnalyticsService);
 
-  /** Inside the star-map panel (shell beta): the panel owns the heading. */
-  readonly embedded = input(false);
   readonly thumb = THUMB;
   readonly signedIn = this.auth.isAuthenticated;
   /** Patches whose wallpaper is earned (7 stars), newest first. */
@@ -149,7 +139,8 @@ export class MyConstellationsComponent implements AfterViewInit {
     return {
       seed: p.patchLine,
       constellations: wallpaperConstellations(st, p),
-      nebula: st.rewards.nebula,
+      // Tier 6 (deep field) keeps the nebula on every wallpaper.
+      nebula: st.rewards.nebula || hasTierReward(rankProgress(st.kartograph).tier, 'deepfield'),
       road: st.rewards.road,
     };
   }

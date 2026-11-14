@@ -558,6 +558,132 @@ export interface SeriesStop {
   readonly next: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/* Rank tiers (the rank page, note #3 of 2026-11-13).                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Completed constellations needed for each of the 7 rank tiers. The server's
+ * `kartograph.rank` is the number of patch lines with all 7 stars and grows
+ * without bound; the client folds it into 7 tiers. The steps widen like a
+ * Fibonacci curve (1, 2, 3, 5, 8, 12, 18): the first three come one patch at
+ * a time so a new reader feels the climb, the top tiers take years of patches
+ * (CIG ships about four patch lines a year), so tier 7 stays rare.
+ */
+export const RANK_TIER_AT = [1, 2, 3, 5, 8, 12, 18] as const;
+export const RANK_TIER_COUNT = RANK_TIER_AT.length;
+/** i18n keys of the tiers (`starmap.rankPage.tier.<key>.name|meaning`), tier 1 first. */
+export const RANK_TIER_KEYS = ['observer', 'surveyor', 'navigator', 'cartographer', 'astrographer', 'master', 'keeper'] as const;
+export type RankTierKey = (typeof RANK_TIER_KEYS)[number];
+
+/** Tier 0..7 for a server rank (completed constellations); 0 = not ranked yet. */
+export function rankTier(rank: number): number {
+  const n = Number.isFinite(rank) ? Math.floor(rank) : 0;
+  let tier = 0;
+  for (const at of RANK_TIER_AT) if (n >= at) tier++;
+  return tier;
+}
+
+/** The current tier, the next one and how far the reader is on the way there. */
+export interface RankProgress {
+  readonly rank: number;
+  readonly tier: number;
+  readonly key: RankTierKey | null;
+  /** null on tier 7. */
+  readonly next: { readonly tier: number; readonly key: RankTierKey; readonly at: number } | null;
+  /** Constellations still missing for the next tier (0 on tier 7). */
+  readonly toNext: number;
+  /** 0..1 share of the way from the current tier's threshold to the next one. */
+  readonly share: number;
+}
+
+export function rankProgress(kartograph: { readonly unlocked: boolean; readonly rank: number }): RankProgress {
+  const rank = kartograph.unlocked && Number.isFinite(kartograph.rank) ? Math.max(0, Math.floor(kartograph.rank)) : 0;
+  const tier = rankTier(rank);
+  const key = tier > 0 ? RANK_TIER_KEYS[tier - 1] : null;
+  if (tier >= RANK_TIER_COUNT) return { rank, tier, key, next: null, toNext: 0, share: 1 };
+  const at = RANK_TIER_AT[tier];
+  const from = tier > 0 ? RANK_TIER_AT[tier - 1] : 0;
+  return {
+    rank,
+    tier,
+    key,
+    next: { tier: tier + 1, key: RANK_TIER_KEYS[tier], at },
+    toNext: at - rank,
+    share: Math.min(1, Math.max(0, (rank - from) / (at - from))),
+  };
+}
+
+/** How a tier reads on the ladder. */
+export type TierState = 'earned' | 'current' | 'locked';
+
+export function tierState(tier: number, current: number): TierState {
+  return tier < current ? 'earned' : tier === current ? 'current' : 'locked';
+}
+
+/**
+ * Rank rewards: purely cosmetic, unlocked on the client from the tier alone
+ * (the tier itself comes from the server's rank, nothing else is stored).
+ * From tier 5 on they change the crest and the wallpaper itself.
+ */
+export type TierRewardKey = 'wallpaper' | 'badge' | 'phone' | 'ultrawide' | 'frame' | 'deepfield' | 'orbit';
+export const TIER_REWARDS: readonly { readonly key: TierRewardKey; readonly tier: number }[] = [
+  { key: 'wallpaper', tier: 1 },
+  { key: 'badge', tier: 2 },
+  { key: 'phone', tier: 3 },
+  { key: 'ultrawide', tier: 4 },
+  { key: 'frame', tier: 5 },
+  { key: 'deepfield', tier: 6 },
+  { key: 'orbit', tier: 7 },
+];
+
+export function hasTierReward(tier: number, key: TierRewardKey): boolean {
+  return TIER_REWARDS.some((r) => r.key === key && tier >= r.tier);
+}
+
+/** Wallpaper formats of the rank rewards (the 4K one is the tier-1 wallpaper). */
+export const WALLPAPER_PHONE = { width: 1179, height: 2556 } as const;
+export const WALLPAPER_ULTRAWIDE = { width: 5120, height: 1440 } as const;
+
+/** localStorage: the rank items the reader has already seen on the rank page. */
+export const RANK_SEEN_KEY = 'sc.starmap.rankSeen';
+
+/**
+ * Everything that counts as "new on the rank page": every reached tier, every
+ * unlocked rank reward and every reached series stop (the server's rewards).
+ */
+export function rankNewsItems(state: Pick<VerseExplorerState, 'kartograph' | 'rewards'>): string[] {
+  const tier = rankProgress(state.kartograph).tier;
+  const out: string[] = [];
+  for (let t = 1; t <= tier; t++) out.push(`tier:${t}`);
+  for (const r of TIER_REWARDS) if (tier >= r.tier) out.push(`reward:${r.key}`);
+  for (const s of STREAK_REWARDS) if (state.rewards[s.key]) out.push(`series:${s.key}`);
+  return out;
+}
+
+/** Items already seen; an unreadable store counts as nothing seen. */
+export function readRankSeen(): Set<string> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RANK_SEEN_KEY) ?? '[]') as unknown;
+    return new Set(Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function writeRankSeen(items: readonly string[]): void {
+  try {
+    localStorage.setItem(RANK_SEEN_KEY, JSON.stringify(items));
+  } catch {
+    /* private mode / quota: the marker may show again, nothing breaks */
+  }
+}
+
+/** True when the rank page holds something the reader has not opened yet. */
+export function hasRankNews(items: readonly string[], seen: ReadonlySet<string>): boolean {
+  return items.some((i) => !seen.has(i));
+}
+
 /** Stops of the series road; unlocked state from the server, never from the numbers. */
 export function seriesStops(rewards: VerseExplorerState['rewards']): SeriesStop[] {
   let marked = false;

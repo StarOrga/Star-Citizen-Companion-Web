@@ -7297,6 +7297,9 @@
       "hqSupplies": "{{n}} open Nachschübe",
       "hqSuppliesOne": "1 open Nachschub",
       "hqCalm": "All quiet at HQ",
+      "admin": "Admin station",
+      "adminValue": "Straight to the admin hub",
+      "adminHint": "visible to admins only",
       "newsEmpty": "No news right now.",
       "patchesEmpty": "No patch notes yet.",
       "patchTitle": "Star Citizen Alpha {{v}}",
@@ -7340,8 +7343,6 @@
     },
     "export": {
       "wallpaper": "Download wallpaper (4K)",
-      "busy": "Rendering …",
-      "gallery": "My star maps",
       "failed": "The wallpaper could not be created. Please try again."
     },
     "task": {
@@ -7434,9 +7435,6 @@
       }
     },
     "kartograph": {
-      "title": "Cartographer",
-      "rank": "Rank {{rank}}",
-      "perks": "Early access to beta features, suggestions for the top list and a badge you can share as a public link.",
       "locked": "Collect stars to unlock the cartographer rank."
     },
     "community": {
@@ -7447,14 +7445,13 @@
     },
     "suns": {
       "title": "Sun collection",
-      "none": "No sun yet. Place your patch tip in Patch News."
+      "none": "No sun yet. Place your comet tip on the star map."
     },
     "glyph": {
       "aria": "Star map: {{lit}} of {{total}} stars"
     },
     "gallery": {
       "title": "My star maps",
-      "subtitle": "Every completed star map lands here automatically.",
       "empty": "No star map completed yet.",
       "toMap": "Go to the star map",
       "appHint": "The last 7 are in the Starscape app as well.",
@@ -7508,10 +7505,10 @@
     },
     "tour": {
       "open": "How the star map works",
-      "title": "The star map and the Logbook",
-      "p1": "Every patch has one star map of 7 stars. Each task you finish lights one.",
-      "p2": "Two challenges sit on the rim: the patch tip and recognising the star map.",
-      "p3": "The Logbook holds the community sky, your Kartograph rank and the series rewards.",
+      "title": "How the star map works",
+      "p1": "Every patch has one star map of 7 stars. Each task you finish lights one; once all 7 shine, the shape shows a ship and the map joins your collection.",
+      "p2": "Two challenges sit under the dome: the comet tip for the LIVE day of the next patch, and recognising the ship behind the shape.",
+      "p3": "Completed star maps raise your Kartograph rank. The crest top right opens your rank page with the series, its rewards and the 4K wallpaper.",
       "start": "Show me",
       "close": "Close",
       "back": "Back",
@@ -7521,30 +7518,28 @@
       "step": {
         "stage": {
           "title": "The dome",
-          "text": "The star map of the selected patch. Lit stars are finished tasks; the pulsing one is the suggested next."
+          "text": "The star map of the selected patch. Lit stars are finished tasks, the pulsing one is the suggested next, hollow rings are still open. Click a star to see its task. From 3 stars you also shine in this patch's community sky: brighter stars mean more explorers lit them."
         },
-        "count": {
-          "title": "Shape and rank",
-          "text": "The caption names the shape of this map and your Kartograph rank. The crests below show the ranks behind and ahead of you; your current crest opens your badge."
+        "patch": {
+          "title": "Pick a patch",
+          "text": "Top left you switch to the star map of an earlier patch. Every map stays, even long after its patch went LIVE."
         },
-        "tracks": {
-          "title": "The two challenges",
-          "text": "Give your patch tip for the next LIVE day and guess which ship the star map shows."
+        "comet": {
+          "title": "The comet",
+          "text": "Tip the day the next patch goes LIVE. Hit it and the comet lights a sun for your sun collection and a star on the map."
         },
-        "series": {
-          "title": "The series",
-          "text": "Your streak across patches - rewards unlock along it."
+        "guess": {
+          "title": "Guess the shape",
+          "text": "Guess which ship the star map shows. A hit earns a star; afterwards the shape's name sits under the dome."
         },
-        "more": {
-          "title": "The Logbook",
-          "text": "Opens the side sheet: community star map, suns, Kartograph rank, suggestions and rewards."
+        "rank": {
+          "title": "Your Kartograph rank",
+          "text": "Every completed star map moves your rank on. Seven tiers from Observer to Keeper of the Atlas: each unlocks something, from the 4K wallpaper and a shareable badge to crest details from tier 5. Your series, its rewards and the 4K wallpaper live on the rank page."
         }
       }
     },
     "more": {
-      "open": "Logbook",
-      "title": "Logbook",
-      "rewards": "Series rewards"
+      "title": "Extras"
     },
     "card": {
       "close": "Close",
@@ -7567,7 +7562,9 @@
     "comet": {
       "kind": "Patch tip",
       "ruleAria": "Patch tip rules",
-      "rule": "Tip the day {{patch}} goes LIVE – one click on a day sets your patch tip, one tip per patch. Land within ±2 days and the sun lights up top right in the sky. Tips close once {{patch}} is LIVE or the LIVE date was officially announced.",
+      "rule": "Tip the day {{patch}} goes LIVE – one click on a day sets your patch tip, one tip per patch. Land within ±2 days and the comet lights a sun for your collection on the rank page. Tips close once {{patch}} is LIVE or the LIVE date was officially announced.",
+      "ruleVersion": "Tip the day {{patch}} goes LIVE – a concrete patch of the line, one tip per patch. Tips close once {{patch}} is LIVE or its LIVE date was officially announced. The patch star only comes with the line tip.",
+      "modeAria": "Tip target",
       "state": {
         "none": "open",
         "tipped": "set · waiting for LIVE",
@@ -7633,6 +7630,113 @@
       "current": "Kartograph rank {{rank}} - open your badge",
       "earned": "Kartograph rank {{rank}} - earned",
       "next": "Kartograph rank {{rank}} - still locked"
+    },
+    "rank": {
+      "link": "{{name}} · open your rank page",
+      "none": "No rank yet · how to climb",
+      "news": "New on your rank page"
+    },
+    "celebrate": {
+      "eyebrow": "Constellation complete",
+      "named": "{{name}} shines in the sky",
+      "done": "All 7 stars shine"
+    },
+    "rankPage": {
+      "title": "Rank",
+      "subtitle": "Seven tiers, one star map that grows with you.",
+      "standingAria": "Your current rank and star map",
+      "current": "Your rank",
+      "unranked": "No rank yet",
+      "unrankedMeaning": "Complete your first star map - all 7 stars of a patch - and you enter the ladder as an Observer.",
+      "count": "{{n}} star maps completed",
+      "countOne": "1 star map completed",
+      "progressAria": "Progress to {{name}}",
+      "toNext": "{{n}} more completed star maps to {{name}}",
+      "toNextOne": "One more completed star map to {{name}}",
+      "top": "Highest tier reached. Every further star map still joins your sky.",
+      "perks": "Your rank opens early access to beta features, item suggestions and the rank rewards below.",
+      "mapOpen": "Open your star map large",
+      "mapAlt": "Your star map: the constellations of your patches in one night sky",
+      "mapNone": "Light your first star on the star map and your sky appears here.",
+      "mapCaption": "Your star map",
+      "mapUpdates": "Updates itself with every rank you climb.",
+      "downloadPhone": "Phone wallpaper",
+      "downloadUltrawide": "Ultrawide (5120 × 1440)",
+      "downloadLocked": "Complete your first star map to download it in 4K.",
+      "ladderTitle": "The seven tiers",
+      "at": "from {{n}} star maps",
+      "atOne": "from 1 star map",
+      "new": "New",
+      "state": {
+        "earned": "reached",
+        "current": "your current tier",
+        "locked": "not reached yet"
+      },
+      "rewardsTitle": "Rank rewards",
+      "rewardsLead": "Each tier adds something to your sky. From Astrographer on the rewards change your crest and the wallpaper itself.",
+      "rewardFrom": "from {{name}}",
+      "reward": {
+        "wallpaper": {
+          "title": "4K wallpaper",
+          "desc": "Your star map as a 3840 × 2160 wallpaper."
+        },
+        "badge": {
+          "title": "Shareable badge",
+          "desc": "Your crest and newest star map as a public link for friends."
+        },
+        "phone": {
+          "title": "Phone wallpaper",
+          "desc": "Your sky in portrait for the lock screen."
+        },
+        "ultrawide": {
+          "title": "Ultrawide wallpaper",
+          "desc": "A 32:9 panorama for wide and dual screens."
+        },
+        "frame": {
+          "title": "Survey ring",
+          "desc": "A second, dotted ring around your crest, everywhere it appears."
+        },
+        "deepfield": {
+          "title": "Deep field",
+          "desc": "A nebula glows behind every wallpaper you download."
+        },
+        "orbit": {
+          "title": "Turning rose",
+          "desc": "The star of your crest slowly turns, like a compass on the chart table."
+        }
+      },
+      "seriesTitle": "Series",
+      "extrasTitle": "Suggestions and badge",
+      "tier": {
+        "observer": {
+          "name": "Observer",
+          "meaning": "Your first star map is on the chart."
+        },
+        "surveyor": {
+          "name": "Surveyor",
+          "meaning": "You measure the sky patch by patch."
+        },
+        "navigator": {
+          "name": "Navigator",
+          "meaning": "You find your way across several patches."
+        },
+        "cartographer": {
+          "name": "Cartographer",
+          "meaning": "Your charts cover a real stretch of the Verse."
+        },
+        "astrographer": {
+          "name": "Astrographer",
+          "meaning": "You map the sky with precision; the late rewards open."
+        },
+        "master": {
+          "name": "Master Cartographer",
+          "meaning": "Few charts are as complete as yours."
+        },
+        "keeper": {
+          "name": "Keeper of the Atlas",
+          "meaning": "Your atlas spans years of the Verse."
+        }
+      }
     }
   },
   "beta": {

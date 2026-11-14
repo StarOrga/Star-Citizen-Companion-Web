@@ -1,4 +1,4 @@
-import { mapChannelInfo, mapConstellation, mapDigest, mapExplorer, rankTopItems, VerseDigest } from './verse.models';
+import { mapChannelInfo, mapConstellation, mapDigest, mapExplorer, mapVersionComet, rankTopItems, VerseDigest } from './verse.models';
 
 const item = (key: string, kind: string, rank: number, pinned = false) => ({
   key,
@@ -120,5 +120,24 @@ describe('verse.models', () => {
       points: [[0, 1]],
     });
     expect(mapConstellation(null)).toBeNull();
+  });
+
+  it("maps the x.y.z comet state and degrades to null without a target", () => {
+    expect(
+      mapVersionComet({
+        patch_version: "4.4.2",
+        patch_line: "4.4",
+        live_version: "4.4.1",
+        comet: { state: "tipped", tipped_date: "2030-01-02", locked: false, locked_reason: null, announced_date: null },
+      }),
+    ).toEqual({
+      patchVersion: "4.4.2",
+      patchLine: "4.4",
+      liveVersion: "4.4.1",
+      comet: { state: "tipped", tippedDate: "2030-01-02", locked: false, lockedReason: null, announcedDate: null },
+    });
+    expect(mapVersionComet({ patch_version: null, comet: null })).toBeNull();
+    expect(mapVersionComet({ patch_version: "4.4", comet: {} })).toBeNull();
+    expect(mapVersionComet(null)).toBeNull();
   });
 });

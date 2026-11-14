@@ -114,6 +114,25 @@ describe('VerseApiService', () => {
     expect(calls.length).toBe(0);
   });
 
+  it("reads the x.y.z comet target and returns null when the RPC is missing", async () => {
+    const svc = TestBed.inject(VerseApiService);
+    rpc.mockResolvedValue({ data: { patch_version: "4.4.2", patch_line: "4.4", live_version: "4.4.1", comet: { state: "none", locked: false } }, error: null });
+    expect((await svc.cometVersion())?.patchVersion).toBe("4.4.2");
+    expect(rpc).toHaveBeenCalledWith("verse_comet_version_state");
+    rpc.mockResolvedValue({ data: null, error: { message: "not found", code: "PGRST202" } });
+    expect(await svc.cometVersion()).toBeNull();
+  });
+
+  it("tips an x.y.z patch via its own RPC and maps a lock refusal", async () => {
+    const svc = TestBed.inject(VerseApiService);
+    rpc.mockResolvedValue({ data: {}, error: null });
+    expect(await svc.submitVersionPrediction("4.4.2", "2030-01-01")).toEqual({ ok: true, data: undefined });
+    expect(rpc).toHaveBeenCalledWith("verse_submit_version_prediction", { p_patch_version: "4.4.2", p_date: "2030-01-01" });
+    rpc.mockResolvedValue({ data: null, error: { message: "comet_locked", code: "P0001" } });
+    expect(await svc.submitVersionPrediction("4.4.2", "2030-01-01")).toEqual({ ok: false, errorKey: "errors.cometLocked" });
+    expect((await svc.submitVersionPrediction("4.4.2", "1.1.2030")).ok).toBe(false);
+  });
+
   it('filters the star pool to known keys', async () => {
     rpc.mockResolvedValue({ data: ['notes', 'comet', 'cx-compare'], error: null });
     const r = await TestBed.inject(VerseApiService).starPool('4.4');

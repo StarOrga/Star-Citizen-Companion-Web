@@ -1,6 +1,5 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, Routes } from '@angular/router';
-import { BetaService } from '../core/beta.service';
 import { PRELOAD_ROUTE_DATA } from '../core/idle-preloading.strategy';
 import { OVERLAY_ROUTE_DATA } from '../core/overlay-route-scroll';
 import { verseFlightResolver } from './shared/verse-flight';
@@ -9,14 +8,10 @@ import { verseFlightResolver } from './shared/verse-flight';
 const flight = { verseFlight: verseFlightResolver };
 
 /**
- * Shell beta (implement.md §12): "Meine Sternbilder" is a state of the star-map
- * panel, not a page - the old URL lands there with the toggle on. Beta off keeps
- * today's page.
+ * "Meine Sternbilder" moved to the rank page (note #3, 2026-11-13): the old
+ * URL lands there, whichever beta is on.
  */
-export const constellationsToStarmap: CanActivateFn = () =>
-  inject(BetaService).isEnabled('shell')()
-    ? inject(Router).createUrlTree(['/verse/explorer'], { queryParams: { view: 'constellations' } })
-    : true;
+export const constellationsToStarmap: CanActivateFn = () => inject(Router).parseUrl('/verse/explorer/rank');
 
 /**
  * Children of `/verse` (concept 2026-10-08-verse-hub). Every path an
@@ -67,8 +62,7 @@ export const VERSE_ROUTES: Routes = [
     path: 'gallery/constellations',
     data: { layout: 'cinematic' },
     canActivate: [constellationsToStarmap],
-    loadComponent: () =>
-      import('./starmap/my-constellations.component').then((m) => m.MyConstellationsComponent),
+    children: [],
   },
   {
     path: 'gallery',
