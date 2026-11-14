@@ -122,6 +122,8 @@ export class StarmapTourComponent {
   });
   readonly current = computed(() => this.steps()[this.step()] ?? 'stage');
 
+  private scrolledStep = -1;
+
   constructor() {
     effect(() => {
       const i = this.step();
@@ -132,7 +134,11 @@ export class StarmapTourComponent {
       }
       const el = this.target(this.current());
       if (!el) return;
-      el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' });
+      // Scroll only when the step changes; a resize/scroll tick just re-measures.
+      if (this.scrolledStep !== i) {
+        this.scrolledStep = i;
+        el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' });
+      }
       this.measure(el);
     });
     afterNextRender(() => {

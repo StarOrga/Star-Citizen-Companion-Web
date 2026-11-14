@@ -83,6 +83,8 @@ const RIM_K = 0.32;
       .tok:disabled:not(.on) { color: var(--sc-fg-2); }
       .modes { display: flex; gap: 4px; margin-bottom: 4px; }
       .mode { border: 1px solid var(--sc-border, transparent); background: transparent; color: var(--sc-fg-2); border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 0.75rem; cursor: pointer; }
+      .mode:hover:not(.on) { color: var(--sc-fg-0); }
+      .mode:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .mode.on { color: var(--sc-fg-0); border-color: color-mix(in srgb, var(--sc-accent) 60%, #fff); }
       @media (pointer: coarse) { .mode { min-height: 48px; } }
       .tok.nav { flex: 0 0 28px; font-size: 1rem; }
@@ -162,7 +164,7 @@ export class CometTrackComponent {
   });
 
   constructor() {
-    void this.api.cometVersion().then((v) => this.version.set(v));
+    this.api.cometVersion().then((v) => this.version.set(v), () => this.version.set(null));
     effect(() => {
       const c = this.cur();
       this.patchLine();
@@ -200,12 +202,18 @@ export class CometTrackComponent {
 
   private async send(line: string, ymd: string): Promise<void> {
     this.busy.set(true);
-    const isVersion = line !== this.patchLine();
-    const r = isVersion ? await this.api.submitVersionPrediction(line, ymd) : await this.api.submitPrediction(line, ymd);
-    if (isVersion && r.ok) this.version.set(await this.api.cometVersion());
-    this.busy.set(false);
-    this.pending.set(null);
-    if (!r.ok && line === this.target()) this.error.set(r.errorKey);
+    try {
+      const isVersion = line !== this.patchLine();
+      const r = isVersion ? await this.api.submitVersionPrediction(line, ymd) : await this.api.submitPrediction(line, ymd);
+      if (isVersion && r.ok) this.version.set(await this.api.cometVersion());
+      if (!r.ok && line === this.target()) this.error.set(r.errorKey);
+    } catch {
+      if (line === this.target()) this.error.set('errors.generic');
+    } finally {
+      // A thrown request must never leave the rail disabled for good.
+      this.busy.set(false);
+      this.pending.set(null);
+    }
   }
 
   day(ymd: string | null, weekday = false): string {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked, type WritableSignal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
@@ -403,11 +403,21 @@ export class RankPageComponent {
       const st = this.state();
       const p = this.first();
       const run = ++gen;
-      untracked(() => this.dropUrls());
-      if (!st || !p) return;
+      if (!st || !p) {
+        untracked(() => this.dropUrls());
+        return;
+      }
+      // An open lightbox keeps its image; the stale 4K is re-rendered on the next open.
+      untracked(() => {
+        if (!this.lightboxOpen()) this.dropUrl(this.fullUrl);
+      });
       renderConstellationPng({ ...rankWallpaperOptions(st, p), ...PREVIEW })
         .then((blob) => {
-          if (run === gen) this.previewUrl.set(URL.createObjectURL(blob));
+          if (run !== gen) return;
+          // Swap first, revoke after: the tile never points at a revoked URL.
+          const old = this.previewUrl();
+          this.previewUrl.set(URL.createObjectURL(blob));
+          if (old) URL.revokeObjectURL(old);
         })
         .catch((err) => logWarn('starmap', 'rank preview render failed', err));
     });
@@ -459,10 +469,13 @@ export class RankPageComponent {
   }
 
   private dropUrls(): void {
-    for (const s of [this.previewUrl, this.fullUrl]) {
-      const url = s();
-      if (url) URL.revokeObjectURL(url);
-      s.set(null);
-    }
+    this.dropUrl(this.previewUrl);
+    this.dropUrl(this.fullUrl);
+  }
+
+  private dropUrl(s: WritableSignal<string | null>): void {
+    const url = s();
+    if (url) URL.revokeObjectURL(url);
+    s.set(null);
   }
 }

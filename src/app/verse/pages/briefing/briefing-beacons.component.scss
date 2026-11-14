@@ -325,7 +325,7 @@
 @keyframes bk-ignite { 0% { opacity: 0; filter: brightness(2.4) blur(4px); } 35% { opacity: 1; filter: brightness(2) drop-shadow(0 0 14px rgba(150, 225, 255, 0.8)); } 100% { opacity: 1; filter: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .sun, .flare, .lab, .lock, .sat { transition: none; }
+  .sun, .flare, .lab, .lock, .sat, .sun-gl, .fig { transition: none; }
   .sat { animation: none; }
   .glow, .corona, .streamers, .disc::before, .disc::after, .flash { animation: none; }
   // Standing storms: the loops stay visible, mid-rise.
