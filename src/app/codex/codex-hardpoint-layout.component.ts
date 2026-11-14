@@ -13,7 +13,9 @@ import {
 } from '@angular/core';
 import { ItemPathComponent } from '../shared/item-path/item-path.component';
 import { NgTemplateOutlet } from '@angular/common';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { merge } from 'rxjs';
 import { CodexKind } from './codex.service';
 import {
   FOLD_PEEK_LOCK_KEY,
@@ -232,7 +234,7 @@ export interface LayoutTarget {
 export interface LayoutSection {
   section: ShipModuleSection;
   slots: LayoutSlot[];
-  /** Optional explanatory note rendered under this block's heading. */
+  /** Optional explanatory notes, shown as one info tooltip at this block's heading (#349). */
   notes?: SectionNote[];
 }
 
@@ -387,6 +389,13 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
             <span class="sec-glyph" aria-hidden="true">◈</span>
             {{ ('codex.moduleSection.' + sec.section) | translate }}
             <span class="sec-ct">{{ censusKey(sec) | translate: censusParams(sec) }}</span>
+            <!-- What this block can and cannot tell you sits behind an info
+                 icon at its heading, not as running text in the block (#349). -->
+            @if (sec.notes.length) {
+              <button type="button" class="sec-info" (click)="$event.stopPropagation(); $event.preventDefault()"
+                      [attr.aria-label]="'codex.moduleSection.infoLabel' | translate"
+                      [scTooltip]="noteText(sec.notes)"><span aria-hidden="true">i</span></button>
+            }
             @if (!sec.configurable) {
               <span class="sec-tag">{{ 'codex.moduleSection.fixedTag' | translate }}</span>
             }
@@ -433,11 +442,6 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 
     <!-- One block body, used at both nesting levels. -->
     <ng-template #secBody let-sec>
-          <!-- What this block can and cannot tell you — named where it is read,
-               not once at the top of the page (1add86a4). -->
-          @for (n of sec.notes; track n.key) {
-            <p class="sec-note">{{ n.key | translate: n.params }}</p>
-          }
           <ul class="sec-rows" [class.dense]="!sec.configurable" [class.no-detail]="calm() && !isDetailOpen(sec.section)">
             @for (row of sec.rows; track rowKey(row)) {
               <li class="slot" [class.empty]="!row.slot.className"
@@ -858,10 +862,14 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     @media (prefers-reduced-motion: reduce) { .sec-btn .chev { transition: none; } }
     /* Data-gap / mechanic note: readable, but never loud enough to read as an
        app error — nothing is broken, the extract just stops here. */
-    .sec-note { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); line-height: 1.45;
-      color: var(--sc-fg-2);
-      border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 55%, transparent);
-      padding-left: 8px; }
+    .sec-info { display: inline-grid; place-items: center; flex: none; width: 16px; height: 16px; padding: 0;
+      border-radius: 50%; cursor: help; background: transparent; color: var(--sc-fg-2);
+      border: 1px solid color-mix(in srgb, var(--sc-fg-2) 55%, transparent);
+      font-family: var(--sc-font-display); font-size: max(0.58rem, var(--sc-fs-floor)); font-weight: 600;
+      line-height: 1; letter-spacing: 0; text-transform: none; }
+    .sec-info:hover, .sec-info:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .sec-info:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    @media (pointer: coarse) { .sec-info { width: max(24px, 1.5rem); height: max(24px, 1.5rem); } }
 
     .sec-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
     .sec-rows.dense { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -1039,7 +1047,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       font-size: max(9px, var(--sc-fs-floor)); letter-spacing: 0.16em; color: var(--sc-fg-1); gap: 10px; }
     :host(.calm) .sec-head::after { content: ''; order: 1; flex: 1 1 24px; height: 1px; background: var(--sc-border); }
     :host(.calm) .sec-head > .sec-glyph { display: none; }
-    :host(.calm) .sec-head > .sec-ct, :host(.calm) .sec-head > .sec-tag, :host(.calm) .sec-head > .sec-btn, :host(.calm) .sec-head > .caret { order: 2; }
+    :host(.calm) .sec-head > .sec-ct, :host(.calm) .sec-head > .sec-info, :host(.calm) .sec-head > .sec-tag, :host(.calm) .sec-head > .sec-btn, :host(.calm) .sec-head > .caret { order: 2; }
     :host(.calm) .sec-head > .fold-preview { order: 3; font-family: var(--sc-font-body); letter-spacing: 0; }
     /* The caret beside the heading already says "aufklappen". */
     :host(.calm) .fp-lock { display: none; }
@@ -1069,7 +1077,6 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     :host(.calm) .slot-stats { border-top: 0; padding-top: 2px; gap: 2px 18px; }
     :host(.calm) .slot-stats dd { font-family: var(--font-monospace, monospace); color: var(--sc-fg-0); }
     :host(.calm) .kids { border-left-color: color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    :host(.calm) .sec-note { font-size: max(0.66rem, var(--sc-fs-floor)); }
   `],
 })
 export class CodexHardpointLayoutComponent {
@@ -1139,6 +1146,17 @@ export class CodexHardpointLayoutComponent {
   readonly occupantsBySection = input<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(new Map());
 
   private readonly swapSource = inject(CodexSwapCandidatesService);
+  private readonly translate = inject(TranslateService);
+  /** Ticks on language / translation load, so the joined note tooltip re-translates. */
+  private readonly i18nTick = toSignal(merge(this.translate.onLangChange, this.translate.onTranslationChange), {
+    initialValue: null,
+  });
+
+  /** A block's explainer notes as one tooltip text (#349). */
+  noteText(notes: readonly SectionNote[]): string {
+    this.i18nTick();
+    return notes.map((n) => this.translate.instant(n.key, n.params) as string).join(' ');
+  }
 
   constructor() {
     // Warm the swap picker's lists for every fitted slot this view can swap,

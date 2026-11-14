@@ -689,7 +689,7 @@ describe('CodexHardpointLayoutComponent', () => {
     );
   });
 
-  it('renders a block note under its heading', () => {
+  it('puts a block note behind an info tooltip at its heading (#349)', () => {
     const el = render([
       {
         section: 'weapons',
@@ -697,8 +697,10 @@ describe('CodexHardpointLayoutComponent', () => {
         notes: [{ key: 'codex.equipped.armamentMissing', params: { count: 3 } }],
       },
     ]);
-    const note = el.querySelector('.mod-sec[data-sec="weapons"] .sec-note');
-    expect(note?.textContent?.trim()).toBe('codex.equipped.armamentMissing');
+    const info = el.querySelector('.mod-sec[data-sec="weapons"] .sec-head .sec-info');
+    expect(info?.getAttribute('aria-label')).toBe('codex.moduleSection.infoLabel');
+    expect(el.querySelector('.sec-note')).toBeNull();
+    expect(el.querySelector('.mod-sec[data-sec="weapons"]')?.textContent).not.toContain('codex.equipped.armamentMissing');
   });
 
   it('stacks identical shield generators like weapons, an empty bay keeps its own row (#348)', () => {
