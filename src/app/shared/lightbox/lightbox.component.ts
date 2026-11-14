@@ -22,7 +22,10 @@ export interface LightboxImage {
   readonly sourceUrl: string;
   /** Phone-sized stand-in for the original (<= 900 px wide screens). */
   readonly previewUrl: string;
-  readonly articleUrl: string;
+  /** Source article (RSI permalink); a generated image (the star-map wallpaper) has none. */
+  readonly articleUrl?: string | null;
+  /** File name for the download link (blob URLs of generated images); default = the browser's choice. */
+  readonly downloadName?: string | null;
 }
 
 /** Wider than this the picture is zoomed to fill the stage; narrower ones get the mirrored blur. */
@@ -100,8 +103,10 @@ const WIDE_RATIO = 1.5;
       </div>
 
       <div class="acts ctl">
-        <a class="ab" [href]="image().sourceUrl" target="_blank" rel="noopener noreferrer" download>{{ 'overlay.gallery.download' | translate }}</a>
-        <a class="ab" [href]="image().articleUrl" target="_blank" rel="noopener noreferrer">{{ 'overlay.gallery.article' | translate }} ↗</a>
+        <a class="ab" [href]="image().sourceUrl" target="_blank" rel="noopener noreferrer" [attr.download]="image().downloadName ?? ''">{{ 'overlay.gallery.download' | translate }}</a>
+        @if (image().articleUrl; as art) {
+          <a class="ab" [href]="art" target="_blank" rel="noopener noreferrer">{{ 'overlay.gallery.article' | translate }} ↗</a>
+        }
       </div>
       <div class="extra ctl"><ng-content /></div>
     </ng-template>

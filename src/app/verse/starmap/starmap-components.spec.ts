@@ -14,10 +14,12 @@ import { VerseApiService } from '../data/verse-api.service';
 import type { VerseExplorerPatch, VerseExplorerState, VerseLoadState } from '../data/verse.models';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { ExplorerGlyphComponent } from './explorer-glyph.component';
-import { ExplorerPageComponent, wallpaperConstellations } from './explorer-page.component';
+import { CELEBRATED_KEY, ExplorerPageComponent, wallpaperConstellations } from './explorer-page.component';
+import { SeriesStripComponent } from './series-strip.component';
 import { MyConstellationsComponent } from './my-constellations.component';
 import { StarmapMoreComponent } from './starmap-more.component';
-import { FALLBACK_POINTS } from './starmap.model';
+import { FALLBACK_POINTS, RANK_SEEN_KEY, rankNewsItems } from './starmap.model';
+import { RankPageComponent } from './rank-page.component';
 
 // Renders the h1 and projects the actions like the real head (the explorer's map bar lives in it).
 @Component({ selector: 'sc-verse-header', template: '<h1>{{ title() }}</h1><ng-content />' })
@@ -62,15 +64,21 @@ describe('star map components', () => {
   let suggest: Mock;
   let suggestions: Mock;
   let submitPrediction: Mock;
+  let cometVersion: Mock;
+  let submitVersionPrediction: Mock;
   let submitGuess: Mock;
   const isAdmin = signal(false);
 
   beforeEach(() => {
+    localStorage.removeItem(CELEBRATED_KEY);
+    localStorage.removeItem(RANK_SEEN_KEY);
     explorer.set(STATE);
     explorerState.set('ready');
     authed.set(true);
     loadExplorer = vi.fn().mockName('loadExplorer').mockResolvedValue(undefined);
     isAdmin.set(false);
+    cometVersion = vi.fn().mockName('cometVersion').mockResolvedValue(null);
+    submitVersionPrediction = vi.fn().mockName('submitVersionPrediction').mockResolvedValue({ ok: true, data: undefined });
     submitPrediction = vi.fn().mockName('submitPrediction').mockResolvedValue({ ok: true, data: undefined });
     submitGuess = vi.fn().mockName('submitGuess').mockResolvedValue({
       ok: true,
@@ -97,6 +105,8 @@ describe('star map components', () => {
             suggest,
             suggestions,
             submitPrediction,
+            cometVersion: (...a: unknown[]) => cometVersion(...a),
+            submitVersionPrediction: (...a: unknown[]) => submitVersionPrediction(...a),
             submitGuess,
             guessOptions: vi.fn().mockName('guessOptions').mockResolvedValue({
               ok: true,
@@ -122,7 +132,7 @@ describe('star map components', () => {
         { provide: ScConfirmService, useValue: { prompt: vi.fn().mockName('prompt').mockResolvedValue('Pin it') } },
       ],
     });
-    for (const cmp of [ExplorerPageComponent, MyConstellationsComponent]) {
+    for (const cmp of [ExplorerPageComponent, RankPageComponent]) {
       TestBed.overrideComponent(cmp, {
         remove: { imports: [VerseHeaderComponent] },
         add: { imports: [StubVerseHeaderComponent] },
@@ -149,22 +159,112 @@ describe('star map components', () => {
     expect(el.querySelectorAll('button.star.done').length).toBe(2);
     expect(el.querySelectorAll('button.star.next').length).toBe(1);
     expect(el.querySelector('.tasks')).toBeNull();
-    expect(el.querySelector('h1')?.textContent).toContain('starmap.map.title');
-    expect(el.querySelector('.caption')?.textContent).toContain('starmap.kartograph.rank');
+    expect(el.querySelector('h1')?.textContent).toContain('verse.area.starmap');
   });
 
-  it('crest ladder: earned before, current as a real anchor, locked after; patch dropdown replaces the chips', () => {
+  it('head: the rank crest is a real anchor to the rank page; ladder, series, Logbuch, mine and wallpaper left the map', () => {
     const f = TestBed.createComponent(ExplorerPageComponent);
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
-    expect(el.querySelectorAll('.ladder sc-kartograph-crest').length).toBe(5);
-    expect(el.querySelectorAll('.ladder sc-kartograph-crest.earned').length).toBe(1);
-    expect(el.querySelectorAll('.ladder sc-kartograph-crest.locked').length).toBe(3);
-    const cur = el.querySelector('.ladder a.rung.current') as HTMLAnchorElement;
-    expect(cur.getAttribute('href')).toContain('/badge/kartograph');
-    expect(el.querySelector('.chips')).toBeNull();
-    expect(el.querySelector('sc-select.patch-pick')).not.toBeNull();
-    expect(el.querySelector('.map')?.getAttribute('class')).not.toContain('nebula');
+    const rank = el.querySelector('a.rank') as HTMLAnchorElement;
+    expect(rank.getAttribute('href')).toBe('/verse/explorer/rank');
+    expect(rank.querySelector('sc-kartograph-crest')).not.toBeNull();
+    expect(rank.getAttribute('aria-label')).toContain('starmap.rank.link');
+    expect(el.querySelector('.ladder')).toBeNull();
+    expect(el.querySelector('sc-series-strip')).toBeNull();
+    expect(el.querySelector('sc-starmap-more, [aria-controls=starmap-more]')).toBeNull();
+    expect(el.querySelector('sc-my-constellations')).toBeNull();
+    expect(el.textContent).not.toContain('starmap.export.wallpaper');
+    expect(el.querySelector('.corner sc-select.patch-pick')).not.toBeNull();
+  });
+
+  it('head: the rank crest signals news until the rank page was opened', () => {
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    const rank = f.nativeElement.querySelector('a.rank') as HTMLAnchorElement;
+    expect(rank.classList).toContain('news');
+    expect(rank.querySelector('.news-dot')).not.toBeNull();
+    expect(rank.getAttribute('aria-label')).toContain('starmap.rank.news');
+    f.destroy();
+
+    localStorage.setItem(RANK_SEEN_KEY, JSON.stringify(rankNewsItems(STATE)));
+    const g = TestBed.createComponent(ExplorerPageComponent);
+    g.detectChanges();
+    const seen = g.nativeElement.querySelector('a.rank') as HTMLAnchorElement;
+    expect(seen.classList).not.toContain('news');
+    expect(seen.querySelector('.news-dot')).toBeNull();
+  });
+
+  it('rank page: current tier big, 7-tier ladder, rewards, series, Logbuch and my star maps', async () => {
+    const f = TestBed.createComponent(RankPageComponent);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('h1')?.textContent).toContain('starmap.rankPage.title');
+    expect(el.querySelector('.standing .name')?.textContent).toContain('starmap.rankPage.tier.surveyor.name');
+    const steps = el.querySelectorAll('.ladder .step');
+    expect(steps.length).toBe(7);
+    expect([...steps].map((s) => (s.classList.contains('earned') ? 'e' : s.classList.contains('current') ? 'c' : 'l')).join('')).toBe('eclllll');
+    expect(el.querySelectorAll('.rewards li').length).toBe(7);
+    expect(el.querySelectorAll('.rewards li.on').length).toBe(2);
+    expect(el.querySelector('sc-series-strip')).not.toBeNull();
+    expect(el.querySelector('sc-starmap-more')).not.toBeNull();
+    expect(el.querySelector('sc-my-constellations')).not.toBeNull();
+    expect(el.querySelectorAll('[scAction][tier=primary], button.sc-action--primary').length).toBeLessThanOrEqual(1);
+    // Opening the page stores what it showed: the star map's marker clears.
+    expect(JSON.parse(localStorage.getItem(RANK_SEEN_KEY) ?? '[]')).toEqual(rankNewsItems(STATE));
+    // The mini view renders from the live data and opens the gallery lightbox.
+    await vi.waitFor(() => {
+      f.detectChanges();
+      expect(el.querySelector('.mini a.tile img')).not.toBeNull();
+    }, { timeout: 10000, interval: 100 });
+    const tile = el.querySelector('.mini a.tile') as HTMLAnchorElement;
+    expect(tile.getAttribute('href')).toMatch(/^blob:/);
+    tile.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    f.detectChanges();
+    expect(el.querySelector('sc-lightbox')).not.toBeNull();
+    expect(el.querySelector('sc-lightbox a[download]')?.getAttribute('download')).toMatch(/^sc-starmap-4\.4/);
+  });
+
+  it('rank page: an unranked reader sees the ladder all locked and no 4K download', () => {
+    explorer.set({ ...STATE, kartograph: { unlocked: false, rank: 0 } });
+    const f = TestBed.createComponent(RankPageComponent);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('.standing .name')?.textContent).toContain('starmap.rankPage.unranked');
+    expect(el.querySelectorAll('.ladder .step.locked').length).toBe(7);
+    expect(el.textContent).toContain('starmap.rankPage.downloadLocked');
+    expect(el.textContent).not.toContain('starmap.export.wallpaper');
+  });
+
+  it('rank page: signed out, error and loading states', () => {
+    authed.set(false);
+    let f = TestBed.createComponent(RankPageComponent);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('a[href^="/login"]')).not.toBeNull();
+    f.destroy();
+    authed.set(true);
+    explorerState.set('error');
+    f = TestBed.createComponent(RankPageComponent);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('[role=alert] button')).not.toBeNull();
+    f.destroy();
+    explorerState.set('loading');
+    explorer.set(null);
+    f = TestBed.createComponent(RankPageComponent);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('[aria-busy=true]')).not.toBeNull();
+    expect(f.nativeElement.querySelector('.ladder')).toBeNull();
+  });
+
+  it('head: a placeholder symbol stands in for the rank until one is earned', () => {
+    explorer.set({ ...STATE, kartograph: { unlocked: false, rank: 0 } });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    const rank = f.nativeElement.querySelector('a.rank') as HTMLAnchorElement;
+    expect(rank.getAttribute('href')).toBe('/verse/explorer/rank');
+    expect(rank.querySelector('sc-kartograph-crest')).toBeNull();
+    expect(rank.querySelector('svg.rank-empty')).not.toBeNull();
+    expect(rank.getAttribute('aria-label')).toContain('starmap.rank.none');
   });
 
   it('a star opens its card with the task link as a real anchor; done shows its date', () => {
@@ -192,13 +292,10 @@ describe('star map components', () => {
     expect(el.querySelector('.card a.go')).toBeNull();
   });
 
-  it('the sun shows its own state in the sky (hit = lit with comet)', () => {
+  it('no sun on the star map (the Verse hub carries it)', () => {
     const f = TestBed.createComponent(ExplorerPageComponent);
     f.detectChanges();
-    const sky = f.nativeElement.querySelector('.sun-sky') as HTMLElement;
-    expect(sky.classList).toContain('hit');
-    expect(sky.querySelector('.comet')).not.toBeNull();
-    expect(sky.hasAttribute('title')).toBe(false);
+    expect(f.nativeElement.querySelector('.sun-sky, .sun')).toBeNull();
   });
 
   it('the comet rail tips the upcoming patch with one click, sent once the undo window closes', async () => {
@@ -238,6 +335,36 @@ describe('star map components', () => {
     const toks = [...f.nativeElement.querySelectorAll('sc-comet-track .tok')] as HTMLButtonElement[];
     expect(toks.every((t) => t.disabled)).toBe(true);
     expect(f.nativeElement.querySelector('sc-comet-track .tok.on .comet.fall')).not.toBeNull();
+  });
+
+  it("the x.y.z target is offered next to the line and tipped via its own call", async () => {
+    cometVersion.mockResolvedValue({
+      patchVersion: "4.4.2",
+      patchLine: "4.4",
+      liveVersion: "4.4.1",
+      comet: { state: "none", tippedDate: null, locked: false, lockedReason: null, announcedDate: null },
+    });
+    explorer.set({ ...STATE, upcoming: { patchLine: "4.5", comet: { ...STATE.patches[0].comet } } });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await vi.waitFor(() => {
+      f.detectChanges();
+      expect(f.nativeElement.querySelectorAll("sc-comet-track .mode").length).toBe(2);
+    });
+    (f.nativeElement.querySelectorAll("sc-comet-track .mode")[1] as HTMLButtonElement).click();
+    f.detectChanges();
+    (f.nativeElement.querySelector("sc-comet-track .tok:not(.nav):not(:disabled)") as HTMLButtonElement).click();
+    TestBed.inject(UndoToastService).flush();
+    await vi.waitFor(() => expect(submitVersionPrediction).toHaveBeenCalledWith("4.4.2", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
+    expect(submitPrediction).not.toHaveBeenCalled();
+  });
+
+  it("without a version target the comet shows no mode switch (migration not applied)", () => {
+    explorer.set({ ...STATE, upcoming: { patchLine: "4.5", comet: { ...STATE.patches[0].comet } } });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    expect(f.nativeElement.querySelector("sc-comet-track .mode")).toBeNull();
+    expect(f.nativeElement.querySelector("sc-comet-track .tok")).not.toBeNull();
   });
 
   it('a tip whose day passed while the patch is not LIVE reads missed, under the renamed patch', () => {
@@ -337,9 +464,10 @@ describe('star map components', () => {
   });
 
   it('series strip: one line, unlocked vs locked from the server, next marked', () => {
-    const f = TestBed.createComponent(ExplorerPageComponent);
+    const f = TestBed.createComponent(SeriesStripComponent);
+    f.componentRef.setInput('state', STATE);
     f.detectChanges();
-    const strip = f.nativeElement.querySelector('sc-series-strip') as HTMLElement;
+    const strip = f.nativeElement as HTMLElement;
     expect(strip.querySelectorAll('.rs').length).toBe(6);
     expect(strip.querySelectorAll('.rs.on').length).toBe(2);
     expect(strip.querySelectorAll('.rs.next').length).toBe(1);
@@ -355,13 +483,44 @@ describe('star map components', () => {
     expect(loadExplorer).toHaveBeenCalled();
   });
 
-  it('the Logbuch sheet opens from the map bar', () => {
+  it('celebrates a constellation complete on entry once per patch line, never again', () => {
     const f = TestBed.createComponent(ExplorerPageComponent);
     f.detectChanges();
-    const btn = f.nativeElement.querySelector('button[aria-controls=starmap-more]') as HTMLButtonElement;
-    btn.click();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('.cele')).toBeNull();
+    f.componentInstance.selectLine('4.3');
     f.detectChanges();
-    expect(f.nativeElement.querySelector('#starmap-more sc-starmap-more')).not.toBeNull();
+    expect(el.querySelector('.cele[role=status]')).not.toBeNull();
+    expect(el.querySelector('sc-star-dome .fig.celebrate')).not.toBeNull();
+    expect(JSON.parse(localStorage.getItem(CELEBRATED_KEY) ?? '[]')).toContain('4.3');
+    f.destroy();
+    const again = TestBed.createComponent(ExplorerPageComponent);
+    again.detectChanges();
+    again.componentInstance.selectLine('4.3');
+    again.detectChanges();
+    expect(again.nativeElement.querySelector('.cele')).toBeNull();
+  });
+
+  it('a constellation finished during the visit celebrates on the next visit, not at once', () => {
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    explorer.set({ ...STATE, patches: [patch('4.4', 7, { sun: true }), ...STATE.patches.slice(1)] });
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('.cele')).toBeNull();
+    f.destroy();
+    const next = TestBed.createComponent(ExplorerPageComponent);
+    next.detectChanges();
+    expect(next.nativeElement.querySelector('.cele[role=status]')).not.toBeNull();
+  });
+
+  it('renders without a readable localStorage', () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    expect(f.nativeElement.querySelectorAll('sc-star-dome button.star').length).toBe(7);
+    spy.mockRestore();
   });
 
   it('my constellations lists earned wallpapers only', () => {
@@ -377,8 +536,9 @@ describe('star map components', () => {
     expect(list.map((c) => c.patchLine)).toEqual(['4.3', '4.4']);
   });
 
-  function more(state: VerseExplorerState = STATE) {
+  function more(state: VerseExplorerState = STATE, part: 'series' | 'logbook' = 'logbook') {
     const f = TestBed.createComponent(StarmapMoreComponent);
+    f.componentRef.setInput('part', part);
     f.componentRef.setInput('state', state);
     f.componentRef.setInput('patch', state.patches[0]);
     f.detectChanges();
@@ -426,7 +586,7 @@ describe('star map components', () => {
   });
 
   it('meteor shower shows only a hint off the LIVE day', () => {
-    const f = more({ ...STATE, rewards: { ...STATE.rewards, live: true, meteor: true } });
+    const f = more({ ...STATE, rewards: { ...STATE.rewards, live: true, meteor: true } }, 'series');
     expect(f.componentInstance.meteorToday()).toBe(false);
     expect(f.nativeElement.textContent).toContain('starmap.reward.meteor.notToday');
   });

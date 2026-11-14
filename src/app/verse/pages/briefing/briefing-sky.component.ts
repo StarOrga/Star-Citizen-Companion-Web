@@ -6,9 +6,10 @@ import { skyFigure } from './briefing.model';
 export const SKY_STEP_S = 0.16;
 
 /**
- * The current patch's constellation (itself the star-map link), in the star
- * map's glyph language without rings: lit stars (core, spikes, a slowly
- * breathing halo) and open stars as small hollow rings. Edges are solid
+ * The current patch's constellation (itself the star-map link), drawn with
+ * the star map's own glyphs (sc-starmap-mini, the explorer emblem the flight
+ * lands on — same slots, sizes and colours): lit stars (white core, spikes, a
+ * slowly breathing accent halo) and open stars as dim cores. Edges are solid
  * between two lit stars and dashed wherever the figure is still incomplete.
  * No "next" star here — that guidance lives on the star map. Decorative: the
  * surrounding anchor carries the count in words.
@@ -22,7 +23,7 @@ export const SKY_STEP_S = 0.16;
   selector: 'sc-briefing-sky',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <svg viewBox="-12 -12 124 124" aria-hidden="true" focusable="false">
+    <svg viewBox="-8 -8 116 116" aria-hidden="true" focusable="false">
       @for (l of figure().lines; track $index) {
         <line [class]="'ln ' + l.state" [attr.pathLength]="l.state === 'lit' ? 1 : null" [style.--d]="lineDelay($index)" [style.--i]="$index"
               [attr.x1]="l.x1" [attr.y1]="l.y1" [attr.x2]="l.x2" [attr.y2]="l.y2" />
@@ -31,11 +32,11 @@ export const SKY_STEP_S = 0.16;
         <g [class]="'st ' + s.state" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'" [style.--ph]="s.phase + 's'" [style.--si]="s.i">
           <g class="in" [style.--d]="starDelay(s.i)">
             @if (s.state === 'lit') {
-              <circle class="h" r="8" />
-              <path class="spk" d="M0-10L0.45 0 0 10-0.45 0zM-10 0L0 0.45 10 0 0-0.45z" />
-              <circle class="c" r="1.8" />
+              <circle class="h" r="9" />
+              <path class="spk" d="M0-13L1 0 0 13-1 0zM-13 0L0 1 13 0 0-1z" />
+              <circle class="c" r="3.6" />
             } @else {
-              <circle class="c" r="2.2" />
+              <circle class="c" r="3" />
             }
           </g>
         </g>
@@ -44,18 +45,21 @@ export const SKY_STEP_S = 0.16;
   `,
   styles: [
     `
-      :host { display: block; }
+      /* The star map's own palette, pinned: whatever tints the stage around it (the sun's warm
+         light, a world's colour), the miniature stays the star map's white/blue. */
+      :host { display: block; isolation: isolate; --sky-a: var(--sc-accent, #52c1e6); color-scheme: dark; }
       svg { display: block; width: 100%; height: 100%; overflow: visible; }
       .ln { fill: none; stroke-linecap: round; }
-      .ln.lit { stroke: color-mix(in srgb, var(--sc-accent) 55%, #fff); stroke-opacity: 0.75; stroke-width: 1.1;
-        filter: drop-shadow(0 0 2px var(--sc-accent)); }
-      .ln.open { stroke: color-mix(in srgb, var(--sc-fg-1) 70%, transparent); stroke-opacity: 0.45; stroke-width: 0.8; stroke-dasharray: 2.4 3; }
-      .h { fill: color-mix(in srgb, var(--sc-accent) 45%, #fff); opacity: 0.34; filter: blur(2.4px); }
+      /* Glyphs 1:1 the star map's (sc-starmap-mini, the explorer's head emblem the flight lands on):
+         solid accent edge between two lit stars, dashed elsewhere; lit = white core, spikes, accent halo;
+         open = a dim filled core. */
+      .ln.lit { stroke: var(--sky-a); stroke-width: 1.6; }
+      .ln.open { stroke: color-mix(in srgb, var(--sky-a) 45%, transparent); stroke-width: 1.2; stroke-dasharray: 3 4; }
+      .h { fill: var(--sky-a); opacity: 0.5; filter: blur(3px); }
       .lit .h { animation: glow 5s ease-in-out calc(var(--ph) * -1) infinite; animation-play-state: var(--sc-brief-play, running); }
-      .spk { fill: #fff; opacity: 0.92; }
-      .lit .c { fill: #fff; filter: drop-shadow(0 0 1.4px #fff); }
-      /* open: the star map's open glyph — a small hollow ring, dim, no glow */
-      .off .c { fill: none; stroke: color-mix(in srgb, var(--sc-fg-1) 70%, transparent); stroke-width: 0.9; }
+      .spk { fill: #fff; opacity: 0.85; }
+      .lit .c { fill: #fff; }
+      .off .c { fill: color-mix(in srgb, var(--sc-fg-1) 45%, transparent); }
       /* build-up: stars pop in one by one, edges follow the star they lead to;
          scaled by the stage's --k, so a repeat visit in the session builds up fast */
       .in { transform-origin: 0 0; animation: star-in calc(0.45s * var(--k, 1)) cubic-bezier(0.2, 0.7, 0.2, 1) calc(var(--intro-d, 0s) + var(--d) * var(--k, 1)) both;
@@ -65,7 +69,7 @@ export const SKY_STEP_S = 0.16;
       @keyframes star-in { from { opacity: 0; transform: scale(0.2); } to { opacity: 1; transform: none; } }
       @keyframes line-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
       @keyframes line-in { from { opacity: 0; } }
-      @keyframes glow { 0%, 100% { opacity: 0.24; } 50% { opacity: 0.4; } }
+      @keyframes glow { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.58; } }
       /* Hub hover (the surrounding star-map link): the lines draw themselves again
          (0.9 s, 0.18 s apart), the stars twinkle — in the star map's own white/blue. */
       :host-context(.const-l:hover) .ln.lit, :host-context(.const-l:focus-visible) .ln.lit {
@@ -77,7 +81,7 @@ export const SKY_STEP_S = 0.16;
       /* Idle hint: the lines glimmer once. */
       :host-context(.const-l.idle) .ln { animation: glim 2.4s ease-in-out 0.4s 1 both; }
       @keyframes twinkle { 0%, 100% { opacity: 1; transform: none; } 50% { opacity: 0.6; transform: scale(1.35); } }
-      @keyframes glim { 50% { stroke: #fff; stroke-opacity: 1; filter: drop-shadow(0 0 3px var(--sc-accent)); } }
+      @keyframes glim { 50% { stroke: color-mix(in srgb, var(--sky-a) 50%, #fff); filter: drop-shadow(0 0 3px var(--sky-a)); } }
       @media (prefers-reduced-motion: reduce) {
         .lit .h, .in, .ln { animation: none; }
         :host-context(.const-l) .ln, :host-context(.const-l) .st .in { animation: none !important; }

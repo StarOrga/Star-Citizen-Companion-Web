@@ -10,7 +10,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { AnalyticsService } from '../../core/analytics.service';
@@ -28,22 +27,26 @@ import {
 } from './constellation-render';
 import { badgeCaption } from './kartograph-badge.component';
 import { shareImage } from './share-image';
-import { STARS_PER_PATCH, badgeQuery, communityLevels, defaultPatch, isLiveDay, supernovaPoints } from './starmap.model';
+import { STARS_PER_PATCH, badgeQuery, communityLevels, defaultPatch, hasTierReward, isLiveDay, rankProgress, supernovaPoints } from './starmap.model';
 import { wallpaperConstellations } from './wallpaper';
 
 /**
- * The secondary side of the star map (the "Logbuch" sheet): community
- * constellation, suns, Kartograph rank + badge share + top-item suggestions,
- * the admin suggestion queue and the streak extras (supernova, live preview,
- * meteor shower). Kept out of the dome so the map fits one viewport.
+ * The former "Logbuch" sheet of the star map, now two parts of the rank page:
+ *   - `part="series"`  the series rewards in use (supernova download, live
+ *                       preview, meteor shower note) under the series road;
+ *   - `part="logbook"` community constellation, sun collection, badge share
+ *                       (rank reward from tier 2), item suggestions and the
+ *                       admin suggestion queue.
+ * The rank itself lives on the rank page, its explanation in the tour.
  */
 @Component({
   selector: 'sc-starmap-more',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe, ConstellationFigureComponent],
+  imports: [TranslatePipe, ConstellationFigureComponent],
   template: `
     @let st = state();
     @let p = patch();
+    @if (part() === 'logbook') {
     <section class="block">
       <h3>{{ 'starmap.community.title' | translate }}</h3>
       @if (community(); as c) {
@@ -62,12 +65,11 @@ import { wallpaperConstellations } from './wallpaper';
       } @else {
         <p class="muted">{{ 'starmap.suns.none' | translate }}</p>
       }
-      <a class="link" routerLink="/verse/gallery/constellations">{{ 'starmap.export.gallery' | translate }} ›</a>
     </section>
+    }
 
-    @if (st.rewards.supernova || st.rewards.live || st.rewards.meteor) {
+    @if (part() === 'series' && (st.rewards.supernova || st.rewards.live || st.rewards.meteor)) {
       <section class="block">
-        <h3>{{ 'starmap.more.rewards' | translate }}</h3>
         @if (st.rewards.supernova) {
           <button type="button" class="btn" [disabled]="exporting()" (click)="exportSupernova()">
             {{ 'starmap.reward.supernova.download' | translate }}
@@ -83,11 +85,11 @@ import { wallpaperConstellations } from './wallpaper';
       </section>
     }
 
+    @if (part() === 'logbook') {
     <section class="block side">
-      <h3>{{ 'starmap.kartograph.title' | translate }}</h3>
+      <h3>{{ 'starmap.rankPage.extrasTitle' | translate }}</h3>
       @if (st.kartograph.unlocked) {
-        <p><strong>{{ 'starmap.kartograph.rank' | translate: { rank: st.kartograph.rank } }}</strong></p>
-        <p class="muted">{{ 'starmap.kartograph.perks' | translate }}</p>
+        @if (badgeOn()) {
         <button type="button" class="btn ghost" [disabled]="sharing()" (click)="shareBadge()">
           <svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
             <circle cx="18" cy="5" r="2.6" /><circle cx="6" cy="12" r="2.6" /><circle cx="18" cy="19" r="2.6" />
@@ -95,6 +97,7 @@ import { wallpaperConstellations } from './wallpaper';
           </svg>
           {{ 'starmap.badge.share' | translate }}
         </button>
+        }
         <form class="suggest" (submit)="$event.preventDefault(); submitSuggestion()">
           <h4>{{ 'starmap.suggest.title' | translate }}</h4>
           <label for="sg-url">{{ 'starmap.suggest.url' | translate }}</label>
@@ -134,6 +137,7 @@ import { wallpaperConstellations } from './wallpaper';
         </section>
       }
     </section>
+    }
   `,
   styles: [
     `
@@ -182,6 +186,7 @@ export class StarmapMoreComponent {
   readonly state = input.required<VerseExplorerState>();
   /** The patch the map shows. */
   readonly patch = input.required<VerseExplorerPatch>();
+  readonly part = input<'series' | 'logbook'>('logbook');
 
   private readonly api = inject(VerseApiService);
   private readonly t = inject(TranslateService);
@@ -191,6 +196,8 @@ export class StarmapMoreComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly isAdmin = this.roles.isAdmin;
+  /** The shareable badge is the tier-2 rank reward. */
+  readonly badgeOn = computed(() => hasTierReward(rankProgress(this.state().kartograph).tier, 'badge'));
   private readonly current = computed(() => defaultPatch(this.state()));
   /** sr-meteor only on the newest patch's LIVE day (the Starscape app's rule). */
   readonly meteorToday = computed(() => isLiveDay(this.current()?.liveAt));
@@ -214,12 +221,13 @@ export class StarmapMoreComponent {
     effect(() => {
       const line = this.patch().patchLine;
       this.community.set(null);
+      if (this.part() !== 'logbook') return;
       void this.api.communityStars(line).then((r) => {
         if (r.ok && this.patch().patchLine === line) this.community.set(r.data);
       });
     });
     effect(() => {
-      if (this.state().kartograph.unlocked || this.isAdmin()) void this.loadSuggestions();
+      if (this.part() === 'logbook' && (this.state().kartograph.unlocked || this.isAdmin())) void this.loadSuggestions();
     });
     let stop: (() => void) | null = null;
     effect(() => {

@@ -6,7 +6,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { UndoToastService } from '../../shared/undo-toast/undo-toast.service';
 import { currentPatchName } from '../data/patch-alias';
 import { VerseApiService } from '../data/verse-api.service';
-import type { VerseComet } from '../data/verse.models';
+import type { VerseComet, VerseVersionComet } from '../data/verse.models';
 import { formatDay } from './star-dome.component';
 import { addDays, cometDays, cometWindowStart, railCurve, todayYmd } from './starmap.model';
 import { COMET_STYLES, TRACK_STYLES } from './track-styles';
@@ -27,12 +27,18 @@ const RIM_K = 0.32;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, ScTooltipDirective],
   template: `
-    @let c = comet();
+    @let c = cur();
+    @if (modes(); as v) {
+      <div class="modes" role="group" [attr.aria-label]="'starmap.comet.modeAria' | translate">
+        <button type="button" class="mode" [class.on]="!versionMode()" [attr.aria-pressed]="!versionMode()" (click)="versionMode.set(false)">{{ lineName() }}</button>
+        <button type="button" class="mode" [class.on]="versionMode()" [attr.aria-pressed]="versionMode()" (click)="versionMode.set(true)">{{ versionName(v.patchVersion) }}</button>
+      </div>
+    }
     <div class="head">
       <span class="kind"><span class="comet" [class]="'comet s-' + c.state" aria-hidden="true"></span>{{ 'starmap.comet.kind' | translate }}</span>
       <b>{{ headKey() | translate: { patch: patchName(), date: day(c.tippedDate, true) } }}</b>
       <button type="button" class="info" [attr.aria-label]="'starmap.comet.ruleAria' | translate"
-              [scTooltip]="'starmap.comet.rule' | translate: { patch: patchName() }">i</button>
+              [scTooltip]="(onVersion() ? 'starmap.comet.ruleVersion' : 'starmap.comet.rule') | translate: { patch: patchName() }">i</button>
       <span class="state" [class.tip]="stateKey() === 'tipped'" [class.missed]="stateKey() === 'missed'">
         <i class="ring" [class.half]="stateKey() === 'tipped'" [class.done]="c.state === 'hit'" [class.closed]="c.state === 'miss' || stateKey() === 'missed' || (c.state === 'none' && c.locked)"></i>
         {{ 'starmap.comet.state.' + stateKey() | translate }}
@@ -75,6 +81,12 @@ const RIM_K = 0.32;
       .tok.on { border-color: color-mix(in srgb, var(--sc-warning) 60%, #fff); color: var(--sc-fg-0);
         background: linear-gradient(180deg, color-mix(in srgb, var(--sc-warning) 24%, transparent), color-mix(in srgb, var(--sc-bg-1) 60%, transparent)); }
       .tok:disabled:not(.on) { color: var(--sc-fg-2); }
+      .modes { display: flex; gap: 4px; margin-bottom: 4px; }
+      .mode { border: 1px solid var(--sc-border, transparent); background: transparent; color: var(--sc-fg-2); border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 0.75rem; cursor: pointer; }
+      .mode:hover:not(.on) { color: var(--sc-fg-0); }
+      .mode:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .mode.on { color: var(--sc-fg-0); border-color: color-mix(in srgb, var(--sc-accent) 60%, #fff); }
+      @media (pointer: coarse) { .mode { min-height: 48px; } }
       .tok.nav { flex: 0 0 28px; font-size: 1rem; }
       @media (pointer: coarse) { .tok.nav { flex-basis: 48px; } }
     `,
@@ -84,6 +96,18 @@ export class CometTrackComponent {
   /** The patch line the tip is for. */
   readonly patchLine = input.required<string>();
   readonly comet = input.required<VerseComet>();
+  /** The next x.y.z patch of the line, when the server knows one (absent before the version-tip migration). */
+  readonly version = signal<VerseVersionComet | null>(null);
+  /** Tipping the x.y.z patch instead of the line. */
+  readonly versionMode = signal(false);
+  /** The x.y.z switch only on a map whose line comet is still open - an old, closed map has nothing to tip. */
+  readonly modes = computed(() => (this.comet().locked ? null : this.version()));
+  /** Version mode in effect (the switch can vanish while it is on). */
+  readonly onVersion = computed(() => this.versionMode() && !!this.modes());
+  /** The comet under the rail: the line's or the x.y.z patch's. */
+  readonly cur = computed<VerseComet>(() => (this.onVersion() ? this.version()?.comet : null) ?? this.comet());
+  /** What a tip is placed on: `4.5` or `4.4.2`. */
+  readonly target = computed(() => (this.onVersion() ? this.version()?.patchVersion : null) ?? this.patchLine());
 
   private readonly api = inject(VerseApiService);
   private readonly undo = inject(UndoToastService);
@@ -100,45 +124,58 @@ export class CometTrackComponent {
   /** The tipped day while its undo window is open — nothing sent yet. */
   readonly pending = signal<string | null>(null);
   private readonly start = signal(addDays(this.today, 1));
-  readonly interactive = computed(() => this.comet().state === 'none' && !this.comet().locked);
-  readonly days = computed(() => cometDays(this.start(), COMET_DAYS, this.comet().tippedDate ?? this.pending()));
+  readonly interactive = computed(() => this.cur().state === 'none' && !this.cur().locked);
+  readonly days = computed(() => cometDays(this.start(), COMET_DAYS, this.cur().tippedDate ?? this.pending()));
   readonly canBack = computed(() => this.start() > addDays(this.today, 1));
   readonly curve = computed(() => railCurve(this.interactive() ? COMET_DAYS + 2 : COMET_DAYS, RIM_K, false));
 
   /** The patch under its current name (CIG renames: 4.11 became 5.0), "formerly" appended when renamed. */
-  readonly patchName = computed(() => {
+  readonly patchName = computed(() => this.onVersion() ? this.versionName(this.target()) : this.lineName());
+
+  /** The line under its current name, "formerly" appended when renamed. */
+  lineName(): string {
     const line = this.patchLine();
     const now = currentPatchName(line);
     return now === line ? line : `${now} (${this.i18n.instant('starmap.comet.formerly', { patch: line })})`;
-  });
+  }
+
+  /** `4.11.1` as CIG now calls it (`5.0.1`); the former name is appended when renamed. */
+  versionName(version: string): string {
+    const [ma, mi, z] = version.split('.');
+    const line = `${ma}.${mi}`;
+    const now = currentPatchName(line);
+    return now === line ? version : `${now}.${z} (${this.i18n.instant('starmap.comet.formerly', { patch: version })})`;
+  }
   /** A tip whose day passed while the patch is still not LIVE was missed: the comet flew by, the patch did not come. */
   readonly missed = computed(() => {
-    const c = this.comet();
+    const c = this.cur();
     return c.state === 'tipped' && c.tippedDate !== null && c.tippedDate < this.today;
   });
   readonly stateKey = computed(() => {
-    const c = this.comet();
+    const c = this.cur();
     if (this.missed()) return 'missed';
     return c.state === 'none' && c.locked ? 'locked' : c.state;
   });
   readonly headKey = computed(() => {
-    const c = this.comet();
+    const c = this.cur();
     if (this.missed()) return 'starmap.comet.head.missed';
     if (c.state === 'none') return c.locked ? 'starmap.comet.head.closed' : 'starmap.comet.head.open';
     return `starmap.comet.head.${c.state}`;
   });
 
   constructor() {
+    this.api.cometVersion().then((v) => this.version.set(v), () => this.version.set(null));
     effect(() => {
-      const c = this.comet();
+      const c = this.cur();
       this.patchLine();
+      this.target();
       this.start.set(cometWindowStart(c.tippedDate ?? c.announcedDate, this.today, COMET_DAYS));
       this.error.set(null);
     });
     // A tip stays marked through state refreshes of the same patch (its offer
     // is still queued); only another patch line clears the marker.
     effect(() => {
-      this.patchLine();
+      this.target();
       this.pending.set(null);
     });
   }
@@ -152,12 +189,12 @@ export class CometTrackComponent {
   /** Holds the tip in the undo window; it is sent when the window closes. */
   tip(ymd: string): void {
     if (!this.interactive() || this.busy() || this.pending() !== null) return;
-    const line = this.patchLine();
+    const line = this.target();
     this.error.set(null);
     this.pending.set(ymd);
     this.undo.offer({
       messageKey: 'starmap.comet.undoToast',
-      messageParams: { patch: line, date: this.day(ymd, true) },
+      messageParams: { patch: this.patchName(), date: this.day(ymd, true) },
       commit: () => this.send(line, ymd),
       onUndo: () => this.pending.set(null),
     });
@@ -165,10 +202,18 @@ export class CometTrackComponent {
 
   private async send(line: string, ymd: string): Promise<void> {
     this.busy.set(true);
-    const r = await this.api.submitPrediction(line, ymd);
-    this.busy.set(false);
-    this.pending.set(null);
-    if (!r.ok && line === this.patchLine()) this.error.set(r.errorKey);
+    try {
+      const isVersion = line !== this.patchLine();
+      const r = isVersion ? await this.api.submitVersionPrediction(line, ymd) : await this.api.submitPrediction(line, ymd);
+      if (isVersion && r.ok) this.version.set(await this.api.cometVersion());
+      if (!r.ok && line === this.target()) this.error.set(r.errorKey);
+    } catch {
+      if (line === this.target()) this.error.set('errors.generic');
+    } finally {
+      // A thrown request must never leave the rail disabled for good.
+      this.busy.set(false);
+      this.pending.set(null);
+    }
   }
 
   day(ymd: string | null, weekday = false): string {

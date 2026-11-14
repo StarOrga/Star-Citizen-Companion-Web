@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.263.0] - 2026-11-14
+
+### Added
+- Rank page (`/verse/explorer/rank`) with seven tiers, an animated ladder, your star map as a gallery-style tile with lightbox and 4K / phone / ultrawide downloads, the series, rank rewards and "Meine Sternbilder"
+- Comet tips on concrete x.y.z patches next to the line tip
+- Admin satellite on the Verse hub and a completion celebration the next time you open a finished star map
+
+### Changed
+- Star map: gallery-style header, frameless "?" tour for every reader (it now explains everything the Logbuch did), quiet patch switcher top left, no sun, the comet leads, calmer background, rank crest with a "new" marker
+- HQ on the Verse hub redrawn as hangar and storage yard; the hub's star-map miniature matches the map inside
+- Wallpaper: realistic night sky without Milky Way, your constellation small but readable
+
+### Fixed
+- The star-map glyph in Verse headers no longer turns yellow after a comet hit
+
 ## [0.262.0] - 2026-11-13
 
 ### Changed

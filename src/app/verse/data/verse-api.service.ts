@@ -24,12 +24,14 @@ import {
   VerseLoadState,
   VerseResult,
   VerseStarKey,
+  VerseVersionComet,
   VERSE_STAR_KEYS,
   mapCommunityStars,
   mapConstellation,
   mapSuggestion,
   mapDigest,
   mapExplorer,
+  mapVersionComet,
   rankTopItems,
 } from './verse.models';
 
@@ -291,6 +293,34 @@ export class VerseApiService {
     });
     if (error) return { ok: false, errorKey: verseErrorKey('submitPrediction', error) };
     await this.announceStar('comet', patchLine, before);
+    return { ok: true, data: undefined };
+  }
+
+  /**
+   * The next x.y.z patch to tip (`verse_comet_version_state`). Null when nothing is
+   * known, signed out, or the RPC does not exist yet (migration not applied): the
+   * map then keeps the line comet only.
+   */
+  async cometVersion(): Promise<VerseVersionComet | null> {
+    if (!this.auth.isAuthenticated()) return null;
+    const { data, error } = await this.sb.client.rpc("verse_comet_version_state");
+    if (error) {
+      logWarn(SCOPE, "cometVersion failed", { error });
+      return null;
+    }
+    return mapVersionComet(data);
+  }
+
+  /** Tips the day an x.y.z patch goes LIVE (insert-only, closes when LIVE or announced). No star. */
+  async submitVersionPrediction(patchVersion: string, predictedLiveDate: string): Promise<VerseResult<void>> {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(predictedLiveDate)) {
+      return { ok: false, errorKey: toErrorKey(SCOPE, "submitVersionPrediction", new Error("invalid date")) };
+    }
+    const { error } = await this.sb.client.rpc("verse_submit_version_prediction", {
+      p_patch_version: patchVersion,
+      p_date: predictedLiveDate,
+    });
+    if (error) return { ok: false, errorKey: verseErrorKey("submitVersionPrediction", error) };
     return { ok: true, data: undefined };
   }
 

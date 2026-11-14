@@ -7297,6 +7297,9 @@
       "hqSupplies": "{{n}} offene Nachschübe",
       "hqSuppliesOne": "1 offener Nachschub",
       "hqCalm": "Alles ruhig im HQ",
+      "admin": "Admin-Station",
+      "adminValue": "Direkt ins Admin-Hub",
+      "adminHint": "nur für Admins sichtbar",
       "newsEmpty": "Gerade keine News.",
       "patchesEmpty": "Noch keine Patch Notes.",
       "patchTitle": "Star Citizen Alpha {{v}}",
@@ -7340,8 +7343,6 @@
     },
     "export": {
       "wallpaper": "Wallpaper herunterladen (4K)",
-      "busy": "Wird gerendert …",
-      "gallery": "Meine Sternkarten",
       "failed": "Das Wallpaper ließ sich nicht erstellen. Versuch es noch einmal."
     },
     "task": {
@@ -7434,9 +7435,6 @@
       }
     },
     "kartograph": {
-      "title": "Kartograph",
-      "rank": "Rang {{rank}}",
-      "perks": "Früher Zugang zu Beta-Funktionen, Vorschläge für die Top-Liste und ein Abzeichen, das du als öffentlichen Link teilen kannst.",
       "locked": "Sammle Sterne, um den Kartograph-Rang freizuschalten."
     },
     "community": {
@@ -7447,14 +7445,13 @@
     },
     "suns": {
       "title": "Sonnensammlung",
-      "none": "Noch keine Sonne. Setz deinen Patch-Tipp in den Patch News."
+      "none": "Noch keine Sonne. Setz deinen Kometen-Tipp auf der Sternkarte."
     },
     "glyph": {
       "aria": "Sternkarte: {{lit}} von {{total}} Sternen"
     },
     "gallery": {
       "title": "Meine Sternkarten",
-      "subtitle": "Jede vollendete Sternkarte landet automatisch hier.",
       "empty": "Noch keine Sternkarte vollendet.",
       "toMap": "Zur Sternkarte",
       "appHint": "Die letzten 7 liegen auch in der Starscape-App.",
@@ -7508,10 +7505,10 @@
     },
     "tour": {
       "open": "So funktioniert die Sternkarte",
-      "title": "Die Sternkarte und das Logbuch",
-      "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten.",
-      "p2": "Am Rand liegen zwei Herausforderungen: der Patch-Tipp und das Erkennen der Sternkarte.",
-      "p3": "Im Logbuch findest du den Community-Himmel, deinen Kartograph-Rang und die Serien-Belohnungen.",
+      "title": "So funktioniert die Sternkarte",
+      "p1": "Jeder Patch hat eine Sternkarte aus 7 Sternen. Jede erledigte Aufgabe bringt einen zum Leuchten; sind alle 7 an, zeigt die Form ein Schiff und die Karte landet in deiner Sammlung.",
+      "p2": "Unter der Kuppel liegen zwei Herausforderungen: der Kometen-Tipp auf den LIVE-Tag des nächsten Patches und das Erkennen des Schiffs hinter der Form.",
+      "p3": "Mit vollendeten Sternkarten steigst du als Kartograph auf. Das Wappen oben rechts öffnet deine Rangseite mit Serie, Belohnungen und dem 4K-Wallpaper.",
       "start": "Zeig es mir",
       "close": "Schließen",
       "back": "Zurück",
@@ -7521,30 +7518,28 @@
       "step": {
         "stage": {
           "title": "Die Kuppel",
-          "text": "Die Sternkarte des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes."
+          "text": "Die Sternkarte des gewählten Patches. Leuchtende Sterne sind erledigte Aufgaben, der pulsierende ist der Vorschlag als Nächstes, hohle Ringe sind noch offen. Ein Klick auf einen Stern zeigt seine Aufgabe. Ab 3 Sternen leuchtest du im Community-Himmel dieses Patches mit: hellere Sterne heißen, mehr Explorer haben sie entzündet."
         },
-        "count": {
-          "title": "Form und Rang",
-          "text": "Die Bildunterschrift nennt die Form dieser Karte und deinen Kartograph-Rang. Die Wappen darunter zeigen die Ränge hinter und vor dir; dein aktuelles Wappen öffnet dein Abzeichen."
+        "patch": {
+          "title": "Patch wählen",
+          "text": "Oben links wechselst du zur Sternkarte eines früheren Patches. Jede Karte bleibt erhalten, auch wenn der Patch längst LIVE ist."
         },
-        "tracks": {
-          "title": "Die zwei Herausforderungen",
-          "text": "Gib deinen Patch-Tipp für den nächsten LIVE-Tag ab und rate, welches Schiff die Sternkarte zeigt."
+        "comet": {
+          "title": "Der Komet",
+          "text": "Tipp den Tag, an dem der nächste Patch LIVE geht. Triffst du ihn, entzündet der Komet eine Sonne für deine Sonnensammlung und einen Stern auf der Karte."
         },
-        "series": {
-          "title": "Die Serie",
-          "text": "Deine Serie über mehrere Patches - Belohnungen schalten sich entlang davon frei."
+        "guess": {
+          "title": "Die Form erraten",
+          "text": "Rate, welches Schiff die Sternkarte zeigt. Ein Treffer bringt einen Stern; danach steht der Name der Form unter der Kuppel."
         },
-        "more": {
-          "title": "Das Logbuch",
-          "text": "Öffnet das Seitenblatt: Community-Sternkarte, Sonnen, Kartograph-Rang, Vorschläge und Belohnungen."
+        "rank": {
+          "title": "Dein Kartograph-Rang",
+          "text": "Jede vollendete Sternkarte bringt dich im Rang weiter. Sieben Stufen vom Beobachter bis zum Hüter des Atlas: jede schaltet etwas frei, vom 4K-Wallpaper über ein teilbares Abzeichen bis zu Wappen-Details ab Stufe 5. Auf der Rangseite liegen deine Serie, ihre Belohnungen und das 4K-Wallpaper."
         }
       }
     },
     "more": {
-      "open": "Logbuch",
-      "title": "Logbuch",
-      "rewards": "Belohnungen der Serie"
+      "title": "Extras"
     },
     "card": {
       "close": "Schließen",
@@ -7567,7 +7562,9 @@
     "comet": {
       "kind": "Patch-Tipp",
       "ruleAria": "Regeln zum Patch-Tipp",
-      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Patch-Tipp, ein Tipp pro Patch. Trifft er auf ±2 Tage, leuchtet oben rechts am Himmel die Sonne auf. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
+      "rule": "Tippe den Tag, an dem {{patch}} LIVE geht – ein Klick auf einen Tag setzt deinen Patch-Tipp, ein Tipp pro Patch. Trifft er auf ±2 Tage, zündet der Komet eine Sonne für deine Sammlung auf der Rangseite. Tipps schließen, sobald {{patch}} LIVE ist oder der LIVE-Termin offiziell angekündigt wurde.",
+      "ruleVersion": "Tippe den Tag, an dem {{patch}} LIVE geht – ein konkreter Patch der Linie, ein Tipp pro Patch. Der Tipp schließt, sobald {{patch}} LIVE ist oder das LIVE-Datum offiziell genannt wurde. Den Patch-Stern gibt es nur mit dem Linien-Tipp.",
+      "modeAria": "Tipp-Ziel",
       "state": {
         "none": "offen",
         "tipped": "gesetzt · wartet auf LIVE",
@@ -7633,6 +7630,113 @@
       "current": "Kartograph-Rang {{rank}} - Abzeichen öffnen",
       "earned": "Kartograph-Rang {{rank}} - erreicht",
       "next": "Kartograph-Rang {{rank}} - noch gesperrt"
+    },
+    "rank": {
+      "link": "{{name}} · deine Rangseite öffnen",
+      "none": "Noch kein Rang · so steigst du auf",
+      "news": "Neues auf deiner Rangseite"
+    },
+    "celebrate": {
+      "eyebrow": "Sternbild vollendet",
+      "named": "{{name}} leuchtet am Himmel",
+      "done": "Alle 7 Sterne leuchten"
+    },
+    "rankPage": {
+      "title": "Rang",
+      "subtitle": "Sieben Stufen, eine Sternkarte, die mit dir wächst.",
+      "standingAria": "Dein aktueller Rang und deine Sternkarte",
+      "current": "Dein Rang",
+      "unranked": "Noch kein Rang",
+      "unrankedMeaning": "Vervollständige deine erste Sternkarte - alle 7 Sterne eines Patches - und du steigst als Beobachter in die Leiter ein.",
+      "count": "{{n}} Sternkarten vollständig",
+      "countOne": "1 Sternkarte vollständig",
+      "progressAria": "Fortschritt bis {{name}}",
+      "toNext": "Noch {{n}} vollständige Sternkarten bis {{name}}",
+      "toNextOne": "Noch eine vollständige Sternkarte bis {{name}}",
+      "top": "Höchste Stufe erreicht. Jede weitere Sternkarte kommt trotzdem an deinen Himmel.",
+      "perks": "Dein Rang öffnet den frühen Zugang zu Beta-Funktionen, Vorschläge für Inhalte und die Rang-Belohnungen unten.",
+      "mapOpen": "Deine Sternkarte groß öffnen",
+      "mapAlt": "Deine Sternkarte: die Sternbilder deiner Patches an einem Nachthimmel",
+      "mapNone": "Entzünde deinen ersten Stern auf der Sternkarte, dann erscheint hier dein Himmel.",
+      "mapCaption": "Deine Sternkarte",
+      "mapUpdates": "Aktualisiert sich mit jedem Rang, den du aufsteigst.",
+      "downloadPhone": "Handy-Hintergrund",
+      "downloadUltrawide": "Ultrawide (5120 × 1440)",
+      "downloadLocked": "Vervollständige deine erste Sternkarte, dann kannst du sie in 4K herunterladen.",
+      "ladderTitle": "Die sieben Stufen",
+      "at": "ab {{n}} Sternkarten",
+      "atOne": "ab 1 Sternkarte",
+      "new": "Neu",
+      "state": {
+        "earned": "erreicht",
+        "current": "deine aktuelle Stufe",
+        "locked": "noch nicht erreicht"
+      },
+      "rewardsTitle": "Rang-Belohnungen",
+      "rewardsLead": "Jede Stufe fügt deinem Himmel etwas hinzu. Ab Astrograf verändern die Belohnungen dein Wappen und den Hintergrund selbst.",
+      "rewardFrom": "ab {{name}}",
+      "reward": {
+        "wallpaper": {
+          "title": "4K-Hintergrund",
+          "desc": "Deine Sternkarte als Hintergrundbild in 3840 × 2160."
+        },
+        "badge": {
+          "title": "Teilbares Abzeichen",
+          "desc": "Dein Wappen und deine neueste Sternkarte als öffentlicher Link für Freunde."
+        },
+        "phone": {
+          "title": "Handy-Hintergrund",
+          "desc": "Dein Himmel im Hochformat für den Sperrbildschirm."
+        },
+        "ultrawide": {
+          "title": "Ultrawide-Hintergrund",
+          "desc": "Ein 32:9-Panorama für breite und doppelte Bildschirme."
+        },
+        "frame": {
+          "title": "Vermessungsring",
+          "desc": "Ein zweiter, gepunkteter Ring um dein Wappen, überall wo es erscheint."
+        },
+        "deepfield": {
+          "title": "Tiefes Feld",
+          "desc": "Hinter jedem Hintergrund, den du herunterlädst, leuchtet ein Nebel."
+        },
+        "orbit": {
+          "title": "Drehende Rose",
+          "desc": "Der Stern deines Wappens dreht sich langsam, wie ein Kompass auf dem Kartentisch."
+        }
+      },
+      "seriesTitle": "Serie",
+      "extrasTitle": "Vorschläge und Abzeichen",
+      "tier": {
+        "observer": {
+          "name": "Beobachter",
+          "meaning": "Deine erste Sternkarte steht auf der Karte."
+        },
+        "surveyor": {
+          "name": "Vermesser",
+          "meaning": "Du vermisst den Himmel Patch für Patch."
+        },
+        "navigator": {
+          "name": "Navigator",
+          "meaning": "Du findest deinen Weg über mehrere Patches."
+        },
+        "cartographer": {
+          "name": "Kartograph",
+          "meaning": "Deine Karten decken ein echtes Stück des Verse ab."
+        },
+        "astrographer": {
+          "name": "Astrograf",
+          "meaning": "Du kartierst den Himmel genau; die späten Belohnungen öffnen sich."
+        },
+        "master": {
+          "name": "Meisterkartograf",
+          "meaning": "Kaum eine Karte ist so vollständig wie deine."
+        },
+        "keeper": {
+          "name": "Hüter des Atlas",
+          "meaning": "Dein Atlas umspannt Jahre des Verse."
+        }
+      }
     }
   },
   "beta": {

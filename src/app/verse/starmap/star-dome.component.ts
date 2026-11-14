@@ -9,7 +9,6 @@ import type { VersePoint } from '../data/verse.models';
 import {
   StarSlot,
   StarTaskView,
-  SunState,
   constellationEdges,
   starSlots,
 } from './starmap.model';
@@ -38,8 +37,8 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
 /**
  * The dome sky of one patch: 7 stars (open = hollow ring · suggested = one
  * breathing dot without spikes · done = four-spike star), the outline (solid
- * between two done stars, dashed wherever the figure is not complete yet) and
- * the sun top right. Every star is a button; a
+ * between two done stars, dashed wherever the figure is not complete yet). No
+ * sun here (the Verse hub carries it). Every star is a button; a
  * click opens its card next to it. Plays the entry sequence on every open;
  * reduced motion shows the final state.
  */
@@ -48,7 +47,13 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, TranslatePipe, ScTooltipDirective, ScDialogDirective],
   template: `
-    <div class="fig">
+    <div class="fig" [class.celebrate]="celebrate()" [style.--tc]="tCelebrate() + 's'">
+      @if (celebrate()) {
+        <i class="bloom" aria-hidden="true"></i>
+        @for (sp of sparks; track $index) {
+          <i class="spark" aria-hidden="true" [style.--sx]="sp.x" [style.--sy]="sp.y" [style.--sd]="sp.d + 's'"></i>
+        }
+      }
       <div class="plane">
         <svg class="lines" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
           @for (e of edges(); track $index) {
@@ -65,7 +70,7 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
                   [style.--d]="(starDelay(s)) + 's'" [attr.aria-pressed]="selected() === s.index"
                   [attr.aria-label]="starAria(s) | translate: { task: (taskTitle(s) | translate), n: s.rank + 1 }"
                   (click)="toggle(s)">
-            <span class="ent">
+            <span class="ent" [style.--r]="s.rank">
               <svg class="sv" viewBox="-14 -14 28 28" aria-hidden="true" focusable="false">
                 <circle class="bk" r="9.5" />
                 @switch (s.state) {
@@ -109,12 +114,6 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
           </div>
         }
       </div>
-      <span class="sun-sky" tabindex="0" role="img" [class]="'sun-sky ' + sun()"
-            [attr.aria-label]="'starmap.sun.' + sun() + '.aria' | translate"
-            [scTooltip]="'starmap.sun.' + sun() + '.tip' | translate: { patch: sunLine() }">
-        <span class="sun" [class]="'sun s-' + sun()"><i></i></span>
-        @if (sun() === 'hit') { <span class="comet s-hit" aria-hidden="true"></span> }
-      </span>
     </div>
   `,
   styles: [
@@ -182,42 +181,28 @@ export function formatDay(value: string | null, lang: string, withWeekday = fals
       .go { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--sc-pad-2); border-radius: 4px; background: var(--sc-accent);
         color: var(--sc-bg-0); font: 0.75rem var(--sc-font-display); letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none; }
       .go:focus-visible { outline: 2px solid var(--sc-fg-0); outline-offset: 2px; }
-      /* the sun lives in the sky top right of the constellation, no frame */
-      .sun-sky { position: absolute; z-index: 3; left: 96%; top: 4%; width: 56px; height: 56px; translate: -50% -50%;
-        display: grid; place-items: center; border-radius: 50%; cursor: help; outline: none; animation: sd-in 0.8s ease-out 0.3s both; }
-      .sun-sky:focus-visible .sun > i { outline: 1px dashed var(--sc-accent); outline-offset: 6px; }
-      .sun { --k: 1.7; --fl: 0px; position: relative; display: inline-block; width: calc(var(--k) * 16px); height: calc(var(--k) * 16px); opacity: 0.5; }
-      .sun > i { position: absolute; left: 50%; top: 50%; width: calc(var(--k) * 6px); height: calc(var(--k) * 6px); translate: -50% -50%;
-        border-radius: 50%; background: var(--sc-fg-2); box-shadow: 0 0 calc(var(--k) * 6px) calc(var(--k) * 1px) color-mix(in srgb, var(--sc-fg-2) 30%, transparent); }
-      .sun::before { content: ''; position: absolute; left: 50%; top: 50%; width: calc(var(--k) * var(--fl)); height: 1px; translate: -50% -50%;
-        opacity: 0.8; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sc-warning) 70%, #fff) 50%, transparent); }
-      .sun.s-tipped { --fl: 46px; opacity: 1; }
-      .sun.s-tipped > i { background: radial-gradient(circle, #fff3dc 0 35%, var(--sc-warning) 100%);
-        box-shadow: 0 0 calc(var(--k) * 8px) calc(var(--k) * 2px) color-mix(in srgb, var(--sc-warning) 55%, transparent),
-          0 0 calc(var(--k) * 24px) calc(var(--k) * 8px) color-mix(in srgb, var(--sc-warning) 18%, transparent);
-        animation: sd-breathe-sun 4s ease-in-out infinite; }
-      .sun.s-hit { --fl: 140px; opacity: 1; }
-      .sun.s-hit::before { height: 2px; }
-      .sun.s-hit > i { width: calc(var(--k) * 8px); height: calc(var(--k) * 8px); background: #fff;
-        box-shadow: 0 0 calc(var(--k) * 10px) calc(var(--k) * 4px) #fff,
-          0 0 calc(var(--k) * 30px) calc(var(--k) * 12px) color-mix(in srgb, var(--sc-warning) 55%, transparent),
-          0 0 calc(var(--k) * 70px) calc(var(--k) * 28px) color-mix(in srgb, var(--sc-warning) 16%, transparent); }
-      @keyframes sd-breathe-sun { 0%, 100% { filter: brightness(0.9); } 50% { filter: brightness(1.15); } }
-      .comet { position: absolute; right: 70%; top: 72%; width: 46px; height: 10px; transform: rotate(-28deg); pointer-events: none; }
-      .comet::before { content: ''; position: absolute; left: 0; right: 4px; top: 3px; height: 4px; clip-path: polygon(0 50%, 100% 0, 100% 100%);
-        transform-origin: right center; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sc-accent) 40%, transparent) 45%, #eaf9ff);
-        animation: sd-tail 2.8s ease-in-out infinite; }
-      .comet::after { content: ''; position: absolute; right: 0; top: 1px; width: 8px; height: 8px; border-radius: 50%;
-        background: radial-gradient(circle, #fff 0 25%, color-mix(in srgb, var(--sc-accent) 70%, #fff) 40%, transparent 72%);
-        box-shadow: 0 0 8px color-mix(in srgb, var(--sc-accent) 70%, #fff); }
-      @keyframes sd-tail { 0%, 100% { transform: scaleX(0.82); opacity: 0.8; } 50% { transform: scaleX(1.12); opacity: 1; } }
+      /* Completion celebration (once per patch line, on the visit after the last star): a bloom from the
+         figure's heart, the outline flares, the stars pulse one after another, a few sparks drift out. */
+      .bloom { position: absolute; z-index: 1; left: 50%; top: 50%; width: 70%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+        pointer-events: none; opacity: 0;
+        background: radial-gradient(circle, color-mix(in srgb, var(--sc-accent) 30%, #fff 20%) 0, color-mix(in srgb, var(--sc-accent) 12%, transparent) 38%, transparent 68%);
+        animation: sd-bloom 2.6s ease-out var(--tc) both; }
+      .spark { position: absolute; z-index: 3; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; pointer-events: none;
+        background: #fff; box-shadow: 0 0 6px 1px color-mix(in srgb, var(--sc-accent) 70%, #fff); opacity: 0;
+        animation: sd-spark 2.2s cubic-bezier(0.2, 0.7, 0.3, 1) calc(var(--tc) + var(--sd)) both; }
+      .fig.celebrate .ln.on { animation: sd-draw 0.4s ease-in-out var(--d) both, sd-flare 1.8s ease-in-out var(--tc) both; }
+      .fig.celebrate .star.done .sv { animation: sd-cheer 0.9s ease-out calc(var(--tc) + 0.4s + var(--r, 0) * 0.14s) both; }
+      @keyframes sd-bloom { 0% { opacity: 0; scale: 0.3; } 30% { opacity: 1; } 100% { opacity: 0; scale: 1.5; } }
+      @keyframes sd-spark { 0% { opacity: 0; left: 50%; top: 50%; } 15% { opacity: 1; } 100% { opacity: 0; left: calc(50% + var(--sx) * 0.1%); top: calc(50% + var(--sy) * 0.1%); } }
+      @keyframes sd-flare { 0%, 100% { stroke-width: 0.4; opacity: 0.85; } 40% { stroke-width: 0.9; opacity: 1; filter: drop-shadow(0 0 1.2px #fff); } }
+      @keyframes sd-cheer { 0%, 100% { transform: none; filter: none; } 45% { transform: scale(1.55); filter: brightness(1.8) drop-shadow(0 0 6px #fff); } }
       @media (pointer: coarse) { .star { min-width: var(--sc-tap-min, 48px); min-height: var(--sc-tap-min, 48px); } }
       @media (max-width: 640px) {
         .card { position: absolute; left: 4% !important; right: 4% !important; width: auto; margin: 0; translate: 0 18px; }
-        .sun-sky { left: 90%; top: 3%; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .ln, .ent, .sun-sky, .card, .st .h, .st .bl, .sun > i, .comet::before { animation: none !important; }
+        .ln, .ent, .card, .st .h, .st .bl, .sv { animation: none !important; }
+        .bloom, .spark { display: none; }
         .ln.on { stroke-dashoffset: 0; }
         .st.next .bl { opacity: 0.35; transform: scale(1.35); }
         .sv { transition: none; }
@@ -229,9 +214,8 @@ export class StarDomeComponent {
   readonly points = input<readonly VersePoint[] | null | undefined>(null);
   readonly tasks = input.required<readonly StarTaskView[]>();
   readonly next = input<StarTaskView | null>(null);
-  readonly sun = input<SunState>('faded');
-  /** The patch line the sun waits for (tooltip). */
-  readonly sunLine = input('');
+  /** Plays the completion celebration once the entry sequence has settled (reduced motion: none). */
+  readonly celebrate = input(false);
   /** Changes when the patch changes: closes the card. */
   readonly patchLine = input('');
 
@@ -251,6 +235,13 @@ export class StarDomeComponent {
   private readonly tIgnite = computed(() => T_LINES + (this.litLines() ? LINES_SPAN : 0.2));
   readonly tNext = computed(() => this.tIgnite() + this.litCount() * T_IGNITE_GAP + 0.25);
   readonly tLate = computed(() => this.tNext() + 0.35);
+  readonly tCelebrate = computed(() => +(this.tLate() + 0.6).toFixed(3));
+  /** Sparks of the celebration: 14 directions, drift in ‰ of the figure, staggered starts. */
+  readonly sparks = Array.from({ length: 14 }, (_, i) => {
+    const a = (i / 14) * Math.PI * 2 + (i % 2) * 0.2;
+    const r = 320 + (i % 3) * 90;
+    return { x: Math.round(Math.cos(a) * r), y: Math.round(Math.sin(a) * r), d: +((i % 5) * 0.08).toFixed(2) };
+  });
 
   constructor() {
     effect(() => {
