@@ -1,4 +1,4 @@
-import { mapChannelInfo, mapConstellation, mapDigest, mapExplorer, mapVersionComet, rankTopItems, VerseDigest } from './verse.models';
+import { mapChannelInfo, mapConstellation, mapDigest, mapExplorer, mapRankIdeas, mapVersionComet, rankTopItems, VerseDigest } from './verse.models';
 
 const item = (key: string, kind: string, rank: number, pinned = false) => ({
   key,
@@ -99,6 +99,7 @@ describe('verse.models', () => {
       ],
       total_stars: 1,
       suns: [],
+      sunSplinters: 0,
       streak: { current: 1, best: 3, reserve_available: false, reserves_used: 0 },
       kartograph: { unlocked: false, rank: 0 },
       rewards: { road: true, nebula: true, live: false, reserve: false, meteor: false, supernova: false, sun_collection: false },
@@ -122,6 +123,25 @@ describe('verse.models', () => {
     expect(mapConstellation(null)).toBeNull();
   });
 
+  it('maps splinters and the recognition source of the x.y.z target', () => {
+    const raw = { patch_version: '4.4.2', comet: { state: 'none' }, splinters: 4, source: 'evocati' };
+    expect(mapVersionComet(raw)).toMatchObject({ splinters: 4, source: 'evocati' });
+    expect(mapVersionComet({ ...raw, source: 'rumour', splinters: -2 })).toMatchObject({ splinters: 0, source: null });
+  });
+
+  it('maps reward ideas, votes desc, dropping rows without id or body', () => {
+    const ideas = mapRankIdeas([
+      { id: 'a', body: 'Ship paint', votes: 1, voted: true, mine: true, created_at: 'x', archived: false },
+      { id: 'b', body: 'Crest glow', votes: 5, archived: true },
+      { id: '', body: 'no id' },
+      { id: 'c', body: '' },
+    ]);
+    expect(ideas.map((i) => i.id)).toEqual(['b', 'a']);
+    expect(ideas[1]).toMatchObject({ voted: true, mine: true, archived: false });
+    expect(ideas[0]).toMatchObject({ voted: false, archived: true, votes: 5 });
+    expect(mapRankIdeas(null)).toEqual([]);
+  });
+
   it("maps the x.y.z comet state and degrades to null without a target", () => {
     expect(
       mapVersionComet({
@@ -135,6 +155,8 @@ describe('verse.models', () => {
       patchLine: "4.4",
       liveVersion: "4.4.1",
       comet: { state: "tipped", tippedDate: "2030-01-02", locked: false, lockedReason: null, announcedDate: null },
+      splinters: 0,
+      source: null,
     });
     expect(mapVersionComet({ patch_version: null, comet: null })).toBeNull();
     expect(mapVersionComet({ patch_version: "4.4", comet: {} })).toBeNull();

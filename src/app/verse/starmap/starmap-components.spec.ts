@@ -51,6 +51,7 @@ const STATE: VerseExplorerState = {
   upcoming: null,
   totalStars: 9,
   suns: ['4.4'],
+  sunSplinters: 4,
   streak: { current: 2, best: 3, reserveAvailable: false, reservesUsed: 0 },
   kartograph: { unlocked: true, rank: 2, stars: 3 },
   rewards: { road: true, nebula: true, live: false, reserve: false, meteor: false, supernova: false, sunCollection: true },
@@ -61,8 +62,7 @@ describe('star map components', () => {
   const explorerState = signal<VerseLoadState>('ready');
   const authed = signal(true);
   let loadExplorer: Mock;
-  let suggest: Mock;
-  let suggestions: Mock;
+  let rankIdeas: Mock;
   let submitPrediction: Mock;
   let cometVersion: Mock;
   let submitVersionPrediction: Mock;
@@ -84,11 +84,7 @@ describe('star map components', () => {
       ok: true,
       data: { patchLine: '4.4', correct: false, answerClass: 'RSI_Zeus', answerName: 'RSI Zeus Mk II', starEarned: false },
     });
-    suggest = vi.fn().mockName('suggest').mockResolvedValue({ ok: true, data: undefined });
-    suggestions = vi.fn().mockName('suggestions').mockResolvedValue({
-      ok: true,
-      data: [{ id: 's1', itemUrl: '/verse/patches/4.4', note: 'read', status: 'open', createdAt: 'x' }],
-    });
+    rankIdeas = vi.fn().mockName('rankIdeas').mockResolvedValue({ ok: true, data: null });
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -102,8 +98,7 @@ describe('star map components', () => {
             explorerState,
             explorerError: signal(null),
             loadExplorer,
-            suggest,
-            suggestions,
+            rankIdeas,
             submitPrediction,
             cometVersion: (...a: unknown[]) => cometVersion(...a),
             submitVersionPrediction: (...a: unknown[]) => submitVersionPrediction(...a),
@@ -124,8 +119,6 @@ describe('star map components', () => {
             }),
             communityStars: vi.fn().mockName('communityStars').mockResolvedValue({ ok: true, data: { patchLine: '4.4', explorers: 4, stars: { notes: 4, 'cx-keybinds': 1 } } }),
             constellation: vi.fn().mockName('constellation').mockResolvedValue({ ok: true, data: null }),
-            promoteSuggestion: vi.fn().mockName('promoteSuggestion').mockResolvedValue({ ok: true, data: 'suggestion:s1' }),
-            dismissSuggestion: vi.fn().mockName('dismissSuggestion').mockResolvedValue({ ok: true, data: undefined }),
           },
         },
         { provide: RoleService, useValue: { isAdmin } },
@@ -343,6 +336,8 @@ describe('star map components', () => {
       patchLine: "4.4",
       liveVersion: "4.4.1",
       comet: { state: "none", tippedDate: null, locked: false, lockedReason: null, announcedDate: null },
+      splinters: 0,
+      source: "evocati",
     });
     explorer.set({ ...STATE, upcoming: { patchLine: "4.5", comet: { ...STATE.patches[0].comet } } });
     const f = TestBed.createComponent(ExplorerPageComponent);
@@ -351,12 +346,45 @@ describe('star map components', () => {
       f.detectChanges();
       expect(f.nativeElement.querySelectorAll("sc-comet-track .mode").length).toBe(2);
     });
-    (f.nativeElement.querySelectorAll("sc-comet-track .mode")[1] as HTMLButtonElement).click();
+    // x.y.z first and pre-selected, the line is the second choice; source and splinter note stay quiet underneath
+    const modes = [...f.nativeElement.querySelectorAll("sc-comet-track .mode")] as HTMLButtonElement[];
+    expect(modes[0].textContent).toContain("4.4.2");
+    expect(modes[0].getAttribute("aria-pressed")).toBe("true");
+    expect(modes[1].getAttribute("aria-pressed")).toBe("false");
+    expect(f.nativeElement.querySelector("sc-comet-track .src")?.textContent).toContain("starmap.comet.source.evocati");
+    expect(f.nativeElement.querySelector("sc-comet-track .splinter-note")).not.toBeNull();
     f.detectChanges();
     (f.nativeElement.querySelector("sc-comet-track .tok:not(.nav):not(:disabled)") as HTMLButtonElement).click();
     TestBed.inject(UndoToastService).flush();
     await vi.waitFor(() => expect(submitVersionPrediction).toHaveBeenCalledWith("4.4.2", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
     expect(submitPrediction).not.toHaveBeenCalled();
+  });
+
+  it("the line tip stays reachable as the second choice and drops the x.y.z notes", async () => {
+    cometVersion.mockResolvedValue({
+      patchVersion: "4.4.2",
+      patchLine: "4.4",
+      liveVersion: "4.4.1",
+      comet: { state: "none", tippedDate: null, locked: false, lockedReason: null, announcedDate: null },
+      splinters: 1,
+      source: null,
+    });
+    explorer.set({ ...STATE, upcoming: { patchLine: "4.5", comet: { ...STATE.patches[0].comet } } });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await vi.waitFor(() => {
+      f.detectChanges();
+      expect(f.nativeElement.querySelectorAll("sc-comet-track .mode").length).toBe(2);
+    });
+    expect(f.nativeElement.querySelector("sc-comet-track .src")).toBeNull();
+    (f.nativeElement.querySelectorAll("sc-comet-track .mode")[1] as HTMLButtonElement).click();
+    f.detectChanges();
+    expect(f.nativeElement.querySelectorAll("sc-comet-track .mode")[1].getAttribute("aria-pressed")).toBe("true");
+    expect(f.nativeElement.querySelector("sc-comet-track .splinter-note")).toBeNull();
+    (f.nativeElement.querySelector("sc-comet-track .tok:not(.nav):not(:disabled)") as HTMLButtonElement).click();
+    TestBed.inject(UndoToastService).flush();
+    await vi.waitFor(() => expect(submitPrediction).toHaveBeenCalled());
+    expect(submitVersionPrediction).not.toHaveBeenCalled();
   });
 
   it("without a version target the comet shows no mode switch (migration not applied)", () => {
@@ -545,36 +573,45 @@ describe('star map components', () => {
     return f;
   }
 
-  it('Kartograph: suggest a top item, own suggestions, badge share', async () => {
+  it('badge share opens from lit stars alone, with no finished map', async () => {
+    const stars = { ...STATE, kartograph: { unlocked: false, rank: 0, stars: 3 } };
+    const f = more(stars);
+    await f.whenStable();
+    f.detectChanges();
+    expect(f.nativeElement.querySelector('.side .btn.ghost')).not.toBeNull();
+    expect(f.nativeElement.querySelector('.suggest')).toBeNull();
+    const none = more({ ...STATE, kartograph: { unlocked: false, rank: 0, stars: 2 } });
+    none.detectChanges();
+    expect(none.nativeElement.querySelector('.side .btn.ghost')).toBeNull();
+  });
+
+  it('the extras area hosts the reward ideas, hidden when the RPC is missing', async () => {
+    const f = more();
+    await f.whenStable();
+    f.detectChanges();
+    expect(rankIdeas).toHaveBeenCalled();
+    expect(f.nativeElement.querySelector('sc-rank-ideas')).not.toBeNull();
+    expect(f.nativeElement.querySelector('sc-rank-ideas .ideas')).toBeNull();
+  });
+
+  it('sun collection folds splinters: 4 splinters = one small sun + "1 of 3", never a star', async () => {
     const f = more();
     await f.whenStable();
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
-    expect(el.querySelector('.side .btn.ghost')).not.toBeNull();
-    const input = el.querySelector('#sg-url') as HTMLInputElement;
-    const submit = el.querySelector('.suggest button[type=submit]') as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    input.value = '/verse/patches/4.4';
-    input.dispatchEvent(new Event('input'));
-    f.detectChanges();
-    expect(submit.disabled).toBe(false);
-    submit.click();
-    await f.whenStable();
-    expect(suggest).toHaveBeenCalledWith('/verse/patches/4.4', null);
-    expect(el.querySelectorAll('.sg-list li').length).toBe(1);
-    expect(el.querySelector('.admin-queue')).toBeNull();
+    expect(el.querySelectorAll('.suns .small-sun').length).toBe(1);
+    expect(el.querySelector('.suns .splinter')?.textContent).toContain('starmap.suns.splinter');
+    expect(el.querySelectorAll('.suns li').length).toBe(3);
+    expect(f.componentInstance.tier()).toBe(2);
   });
 
-  it('admins get the suggestion queue and can pin', async () => {
-    isAdmin.set(true);
-    const f = more();
+  it('splinters alone fill the collection but leave the rank where it was', async () => {
+    const f = more({ ...STATE, suns: [], sunSplinters: 2, kartograph: { unlocked: false, rank: 0, stars: 0 } });
     await f.whenStable();
     f.detectChanges();
-    const queue = f.nativeElement.querySelector('.admin-queue') as HTMLElement;
-    expect(queue.querySelectorAll('.sg-row').length).toBe(1);
-    (queue.querySelector('.sg-actions .btn') as HTMLButtonElement).click();
-    await f.whenStable();
-    expect(TestBed.inject(VerseApiService).promoteSuggestion).toHaveBeenCalledWith('s1', 'Pin it');
+    expect(f.nativeElement.querySelector('.suns .small-sun')).toBeNull();
+    expect(f.nativeElement.querySelector('.suns .splinter')).not.toBeNull();
+    expect(f.componentInstance.tier()).toBe(0);
   });
 
   it('community figure lights the stars other explorers earned', async () => {

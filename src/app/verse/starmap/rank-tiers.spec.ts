@@ -2,6 +2,8 @@ import {
   RANK_SEEN_KEY,
   RANK_TIER_AT,
   RANK_TIER_KEYS,
+  SPLINTERS_PER_SUN,
+  foldSplinters,
   hasRankNews,
   hasTierReward,
   rankNewsItems,
@@ -100,5 +102,20 @@ describe('rank news marker', () => {
   it('a broken store counts as nothing seen', () => {
     localStorage.setItem(RANK_SEEN_KEY, '{oops');
     expect(readRankSeen().size).toBe(0);
+  });
+
+  it('folds sun splinters 3 to 1 and keeps the rest', () => {
+    expect([0, 1, 2, 3, 4, 6, 7].map((n) => foldSplinters(n))).toEqual([
+      { suns: 0, rest: 0 },
+      { suns: 0, rest: 1 },
+      { suns: 0, rest: 2 },
+      { suns: 1, rest: 0 },
+      { suns: 1, rest: 1 },
+      { suns: 2, rest: 0 },
+      { suns: 2, rest: 1 },
+    ]);
+    expect(foldSplinters(-3)).toEqual({ suns: 0, rest: 0 });
+    expect(foldSplinters(undefined)).toEqual({ suns: 0, rest: 0 });
+    expect(SPLINTERS_PER_SUN).toBe(3);
   });
 });

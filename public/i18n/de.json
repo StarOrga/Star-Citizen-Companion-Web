@@ -5836,7 +5836,11 @@
     "rateLimit": "Zu viele Anfragen – bitte kurz warten.",
     "server": "Der Server hat einen Fehler gemeldet.",
     "generic": "Etwas ist schiefgelaufen.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "rankTierTooLow": "Das geht erst ab Stufe 5.",
+    "rankIdeaInvalid": "Die Idee braucht 3 bis 280 Zeichen.",
+    "rankIdeaLimit": "Du hast schon 3 offene Ideen.",
+    "rankIdeaGone": "Diese Idee gibt es nicht mehr oder sie ist archiviert."
   },
   "pageHeader": {
     "crumbsAria": "Seitenpfad",
@@ -7445,7 +7449,9 @@
     },
     "suns": {
       "title": "Sonnensammlung",
-      "none": "Noch keine Sonne. Setz deinen Kometen-Tipp auf der Sternkarte."
+      "none": "Noch keine Sonne. Setz deinen Kometen-Tipp auf der Sternkarte.",
+      "small": "Kleine Sonne",
+      "splinter": "Splitter {{n}} von {{per}}"
     },
     "glyph": {
       "aria": "Sternkarte: {{lit}} von {{total}} Sternen"
@@ -7470,28 +7476,6 @@
       "cta": "Eigene Sternkarte starten",
       "invalid": "Dieser Abzeichen-Link ist unvollständig.",
       "toVerse": "Zum Verse"
-    },
-    "suggest": {
-      "title": "Top-Eintrag vorschlagen",
-      "url": "Link (https://… oder ein Pfad wie /verse/patches/4.4)",
-      "note": "Warum? (optional)",
-      "submit": "Vorschlag senden",
-      "sent": "Danke! Dein Vorschlag liegt beim Admin-Team.",
-      "status": {
-        "open": "offen",
-        "pinned": "angepinnt",
-        "dismissed": "nicht übernommen"
-      },
-      "admin": {
-        "title": "Vorschläge der Kartographen",
-        "empty": "Keine offenen Vorschläge.",
-        "promote": "Anpinnen",
-        "dismiss": "Verwerfen",
-        "promoteTitle": "Vorschlag anpinnen",
-        "promoteMessage": "Der Link {{url}} erscheint als Pin in der Top-Liste des Briefings.",
-        "pinTitle": "Titel des Pins",
-        "promoted": "Angepinnt."
-      }
     },
     "map": {
       "title": "Sternkarte {{patch}}",
@@ -7585,7 +7569,14 @@
       "earlier": "Frühere Tage",
       "later": "Spätere Tage",
       "dayAria": "Patch-Tipp auf {{date}} setzen",
-      "undoToast": "Patch-Tipp für {{patch}} gesetzt: {{date}}"
+      "undoToast": "Patch-Tipp für {{patch}} gesetzt: {{date}}",
+      "source": {
+        "ptu": "erkannt aus dem PTU",
+        "eptu": "erkannt aus dem EPTU",
+        "evocati": "erkannt aus Evocati-Patchnotes",
+        "derived": "abgeleitet"
+      },
+      "splinterNote": "Ein Treffer bringt einen Sonnensplitter."
     },
     "guess": {
       "kind": "Erkennen",
@@ -7706,7 +7697,7 @@
         }
       },
       "seriesTitle": "Serie",
-      "extrasTitle": "Vorschläge und Abzeichen",
+      "extrasTitle": "Abzeichen und Belohnungsideen",
       "tier": {
         "observer": {
           "name": "Beobachter",
@@ -7737,6 +7728,22 @@
           "meaning": "Dein Atlas umspannt Jahre des Verse."
         }
       }
+    },
+    "ideas": {
+      "title": "Belohnungsideen",
+      "lead": "Was soll ein Rang künftig schenken? Die Ideen mit den meisten Stimmen sieht das Team zuerst.",
+      "label": "Deine Idee für eine neue Rang-Belohnung",
+      "submit": "Idee senden",
+      "sent": "Danke! Deine Idee steht in der Liste.",
+      "locked": "Ab Stufe 5 ({{name}}, {{stars}} Sterne) kannst du Ideen einreichen und abstimmen.",
+      "retry": "Erneut versuchen",
+      "empty": "Noch keine Ideen.",
+      "votes": "Stimmen: {{count}}",
+      "voteAria": "Für diese Idee abstimmen, aktuell {{votes}} Stimmen",
+      "archived": "archiviert",
+      "archive": "Archivieren",
+      "archiveTitle": "Idee archivieren?",
+      "archiveMessage": "„{{body}}“ verschwindet aus der Liste der Spieler."
     }
   },
   "beta": {

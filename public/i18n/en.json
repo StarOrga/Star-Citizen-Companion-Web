@@ -5836,7 +5836,11 @@
     "rateLimit": "Too many requests — please wait a moment.",
     "server": "The server reported an error.",
     "generic": "Something went wrong.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "rankTierTooLow": "This opens at tier 5.",
+    "rankIdeaInvalid": "An idea needs 3 to 280 characters.",
+    "rankIdeaLimit": "You already have 3 open ideas.",
+    "rankIdeaGone": "This idea is gone or archived."
   },
   "pageHeader": {
     "crumbsAria": "Breadcrumb",
@@ -7445,7 +7449,9 @@
     },
     "suns": {
       "title": "Sun collection",
-      "none": "No sun yet. Place your comet tip on the star map."
+      "none": "No sun yet. Place your comet tip on the star map.",
+      "small": "Small sun",
+      "splinter": "Splinter {{n}} of {{per}}"
     },
     "glyph": {
       "aria": "Star map: {{lit}} of {{total}} stars"
@@ -7470,28 +7476,6 @@
       "cta": "Start your own star map",
       "invalid": "This badge link is incomplete.",
       "toVerse": "Go to the Verse"
-    },
-    "suggest": {
-      "title": "Suggest a top item",
-      "url": "Link (https://… or a path like /verse/patches/4.4)",
-      "note": "Why? (optional)",
-      "submit": "Send suggestion",
-      "sent": "Thanks! Your suggestion is with the admin team.",
-      "status": {
-        "open": "open",
-        "pinned": "pinned",
-        "dismissed": "not taken"
-      },
-      "admin": {
-        "title": "Cartographer suggestions",
-        "empty": "No open suggestions.",
-        "promote": "Pin",
-        "dismiss": "Dismiss",
-        "promoteTitle": "Pin suggestion",
-        "promoteMessage": "The link {{url}} appears as a pin in the briefing's top list.",
-        "pinTitle": "Pin title",
-        "promoted": "Pinned."
-      }
     },
     "map": {
       "title": "Star map {{patch}}",
@@ -7585,7 +7569,14 @@
       "earlier": "Earlier days",
       "later": "Later days",
       "dayAria": "Set patch tip on {{date}}",
-      "undoToast": "Patch tip for {{patch}} set: {{date}}"
+      "undoToast": "Patch tip for {{patch}} set: {{date}}",
+      "source": {
+        "ptu": "recognised from the PTU",
+        "eptu": "recognised from the EPTU",
+        "evocati": "recognised from Evocati patch notes",
+        "derived": "derived"
+      },
+      "splinterNote": "A hit earns a sun splinter."
     },
     "guess": {
       "kind": "Recognise",
@@ -7706,7 +7697,7 @@
         }
       },
       "seriesTitle": "Series",
-      "extrasTitle": "Suggestions and badge",
+      "extrasTitle": "Badge and reward ideas",
       "tier": {
         "observer": {
           "name": "Observer",
@@ -7737,6 +7728,22 @@
           "meaning": "Your atlas spans years of the Verse."
         }
       }
+    },
+    "ideas": {
+      "title": "Reward ideas",
+      "lead": "What should a rank give in future? The team reads the most-voted ideas first.",
+      "label": "Your idea for a new rank reward",
+      "submit": "Send idea",
+      "sent": "Thanks! Your idea is on the list.",
+      "locked": "From tier 5 ({{name}}, {{stars}} stars) you can submit ideas and vote.",
+      "retry": "Try again",
+      "empty": "No ideas yet.",
+      "votes": "Votes: {{count}}",
+      "voteAria": "Vote for this idea, currently {{votes}} votes",
+      "archived": "archived",
+      "archive": "Archive",
+      "archiveTitle": "Archive idea?",
+      "archiveMessage": "\"{{body}}\" disappears from the players' list."
     }
   },
   "beta": {

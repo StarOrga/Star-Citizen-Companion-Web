@@ -632,6 +632,15 @@ export function rankProgressOf(state: Pick<VerseExplorerState, 'kartograph' | 'p
   return rankProgress(rankStars(state));
 }
 
+/** Sun splinters that make one small sun (concept 2026-11-14: an x.y.z hit earns one splinter). */
+export const SPLINTERS_PER_SUN = 3;
+
+/** Splinters folded into small suns plus the remainder ("Splitter n von 3"); never touches stars or rank. */
+export function foldSplinters(count: number | null | undefined): { readonly suns: number; readonly rest: number } {
+  const n = typeof count === 'number' && Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  return { suns: Math.floor(n / SPLINTERS_PER_SUN), rest: n % SPLINTERS_PER_SUN };
+}
+
 /** How a tier reads on the ladder. */
 export type TierState = 'earned' | 'current' | 'locked';
 

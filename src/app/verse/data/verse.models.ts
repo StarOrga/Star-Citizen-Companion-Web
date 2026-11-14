@@ -222,6 +222,9 @@ export interface VerseExplorerPatch {
   readonly unlocks: { readonly logEntry: boolean; readonly community: boolean; readonly wallpaper: boolean };
 }
 
+export type VerseVersionSource = 'ptu' | 'eptu' | 'evocati' | 'derived';
+export const VERSE_VERSION_SOURCES: readonly VerseVersionSource[] = ['ptu', 'eptu', 'evocati', 'derived'];
+
 /** The next concrete x.y.z patch (4.4.2) the comet can be tipped on; absent until the version-tip migration is live. */
 export interface VerseVersionComet {
   /** `major.minor.patch`, patch >= 1. */
@@ -231,6 +234,10 @@ export interface VerseVersionComet {
   /** The newest LIVE x.y.z, when known. */
   readonly liveVersion: string | null;
   readonly comet: VerseComet;
+  /** Sun splinters the caller holds (an x.y.z hit earns one). */
+  readonly splinters: number;
+  /** Where the target version was recognised; null when unknown. */
+  readonly source: VerseVersionSource | null;
 }
 
 /** The patch in the PTU ring (not LIVE yet): where the comet can be tipped. */
@@ -247,6 +254,8 @@ export interface VerseExplorerState {
   readonly totalStars: number;
   /** Patch lines with a sun (comet hit within +-2 days). */
   readonly suns: readonly string[];
+  /** Sun splinters (3 = one small sun); 0 on a server without the migration. Never counts as a star. */
+  readonly sunSplinters: number;
   readonly streak: {
     readonly current: number;
     readonly best: number;
@@ -274,15 +283,24 @@ export interface VerseCommunityStars {
   readonly stars: Readonly<Partial<Record<VerseStarKey, number>>>;
 }
 
-export type VerseSuggestionStatus = 'open' | 'pinned' | 'dismissed';
-
-/** A Kartograph's top-item suggestion (verse_suggestions). */
-export interface VerseSuggestion {
+/** A player's idea for a new rank reward (verse_rank_ideas), votes desc. */
+export interface VerseRankIdea {
   readonly id: string;
-  readonly itemUrl: string;
-  readonly note: string | null;
-  readonly status: VerseSuggestionStatus;
+  readonly body: string;
+  readonly votes: number;
+  /** The caller has voted for it. */
+  readonly voted: boolean;
+  /** The caller wrote it. */
+  readonly mine: boolean;
   readonly createdAt: string;
+  /** Archived by an admin (only admins receive these). */
+  readonly archived: boolean;
+}
+
+/** Result of a vote toggle. */
+export interface VerseRankIdeaVote {
+  readonly voted: boolean;
+  readonly votes: number;
 }
 
 /** Outcome of a user action; `errorKey` is an `errors.*` i18n key. */
@@ -408,6 +426,8 @@ export function mapVersionComet(raw: unknown): VerseVersionComet | null {
     patchLine: sn(r["patch_line"]) ?? parts[0] + "." + parts[1],
     liveVersion: sn(r["live_version"]),
     comet: mapComet(r["comet"]),
+    splinters: Math.max(0, Math.floor(n(r["splinters"]))),
+    source: VERSE_VERSION_SOURCES.find((x) => x === r["source"]) ?? null,
   };
 }
 
@@ -487,6 +507,7 @@ export function mapExplorer(raw: unknown): VerseExplorerState | null {
     }),
     totalStars: n(r['total_stars']),
     suns: arr(r['suns']).map(s),
+    sunSplinters: Math.max(0, Math.floor(n(r['sun_splinters']))),
     streak: {
       current: n(st['current']),
       best: n(st['best']),
@@ -515,16 +536,25 @@ export function mapCommunityStars(raw: unknown): VerseCommunityStars | null {
   return { patchLine: s(r['patch_line']), explorers: n(r['explorers']), stars };
 }
 
-export function mapSuggestion(raw: unknown): VerseSuggestion {
+export function mapRankIdea(raw: unknown): VerseRankIdea {
   const r = obj(raw);
-  const st = s(r['status']);
   return {
     id: s(r['id']),
-    itemUrl: s(r['item_url']),
-    note: sn(r['note']),
-    status: st === 'pinned' || st === 'dismissed' ? st : 'open',
+    body: s(r['body']),
+    votes: Math.max(0, n(r['votes'])),
+    voted: b(r['voted']),
+    mine: b(r['mine']),
     createdAt: s(r['created_at']),
+    archived: b(r['archived']),
   };
+}
+
+/** `verse_rank_ideas()` payload: ideas with an id and a text, votes desc; anything else is dropped. */
+export function mapRankIdeas(raw: unknown): VerseRankIdea[] {
+  return arr(raw)
+    .map(mapRankIdea)
+    .filter((i) => i.id !== '' && i.body !== '')
+    .sort((a, c) => c.votes - a.votes);
 }
 
 export function mapConstellation(raw: unknown): VerseConstellation | null {

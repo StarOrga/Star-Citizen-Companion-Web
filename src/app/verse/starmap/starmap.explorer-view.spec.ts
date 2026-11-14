@@ -43,6 +43,7 @@ function state(patches: VerseExplorerPatch[], extra: Partial<VerseExplorerState>
     upcoming: null,
     totalStars: 0,
     suns: [],
+    sunSplinters: 0,
     streak: { current: 0, best: 0, reserveAvailable: false, reservesUsed: 0 },
     kartograph: { unlocked: false, rank: 0 },
     rewards: { road: false, nebula: false, live: false, reserve: false, meteor: false, supernova: false, sunCollection: false },

@@ -1,6 +1,6 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { VerseApiService } from '../data/verse-api.service';
-import { STARS_PER_PATCH, badgeQuery, defaultPatch } from './starmap.model';
+import { STARS_PER_PATCH, badgeQuery, defaultPatch, rankProgressOf } from './starmap.model';
 
 /** Router target of a page: commands + query params for `routerLink`. */
 export interface BadgeLink {
@@ -22,8 +22,9 @@ export class OwnBadgeService {
   readonly link = computed<BadgeLink>(() => {
     const st = this.api.explorer();
     const p = st ? defaultPatch(st) : null;
-    if (!st || !p || !st.kartograph.unlocked) return { commands: ['/verse', 'explorer'], queryParams: null };
-    const badge = { rank: st.kartograph.rank, patch: p.patchLine, stars: Math.min(STARS_PER_PATCH, p.starCount), sun: p.sun };
+    const tier = st ? rankProgressOf(st).tier : 0;
+    if (!st || !p || tier < 1) return { commands: ['/verse', 'explorer'], queryParams: null };
+    const badge = { rank: tier, patch: p.patchLine, stars: Math.min(STARS_PER_PATCH, p.starCount), sun: p.sun };
     return { commands: ['/badge', 'kartograph'], queryParams: badgeQuery(badge) };
   });
 }

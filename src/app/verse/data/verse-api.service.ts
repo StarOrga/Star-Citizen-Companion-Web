@@ -17,7 +17,8 @@ import {
   mapGuessResult,
   VerseCommunityStars,
   VerseConstellation,
-  VerseSuggestion,
+  VerseRankIdea,
+  VerseRankIdeaVote,
   VerseDigest,
   VerseDigestItem,
   VerseExplorerState,
@@ -28,7 +29,7 @@ import {
   VERSE_STAR_KEYS,
   mapCommunityStars,
   mapConstellation,
-  mapSuggestion,
+  mapRankIdeas,
   mapDigest,
   mapExplorer,
   mapVersionComet,
@@ -47,6 +48,11 @@ const RPC_REFUSALS: readonly (readonly [string, string])[] = [
   ['comet_locked', 'errors.cometLocked'],
   ['comet_already_tipped', 'errors.cometTipped'],
   ['comet_date_past', 'errors.cometDatePast'],
+  ['rank_tier_too_low', 'errors.rankTierTooLow'],
+  ['rank_idea_invalid', 'errors.rankIdeaInvalid'],
+  ['rank_idea_limit', 'errors.rankIdeaLimit'],
+  ['rank_idea_not_found', 'errors.rankIdeaGone'],
+  ['rank_idea_archived', 'errors.rankIdeaGone'],
   ['guess_already_made', 'errors.guessMade'],
   ['guess_invalid_option', 'errors.guessInvalid'],
   ['guess_unavailable', 'errors.guessUnavailable'],
@@ -480,35 +486,45 @@ export class VerseApiService {
     return { ok: true, data: mapCommunityStars(data) };
   }
 
-  /** Kartograph (rank >= 1): suggest a top item. RLS refuses lower ranks. */
-  async suggest(itemUrl: string, note: string | null): Promise<VerseResult<void>> {
-    const { error } = await this.sb.client.from('verse_suggestions').insert({ item_url: itemUrl, note: note || null });
-    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'suggest', error) };
-    return { ok: true, data: undefined };
+  /**
+   * Reward ideas (`verse_rank_ideas`), votes desc; readable below tier 5. `data` is null
+   * when the RPC does not exist yet (migration not applied) - the rank page then hides
+   * the section instead of showing an error.
+   */
+  async rankIdeas(): Promise<VerseResult<VerseRankIdea[] | null>> {
+    const { data, error } = await this.sb.client.rpc('verse_rank_ideas');
+    if (error) {
+      if (isMissingRpc(error)) return { ok: true, data: null };
+      return { ok: false, errorKey: verseErrorKey('rankIdeas', error) };
+    }
+    return { ok: true, data: mapRankIdeas(data) };
   }
 
-  /** Own suggestions — or, for an admin, everyone's (RLS decides). Newest first. */
-  async suggestions(limit = 50): Promise<VerseResult<VerseSuggestion[]>> {
-    const { data, error } = await this.sb.client
-      .from('verse_suggestions')
-      .select('id, item_url, note, status, created_at')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'suggestions', error) };
-    return { ok: true, data: (data ?? []).map(mapSuggestion) };
-  }
-
-  /** Admin: turn a suggestion into a briefing pin. Returns the pin's item key. */
-  async promoteSuggestion(id: string, title: string): Promise<VerseResult<string>> {
-    const { data, error } = await this.sb.client.rpc('verse_promote_suggestion', { p_id: id, p_title: title });
-    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'promoteSuggestion', error) };
+  /** Tier 5+: submit an idea (3-280 chars, 3 open per user). The server re-checks the tier. */
+  async submitRankIdea(body: string): Promise<VerseResult<string>> {
+    const { data, error } = await this.sb.client.rpc('verse_submit_rank_idea', { p_body: body });
+    if (error) return { ok: false, errorKey: verseErrorKey('submitRankIdea', error) };
     return { ok: true, data: String(data ?? '') };
   }
 
-  /** Admin: dismiss a suggestion. */
-  async dismissSuggestion(id: string): Promise<VerseResult<void>> {
-    const { error } = await this.sb.client.from('verse_suggestions').update({ status: 'dismissed' }).eq('id', id);
-    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'dismissSuggestion', error) };
+  /** Tier 5+: toggle the caller's vote on an idea. */
+  async voteRankIdea(id: string): Promise<VerseResult<VerseRankIdeaVote>> {
+    const { data, error } = await this.sb.client.rpc('verse_vote_rank_idea', { p_id: id });
+    if (error) return { ok: false, errorKey: verseErrorKey('voteRankIdea', error) };
+    const d = (data ?? {}) as { voted?: unknown; votes?: unknown };
+    return { ok: true, data: { voted: d.voted === true, votes: Math.max(0, Number(d.votes) || 0) } };
+  }
+
+  /** Admin: archive an idea. */
+  async archiveRankIdea(id: string): Promise<VerseResult<void>> {
+    const { error } = await this.sb.client.rpc('verse_archive_rank_idea', { p_id: id });
+    if (error) return { ok: false, errorKey: verseErrorKey('archiveRankIdea', error) };
     return { ok: true, data: undefined };
   }
+}
+
+/** PostgREST answers a function it does not know with PGRST202 (or a plain 404). */
+function isMissingRpc(err: unknown): boolean {
+  const e = err as { code?: unknown; status?: unknown } | null;
+  return e?.code === 'PGRST202' || e?.status === 404;
 }
