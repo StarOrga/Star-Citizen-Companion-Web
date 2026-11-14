@@ -1,7 +1,59 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.262.0",
+  "current": "0.263.0",
   "releases": [
+    {
+      "version": "0.263.0",
+      "date": "2026-11-14",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Rank page (/verse/explorer/rank) with seven tiers, an animated ladder, your star map as a gallery-style tile with lightbox and 4K / phone / ultrawide downloads, the series, rank rewards and \"Meine Sternbilder\""
+            },
+            {
+              "title": "",
+              "text": "Comet tips on concrete x.y.z patches next to the line tip"
+            },
+            {
+              "title": "",
+              "text": "Admin satellite on the Verse hub and a completion celebration the next time you open a finished star map"
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Star map: gallery-style header, frameless \"?\" tour for every reader (it now explains everything the Logbuch did), quiet patch switcher top left, no sun, the comet leads, calmer background, rank crest with a \"new\" marker"
+            },
+            {
+              "title": "",
+              "text": "HQ on the Verse hub redrawn as hangar and storage yard; the hub's star-map miniature matches the map inside"
+            },
+            {
+              "title": "",
+              "text": "Wallpaper: realistic night sky without Milky Way, your constellation small but readable"
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The star-map glyph in Verse headers no longer turns yellow after a comet hit"
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.262.0",
       "date": "2026-11-13",
