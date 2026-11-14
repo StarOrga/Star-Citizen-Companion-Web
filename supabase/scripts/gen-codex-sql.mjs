@@ -94,15 +94,14 @@ insert into public.codex_builds
 values
   (${q(channel)}, ${q(patch)}, ${q(build)}, ${manifest.schema_version ?? 1},
    ${num(manifest.quality_score)}, ${q(manifest.tool_version)},
-   ${jsonb(manifest.entity_counts ?? {})}, ${jsonb(manifest)}, now())
-on conflict (channel, patch_version, build_number) do update
-  set entity_counts = excluded.entity_counts, manifest = excluded.manifest,
-      quality_score = excluded.quality_score, extracted_at = now();`;
+   ${jsonb(manifest.entity_counts ?? {})}, ${jsonb(manifest)}, now());`;
+  // A NEW staging row every time (migration 20261114120000): published
+  // coordinates are never written in place; 90_current switches atomically.
   await writeFile(join(DEST, '00_build.sql'), buildSql, 'utf-8');
   files.push('00_build.sql');
 
   // shared build_id lookup prefix for child inserts
-  const BID = `(select id from public.codex_builds where channel=${q(channel)} and patch_version=${q(patch)} and build_number=${q(build)})`;
+  const BID = `(select id from public.codex_builds where channel=${q(channel)} and patch_version=${q(patch)} and build_number=${q(build)} and finalized_at is null and superseded_at is null order by created_at desc limit 1)`;
 
   const strings = new Map(); // key -> row sql
   const ports = [];
@@ -212,7 +211,12 @@ on conflict (channel, patch_version, build_number) do update
     files.push(...emit('80_ports', stmts, DEST));
   }
   // set current
-  await writeFile(join(DEST, '90_current.sql'), `select public.set_current_codex_build(${BID});`, 'utf-8');
+  await writeFile(
+    join(DEST, '90_current.sql'),
+    `select public.codex_clone_untouched(${BID}, t) from unnest(public.codex_clone_tables()) t;
+select public.set_current_codex_build(${BID});`,
+    'utf-8',
+  );
   files.push('90_current.sql');
 
   await writeFile(join(DEST, '_manifest.json'), JSON.stringify({ files, dest: DEST }, null, 2), 'utf-8');

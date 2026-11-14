@@ -121,11 +121,25 @@ async function initBuild(buildPayload) {
     const j = await postFn('init', { build: buildPayload });
     return j.build_id;
   }
-  const { data, error } = await sb
+  // Same rule as ingest-catalog `init` (migration 20261114120000): published
+  // coordinates get a NEW staging row, an unfinished one is resumed.
+  const { data: rows, error: findErr } = await sb
     .from('codex_builds')
-    .upsert(buildPayload, { onConflict: 'channel,patch_version,build_number' })
-    .select('id')
-    .single();
+    .select('id, finalized_at')
+    .eq('channel', buildPayload.channel)
+    .eq('patch_version', buildPayload.patch_version)
+    .eq('build_number', buildPayload.build_number)
+    .is('superseded_at', null)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (findErr) throw findErr;
+  const staging = (rows ?? []).find((r) => !r.finalized_at);
+  if (staging) {
+    const { error } = await sb.from('codex_builds').update(buildPayload).eq('id', staging.id);
+    if (error) throw error;
+    return staging.id;
+  }
+  const { data, error } = await sb.from('codex_builds').insert(buildPayload).select('id').single();
   if (error) throw error;
   return data.id;
 }
@@ -252,6 +266,12 @@ async function finalize(buildId, entityCounts) {
   }
   await sb.from('codex_builds').update({ entity_counts: entityCounts }).eq('id', buildId);
   if (SET_CURRENT) {
+    // A re-seed of published coordinates inherits what it did not write.
+    const { data: tables } = await sb.rpc('codex_clone_tables');
+    for (const t of Array.isArray(tables) ? tables : []) {
+      const { error: cloneErr } = await sb.rpc('codex_clone_untouched', { p_build_id: buildId, p_table: t });
+      if (cloneErr) console.warn(`codex_clone_untouched(${t}) failed: ${cloneErr.message}`);
+    }
     const { error } = await sb.rpc('set_current_codex_build', { p_build_id: buildId });
     if (error) console.warn(`set_current_codex_build failed (non-fatal): ${error.message}`);
   }

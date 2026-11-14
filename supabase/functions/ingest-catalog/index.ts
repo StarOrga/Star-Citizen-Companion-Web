@@ -8,6 +8,9 @@
 // around a codex_builds row:
 //
 //   POST { op: "init",             build: {...} }                      -> { build_id }
+//        (coordinates that are already published get a NEW staging row, an
+//         unfinished one is resumed — never a write into the live build;
+//         migration 20261114120000, _rebuild.ts)
 //   POST { op: "upsert",           build_id, table, rows: [...] }      -> { upserted }
 //   POST { op: "ports",            build_id, rows: [...] }             -> { inserted, degraded? }
 //        (rows may carry hardpoint coordinates: helper_name/position/rotation)
@@ -47,6 +50,10 @@
 //         first pick and answers { locked: true } with the stored row)
 //   POST { op: "preview",          build_number, name, content_base64 } -> { path }
 //   POST { op: "finalize",         build_id, entity_counts? }          -> { ok, current, locale_publish }
+//        (a re-upload first copies every table the run skipped from the build
+//         it replaces, plus its R2 strings when none were sent, then switches
+//         atomically: -> { replaces, cloned, locale_copy }. An incomplete build
+//         is refused with 409 codex_build_incomplete and the live one stays.)
 //        (then, after the response: publishes the build's locale strings to R2
 //         and deletes the rows once the public Worker serves them — see below)
 //   POST { op: "locale_publish",   build_id, lang?, delete_source? }   -> { ok, results }
@@ -106,6 +113,9 @@ import { parseSkips } from './_silhouette-skips.ts';
 import { recordPatchNews } from './_patch-news.ts';
 import { MAX_MISSION_ROWS, parseMissions } from './_missions.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
+import { isRebuildUnavailable, planInit, prepareRebuild, refusedSwitchStatus } from './_rebuild.ts';
+import type { RebuildPlan } from './_rebuild.ts';
+import { copyBuildLocales } from './_locale-copy.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -266,6 +276,93 @@ function publishDeps(admin: Admin, r2: R2): PublishDeps {
       }
     },
   };
+}
+
+type Nat = { channel: string; patch_version: string; build_number: string };
+
+/**
+ * The build row an `init` writes into (migration 20261114120000). Coordinates
+ * that are already published get a NEW staging row — writing into the live one
+ * is what let readers see half an upload. An unfinished staging row of the
+ * same coordinates is resumed. Without the migration: the old natural-key upsert.
+ */
+async function initBuildRow(admin: Admin, nat: Nat, meta: Record<string, unknown>): Promise<string> {
+  const { data: rows, error } = await admin
+    .from('codex_builds').select('id, finalized_at')
+    .eq('channel', nat.channel).eq('patch_version', nat.patch_version).eq('build_number', nat.build_number)
+    .is('superseded_at', null)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) {
+    if (!isRebuildUnavailable(error)) throw error;
+    const legacy = await admin
+      .from('codex_builds')
+      .upsert({ ...nat, ...meta }, { onConflict: 'channel,patch_version,build_number' })
+      .select('id')
+      .single();
+    if (legacy.error) throw legacy.error;
+    return (legacy.data as { id: string }).id;
+  }
+  const plan = planInit((rows ?? []) as { id: string; finalized_at: string | null }[]);
+  if (plan.action === 'reuse') {
+    const { error: upErr } = await admin.from('codex_builds').update(meta).eq('id', plan.id);
+    if (upErr) throw upErr;
+    return plan.id;
+  }
+  const { data, error: insErr } = await admin.from('codex_builds').insert({ ...nat, ...meta }).select('id').single();
+  if (insErr) throw insErr;
+  return (data as { id: string }).id;
+}
+
+/**
+ * Before the switch: copy every table a re-upload skipped from the build it
+ * replaces, and that build's R2 strings when the run sent none (synchronously,
+ * so the new build never goes live without them). Null without the migration.
+ */
+async function prepareSwitch(
+  admin: Admin,
+  buildId: string,
+): Promise<{ plan: RebuildPlan; locale: unknown } | null> {
+  let plan: RebuildPlan;
+  try {
+    plan = await prepareRebuild({
+      async predecessor(id) {
+        const { data, error } = await admin.rpc('codex_build_predecessor', { p_build_id: id });
+        if (error) throw error;
+        return typeof data === 'string' && data ? data : null;
+      },
+      async touched(id) {
+        const { data, error } = await admin.from('codex_build_touched').select('table_name').eq('build_id', id);
+        if (error) throw error;
+        return new Set(((data ?? []) as { table_name: string }[]).map((r) => r.table_name));
+      },
+      async clone(id, table) {
+        const { data, error } = await admin.rpc('codex_clone_untouched', { p_build_id: id, p_table: table });
+        if (error) throw error;
+        return Number(data ?? 0);
+      },
+    }, buildId);
+  } catch (e) {
+    if (isRebuildUnavailable(e)) return null;
+    throw e;
+  }
+  let locale: unknown = null;
+  if (plan.copyLocaleFrom) {
+    const r2 = r2FromEnv((k) => Deno.env.get(k));
+    if (!r2) {
+      locale = 'r2_not_configured';
+    } else {
+      try {
+        const blocked = await r2WriteBlocked(r2);
+        locale = blocked ? { skipped: blocked.code } : await copyBuildLocales(publishDeps(admin, r2), plan.copyLocaleFrom, buildId);
+      } catch (e) {
+        // Strings degrade (the client falls back per key); the catalog still switches.
+        console.error(`ingest-catalog: locale copy ${plan.copyLocaleFrom} -> ${buildId} failed: ${(e as Error).message}`);
+        locale = { failed: (e as Error).message.slice(0, 200) };
+      }
+    }
+  }
+  return { plan, locale };
 }
 
 /** Publishes the given languages (null = every language the build has rows for). */
@@ -429,28 +526,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const patch = String(b.patch_version ?? '').trim();
       const build = String(b.build_number ?? '').trim();
       if (!channel || !patch) return json({ error: 'invalid_body', message: 'channel + patch_version required' }, 400);
-      const { data, error } = await admin
-        .from('codex_builds')
-        .upsert(
-          {
-            channel, patch_version: patch, build_number: build,
-            schema_version: b.schema_version ?? 1,
-            quality_score: b.quality_score ?? null,
-            tool_version: b.tool_version ?? null,
-            entity_counts: b.entity_counts ?? {},
-            manifest: b.manifest ?? {},
-            // The game's build_manifest.id (uploader); absent -> keep what is stored.
-            ...(b.game_build_manifest && typeof b.game_build_manifest === 'object' && !Array.isArray(b.game_build_manifest)
-              ? { game_build_manifest: b.game_build_manifest }
-              : {}),
-            extracted_at: new Date().toISOString(),
-          },
-          { onConflict: 'channel,patch_version,build_number' },
-        )
-        .select('id')
-        .single();
-      if (error) throw error;
-      return json({ ok: true, build_id: (data as { id: string }).id });
+      const buildId = await initBuildRow(admin, { channel, patch_version: patch, build_number: build }, {
+        schema_version: b.schema_version ?? 1,
+        quality_score: b.quality_score ?? null,
+        tool_version: b.tool_version ?? null,
+        entity_counts: b.entity_counts ?? {},
+        manifest: b.manifest ?? {},
+        // The game's build_manifest.id (uploader); absent -> keep what is stored.
+        ...(b.game_build_manifest && typeof b.game_build_manifest === 'object' && !Array.isArray(b.game_build_manifest)
+          ? { game_build_manifest: b.game_build_manifest }
+          : {}),
+        extracted_at: new Date().toISOString(),
+      });
+      return json({ ok: true, build_id: buildId });
     }
 
     if (op === 'upsert') {
@@ -499,9 +587,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'keybinds') {
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
-      const { error } = await admin
+      // Keyed on the build since 20261114120000; before it, on the coordinates.
+      let { error } = await admin
         .from('codex_keybinds')
-        .upsert(rows, { onConflict: 'channel,patch_version,build_number,actionmap,action_name' });
+        .upsert(rows, { onConflict: 'build_id,actionmap,action_name' });
+      if (error && (error as { code?: string }).code === '42P10') {
+        ({ error } = await admin
+          .from('codex_keybinds')
+          .upsert(rows, { onConflict: 'channel,patch_version,build_number,actionmap,action_name' }));
+      }
       if (error) throw error;
       return json({ ok: true, upserted: rows.length });
     }
@@ -795,8 +889,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .eq('id', buildId);
         if (countsErr) throw countsErr;
       }
+      // A re-upload of a published game build: fill what it skipped, then switch.
+      const prepared = await prepareSwitch(admin, buildId);
+      if (prepared?.plan.predecessor) {
+        console.log(`ingest-catalog: finalize ${buildId} replaces ${prepared.plan.predecessor}: ` +
+          `${JSON.stringify(prepared.plan.cloned)} locale ${JSON.stringify(prepared.locale)}`);
+      }
       const { error } = await admin.rpc('set_current_codex_build', { p_build_id: buildId });
-      if (error) throw error;
+      if (error) {
+        // An incomplete build never goes live; a retry of the same finalize cannot fix that.
+        const refused = refusedSwitchStatus(error);
+        if (refused) return json({ error: refused.code, message: (error as { message?: string }).message ?? '' }, 409);
+        throw error;
+      }
+      const replaced = prepared?.plan.predecessor
+        ? { replaces: prepared.plan.predecessor, cloned: prepared.plan.cloned, locale_copy: prepared.locale }
+        : {};
       // "New / changed in patch X": first-seen + changed records. Insert-only, so a
       // re-upload of the same patch resets nothing. Never fatal (see _patch-news.ts).
       const patchNews = await recordPatchNews((fn, args) => admin.rpc(fn, args), buildId);
@@ -813,7 +921,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .catch((e) => console.error(`ingest-catalog: patch summary ${buildId} failed: ${(e as Error).message}`)),
       );
       const r2 = r2FromEnv((k) => Deno.env.get(k));
-      if (!r2) return json({ ok: true, current: true, locale_publish: 'r2_not_configured' });
+      if (!r2) return json({ ok: true, current: true, ...replaced, locale_publish: 'r2_not_configured' });
       // After the response: the uploader's finalize must not wait ~30 s for
       // 11 languages. A failure only leaves the rows in place (clients keep
       // reading them); locale_publish or the backfill script can redo it.
@@ -825,7 +933,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           })
           .catch((e) => console.error(`ingest-catalog: locale publish ${buildId} failed: ${(e as Error).message}`)),
       );
-      return json({ ok: true, current: true, locale_publish: 'started' });
+      return json({ ok: true, current: true, ...replaced, locale_publish: 'started' });
     }
 
     if (op === 'locale_publish') {
