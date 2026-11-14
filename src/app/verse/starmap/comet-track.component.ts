@@ -30,9 +30,15 @@ const RIM_K = 0.32;
     @let c = cur();
     @if (modes(); as v) {
       <div class="modes" role="group" [attr.aria-label]="'starmap.comet.modeAria' | translate">
-        <button type="button" class="mode" [class.on]="!versionMode()" [attr.aria-pressed]="!versionMode()" (click)="versionMode.set(false)">{{ lineName() }}</button>
-        <button type="button" class="mode" [class.on]="versionMode()" [attr.aria-pressed]="versionMode()" (click)="versionMode.set(true)">{{ versionName(v.patchVersion) }}</button>
+        <button type="button" class="mode" [class.on]="onVersion()" [attr.aria-pressed]="onVersion()" (click)="versionMode.set(true)">{{ versionName(v.patchVersion) }}</button>
+        <button type="button" class="mode" [class.on]="!onVersion()" [attr.aria-pressed]="!onVersion()" (click)="versionMode.set(false)">{{ lineName() }}</button>
       </div>
+      @if (onVersion()) {
+        <p class="quiet">
+          @if (v.source) { <span class="src">{{ 'starmap.comet.source.' + v.source | translate }}</span> }
+          <span class="splinter-note">{{ 'starmap.comet.splinterNote' | translate }}</span>
+        </p>
+      }
     }
     <div class="head">
       <span class="kind"><span class="comet" [class]="'comet s-' + c.state" aria-hidden="true"></span>{{ 'starmap.comet.kind' | translate }}</span>
@@ -87,6 +93,7 @@ const RIM_K = 0.32;
       .mode:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .mode.on { color: var(--sc-fg-0); border-color: color-mix(in srgb, var(--sc-accent) 60%, #fff); }
       @media (pointer: coarse) { .mode { min-height: 48px; } }
+      .quiet { margin: 0 0 4px; font-size: 0.72rem; color: var(--sc-fg-2); display: flex; flex-wrap: wrap; gap: 4px 10px; }
       .tok.nav { flex: 0 0 28px; font-size: 1rem; }
       @media (pointer: coarse) { .tok.nav { flex-basis: 48px; } }
     `,
@@ -98,12 +105,15 @@ export class CometTrackComponent {
   readonly comet = input.required<VerseComet>();
   /** The next x.y.z patch of the line, when the server knows one (absent before the version-tip migration). */
   readonly version = signal<VerseVersionComet | null>(null);
-  /** Tipping the x.y.z patch instead of the line. */
-  readonly versionMode = signal(false);
+  /**
+   * The reader's choice between the x.y.z patch and the line; null = not chosen yet.
+   * With an open x.y.z target the x.y.z tip is the default, the line tip the second choice.
+   */
+  readonly versionMode = signal<boolean | null>(null);
   /** The x.y.z switch only on a map whose line comet is still open - an old, closed map has nothing to tip. */
   readonly modes = computed(() => (this.comet().locked ? null : this.version()));
   /** Version mode in effect (the switch can vanish while it is on). */
-  readonly onVersion = computed(() => this.versionMode() && !!this.modes());
+  readonly onVersion = computed(() => !!this.modes() && (this.versionMode() ?? true));
   /** The comet under the rail: the line's or the x.y.z patch's. */
   readonly cur = computed<VerseComet>(() => (this.onVersion() ? this.version()?.comet : null) ?? this.comet());
   /** What a tip is placed on: `4.5` or `4.4.2`. */
