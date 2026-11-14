@@ -340,7 +340,8 @@ export function crossedUnlocks(
     if (pa.unlocks.community && !pb?.unlocks.community) out.push('community');
     if (pa.unlocks.wallpaper && !pb?.unlocks.wallpaper) out.push('wallpaper');
   }
-  if (after.kartograph.unlocked && !before?.kartograph.unlocked) out.push('kartograph');
+  // the rank opens with the first tier (lit stars, not a completed map)
+  if (rankProgressOf(after).tier >= 1 && rankProgressOf(before).tier < 1) out.push('kartograph');
   for (const k of ['road', 'nebula', 'live', 'reserve', 'meteor', 'supernova', 'sunCollection'] as const) {
     if (after.rewards[k] && !before?.rewards[k]) out.push(k);
   }
