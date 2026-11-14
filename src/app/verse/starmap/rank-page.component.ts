@@ -423,9 +423,12 @@ export class RankPageComponent {
     });
     inject(DestroyRef).onDestroy(() => {
       gen++;
+      this.destroyed = true;
       this.dropUrls();
     });
   }
+
+  private destroyed = false;
 
   reload(): void {
     void this.api.loadExplorer();
@@ -446,7 +449,8 @@ export class RankPageComponent {
     if (!st || !p) return;
     void renderConstellationPng({ ...rankWallpaperOptions(st, p), ...WALLPAPER_4K })
       .then((blob) => {
-        if (this.first() === p && !this.fullUrl()) this.fullUrl.set(URL.createObjectURL(blob));
+        // A render that lands after the page left must not mint a URL nobody revokes.
+        if (!this.destroyed && this.first() === p && !this.fullUrl()) this.fullUrl.set(URL.createObjectURL(blob));
       })
       .catch((err) => logWarn('starmap', 'rank 4k render failed', err));
   }
