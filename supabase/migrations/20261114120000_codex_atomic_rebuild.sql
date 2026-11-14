@@ -27,18 +27,27 @@
 --      phases a run uploaded and which it skipped (the uploader skips subthemes
 --      its server ledger already holds for the same game build).
 --   3. `finalize` first copies every table the run did not touch from the
---      published predecessor (`codex_clone_untouched`, one call per table),
---      then `set_current_codex_build` refuses an incomplete build and, in one
+--      published predecessor (`codex_clone_untouched`, in chunks: every RPC
+--      runs under the authenticator's 8 s statement_timeout), then
+--      `set_current_codex_build` refuses an incomplete build and, in one
 --      transaction, marks the predecessor superseded and makes the new build
 --      current. Readers never see a half-written build.
---   4. Superseded builds are hidden from anon/authenticated (RLS), excluded as
---      diff baselines and deleted after an hour (`codex-superseded-prune`).
+--   4. Staging and superseded builds are hidden from anon/authenticated (RLS);
+--      superseded ones are no diff baseline and are deleted after an hour
+--      (`codex-superseded-prune`).
+--   5. The ~30 s changed-class-names refresh and the patch news leave the
+--      finalize RPC (they were cancelled at 8 s there) for the cron job
+--      `codex-derived-refresh`.
 --
 -- Additive except: the coordinate unique constraints on codex_builds and the
 -- catalog tables are replaced by build_id ones (same columns otherwise), and the
 -- redundant non-unique (build_id, class_name) indexes are dropped because the new
 -- unique ones cover them. No data is dropped.
 -- ============================================================
+
+-- Fail fast instead of queueing behind a running upload (every Codex read would
+-- queue behind this migration's ACCESS EXCLUSIVE locks in turn).
+set local lock_timeout = '5s';
 
 -- ── 1. codex_builds: superseded state, coordinates no longer unique ─────────
 alter table public.codex_builds
@@ -105,18 +114,33 @@ end $function$;
 
 -- ── 3. which tables a run wrote ─────────────────────────────────────────────
 create table if not exists public.codex_build_touched (
-  build_id   uuid not null references public.codex_builds(id) on delete cascade,
-  table_name text not null,
-  touched_at timestamptz not null default now(),
+  build_id    uuid not null references public.codex_builds(id) on delete cascade,
+  table_name  text not null,
+  touched_at  timestamptz not null default now(),
+  -- null = written by the upload run; set = copied from that build by codex_clone_untouched
+  cloned_from uuid,
   primary key (build_id, table_name)
 );
 alter table public.codex_build_touched enable row level security;
 -- No policy and no client grant: written by triggers, read by the definer functions below.
 revoke all on public.codex_build_touched from anon, authenticated;
 
+-- Where a chunked copy of one table stands (codex_clone_untouched).
+create table if not exists public.codex_build_clone_progress (
+  build_id        uuid not null references public.codex_builds(id) on delete cascade,
+  table_name      text not null,
+  source_build_id uuid not null,
+  last_key        text,
+  copied          bigint not null default 0,
+  primary key (build_id, table_name)
+);
+alter table public.codex_build_clone_progress enable row level security;
+revoke all on public.codex_build_clone_progress from anon, authenticated;
+
 -- The build-scoped tables a staging build inherits from its predecessor when the
 -- run did not upload them. Derived tables (fit ports, ammo, build changes) are
--- recomputed at finalize; locale strings live in R2 and are copied by ingest-catalog.
+-- recomputed after the switch; locale strings live in R2 and are copied by
+-- ingest-catalog. Mirrored by CLONE_TABLES in ingest-catalog/_rebuild.ts.
 create or replace function public.codex_clone_tables()
  returns text[]
  language sql
@@ -131,6 +155,8 @@ as $function$
   ]::text[]
 $function$;
 
+-- Statement trigger: a write of the run marks the table. The copy itself
+-- (codex.cloning = on) does not, so a half-finished copy stays "untouched".
 create or replace function public.codex_build_touch_trg()
  returns trigger
  language plpgsql
@@ -138,6 +164,9 @@ create or replace function public.codex_build_touch_trg()
  set search_path to ''
 as $function$
 begin
+  if coalesce(current_setting('codex.cloning', true), '') = 'on' then
+    return null;
+  end if;
   insert into public.codex_build_touched (build_id, table_name)
   select distinct n.build_id, tg_table_name from new_rows n where n.build_id is not null
   on conflict (build_id, table_name) do nothing;
@@ -158,7 +187,7 @@ begin
   end loop;
 end $$;
 
--- ── 4. predecessor + clone ──────────────────────────────────────────────────
+-- ── 4. predecessor + chunked copy ───────────────────────────────────────────
 -- The published build a staging build replaces: same coordinates, finalized,
 -- not superseded. Null for the first upload of a game build.
 create or replace function public.codex_build_predecessor(p_build_id uuid)
@@ -178,68 +207,111 @@ as $function$
    limit 1
 $function$;
 
--- Copies the predecessor's rows of ONE table into a staging build, unless the
--- run wrote that table itself. Idempotent (the copy marks the table touched) and
--- serialised per build (row lock), so a retried finalize never duplicates rows.
--- One call per table keeps each statement short: the full set took 47 s in the
--- 2026-11-14 dry run, items alone 24 s (three trigram indexes).
-create or replace function public.codex_clone_untouched(p_build_id uuid, p_table text)
- returns integer
+-- Copies the predecessor's rows of ONE table into a staging build, at most
+-- p_limit rows per call, unless the run wrote that table itself. Every RPC from
+-- ingest-catalog runs under the authenticator's 8 s statement_timeout (a SET
+-- clause on the function does not extend it, measured 2026-11-14), and the
+-- whole items table took 24 s, so the caller loops until `done`. Keyset on the
+-- source key; serialised per build (row lock); the progress row pins the
+-- source, so a predecessor that changes mid-copy is refused, never mixed in.
+create or replace function public.codex_clone_untouched(p_build_id uuid, p_table text, p_limit integer default 2000)
+ returns jsonb
  language plpgsql
  security definer
  set search_path to ''
- set statement_timeout to '120s'
 as $function$
 declare
   v_build public.codex_builds%rowtype;
   v_from uuid;
+  v_prog public.codex_build_clone_progress%rowtype;
+  v_after text;
   v_cols text;
+  v_key text;
   v_n integer := 0;
+  v_last text;
 begin
   if p_table is null or not (p_table = any(public.codex_clone_tables())) then
     raise exception 'codex_clone_untouched: table % is not cloned', p_table using errcode = '22023';
+  end if;
+  if p_limit is null or p_limit < 1 or p_limit > 20000 then
+    raise exception 'codex_clone_untouched: limit must be 1..20000' using errcode = '22023';
   end if;
   select * into v_build from public.codex_builds where id = p_build_id for update;
   if not found then
     raise exception 'codex_clone_untouched: unknown build %', p_build_id using errcode = '22023';
   end if;
   -- Only a staging build is filled; a published one is never written behind the reader's back.
-  if v_build.finalized_at is not null then return 0; end if;
+  if v_build.finalized_at is not null then return jsonb_build_object('copied', 0, 'done', true); end if;
   v_from := public.codex_build_predecessor(p_build_id);
-  if v_from is null then return 0; end if;
+  if v_from is null then return jsonb_build_object('copied', 0, 'done', true); end if;
   if exists (select 1 from public.codex_build_touched x where x.build_id = p_build_id and x.table_name = p_table) then
-    return 0;
+    return jsonb_build_object('copied', 0, 'done', true);
   end if;
 
+  select * into v_prog from public.codex_build_clone_progress
+   where build_id = p_build_id and table_name = p_table;
+  if found then
+    if v_prog.source_build_id <> v_from then
+      raise exception 'codex_build_superseded: the build % replaces changed from % to % while % was copied',
+        p_build_id, v_prog.source_build_id, v_from, p_table;
+    end if;
+    v_after := v_prog.last_key;
+  end if;
+
+  v_key := case p_table when 'codex_silhouette_skips' then $k$(kind || '/' || class_name)$k$ else 'id::text' end;
   select string_agg(format('%I', c.column_name), ', ' order by c.ordinal_position) into v_cols
     from information_schema.columns c
    where c.table_schema = 'public' and c.table_name = p_table
      and c.column_name <> 'build_id' and c.is_generated = 'NEVER'
      and not (c.column_name = 'id' and (c.column_default is not null or c.is_identity = 'YES'));
 
-  execute format('insert into public.%1$I (build_id, %2$s) select $2, %2$s from public.%1$I where build_id = $1',
-                 p_table, v_cols)
-    using v_from, p_build_id;
-  get diagnostics v_n = row_count;
-  -- An empty source still counts as handled.
-  insert into public.codex_build_touched (build_id, table_name) values (p_build_id, p_table)
-  on conflict (build_id, table_name) do nothing;
-  return v_n;
+  perform set_config('codex.cloning', 'on', true);
+  execute format($q$
+    with src as materialized (
+      select * from public.%1$I
+       where build_id = $1 and ($3::text is null or %3$s > $3)
+       order by %3$s
+       limit $4
+    ),
+    ins as (
+      insert into public.%1$I (build_id, %2$s) select $2, %2$s from src returning 1
+    )
+    select (select count(*) from ins)::integer, (select max(%3$s) from src)
+  $q$, p_table, v_cols, v_key)
+    into v_n, v_last
+    using v_from, p_build_id, v_after, p_limit;
+  perform set_config('codex.cloning', 'off', true);
+
+  if v_n < p_limit then
+    -- Done (an empty source counts as handled too).
+    insert into public.codex_build_touched (build_id, table_name, cloned_from)
+    values (p_build_id, p_table, v_from)
+    on conflict (build_id, table_name) do nothing;
+    delete from public.codex_build_clone_progress where build_id = p_build_id and table_name = p_table;
+    return jsonb_build_object('copied', v_n, 'done', true);
+  end if;
+  insert into public.codex_build_clone_progress (build_id, table_name, source_build_id, last_key, copied)
+  values (p_build_id, p_table, v_from, v_last, v_n)
+  on conflict (build_id, table_name) do update
+    set last_key = excluded.last_key, copied = public.codex_build_clone_progress.copied + excluded.copied;
+  return jsonb_build_object('copied', v_n, 'done', false);
 end $function$;
 
 revoke all on function public.codex_build_predecessor(uuid) from public, anon, authenticated;
-revoke all on function public.codex_clone_untouched(uuid, text) from public, anon, authenticated;
+revoke all on function public.codex_clone_untouched(uuid, text, integer) from public, anon, authenticated;
 revoke all on function public.codex_build_touch_trg() from public, anon, authenticated;
 grant execute on function public.codex_build_predecessor(uuid) to service_role;
-grant execute on function public.codex_clone_untouched(uuid, text) to service_role;
+grant execute on function public.codex_clone_untouched(uuid, text, integer) to service_role;
 
 -- ── 5. the atomic switch ────────────────────────────────────────────────────
+-- Must stay well inside the 8 s RPC budget: only the reverse lookups (~1 s) run
+-- here; the changed-class-names refresh (~30 s) and the patch news are done by
+-- the cron job codex-derived-refresh (section 7).
 create or replace function public.set_current_codex_build(p_build_id uuid)
  returns void
  language plpgsql
  security definer
  set search_path to 'public'
- set statement_timeout to '120s'
 as $function$
 declare
   v_build public.codex_builds%rowtype;
@@ -247,7 +319,7 @@ declare
   v_was_final boolean;
   v_missing text;
   v_seeded jsonb;
-  v_kind text;
+  v_pair text[];
   v_have bigint;
   v_want bigint;
 begin
@@ -255,6 +327,11 @@ begin
   if not found then
     raise exception 'codex build % not found', p_build_id;
   end if;
+  -- One switch per game build at a time: a second finalize of the same
+  -- coordinates waits here and then sees the first one as its predecessor.
+  perform pg_advisory_xact_lock(hashtextextended(
+    'codex_switch|' || v_build.channel || '|' || v_build.patch_version || '|' || v_build.build_number, 0));
+  select * into v_build from public.codex_builds where id = p_build_id;
   if v_build.superseded_at is not null then
     raise exception 'codex_build_superseded: % was replaced by %', p_build_id, v_build.superseded_by;
   end if;
@@ -263,8 +340,13 @@ begin
   if not v_was_final then
     v_prev := public.codex_build_predecessor(p_build_id);
 
-    -- A re-upload must hold every table: uploaded by the run or cloned from v_prev.
     if v_prev is not null then
+      -- Copied from a build that has been replaced since: the copy is stale.
+      if exists (select 1 from public.codex_build_touched x
+                  where x.build_id = p_build_id and x.cloned_from is not null and x.cloned_from <> v_prev) then
+        raise exception 'codex_build_superseded: % was replaced while % was finalizing, upload again', v_prev, p_build_id;
+      end if;
+      -- A re-upload must hold every table: uploaded by the run or copied from v_prev.
       select string_agg(t, ', ' order by t) into v_missing
         from unnest(public.codex_clone_tables()) t
        where not exists (select 1 from public.codex_build_touched x
@@ -278,16 +360,22 @@ begin
       raise exception 'codex_build_incomplete: no ships';
     end if;
 
-    -- What the uploader says it sent must be there (2 % slack for duplicate class names).
+    -- What the uploader says it sent must be there (2 % slack for duplicate keys).
     v_seeded := v_build.entity_counts -> 'seeded';
     if jsonb_typeof(v_seeded) = 'object' then
-      foreach v_kind in array array['ships', 'items', 'weapons', 'components', 'ammunition', 'blueprints', 'manufacturers'] loop
-        if coalesce(v_seeded ->> v_kind, '') ~ '^[0-9]+$' then
-          v_want := (v_seeded ->> v_kind)::bigint;
-          execute format('select count(*) from public.%I where build_id = $1', 'codex_' || v_kind || '_rows')
+      foreach v_pair slice 1 in array array[
+        ['ships', 'codex_ships_rows'], ['items', 'codex_items_rows'], ['weapons', 'codex_weapons_rows'],
+        ['components', 'codex_components_rows'], ['ammunition', 'codex_ammunition_rows'],
+        ['blueprints', 'codex_blueprints_rows'], ['manufacturers', 'codex_manufacturers_rows'],
+        ['item_ports', 'codex_item_ports'], ['blueprint_ingredients', 'codex_blueprint_ingredients'],
+        ['missions', 'codex_missions'], ['keybinds', 'codex_keybinds']
+      ] loop
+        if coalesce(v_seeded ->> v_pair[1], '') ~ '^[0-9]+$' then
+          v_want := (v_seeded ->> v_pair[1])::bigint;
+          execute format('select count(*) from public.%I where build_id = $1', v_pair[2])
             into v_have using p_build_id;
           if v_have < floor(v_want * 0.98) then
-            raise exception 'codex_build_incomplete: % has % of % rows', v_kind, v_have, v_want;
+            raise exception 'codex_build_incomplete: % has % of % rows', v_pair[1], v_have, v_want;
           end if;
         end if;
       end loop;
@@ -309,16 +397,16 @@ begin
   update public.codex_builds set is_current = false
     where channel = v_build.channel and is_current and id <> p_build_id;
   -- AUD-113: finalize marks the build as finished for prune_codex_builds. The
-  -- triggers on finalized_at fill the derived tables of a new build.
+  -- reverse-lookup trigger on finalized_at fills the new build's fit ports.
   update public.codex_builds
     set is_current = true, finalized_at = coalesce(finalized_at, now())
     where id = p_build_id;
 
   -- A published build written in place (an uploader resuming an old job, a seed
-  -- script): its derived tables must follow the rows, the triggers do not fire.
+  -- script): its derived tables must follow the rows; the triggers do not fire.
   if v_was_final then
     perform public.codex_refresh_reverse_lookups(p_build_id);
-    perform public.codex_refresh_changed_class_names(p_build_id);
+    delete from public.codex_build_changes_done where build_id = p_build_id;  -- the cron job recomputes
   end if;
 end
 $function$;
@@ -545,43 +633,92 @@ begin
 end;
 $function$;
 
--- ── 8. clients never see a superseded build ─────────────────────────────────
--- A tab still on it then learns from CodexService.buildStillExists that it is
--- gone and moves to the live build (its rows stay readable until the prune).
-alter policy codex_builds_anon_read on public.codex_builds using (superseded_at is null);
-alter policy codex_builds_authenticated_read on public.codex_builds using (superseded_at is null);
+-- ── 7b. derived tables outside the RPC budget ───────────────────────────────
+-- The changed-class-names refresh takes ~30 s per build; inside the finalize
+-- RPC (8 s budget) it was cancelled, and with it the whole switch. The trigger
+-- no longer computes; a cron job fills what is missing for every current build
+-- within two minutes, including the "new / changed in patch X" records that
+-- ingest-catalog used to request after finalize (also cancelled at 8 s).
+create or replace function public.codex_builds_changed_class_names_trg()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+begin
+  -- Deferred to codex_refresh_pending_derived() (cron codex-derived-refresh).
+  return new;
+end;
+$function$;
+
+create or replace function public.codex_refresh_pending_derived()
+ returns integer
+ language plpgsql
+ security definer
+ set search_path to 'public'
+as $function$
+declare
+  b record;
+  v_prev uuid;
+  v_other uuid;
+  v_n integer := 0;
+begin
+  for b in select id, channel, patch_version, created_at from public.codex_builds
+            where is_current and finalized_at is not null and superseded_at is null loop
+    -- The default diff baseline (the build before it in the channel).
+    select id into v_prev from public.codex_builds
+     where channel = b.channel and id <> b.id and finalized_at is not null
+       and superseded_at is null and created_at < b.created_at
+     order by created_at desc limit 1;
+    if v_prev is not null and not exists (select 1 from public.codex_build_changes_done d
+                                           where d.build_id = b.id and d.previous_build_id = v_prev) then
+      perform public.codex_refresh_changed_class_names(b.id, v_prev);
+      v_n := v_n + 1;
+    end if;
+    -- Patch news: first-seen + changed versus the newest build of another patch.
+    select id into v_other from public.codex_builds
+     where channel = b.channel and id <> b.id and finalized_at is not null and superseded_at is null
+       and patch_version <> b.patch_version and created_at < b.created_at
+     order by created_at desc limit 1;
+    if v_other is not null and not exists (select 1 from public.codex_build_changes_done d
+                                            where d.build_id = b.id and d.previous_build_id = v_other) then
+      perform public.codex_record_patch_news(b.id);
+      v_n := v_n + 1;
+    end if;
+  end loop;
+  return v_n;
+end
+$function$;
+revoke all on function public.codex_refresh_pending_derived() from public, anon, authenticated;
+grant execute on function public.codex_refresh_pending_derived() to service_role;
+
+select cron.schedule(
+  'codex-derived-refresh',
+  '*/2 * * * *',
+  $cron$ select public.codex_refresh_pending_derived(); $cron$
+);
+
+-- ── 8. clients only ever see published, current-generation builds ───────────
+-- A staging build (finalized_at null) is half written; a superseded one has
+-- been replaced. A tab still on a superseded build learns from
+-- CodexService.buildStillExists that it is gone and moves to the live one (its
+-- rows stay readable until the prune).
+alter policy codex_builds_anon_read on public.codex_builds
+  using (finalized_at is not null and superseded_at is null);
+alter policy codex_builds_authenticated_read on public.codex_builds
+  using (finalized_at is not null and superseded_at is null);
 
 -- ── 9. the live build of 2026-11-14 catches up with its rows ────────────────
--- Its derived tables were last computed before the in-place re-uploads. The
--- reverse lookups take ~1 s and run here; the changed-class-names refresh takes
--- ~30 s and must not run inside this transaction, which holds ACCESS EXCLUSIVE
--- on the catalog tables (every Codex read would wait). A one-shot cron job does
--- it a minute later and removes itself.
+-- Its derived tables were computed before the in-place re-uploads. The reverse
+-- lookups take ~1 s and run here; for the changed class names only the "done"
+-- marker goes, codex-derived-refresh recomputes them outside this transaction
+-- (which holds ACCESS EXCLUSIVE on the catalog tables).
 do $$
 declare
   b uuid;
 begin
   for b in select id from public.codex_builds where is_current and finalized_at is not null loop
     perform public.codex_refresh_reverse_lookups(b);
+    delete from public.codex_build_changes_done where build_id = b;
   end loop;
 end $$;
-
-select cron.schedule(
-  'codex-atomic-rebuild-catchup',
-  '* * * * *',
-  $cron$
-  do $do$
-  declare
-    b uuid;
-  begin
-    for b in select id from public.codex_builds where is_current and finalized_at is not null loop
-      begin
-        perform public.codex_refresh_changed_class_names(b);
-      exception when others then
-        raise warning 'codex-atomic-rebuild-catchup: %', sqlerrm;
-      end;
-    end loop;
-    perform cron.unschedule('codex-atomic-rebuild-catchup');
-  end $do$;
-  $cron$
-);

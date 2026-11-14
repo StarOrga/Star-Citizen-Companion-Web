@@ -23,20 +23,14 @@ export const CLONE_TABLES: readonly string[] = [
 /** The staging table of the R2 locale strings; untouched = copy the predecessor's R2 prefix. */
 export const LOCALE_TABLE = 'codex_locale_strings';
 
-export interface BuildRowRef {
-  id: string;
-  finalized_at: string | null;
-}
-
 /**
- * What `init` does with the rows already holding these coordinates (newest
- * first, superseded ones already filtered out): resume the newest unfinished
- * staging row, or create a new one. A published row is never reused — writing
- * into it is exactly the in-place upload this file exists to stop.
+ * True when an `init` insert failed on the pre-20261114120000 unique
+ * constraint over the coordinates: the project still has the old schema, the
+ * caller falls back to the old natural-key upsert.
  */
-export function planInit(existing: readonly BuildRowRef[]): { action: 'reuse'; id: string } | { action: 'insert' } {
-  const staging = existing.find((r) => !r.finalized_at);
-  return staging ? { action: 'reuse', id: staging.id } : { action: 'insert' };
+export function isLegacyNatkeyConflict(error: unknown): boolean {
+  const e = error as { code?: string; message?: string; details?: string } | null;
+  return e?.code === '23505' && `${e?.message ?? ''} ${e?.details ?? ''}`.includes('codex_builds_channel_patch_build_key');
 }
 
 export interface RebuildDeps {
@@ -44,22 +38,26 @@ export interface RebuildDeps {
   predecessor(buildId: string): Promise<string | null>;
   /** Tables the run (or an earlier clone) already wrote for this build. */
   touched(buildId: string): Promise<Set<string>>;
-  /** Copies one table from the predecessor; returns the row count. */
-  clone(buildId: string, table: string): Promise<number>;
+  /** Copies the next chunk of one table from the predecessor. */
+  clone(buildId: string, table: string): Promise<{ copied: number; done: boolean }>;
 }
 
 export interface RebuildPlan {
   predecessor: string | null;
-  /** Rows copied per table this call (0 = table was uploaded or already copied). */
+  /** Rows copied per table by this call (0 = table was uploaded or already copied). */
   cloned: Record<string, number>;
   /** The run sent no locale strings: the predecessor's R2 strings must follow. */
   copyLocaleFrom: string | null;
 }
 
+/** Upper bound of chunk calls per table (items: ~11 chunks of 2 000). */
+export const MAX_CLONE_CALLS = 200;
+
 /**
  * Before the switch: fill every table the run skipped from the predecessor.
- * One RPC per table keeps each statement short (items alone took 24 s in the
- * 2026-11-14 dry run). Idempotent — a retried finalize copies nothing twice.
+ * Chunked, because every RPC runs under the authenticator's 8 s statement
+ * timeout and items alone took 24 s in the 2026-11-14 dry run. Idempotent: a
+ * retried finalize resumes where the copy stopped and copies nothing twice.
  */
 export async function prepareRebuild(deps: RebuildDeps, buildId: string): Promise<RebuildPlan> {
   const predecessor = await deps.predecessor(buildId);
@@ -68,7 +66,14 @@ export async function prepareRebuild(deps: RebuildDeps, buildId: string): Promis
   const touched = await deps.touched(buildId);
   for (const table of CLONE_TABLES) {
     if (touched.has(table)) continue;
-    plan.cloned[table] = await deps.clone(buildId, table);
+    let copied = 0;
+    for (let call = 0; ; call++) {
+      if (call >= MAX_CLONE_CALLS) throw new Error(`clone of ${table} did not finish in ${MAX_CLONE_CALLS} calls`);
+      const r = await deps.clone(buildId, table);
+      copied += r.copied;
+      if (r.done) break;
+    }
+    plan.cloned[table] = copied;
   }
   if (!touched.has(LOCALE_TABLE)) plan.copyLocaleFrom = predecessor;
   return plan;
@@ -93,5 +98,8 @@ export function isRebuildUnavailable(error: unknown): boolean {
 export function refusedSwitchStatus(error: unknown): { status: 409; code: string } | null {
   const msg = String((error as { message?: string } | null)?.message ?? '');
   const m = /\b(codex_build_incomplete|codex_build_superseded)\b/.exec(msg);
-  return m ? { status: 409, code: m[1] } : null;
+  if (m) return { status: 409, code: m[1] };
+  // A parallel finalize of the same game build was published first.
+  if (msg.includes('codex_builds_natkey_published')) return { status: 409, code: 'codex_build_superseded' };
+  return null;
 }

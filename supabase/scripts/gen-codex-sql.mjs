@@ -213,8 +213,12 @@ values
   // set current
   await writeFile(
     join(DEST, '90_current.sql'),
-    `select public.codex_clone_untouched(${BID}, t) from unnest(public.codex_clone_tables()) t;
-select public.set_current_codex_build(${BID});`,
+    `do $$ declare b uuid := ${BID}; t text; r jsonb; begin
+  foreach t in array public.codex_clone_tables() loop
+    loop r := public.codex_clone_untouched(b, t, 20000); exit when (r ->> 'done')::boolean; end loop;
+  end loop;
+  perform public.set_current_codex_build(b);
+end $$;`,
     'utf-8',
   );
   files.push('90_current.sql');

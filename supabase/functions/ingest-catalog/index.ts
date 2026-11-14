@@ -8,8 +8,8 @@
 // around a codex_builds row:
 //
 //   POST { op: "init",             build: {...} }                      -> { build_id }
-//        (coordinates that are already published get a NEW staging row, an
-//         unfinished one is resumed — never a write into the live build;
+//        (always a NEW staging row, never a write into the live build; a
+//         resumed run passes its stored build_id instead of calling init;
 //         migration 20261114120000, _rebuild.ts)
 //   POST { op: "upsert",           build_id, table, rows: [...] }      -> { upserted }
 //   POST { op: "ports",            build_id, rows: [...] }             -> { inserted, degraded? }
@@ -53,7 +53,8 @@
 //        (a re-upload first copies every table the run skipped from the build
 //         it replaces, plus its R2 strings when none were sent, then switches
 //         atomically: -> { replaces, cloned, locale_copy }. An incomplete build
-//         is refused with 409 codex_build_incomplete and the live one stays.)
+//         is refused with 409 codex_build_incomplete and the live one stays; a
+//         failed string copy answers 503 locale_copy_failed (retry finalize).)
 //        (then, after the response: publishes the build's locale strings to R2
 //         and deletes the rows once the public Worker serves them — see below)
 //   POST { op: "locale_publish",   build_id, lang?, delete_source? }   -> { ok, results }
@@ -110,10 +111,9 @@ import { nullUndefinedPlaceholders } from './_placeholders.ts';
 import { isCarryUnavailable, isRpcMissing, parseCarry, parsePrune } from './_carry.ts';
 import { sanitizeSilhouetteRow } from './_silhouette-row.ts';
 import { parseSkips } from './_silhouette-skips.ts';
-import { recordPatchNews } from './_patch-news.ts';
 import { MAX_MISSION_ROWS, parseMissions } from './_missions.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
-import { isRebuildUnavailable, planInit, prepareRebuild, refusedSwitchStatus } from './_rebuild.ts';
+import { isLegacyNatkeyConflict, isRebuildUnavailable, prepareRebuild, refusedSwitchStatus } from './_rebuild.ts';
 import type { RebuildPlan } from './_rebuild.ts';
 import { copyBuildLocales } from './_locale-copy.ts';
 
@@ -281,43 +281,34 @@ function publishDeps(admin: Admin, r2: R2): PublishDeps {
 type Nat = { channel: string; patch_version: string; build_number: string };
 
 /**
- * The build row an `init` writes into (migration 20261114120000). Coordinates
- * that are already published get a NEW staging row — writing into the live one
- * is what let readers see half an upload. An unfinished staging row of the
- * same coordinates is resumed. Without the migration: the old natural-key upsert.
+ * The build row an `init` writes into (migration 20261114120000): ALWAYS a new
+ * staging row. Writing into the published one is what let readers see half an
+ * upload, and reusing another run's staging row would mix two extracts — a
+ * resumed run passes its stored build_id and never calls `init`. Without the
+ * migration (coordinates still unique): the old natural-key upsert.
  */
 async function initBuildRow(admin: Admin, nat: Nat, meta: Record<string, unknown>): Promise<string> {
-  const { data: rows, error } = await admin
-    .from('codex_builds').select('id, finalized_at')
-    .eq('channel', nat.channel).eq('patch_version', nat.patch_version).eq('build_number', nat.build_number)
-    .is('superseded_at', null)
-    .order('created_at', { ascending: false })
-    .limit(20);
-  if (error) {
-    if (!isRebuildUnavailable(error)) throw error;
-    const legacy = await admin
-      .from('codex_builds')
-      .upsert({ ...nat, ...meta }, { onConflict: 'channel,patch_version,build_number' })
-      .select('id')
-      .single();
-    if (legacy.error) throw legacy.error;
-    return (legacy.data as { id: string }).id;
-  }
-  const plan = planInit((rows ?? []) as { id: string; finalized_at: string | null }[]);
-  if (plan.action === 'reuse') {
-    const { error: upErr } = await admin.from('codex_builds').update(meta).eq('id', plan.id);
-    if (upErr) throw upErr;
-    return plan.id;
-  }
-  const { data, error: insErr } = await admin.from('codex_builds').insert({ ...nat, ...meta }).select('id').single();
-  if (insErr) throw insErr;
-  return (data as { id: string }).id;
+  const { data, error } = await admin.from('codex_builds').insert({ ...nat, ...meta }).select('id').single();
+  if (!error) return (data as { id: string }).id;
+  if (!isLegacyNatkeyConflict(error)) throw error;
+  const legacy = await admin
+    .from('codex_builds')
+    .upsert({ ...nat, ...meta }, { onConflict: 'channel,patch_version,build_number' })
+    .select('id')
+    .single();
+  if (legacy.error) throw legacy.error;
+  return (legacy.data as { id: string }).id;
 }
+
+/** The R2 strings could not be copied: the switch waits, the uploader retries finalize. */
+class LocaleCopyError extends Error {}
 
 /**
  * Before the switch: copy every table a re-upload skipped from the build it
  * replaces, and that build's R2 strings when the run sent none (synchronously,
  * so the new build never goes live without them). Null without the migration.
+ * Throws LocaleCopyError when the copy failed — the predecessor is superseded
+ * (and deleted an hour later) by the switch, so it must not happen first.
  */
 async function prepareSwitch(
   admin: Admin,
@@ -339,7 +330,8 @@ async function prepareSwitch(
       async clone(id, table) {
         const { data, error } = await admin.rpc('codex_clone_untouched', { p_build_id: id, p_table: table });
         if (error) throw error;
-        return Number(data ?? 0);
+        const r = (data ?? {}) as { copied?: number; done?: boolean };
+        return { copied: Number(r.copied ?? 0), done: r.done === true };
       },
     }, buildId);
   } catch (e) {
@@ -352,13 +344,21 @@ async function prepareSwitch(
     if (!r2) {
       locale = 'r2_not_configured';
     } else {
-      try {
-        const blocked = await r2WriteBlocked(r2);
-        locale = blocked ? { skipped: blocked.code } : await copyBuildLocales(publishDeps(admin, r2), plan.copyLocaleFrom, buildId);
-      } catch (e) {
-        // Strings degrade (the client falls back per key); the catalog still switches.
-        console.error(`ingest-catalog: locale copy ${plan.copyLocaleFrom} -> ${buildId} failed: ${(e as Error).message}`);
-        locale = { failed: (e as Error).message.slice(0, 200) };
+      const blocked = await r2WriteBlocked(r2).catch((e) => ({ code: `usage_check_failed: ${(e as Error).message}` }));
+      if (blocked) {
+        // The cost guard wins: the catalog switches, strings fall back per key.
+        console.error(`ingest-catalog: locale copy ${plan.copyLocaleFrom} -> ${buildId} skipped: ${blocked.code}`);
+        locale = { skipped: blocked.code };
+      } else {
+        let results;
+        try {
+          results = await copyBuildLocales(publishDeps(admin, r2), plan.copyLocaleFrom, buildId);
+        } catch (e) {
+          throw new LocaleCopyError((e as Error).message);
+        }
+        const bad = results.filter((r) => r.status === 'incomplete' || (r.status === 'copied' && !r.verified));
+        if (bad.length > 0) throw new LocaleCopyError(`not copied: ${bad.map((r) => r.lang).join(', ')}`);
+        locale = results.map((r) => `${r.lang}:${r.status}`);
       }
     }
   }
@@ -890,7 +890,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
         if (countsErr) throw countsErr;
       }
       // A re-upload of a published game build: fill what it skipped, then switch.
-      const prepared = await prepareSwitch(admin, buildId);
+      let prepared: Awaited<ReturnType<typeof prepareSwitch>>;
+      try {
+        prepared = await prepareSwitch(admin, buildId);
+      } catch (e) {
+        if (!(e instanceof LocaleCopyError)) throw e;
+        console.error(`ingest-catalog: finalize ${buildId} waits, locale copy failed: ${e.message}`);
+        return new Response(
+          JSON.stringify({ error: 'locale_copy_failed', message: e.message.slice(0, 300) }),
+          { status: 503, headers: { 'content-type': 'application/json', 'retry-after': '5', ...CORS } },
+        );
+      }
       if (prepared?.plan.predecessor) {
         console.log(`ingest-catalog: finalize ${buildId} replaces ${prepared.plan.predecessor}: ` +
           `${JSON.stringify(prepared.plan.cloned)} locale ${JSON.stringify(prepared.locale)}`);
@@ -905,10 +915,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const replaced = prepared?.plan.predecessor
         ? { replaces: prepared.plan.predecessor, cloned: prepared.plan.cloned, locale_copy: prepared.locale }
         : {};
-      // "New / changed in patch X": first-seen + changed records. Insert-only, so a
-      // re-upload of the same patch resets nothing. Never fatal (see _patch-news.ts).
-      const patchNews = await recordPatchNews((fn, args) => admin.rpc(fn, args), buildId);
-      if (patchNews.status === 'failed') console.error(`ingest-catalog: patch news ${buildId} failed: ${patchNews.message}`);
+      // "New / changed in patch X" and the changed class names: the cron job
+      // codex-derived-refresh (~30 s each, past the 8 s RPC budget here, where
+      // the old recordPatchNews call was cancelled).
       // KI patch summary, once per build (idempotent, graceful - a failure only
       // leaves the News button hidden). Fire-and-forget after the response.
       afterResponse(
