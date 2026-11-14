@@ -551,3 +551,25 @@ describe('Verse hub — beacons idle hint', () => {
     fixture.destroy();
   }));
 });
+
+describe('Verse hub — star-map beacon rank news dot', () => {
+  beforeEach(() => TestBed.configureTestingModule({ providers: [provideRouter([]), provideTranslateService({})] }));
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('shows the dot only while something is new on the rank page, announced in the aria-label', () => {
+    const fixture = TestBed.createComponent(BriefingBeaconsComponent);
+    fixture.componentRef.setInput('skyReady', true);
+    fixture.detectChanges();
+    const link = (): HTMLElement => (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('a.const-l')!;
+    expect(link().querySelector('.rank-dot')).toBeNull();
+    expect(link().getAttribute('aria-label')).not.toContain('starmap.rank.news');
+    fixture.componentRef.setInput('rankNews', true);
+    fixture.detectChanges();
+    expect(link().querySelector('.rank-dot')).not.toBeNull();
+    expect(link().getAttribute('aria-label')).toContain('starmap.rank.news');
+    fixture.componentRef.setInput('rankNews', false);
+    fixture.detectChanges();
+    expect(link().querySelector('.rank-dot')).toBeNull();
+    fixture.destroy();
+  });
+});

@@ -32,7 +32,7 @@ import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { VerseApiService } from '../data/verse-api.service';
 import { VerseDigestItem, VerseDoor } from '../data/verse.models';
-import { STARS_PER_PATCH, defaultPatch } from '../starmap/starmap.model';
+import { STARS_PER_PATCH, defaultPatch, hasRankNews, rankNewsItems, readRankSeen } from '../starmap/starmap.model';
 import { BriefingMoonComponent, MoonTiming, moonSchedule } from './briefing/briefing-moon.component';
 import { BriefingSkyComponent } from './briefing/briefing-sky.component';
 import { BriefingBeaconsComponent } from './briefing/briefing-beacons.component';
@@ -383,6 +383,15 @@ export class VerseBriefingComponent {
    * sees a stand-in that then jumps to the real one.
    */
   readonly skyReady = computed(() => this.patch() !== null);
+  /**
+   * Something new on the rank page (a tier, a rank reward, a series stop) the reader has not opened yet:
+   * the star-map beacon shows the same dot as the star map's crest. Reads the explorer state the hub
+   * already loads for the constellation - no extra fetch; the seen set is read from localStorage when the state changes.
+   */
+  readonly rankNews = computed(() => {
+    const st = this.api.explorer();
+    return !!st && hasRankNews(rankNewsItems(st), readRankSeen());
+  });
   readonly points = computed(() => this.patch()?.constellation?.points ?? null);
   readonly lit = computed(() => Math.min(STARS_PER_PATCH, this.patch()?.starCount ?? 0));
   /** The star map's placement of the lit stars, so both pages light the same ones. */

@@ -17,7 +17,7 @@
         @if (buildStep() >= 1) {
           <sc-briefing-beacons [sunLink]="sunLink()" [version]="kicker()?.version ?? null" [stability]="kicker()?.stability ?? null" [trend]="kicker()?.trend ?? null"
                                [skyReady]="skyReady()" [points]="points()" [lit]="lit()" [total]="total" [litSet]="litSet()"
-                               [patchLine]="starPatch()" />
+                               [patchLine]="starPatch()" [rankNews]="rankNews()" />
         }
 
         <!-- Hero: centred in the upper two thirds — kicker, title (the link), search. -->

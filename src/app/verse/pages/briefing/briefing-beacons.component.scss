@@ -334,3 +334,9 @@
 }
 
 // cx-dim: every text over the planet and the stars gets the page's dark halo.
+
+// "New on the rank page": the star map crest's dot at the star-map beacon (same accent, steady; a soft ring pulses unless reduced motion).
+.rank-dot { position: absolute; z-index: 1; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; pointer-events: none;
+  background: var(--sc-accent); box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 8px var(--sc-accent); animation: rank-dot-ring 2.4s ease-out infinite; }
+@keyframes rank-dot-ring { 0% { outline: 0 solid color-mix(in srgb, var(--sc-accent) 55%, transparent); } 70%, 100% { outline: 9px solid color-mix(in srgb, var(--sc-accent) 0%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .rank-dot { animation: none; } }

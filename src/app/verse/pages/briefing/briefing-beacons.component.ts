@@ -98,7 +98,8 @@ export const IDLE_SHOW_MS = 5000;
       @let mapValue = patchLine()
         ? ('starmap.stageAria' | translate: { patch: patchLine() }) + ' · ' + ('starmap.progress' | translate: { lit: lit(), total: total() })
         : ('starmap.progress' | translate: { lit: lit(), total: total() });
-      <a class="const-l" routerLink="/verse/explorer" [class.idle]="idle()" [attr.aria-label]="mapName + ' · ' + mapValue">
+      <a class="const-l" routerLink="/verse/explorer" [class.idle]="idle()" [attr.aria-label]="mapName + ' · ' + mapValue + (rankNews() ? ' · ' + ('starmap.rank.news' | translate) : '')">
+        @if (rankNews()) { <span class="rank-dot" aria-hidden="true"></span> }
         <span class="fig" data-verse-fly="starmap" aria-hidden="true"><sc-briefing-sky [points]="points()" [lit]="lit()" [litSet]="litSet()" /></span>
         <span class="lab" aria-hidden="true">
           <span class="lab-n">@for (ch of chars(mapName); track ch.i) {<i [style.--n]="ch.i">{{ ch.c }}</i>}</span>
@@ -129,6 +130,8 @@ export class BriefingBeaconsComponent {
   readonly total = input(0);
   readonly litSet = input<ReadonlySet<number> | null>(null);
   readonly patchLine = input<string | null>(null);
+  /** New on the rank page: a dot at the star-map beacon, cleared by visiting the rank page. */
+  readonly rankNews = input(false);
 
   /**
    * The sun's prominences: angle on the limb, cycle length, delay into it and
